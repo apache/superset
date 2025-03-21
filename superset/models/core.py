@@ -27,7 +27,7 @@ import textwrap
 from ast import literal_eval
 from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from inspect import signature
 from typing import Any, Callable, cast, TYPE_CHECKING
@@ -169,6 +169,25 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
     server_cert = Column(encrypted_field_factory.create(Text), nullable=True)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
+    llm_provider = Column(String(100), nullable=True)
+    llm_model = Column(String(100), nullable=True)
+    llm_api_key = Column(String(100), nullable=True)
+    llm_enabled = Column(Boolean, default=False)
+    llm_context_options = Column(
+        Text,
+        default=textwrap.dedent(
+            """\
+    {
+        "schemas": [],
+        "include_indexes": true,
+        "refresh_interval": 0,
+        "top_k": 10,
+        "top_k_row_limit": 50000,
+        "instructions": ""
+    }
+    """
+        ),
+    )
 
     export_fields = [
         "database_name",
@@ -182,6 +201,8 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         "allow_file_upload",
         "extra",
         "impersonate_user",
+        "llm_available",
+        "llm_enabled",
     ]
     extra_import_fields = [
         "password",
@@ -367,6 +388,10 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         except Exception:  # pylint: disable=broad-except
             engine_information = {}
         return engine_information
+
+    @property
+    def llm_available(self) -> bool:
+        return bool(self.llm_provider) and bool(self.llm_model) and bool(self.llm_api_key) and bool(self.llm_enabled)
 
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
@@ -1242,3 +1267,13 @@ class FavStar(UUIDMixin, Model):
     class_name = Column(String(50))
     obj_id = Column(Integer)
     dttm = Column(DateTime, default=datetime.utcnow)
+
+
+class ContextBuilderTask(Model):
+    __tablename__ = "context_builder_task"
+    id = Column(Integer, primary_key=True)
+    task_id = Column(String(255), unique=True)
+    database_id = Column(Integer, ForeignKey("dbs.id"))
+    started_time = Column(DateTime, default=datetime.now(timezone.utc))
+    ended_time = Column(DateTime)
+    params = Column(utils.MediumText())

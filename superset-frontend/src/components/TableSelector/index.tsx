@@ -98,7 +98,7 @@ interface TableSelectorProps {
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
   onCatalogChange?: (catalog?: string | null) => void;
-  onSchemaChange?: (schema?: string) => void;
+  onSchemaChange?: (schema: string | string[]) => void;
   readOnly?: boolean;
   catalog?: string | null;
   schema?: string;
@@ -106,12 +106,16 @@ interface TableSelectorProps {
   sqlLabMode?: boolean;
   tableValue?: string | string[];
   onTableSelectChange?: (
-    value?: string | string[],
+    value?: TableValue | TableValue[],
     catalog?: string | null,
-    schema?: string,
   ) => void;
   tableSelectMode?: 'single' | 'multiple';
   customTableOptionLabelRenderer?: (table: Table) => JSX.Element;
+}
+
+export interface TableValue {
+  value: string;
+  schema: string;
 }
 
 export interface TableOption {
@@ -121,9 +125,9 @@ export interface TableOption {
 }
 
 export const TableOption = ({ table }: { table: Table }) => {
-  const { value, type, extra } = table;
+  const { value, type, extra, schema } = table;
   return (
-    <TableLabel title={value}>
+    <TableLabel title={`${schema}.${value}`}>
       {type === 'view' ? (
         <Icons.Eye iconSize="m" />
       ) : (
@@ -181,7 +185,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [currentCatalog, setCurrentCatalog] = useState<
     string | null | undefined
   >(catalog);
-  const [currentSchema, setCurrentSchema] = useState<string | undefined>(
+  const [currentSchema, setCurrentSchema] = useState<string | string[] | undefined>(
     schema,
   );
   const [tableSelectValue, setTableSelectValue] = useState<
@@ -216,7 +220,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     () =>
       data
         ? data.options.map(table => ({
-            value: table.value,
+            value: `${table.schema}.${table.value}`,
             label: <TableOption table={table} />,
             text: table.value,
             ...(customTableOptionLabelRenderer && {
@@ -253,13 +257,20 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const internalTableChange = (
     selectedOptions: TableOption | TableOption[] | undefined,
   ) => {
+    const parseOption = (
+      option: TableOption,
+    ): TableValue => {
+      const nameParts = option.value.split('.');
+      return { value: nameParts[1], schema: nameParts[0] };
+    };
     if (currentSchema) {
       onTableSelectChange?.(
         Array.isArray(selectedOptions)
-          ? selectedOptions.map(option => option?.value)
-          : selectedOptions?.value,
-        currentCatalog,
-        currentSchema,
+          ? selectedOptions.map(option => parseOption(option))
+          : selectedOptions !== undefined
+          ? parseOption(selectedOptions)
+          : undefined,
+        currentCatalog
       );
     } else {
       setTableSelectValue(selectedOptions);
@@ -288,7 +299,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     setTableSelectValue(value);
   };
 
-  const internalSchemaChange = (schema?: string) => {
+  const internalSchemaChange = (schema: string | string[]) => {
     setCurrentSchema(schema);
     if (onSchemaChange) {
       onSchemaChange(schema);
@@ -365,6 +376,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         sqlLabMode={sqlLabMode}
         isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
         readOnly={readOnly}
+        schemaSelectMode='multiple'
       />
       {sqlLabMode && !formMode && <div className="divider" />}
       {renderTableSelect()}

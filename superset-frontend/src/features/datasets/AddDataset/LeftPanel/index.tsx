@@ -28,6 +28,7 @@ import {
   DatasetObject,
 } from 'src/features/datasets/AddDataset/types';
 import { Table } from 'src/hooks/apiResources';
+import { TableValue } from 'src/components/TableSelector';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
@@ -137,7 +138,7 @@ export default function LeftPanel({
       });
     }
   };
-  const setSchema = (schema: string) => {
+  const setSchema = (schema: string | string[]) => {
     if (schema) {
       setDataset({
         type: DatasetActionType.SelectSchema,
@@ -145,10 +146,14 @@ export default function LeftPanel({
       });
     }
   };
-  const setTable = (tableName: string) => {
+  const setTable = (tableValue: TableValue) => {
+    setDataset({
+      type: DatasetActionType.SelectSchema,
+      payload: { name: 'schema', value: tableValue.schema },
+    });
     setDataset({
       type: DatasetActionType.SelectTable,
-      payload: { name: 'table_name', value: tableName },
+      payload: { name: 'table_name', value: tableValue.value },
     });
   };
   useEffect(() => {

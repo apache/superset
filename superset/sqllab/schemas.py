@@ -26,6 +26,14 @@ sql_lab_get_results_schema = {
     "required": ["key"],
 }
 
+sql_lab_get_assistant_status_schema = {
+    "type": "object",
+    "properties": {
+        "pk": {"type": "integer"},
+    },
+    "required": ["pk"],
+}
+
 
 class EstimateQueryCostSchema(Schema):
     database_id = fields.Integer(
@@ -153,3 +161,15 @@ class SQLLabBootstrapSchema(Schema):
         values=fields.Nested(QueryResultSchema),
     )
     tab_state_ids = fields.List(fields.String())
+
+class GenerateSqlSchema(Schema):
+    database_id = fields.Integer(required=True)
+    user_prompt = fields.String(required=True, allow_none=False)
+    prior_context = fields.String(allow_none=True)
+    schemas = fields.List(fields.String(), allow_none=True)
+
+class GenerateSqlResponseSchema(Schema):
+    sql = fields.String(required=True)
+
+class GenerateDbContextSchema(Schema):
+    database_id = fields.Integer(required=True)

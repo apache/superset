@@ -105,6 +105,11 @@ export const SET_EDITOR_TAB_LAST_UPDATE = 'SET_EDITOR_TAB_LAST_UPDATE';
 export const SET_LAST_UPDATED_ACTIVE_TAB = 'SET_LAST_UPDATED_ACTIVE_TAB';
 export const CLEAR_DESTROYED_QUERY_EDITOR = 'CLEAR_DESTROYED_QUERY_EDITOR';
 
+export const GENERATE_SQL = 'GENERATE_SQL';
+export const START_GENERATE_SQL = 'START_GENERATE_SQL';
+export const GENERATE_SQL_DONE = 'GENERATE_SQL_DONE';
+export const GENERATE_SQL_SET_PROMPT = 'GENERATE_SQL_SET_PROMPT';
+
 export const addInfoToast = addInfoToastAction;
 export const addSuccessToast = addSuccessToastAction;
 export const addDangerToast = addDangerToastAction;
@@ -325,6 +330,60 @@ export function fetchQueryResults(query, displayLimit, timeoutInMs) {
         });
       });
   };
+}
+
+function convertSqlToComment(sql) {
+  const old_sql = sql.split("\n");
+  let commented_sql = "";
+
+  if (sql.trim() !== "") {
+    const context_builder = []
+    for (let i = 0; i < old_sql.length; i++) {
+      if (old_sql[i].startsWith("--")) {
+        context_builder.push(old_sql[i]);
+      } else if (i === old_sql.length - 1 && old_sql[i].trim() === "") {
+        continue;
+      } else {
+        context_builder.push("-- " + old_sql[i]);
+      }
+    }
+    commented_sql = context_builder.join("\n") + "\n";
+  }
+  return commented_sql;
+}
+
+export function generateSql(databaseId, queryEditor, prompt) {
+  return function (dispatch, getState) {
+    dispatch({ type: START_GENERATE_SQL });
+    const { sql } = getUpToDateQuery(getState(), queryEditor);
+    return SupersetClient.post({
+      endpoint: '/api/v1/sqllab/generate_sql/',
+      body: JSON.stringify({ database_id: databaseId, user_prompt: prompt, prior_context: sql }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(({ json }) => {
+        const old_context = convertSqlToComment(sql);
+        const new_question = "-- " + prompt + "\n\n";
+        const new_sql = [old_context === "" ? "" : old_context + "\n", new_question, json.sql].join("");
+
+        // TODO(AW): Is it better to dispatch two events here, or have the DONE event dispatch its own event?
+        dispatch(queryEditorSetAndSaveSql(queryEditor, new_sql));
+        dispatch({ type: GENERATE_SQL_DONE, prompt: "" });
+        // TODO(AW): Formatting the query makes the response from the LLM easier to read
+        // but messes up the formatting of the question and previous query.
+        // dispatch(formatQuery(queryEditor));
+      })
+      .catch(() => {
+        // TODO(AW): Same question as above
+        dispatch(addDangerToast(t('An error occurred while generating the SQL')))
+        dispatch({ type: GENERATE_SQL_DONE, prompt: prompt });
+      }
+      );
+  };
+}
+
+export function setGenerateSqlPrompt(prompt) {
+  return { type: GENERATE_SQL_SET_PROMPT, prompt };
 }
 
 export function runQuery(query, runPreviewOnly) {

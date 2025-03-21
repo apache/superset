@@ -77,7 +77,12 @@ database_tables_query_schema = {
     "type": "object",
     "properties": {
         "force": {"type": "boolean"},
-        "schema_name": {"type": "string"},
+        "schema_name": {
+            "oneOf": [
+                {"type": "string"},
+                {"type": "array", "items": {"type": "string"}}
+            ]
+        },
         "catalog_name": {"type": "string"},
     },
     "required": ["schema_name"],
@@ -565,6 +570,11 @@ class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
     external_url = fields.String(allow_none=True)
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
     uuid = fields.String(required=False)
+    llm_api_key = fields.String(required=False)
+    llm_model = fields.String(required=False)
+    llm_provider = fields.String(required=False)
+    llm_enabled = fields.Boolean(required=False)
+    llm_context_options = fields.String(required=False)
 
 
 class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
@@ -1063,6 +1073,11 @@ class DatabaseConnectionSchema(Schema):
         metadata={"description": sqlalchemy_uri_description},
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
+    llm_provider = fields.String(required=False)
+    llm_model = fields.String(required=False)
+    llm_api_key = fields.String(required=False)
+    llm_enabled = fields.Boolean(required=False)
+    llm_context_options = fields.String(required=False)
 
 
 class DelimitedListField(fields.List):

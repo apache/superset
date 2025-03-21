@@ -32,3 +32,4 @@ export * from './dashboards';
 export * from './tables';
 export * from './schemas';
 export * from './queryValidations';
+export * from './settings';

@@ -409,6 +409,34 @@ export default function sqlLabReducer(state = {}, action) {
       };
       return alterInObject(state, 'queries', action.query, alts);
     },
+    [actions.START_GENERATE_SQL]() {
+      return {
+        ...state,
+        queryGenerator: {
+          ...state.queryGenerator,
+          isGeneratingQuery: true,
+        },
+      };
+    },
+    [actions.GENERATE_SQL_DONE]() {
+      return {
+        ...state,
+        queryGenerator: {
+          ...state.queryGenerator,
+          isGeneratingQuery: false,
+          prompt: action.prompt,
+        },
+      };
+    },
+    [actions.GENERATE_SQL_SET_PROMPT]() {
+      return {
+        ...state,
+        queryGenerator: {
+          ...state.queryGenerator,
+          prompt: action.prompt,
+        },
+      };
+    },
     [actions.SET_ACTIVE_QUERY_EDITOR]() {
       const qeIds = state.queryEditors.map(qe => qe.id);
       if (
@@ -783,8 +811,10 @@ export default function sqlLabReducer(state = {}, action) {
       return { ...state, lastUpdatedActiveTab: action.queryEditorId };
     },
   };
+  // console.log('Handling action', action.type);
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
   }
+  // console.log('No handler found for action', action.type);
   return state;
 }

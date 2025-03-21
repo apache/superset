@@ -132,10 +132,58 @@ def make_url_safe(raw_url: str | URL) -> URL:
     else:
         return raw_url
 
+def get_superset_internal_schema_names() -> list[str]:
+    # TODO(AW): What are the schemas created by Superset that we should exlude?
+    # How do we get this list programmatically?
+    return ["information_schema", "public"]
+
+def get_database_metadata(
+    database: Any,
+    catalog: str | None = None,
+    include_indexes: bool = True,
+    tables: list[str] | None = None,
+    top_k: int = 10,
+    top_k_limit: int = 100000,
+) -> List[Schema]:
+    """
+    Get database metadata information, including schemas, tables, columns, indexes, fks.
+    :param database: The database model
+    :return: Database metadata ready for API response
+    """
+    logger.info(f"get_database_metadata called with {include_indexes} {tables} {top_k} {top_k_limit}")
+    logger.info(f"Getting metadata for database {database.database_name}")
+    # Build the list of selected schemas from the list of tables by extracting the schema name
+    schemas = set()
+    if tables:
+        for table in tables:
+            schema = table.split(".")[0]
+            schemas.add(schema)
+
+    db_schemas = database.get_all_schema_names(catalog=catalog)
+    schemas_info = []
+    for schema in db_schemas:
+        if schema in get_superset_internal_schema_names():
+            continue
+        # If the schema contains the string "timescaledb_", skip it
+        if "timescaledb_" in schema:
+            logger.info(f"Skipping timescaledb schema {schema}")
+            continue
+        if tables and (len(tables) > 0) and (schema not in schemas):
+            logger.info(f"Skipping schema {schema} not in schemas")
+            continue
+        logger.info(f"Getting metadata for schema {schema}")
+        schema_info = get_schema_metadata(database, schema, tables=tables, include_indexes=include_indexes, top_k=top_k, top_k_limit=top_k_limit)
+        schemas_info.append(schema_info)
+    return schemas_info
+
 def get_schema_metadata(
     database: Any,
-    catalog: str,
     schema: str,
+    catalog: str | None = None,
+    tables: list[str] | None = None,
+    include_indexes: bool = True,
+    top_k: int = 10,
+    top_k_limit: int = 100000,
 ) -> Schema:
     """
     Get schema metadata information, including tables, columns, indexes, fks.
@@ -143,12 +191,16 @@ def get_schema_metadata(
     :param schema: The schema name
     :return: Schema metadata ready for API response
     """
-    tables = database.get_all_table_names_in_schema(catalog=catalog, schema=schema)
+    db_tables = database.get_all_table_names_in_schema(catalog=catalog, schema=schema)
     relations = []
 
-    for (table, schema, catalog) in tables:
+    for (table, schema, catalog) in db_tables:
+        if tables and len(tables) > 0 and f"{schema}.{table}" not in tables:
+            logger.info(f"Skipping table {table} not in tables")
+            continue
+        logger.info(f"Getting metadata for table {table} in schema {schema}")
         t = Table(catalog=catalog, schema=schema, table=table)
-        table_metadata = get_table_relation_metadata(database, t)
+        table_metadata = get_table_relation_metadata(database, t, include_indexes=include_indexes, top_k=top_k, top_k_limit=top_k_limit)
         relations.append(table_metadata)
 
     views = database.get_all_view_names_in_schema(catalog=catalog, schema=schema)
@@ -166,6 +218,9 @@ def get_schema_metadata(
 def get_table_relation_metadata(
     database: Any,
     table: Table,
+    include_indexes: bool = True,
+    top_k: int = 10,
+    top_k_limit: int = 100000,
 ) -> Relation:
     """
     Get table metadata information, including type, pk, fks.
@@ -175,26 +230,29 @@ def get_table_relation_metadata(
     :param table: Table instance
     :return: Dict table metadata ready for API response
     """
-    keys = []
     columns = database.get_columns(table)
     primary_key = database.get_pk_constraint(table)
     if primary_key and primary_key.get("constrained_columns"):
         primary_key["column_names"] = primary_key.pop("constrained_columns")
         primary_key["type"] = "pk"
-        keys += [primary_key]
+
     foreign_keys = get_foreign_keys_relation_data(database, table)
-    indexes = get_indexes_relation_data(database, table)
-    keys += foreign_keys + indexes
+
+    if include_indexes:
+        indexes = get_indexes_relation_data(database, table)
+    else:
+        indexes = []
+
     payload_columns: list[Column] = []
     table_comment = database.get_table_comment(table)
+
     for col in columns:
         dtype = get_col_type(col)
         dtype = dtype.split("(")[0] if "(" in dtype else dtype
         
         top_k_values = None
         if dtype not in ["INTEGER", "BIGINT", "SMALLINT", "NUMERIC", "DECIMAL", "FLOAT", "DOUBLE", "TIMESTAMP", "BOOLEAN"]:
-            top_k_values = get_column_top_k_values(database, table, col["column_name"], table.schema, top_k=10)
-            # logging.info(f"Top k values for {col['column_name']}: {top_k_values}")
+            top_k_values = get_column_top_k_values(database, table, col["column_name"], table.schema, top_k=top_k, top_k_limit=top_k_limit)
 
         column_metadata = {
             "column_name": col["column_name"],
@@ -206,14 +264,18 @@ def get_table_relation_metadata(
             column_metadata["most_common_values"] = top_k_values
 
         payload_columns.append(column_metadata)
-    return {
+
+    result = {
         "rel_name": table.table,
         "rel_kind": "table",
         "rel_description": table_comment,
-        "indexes": indexes,
         "foreign_keys": foreign_keys,
         "columns": payload_columns,
     }
+    if include_indexes:
+        result["indexes"] = indexes
+
+    return result 
 
 def get_column_top_k_values(
     database: Any,
@@ -221,14 +283,14 @@ def get_column_top_k_values(
     column_name: str,
     schema: str,
     top_k: int = 10,
-    limit: int = 1000000,
+    top_k_limit: int = 100000,
 ) -> List:
     db_type = database.db_engine_spec.engine
     logging.info(f"Getting top k values for {column_name} in {table.__str__()} {schema} {db_type}")
 
     query = f"""
     SELECT \"{column_name}\" AS value, COUNT(*) AS frequency
-    FROM (SELECT \"{column_name}\" FROM \"{table.table}\" LIMIT {limit}) AS subquery
+    FROM (SELECT \"{column_name}\" FROM \"{table.table}\" LIMIT {top_k_limit}) AS subquery
     WHERE \"{column_name}\" IS NOT NULL
     GROUP BY \"{column_name}\"
     ORDER BY frequency DESC
@@ -265,11 +327,11 @@ def get_foreign_keys_relation_data(
     ret = []
     for fk in foreign_keys:
         result = {}
-        result["column_name"] = fk.pop("constrained_columns")
-        result["referenced_column"] = fk.pop("referred_columns")
+        result["column_name"] = fk.pop("constrained_columns")[0]
+        result["referenced_column"] = fk.pop("referred_columns")[0]
         result["constraint_name"] = fk.pop("name")
         ret.append(result)
-    return foreign_keys
+    return ret
 
 def get_indexes_relation_data(
     database: Any,
@@ -282,6 +344,7 @@ def get_indexes_relation_data(
         result["column_names"] = idx.pop("column_names")
         result["is_unique"] = idx.pop("unique")
         result["index_name"] = idx.pop("name")
+        result["index_definition"] = None
         ret.append(result)
     return ret
 
@@ -320,7 +383,7 @@ class Index(BaseModel):
     column_names: List[str] = Field(
         description="Name of the column(s) constituting the index."
     )
-    index_definition: str = Field(
+    index_definition: Optional[str] = Field(
         description="CREATE INDEX statement."
     )
 

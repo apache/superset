@@ -93,6 +93,11 @@ export interface Table {
   persistData?: TableMetaData;
 }
 
+export interface QueryGenerator {
+  isGeneratingQuery: boolean;
+  prompt: string;
+}
+
 export type SqlLabRootState = {
   sqlLab: {
     activeSouthPaneTab: string | number; // default is string; action.newQuery.id is number
@@ -111,6 +116,7 @@ export type SqlLabRootState = {
     editorTabLastUpdatedAt: number;
     lastUpdatedActiveTab: string;
     destroyedQueryEditors: Record<string, number>;
+    queryGenerator: QueryGenerator;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];

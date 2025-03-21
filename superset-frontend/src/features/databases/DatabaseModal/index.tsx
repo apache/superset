@@ -11,8 +11,8 @@
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ * OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
@@ -71,6 +71,7 @@ import {
   CustomTextType,
   DatabaseParameters,
 } from '../types';
+import AIAssistantOptions from './AIAssistantOptions';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
@@ -163,6 +164,8 @@ export enum ActionType {
   QueryChange,
   RemoveTableCatalogSheet,
   Reset,
+  SelectChange,
+  SwitchChange,
   TextChange,
   ParametersSSHTunnelChange,
   SetSSHTunnelLoginMethod,
@@ -191,6 +194,8 @@ export type DBReducerActionType =
         | ActionType.EncryptedExtraInputChange
         | ActionType.TextChange
         | ActionType.QueryChange
+        | ActionType.SelectChange
+        | ActionType.SwitchChange
         | ActionType.InputChange
         | ActionType.EditorChange
         | ActionType.ParametersChange
@@ -411,6 +416,16 @@ export function dbReducer(
           ...trimmedState.ssh_tunnel,
           [action.payload.name]: action.payload.value,
         },
+      };
+    case ActionType.SelectChange:
+      return {
+        ...trimmedState,
+        [action.payload.target || action.payload.name]: action.payload.value,
+      };
+    case ActionType.SwitchChange:
+      return {
+        ...trimmedState,
+        [action.payload.name]: action.payload.checked,
       };
     case ActionType.SetSSHTunnelLoginMethod: {
       let ssh_tunnel = {};
@@ -815,6 +830,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
     // Clone DB object
     const dbToUpdate = { ...(db || {}) };
+
+    // If the database has no context_options or extra set, set them to empty objects to ensure the
+    // save request doesn't fail
+    if (!dbToUpdate.llm_context_options) {
+      dbToUpdate.llm_context_options = "{}";
+    }
+    if (!dbToUpdate.extra) {
+      dbToUpdate.extra = "{}";
+    }
 
     if (dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm) {
       // Validate DB before saving
@@ -1972,6 +1996,37 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             onExtraEditorChange={(payload: { name: string; json: any }) => {
               onChange(ActionType.ExtraEditorChange, payload);
             }}
+          />
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={<span>{t('AI Assistant')}</span>} key="3">
+          <AIAssistantOptions
+            db={db as DatabaseObject}
+            onInputChange={({ target }: { target: HTMLInputElement }) =>
+              onChange(ActionType.InputChange, {
+                type: target.type,
+                name: target.name,
+                checked: target.checked,
+                value: target.value,
+              })
+            }
+            onSelectChange={({ target }: { target: HTMLSelectElement }) =>
+              onChange(ActionType.SelectChange, {
+                name: target.name,
+                value: target.value,
+              })
+            }
+            onSwitchChange={({ target }: { target: HTMLInputElement }) =>
+              onChange(ActionType.SwitchChange, {
+                name: target.name,
+                checked: target.checked,
+              })
+            }
+            onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
+              onChange(ActionType.TextChange, {
+                name: target.name,
+                value: target.value,
+              })
+            }
           />
         </Tabs.TabPane>
       </TabsStyled>

@@ -121,6 +121,24 @@ export type DatabaseObject = {
 
   // SSH Tunnel information
   ssh_tunnel?: SSHTunnelObject | null;
+
+  // AI Assistant
+  llm_provider?: LlmProvider;
+  llm_api_key?: string;
+  llm_model?: string;
+  llm_enabled?: boolean;
+  llm_context_options: string;
+};
+
+export enum LlmProvider {
+  Gemini = 'Gemini',
+};
+
+export enum GeminiModel {
+  Gemini2Flash = 'gemini-2.0-flash',
+  Gemini2FlashLite = 'gemini-2.0-flash-lite',
+  Gemini15Flash = 'gemini-1.5-flash',
+  Gemini15Pro = 'gemini-1.5-pro',
 };
 
 export type DatabaseForm = {
@@ -262,6 +280,15 @@ export interface ExtraJson {
     expand_rows?: boolean;
   };
   version?: string;
+}
+
+export interface LlmContextJson {
+  schemas: string[];
+  include_indexes: boolean;
+  refresh_interval: number;
+  top_k: number;
+  top_k_row_limit: number;
+  instructions: string;
 }
 
 export type CustomTextType = {
