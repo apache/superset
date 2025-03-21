@@ -110,6 +110,7 @@ def test_import_assets(
         mocked_contents,
         sparse=False,
         passwords=passwords,
+        encrypted_extras=None,
         ssh_tunnel_passwords=None,
         ssh_tunnel_private_keys=None,
         ssh_tunnel_priv_key_passwords=None,
