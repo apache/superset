@@ -977,7 +977,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ),
         Footer: totals ? (
           i === 0 ? (
-            <th>
+            <th key={`footer-summary-${i}`}>
               <div
                 css={css`
                   display: flex;
@@ -999,7 +999,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               </div>
             </th>
           ) : (
-            <td style={sharedStyle}>
+            <td key={`footer-total-${i}`} style={sharedStyle}>
               <strong>{formatColumnValue(column, totals[key])[1]}</strong>
             </td>
           )
