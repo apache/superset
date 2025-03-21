@@ -18,7 +18,14 @@
  */
 // TODO: Remove fa-icon
 /* eslint-disable icons/no-fa-icons-usage */
-import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
+import {
+  Fragment,
+  useState,
+  useEffect,
+  FC,
+  PureComponent,
+  useCallback,
+} from 'react';
 
 import rison from 'rison';
 import { useSelector } from 'react-redux';
@@ -246,7 +253,7 @@ const RightMenu = ({
     },
   ];
 
-  const checkAllowUploads = () => {
+  const checkAllowUploads = useCallback(() => {
     const payload = {
       filters: [
         { col: 'allow_file_upload', opr: 'upload_is_enabled', value: true },
@@ -263,9 +270,9 @@ const RightMenu = ({
         ) || [];
       setAllowUploads(allowedDatabasesWithFileUpload?.length >= 1);
     });
-  };
+  }, []);
 
-  const existsNonExamplesDatabases = () => {
+  const existsNonExamplesDatabases = useCallback(() => {
     const payload = {
       filters: [{ col: 'database_name', opr: 'neq', value: 'examples' }],
     };
@@ -274,19 +281,19 @@ const RightMenu = ({
     }).then(({ json }: Record<string, any>) => {
       setNonExamplesDBConnected(json.count >= 1);
     });
-  };
+  }, []);
 
   useEffect(() => {
     if (canUploadData) {
       checkAllowUploads();
     }
-  }, [canUploadData]);
+  }, [canUploadData, checkAllowUploads]);
 
   useEffect(() => {
     if (canDatabase || canDataset) {
       existsNonExamplesDatabases();
     }
-  }, [canDatabase, canDataset]);
+  }, [canDatabase, canDataset, existsNonExamplesDatabases]);
 
   const menuIcon = (menu: MenuObjectProps) => (
     <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
@@ -633,6 +640,7 @@ const RightMenuWithQueryWrapper: FC<RightMenuProps> = props => {
 // Superset still has multiple entry points, and not all of them have
 // the same setup, and critically, not all of them have the QueryParamProvider.
 // This wrapper ensures the RightMenu renders regardless of the provider being present.
+// Note: Error boundaries must be class components in React, so we keep this as a class
 class RightMenuErrorWrapper extends PureComponent<RightMenuProps> {
   state = {
     hasError: false,

@@ -697,21 +697,16 @@ function DatabaseList({
                   <ul>
                     {databaseCurrentlyDeleting.dashboards.result
                       .slice(0, 10)
-                      .map(
-                        (
-                          result: { id: number; title: string },
-                          index: number,
-                        ) => (
-                          <li key={result.id}>
-                            <a
-                              href={`/superset/dashboard/${result.id}`}
-                              target="_atRiskItem"
-                            >
-                              {result.title}
-                            </a>
-                          </li>
-                        ),
-                      )}
+                      .map((result: { id: number; title: string }) => (
+                        <li key={result.id}>
+                          <a
+                            href={`/superset/dashboard/${result.id}`}
+                            target="_atRiskItem"
+                          >
+                            {result.title}
+                          </a>
+                        </li>
+                      ))}
                     {databaseCurrentlyDeleting.dashboards.result.length >
                       10 && (
                       <li>
@@ -729,14 +724,9 @@ function DatabaseList({
                 <>
                   <h4>{t('Affected Charts')}</h4>
                   <ul>
-                    {databaseCurrentlyDeleting.charts.result.slice(0, 10).map(
-                      (
-                        result: {
-                          id: number;
-                          slice_name: string;
-                        },
-                        index: number,
-                      ) => (
+                    {databaseCurrentlyDeleting.charts.result
+                      .slice(0, 10)
+                      .map((result: { id: number; slice_name: string }) => (
                         <li key={result.id}>
                           <a
                             href={`/explore/?slice_id=${result.id}`}
@@ -745,8 +735,7 @@ function DatabaseList({
                             {result.slice_name}
                           </a>
                         </li>
-                      ),
-                    )}
+                      ))}
                     {databaseCurrentlyDeleting.charts.result.length > 10 && (
                       <li>
                         {t(

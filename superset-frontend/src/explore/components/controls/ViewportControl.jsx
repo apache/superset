@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component } from 'react';
+import { useCallback } from 'react';
 import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import Popover from 'src/components/Popover';
@@ -56,65 +56,65 @@ const defaultProps = {
   value: DEFAULT_VIEWPORT,
 };
 
-export default class ViewportControl extends Component {
-  constructor(props) {
-    super(props);
-    this.onChange = this.onChange.bind(this);
-  }
+export default function ViewportControl(props) {
+  const { onChange, value, name } = props;
 
-  onChange(ctrl, value) {
-    this.props.onChange({
-      ...this.props.value,
-      [ctrl]: value,
-    });
-  }
+  const handleChange = useCallback(
+    (ctrl, ctrlValue) => {
+      onChange({
+        ...value,
+        [ctrl]: ctrlValue,
+      });
+    },
+    [onChange, value],
+  );
 
-  renderTextControl(ctrl) {
-    return (
+  const renderTextControl = useCallback(
+    ctrl => (
       <div key={ctrl}>
         <FormLabel>{ctrl}</FormLabel>
         <TextControl
-          value={this.props.value[ctrl]}
-          onChange={this.onChange.bind(this, ctrl)}
+          value={value[ctrl]}
+          onChange={ctrlValue => handleChange(ctrl, ctrlValue)}
           isFloat
         />
       </div>
-    );
-  }
+    ),
+    [value, handleChange],
+  );
 
-  renderPopover() {
-    return (
-      <div id={`filter-popover-${this.props.name}`}>
-        {PARAMS.map(ctrl => this.renderTextControl(ctrl))}
+  const renderPopover = useCallback(
+    () => (
+      <div id={`filter-popover-${name}`}>
+        {PARAMS.map(ctrl => renderTextControl(ctrl))}
       </div>
-    );
-  }
+    ),
+    [name, renderTextControl],
+  );
 
-  renderLabel() {
-    if (this.props.value.longitude && this.props.value.latitude) {
+  const renderLabel = useCallback(() => {
+    if (value.longitude && value.latitude) {
       return `${decimal2sexagesimal(
-        this.props.value.longitude,
-      )} | ${decimal2sexagesimal(this.props.value.latitude)}`;
+        value.longitude,
+      )} | ${decimal2sexagesimal(value.latitude)}`;
     }
     return 'N/A';
-  }
+  }, [value.longitude, value.latitude]);
 
-  render() {
-    return (
-      <div>
-        <ControlHeader {...this.props} />
-        <Popover
-          container={document.body}
-          trigger="click"
-          placement="right"
-          content={this.renderPopover()}
-          title={t('Viewport')}
-        >
-          <Label className="pointer">{this.renderLabel()}</Label>
-        </Popover>
-      </div>
-    );
-  }
+  return (
+    <div>
+      <ControlHeader {...props} />
+      <Popover
+        container={document.body}
+        trigger="click"
+        placement="right"
+        content={renderPopover()}
+        title={t('Viewport')}
+      >
+        <Label className="pointer">{renderLabel()}</Label>
+      </Popover>
+    </div>
+  );
 }
 
 ViewportControl.propTypes = propTypes;

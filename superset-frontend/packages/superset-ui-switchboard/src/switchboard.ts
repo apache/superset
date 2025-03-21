@@ -262,11 +262,13 @@ export class Switchboard {
 
   private log(...args: unknown[]) {
     if (this.debugMode) {
+      // eslint-disable-next-line no-console
       console.debug(`[${this.name}]`, ...args);
     }
   }
 
   private logError(...args: unknown[]) {
+    // eslint-disable-next-line no-console
     console.error(`[${this.name}]`, ...args);
   }
 

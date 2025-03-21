@@ -24,6 +24,7 @@ import {
   defaultStore as store,
 } from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
+import { logging } from '@superset-ui/core';
 import { useTables } from './tables';
 
 const fakeApiResult = {
@@ -217,14 +218,14 @@ describe('useTables hook', () => {
         }),
       },
     );
-    console.log(
+    logging.log(
       'Called URLs:',
       fetchMock.calls().map(call => call[0]),
     );
 
     // Add a catch-all mock to see if any unmocked requests are being made
     fetchMock.mock('*', url => {
-      console.log('Unmocked request to:', url);
+      logging.log('Unmocked request to:', url);
       return 404;
     });
     await waitFor(() => expect(fetchMock.calls(tableApiRoute).length).toBe(1));

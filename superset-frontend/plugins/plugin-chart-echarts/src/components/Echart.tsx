@@ -29,8 +29,10 @@ import {
 
 import { useSelector } from 'react-redux';
 
-import { styled } from '@superset-ui/core';
-import { use, init, EChartsType, registerLocale } from 'echarts/core';
+import { logging, styled } from '@superset-ui/core';
+import { use, init, EChartsType } from 'echarts/core';
+// @ts-ignore
+import { registerLocale } from 'echarts/lib/core/locale';
 import {
   SankeyChart,
   PieChart,
@@ -51,13 +53,20 @@ import { CanvasRenderer } from 'echarts/renderers';
 import {
   TooltipComponent,
   GridComponent,
+  // @ts-ignore
   VisualMapComponent,
   LegendComponent,
+  // @ts-ignore
   DataZoomComponent,
+  // @ts-ignore
   ToolboxComponent,
+  // @ts-ignore
   GraphicComponent,
+  // @ts-ignore
   AriaComponent,
+  // @ts-ignore
   MarkAreaComponent,
+  // @ts-ignore
   MarkLineComponent,
 } from 'echarts/components';
 import { LabelLayout } from 'echarts/features';
@@ -77,6 +86,7 @@ const Styles = styled.div<EchartsStylesProps>`
   width: ${({ width }) => width};
 `;
 
+// @ts-ignore
 use([
   CanvasRenderer,
   BarChart,
@@ -93,15 +103,22 @@ use([
   SunburstChart,
   TreeChart,
   TreemapChart,
+  // @ts-ignore
   AriaComponent,
+  // @ts-ignore
   DataZoomComponent,
+  // @ts-ignore
   GraphicComponent,
   GridComponent,
+  // @ts-ignore
   MarkAreaComponent,
+  // @ts-ignore
   MarkLineComponent,
   LegendComponent,
+  // @ts-ignore
   ToolboxComponent,
   TooltipComponent,
+  // @ts-ignore
   VisualMapComponent,
   LabelLayout,
 ]);
@@ -152,13 +169,14 @@ function Echart(
       if (!divRef.current) return;
 
       const lang = await import(`echarts/lib/i18n/lang${locale}`).catch(e => {
-        console.error(`Locale ${locale} not supported in ECharts`, e);
+        logging.error(`Locale ${locale} not supported in ECharts`, e);
       });
       if (lang?.default) {
         registerLocale(locale, lang.default);
       }
 
       if (!chartRef.current) {
+        // @ts-ignore
         chartRef.current = init(divRef.current, null, { locale });
       }
 
@@ -203,6 +221,7 @@ function Echart(
     handleSizeChange({ width, height });
   }, [width, height, handleSizeChange]);
 
+  // @ts-ignore
   return <Styles ref={divRef} height={height} width={width} />;
 }
 

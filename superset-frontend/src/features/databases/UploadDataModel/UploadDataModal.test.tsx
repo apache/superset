@@ -566,6 +566,7 @@ test('Columnar, does not render the rows', () => {
   expect(panelHeader).not.toBeInTheDocument();
 });
 
+// eslint-disable-next-line jest/expect-expect
 test('database and schema are correctly populated', async () => {
   jest.setTimeout(10000);
   render(<UploadDataModal {...csvProps} />, {
@@ -597,6 +598,7 @@ test('database and schema are correctly populated', async () => {
   await waitFor(() => screen.getAllByText('schema2'));
 });
 
+// eslint-disable-next-line jest/expect-expect
 test('form without required fields', async () => {
   render(<UploadDataModal {...csvProps} />, {
     useRedux: true,

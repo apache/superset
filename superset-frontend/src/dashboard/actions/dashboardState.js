@@ -24,6 +24,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getLabelsColorMap,
+  logging,
   SupersetClient,
   t,
   getClientErrorObject,
@@ -830,7 +831,7 @@ export const applyDashboardLabelsColorOnLoad = metadata => async dispatch => {
       dispatch(setDashboardLabelsColorMapSync());
     }
   } catch (e) {
-    console.error('Failed to update dashboard color on load:', e);
+    logging.error('Failed to update dashboard color on load:', e);
   }
 };
 
@@ -997,6 +998,6 @@ export const updateDashboardLabelsColor = renderedChartIds => (_, getState) => {
     // re-apply the color map first to get fresh maps accordingly
     applyColors(metadata, shouldGoFresh, shouldMerge);
   } catch (e) {
-    console.error('Failed to update colors for new charts and labels:', e);
+    logging.error('Failed to update colors for new charts and labels:', e);
   }
 };
