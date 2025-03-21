@@ -1615,7 +1615,7 @@ TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True
 
 # If you want Talisman, how do you want it configured??
 # For more information on setting up Talisman, please refer to
-#https://superset.apache.org/docs/configuration/networking-settings/#changing-flask-talisman-csp
+# https://superset.apache.org/docs/configuration/networking-settings/#changing-flask-talisman-csp
 
 TALISMAN_CONFIG = {
     "content_security_policy": {
