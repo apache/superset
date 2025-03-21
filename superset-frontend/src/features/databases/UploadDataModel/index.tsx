@@ -36,14 +36,13 @@ import Button from 'src/components/Button';
 import { Switch, SwitchProps } from 'src/components/Switch';
 import Collapse from 'src/components/Collapse';
 import { AsyncSelect, Col, Row, Select, Upload } from 'src/components';
-// eslint-disable-next-line no-restricted-imports
-import { UploadOutlined } from '@ant-design/icons';
-import { Input, InputNumber } from 'src/components/Input'; // TODO: Use src/components/Icons
+import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
 // eslint-disable-next-line no-restricted-imports
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Form } from 'src/components/Form';
+import Icons from 'src/components/Icons';
 import {
   antdCollapseStyles,
   antDModalNoPaddingStyles,
