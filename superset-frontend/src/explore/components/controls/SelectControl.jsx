@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { css, isEqualArray, t } from '@superset-ui/core';
 import Select from 'src/components/Select/Select';
@@ -120,164 +120,157 @@ export const innerGetOptions = props => {
   return options;
 };
 
-export default class SelectControl extends PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      options: this.getOptions(props),
-    };
-    this.onChange = this.onChange.bind(this);
-    this.handleFilterOptions = this.handleFilterOptions.bind(this);
-  }
+const SelectControl = props => {
+  const getOptions = useCallback(propsToUse => innerGetOptions(propsToUse), []);
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  const [options, setOptions] = useState(getOptions(props));
+
+  // Update options when choices or options props change
+  useEffect(() => {
     if (
-      !isEqualArray(nextProps.choices, this.props.choices) ||
-      !isEqualArray(nextProps.options, this.props.options)
+      !isEqualArray(props.choices, props.choices) ||
+      !isEqualArray(props.options, props.options)
     ) {
-      const options = this.getOptions(nextProps);
-      this.setState({ options });
+      setOptions(getOptions(props));
     }
-  }
+  }, [props.choices, props.options, getOptions]);
 
   // Beware: This is acting like an on-click instead of an on-change
   // (firing every time user chooses vs firing only if a new option is chosen).
-  onChange(val) {
-    // will eventually call `exploreReducer`: SET_FIELD_VALUE
-    const { valueKey } = this.props;
-    let onChangeVal = val;
+  const onChange = useCallback(
+    val => {
+      // will eventually call `exploreReducer`: SET_FIELD_VALUE
+      const { valueKey } = props;
+      let onChangeVal = val;
 
-    if (Array.isArray(val)) {
-      const values = val.map(v =>
-        v?.[valueKey] !== undefined ? v[valueKey] : v,
-      );
-      onChangeVal = values;
-    }
-    if (typeof val === 'object' && val?.[valueKey] !== undefined) {
-      onChangeVal = val[valueKey];
-    }
-    this.props.onChange(onChangeVal, []);
-  }
-
-  getOptions(props) {
-    return innerGetOptions(props);
-  }
-
-  handleFilterOptions(text, option) {
-    const { filterOption } = this.props;
-    return filterOption({ data: option }, text);
-  }
-
-  render() {
-    const {
-      ariaLabel,
-      autoFocus,
-      clearable,
-      disabled,
-      filterOption,
-      freeForm,
-      isLoading,
-      isMulti,
-      label,
-      multi,
-      name,
-      notFoundContent,
-      onFocus,
-      onSelect,
-      onDeselect,
-      placeholder,
-      showHeader,
-      tokenSeparators,
-      value,
-      // ControlHeader props
-      description,
-      renderTrigger,
-      rightNode,
-      leftNode,
-      validationErrors,
-      onClick,
-      hovered,
-      tooltipOnClick,
-      warning,
-      danger,
-    } = this.props;
-
-    const headerProps = {
-      name,
-      label,
-      description,
-      renderTrigger,
-      rightNode,
-      leftNode,
-      validationErrors,
-      onClick,
-      hovered,
-      tooltipOnClick,
-      warning,
-      danger,
-    };
-
-    const getValue = () => {
-      const currentValue =
-        value ??
-        (this.props.default !== undefined ? this.props.default : undefined);
-
-      // safety check - the value is intended to be undefined but null was used
-      if (
-        currentValue === null &&
-        !this.state.options.find(o => o.value === null)
-      ) {
-        return undefined;
+      if (Array.isArray(val)) {
+        const values = val.map(v =>
+          v?.[valueKey] !== undefined ? v[valueKey] : v,
+        );
+        onChangeVal = values;
       }
-      return currentValue;
-    };
+      if (typeof val === 'object' && val?.[valueKey] !== undefined) {
+        onChangeVal = val[valueKey];
+      }
+      props.onChange(onChangeVal, []);
+    },
+    [props.onChange, props.valueKey],
+  );
 
-    const selectProps = {
-      allowNewOptions: freeForm,
-      autoFocus,
-      ariaLabel:
-        ariaLabel || (typeof label === 'string' ? label : t('Select ...')),
-      allowClear: clearable,
-      disabled,
-      filterOption:
-        filterOption && typeof filterOption === 'function'
-          ? this.handleFilterOptions
-          : true,
-      header: showHeader && <ControlHeader {...headerProps} />,
-      loading: isLoading,
-      mode: this.props.mode || (isMulti || multi ? 'multiple' : 'single'),
-      name: `select-${name}`,
-      onChange: this.onChange,
-      onFocus,
-      onSelect,
-      onDeselect,
-      options: this.state.options,
-      placeholder,
-      sortComparator: this.props.sortComparator,
-      value: getValue(),
-      tokenSeparators,
-      notFoundContent,
-    };
+  const handleFilterOptions = useCallback(
+    (text, option) => {
+      const { filterOption } = props;
+      return filterOption({ data: option }, text);
+    },
+    [props.filterOption],
+  );
 
-    return (
-      <div
-        css={theme => css`
-          .type-label {
-            margin-right: ${theme.gridUnit * 2}px;
-          }
-          .Select__multi-value__label > span,
-          .Select__option > span,
-          .Select__single-value > span {
-            display: flex;
-            align-items: center;
-          }
-        `}
-      >
-        <Select {...selectProps} />
-      </div>
-    );
-  }
-}
+  const {
+    ariaLabel,
+    autoFocus,
+    clearable,
+    disabled,
+    filterOption,
+    freeForm,
+    isLoading,
+    isMulti,
+    label,
+    multi,
+    name,
+    notFoundContent,
+    onFocus,
+    onSelect,
+    onDeselect,
+    placeholder,
+    showHeader,
+    tokenSeparators,
+    value,
+    // ControlHeader props
+    description,
+    renderTrigger,
+    rightNode,
+    leftNode,
+    validationErrors,
+    onClick,
+    hovered,
+    tooltipOnClick,
+    warning,
+    danger,
+  } = props;
+
+  const headerProps = {
+    name,
+    label,
+    description,
+    renderTrigger,
+    rightNode,
+    leftNode,
+    validationErrors,
+    onClick,
+    hovered,
+    tooltipOnClick,
+    warning,
+    danger,
+  };
+
+  const getValue = () => {
+    const currentValue =
+      value ?? (props.default !== undefined ? props.default : undefined);
+
+    // safety check - the value is intended to be undefined but null was used
+    if (currentValue === null && !options.find(o => o.value === null)) {
+      return undefined;
+    }
+    return currentValue;
+  };
+
+  const selectProps = {
+    allowNewOptions: freeForm,
+    autoFocus,
+    ariaLabel:
+      ariaLabel || (typeof label === 'string' ? label : t('Select ...')),
+    allowClear: clearable,
+    disabled,
+    filterOption:
+      filterOption && typeof filterOption === 'function'
+        ? handleFilterOptions
+        : true,
+    header: showHeader && <ControlHeader {...headerProps} />,
+    loading: isLoading,
+    mode: props.mode || (isMulti || multi ? 'multiple' : 'single'),
+    name: `select-${name}`,
+    onChange,
+    onFocus,
+    onSelect,
+    onDeselect,
+    options,
+    placeholder,
+    sortComparator: props.sortComparator,
+    value: getValue(),
+    tokenSeparators,
+    notFoundContent,
+  };
+
+  return (
+    <div
+      css={theme => css`
+        .type-label {
+          margin-right: ${theme.gridUnit * 2}px;
+        }
+        .Select__multi-value__label > span,
+        .Select__option > span,
+        .Select__single-value > span {
+          display: flex;
+          align-items: center;
+        }
+      `}
+    >
+      <Select {...selectProps} />
+    </div>
+  );
+};
 
 SelectControl.propTypes = propTypes;
 SelectControl.defaultProps = defaultProps;
+
+export default SelectControl;

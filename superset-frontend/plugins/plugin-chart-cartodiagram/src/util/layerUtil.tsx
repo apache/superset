@@ -21,6 +21,7 @@
  * Util for layer related operations.
  */
 
+import { logging } from '@superset-ui/core';
 import OlParser from 'geostyler-openlayers-parser';
 import TileLayer from 'ol/layer/Tile';
 import TileWMS from 'ol/source/TileWMS';
@@ -126,7 +127,7 @@ export const createWfsLayer = async (wfsLayerConf: WfsLayerConf) => {
     const olParser = new OlParser();
     writeStyleResult = await olParser.writeStyle(style);
     if (writeStyleResult.errors) {
-      console.warn('Could not create ol-style', writeStyleResult.errors);
+      logging.warn('Could not create ol-style', writeStyleResult.errors);
       return undefined;
     }
   }
@@ -154,7 +155,7 @@ export const createLayer = async (layerConf: LayerConf) => {
   } else if (isXyzLayerConf(layerConf)) {
     layer = createXyzLayer(layerConf);
   } else {
-    console.warn('Provided layerconfig is not recognized');
+    logging.warn('Provided layerconfig is not recognized');
   }
   return layer;
 };

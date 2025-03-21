@@ -29,7 +29,7 @@ import {
 
 import { useSelector } from 'react-redux';
 
-import { styled } from '@superset-ui/core';
+import { logging, styled } from '@superset-ui/core';
 import { use, init, EChartsType } from 'echarts/core';
 // @ts-ignore
 import { registerLocale } from 'echarts/lib/core/locale';
@@ -169,7 +169,7 @@ function Echart(
       if (!divRef.current) return;
 
       const lang = await import(`echarts/lib/i18n/lang${locale}`).catch(e => {
-        console.error(`Locale ${locale} not supported in ECharts`, e);
+        logging.error(`Locale ${locale} not supported in ECharts`, e);
       });
       if (lang?.default) {
         registerLocale(locale, lang.default);
