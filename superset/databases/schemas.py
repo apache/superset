@@ -1169,8 +1169,8 @@ class UploadPostSchema(BaseUploadFilePostSchemaMixin):
     column_dates = DelimitedListField(
         fields.String(),
         metadata={
-            "description": "[CSV and Excel only] A list of column names that should be "
-            "parsed as dates. Example: date,timestamp"
+            "description": "[CSV and Excel only] Select column names from a dropdown list that should be "
+            "parsed as dates."
         },
     )
     decimal_character = fields.String(

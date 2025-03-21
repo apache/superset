@@ -715,7 +715,7 @@
             "type": "string"
           },
           "column_dates": {
-            "description": "A list of column names that should be parsed as dates. Example: date,timestamp",
+            "description": "Select column names from a dropdown list that should be parsed as dates.",
             "items": {
               "type": "string"
             },
@@ -6390,7 +6390,7 @@
             "type": "string"
           },
           "column_dates": {
-            "description": "A list of column names that should be parsed as dates. Example: date,timestamp",
+            "description": "Select column names from a dropdown list that should be parsed as dates.",
             "items": {
               "type": "string"
             },
