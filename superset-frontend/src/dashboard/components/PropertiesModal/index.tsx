@@ -45,7 +45,7 @@ import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeMo
 import withToasts from 'src/components/MessageToasts/withToasts';
 import TagType from 'src/types/TagType';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
-import { loadTags } from 'src/components/Tags/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import {
   applyColors,
   getColorNamespace,

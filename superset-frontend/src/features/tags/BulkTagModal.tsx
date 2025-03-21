@@ -23,7 +23,7 @@ import { FormLabel } from 'src/components/Form';
 import Modal from 'src/components/Modal';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
 import Button from 'src/components/Button';
-import { loadTags } from 'src/components/Tags/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import { TaggableResourceOption } from 'src/features/tags/TagModal';
 
 const BulkTagModalContainer = styled.div`

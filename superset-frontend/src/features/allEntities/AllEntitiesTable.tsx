@@ -19,7 +19,7 @@
 import { extendedDayjs } from 'src/utils/dates';
 import { t, styled } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import { TagsList } from 'src/components/Tags';
+import { TagsList } from 'src/components/Tag';
 import FacePile from 'src/components/FacePile';
 import Tag from 'src/types/TagType';
 import { EmptyState } from 'src/components/EmptyState';

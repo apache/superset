@@ -20,7 +20,7 @@ import { FC } from 'react';
 import { styled, t } from '@superset-ui/core';
 
 import { Typography } from 'src/components';
-import TagsList from 'src/components/Tags/TagsList';
+import TagsList from 'src/components/Tag/TagsList';
 import TagType from 'src/types/TagType';
 
 interface ColumnsPreviewProps {

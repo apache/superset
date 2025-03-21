@@ -25,11 +25,11 @@ import {
   useCSSTextTruncation,
 } from '@superset-ui/core';
 import { CrossFilterIndicator } from 'src/dashboard/components/nativeFilters/selectors';
-import { Tag } from 'src/components';
+import { Tag } from 'src/components/Tag';
 import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { CustomCloseIcon } from 'src/components/Tags/Tag';
 import { ellipsisCss } from './styles';
+import Icons from 'src/components/Icons';
 
 const StyledCrossFilterValue = styled.b`
   ${({ theme }) => `
@@ -82,7 +82,7 @@ const CrossFilterTag = (props: {
       `}
       closable
       onClose={() => removeCrossFilter(filter.emitterId)}
-      closeIcon={CustomCloseIcon}
+      closeIcon={<Icons.CloseOutlined iconSize="xs" role="button" />}
     >
       <Tooltip title={columnIsTruncated ? columnLabel : null}>
         <StyledCrossFilterColumn ref={columnRef}>

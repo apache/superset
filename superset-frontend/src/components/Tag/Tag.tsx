@@ -31,10 +31,6 @@ const StyledTag = styled(AntdTag)`
   `};
 `;
 
-export const CustomCloseIcon = (
-  <Icons.CloseOutlined iconSize="xs" role="button" />
-);
-
 const MAX_DISPLAY_CHAR = 20;
 
 const Tag = ({
@@ -63,7 +59,7 @@ const Tag = ({
             key={id}
             closable={editable}
             onClose={handleClose}
-            closeIcon={editable ? CustomCloseIcon : undefined}
+            closeIcon={editable ? <Icons.CloseOutlined iconSize="xs" role="button" /> : undefined}
             {...rest}
           >
             {children || tagDisplay}
