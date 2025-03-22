@@ -175,8 +175,6 @@ function queryCheckbox(name: RegExp) {
 test('renders a value filter type', () => {
   defaultRender();
 
-  userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
-
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
   expect(screen.getByText(DATASET_REGEX)).toBeInTheDocument();
@@ -200,8 +198,6 @@ test('renders a numerical range filter type', async () => {
   userEvent.click(screen.getByText(VALUE_REGEX));
 
   await waitFor(() => userEvent.click(screen.getByText(NUMERICAL_RANGE_REGEX)));
-
-  userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();

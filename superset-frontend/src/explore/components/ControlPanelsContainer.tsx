@@ -175,20 +175,10 @@ const ControlPanelsTabs = styled(Tabs)`
       padding-top: ${theme.sizeUnit * 4}px;
     }
 
-    .ant-collapse-ghost > .ant-collapse-item {
-      &:not(:last-child) {
-        border-bottom: 1px solid ${theme.colorSplit};
-      }
-
-      & > .ant-collapse-header {
-        font-size: ${theme.fontSizeSM}px;
-      }
-
-      & > .ant-collapse-content > .ant-collapse-content-box {
-        padding-bottom: 0;
-        font-size: ${theme.fontSizeSM}px;
-      }
+    .antd5-collapse-ghost > .antd5-collapse-item > .antd5-collapse-content > .antd5-collapse-content-box {
+      font-size: ${theme.fontSizeSM}px;
     }
+  }
   `}
 `;
 
@@ -622,7 +612,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </span>
     );
 
-    return (
+    const PanelChildren = (
       <>
         <StashFormDataContainer
           key={`sectionId-${sectionId}`}
@@ -639,34 +629,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             .filter(Boolean)}
         />
         {isVisible && (
-          <Collapse.Panel
-            css={theme => css`
-              margin-bottom: 0;
-              box-shadow: none;
-
-              &:last-child {
-                padding-bottom: ${theme.sizeUnit * 16}px;
-                border-bottom: 0;
-              }
-
-              .panel-body {
-                margin-left: ${theme.sizeUnit * 4}px;
-                padding-bottom: 0;
-              }
-
-              span.label {
-                display: inline-block;
-              }
-              ${!section.label &&
-              `
-          .ant-collapse-header {
-            display: none;
-          }
-        `}
-            `}
-            header={<PanelHeader />}
-            key={sectionId}
-          >
+          <>
             {section.controlSetRows.map((controlSets, i) => {
               const renderedControls = controlSets
                 .map(controlItem => {
@@ -698,10 +661,18 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                 />
               );
             })}
-          </Collapse.Panel>
+          </>
         )}
       </>
     );
+
+    return {
+      key: String(section.label),
+      label: <PanelHeader />,
+      children: PanelChildren,
+      className: section.label ? '' : 'hidden-collapse-header',
+      style: { visibility: isVisible ? 'visible' : 'hidden' },
+    };
   };
 
   const hasControlsTransferred =
@@ -798,14 +769,14 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         allowOverflow={false}
       >
         <Tabs.TabPane key="query" tab={dataTabTitle}>
+          {showDatasourceAlert && <DatasourceAlert />}
           <Collapse
             defaultActiveKey={expandedQuerySections}
             expandIconPosition="right"
             ghost
-          >
-            {showDatasourceAlert && <DatasourceAlert />}
-            {querySections.map(renderControlPanelSection)}
-          </Collapse>
+            bordered
+            items={[...querySections.map(renderControlPanelSection)]}
+          />
         </Tabs.TabPane>
         {showCustomizeTab && (
           <Tabs.TabPane key="display" tab={t('Customize')}>
@@ -813,9 +784,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               defaultActiveKey={expandedCustomizeSections}
               expandIconPosition="right"
               ghost
-            >
-              {customizeSections.map(renderControlPanelSection)}
-            </Collapse>
+              bordered
+              items={[...customizeSections.map(renderControlPanelSection)]}
+            />
           </Tabs.TabPane>
         )}
       </ControlPanelsTabs>

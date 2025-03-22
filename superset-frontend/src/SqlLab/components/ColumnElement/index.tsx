@@ -20,6 +20,7 @@ import { ReactNode } from 'react';
 import { ClassNames } from '@emotion/react';
 import { styled, useTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
+import { Flex } from 'src/components/Flex';
 
 const StyledTooltip = (props: any) => {
   const theme = useTheme();
@@ -104,15 +105,15 @@ const ColumnElement = ({ column }: ColumnElementProps) => {
     ));
   }
   return (
-    <div className="clearfix table-column">
-      <div className="pull-left m-l-10 col-name">
+    <Flex align="center" justify="space-between">
+      <div data-test="col-name">
         {columnName}
         {icons}
       </div>
-      <NowrapDiv className="pull-right text-muted">
+      <NowrapDiv className="text-muted">
         <small> {column.type}</small>
       </NowrapDiv>
-    </div>
+    </Flex>
   );
 };
 
