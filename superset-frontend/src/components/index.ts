@@ -26,10 +26,6 @@ export { default as Select } from './Select/Select';
 export { default as AsyncSelect } from './Select/AsyncSelect';
 export { default as Button } from './Button';
 export { default as Card } from './Card';
-
-// Vanilla Ant Design components from v5
-export { TreeSelect, Typography } from 'antd-v5';
-
 // Vanilla Ant Design components from v4 that require migration
 // eslint-disable-next-line no-restricted-imports
 export { Upload } from 'antd'; // TODO: Remove antd
