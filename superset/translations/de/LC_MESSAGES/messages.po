@@ -664,10 +664,10 @@ msgstr ">= (Größer oder gleich)"
 msgid "A Big Number"
 msgstr "Eine Große Zahl"
 
-msgid "A comma separated list of columns that should be parsed as dates"
+msgid "Select column names from a dropdown list that should be parsed as dates."
 msgstr ""
-"Eine durch Kommas getrennte Liste von Spalten, die als Datumsangaben "
-"interpretiert werden sollen"
+"Wählen Sie aus der Dropdown-Liste die Namen der Spalten aus, die als Datum "
+"interpretiert werden sollen."
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""

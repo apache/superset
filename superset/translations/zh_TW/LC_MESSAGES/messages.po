@@ -620,8 +620,8 @@ msgid "A Big Number"
 msgstr "大數字"
 
 #, fuzzy
-msgid "A comma separated list of columns that should be parsed as dates"
-msgstr "應作為日期解析的列的逗號分隔列表。"
+msgid "Select column names from a dropdown list that should be parsed as dates."
+msgstr "从下拉列表中选择要分析的日期列名称。"
 
 #, fuzzy
 msgid "A comma-separated list of schemas that files are allowed to upload to."
