@@ -22,7 +22,8 @@ import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
+import { AntdForm, AsyncSelect } from 'src/components';
+import { Row, Col } from 'src/components/Grid';
 import rison from 'rison';
 import {
   ensureIsArray,
@@ -44,7 +45,7 @@ import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeMo
 import withToasts from 'src/components/MessageToasts/withToasts';
 import TagType from 'src/types/TagType';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
-import { loadTags } from 'src/components/Tags/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import {
   applyColors,
   getColorNamespace,

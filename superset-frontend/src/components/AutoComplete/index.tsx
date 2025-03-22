@@ -16,22 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { tagToSelectOption } from 'src/components/Tags/utils';
 
-describe('tagToSelectOption', () => {
-  test('converts a Tag object with table_name to a SelectTagsValue', () => {
-    const tag = {
-      id: 1,
-      name: 'TagName',
-      table_name: 'Table1',
-    };
+import { AutoComplete } from 'antd-v5';
+import { AutoCompleteProps as AntAutoCompleteProps } from 'antd-v5/es/auto-complete';
 
-    const expectedSelectTagsValue = {
-      value: 1,
-      label: 'TagName',
-      key: 1,
-    };
+export type { AntAutoCompleteProps };
 
-    expect(tagToSelectOption(tag)).toEqual(expectedSelectTagsValue);
-  });
-});
+export default AutoComplete;

@@ -28,18 +28,7 @@ export { default as Button } from './Button';
 export { default as Card } from './Card';
 
 // Vanilla Ant Design components from v5
-export {
-  AutoComplete,
-  Col,
-  Grid,
-  Layout,
-  Row,
-  Skeleton,
-  Tag,
-  Tree,
-  TreeSelect,
-  Typography,
-} from 'antd-v5';
+export { TreeSelect, Typography } from 'antd-v5';
 
 // Vanilla Ant Design components from v4 that require migration
 // eslint-disable-next-line no-restricted-imports
