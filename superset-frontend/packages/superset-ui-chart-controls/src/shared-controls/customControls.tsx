@@ -61,6 +61,29 @@ const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
   ensureIsArray(controls?.groupby?.value).length === 0 &&
   ensureIsArray(controls?.metrics?.value).length === 1;
 
+export const aggregationControl = {
+  name: 'aggregation',
+  config: {
+    type: 'SelectControl',
+    label: t('Aggregation Method'),
+    default: 'LAST_VALUE',
+    choices: [
+      ['LAST_VALUE', t('Last Value')],
+      ['SUM', t('Total(Sum)')],
+      ['AVG', t('Average(Mean)')],
+      ['MIN', t('Minimum')],
+      ['MAX', t('Maximum')],
+      ['MEDIAN', t('Median')],
+    ],
+    description: t('Select an aggregation method to apply to the metric.'),
+    renderTrigger: true,
+    provideFormDataToProps: true,
+    mapStateToProps: ({ form_data }: ControlPanelState) => ({
+      value: form_data.aggregation || 'LAST_VALUE',
+    }),
+  },
+};
+
 const xAxisMultiSortVisibility = ({
   controls,
 }: {

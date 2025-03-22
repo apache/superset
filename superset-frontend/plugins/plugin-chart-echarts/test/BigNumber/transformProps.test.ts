@@ -186,3 +186,90 @@ describe('BigNumberWithTrendline', () => {
     });
   });
 });
+
+describe('BigNumberWithTrendline - Aggregation Tests', () => {
+  const baseProps = generateProps(
+    [
+      { __timestamp: 0, value: 10 },
+      { __timestamp: 100, value: 20 },
+      { __timestamp: 200, value: 30 },
+      { __timestamp: 300, value: 40 },
+      { __timestamp: 400, value: 50 },
+    ],
+    { showTrendLine: true },
+  );
+
+  it('should correctly calculate SUM', () => {
+    const transformed = transformProps({
+      ...baseProps,
+      formData: { ...baseProps.formData, aggregation: 'SUM' },
+    });
+    expect(transformed.bigNumber).toStrictEqual(150);
+  });
+
+  it('should correctly calculate AVG', () => {
+    const transformed = transformProps({
+      ...baseProps,
+      formData: { ...baseProps.formData, aggregation: 'AVG' },
+    });
+    expect(transformed.bigNumber).toStrictEqual(30);
+  });
+
+  it('should correctly calculate MIN', () => {
+    const transformed = transformProps({
+      ...baseProps,
+      formData: { ...baseProps.formData, aggregation: 'MIN' },
+    });
+    expect(transformed.bigNumber).toStrictEqual(10);
+  });
+
+  it('should correctly calculate MAX', () => {
+    const transformed = transformProps({
+      ...baseProps,
+      formData: { ...baseProps.formData, aggregation: 'MAX' },
+    });
+    expect(transformed.bigNumber).toStrictEqual(50);
+  });
+
+  it('should correctly calculate MEDIAN (odd count)', () => {
+    const transformed = transformProps({
+      ...baseProps,
+      formData: { ...baseProps.formData, aggregation: 'MEDIAN' },
+    });
+    expect(transformed.bigNumber).toStrictEqual(30);
+  });
+
+  it('should correctly calculate MEDIAN (even count)', () => {
+    const propsWithEvenData = generateProps(
+      [
+        { __timestamp: 0, value: 10 },
+        { __timestamp: 100, value: 20 },
+        { __timestamp: 200, value: 30 },
+        { __timestamp: 300, value: 40 },
+      ],
+      { showTrendLine: true },
+    );
+    const transformed = transformProps({
+      ...propsWithEvenData,
+      formData: { ...propsWithEvenData.formData, aggregation: 'MEDIAN' },
+    });
+    expect(transformed.bigNumber).toStrictEqual(25);
+  });
+
+  it('should return the LAST_VALUE correctly', () => {
+    const transformed = transformProps({
+      ...baseProps,
+      formData: { ...baseProps.formData, aggregation: 'LAST_VALUE' },
+    });
+    expect(transformed.bigNumber).toStrictEqual(50);
+  });
+
+  it('should handle empty data correctly', () => {
+    const emptyProps = generateProps([], { showTrendLine: true });
+    const transformed = transformProps({
+      ...emptyProps,
+      formData: { ...emptyProps.formData, aggregation: 'SUM' },
+    });
+    expect(transformed.bigNumber).toBeNull();
+  });
+});

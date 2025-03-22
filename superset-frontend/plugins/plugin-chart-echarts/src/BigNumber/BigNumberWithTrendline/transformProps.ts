@@ -63,6 +63,7 @@ export default function transformProps(
     compareSuffix = '',
     timeFormat,
     headerFontSize,
+    aggregation = '',
     metric = 'value',
     showTimestamp,
     showTrendLine,
@@ -107,11 +108,52 @@ export default function transformProps(
       // sort in time descending order
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
 
-    bigNumber = sortedData[0][1];
     timestamp = sortedData[0][0];
 
+    const metricValues: number[] = sortedData
+      .map(([, metricValue]) => metricValue)
+      .filter((value): value is number => value !== null);
+
+    if (metricValues.length > 0) {
+      const sortedValues: number[] = [...metricValues].sort((a, b) => a - b);
+      const totalSum: number = metricValues.reduce(
+        (sum, value) => sum + value,
+        0,
+      );
+
+      switch (aggregation) {
+        case 'SUM':
+          bigNumber = totalSum;
+          break;
+        case 'AVG':
+          bigNumber = totalSum / metricValues.length;
+          break;
+        case 'MIN':
+          bigNumber = Math.min(...metricValues);
+          break;
+        case 'MAX':
+          bigNumber = Math.max(...metricValues);
+          break;
+        case 'MEDIAN': {
+          const mid = Math.floor(sortedValues.length / 2);
+          bigNumber =
+            sortedValues.length % 2 === 0
+              ? ((sortedValues[mid - 1] ?? 0) + (sortedValues[mid] ?? 0)) / 2
+              : (sortedValues[mid] ?? 0);
+          break;
+        }
+        case 'LAST_VALUE':
+        default:
+          bigNumber = sortedData[0][1];
+
+          break;
+      }
+    } else {
+      bigNumber = null;
+    }
+
     if (bigNumber === null) {
-      bigNumberFallback = sortedData.find(d => d[1] !== null);
+      bigNumberFallback = sortedData.find(d => d[1] !== null) ?? null;
       bigNumber = bigNumberFallback ? bigNumberFallback[1] : null;
       timestamp = bigNumberFallback ? bigNumberFallback[0] : null;
     }
