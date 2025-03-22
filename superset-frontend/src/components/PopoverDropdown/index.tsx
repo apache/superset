@@ -50,8 +50,8 @@ const MenuItem = styled(Menu.Item)`
     height: auto;
     line-height: 1.4;
 
-    padding-top: ${({ theme }) => theme.gridUnit}px;
-    padding-bottom: ${({ theme }) => theme.gridUnit}px;
+    padding-top: ${({ theme }) => theme.sizeUnit}px;
+    padding-bottom: ${({ theme }) => theme.sizeUnit}px;
 
     margin-top: 0;
     margin-bottom: 0;
@@ -65,7 +65,7 @@ const MenuItem = styled(Menu.Item)`
     }
 
     &.active {
-      font-weight: ${({ theme }) => theme.typography.weights.bold};
+      font-weight: ${({ theme }) => theme.fontWeightStrong};
       background: ${({ theme }) => theme.colors.grayscale.light2};
     }
   }
@@ -91,7 +91,7 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
   return (
     <Dropdown
       trigger={['click']}
-      overlayStyle={{ zIndex: theme.zIndex.max }}
+      overlayStyle={{ zIndex: theme.zIndexPopupBase }}
       dropdownRender={() => (
         <Menu onClick={({ key }: HandleSelectProps) => onChange(key)}>
           {options.map(option => (
@@ -113,8 +113,8 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
         <Icons.DownOutlined
           iconSize="s"
           css={{
-            marginTop: theme.gridUnit * 0.5,
-            marginLeft: theme.gridUnit * 0.5,
+            marginTop: theme.sizeUnit * 0.5,
+            marginLeft: theme.sizeUnit * 0.5,
           }}
         />
       </div>

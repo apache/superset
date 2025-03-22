@@ -107,7 +107,7 @@ export const useDatasetMetadataBar = ({
       <div
         css={css`
           display: flex;
-          margin-bottom: ${theme.gridUnit * 4}px;
+          margin-bottom: ${theme.sizeUnit * 4}px;
         `}
       >
         {status === ResourceStatus.Complete && (
@@ -121,7 +121,7 @@ export const useDatasetMetadataBar = ({
         )}
       </div>
     );
-  }, [datasetProps, result, status, theme.gridUnit]);
+  }, [datasetProps, result, status, theme.sizeUnit]);
 
   return {
     metadataBar,

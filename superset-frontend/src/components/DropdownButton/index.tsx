@@ -66,8 +66,8 @@ export const DropdownButton = ({
           .antd5-btn {
             height: 30px;
             box-shadow: none;
-            font-size: ${theme.typography.sizes.s}px;
-            font-weight: ${theme.typography.weights.bold};
+            font-size: ${theme.fontSizeSM}px;
+            font-weight: ${theme.fontWeightStrong};
           }
         `,
       ]}

@@ -24,7 +24,7 @@ import {
 } from 'react';
 
 import { Tag } from 'src/components';
-import { useTheme } from '@superset-ui/core';
+import { useTheme, themeObject } from '@superset-ui/core';
 import DatasetTypeLabel from 'src/components/Label/reusable/DatasetTypeLabel';
 import PublishedLabel from 'src/components/Label/reusable/PublishedLabel';
 
@@ -33,11 +33,10 @@ export type OnClickHandler = MouseEventHandler<HTMLElement>;
 export type Type =
   | 'success'
   | 'warning'
-  | 'danger'
+  | 'error'
   | 'info'
   | 'default'
-  | 'primary'
-  | 'secondary';
+  | 'primary';
 
 export interface LabelProps extends HTMLAttributes<HTMLSpanElement> {
   key?: string;
@@ -53,7 +52,7 @@ export interface LabelProps extends HTMLAttributes<HTMLSpanElement> {
 
 export default function Label(props: LabelProps) {
   const theme = useTheme();
-  const { colors, transitionTiming } = theme;
+  const { transitionTiming } = theme;
   const {
     type = 'default',
     monospace = false,
@@ -63,44 +62,14 @@ export default function Label(props: LabelProps) {
     icon,
     ...rest
   } = props;
-  const { primary, secondary, grayscale, success, warning, error, info } =
-    colors;
 
-  let baseColor;
-  if (type === 'primary') {
-    baseColor = primary;
-  } else if (type === 'secondary') {
-    baseColor = secondary;
-  } else if (type === 'success') {
-    baseColor = success;
-  } else if (type === 'warning') {
-    baseColor = warning;
-  } else if (type === 'danger') {
-    baseColor = error;
-  } else if (type === 'info') {
-    baseColor = info;
-  } else {
-    baseColor = grayscale;
-  }
-  const color = baseColor.dark2;
-  let borderColor = baseColor.light1;
-  let backgroundColor = baseColor.light2;
+  const baseColor = themeObject.getColorVariants(type);
+  const color = baseColor.active;
+  const borderColor = baseColor.border;
+  const backgroundColor = baseColor.bg;
 
-  // TODO - REMOVE IF BLOCK LOGIC WHEN shades are fixed to be aligned in terms of brightness
-  // currently shades for >=light2 are not aligned for primary, default and secondary
-  if (['default', 'primary', 'secondary'].includes(type)) {
-    // @ts-ignore
-    backgroundColor = baseColor.light4;
-    borderColor = baseColor.light2;
-  }
-
-  const backgroundColorHover = onClick ? baseColor.light1 : backgroundColor;
-  const borderColorHover = onClick ? baseColor.base : borderColor;
-
-  if (type === 'default') {
-    // Lighter for default
-    backgroundColor = grayscale.light3;
-  }
+  const backgroundColorHover = onClick ? baseColor.bgHover : backgroundColor;
+  const borderColorHover = onClick ? baseColor.borderHover : borderColor;
 
   const css = {
     transition: `background-color ${transitionTiming}s`,
@@ -123,11 +92,11 @@ export default function Label(props: LabelProps) {
       borderColor: borderColorHover,
       opacity: 1,
     },
-    ...(monospace
-      ? { 'font-family': theme.typography.families.monospace }
-      : {}),
+    ...(monospace ? { 'font-family': theme.fontFamilyCode } : {}),
   };
-
+  if (monospace) {
+    css['font-family'] = theme.fontFamilyCode;
+  }
   return (
     <Tag
       onClick={onClick}

@@ -64,9 +64,9 @@ const saveButtonStyles = theme => css`
 const additionalItemsStyles = theme => css`
   display: flex;
   align-items: center;
-  margin-left: ${theme.gridUnit}px;
+  margin-left: ${theme.sizeUnit}px;
   & > span {
-    margin-right: ${theme.gridUnit * 3}px;
+    margin-right: ${theme.sizeUnit * 3}px;
   }
 `;
 

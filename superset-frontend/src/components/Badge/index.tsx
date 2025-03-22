@@ -27,9 +27,7 @@ const Badge = styled((props: AntdBadgeProps) => <AntdBadge {...props} />)`
     & > sup,
     & > sup.antd5-badge-count {
       ${
-        count !== undefined
-          ? `background: ${color || theme.colors.primary.base};`
-          : ''
+        count !== undefined ? `background: ${color || theme.colorPrimary};` : ''
       }
     }
   `}

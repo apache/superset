@@ -50,14 +50,14 @@ const TabTitleWrapper = styled.div`
   }
 `;
 const TabTitle = styled.span`
-  margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
   text-transform: none;
 `;
 
 const IconContainer = styled.div`
   ${({ theme }) => css`
     display: inline-block;
-    margin: 0 ${theme.gridUnit * 2}px 0 0px;
+    margin: 0 ${theme.sizeUnit * 2}px 0 0px;
   `}
 `;
 interface Props {
@@ -121,7 +121,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
       [QueryState.Stopped]: theme.colors.warning.base,
       [QueryState.Pending]: theme.colors.grayscale.light1,
       [QueryState.Scheduled]: theme.colors.grayscale.light2,
-      [QueryState.Fetching]: theme.colors.secondary.base,
+      [QueryState.Fetching]: theme.colorWarning,
       [QueryState.TimedOut]: theme.colors.error.dark1,
     };
 

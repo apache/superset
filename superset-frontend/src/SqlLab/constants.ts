@@ -20,12 +20,12 @@ import { t } from '@superset-ui/core';
 import type { Type } from 'src/components/Label';
 
 export const STATE_TYPE_MAP: Record<string, Type> = {
-  offline: 'danger',
-  failed: 'danger',
+  offline: 'error',
+  failed: 'error',
   pending: 'info',
   fetching: 'info',
   running: 'warning',
-  stopped: 'danger',
+  stopped: 'error',
   success: 'success',
 };
 

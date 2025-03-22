@@ -342,7 +342,7 @@ const ExtraOptions = ({
             />
             {isAllowRunAsyncDisabled && (
               <InfoTooltip
-                iconStyle={{ color: theme.colors.error.base }}
+                iconStyle={{ color: theme.colorError }}
                 tooltip={t(
                   'This option has been disabled by the administrator.',
                 )}
@@ -490,8 +490,8 @@ const ExtraOptions = ({
               {ExtraExtensionLogo && <ExtraExtensionLogo />}
               <span
                 css={(theme: SupersetTheme) => ({
-                  fontSize: theme.typography.sizes.l,
-                  fontWeight: theme.typography.weights.bold,
+                  fontSize: theme.fontSizeLG,
+                  fontWeight: theme.fontWeightStrong,
                 })}
               >
                 {extraExtension?.title}

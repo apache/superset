@@ -37,11 +37,9 @@ const Collapse = Object.assign(
     .ant-collapse-item {
       .ant-collapse-header {
         font-weight: ${({ bold, theme }) =>
-          bold
-            ? theme.typography.weights.bold
-            : theme.typography.weights.normal};
+          bold ? theme.fontWeightStrong : theme.fontWeightNormal};
         font-size: ${({ bigger, theme }) =>
-          bigger ? `${theme.gridUnit * 4}px` : 'inherit'};
+          bigger ? `${theme.sizeUnit * 4}px` : 'inherit'};
 
         .ant-collapse-arrow svg {
           transition: ${({ animateArrows }) =>
@@ -60,9 +58,9 @@ const Collapse = Object.assign(
         ${({ light, theme }) =>
           light &&
           `
-            color: ${theme.colors.grayscale.light4};
+            color: ${theme.colorTextSecondary};
             .ant-collapse-arrow svg {
-              color: ${theme.colors.grayscale.light4};
+              color: ${theme.colorTextSecondary};
             }
           `}
 
@@ -70,13 +68,14 @@ const Collapse = Object.assign(
           ghost &&
           bordered &&
           `
-            border-bottom: 1px solid ${theme.colors.grayscale.light3};
+            border-bottom: 1px solid ${theme.colorBorderSecondary};
           `}
       }
       .ant-collapse-content {
+        //background-color: ${({ theme }) => theme.colorBgLayout};
         .ant-collapse-content-box {
           .loading.inline {
-            margin: ${({ theme }) => theme.gridUnit * 12}px auto;
+            margin: ${({ theme }) => theme.sizeUnit * 12}px auto;
             display: block;
           }
         }

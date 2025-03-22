@@ -27,20 +27,20 @@ import Modal from 'src/components/Modal';
 import { Upload } from 'src/components';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
-import ErrorAlert from './ErrorAlert';
+import ImportErrorAlert from './ImportErrorAlert';
 
 const HelperMessage = styled.div`
   display: block;
   color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
 
 const StyledInputContainer = styled.div`
-  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+  padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
 
   & > div {
-    margin: ${({ theme }) => theme.gridUnit}px 0;
+    margin: ${({ theme }) => theme.sizeUnit}px 0;
   }
 
   &.extra-container {
@@ -48,7 +48,7 @@ const StyledInputContainer = styled.div`
   }
 
   .confirm-overwrite {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   .input-container {
@@ -57,11 +57,11 @@ const StyledInputContainer = styled.div`
 
     label {
       display: flex;
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
     }
 
     i {
-      margin: 0 ${({ theme }) => theme.gridUnit}px;
+      margin: 0 ${({ theme }) => theme.sizeUnit}px;
     }
   }
 
@@ -83,11 +83,11 @@ const StyledInputContainer = styled.div`
   textarea,
   input[type='text'],
   input[type='number'] {
-    padding: ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 2}px;
+    padding: ${({ theme }) => theme.sizeUnit * 1.5}px
+      ${({ theme }) => theme.sizeUnit * 2}px;
     border-style: none;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.gridUnit}px;
+    border-radius: ${({ theme }) => theme.sizeUnit}px;
 
     &[name='name'] {
       flex: 0 1 auto;
@@ -95,7 +95,7 @@ const StyledInputContainer = styled.div`
     }
 
     &[name='sqlalchemy_uri'] {
-      margin-right: ${({ theme }) => theme.gridUnit * 3}px;
+      margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
     }
   }
 `;
@@ -448,7 +448,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
         </Upload>
       </StyledInputContainer>
       {errorMessage && (
-        <ErrorAlert
+        <ImportErrorAlert
           errorMessage={errorMessage}
           showDbInstallInstructions={
             passwordFields.length > 0 ||

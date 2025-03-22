@@ -136,7 +136,7 @@ const Styles = styled.div<{ height: number; width?: number }>`
 
   .chart-tooltip {
     opacity: 0.75;
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+    font-size: ${({ theme }) => theme.fontSizeSM}px;
   }
 
   .slice_container {
@@ -151,7 +151,7 @@ const Styles = styled.div<{ height: number; width?: number }>`
     }
 
     .alert {
-      margin: ${({ theme }) => theme.gridUnit * 2}px;
+      margin: ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
 `;
@@ -167,7 +167,7 @@ const LoadingDiv = styled.div`
 const MessageSpan = styled.span`
   display: block;
   text-align: center;
-  margin: ${({ theme }) => theme.gridUnit * 4}px auto;
+  margin: ${({ theme }) => theme.sizeUnit * 4}px auto;
   width: fit-content;
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;

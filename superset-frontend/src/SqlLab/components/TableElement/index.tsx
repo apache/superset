@@ -60,15 +60,15 @@ export interface TableElementProps {
 }
 
 const StyledSpan = styled.span`
-  color: ${({ theme }) => theme.colors.primary.dark1};
+  color: ${({ theme }) => theme.colorPrimaryText};
   &:hover {
-    color: ${({ theme }) => theme.colors.primary.dark2};
+    color: ${({ theme }) => theme.colorPrimaryTextHover};
   }
   cursor: pointer;
 `;
 
 const Fade = styled.div`
-  transition: all ${({ theme }) => theme.transitionTiming}s;
+  transition: all ${({ theme }) => theme.motionDurationMid};
   opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
 `;
 
@@ -76,7 +76,7 @@ const StyledCollapsePanel = styled(Collapse.Panel)`
   ${({ theme }) => css`
     & {
       .ws-el-controls {
-        margin-right: ${-theme.gridUnit}px;
+        margin-right: ${-theme.sizeUnit}px;
         display: flex;
       }
 
@@ -90,7 +90,7 @@ const StyledCollapsePanel = styled(Collapse.Panel)`
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          font-size: ${theme.typography.sizes.l}px;
+          font-size: ${theme.fontSizeLG}px;
           flex: 1;
         }
 
@@ -98,7 +98,7 @@ const StyledCollapsePanel = styled(Collapse.Panel)`
           margin-left: auto;
           display: flex;
           align-items: center;
-          margin-right: ${theme.gridUnit * 8}px;
+          margin-right: ${theme.sizeUnit * 8}px;
         }
       }
     }
@@ -272,12 +272,12 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     return (
       <ButtonGroup
         css={css`
-          column-gap: ${theme.gridUnit * 1.5}px;
-          margin-right: ${theme.gridUnit}px;
+          column-gap: ${theme.sizeUnit * 1.5}px;
+          margin-right: ${theme.sizeUnit}px;
           & span {
             display: flex;
             justify-content: center;
-            width: ${theme.gridUnit * 4}px;
+            width: ${theme.sizeUnit * 4}px;
           }
         `}
       >

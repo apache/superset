@@ -62,7 +62,7 @@ const Styles = styled.span`
     margin: 0;
     color: ${({ theme }) => theme.colors.grayscale.base};
     svg {
-      vertical-align: -${({ theme }) => theme.gridUnit * 1.25}px;
+      vertical-align: -${({ theme }) => theme.sizeUnit * 1.25}px;
       margin: 0;
     }
   }
@@ -221,7 +221,12 @@ const SaveQuery = ({
         title={<h4>{t('Save query')}</h4>}
         footer={
           <>
-            <Button onClick={close} data-test="cancel-query" cta>
+            <Button
+              onClick={close}
+              data-test="cancel-query"
+              cta
+              buttonStyle="secondary"
+            >
               {t('Cancel')}
             </Button>
             <Button

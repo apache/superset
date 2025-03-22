@@ -379,7 +379,7 @@ class AdhocFilterControl extends Component {
                 <AddControlLabel>
                   <Icons.PlusOutlined
                     css={css`
-                      margin: auto ${theme.gridUnit}px auto 0;
+                      margin: auto ${theme.sizeUnit}px auto 0;
                     `}
                     iconSize="m"
                     iconColor={theme.colors.grayscale.light1}

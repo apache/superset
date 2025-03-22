@@ -44,7 +44,7 @@ const theme = useTheme();
 export const InteractiveIconTooltip = (args: Props) => (
   <div
     css={css`
-      margin: ${theme.gridUnit * 10}px ${theme.gridUnit * 17.5}px;
+      margin: ${theme.sizeUnit * 10}px ${theme.sizeUnit * 17.5}px;
     `}
   >
     <IconTooltip {...args}>

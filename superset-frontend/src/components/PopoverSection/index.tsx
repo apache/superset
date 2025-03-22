@@ -40,8 +40,8 @@ export default function PopoverSection({
   return (
     <div
       css={{
-        paddingBottom: theme.gridUnit * 2,
-        opacity: isSelected ? 1 : theme.opacity.mediumHeavy,
+        paddingBottom: theme.sizeUnit * 2,
+        opacity: isSelected ? 1 : 0.6,
       }}
     >
       <div
@@ -59,8 +59,8 @@ export default function PopoverSection({
           <Tooltip
             title={info}
             css={css`
-              margin-left: ${theme.gridUnit}px;
-              margin-right: ${theme.gridUnit}px;
+              margin-left: ${theme.sizeUnit}px;
+              margin-right: ${theme.sizeUnit}px;
             `}
           >
             <Icons.InfoCircleFilled
@@ -74,14 +74,14 @@ export default function PopoverSection({
           iconSize="s"
           role="img"
           iconColor={
-            isSelected ? theme.colors.primary.base : theme.colors.grayscale.base
+            isSelected ? theme.colorPrimary : theme.colors.grayscale.base
           }
         />
       </div>
       <div
         css={css`
-          margin-left: ${theme.gridUnit}px;
-          margin-top: ${theme.gridUnit}px;
+          margin-left: ${theme.sizeUnit}px;
+          margin-top: ${theme.sizeUnit}px;
         `}
       >
         {children}

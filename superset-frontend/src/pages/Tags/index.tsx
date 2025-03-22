@@ -146,7 +146,7 @@ function TagList(props: TagListProps) {
           iconSize="m"
           iconColor={theme.colors.primary.light5}
           css={css`
-            margin: auto ${theme.gridUnit * 2}px auto 0;
+            margin: auto ${theme.sizeUnit * 2}px auto 0;
             vertical-align: text-top;
           `}
           data-test="add-rule-empty"

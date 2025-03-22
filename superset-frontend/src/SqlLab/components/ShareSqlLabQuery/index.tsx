@@ -18,7 +18,6 @@
  */
 import {
   t,
-  useTheme,
   getClientErrorObject,
   SupersetClient,
   css,
@@ -40,7 +39,6 @@ const ShareSqlLabQuery = ({
   queryEditorId,
   addDangerToast,
 }: ShareSqlLabQueryProps) => {
-  const theme = useTheme();
   const logAction = useLogAction({ queryEditorId });
   const { dbId, name, schema, autorun, sql, templateParams } = useQueryEditor(
     queryEditorId,
@@ -84,10 +82,7 @@ const ShareSqlLabQuery = ({
           }
         `}
       >
-        <Icons.LinkOutlined
-          iconColor={theme.colors.primary.base}
-          iconSize="m"
-        />
+        <Icons.LinkOutlined iconSize="m" />
         {t('Copy link')}
       </Button>
     );

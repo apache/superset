@@ -42,7 +42,7 @@ export const RunQueryButton = ({
 }: RunQueryButtonProps) => {
   const theme = useTheme();
   return loading ? (
-    <Button onClick={onStop} buttonStyle="warning" disabled={!canStopQuery}>
+    <Button onClick={onStop} buttonStyle="danger" disabled={!canStopQuery}>
       <Icons.Square iconSize="xs" iconColor={theme.colors.primary.light5} />
       {t('Stop')}
     </Button>
