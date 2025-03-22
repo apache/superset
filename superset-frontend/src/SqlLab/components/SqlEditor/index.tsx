@@ -57,7 +57,7 @@ import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
 import ResizableSidebar from 'src/components/ResizableSidebar';
 import { Dropdown } from 'src/components/Dropdown';
-import { Skeleton } from 'src/components';
+import Skeleton from 'src/components/Skeleton';
 import { Switch } from 'src/components/Switch';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
