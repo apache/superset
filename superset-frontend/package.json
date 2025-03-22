@@ -381,6 +381,7 @@
     },
     "puppeteer": "^22.4.1",
     "underscore": "^1.13.7",
+    "jspdf": "^3.0.1",
     "fast-glob": {
       "micromatch": "^4.0.6"
     }
