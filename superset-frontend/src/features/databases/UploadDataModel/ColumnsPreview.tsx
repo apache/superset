@@ -18,8 +18,7 @@
  */
 import { FC } from 'react';
 import { styled, t } from '@superset-ui/core';
-
-import { Typography } from 'src/components';
+import Typography from 'src/components/Typography';
 import TagsList from 'src/components/TagsList';
 import TagType from 'src/types/TagType';
 
