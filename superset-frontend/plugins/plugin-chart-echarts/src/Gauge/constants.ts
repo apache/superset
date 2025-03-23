@@ -29,7 +29,7 @@ export const defaultGaugeSeriesOption = (
   },
   axisLine: {
     lineStyle: {
-      color: [[1, theme.colors.primary.light4]],
+      color: [[1, theme.colorSplit]],
     },
   },
   axisLabel: {
@@ -42,7 +42,7 @@ export const defaultGaugeSeriesOption = (
     },
   },
   detail: {
-    color: 'auto',
+    color: theme.colorText,
   },
 });
 

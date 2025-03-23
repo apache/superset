@@ -21,6 +21,8 @@ import {
   styled,
   SupersetTheme,
   getExtensionsRegistry,
+  css,
+  useTheme,
 } from '@superset-ui/core';
 
 import {
@@ -36,7 +38,8 @@ import {
 
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
+// eslint-disable-next-line no-restricted-imports
+import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import Tabs from 'src/components/Tabs';
 import { AntdSelect, Upload } from 'src/components';
 import Alert from 'src/components/Alert';
@@ -48,6 +51,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import ErrorAlert from 'src/components/ImportModal/ErrorAlert';
+import Icons from 'src/components/Icons';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -560,6 +564,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   databaseId,
   dbEngine,
 }) => {
+  const theme = useTheme();
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
@@ -1185,7 +1190,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (!hasConnectedDb || editNewDb) {
         return (
           <>
-            <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
+            <StyledFooterButton
+              key="back"
+              onClick={handleBackButtonOnConnect}
+              buttonStyle="secondary"
+            >
               {t('Back')}
             </StyledFooterButton>
             <StyledFooterButton
@@ -1243,7 +1252,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
     <>
-      <StyledFooterButton key="close" onClick={onClose}>
+      <StyledFooterButton key="close" onClick={onClose} buttonStyle="secondary">
         {t('Close')}
       </StyledFooterButton>
       <StyledFooterButton
@@ -1654,7 +1663,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           redirectURL('/dataset/add/');
         }}
       >
-        {t('CREATE DATASET')}
+        {t('Create dataset')}
       </Button>
       <Button
         buttonStyle="secondary"
@@ -1664,7 +1673,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           redirectURL(`/sqllab?db=true`);
         }}
       >
-        {t('QUERY DATA IN SQL LAB')}
+        {t('Query data in SQL Lab')}
       </Button>
     </StyledBtns>
   );
@@ -1829,7 +1838,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       centered
       show={show}
       title={
-        <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
+        <h4>
+          {isEditMode ? (
+            <Icons.EditOutlined
+              iconSize="l"
+              css={css`
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
+              `}
+            />
+          ) : (
+            <Icons.InsertRowAboveOutlined
+              iconSize="l"
+              css={css`
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
+              `}
+            />
+          )}
+          {isEditMode ? t('Edit database') : t('Connect a database')}
+        </h4>
       }
       footer={modalFooter}
       maskClosable={false}
@@ -1990,7 +2016,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       width="500px"
       centered
       show={show}
-      title={<h4>{t('Connect a database')}</h4>}
+      title={
+        <h4>
+          <Icons.InsertRowAboveOutlined
+            iconSize="l"
+            css={css`
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
+            `}
+          />
+          {t('Connect a database')}
+        </h4>
+      }
       footer={renderModalFooter()}
       maskClosable={false}
     >

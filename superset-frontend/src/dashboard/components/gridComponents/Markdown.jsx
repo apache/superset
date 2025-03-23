@@ -88,15 +88,12 @@ const MarkdownStyles = styled.div`
   ${({ theme }) => css`
     &.dashboard-markdown {
       overflow: hidden;
+      color: ${theme.colorText};
 
       h4,
       h5,
       h6 {
         font-weight: ${theme.fontWeightNormal};
-      }
-
-      h5 {
-        color: ${theme.colors.grayscale.base};
       }
 
       h6 {

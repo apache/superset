@@ -298,6 +298,8 @@ const SqlEditorLeftBar = ({
           buttonStyle="danger"
           onClick={handleResetState}
         >
+          {/* TODO: Remove fa-icon */}
+          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
           <i className="fa fa-bomb" /> {t('Reset state')}
         </Button>
       )}

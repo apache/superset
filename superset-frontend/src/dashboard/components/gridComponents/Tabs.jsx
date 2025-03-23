@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
-import { styled, t, usePrevious } from '@superset-ui/core';
+import { styled, t, usePrevious, css } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
 import Icons from 'src/components/Icons';
@@ -78,6 +78,9 @@ const defaultProps = {
 
 const StyledTabsContainer = styled.div`
   width: 100%;
+  ${({ theme }) => css`
+    width: 100%;
+    background-color: ${theme.colors.grayscale.light5};
 
   .dashboard-component-tabs-content {
     min-height: ${({ theme }) => theme.sizeUnit * 12}px;
@@ -90,23 +93,19 @@ const StyledTabsContainer = styled.div`
 
     .antd5-tabs-nav-wrap {
       min-height: ${({ theme }) => theme.sizeUnit * 12.5}px;
-      background-color: ${({ theme }) => theme.colorBgContainer};
     }
+
 
     .antd5-tabs-content-holder {
       overflow: visible;
     }
   }
 
-  div .antd5-tabs-tab-btn {
-    text-transform: none;
-  }
+    div .antd5-tabs-tab-btn {
+      text-transform: none;
+    }
+  `}
 `;
-
-const StyledCancelXIcon = styled(Icons.CancelX)`
-  color: ${({ theme }) => theme.colors.grayscale.base};
-`;
-
 const DropIndicator = styled.div`
   border: 2px solid ${({ theme }) => theme.colorPrimary};
   width: 5px;
@@ -119,7 +118,7 @@ const DropIndicator = styled.div`
 
 const CloseIconWithDropIndicator = props => (
   <>
-    <StyledCancelXIcon />
+    <Icons.CloseOutlined iconSize="s" />
     {props.showDropIndicators.right && (
       <DropIndicator className="drop-indicator-right" pos="right" />
     )}

@@ -49,7 +49,9 @@ const SaveDatasetActionButton = ({
     <StyledDropdownButton
       onClick={() => setShowSave(true)}
       dropdownRender={() => overlayMenu}
-      icon={<Icons.CaretDown name="caret-down" />}
+      icon={
+        <Icons.DownOutlined iconSize="xs" iconColor={theme.colorPrimaryText} />
+      }
       trigger={['click']}
     >
       {t('Save')}

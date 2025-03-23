@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled, css } from '@superset-ui/core';
 
 export const ControlSubSectionHeader = styled.div`
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
-  font-size: ${({ theme }) => theme.fontSizeSM};
-  margin-bottom: ${({ theme }) => theme.sizeUnit}px;
+  ${({ theme }) => css`
+    font-weight: ${theme.fontWeightStrong};
+    font-size: ${theme.fontSizeSM};
+    margin-bottom: ${theme.sizeUnit}px;
+  `}
 `;
 export default ControlSubSectionHeader;

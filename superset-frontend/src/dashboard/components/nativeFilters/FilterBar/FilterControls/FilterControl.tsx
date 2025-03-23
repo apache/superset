@@ -34,7 +34,7 @@ import { FilterControlProps } from './types';
 import { FilterCardPlacement } from '../../FilterCard/types';
 import { useIsFilterInScope } from '../../state';
 
-const StyledIcon = styled.div`
+const FilterStyledIcon = styled.div`
   position: absolute;
   right: 0;
 `;
@@ -208,6 +208,8 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
         whiteSpace: 'normal',
       }}
     >
+      {/* TODO: Remove fa-icon */}
+      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
       <i
         className="fa fa-info-circle text-muted"
         css={(theme: SupersetTheme) => ({
@@ -262,7 +264,7 @@ const FilterControl = ({
         {filter.description?.trim() && (
           <DescriptionToolTip description={filter.description} />
         )}
-        <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
+        <FilterStyledIcon data-test="filter-icon">{icon}</FilterStyledIcon>
       </FilterControlTitleBox>
     ),
     [

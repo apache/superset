@@ -24,7 +24,8 @@ import {
   configure,
   makeApi,
   initFeatureFlags,
-  themeObject,
+  // eslint-disable-next-line no-restricted-imports
+  themeObject, // TODO: DO not import theme directly
 } from '@superset-ui/core';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';

@@ -20,7 +20,7 @@ import { createRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
 import Tabs from 'src/components/Tabs';
-import { css, styled, t } from '@superset-ui/core';
+import { css, styled, t, useTheme } from '@superset-ui/core';
 
 import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 
@@ -75,6 +75,7 @@ const SouthPane = ({
   displayLimit,
   defaultQueryLimit,
 }: SouthPaneProps) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
@@ -154,14 +155,14 @@ const SouthPane = ({
         key: pinnedTableKeys[id],
         label: (
           <>
-            <Icons.Table
-              iconSize="s"
-              css={css`
-                margin-bottom: 2px;
-                margin-right: 4px;
-              `}
-            />
-            {`${schema}.${decodeURIComponent(name)}`}
+                <Icons.InsertRowAboveOutlined
+                  iconSize="l"
+                  css={css`
+                    margin-bottom: ${theme.sizeUnit * 0.5}px;
+                    margin-right: ${theme.sizeUnit}px;
+                  `}
+                />
+                {`${schema}.${decodeURIComponent(name)}`}
           </>
         ),
         children: (

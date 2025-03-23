@@ -26,8 +26,7 @@ import {
   useState,
 } from 'react';
 import { isNil } from 'lodash';
-import { styled, t } from '@superset-ui/core';
-import { css } from '@emotion/react';
+import { css, styled, t } from '@superset-ui/core';
 import {
   Modal as AntdModal,
   ModalProps as AntdModalProps,

@@ -40,6 +40,7 @@ export type OnClickHandler = MouseEventHandler<HTMLElement>;
 export type ButtonStyle =
   | 'primary'
   | 'secondary'
+  | 'tertiary'
   | 'danger'
   | 'link'
   | 'dashed';
@@ -96,6 +97,9 @@ export default function Button(props: ButtonProps) {
   } else if (buttonStyle === 'secondary') {
     variant = 'filled';
     color = 'primary';
+  } else if (buttonStyle === 'tertiary') {
+    variant = 'outlined';
+    color = 'default';
   } else if (buttonStyle === 'dashed') {
     color = 'primary';
     variant = 'dashed';

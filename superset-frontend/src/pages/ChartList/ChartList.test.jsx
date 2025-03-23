@@ -178,25 +178,31 @@ describe('ChartList', () => {
 
     // Find and click list view toggle
     const listViewToggle = await screen.findByRole('img', {
-      name: 'list-view',
+      name: 'unordered-list',
     });
     const listViewButton = listViewToggle.closest('[role="button"]');
     fireEvent.click(listViewButton);
 
     // Wait for list view to be active
     await waitFor(() => {
-      const listViewToggle = screen.getByRole('img', { name: 'list-view' });
+      const listViewToggle = screen.getByRole('img', {
+        name: 'unordered-list',
+      });
       expect(listViewToggle.closest('[role="button"]')).toHaveClass('active');
     });
 
     // Find and click card view toggle
-    const cardViewToggle = screen.getByRole('img', { name: 'card-view' });
+    const cardViewToggle = screen.getByRole('img', {
+      name: 'appstore',
+    });
     const cardViewButton = cardViewToggle.closest('[role="button"]');
     fireEvent.click(cardViewButton);
 
     // Wait for card view to be active
     await waitFor(() => {
-      const cardViewToggle = screen.getByRole('img', { name: 'card-view' });
+      const cardViewToggle = screen.getByRole('img', {
+        name: 'appstore',
+      });
       expect(cardViewToggle.closest('[role="button"]')).toHaveClass('active');
     });
   });
@@ -209,7 +215,7 @@ describe('ChartList', () => {
 
     // Switch to list view
     const listViewToggle = await screen.findByRole('img', {
-      name: 'list-view',
+      name: 'unordered-list',
     });
     const listViewButton = listViewToggle.closest('[role="button"]');
     fireEvent.click(listViewButton);
@@ -235,7 +241,7 @@ describe('ChartList', () => {
 
     // Switch to list view
     const listViewToggle = await screen.findByRole('img', {
-      name: 'list-view',
+      name: 'unordered-list',
     });
     const listViewButton = listViewToggle.closest('[role="button"]');
     fireEvent.click(listViewButton);
@@ -246,7 +252,9 @@ describe('ChartList', () => {
     });
 
     // Click delete button
-    const deleteButtons = await screen.findAllByTestId('trash');
+    const deleteButtons = await screen.findAllByRole('button', {
+      name: 'delete',
+    });
     fireEvent.click(deleteButtons[0]);
 
     // Verify modal appears
@@ -261,7 +269,7 @@ describe('ChartList', () => {
 
     // Switch to list view
     const listViewToggle = await screen.findByRole('img', {
-      name: 'list-view',
+      name: 'unordered-list',
     });
     const listViewButton = listViewToggle.closest('[role="button"]');
     fireEvent.click(listViewButton);
@@ -274,7 +282,7 @@ describe('ChartList', () => {
     // Wait for favorite stars to appear
     await waitFor(() => {
       const favoriteStars = screen.getAllByRole('img', {
-        name: 'favorite-selected',
+        name: 'starred',
       });
       expect(favoriteStars.length).toBeGreaterThan(0);
     });
@@ -314,7 +322,7 @@ describe('ChartList - anonymous view', () => {
 
     // Switch to list view
     const listViewToggle = await screen.findByRole('img', {
-      name: 'list-view',
+      name: 'unordered-list',
     });
     const listViewButton = listViewToggle.closest('[role="button"]');
     fireEvent.click(listViewButton);

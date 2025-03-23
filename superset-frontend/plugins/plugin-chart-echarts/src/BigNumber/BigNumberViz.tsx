@@ -26,6 +26,7 @@ import {
   BRAND_COLOR,
   styled,
   BinaryQueryObjectFilterClause,
+  themeObject,
 } from '@superset-ui/core';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
@@ -98,6 +99,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       !formatTime ||
       !showTimestamp ||
       typeof timestamp === 'string' ||
+      typeof timestamp === 'bigint' ||
       typeof timestamp === 'boolean'
     )
       return null;
@@ -137,6 +139,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     const hasThresholdColorFormatter =
       Array.isArray(colorThresholdFormatters) &&
       colorThresholdFormatters.length > 0;
+    const { theme } = themeObject;
 
     let numberColor;
     if (hasThresholdColorFormatter) {
@@ -149,7 +152,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         }
       });
     } else {
-      numberColor = 'black';
+      numberColor = theme.colorText;
     }
 
     const container = this.createTemporaryContainer();

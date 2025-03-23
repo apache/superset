@@ -36,47 +36,14 @@
  */
 
 import { FC, SVGProps, useEffect, useRef, useState } from 'react';
-import AntdIcon from '@ant-design/icons';
 import TransparentIcon from 'src/assets/images/icons/transparent.svg';
-import { themeObject, styled } from '@superset-ui/core';
-import IconType from './IconType';
+import { IconType } from './types';
+import { BaseIconComponent } from './BaseIcon';
 
-// Customized AntdIconComponent that filters unnecessary props
-const AntdIconComponent = ({
-  iconColor,
-  iconSize,
-  viewBox,
-  ...rest
-}: Omit<IconType, 'ref' | 'css'>) => (
-  // Ensure props like iconColor and iconSize don't get passed to the DOM
-  <AntdIcon
-    viewBox={viewBox || '0 0 24 24'}
-    style={{
-      color: iconColor, // Use iconColor explicitly
-    }}
-    {...rest}
-  />
-);
-// Styled version of AntdIconComponent
-export const StyledIcon = styled(AntdIconComponent)<IconType>`
-  ${({ iconColor }) => iconColor && `color: ${iconColor};`};
-  span {
-    // Fixing alignment on some of the icons
-    line-height: 0px;
-  }
-  font-size: ${({ iconSize }) =>
-    iconSize ? themeObject.getFontSize(iconSize) : 24}px;
-`;
-
-export interface IconProps extends IconType {
-  fileName: string;
-}
-
-export const Icon = (props: IconProps) => {
-  const { fileName, iconColor, iconSize, ...rest } = props;
+export const Icon = (props: IconType) => {
   const [, setLoaded] = useState(false);
   const ImportedSVG = useRef<FC<SVGProps<SVGSVGElement>>>();
-  const name = fileName.replace('_', '-');
+  const { fileName } = props;
 
   useEffect(() => {
     let cancelled = false;
@@ -94,16 +61,10 @@ export const Icon = (props: IconProps) => {
     };
   }, [fileName, ImportedSVG]);
 
-  const whatRole = props?.onClick ? 'button' : 'img';
-
   return (
-    <StyledIcon
+    <BaseIconComponent
       component={ImportedSVG.current || TransparentIcon}
-      aria-label={name}
-      role={whatRole}
-      iconColor={iconColor} // Handled explicitly in StyledIcon
-      iconSize={iconSize} // Handled explicitly in StyledIcon
-      {...rest} // Pass remaining valid props
+      {...props}
     />
   );
 };

@@ -18,8 +18,10 @@
  */
 import { ReactNode } from 'react';
 import { css, SupersetTheme } from '@superset-ui/core';
-import { Collapse as AntdCollapse } from 'antd';
-import { CollapsePanelProps } from 'antd/lib/collapse';
+// eslint-disable-next-line no-restricted-imports
+import { Collapse as AntdCollapse } from 'antd'; // TODO: Remove antd
+// eslint-disable-next-line no-restricted-imports
+import { CollapsePanelProps } from 'antd/lib/collapse'; // TODO: Remove antd
 
 const anticonHeight = 12;
 const antdPanelStyles = (theme: SupersetTheme) => css`

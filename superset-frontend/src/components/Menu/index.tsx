@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled, css } from '@superset-ui/core';
 import { ReactElement } from 'react';
 import { Menu as AntdMenu } from 'antd-v5';
 import { MenuProps as AntdMenuProps } from 'antd-v5/es/menu';
@@ -52,7 +52,7 @@ const StyledMenuItem = styled(AntdMenu.Item)`
       justify-content: space-between;
     }
     a {
-      transition: background-color ${({ theme }) => theme.motionDurationMid};
+      transition: background-color ${({ theme }) => theme.motionDurationMid}s;
       &:after {
         content: '';
         position: absolute;
@@ -62,11 +62,8 @@ const StyledMenuItem = styled(AntdMenu.Item)`
         height: 3px;
         opacity: 0;
         transform: translateX(-50%);
-        transition: all ${({ theme }) => theme.motionDurationMid};
+        transition: all ${({ theme }) => theme.motionDurationMid}s;
         background-color: ${({ theme }) => theme.colorPrimary};
-        &:after {
-          border-bottom: 2px solid transparent;
-        }
       }
       &:focus {
         @media (max-width: 767px) {
@@ -85,67 +82,61 @@ const StyledMenu = styled(AntdMenu)`
 `;
 
 const StyledNav = styled(AntdMenu)`
-  background-color: ${({ theme }) => theme.colorBgElevated};
-  display: flex;
-  align-items: center;
-  height: 100%;
-  gap: 0;
-  border-bottom: 0;
-  &.antd5-menu-horizontal > .antd5-menu-item {
-    line-height: 1.4;
-    height: 100%;
+  ${({ theme }) => css`
     display: flex;
     align-items: center;
-    margin: 0;
-    border-bottom: 2px solid transparent;
-    padding: ${({ theme }) => theme.sizeUnit * 2}px
-      ${({ theme }) => theme.sizeUnit * 4}px;
-    &:hover {
-      background-color: ${({ theme }) => theme.colors.primary.light5};
+    height: 100%;
+    gap: 0;
+    &.antd5-menu-horizontal > .antd5-menu-item {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      margin: 0;
       border-bottom: 2px solid transparent;
-      & a:after {
-        opacity: 1;
-        width: 100%;
-      }
-      &:after {
+      padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
+      &:hover {
+        background-color: ${theme.colors.primary.light5};
         border-bottom: 2px solid transparent;
+        & a:after {
+          opacity: 1;
+          width: 100%;
+        }
       }
     }
-  }
-  &.antd5-menu-horizontal > .antd5-menu-item-selected {
-    box-sizing: border-box;
-    border-bottom: 2px solid ${({ theme }) => theme.colorPrimary};
-    &:after {
-      border-bottom: 2px solid transparent;
+    &.antd5-menu-horizontal > .antd5-menu-item-selected {
+      box-sizing: border-box;
+      border-bottom: 2px solid ${theme.colorPrimary};
     }
-  }
+  `}
 `;
 
 const StyledSubMenu = styled(AntdMenu.SubMenu)`
-  .antd5-menu-submenu-open,
-  .antd5-menu-submenu-active {
-    .antd5-menu-submenu-title {
-      &:after {
-        opacity: 1;
-        width: calc(100% - 1);
+  ${({ theme }) => css`
+    .antd5-menu-submenu-open,
+    .antd5-menu-submenu-active {
+      .antd5-menu-submenu-title {
+        &:after {
+          opacity: 1;
+          width: calc(100% - 1);
+        }
       }
     }
-  }
-  .antd5-menu-submenu-title {
-    display: flex;
-    flex-direction: row-reverse;
-    &:after {
-      content: '';
-      position: absolute;
-      bottom: -3px;
-      left: 50%;
-      width: 0;
-      height: 3px;
-      opacity: 0;
-      transform: translateX(-50%);
-      transition: all ${({ theme }) => theme.motionDurationMid};
+    .antd5-menu-submenu-title {
+      display: flex;
+      flex-direction: row-reverse;
+      &:after {
+        content: '';
+        position: absolute;
+        bottom: -3px;
+        left: 50%;
+        width: 0;
+        height: 3px;
+        opacity: 0;
+        transform: translateX(-50%);
+        transition: all ${theme.transitionTiming}s;
+      }
     }
-  }
+  `}
 `;
 
 export type MenuMode = AntdMenuProps['mode'];

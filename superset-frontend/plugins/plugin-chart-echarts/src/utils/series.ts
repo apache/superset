@@ -363,7 +363,7 @@ export function formatSeriesName(
   if (name === undefined || name === null) {
     return NULL_STRING;
   }
-  if (typeof name === 'boolean') {
+  if (typeof name === 'boolean' || typeof name === 'bigint') {
     return name.toString();
   }
   if (name instanceof Date || coltype === GenericDataType.Temporal) {
@@ -440,8 +440,8 @@ export function getLegendProps(
     selectorLabel: {
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeSM,
-      color: theme.colors.grayscale.base,
-      borderColor: theme.colors.grayscale.base,
+      color: theme.colorText,
+      borderColor: theme.colorBgBase,
     },
   };
   const MIN_LEGEND_WIDTH = 0;

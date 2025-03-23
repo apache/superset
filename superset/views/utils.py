@@ -103,8 +103,8 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, An
 def get_permissions(
     user: User,
 ) -> tuple[dict[str, list[tuple[str]]], DefaultDict[str, list[str]]]:
-    if not user.roles:
-        raise AttributeError("User object does not have roles")
+    if not user.roles and not user.groups:
+        raise AttributeError("User object does not have roles or groups")
 
     data_permissions = defaultdict(set)
     roles_permissions = security_manager.get_user_roles_permissions(user)

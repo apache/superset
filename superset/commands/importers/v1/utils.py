@@ -15,7 +15,7 @@
 
 import logging
 from pathlib import Path, PurePosixPath
-from typing import Any, Optional
+from typing import Any, Callable, Dict, Optional, Type
 from zipfile import ZipFile
 
 import yaml
@@ -214,3 +214,19 @@ def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
         for file_name in bundle.namelist()
         if is_valid_config(file_name)
     }
+
+
+def get_resource_mappings_batched(
+    model_class: Type[Any],
+    batch_size: int = 1000,
+    value_func: Callable[[Any], Any] = lambda x: x.id,
+) -> Dict[str, Any]:
+    offset = 0
+    mapping = {}
+    while True:
+        batch = db.session.query(model_class).limit(batch_size).offset(offset).all()
+        if not batch:
+            break
+        mapping.update({str(x.uuid): value_func(x) for x in batch})
+        offset += batch_size
+    return mapping

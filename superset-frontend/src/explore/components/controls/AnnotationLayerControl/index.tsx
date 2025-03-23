@@ -27,6 +27,7 @@ import {
   SupersetTheme,
   t,
   withTheme,
+  css,
 } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
@@ -36,6 +37,7 @@ import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
+import Icons from 'src/components/Icons';
 import ControlPopover, {
   getSectionContainerElement,
 } from '../ControlPopover/ControlPopover';
@@ -186,13 +188,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
   renderInfo(anno: Annotation) {
     const { annotationError, annotationQuery, theme } = this.props;
     if (annotationQuery[anno.name]) {
-      return (
-        <i
-          className="fa fa-refresh"
-          style={{ color: theme.colorPrimary }}
-          aria-hidden
-        />
-      );
+      return <Icons.SyncOutlined iconColor={theme.colorPrimary} iconSize="m" />;
     }
     if (annotationError[anno.name]) {
       return (
@@ -211,6 +207,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 
   render() {
     const { addedAnnotationIndex } = this.state;
+    const { theme } = this.props;
     const addedAnnotation =
       addedAnnotationIndex !== null
         ? this.props.value[addedAnnotationIndex]
@@ -261,11 +258,15 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
             }
           >
             <CustomListItem selectable>
-              <i
+              <Icons.PlusOutlined
+                iconSize="m"
+                css={css`
+                  margin: auto ${theme.sizeUnit}px auto 0;
+                  vertical-align: tex-top;
+                `}
                 data-test="add-annotation-layer-button"
-                className="fa fa-plus"
-              />{' '}
-              &nbsp; {t('Add annotation layer')}
+              />
+              {t('Add annotation layer')}
             </CustomListItem>
           </ControlPopover>
         </List>
