@@ -195,8 +195,7 @@ RUN mkdir -p \
       superset-frontend \
       apache_superset.egg-info \
       requirements \
-      && chmod -R 1777 $SUPERSET_HOME \
-      && chown -R superset:superset $SUPERSET_HOME \
+      && chown -R superset:superset /app/superset \
       && touch superset/static/version_info.json
 
 # Install Playwright and optionally setup headless browsers
