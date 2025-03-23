@@ -27,18 +27,14 @@ ARG BUILD_TRANSLATIONS="false"
 ######################################################################
 FROM debian:bookworm-slim AS oracle-client
 WORKDIR /oracle
-RUN DOWNLOAD_URL="https://download.oracle.com/otn_software/linux/instantclient/1921000/instantclient-basic-linux.x64-19.21.0.0.0dbru.zip" \
+RUN DOWNLOAD_URL="https://download.oracle.com/otn_software/linux/instantclient/1921000/instantclient-basiclite-linux.x64-19.21.0.0.0dbru.zip" \
     && apt-get update \
     && apt-get install -y --no-install-recommends wget unzip ca-certificates \
     && wget --quiet --no-check-certificate -O instantclient.zip "${DOWNLOAD_URL}" \
     && unzip -q instantclient.zip \
-    && mv instantclient_19_2/* . \
-    && rm -rf instantclient_19_2 \
     && rm instantclient.zip \
-    && ln -s libclntsh.so.19.1 libclntsh.so \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
 ######################################################################
 # Browser dependencies layer
 ######################################################################
