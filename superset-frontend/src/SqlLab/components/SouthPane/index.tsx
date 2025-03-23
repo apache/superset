@@ -155,14 +155,14 @@ const SouthPane = ({
         key: pinnedTableKeys[id],
         label: (
           <>
-                <Icons.InsertRowAboveOutlined
-                  iconSize="l"
-                  css={css`
-                    margin-bottom: ${theme.sizeUnit * 0.5}px;
-                    margin-right: ${theme.sizeUnit}px;
-                  `}
-                />
-                {`${schema}.${decodeURIComponent(name)}`}
+            <Icons.InsertRowAboveOutlined
+              iconSize="l"
+              css={css`
+                margin-bottom: ${theme.sizeUnit * 0.5}px;
+                margin-right: ${theme.sizeUnit}px;
+              `}
+            />
+            {`${schema}.${decodeURIComponent(name)}`}
           </>
         ),
         children: (

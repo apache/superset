@@ -82,24 +82,23 @@ const StyledTabsContainer = styled.div`
     width: 100%;
     background-color: ${theme.colors.grayscale.light5};
 
-  .dashboard-component-tabs-content {
-    min-height: ${({ theme }) => theme.sizeUnit * 12}px;
-    margin-top: ${({ theme }) => theme.sizeUnit / 4}px;
-    position: relative;
-  }
-
-  .antd5-tabs {
-    overflow: visible;
-
-    .antd5-tabs-nav-wrap {
-      min-height: ${({ theme }) => theme.sizeUnit * 12.5}px;
+    .dashboard-component-tabs-content {
+      min-height: ${({ theme }) => theme.sizeUnit * 12}px;
+      margin-top: ${({ theme }) => theme.sizeUnit / 4}px;
+      position: relative;
     }
 
-
-    .antd5-tabs-content-holder {
+    .antd5-tabs {
       overflow: visible;
+
+      .antd5-tabs-nav-wrap {
+        min-height: ${({ theme }) => theme.sizeUnit * 12.5}px;
+      }
+
+      .antd5-tabs-content-holder {
+        overflow: visible;
+      }
     }
-  }
 
     div .antd5-tabs-tab-btn {
       text-transform: none;
