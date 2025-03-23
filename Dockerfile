@@ -1,3 +1,4 @@
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -26,49 +27,12 @@ ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 ARG BUILD_TRANSLATIONS="false"
 
 ######################################################################
-# Oracle client layer
-######################################################################
-FROM debian:bookworm-slim AS oracle-client
-WORKDIR /oracle
-RUN DOWNLOAD_URL="https://download.oracle.com/otn_software/linux/instantclient/1921000/instantclient-basiclite-linux.x64-19.21.0.0.0dbru.zip" \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends wget unzip ca-certificates \
-    && wget --quiet --no-check-certificate -O instantclient.zip "${DOWNLOAD_URL}" \
-    && unzip -q instantclient.zip \
-    && rm instantclient.zip \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-######################################################################
-# Browser dependencies layer
-######################################################################
-FROM debian:bookworm-slim AS browser-deps
-ARG GECKODRIVER_VERSION=v0.32.0
-ARG FIREFOX_VERSION=106.0.3
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
-    bzip2 \
-    ca-certificates \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && wget -q "https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz" \
-    && tar -xzf "geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz" -C /usr/local/bin \
-    && rm "geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz" \
-    && chmod +x /usr/local/bin/geckodriver \
-    && wget -q "https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2" \
-    && mkdir -p /opt \
-    && tar -xjf "firefox-${FIREFOX_VERSION}.tar.bz2" -C /opt \
-    && rm "firefox-${FIREFOX_VERSION}.tar.bz2" \
-    && ln -sf /opt/firefox/firefox /usr/local/bin/firefox
-
-######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
 FROM --platform=${BUILDPLATFORM} node:20-bookworm-slim AS superset-node-ci
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
-ARG DEV_MODE="false"
+ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
 
 COPY docker/ /app/docker/
@@ -133,6 +97,7 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
     rm -rf /app/superset/translations/*/*/*.po; \
     rm -rf /app/superset/translations/*/*/*.mo;
 
+
 ######################################################################
 # Base python layer
 ######################################################################
@@ -180,22 +145,6 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
 ######################################################################
 FROM python-base AS python-common
 
-# Install build dependencies first
-RUN /app/docker/apt-install.sh \
-    build-essential \
-    pkg-config \
-    default-libmysqlclient-dev \
-    libmariadb-dev \
-    mariadb-client \
-    mariadb-server \
-    git \
-    wget \
-    unzip \
-    libaio1 \
-    libaio-dev \
-    libpq-dev \
-
-
 ENV SUPERSET_HOME="/app/superset_home" \
     HOME="/app/superset_home" \
     SUPERSET_ENV="production" \
@@ -238,23 +187,16 @@ COPY scripts/check-env.py scripts/
 # keeping for backward compatibility
 COPY --chmod=755 ./docker/entrypoints/run-server.sh /usr/bin/
 
-# Copy Oracle client and browser dependencies
-COPY --from=oracle-client /oracle/instantclient* /usr/share/oracle/instantclient
-COPY --from=browser-deps /usr/local/bin/geckodriver /usr/local/bin/
-COPY --from=browser-deps /opt/firefox /opt/firefox
-COPY --from=browser-deps /usr/local/bin/firefox /usr/local/bin/
+# Some debian libs
+RUN /app/docker/apt-install.sh \
+      curl \
+      libsasl2-dev \
+      libsasl2-modules-gssapi-mit \
+      libpq-dev \
+      libecpg-dev \
+      libldap2-dev
 
-# Set Oracle environment variables
-ENV ORACLE_HOME=/usr/share/oracle/instantclient \
-    LD_LIBRARY_PATH=/usr/share/oracle/instantclient:/usr/lib \
-    PATH="/usr/share/oracle/instantclient:/usr/local/bin:${PATH}" \
-    REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
-    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
-
-# Ensure Oracle Instant Client dependencies are linked
-RUN echo "/usr/share/oracle/instantclient" > /etc/ld.so.conf.d/oracle.conf \
-    && ldconfig
-
+# Copy compiled things from previous stages
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
 
 # TODO, when the next version comes out, use --exclude superset/translations
@@ -275,54 +217,14 @@ EXPOSE ${SUPERSET_PORT}
 ######################################################################
 FROM python-common AS lean
 
-# Install all required build dependencies first
-RUN /app/docker/apt-install.sh \
-    build-essential \
-    gcc \
-    g++ \
-    make \
-    pkg-config \
-    default-mysql-client \
-    default-libmysqlclient-dev \
-    libmariadb-dev \
-    mariadb-client \
-    mariadb-server \
-    libmariadb3 \
-    libmariadb-dev \
-    wget \
-    unzip \
-    libaio1 \
-    libaio-dev \
-    libpq-dev
-
-
-ENV SUPERSET_HOME="/app/superset_home" \
-    HOME="/app/superset_home" \
-    SUPERSET_ENV="production" \
-    FLASK_APP="superset.app:create_app()" \
-    PYTHONPATH="/app/pythonpath" \
-    SUPERSET_PORT="8088"
-
-# Ensure the superset user owns the directory
-RUN mkdir -p $SUPERSET_HOME \
-    && chown -R superset:superset $SUPERSET_HOME \
-    && chmod -R 1777 $SUPERSET_HOME \
-    && chown -R superset:superset /app/.venv
-
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/base.txt requirements/
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt
-
 # Install the superset package
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .
-
-# Ensure Oracle environment is properly set before installing cx-oracle
-RUN ldconfig
-
 RUN python -m compileall /app/superset
-
 
 USER superset
 
@@ -331,22 +233,11 @@ USER superset
 ######################################################################
 FROM python-common AS dev
 
+# Debian libs needed for dev
 RUN /app/docker/apt-install.sh \
-    build-essential \
-    gcc \
-    g++ \
-    make \
     git \
     pkg-config \
-    default-mysql-client \
-    default-libmysqlclient-dev \
-    libmariadb-dev \
-    mariadb-client \
-    mariadb-server \
-    libmariadb3 \
-    libmariadb-dev \
-    wget \
-    unzip
+    default-libmysqlclient-dev
 
 # Copy development requirements and install them
 COPY requirements/*.txt requirements/

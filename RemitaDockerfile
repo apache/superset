@@ -68,7 +68,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 FROM --platform=${BUILDPLATFORM} node:20-bookworm-slim AS superset-node-ci
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
-ARG DEV_MODE="false"
+ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
 
 COPY docker/ /app/docker/
@@ -180,21 +180,6 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
 ######################################################################
 FROM python-base AS python-common
 
-# Install build dependencies first
-RUN /app/docker/apt-install.sh \
-    build-essential \
-    pkg-config \
-    default-libmysqlclient-dev \
-    libmariadb-dev \
-    mariadb-client \
-    mariadb-server \
-    git \
-    wget \
-    unzip \
-    libaio1 \
-    libaio-dev \
-    libpq-dev
-
 ENV SUPERSET_HOME="/app/superset_home" \
     HOME="/app/superset_home" \
     SUPERSET_ENV="production" \
@@ -236,6 +221,26 @@ COPY scripts/check-env.py scripts/
 
 # keeping for backward compatibility
 COPY --chmod=755 ./docker/entrypoints/run-server.sh /usr/bin/
+
+# Some debian libs
+RUN /app/docker/apt-install.sh \
+    curl \
+    libsasl2-dev \
+    libsasl2-modules-gssapi-mit \
+    libpq-dev \
+    libecpg-dev \
+    libldap2-dev \
+    build-essential \
+    pkg-config \
+    default-libmysqlclient-dev \
+    libmariadb-dev \
+    mariadb-client \
+    mariadb-server \
+    git \
+    wget \
+    unzip \
+    libaio1 \
+    libaio-dev
 
 # Copy Oracle client and browser dependencies
 COPY --from=oracle-client /oracle/instantclient* /usr/share/oracle/instantclient
@@ -295,19 +300,6 @@ RUN /app/docker/apt-install.sh \
     libpq-dev
 
 
-ENV SUPERSET_HOME="/app/superset_home" \
-    HOME="/app/superset_home" \
-    SUPERSET_ENV="production" \
-    FLASK_APP="superset.app:create_app()" \
-    PYTHONPATH="/app/pythonpath" \
-    SUPERSET_PORT="8088"
-
-# Ensure the superset user owns the directory
-RUN mkdir -p $SUPERSET_HOME \
-    && chown -R superset:superset $SUPERSET_HOME \
-    && chmod -R 1777 $SUPERSET_HOME \
-    && chown -R superset:superset /app/.venv
-
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/base.txt requirements/
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
@@ -317,6 +309,8 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .
 
+# Install dependencies for CORS
+RUN uv pip install apache-superset[cors]
 # Ensure Oracle environment is properly set before installing cx-oracle
 RUN ldconfig
 
@@ -330,6 +324,7 @@ USER superset
 ######################################################################
 FROM python-common AS dev
 
+# Debian libs needed for dev
 RUN /app/docker/apt-install.sh \
     build-essential \
     gcc \
@@ -356,7 +351,13 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .
 
+# Install dependencies for CORS
+RUN uv pip install apache-superset[cors]
 RUN uv pip install .[postgres]
+
+# Ensure Oracle environment is properly set before installing cx-oracle
+RUN ldconfig
+
 RUN python -m compileall /app/superset
 
 USER superset
