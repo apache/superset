@@ -236,7 +236,7 @@ RUN /app/docker/apt-install.sh \
     libaio-dev
 
 # Copy Oracle client and browser dependencies (MODIFIED FOR FIXES)
-COPY --from=oracle-client /oracle/* /usr/share/oracle/instantclient/  # COPY FILES DIRECTLY (NO SUBDIRECTORY)
+COPY --from=oracle-client /oracle/instantclient* /usr/share/oracle/instantclient
 COPY --from=browser-deps /usr/local/bin/geckodriver /usr/local/bin/
 COPY --from=browser-deps /opt/firefox /opt/firefox
 COPY --from=browser-deps /usr/local/bin/firefox /usr/local/bin/
