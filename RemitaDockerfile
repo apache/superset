@@ -23,7 +23,7 @@ ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 # Include translations in the final build
 ARG BUILD_TRANSLATIONS="false"
 ######################################################################
-# Oracle client layer (MODIFIED FOR FIXES)
+# Oracle client layer
 ######################################################################
 FROM debian:bookworm-slim AS oracle-client
 WORKDIR /oracle
@@ -99,6 +99,7 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
     else \
         echo "Skipping 'npm ci' in dev mode"; \
     fi
+
 
 # Runs the webpack build process
 COPY superset-frontend /app/superset-frontend
