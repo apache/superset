@@ -1,3 +1,4 @@
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -13,29 +14,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
 ARG PY_VER=3.11.11-slim-bookworm
-
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
-
 # Include translations in the final build
 ARG BUILD_TRANSLATIONS="false"
-
 ######################################################################
-# Oracle client layer
+# Oracle client layer (MODIFIED FOR FIXES)
 ######################################################################
 FROM debian:bookworm-slim AS oracle-client
 WORKDIR /oracle
-RUN DOWNLOAD_URL="https://download.oracle.com/otn_software/linux/instantclient/1921000/instantclient-basiclite-linux.x64-19.21.0.0.0dbru.zip" \
+RUN DOWNLOAD_URL="https://download.oracle.com/otn_software/linux/instantclient/1921000/instantclient-basic-linux.x64-19.21.0.0.0dbru.zip" \
     && apt-get update \
     && apt-get install -y --no-install-recommends wget unzip ca-certificates \
     && wget --quiet --no-check-certificate -O instantclient.zip "${DOWNLOAD_URL}" \
     && unzip -q instantclient.zip \
+    && mv instantclient_19_2/* . \
+    && rm -rf instantclient_19_2 \
     && rm instantclient.zip \
+    && ln -s libclntsh.so.19.1 libclntsh.so \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -45,7 +45,6 @@ RUN DOWNLOAD_URL="https://download.oracle.com/otn_software/linux/instantclient/1
 FROM debian:bookworm-slim AS browser-deps
 ARG GECKODRIVER_VERSION=v0.32.0
 ARG FIREFOX_VERSION=106.0.3
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     bzip2 \
@@ -61,7 +60,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && tar -xjf "firefox-${FIREFOX_VERSION}.tar.bz2" -C /opt \
     && rm "firefox-${FIREFOX_VERSION}.tar.bz2" \
     && ln -sf /opt/firefox/firefox /usr/local/bin/firefox
-
 ######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
@@ -125,7 +123,6 @@ RUN --mount=type=cache,target=/root/.npm \
 
 # Copy translation files
 COPY superset/translations /app/superset/translations
-
 # Build the frontend if not in dev mode
 RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
         npm run build-translation; \
@@ -242,8 +239,8 @@ RUN /app/docker/apt-install.sh \
     libaio1 \
     libaio-dev
 
-# Copy Oracle client and browser dependencies
-COPY --from=oracle-client /oracle/instantclient* /usr/share/oracle/instantclient
+# Copy Oracle client and browser dependencies (MODIFIED FOR FIXES)
+COPY --from=oracle-client /oracle/* /usr/share/oracle/instantclient/  # COPY FILES DIRECTLY (NO SUBDIRECTORY)
 COPY --from=browser-deps /usr/local/bin/geckodriver /usr/local/bin/
 COPY --from=browser-deps /opt/firefox /opt/firefox
 COPY --from=browser-deps /usr/local/bin/firefox /usr/local/bin/
@@ -278,7 +275,6 @@ EXPOSE ${SUPERSET_PORT}
 # Final lean image...
 ######################################################################
 FROM python-common AS lean
-
 # Install all required build dependencies first
 RUN /app/docker/apt-install.sh \
     build-essential \
@@ -296,15 +292,12 @@ RUN /app/docker/apt-install.sh \
     wget \
     unzip \
     libaio1 \
-    libaio-dev \
-    libpq-dev
-
+    libaio-dev
 
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/base.txt requirements/
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt
-
 # Install the superset package
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .
@@ -313,9 +306,7 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
 RUN uv pip install apache-superset[cors]
 # Ensure Oracle environment is properly set before installing cx-oracle
 RUN ldconfig
-
 RUN python -m compileall /app/superset
-
 
 USER superset
 
@@ -323,7 +314,6 @@ USER superset
 # Dev image...
 ######################################################################
 FROM python-common AS dev
-
 # Debian libs needed for dev
 RUN /app/docker/apt-install.sh \
     build-essential \
@@ -341,7 +331,6 @@ RUN /app/docker/apt-install.sh \
     libmariadb-dev \
     wget \
     unzip
-
 # Copy development requirements and install them
 COPY requirements/*.txt requirements/
 # Install Python dependencies using docker/pip-install.sh
@@ -352,16 +341,12 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .
 
 # Install dependencies for CORS
-RUN uv pip install apache-superset[cors]
 RUN uv pip install .[postgres]
-
 # Ensure Oracle environment is properly set before installing cx-oracle
 RUN ldconfig
-
 RUN python -m compileall /app/superset
 
 USER superset
-
 ######################################################################
 # CI image...
 ######################################################################
