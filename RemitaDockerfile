@@ -193,7 +193,7 @@ RUN /app/docker/apt-install.sh \
     unzip \
     libaio1 \
     libaio-dev \
-    libpq-dev \
+    libpq-dev
 
 ENV SUPERSET_HOME="/app/superset_home" \
     HOME="/app/superset_home" \
