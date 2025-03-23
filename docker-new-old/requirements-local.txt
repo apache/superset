@@ -1,7 +1,0 @@
-flask-cors
-Authlib
-psycopg2-binary
-Pillow
-selenium
-PyOpenSSL
-

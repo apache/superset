@@ -18,156 +18,134 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Tabs, Form, Input, Button, Space, Alert } from 'antd';
-import { t } from '@superset-ui/core';
-import ControlHeader from 'src/explore/components/ControlHeader';
+import { TextArea } from 'src/components/Input';
+import {
+  Tooltip,
+  TooltipProps as TooltipOptions,
+} from 'src/components/Tooltip';
+import { t, withTheme } from '@superset-ui/core';
+
+import Button from 'src/components/Button';
+import { TextAreaEditor } from 'src/components/AsyncAceEditor';
 import ModalTrigger from 'src/components/ModalTrigger';
 
-const { TabPane } = Tabs;
+import ControlHeader from 'src/explore/components/ControlHeader';
 
-class TableActionFormControl extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      actions: props.initialValue || [],
-      jsonInput: JSON.stringify(props.initialValue || { view: { label: 'View', action: 'view' } }, null, 2),
-      activeTab: 'simple',
-    };
+const propTypes = {
+  name: PropTypes.string,
+  onChange: PropTypes.func,
+  initialValue: PropTypes.string,
+  height: PropTypes.number,
+  minLines: PropTypes.number,
+  maxLines: PropTypes.number,
+  offerEditInModal: PropTypes.bool,
+  language: PropTypes.oneOf([
+    null,
+    'json',
+    'html',
+    'sql',
+    'markdown',
+    'javascript',
+  ]),
+  aboveEditorSection: PropTypes.node,
+  readOnly: PropTypes.bool,
+  resize: PropTypes.oneOf([
+    null,
+    'block',
+    'both',
+    'horizontal',
+    'inline',
+    'none',
+    'vertical',
+  ]),
+  textAreaStyles: PropTypes.object,
+  tooltipOptions: PropTypes.oneOf([null, TooltipOptions]),
+};
+
+const defaultProps = {
+  onChange: () => {},
+  initialValue: '',
+  height: 250,
+  minLines: 3,
+  maxLines: 10,
+  offerEditInModal: true,
+  readOnly: false,
+  resize: null,
+  textAreaStyles: {},
+  tooltipOptions: {},
+};
+
+class TextAreaControl extends Component {
+  onControlChange(event) {
+    const { value } = event.target;
+    this.props.onChange(value);
   }
 
-  handleAddAction = (values) => {
-    const { actions } = this.state;
-    const newAction = {
-      label: values.label,
-      action: values.action,
-    };
-    const updatedActions = [...actions, newAction];
-    this.setState({ actions: updatedActions });
-    this.props.onChange(updatedActions);
-  };
+  onAreaEditorChange(value) {
+    this.props.onChange(value);
+  }
 
-  handleRemoveAction = (index) => {
-    const { actions } = this.state;
-    const updatedActions = actions.filter((_, i) => i !== index);
-    this.setState({ actions: updatedActions });
-    this.props.onChange(updatedActions);
-  };
-
-  handleJsonChange = (value) => {
-    this.setState({ jsonInput: value });
-    try {
-      const parsedJson = JSON.parse(value);
-      this.props.onChange(parsedJson);
-    } catch (error) {
-      // Invalid JSON, do nothing
-    }
-  };
-
-  handleTabChange = (key) => {
-    const { actions, jsonInput } = this.state;
-    if (key === 'simple') {
-      try {
-        const parsedJson = JSON.parse(jsonInput);
-        const actionsArray = Object.values(parsedJson);
-        this.setState({ actions: actionsArray });
-      } catch (error) {
-        // Invalid JSON, do nothing
+  renderEditor(inModal = false) {
+    const minLines = inModal ? 40 : this.props.minLines || 12;
+    if (this.props.language) {
+      const style = {
+        border: `1px solid ${this.props.theme.colors.grayscale.light1}`,
+        minHeight: `${minLines}em`,
+        width: 'auto',
+        ...this.props.textAreaStyles,
+      };
+      if (this.props.resize) {
+        style.resize = this.props.resize;
       }
-    } else if (key === 'advanced') {
-      const jsonOutput = actions.reduce((acc, action) => {
-        acc[action.action] = action;
-        return acc;
-      }, {});
-      this.setState({ jsonInput: JSON.stringify(jsonOutput, null, 2) });
+      if (this.props.readOnly) {
+        style.backgroundColor = '#f2f2f2';
+      }
+      const codeEditor = (
+        <div>
+          <TextAreaEditor
+            mode={this.props.language}
+            style={style}
+            minLines={minLines}
+            maxLines={inModal ? 1000 : this.props.maxLines}
+            editorProps={{ $blockScrolling: true }}
+            defaultValue={this.props.initialValue}
+            readOnly={this.props.readOnly}
+            key={this.props.name}
+            {...this.props}
+            onChange={this.onAreaEditorChange.bind(this)}
+          />
+        </div>
+      );
+
+      if (this.props.tooltipOptions) {
+        return <Tooltip {...this.props.tooltipOptions}>{codeEditor}</Tooltip>;
+      }
+      return codeEditor;
     }
-    this.setState({ activeTab: key });
-  };
 
-  renderSimpleMode() {
-    const { actions } = this.state;
-    const [form] = Form.useForm();
-
-    return (
+    const textArea = (
       <div>
-        {actions.map((action, index) => (
-          <div key={index} style={{ marginBottom: '8px' }}>
-            <Space>
-              <Input value={action.label} disabled />
-              <Input value={action.action} disabled />
-              <Button type="link" danger onClick={() => this.handleRemoveAction(index)}>
-                Remove
-              </Button>
-            </Space>
-          </div>
-        ))}
-
-        <Form form={form} onFinish={this.handleAddAction} layout="inline">
-          <Form.Item
-            name="label"
-            label="Label"
-            rules={[{ required: true, message: 'Please enter a label' }]}
-          >
-            <Input placeholder="Action label (e.g., Edit)" />
-          </Form.Item>
-          <Form.Item
-            name="action"
-            label="Action"
-            rules={[{ required: true, message: 'Please enter an action' }]}
-          >
-            <Input placeholder="Action type (e.g., edit)" />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit">
-              Add Action
-            </Button>
-          </Form.Item>
-        </Form>
-
-        {actions.length === 0 && (
-          <Alert
-            message="No actions added yet."
-            type="info"
-            showIcon
-            style={{ marginTop: '16px' }}
-          />
-        )}
-      </div>
-    );
-  }
-
-  renderAdvancedMode() {
-    const { jsonInput } = this.state;
-
-    return (
-      <div>
-        <Input.TextArea
-          rows={10}
-          value={jsonInput}
-          onChange={(e) => this.handleJsonChange(e.target.value)}
-          placeholder="Enter actions in JSON format"
+        <TextArea
+          placeholder={t('textarea')}
+          onChange={this.onControlChange.bind(this)}
+          defaultValue={this.props.initialValue}
+          disabled={this.props.readOnly}
+          style={{ height: this.props.height }}
         />
-        {jsonInput && (
-          <Alert
-            message="Make sure the JSON is valid."
-            type="warning"
-            showIcon
-            style={{ marginTop: '16px' }}
-          />
-        )}
       </div>
     );
+    if (this.props.tooltipOptions) {
+      return <Tooltip {...this.props.tooltipOptions}>{textArea}</Tooltip>;
+    }
+    return textArea;
   }
 
   renderModalBody() {
     return (
-      <Tabs activeKey={this.state.activeTab} onChange={this.handleTabChange}>
-        <TabPane tab="Simple" key="simple">
-          {this.renderSimpleMode()}
-        </TabPane>
-        <TabPane tab="Advanced" key="advanced">
-          {this.renderAdvancedMode()}
-        </TabPane>
-      </Tabs>
+      <>
+        <div>{this.props.aboveEditorSection}</div>
+        {this.renderEditor(true)}
+      </>
     );
   }
 
@@ -176,23 +154,17 @@ class TableActionFormControl extends Component {
     return (
       <div>
         {controlHeader}
-        <Tabs activeKey={this.state.activeTab} onChange={this.handleTabChange}>
-          <TabPane tab="Simple" key="simple">
-            {this.renderSimpleMode()}
-          </TabPane>
-          <TabPane tab="Advanced" key="advanced">
-            {this.renderAdvancedMode()}
-          </TabPane>
-        </Tabs>
+        {this.renderEditor()}
         {this.props.offerEditInModal && (
           <ModalTrigger
             modalTitle={controlHeader}
             triggerNode={
               <Button buttonSize="small" className="m-t-5">
-                {t('Edit')} <strong>{this.props.language}</strong> {t('in modal')}
+                {t('Edit')} <strong>{this.props.language}</strong>{' '}
+                {t('in modal')}
               </Button>
             }
-            modalBody={this.renderModalBody()}
+            modalBody={this.renderModalBody(true)}
             responsive
           />
         )}
@@ -201,21 +173,7 @@ class TableActionFormControl extends Component {
   }
 }
 
-TableActionFormControl.propTypes = {
-  name: PropTypes.string,
-  onChange: PropTypes.func,
-  initialValue: PropTypes.array,
-  offerEditInModal: PropTypes.bool,
-  language: PropTypes.string,
-  readOnly: PropTypes.bool,
-};
+TextAreaControl.propTypes = propTypes;
+TextAreaControl.defaultProps = defaultProps;
 
-TableActionFormControl.defaultProps = {
-  onChange: () => {},
-  initialValue: [],
-  offerEditInModal: true,
-  language: 'json',
-  readOnly: false,
-};
-
-export default TableActionFormControl;
+export default withTheme(TextAreaControl);
