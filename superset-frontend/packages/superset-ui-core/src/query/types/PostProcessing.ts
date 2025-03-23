@@ -67,7 +67,7 @@ export interface Aggregates {
 export type DefaultPostProcessing = undefined;
 
 interface _PostProcessingAggregation {
-  operation: 'aggregation';
+  operation: 'aggregate';
   options: {
     groupby: string[];
     aggregates: Aggregates;

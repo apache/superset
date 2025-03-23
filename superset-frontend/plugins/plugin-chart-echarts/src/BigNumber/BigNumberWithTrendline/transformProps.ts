@@ -63,10 +63,10 @@ export default function transformProps(
     compareSuffix = '',
     timeFormat,
     headerFontSize,
-    aggregation = '',
     metric = 'value',
     showTimestamp,
     showTrendLine,
+    aggregation,
     startYAxisAtZero,
     subheader = '',
     subheaderFontSize,
@@ -83,6 +83,15 @@ export default function transformProps(
     from_dttm: fromDatetime,
     to_dttm: toDatetime,
   } = queriesData[0];
+
+  const aggregatedQueryData = queriesData.length > 1 ? queriesData[1] : null;
+
+  const hasAggregatedData =
+    aggregatedQueryData?.data &&
+    aggregatedQueryData.data.length > 0 &&
+    aggregation !== 'LAST_VALUE';
+
+  const aggregatedData = hasAggregatedData ? aggregatedQueryData.data[0] : null;
   const refs: Refs = {};
   const metricName = getMetricLabel(metric);
   const compareLag = Number(compareLag_) || 0;
@@ -96,86 +105,69 @@ export default function transformProps(
   let percentChange = 0;
   let bigNumber = data.length === 0 ? null : data[0][metricName];
   let timestamp = data.length === 0 ? null : data[0][xAxisLabel];
-  let bigNumberFallback;
-
-  const metricColtypeIndex = colnames.findIndex(name => name === metricName);
-  const metricColtype =
-    metricColtypeIndex > -1 ? coltypes[metricColtypeIndex] : null;
+  let bigNumberFallback = null;
+  let sortedData: [number | null, number | null][] = [];
 
   if (data.length > 0) {
-    const sortedData = (data as BigNumberDatum[])
-      .map(d => [d[xAxisLabel], parseMetricValue(d[metricName])])
+    sortedData = (data as BigNumberDatum[])
+      .map(
+        d =>
+          [d[xAxisLabel], parseMetricValue(d[metricName])] as [
+            number | null,
+            number | null,
+          ],
+      )
       // sort in time descending order
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
-
-    timestamp = sortedData[0][0];
-
-    const metricValues: number[] = sortedData
-      .map(([, metricValue]) => metricValue)
-      .filter((value): value is number => value !== null);
-
-    if (metricValues.length > 0) {
-      const sortedValues: number[] = [...metricValues].sort((a, b) => a - b);
-      const totalSum: number = metricValues.reduce(
-        (sum, value) => sum + value,
-        0,
-      );
-
-      switch (aggregation) {
-        case 'SUM':
-          bigNumber = totalSum;
-          break;
-        case 'AVG':
-          bigNumber = totalSum / metricValues.length;
-          break;
-        case 'MIN':
-          bigNumber = Math.min(...metricValues);
-          break;
-        case 'MAX':
-          bigNumber = Math.max(...metricValues);
-          break;
-        case 'MEDIAN': {
-          const mid = Math.floor(sortedValues.length / 2);
-          bigNumber =
-            sortedValues.length % 2 === 0
-              ? ((sortedValues[mid - 1] ?? 0) + (sortedValues[mid] ?? 0)) / 2
-              : (sortedValues[mid] ?? 0);
-          break;
-        }
-        case 'LAST_VALUE':
-        default:
-          bigNumber = sortedData[0][1];
-
-          break;
-      }
+  }
+  if (hasAggregatedData && aggregatedData) {
+    if (
+      aggregatedData[metricName] !== null &&
+      aggregatedData[metricName] !== undefined
+    ) {
+      bigNumber = aggregatedData[metricName];
     } else {
-      bigNumber = null;
+      const metricKeys = Object.keys(aggregatedData).filter(
+        key =>
+          key !== xAxisLabel &&
+          aggregatedData[key] !== null &&
+          typeof aggregatedData[key] === 'number',
+      );
+      bigNumber = metricKeys.length > 0 ? aggregatedData[metricKeys[0]] : null;
     }
 
+    timestamp = sortedData.length > 0 ? sortedData[0][0] : null;
+  } else if (sortedData.length > 0) {
+    bigNumber = sortedData[0][1];
+    timestamp = sortedData[0][0];
+
     if (bigNumber === null) {
-      bigNumberFallback = sortedData.find(d => d[1] !== null) ?? null;
+      bigNumberFallback = sortedData.find(d => d[1] !== null);
       bigNumber = bigNumberFallback ? bigNumberFallback[1] : null;
       timestamp = bigNumberFallback ? bigNumberFallback[0] : null;
     }
+  }
 
-    if (compareLag > 0) {
-      const compareIndex = compareLag;
-      if (compareIndex < sortedData.length) {
-        const compareValue = sortedData[compareIndex][1];
-        // compare values must both be non-nulls
-        if (bigNumber !== null && compareValue !== null) {
-          percentChange = compareValue
-            ? (bigNumber - compareValue) / Math.abs(compareValue)
-            : 0;
-          formattedSubheader = `${formatPercentChange(
-            percentChange,
-          )} ${compareSuffix}`;
-        }
+  if (compareLag > 0 && sortedData.length > 0) {
+    const compareIndex = compareLag;
+    if (compareIndex < sortedData.length) {
+      const compareValue = sortedData[compareIndex][1];
+      // compare values must both be non-nulls
+      if (bigNumber !== null && compareValue !== null) {
+        percentChange = compareValue
+          ? (bigNumber - compareValue) / Math.abs(compareValue)
+          : 0;
+        formattedSubheader = `${formatPercentChange(
+          percentChange,
+        )} ${compareSuffix}`;
       }
     }
-    sortedData.reverse();
+  }
+
+  if (data.length > 0) {
+    const reversedData = [...sortedData].reverse();
     // @ts-ignore
-    trendLineData = showTrendLine ? sortedData : undefined;
+    trendLineData = showTrendLine ? reversedData : undefined;
   }
 
   let className = '';
@@ -184,6 +176,10 @@ export default function transformProps(
   } else if (percentChange < 0) {
     className = 'negative';
   }
+
+  const metricColtypeIndex = colnames.findIndex(name => name === metricName);
+  const metricColtype =
+    metricColtypeIndex > -1 ? coltypes[metricColtypeIndex] : null;
 
   let metricEntry: Metric | undefined;
   if (chartProps.datasource?.metrics) {
