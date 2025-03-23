@@ -156,7 +156,8 @@ FROM python-base AS python-translation-compiler
 
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
-
+RUN chmod -R 1777 $SUPERSET_HOME \
+    && chown -R superset:superset $SUPERSET_HOME
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/translations.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -180,7 +181,8 @@ ENV SUPERSET_HOME="/app/superset_home" \
     FLASK_APP="superset.app:create_app()" \
     PYTHONPATH="/app/pythonpath" \
     SUPERSET_PORT="8088"
-
+RUN chmod -R 1777 $SUPERSET_HOME \
+    && chown -R superset:superset $SUPERSET_HOME
 # Copy the entrypoints, make them executable in userspace
 COPY --chmod=755 docker/entrypoints /app/docker/entrypoints
 
