@@ -155,7 +155,7 @@ export default function transformProps(
       // compare values must both be non-nulls
       if (bigNumber !== null && compareValue !== null) {
         percentChange = compareValue
-          ? (bigNumber - compareValue) / Math.abs(compareValue)
+          ? (Number(bigNumber) - compareValue) / Math.abs(compareValue)
           : 0;
         formattedSubheader = `${formatPercentChange(
           percentChange,
