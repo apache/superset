@@ -22,6 +22,7 @@ ARG PY_VER=3.11.11-slim-bookworm
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 # Include translations in the final build
 ARG BUILD_TRANSLATIONS="false"
+
 ######################################################################
 # Oracle client layer
 ######################################################################
@@ -156,8 +157,7 @@ FROM python-base AS python-translation-compiler
 
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
-RUN chmod -R 1777 $SUPERSET_HOME \
-    && chown -R superset:superset $SUPERSET_HOME
+
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/translations.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -181,8 +181,7 @@ ENV SUPERSET_HOME="/app/superset_home" \
     FLASK_APP="superset.app:create_app()" \
     PYTHONPATH="/app/pythonpath" \
     SUPERSET_PORT="8088"
-RUN chmod -R 1777 $SUPERSET_HOME \
-    && chown -R superset:superset $SUPERSET_HOME
+
 # Copy the entrypoints, make them executable in userspace
 COPY --chmod=755 docker/entrypoints /app/docker/entrypoints
 
@@ -195,9 +194,7 @@ RUN mkdir -p \
       superset-frontend \
       apache_superset.egg-info \
       requirements \
-      && chown -R superset:superset /app/superset \
-      && touch superset/static/version_info.json \
-      && chmod 666 /app/superset/static/version_info.json
+    && touch superset/static/version_info.json
 
 # Install Playwright and optionally setup headless browsers
 ARG INCLUDE_CHROMIUM="true"
@@ -257,6 +254,7 @@ ENV ORACLE_HOME=/usr/share/oracle/instantclient \
 RUN echo "/usr/share/oracle/instantclient" > /etc/ld.so.conf.d/oracle.conf \
     && ldconfig
 
+# Copy compiled things from previous stages
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
 
 # TODO, when the next version comes out, use --exclude superset/translations
@@ -276,6 +274,7 @@ EXPOSE ${SUPERSET_PORT}
 # Final lean image...
 ######################################################################
 FROM python-common AS lean
+
 # Install all required build dependencies first
 RUN /app/docker/apt-install.sh \
     build-essential \
@@ -303,8 +302,10 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .
 
-# Install dependencies for CORS
-RUN uv pip install apache-superset[cors]
+# Install the superset CORS package
+RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
+    uv pip install apache-superset[cors]
+
 # Ensure Oracle environment is properly set before installing cx-oracle
 RUN ldconfig
 RUN python -m compileall /app/superset
@@ -331,7 +332,8 @@ RUN /app/docker/apt-install.sh \
     libmariadb3 \
     libmariadb-dev \
     wget \
-    unzip
+    unzip \
+
 # Copy development requirements and install them
 COPY requirements/*.txt requirements/
 # Install Python dependencies using docker/pip-install.sh
@@ -341,10 +343,14 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .
 
-# Install dependencies for CORS
-RUN uv pip install .[postgres]
+# Install the superset CORS package
+RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
+    uv pip install apache-superset[cors]
+
 # Ensure Oracle environment is properly set before installing cx-oracle
 RUN ldconfig
+
+RUN uv pip install .[postgres]
 RUN python -m compileall /app/superset
 
 USER superset
