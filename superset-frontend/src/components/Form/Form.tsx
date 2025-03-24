@@ -29,8 +29,16 @@ const StyledForm = styled(AntdForm)`
   }
 `;
 
-export default function Form(props: FormProps) {
+function Form(props: FormProps) {
   return <StyledForm {...props} />;
 }
+
+export default Object.assign(Form, {
+  useForm: AntdForm.useForm,
+  Item: AntdForm.Item,
+  List: AntdForm.List,
+  ErrorList: AntdForm.ErrorList,
+  Provider: AntdForm.Provider,
+});
 
 export type { FormProps };

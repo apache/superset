@@ -100,7 +100,7 @@ const StyledBottom = styled.div`
 
 const IconButton = styled(
   ({ icon, altText, buttonText, ...props }: IconButtonProps) => (
-    <StyledButton {...props}>
+    <StyledButton buttonStyle="tertiary" {...props}>
       <StyledImage>
         {icon && <img src={icon} alt={altText} />}
         {!icon && (

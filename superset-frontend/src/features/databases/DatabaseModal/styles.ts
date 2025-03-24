@@ -47,7 +47,7 @@ export const StyledFormHeader = styled.header`
 
   .helper-top {
     padding-bottom: 0;
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorText};
     font-size: ${({ theme }) => theme.fontSizeSM}px;
     margin: 0;
   }
@@ -58,13 +58,13 @@ export const StyledFormHeader = styled.header`
 
   .helper-bottom {
     padding-top: 0;
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorText};
     font-size: ${({ theme }) => theme.fontSizeSM}px;
     margin: 0;
   }
 
   h4 {
-    color: ${({ theme }) => theme.colors.grayscale.dark2};
+    color: ${({ theme }) => theme.colorText};
     font-size: ${({ theme }) => theme.fontSizeLG}px;
     margin: 0;
     padding: 0;
@@ -210,8 +210,8 @@ export const wideButton = (theme: SupersetTheme) => css`
   color: ${theme.colors.primary.dark2};
   &:hover,
   &:focus {
-    border: 1px solid ${theme.colorPrimaryText};
-    color: ${theme.colorPrimaryText};
+    border: 1px solid ${theme.colorPrimary};
+    color: ${theme.colorPrimary};
   }
 `;
 
@@ -508,7 +508,7 @@ export const SelectDatabaseStyles = styled.div`
   }
 
   .control-label {
-    color: ${({ theme }) => theme.colorText};
+    color: ${({ theme }) => theme.colorTextLabel};
     font-size: ${({ theme }) => theme.fontSizeSM}px;
     margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
