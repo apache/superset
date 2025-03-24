@@ -115,10 +115,10 @@ export default class WithPopoverMenu extends PureComponent<
     onChangeFocus: null,
     menuItems: [],
     isFocused: false,
-    shouldFocus: (event: any, container: ShouldFocusContainer) =>{
-      if(container?.contains(event.target))return true;
-      if(event.target.id === 'menu-item')return true;
-      if(event.target.parentNode?.id === 'menu-item')return true;
+    shouldFocus: (event: any, container: ShouldFocusContainer) => {
+      if (container?.contains(event.target)) return true;
+      if (event.target.id === 'menu-item') return true;
+      if (event.target.parentNode?.id === 'menu-item') return true;
       return false;
     },
     style: null,
@@ -158,6 +158,9 @@ export default class WithPopoverMenu extends PureComponent<
     if (!this.props.editMode) {
       return;
     }
+
+    event.stopPropagation();
+
     const {
       onChangeFocus,
       shouldFocus: shouldFocusFunc,

@@ -216,10 +216,7 @@ class Markdown extends PureComponent {
 
   handleChangeFocus(nextFocus) {
     const nextFocused = !!nextFocus;
-    const nextEditMode = 'preview';
-    if(nextFocused){
-      nextEditMode = 'edit';
-    }
+    const nextEditMode = nextFocused ? 'edit' : 'preview';
     this.setState(() => ({ isFocused: nextFocused }));
     this.handleChangeEditorMode(nextEditMode);
   }
@@ -298,14 +295,14 @@ class Markdown extends PureComponent {
     const { hasError } = this.state;
 
     return (
-      <div style={{ pointerEvents: 'none' }}>
+      <div className="menu-item">
         <SafeMarkdown
           source={
             hasError
-              ? MARKDOWN_ERROR_MESSAGE
-              : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
-          }
-          htmlSanitization={this.props.htmlSanitization}
+            ? MARKDOWN_ERROR_MESSAGE
+            : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
+        }
+        htmlSanitization={this.props.htmlSanitization}
           htmlSchemaOverrides={this.props.htmlSchemaOverrides}
         />
       </div>
