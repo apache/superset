@@ -86,6 +86,7 @@ import {
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
+import { Flex } from 'src/components/Flex';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -123,10 +124,7 @@ const StyledContainer = styled.div`
   `}
 `;
 
-const StyledRowContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
+const StyledRowContainer = styled(Flex)`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
@@ -855,7 +853,7 @@ const FiltersConfigForm = (
           </FilterTypeInfo>
         )}
         {hasDataset && (
-          <StyledRowContainer>
+          <StyledRowContainer justify="space-between">
             {showDataset ? (
               <StyledFormItem
                 expanded={expanded}
