@@ -1292,6 +1292,19 @@ def get_user_email() -> str | None:
         return None
 
 
+def get_user_roles() -> list[str] | None:
+    """
+    Get the roles (if defined) associated with the current user.
+
+    :returns: The sorted list of roles
+    """
+
+    try:
+        return sorted([role.name for role in g.user.roles])
+    except Exception:  # pylint: disable=broad-except
+        return None
+
+
 @contextmanager
 def override_user(user: User | None, force: bool = True) -> Iterator[Any]:
     """
