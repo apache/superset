@@ -86,25 +86,31 @@ const StyledNav = styled(AntdMenu)`
     align-items: center;
     height: 100%;
     gap: 0;
+    border-bottom: 0;
+    line-height: ${theme.lineHeight};
     &.antd5-menu-horizontal > .antd5-menu-item {
       height: 100%;
       display: flex;
       align-items: center;
       margin: 0;
-      border-bottom: 2px solid transparent;
       padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
-      &:hover {
-        background-color: ${theme.colors.primary.light5};
-        border-bottom: 2px solid transparent;
-        & a:after {
-          opacity: 1;
-          width: 100%;
-        }
+      ::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        background-color: ${theme.colors.primary.base};
+        bottom: 0;
+        left: 0;
+        transform: scale(0);
+        transition: 0.2s all ease-out;
+      }
+      :hover::after {
+        transform: scale(1);
       }
     }
-    &.antd5-menu-horizontal > .antd5-menu-item-selected {
-      box-sizing: border-box;
-      border-bottom: 2px solid ${theme.colorPrimary};
+    &.antd5-menu-horizontal > .antd5-menu-item-selected::after {
+      transform: scale(1);
     }
   `}
 `;
