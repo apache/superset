@@ -216,7 +216,10 @@ class Markdown extends PureComponent {
 
   handleChangeFocus(nextFocus) {
     const nextFocused = !!nextFocus;
-    const nextEditMode = nextFocused ? 'edit' : 'preview';
+    const nextEditMode = 'preview';
+    if(nextFocused){
+      nextEditMode = 'edit';
+    }
     this.setState(() => ({ isFocused: nextFocused }));
     this.handleChangeEditorMode(nextEditMode);
   }
