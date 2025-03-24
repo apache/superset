@@ -23,7 +23,6 @@ import userEvent from '@testing-library/user-event';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import { DashboardInfo, FilterBarOrientation } from 'src/dashboard/types';
 import * as mockedMessageActions from 'src/components/MessageToasts/actions';
-import { FeatureFlag } from '@superset-ui/core';
 import FilterBarSettings from '.';
 
 const initialState: { dashboardInfo: DashboardInfo } = {
@@ -76,41 +75,34 @@ beforeEach(() => {
   fetchMock.restore();
 });
 
-test('Dropdown trigger renders with FF HORIZONTAL_FILTER_BAR on', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
+test('Dropdown trigger renders', async () => {
   await setup();
-  expect(screen.getByLabelText('gear')).toBeVisible();
+  expect(screen.getByLabelText('setting')).toBeVisible();
 });
 
 test('Dropdown trigger renders with dashboard edit permissions', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
   await setup({
     dash_edit_perm: true,
   });
-  expect(screen.getByRole('img', { name: 'gear' })).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'setting' })).toBeInTheDocument();
 });
 
 test('Dropdown trigger does not render without dashboard edit permissions', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
   await setup({
     dash_edit_perm: false,
   });
 
-  expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('img', { name: 'setting' }),
+  ).not.toBeInTheDocument();
 });
 
 test('Popover shows cross-filtering option on by default', async () => {
   await setup();
-  userEvent.click(screen.getByLabelText('gear'));
+  const settingsButton = screen.getByRole('button', {
+    name: 'setting',
+  });
+  userEvent.click(settingsButton);
   expect(screen.getByText('Enable cross-filtering')).toBeInTheDocument();
   expect(screen.getByRole('checkbox')).toBeChecked();
 });
@@ -120,23 +112,25 @@ test('Can enable/disable cross-filtering', async () => {
     result: {},
   });
   await setup();
-  userEvent.click(screen.getByLabelText('gear'));
+  const settingsButton = screen.getByRole('button', {
+    name: 'setting',
+  });
+  userEvent.click(settingsButton);
   const initialCheckbox = screen.getByRole('checkbox');
   expect(initialCheckbox).toBeChecked();
 
   userEvent.click(initialCheckbox);
 
-  userEvent.click(screen.getByLabelText('gear'));
+  userEvent.click(screen.getByLabelText('setting'));
   expect(screen.getByRole('checkbox')).not.toBeChecked();
 });
 
 test('Popover opens with "Vertical" selected', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
   await setup();
-  userEvent.click(screen.getByLabelText('gear'));
+  const settingsButton = screen.getByRole('button', {
+    name: 'setting',
+  });
+  userEvent.click(settingsButton);
   userEvent.hover(screen.getByText('Orientation of filter bar'));
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
@@ -146,12 +140,11 @@ test('Popover opens with "Vertical" selected', async () => {
 });
 
 test('Popover opens with "Horizontal" selected', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
   await setup({ filterBarOrientation: FilterBarOrientation.Horizontal });
-  userEvent.click(screen.getByLabelText('gear'));
+  const settingsButton = screen.getByRole('button', {
+    name: 'setting',
+  });
+  userEvent.click(settingsButton);
   userEvent.hover(screen.getByText('Orientation of filter bar'));
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
@@ -161,10 +154,6 @@ test('Popover opens with "Horizontal" selected', async () => {
 });
 
 test('On selection change, send request and update checked value', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
   fetchMock.put('glob:*/api/v1/dashboard/1', {
     result: {
       json_metadata: JSON.stringify({
@@ -175,7 +164,11 @@ test('On selection change, send request and update checked value', async () => {
   });
 
   await setup();
-  userEvent.click(screen.getByLabelText('gear'));
+
+  const settingsButton = screen.getByRole('button', {
+    name: 'setting',
+  });
+  userEvent.click(settingsButton);
   userEvent.hover(screen.getByText('Orientation of filter bar'));
 
   const verticalItem = await screen.findByText('Vertical (Left)');
@@ -185,7 +178,7 @@ test('On selection change, send request and update checked value', async () => {
 
   userEvent.click(screen.getByText('Horizontal (Top)'));
 
-  userEvent.click(screen.getByLabelText('gear'));
+  userEvent.click(settingsButton);
   userEvent.hover(screen.getByText('Orientation of filter bar'));
 
   const horizontalItem = await screen.findByText('Horizontal (Top)');
@@ -205,7 +198,7 @@ test('On selection change, send request and update checked value', async () => {
   );
 
   await waitFor(() => {
-    userEvent.click(screen.getByLabelText('gear'));
+    userEvent.click(screen.getByRole('button', { name: 'setting' }));
     userEvent.hover(screen.getByText('Orientation of filter bar'));
     const updatedHorizontalItem = screen.getByText('Horizontal (Top)');
     expect(
@@ -218,17 +211,14 @@ test('On selection change, send request and update checked value', async () => {
 });
 
 test('On failed request, restore previous selection', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
   fetchMock.put('glob:*/api/v1/dashboard/1', 400);
 
   const dangerToastSpy = jest.spyOn(mockedMessageActions, 'addDangerToast');
 
   await setup();
-  const gearIcon = await screen.findByLabelText('gear');
-  userEvent.click(gearIcon);
+  const SettingsIcon = screen.getByRole('img', { name: /setting/i });
+
+  userEvent.click(SettingsIcon);
 
   const orientationMenu = await screen.findByText('Orientation of filter bar');
   userEvent.hover(orientationMenu);
@@ -256,7 +246,7 @@ test('On failed request, restore previous selection', async () => {
   });
 
   // Reopen menu and verify selection rolled back
-  userEvent.click(gearIcon);
+  userEvent.click(SettingsIcon);
   userEvent.hover(orientationMenu);
 
   // Wait for menu items and verify state

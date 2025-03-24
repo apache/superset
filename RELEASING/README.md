@@ -452,10 +452,13 @@ cd ../
 
 
 # Compile translations for the backend
-./scripts/translations/generate_po_files.sh
+./scripts/translations/generate_mo_files.sh
+
+# update build version number
+sed -i '' "s/version_string = .*/version_string = \"$SUPERSET_VERSION\"/" setup.py
 
 # build the python distribution
-python -m build
+python setup.py sdist
 ```
 
 Publish to PyPI

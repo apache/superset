@@ -27,8 +27,7 @@ from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Unio
 import dateutil
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
-from jinja2 import DebugUndefined, Environment, nodes
-from jinja2.nodes import Call, Node
+from jinja2 import DebugUndefined, Environment
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
@@ -520,7 +519,12 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
     def __init__(self, dialect: Dialect):
         self.dialect = dialect
 
-    def __call__(self, values: list[Any], mark: Optional[str] = None) -> str:
+    def __call__(
+        self,
+        values: list[Any],
+        mark: Optional[str] = None,
+        default_to_none: bool = False,
+    ) -> str | None:
         """
         Given a list of values, build a parenthesis list suitable for an IN expression.
 
@@ -529,6 +533,10 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
             >>> where_in([1, "Joe's", 3])
             (1, 'Joe''s', 3)
 
+        The `default_to_none` parameter is used to determine the return value when the
+        list of values is empty:
+            - If `default_to_none` is `False` (default), the return value is ().
+            - If `default_to_none` is `True`, the return value is `None`.
         """
         binds = [bindparam(f"value_{i}", value) for i, value in enumerate(values)]
         string_representations = [
@@ -540,9 +548,11 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
             for bind in binds
         ]
         joined_values = ", ".join(string_representations)
-        result = f"({joined_values})"
+        result = (
+            f"({joined_values})" if (joined_values or not default_to_none) else None
+        )
 
-        if mark:
+        if mark and result:
             result += (
                 "\n-- WARNING: the `mark` parameter was removed from the `where_in` "
                 "macro for security reasons\n"
@@ -602,7 +612,12 @@ class BaseTemplateProcessor:
         kwargs.update(self._context)
 
         context = validate_template_context(self.engine, kwargs)
-        return template.render(context)
+        try:
+            return template.render(context)
+        except RecursionError as ex:
+            raise SupersetTemplateException(
+                "Infinite recursion detected in template"
+            ) from ex
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
@@ -659,9 +674,16 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
                 "dataset": partial(safe_proxy, dataset_macro_with_context),
-                "metric": partial(safe_proxy, metric_macro),
                 "get_time_filter": partial(safe_proxy, extra_cache.get_time_filter),
             }
+        )
+
+        # The `metric` filter needs the full context, in order to expand other filters
+        self._context["metric"] = partial(
+            safe_proxy,
+            metric_macro,
+            self.env,
+            self._context,
         )
 
 
@@ -889,27 +911,12 @@ def get_dataset_id_from_context(metric_key: str) -> int:
     raise SupersetTemplateException(exc_message)
 
 
-def has_metric_macro(template_string: str, env: Environment) -> bool:
-    """
-    Checks if a template string contains a metric macro.
-
-        >>> has_metric_macro("{{ metric('my_metric') }}")
-        True
-
-    """
-    ast = env.parse(template_string)
-
-    def visit_node(node: Node) -> bool:
-        return (
-            isinstance(node, Call)
-            and isinstance(node.node, nodes.Name)
-            and node.node.name == "metric"
-        ) or any(visit_node(child) for child in node.iter_child_nodes())
-
-    return visit_node(ast)
-
-
-def metric_macro(metric_key: str, dataset_id: Optional[int] = None) -> str:
+def metric_macro(
+    env: Environment,
+    context: dict[str, Any],
+    metric_key: str,
+    dataset_id: Optional[int] = None,
+) -> str:
     """
     Given a metric key, returns its syntax.
 
@@ -943,18 +950,7 @@ def metric_macro(metric_key: str, dataset_id: Optional[int] = None) -> str:
         )
 
     definition = metrics[metric_key]
-
-    env = SandboxedEnvironment(undefined=DebugUndefined)
-    context = {"metric": partial(safe_proxy, metric_macro)}
-    while has_metric_macro(definition, env):
-        old_definition = definition
-        template = env.from_string(definition)
-        try:
-            definition = template.render(context)
-        except RecursionError as ex:
-            raise SupersetTemplateException("Cyclic metric macro detected") from ex
-
-        if definition == old_definition:
-            break
+    template = env.from_string(definition)
+    definition = template.render(context)
 
     return definition

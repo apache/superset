@@ -47,11 +47,13 @@ import Checkbox from 'src/components/Checkbox';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Dispatch } from 'redux';
 import { Slice } from 'src/dashboard/types';
+import { withTheme, Theme } from '@emotion/react';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import { DragDroppable } from './dnd/DragDroppable';
 
 export type SliceAdderProps = {
+  theme: Theme;
   fetchSlices: (
     userId?: number,
     filter_value?: string,
@@ -118,11 +120,10 @@ const NewChartButtonContainer = styled.div`
 const NewChartButton = styled(Button)`
   ${({ theme }) => css`
     height: auto;
-    & > .anticon + span {
-      margin-left: 0;
+    & > .anticon > span {
+      margin: auto -${theme.gridUnit}px auto 0;
     }
     & > [role='img']:first-of-type {
-      margin-right: ${theme.gridUnit}px;
       padding-bottom: 1px;
       line-height: 0;
     }
@@ -134,25 +135,25 @@ export const ChartList = styled.div`
   min-height: 0;
 `;
 
+export function sortByComparator(attr: keyof Slice) {
+  const desc = attr === 'changed_on' ? -1 : 1;
+
+  return (a: Slice, b: Slice) => {
+    const aValue = a[attr] ?? Number.MIN_SAFE_INTEGER;
+    const bValue = b[attr] ?? Number.MIN_SAFE_INTEGER;
+
+    if (aValue < bValue) {
+      return -1 * desc;
+    }
+    if (aValue > bValue) {
+      return 1 * desc;
+    }
+    return 0;
+  };
+}
+
 class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
   private slicesRequest?: AbortController | Promise<void>;
-
-  static sortByComparator(attr: keyof Slice) {
-    const desc = attr === 'changed_on' ? -1 : 1;
-
-    return (a: Slice, b: Slice) => {
-      const aValue = a[attr] ?? Number.MIN_SAFE_INTEGER;
-      const bValue = b[attr] ?? Number.MIN_SAFE_INTEGER;
-
-      if (aValue < bValue) {
-        return -1 * desc;
-      }
-      if (aValue > bValue) {
-        return 1 * desc;
-      }
-      return 0;
-    };
-  }
 
   static defaultProps = {
     selectedSliceIds: [],
@@ -237,7 +238,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
           : true,
       )
       .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
-      .sort(SliceAdder.sortByComparator(sortBy));
+      .sort(sortByComparator(sortBy));
   }
 
   handleChange = debounce(value => {
@@ -347,12 +348,16 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
   }
 
   render() {
+    const { theme } = this.props;
     return (
       <div
         css={css`
           height: 100%;
           display: flex;
           flex-direction: column;
+          button > span > :first-of-type {
+            margin-right: 0;
+          }
         `}
       >
         <NewChartButtonContainer>
@@ -369,7 +374,10 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
               )
             }
           >
-            <Icons.PlusSmall />
+            <Icons.PlusOutlined
+              iconSize="m"
+              iconColor={theme.colors.primary.dark1}
+            />
             {t('Create new chart')}
           </NewChartButton>
         </NewChartButtonContainer>
@@ -453,4 +461,4 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
   }
 }
 
-export default SliceAdder;
+export default withTheme(SliceAdder);

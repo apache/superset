@@ -34,8 +34,6 @@ import {
   css,
   SupersetTheme,
   t,
-  isFeatureEnabled,
-  FeatureFlag,
   isNativeFilterWithDataMask,
 } from '@superset-ui/core';
 import {
@@ -73,10 +71,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   onFilterSelectionChange,
 }) => {
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
-    ({ dashboardInfo }) =>
-      isFeatureEnabled(FeatureFlag.HorizontalFilterBar)
-        ? dashboardInfo.filterBarOrientation
-        : FilterBarOrientation.Vertical,
+    ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
   );
 
   const { outlinedFilterId, lastUpdated } = useFilterOutlined();
@@ -239,7 +234,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         <DropdownContainer
           items={items}
           dropdownTriggerIcon={
-            <Icons.FilterSmall
+            <Icons.FilterOutlined
               css={css`
                 && {
                   margin-right: -4px;

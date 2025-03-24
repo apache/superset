@@ -33,6 +33,7 @@ import { optionLabel } from 'src/utils/common';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { URL_PARAMS } from 'src/constants';
 import {
+  DISABLE_INPUT_OPERATORS,
   MULTI_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   UNSAVED_CHART_ID,
@@ -304,6 +305,10 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
     [...MULTI_OPERATORS]
       .map(op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation)
       .indexOf(operator) >= 0;
+  const showComparator =
+    DISABLE_INPUT_OPERATORS.map(
+      op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
+    ).indexOf(operator) === -1;
   // If returned value is an object after changing dataset
   let expression =
     typeof subject === 'object'
@@ -318,13 +323,13 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
       firstValue !== undefined && Number.isNaN(Number(firstValue));
     const quote = isString ? "'" : '';
     const [prefix, suffix] = isMulti ? ['(', ')'] : ['', ''];
-    const formattedComparators = comparatorArray
-      .map(val => optionLabel(val))
-      .map(
-        val =>
-          `${quote}${isString ? String(val).replace(/'/g, "''") : val}${quote}`,
-      );
-    if (comparatorArray.length > 0) {
+    if (comparatorArray.length > 0 && showComparator) {
+      const formattedComparators = comparatorArray
+        .map(val => optionLabel(val))
+        .map(
+          val =>
+            `${quote}${isString ? String(val).replace(/'/g, "''") : val}${quote}`,
+        );
       expression += ` ${prefix}${formattedComparators.join(', ')}${suffix}`;
     }
   }

@@ -19,7 +19,7 @@
 import { useState } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 import Modal from 'src/components/Modal';
-import { ExclamationCircleOutlined, WarningOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import Alert from 'src/components/Alert';
 import { t, useTheme } from '@superset-ui/core';
 
@@ -64,7 +64,11 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
   const theme = useTheme();
   const renderTrigger = () => {
     const icon =
-      type === 'warning' ? <WarningOutlined /> : <ExclamationCircleOutlined />;
+      type === 'warning' ? (
+        <Icons.WarningOutlined />
+      ) : (
+        <Icons.ExclamationCircleOutlined />
+      );
     const color =
       type === 'warning' ? theme.colors.warning.base : theme.colors.error.base;
     return (

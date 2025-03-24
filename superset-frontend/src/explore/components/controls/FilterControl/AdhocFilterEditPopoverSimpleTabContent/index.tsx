@@ -209,9 +209,6 @@ export const useSimpleTabFilterProps = (props: Props) => {
         ? currentComparator[0]
         : currentComparator;
     }
-    if (operatorId === Operators.IsTrue || operatorId === Operators.IsFalse) {
-      newComparator = Operators.IsTrue === operatorId;
-    }
     if (operatorId && CUSTOM_OPERATORS.has(operatorId)) {
       props.onChange(
         props.adhocFilter.duplicateWith({
