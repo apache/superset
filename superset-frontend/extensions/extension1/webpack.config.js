@@ -37,7 +37,7 @@ module.exports = {
       name: 'extension1',
       filename: 'remoteEntry.js',
       exposes: {
-        './ExtensionExample': './src/index.tsx',
+        './index': './src/index.tsx',
       },
       shared: {
         react: {
