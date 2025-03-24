@@ -855,7 +855,7 @@ const FiltersConfigForm = (
           </FilterTypeInfo>
         )}
         {hasDataset && (
-          <StyledRowContainer gap="middle" justify="space-between">
+          <StyledRowContainer>
             {showDataset ? (
               <StyledFormItem
                 expanded={expanded}
@@ -1038,7 +1038,7 @@ const FiltersConfigForm = (
                 </FormItem>
               )}
               {formFilter?.filterType !== 'filter_range' ? (
-                <CleanFormItem name={['filters', filterId, 'sortFilter']}>
+                <FormItem name={['filters', filterId, 'sortFilter']}>
                   <CollapsibleControl
                     initialValue={hasSorting}
                     title={t('Sort filter values')}
@@ -1108,9 +1108,9 @@ const FiltersConfigForm = (
                       </StyledRowSubFormItem>
                     )}
                   </CollapsibleControl>
-                </CleanFormItem>
+                </FormItem>
               ) : (
-                <CleanFormItem name={['filters', filterId, 'rangeFilter']}>
+                <FormItem name={['filters', filterId, 'rangeFilter']}>
                   <CollapsibleControl
                     initialValue={hasEnableSingleValue}
                     title={t('Single Value')}
@@ -1153,7 +1153,7 @@ const FiltersConfigForm = (
                       />
                     </StyledRowFormItem>
                   </CollapsibleControl>
-                </CleanFormItem>
+                </FormItem>
               )}
             </Collapse.Panel>
           )}
@@ -1170,12 +1170,12 @@ const FiltersConfigForm = (
             >
               <TextArea onChange={debouncedFormChanged} />
             </StyledFormItem>
-            <CleanFormItem
+            <FormItem
               name={['filters', filterId, 'defaultValueQueriesData']}
               hidden
               initialValue={null}
             />
-            <CleanFormItem name={['filters', filterId, 'defaultValue']}>
+            <FormItem name={['filters', filterId, 'defaultValue']}>
               <CollapsibleControl
                 checked={hasDefaultValue}
                 disabled={isRequired || defaultToFirstItem}
@@ -1292,7 +1292,7 @@ const FiltersConfigForm = (
                   </StyledRowSubFormItem>
                 )}
               </CollapsibleControl>
-            </CleanFormItem>
+            </FormItem>
             {Object.keys(controlItems)
               .sort(
                 (a, b) =>
