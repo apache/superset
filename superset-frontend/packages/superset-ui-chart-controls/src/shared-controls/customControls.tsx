@@ -61,6 +61,8 @@ const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
   ensureIsArray(controls?.groupby?.value).length === 0 &&
   ensureIsArray(controls?.metrics?.value).length === 1;
 
+// TODO: Expand this aggregation options list to include all backend-supported aggregations.
+// TODO:  Migrate existing chart types (Pivot Table, etc.) to use this shared control.
 export const aggregationControl = {
   name: 'aggregation',
   config: {
