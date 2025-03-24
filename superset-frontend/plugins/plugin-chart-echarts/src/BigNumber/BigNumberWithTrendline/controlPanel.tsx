@@ -59,6 +59,19 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'subheader',
+            config: {
+              type: 'TextControl',
+              label: t('Subheader'),
+              renderTrigger: true,
+              description: t(
+                'Description text that shows up below your Big Number. Act as a prefix if Comparaison period lag is enabled',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'compare_suffix',
             config: {
               type: 'TextControl',
