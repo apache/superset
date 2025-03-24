@@ -326,7 +326,11 @@ const RightMenu = ({
       </Menu.Item>
     ) : (
       <Menu.Item key={item.name} css={styledChildMenu}>
-        {item.url ? <a href={item.url}> {item.label} </a> : item.label}
+        {item.url ? (
+          <a href={ensureAppRoot(item.url)}> {item.label} </a>
+        ) : (
+          item.label
+        )}
       </Menu.Item>
     );
 
