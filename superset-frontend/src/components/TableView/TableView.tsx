@@ -70,6 +70,7 @@ const TableViewStyles = styled.div<{
     margin-bottom: ${theme.sizeUnit * 4}px;
     overflow: auto;
   `}
+  color: ${({ theme }) => theme.colorText};
 
   .table-row {
     ${({ theme, small }) => !small && `height: ${theme.sizeUnit * 11 - 1}px;`}
