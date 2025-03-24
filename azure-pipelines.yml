@@ -92,7 +92,7 @@ stages:
 
 - stage: Staging
   condition: and(succeeded(), eq(variables['build.SourceBranchName'], 'staging'))
-  displayName: Development Deploy stage
+  displayName: Staging Deploy stage
   dependsOn: Build
 
   jobs:
@@ -116,7 +116,7 @@ stages:
 
 - stage: Production
   condition: and(succeeded(), eq(variables['build.SourceBranchName'], 'production'))
-  displayName: Development Deploy stage
+  displayName: Production Deploy stage
   dependsOn: Build
 
   jobs:
