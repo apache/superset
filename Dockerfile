@@ -38,8 +38,9 @@ WORKDIR ${SUPERSET_HOME}/superset-frontend
 RUN npm run build
 
 USER root
+ARG BRANCH
 COPY ./superset ${SUPERSET_HOME}/superset
-COPY ./deployment/requirements-local.txt /app/
+COPY ./deployment/${BRANCH}/requirements-local.txt /app/
 RUN pip install -r /app/requirements-local.txt
-COPY ./deployment/superset-config.py /app/pythonpath/superset_config.py
+COPY ./deployment/${BRANCH}/superset-config.py /app/pythonpath/superset_config.py
 USER superset

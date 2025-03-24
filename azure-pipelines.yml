@@ -53,7 +53,7 @@ stages:
           latest
           $(tag)
           $(Build.SourceBranchName)
-        arguments: '--cache-from $(imageRepository):$(Build.SourceBranchName) --build-arg BUILDKIT_INLINE_CACHE=1'
+        arguments: '--cache-from $(imageRepository):$(Build.SourceBranchName) --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg BRANCH=$(Build.SourceBranchName)'
 
     - task: Docker@2
       displayName: push image to container registry 
