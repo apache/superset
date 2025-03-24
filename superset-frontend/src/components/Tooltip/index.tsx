@@ -43,7 +43,6 @@ export const Tooltip = ({ overlayStyle, ...props }: TooltipProps) => (
       body: { overflow: 'hidden', textOverflow: 'ellipsis' },
       root: overlayStyle ?? {},
     }}
-    color={`${supersetTheme.colors.grayscale.dark2}e6`}
     {...props}
   />
 );
