@@ -1296,11 +1296,11 @@ def get_user_roles() -> list[str] | None:
     """
     Get the roles (if defined) associated with the current user.
 
-    :returns: The roles
+    :returns: The sorted list of roles
     """
 
     try:
-        return [role.name for role in g.user.roles]
+        return sorted([role.name for role in g.user.roles])
     except Exception:  # pylint: disable=broad-except
         return None
 

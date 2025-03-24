@@ -240,6 +240,16 @@ You can json-stringify the array by adding `|tojson` to your Jinja code:
 {{ current_user_roles()|tojson }}
 ```
 
+You can use the `|where_in` filter to use your roles in a SQL statement. For example, if `current_user_roles()` returns `['admin', 'viewer']`, the following template:
+```python
+SELECT * FROM users WHERE role IN {{ current_user_roles()|where_in }}
+```
+
+Will be rendered as:
+```sql
+SELECT * FROM users WHERE role IN ('admin', 'viewer')
+```
+
 **Custom URL Parameters**
 
 The `{{ url_param('custom_variable') }}` macro lets you define arbitrary URL
