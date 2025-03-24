@@ -17,6 +17,7 @@
 # pylint: disable=invalid-name, unused-argument
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 import pytest
@@ -38,6 +39,7 @@ from superset.jinja_context import (
     metric_macro,
     safe_proxy,
     TimeFilter,
+    to_datetime,
     WhereInMacro,
 )
 from superset.models.core import Database
@@ -427,6 +429,59 @@ def test_where_in_empty_list() -> None:
     assert where_in([]) == "()"
     # With the default_to_none parameter set to True, it should return None
     assert where_in([], default_to_none=True) is None
+
+
+@pytest.mark.parametrize(
+    "value,format,output",
+    [
+        ("2025-03-20 15:55:00", None, datetime(2025, 3, 20, 15, 55)),
+        (None, None, None),
+        ("2025-03-20", "%Y-%m-%d", datetime(2025, 3, 20)),
+        ("'2025-03-20'", "%Y-%m-%d", datetime(2025, 3, 20)),
+    ],
+)
+def test_to_datetime(
+    value: str | None, format: str | None, output: datetime | None
+) -> None:
+    """
+    Test the ``to_datetime`` custom filter.
+    """
+
+    result = (
+        to_datetime(value, format=format) if format is not None else to_datetime(value)
+    )
+    assert result == output
+
+
+@pytest.mark.parametrize(
+    "value,format,match",
+    [
+        (
+            "2025-03-20",
+            None,
+            "time data '2025-03-20' does not match format '%Y-%m-%d %H:%M:%S'",
+        ),
+        (
+            "2025-03-20 15:55:00",
+            "%Y-%m-%d",
+            "unconverted data remains:  15:55:00",
+        ),
+    ],
+)
+def test_to_datetime_raises(value: str, format: str | None, match: str) -> None:
+    """
+    Test the ``to_datetime`` custom filter raises with an incorrect
+    format.
+    """
+    with pytest.raises(
+        ValueError,
+        match=match,
+    ):
+        (
+            to_datetime(value, format=format)
+            if format is not None
+            else to_datetime(value)
+        )
 
 
 def test_dataset_macro(mocker: MockerFixture) -> None:
