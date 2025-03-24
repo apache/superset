@@ -618,9 +618,9 @@ msgid "A Big Number"
 msgstr "Número Grande"
 
 #, fuzzy
-msgid "A comma separated list of columns that should be parsed as dates"
+msgid "Select column names from a dropdown list that should be parsed as dates."
 msgstr ""
-"Una lista separada por comas de columnas que deben ser parseadas como "
+"Seleccione en la lista desplegable los nombres de las columnas que deben analizarse como "
 "fechas."
 
 #, fuzzy

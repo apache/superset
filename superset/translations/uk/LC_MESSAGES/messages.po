@@ -634,8 +634,8 @@ msgstr "> = (Більший або рівний)"
 msgid "A Big Number"
 msgstr "Велика кількість"
 
-msgid "A comma separated list of columns that should be parsed as dates"
-msgstr "Кома -розділений список стовпців, які слід проаналізувати як дати"
+msgid "Select column names from a dropdown list that should be parsed as dates."
+msgstr "Виберіть імена стовпців зі списку, що випадає, які слід розібрати як дати."
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Список схем, відокремлений комами, до яких файли дозволяють завантажувати."

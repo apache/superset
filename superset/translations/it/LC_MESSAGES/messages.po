@@ -601,8 +601,8 @@ msgstr ""
 msgid "A Big Number"
 msgstr "Numero Grande"
 
-msgid "A comma separated list of columns that should be parsed as dates"
-msgstr ""
+msgid "Select column names from a dropdown list that should be parsed as dates."
+msgstr "Selezionare i nomi delle colonne da elaborare come date dall'elenco a discesa."
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
