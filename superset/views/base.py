@@ -318,7 +318,10 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # verify client has google sheets installed
     available_specs = get_available_engine_specs()
-    frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
+    frontend_config["HAS_GSHEETS_INSTALLED"] = (
+        GSheetsEngineSpec in available_specs
+        and bool(available_specs[GSheetsEngineSpec])
+    )
 
     language = locale.language if locale else "en"
 
