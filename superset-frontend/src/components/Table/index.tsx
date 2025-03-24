@@ -163,10 +163,11 @@ const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
     color: ${theme.colorText};
     .ant-table-body {
       overflow: auto;
+      height: ${height ? `${height}px` : undefined};
     }
 
-    .ant-spin-nested-loading .ant-spin .ant-spin-dot {
-      width: ${theme.sizeUnit * 12}px;
+    .antd5-spin-nested-loading .antd5-spin .antd5-spin-dot {
+      width: ${theme.sizeXXL}px;
       height: unset;
     }
 
