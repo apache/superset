@@ -5,6 +5,8 @@
 
 trigger:
   - development
+  - staging
+  - production
 
 pr:
   branches:
@@ -75,6 +77,54 @@ stages:
     pool:
       vmImage: $(vmImageName)
     environment: 'development.default'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - task: KubernetesManifest@0
+              displayName: Deploy to Kubernetes cluster
+              inputs:
+                action: deploy
+                manifests: |
+                  $(Pipeline.Workspace)/deployment/superset-deployment.yaml
+                containers: |
+                  $(imageRepository):$(tag)
+
+- stage: Staging
+  condition: and(succeeded(), eq(variables['build.SourceBranchName'], 'staging'))
+  displayName: Development Deploy stage
+  dependsOn: Build
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'staging.default'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - task: KubernetesManifest@0
+              displayName: Deploy to Kubernetes cluster
+              inputs:
+                action: deploy
+                manifests: |
+                  $(Pipeline.Workspace)/deployment/superset-deployment.yaml
+                containers: |
+                  $(imageRepository):$(tag)
+
+- stage: Production
+  condition: and(succeeded(), eq(variables['build.SourceBranchName'], 'production'))
+  displayName: Development Deploy stage
+  dependsOn: Build
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'production.default'
     strategy:
       runOnce:
         deploy:
