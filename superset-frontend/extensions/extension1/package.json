@@ -35,8 +35,8 @@
     "views": {
       "sqllab.panels": [
         {
-          "id": "extension1",
-          "name": "Extension 1"
+          "id": "extension1.component",
+          "name": "Extension 1 - Component"
         }
       ]
     }

@@ -16,22 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { core, commands, sqlLab } from 'src/extensions';
+import { ExtensionsContextType } from './ExtensionsContext';
 
-declare global {
-  interface Window {
-    superset: {
-      core: typeof core;
-      commands: typeof commands;
-      sqlLab: typeof sqlLab;
-    };
+let extensionsContextValue: ExtensionsContextType | null = null;
+
+export const setExtensionsContextValue = (value: ExtensionsContextType) => {
+  extensionsContextValue = value;
+};
+
+export const getExtensionsContextValue = () => {
+  if (!extensionsContextValue) {
+    throw new Error('ExtensionsContext value is not set');
   }
-}
-
-export default function setupExtensionsAPI() {
-  window.superset = {
-    core,
-    commands,
-    sqlLab,
-  };
-}
+  return extensionsContextValue;
+};
