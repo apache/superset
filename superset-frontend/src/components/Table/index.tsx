@@ -165,6 +165,7 @@ const HEADER_HEIGHT = 68;
 
 const StyledTable = styled(AntTable)<{ height?: number }>(
   ({ theme, height }) => `
+    color: ${theme.colorText};
     .ant-table-body {
       overflow: auto;
       height: ${height ? `${height}px` : undefined};
@@ -182,7 +183,7 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      border-bottom: 1px solid ${theme.colors.grayscale.light3};
+      border-bottom: 1px solid ${theme.colorSplit};
     }
 
     .ant-pagination-item-active {

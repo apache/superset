@@ -42,7 +42,7 @@ const StyledCell = styled('div')<{ height?: number }>(
   text-overflow: ellipsis;
   padding-left: ${theme.sizeUnit * 2}px;
   padding-right: ${theme.sizeUnit}px;
-  border-bottom: 1px solid ${theme.colors.grayscale.light3};
+  border-bottom: 1px solid ${theme.colorSplit};
   transition: background 0.3s;
   line-height: ${height}px;
   box-sizing: border-box;
