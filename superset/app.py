@@ -42,6 +42,7 @@ def create_app(
         app.config.from_object(config_module)
 
         # Allow application to sit on a non-root path
+        # *Please be advised that this feature is in BETA.*
         app_root = cast(
             str, superset_app_root or os.environ.get("SUPERSET_APP_ROOT", "/")
         )
