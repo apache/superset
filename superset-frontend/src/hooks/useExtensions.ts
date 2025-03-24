@@ -26,9 +26,8 @@ interface Extension {
 }
 
 export interface ResolvedModule {
-  // TODO: The resolved module might be a Javascript function. We need to add
-  // more metadata for callers to handle how to interact with the module.
-  default: React.ComponentType;
+  activate: Function;
+  deactivate: Function;
 }
 
 const loadExtension = async ({
@@ -61,7 +60,10 @@ const loadExtension = async ({
     exposedModules.map(async module => {
       const factory = await container.get(module);
       const Module = factory();
-      return Module;
+      return {
+        activate: Module.activate,
+        deactivate: Module.deactivate,
+      };
     }),
   );
 };

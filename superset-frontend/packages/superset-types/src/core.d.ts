@@ -59,6 +59,11 @@ export interface Event<T> {
   (
     listener: (e: T) => any,
     thisArgs?: any,
-    disposables?: Disposable[]
+    disposables?: Disposable[],
   ): Disposable;
 }
+
+export declare const registerView: (
+  id: string,
+  view: React.ReactElement,
+) => void;

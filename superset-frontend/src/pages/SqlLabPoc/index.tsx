@@ -2,6 +2,8 @@ import { CSSObject } from '@emotion/react';
 import { css, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import useExtensions, { ResolvedModule } from 'src/hooks/useExtensions';
+import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
+import { useEffect } from 'react';
 
 const PlaceholderStyles: CSSObject = css`
   flex: 1;
@@ -89,18 +91,18 @@ const RightPanel = () => (
 
 const SqlLabPoc = () => {
   const extensions = useExtensions();
-  const elements = extensions.map(
-    (extension: ResolvedModule, index: number) => {
-      const Module = extension.default;
-      // TODO: Get key from metadata
-      return <Module key={`extension${index}`} />;
-    },
-  );
+  const { views } = useExtensionsContext();
+
+  useEffect(() => {
+    extensions.forEach((extension: ResolvedModule) => {
+      extension.activate();
+    });
+  }, [extensions]);
 
   return (
     <MainPanel>
       <Toolbar />
-      <LeftPanel extensions={elements} />
+      <LeftPanel extensions={Object.values(views)} />
       <CenterPanel>
         <CenterTopPanel />
         <CenterBottomPanel />

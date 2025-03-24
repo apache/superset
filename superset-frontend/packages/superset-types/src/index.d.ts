@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import * as core from './core';
 import { sqlLab } from './sqlLab';
 import { commands } from './commands';
 import { environment } from './environment';
 import { extensions } from './extensions';
 
 declare module '@apache-superset/types' {
+  export { core };
   export { sqlLab } from './sqlLab';
   export { commands } from './commands';
   export { environment } from './environment';
