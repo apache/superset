@@ -24,6 +24,7 @@ import {
 } from 'react';
 
 import Tag from 'src/components/Tag';
+import { css } from '@emotion/react';
 import { useTheme, themeObject } from '@superset-ui/core';
 import DatasetTypeLabel from 'src/components/Label/reusable/DatasetTypeLabel';
 import PublishedLabel from 'src/components/Label/reusable/PublishedLabel';
@@ -71,43 +72,39 @@ export default function Label(props: LabelProps) {
   const backgroundColorHover = onClick ? baseColor.bgHover : backgroundColor;
   const borderColorHover = onClick ? baseColor.borderHover : borderColor;
 
-  const css = {
-    transition: `background-color ${transitionTiming}s`,
-    whiteSpace: 'nowrap',
-    cursor: onClick ? 'pointer' : 'default',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    backgroundColor,
-    borderRadius: 8,
-    borderColor,
-    padding: '0.35em 0.8em',
-    lineHeight: 1,
-    color,
-    display: 'inline-flex',
-    verticalAlign: 'middle',
-    alignItems: 'center',
-    maxWidth: '100%',
-    '&:hover': {
-      backgroundColor: backgroundColorHover,
-      borderColor: borderColorHover,
-      opacity: 1,
-    },
-    ...(monospace ? { 'font-family': theme.fontFamilyCode } : {}),
-  };
-  if (monospace) {
-    css['font-family'] = theme.fontFamilyCode;
-  }
+  const labelStyles = css`
+    transition: background-color ${transitionTiming}s;
+    white-space: nowrap;
+    cursor: ${onClick ? 'pointer' : 'default'};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background-color: ${backgroundColor};
+    border-radius: 8px;
+    border-color: ${borderColor};
+    padding: 0.35em 0.8em;
+    line-height: 1;
+    color: ${color};
+    display: inline-flex;
+    vertical-align: middle;
+    align-items: center;
+    max-width: 100%;
+    &:hover {
+      background-color: ${backgroundColorHover};
+      border-color: ${borderColorHover};
+      opacity: 1;
+    }
+    ${monospace ? `font-family: ${theme.fontFamilyCode};` : ''}
+  `;
+
   return (
     <Tag
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       style={style}
       icon={icon}
+      css={labelStyles}
       {...rest}
-      css={css}
-    >
-      {children}
-    </Tag>
+    />
   );
 }
 export { DatasetTypeLabel, PublishedLabel };

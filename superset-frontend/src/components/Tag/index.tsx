@@ -45,8 +45,11 @@ const SupersetTag = ({
   children,
   ...rest
 }: TagType) => {
-  const isLongTag = useMemo(() => name.length > MAX_DISPLAY_CHAR, [name]);
-  const tagDisplay = isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
+  const tagDisplay = useMemo(() => {
+    if (!name) return null;
+    const isLongTag = name.length > MAX_DISPLAY_CHAR;
+    return isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
+  }, [name]);
 
   const handleClose = () => (index !== undefined ? onDelete?.(index) : null);
 
@@ -96,7 +99,7 @@ const SupersetTag = ({
   return tagElem;
 };
 
-export const Tag = Object.assign(SupersetTag, {
+const Tag = Object.assign(SupersetTag, {
   CheckableTag: AntdTag.CheckableTag,
 });
 

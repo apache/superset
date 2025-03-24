@@ -28,7 +28,6 @@ import { CrossFilterIndicator } from 'src/dashboard/components/nativeFilters/sel
 import Tag from 'src/components/Tag';
 import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import Icons from 'src/components/Icons';
 import { ellipsisCss } from './styles';
 
 const StyledCrossFilterValue = styled.b`
@@ -82,7 +81,7 @@ const CrossFilterTag = (props: {
       `}
       closable
       onClose={() => removeCrossFilter(filter.emitterId)}
-      closeIcon={<Icons.CloseOutlined iconSize="xs" role="button" />}
+      editable
     >
       <Tooltip title={columnIsTruncated ? columnLabel : null}>
         <StyledCrossFilterColumn ref={columnRef}>

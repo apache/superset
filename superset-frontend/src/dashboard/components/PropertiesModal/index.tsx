@@ -383,8 +383,10 @@ const PropertiesModal = ({
     currentJsonMetadata = jsonStringify(metadata);
 
     const moreOnSubmitProps: { roles?: Roles } = {};
-    const morePutProps: { roles?: number[]; tags?: (number | undefined)[] } =
-      {};
+    const morePutProps: {
+      roles?: number[];
+      tags?: (string | number | undefined)[];
+    } = {};
     if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);

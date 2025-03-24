@@ -37,7 +37,7 @@ test('should render shortname properly', () => {
   const { container } = render(<Tag {...mockedProps} />);
   expect(container).toBeInTheDocument();
   expect(screen.getByTestId('tag')).toBeInTheDocument();
-  expect(screen.getByTestId('tag')).toHaveTextContent(mockedProps.name);
+  expect(screen.getByTestId('tag')).toHaveTextContent('example-tag');
 });
 
 test('should render longname properly', () => {

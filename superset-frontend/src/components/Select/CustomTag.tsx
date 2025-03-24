@@ -20,11 +20,11 @@ import { MouseEvent } from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { Tag as AntdTag } from 'antd'; // TODO: Remove antd
 import { styled, useCSSTextTruncation } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 import { Tooltip } from '../Tooltip';
 import { CustomTagProps } from './types';
 import { SELECT_ALL_VALUE } from './utils';
 import { NoElement } from './styles';
-import Icons from 'src/components/Icons';
 
 const StyledTag = styled(AntdTag)`
   & .ant-tag-close-icon {
@@ -45,7 +45,11 @@ const Tag = (props: any) => {
   return (
     <Tooltip title={tagIsTruncated ? props.children : null}>
       <StyledTag
-        closeIcon={props?.closable ? <Icons.CloseOutlined iconSize="xs" role="button" /> : undefined}
+        closeIcon={
+          props?.closable ? (
+            <Icons.CloseOutlined iconSize="xs" role="button" />
+          ) : undefined
+        }
         {...props}
         className="ant-select-selection-item"
       >
