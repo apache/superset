@@ -46,6 +46,7 @@ from superset.utils.core import (
     FilterOperator,
     get_user_email,
     get_user_id,
+    get_user_roles,
     get_username,
     merge_extra_filters,
 )
@@ -108,6 +109,7 @@ class ExtraCache:
         r"current_user_id\([^()]*\)|"
         r"current_username\([^()]*\)|"
         r"current_user_email\([^()]*\)|"
+        r"current_user_roles\([^()]*\)|"
         r"cache_key_wrapper\([^()]*\)|"
         r"url_param\([^()]*\)"
         r")"
@@ -170,6 +172,20 @@ class ExtraCache:
             if add_to_cache_keys:
                 self.cache_key_wrapper(email_address)
             return email_address
+        return None
+
+    def current_user_roles(self, add_to_cache_keys: bool = True) -> list[str] | None:
+        """
+        Return the list of roles of the user who is currently logged in.
+
+        :param add_to_cache_keys: Whether the value should be included in the cache key
+        :returns: List of role names
+        """
+
+        if user_roles := get_user_roles():
+            if add_to_cache_keys:
+                self.cache_key_wrapper(json.dumps(user_roles))
+            return user_roles
         return None
 
     def cache_key_wrapper(self, key: Any) -> Any:
@@ -688,6 +704,9 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "current_username": partial(safe_proxy, extra_cache.current_username),
                 "current_user_email": partial(
                     safe_proxy, extra_cache.current_user_email
+                ),
+                "current_user_roles": partial(
+                    safe_proxy, extra_cache.current_user_roles
                 ),
                 "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
