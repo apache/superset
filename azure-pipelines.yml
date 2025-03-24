@@ -124,7 +124,7 @@ stages:
     displayName: Deploy
     pool:
       vmImage: $(vmImageName)
-    environment: 'master.default'
+    environment: 'production.default'
     strategy:
       runOnce:
         deploy:
