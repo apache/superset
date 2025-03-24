@@ -543,7 +543,7 @@ pillow==10.3.0
     # via
     #   apache-superset
     #   matplotlib
-platformdirs==4.3.6
+platformdirs==4.3.7
     # via
     #   -c requirements/base.txt
     #   requests-cache

@@ -264,7 +264,7 @@ parsedatetime==2.6
     # via apache-superset (pyproject.toml)
 pgsanity==0.2.9
     # via apache-superset (pyproject.toml)
-platformdirs==4.3.6
+platformdirs==4.3.7
     # via requests-cache
 ply==3.11
     # via jsonpath-ng
