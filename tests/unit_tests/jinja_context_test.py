@@ -444,7 +444,7 @@ def test_to_datetime(
     value: str | None, format: str | None, output: datetime | None
 ) -> None:
     """
-    Test the ``to_datetime`` Jinja2 filter.
+    Test the ``to_datetime`` custom filter.
     """
 
     result = (
@@ -470,7 +470,7 @@ def test_to_datetime(
 )
 def test_to_datetime_raises(value: str, format: str | None, match: str) -> None:
     """
-    Test the ``to_datetime`` Jinja2 raises with an incorrect
+    Test the ``to_datetime`` custom filter raises with an incorrect
     format.
     """
     with pytest.raises(
