@@ -431,52 +431,57 @@ def test_where_in_empty_list() -> None:
     assert where_in([], default_to_none=True) is None
 
 
-def test_to_datetime() -> None:
+@pytest.mark.parametrize(
+    "value,format,output",
+    [
+        ("2025-03-20 15:55:00", None, datetime(2025, 3, 20, 15, 55)),
+        (None, None, None),
+        ("2025-03-20", "%Y-%m-%d", datetime(2025, 3, 20)),
+        ("'2025-03-20'", "%Y-%m-%d", datetime(2025, 3, 20)),
+    ],
+)
+def test_to_datetime(
+    value: str | None, format: str | None, output: datetime | None
+) -> None:
     """
     Test the ``to_datetime`` Jinja2 filter.
     """
 
-    result = to_datetime("2025-03-20 15:55:00")
-    assert result == datetime(2025, 3, 20, 15, 55)
-
-    assert to_datetime(None) is None
-
-
-def test_to_datetime_custom_format() -> None:
-    """
-    Test the ``to_datetime`` Jinja2 filter when specifying a format.
-    """
-    result = to_datetime("2025-03-20", format="%Y-%m-%d")
-    assert result == datetime(2025, 3, 20)
+    result = (
+        to_datetime(value, format=format) if format is not None else to_datetime(value)
+    )
+    assert result == output
 
 
-def test_to_datetime_including_quotes() -> None:
-    """
-    Test the ``to_datetime`` Jinja2 when a string wrapped
-    in quotes is used.
-
-    This might happen when passing a value from a temporal macro.
-    """
-    result = to_datetime("'2025-03-20'", format="%Y-%m-%d")
-    assert result == datetime(2025, 3, 20)
-
-
-def test_to_datetime_raises() -> None:
+@pytest.mark.parametrize(
+    "value,format,match",
+    [
+        (
+            "2025-03-20",
+            None,
+            "time data '2025-03-20' does not match format '%Y-%m-%d %H:%M:%S'",
+        ),
+        (
+            "2025-03-20 15:55:00",
+            "%Y-%m-%d",
+            "unconverted data remains:  15:55:00",
+        ),
+    ],
+)
+def test_to_datetime_raises(value: str, format: str | None, match: str) -> None:
     """
     Test the ``to_datetime`` Jinja2 raises with an incorrect
     format.
     """
     with pytest.raises(
         ValueError,
-        match="time data '2025-03-20' does not match format '%Y-%m-%d %H:%M:%S'",
+        match=match,
     ):
-        to_datetime("2025-03-20")
-
-    with pytest.raises(
-        ValueError,
-        match="unconverted data remains:  15:55:00",
-    ):
-        to_datetime("2025-03-20 15:55:00", format="%Y-%m-%d")
+        (
+            to_datetime(value, format=format)
+            if format is not None
+            else to_datetime(value)
+        )
 
 
 def test_dataset_macro(mocker: MockerFixture) -> None:
