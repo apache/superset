@@ -127,8 +127,7 @@ const StyledRowContainer = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  width: 100%;
-  padding: 0px ${({ theme }) => theme.sizeUnit * 4}px;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 type ControlKey = keyof PluginFilterSelectCustomizeProps;
@@ -143,65 +142,21 @@ const controlsOrder: ControlKey[] = [
 
 export const StyledFormItem = styled(FormItem)<{ expanded: boolean }>`
   width: ${({ expanded }) => (expanded ? '49%' : `${FORM_ITEM_WIDTH}px`)};
-
-  & .antd5-form-item-label {
-    padding-bottom: 0;
-  }
-
-  & .antd5-form-item-control-input {
-    min-height: ${({ theme }) => theme.sizeUnit * 10}px;
-  }
 `;
 
 export const StyledRowFormItem = styled(FormItem)<{ expanded: boolean }>`
-  margin-bottom: 0;
-  padding-bottom: 0;
   min-width: ${({ expanded }) => (expanded ? '50%' : `${FORM_ITEM_WIDTH}px`)};
-
-  & .antd5-form-item-label {
-    padding-bottom: 0;
-  }
-
-  .antd5-form-item-control-input-content > div > div {
-    height: auto;
-  }
-
-  & .antd5-form-item-control-input {
-    min-height: ${({ theme }) => theme.sizeUnit * 10}px;
-  }
 `;
 
 export const StyledRowSubFormItem = styled(FormItem)<{ expanded: boolean }>`
   min-width: ${({ expanded }) => (expanded ? '50%' : `${FORM_ITEM_WIDTH}px`)};
-
-  & .antd5-form-item-label {
-    padding-bottom: 0;
-  }
-
-  .antd5-form-item {
-    margin-bottom: 0;
-  }
-
-  .antd5-form-item-control-input-content > div > div {
-    height: auto;
-  }
-
-  .antd5-form-item-extra {
-    display: none;
-  }
-
-  & .antd5-form-item-control-input {
-    height: auto;
-  }
 `;
 
 export const StyledLabel = styled.span`
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-`;
-
-const CleanFormItem = styled(FormItem)`
-  margin-bottom: 0;
+  ${({ theme }) => `
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorTextSecondary};
+  `}
 `;
 
 const DefaultValueContainer = styled.div`
@@ -900,7 +855,7 @@ const FiltersConfigForm = (
           </FilterTypeInfo>
         )}
         {hasDataset && (
-          <StyledRowContainer>
+          <StyledRowContainer gap="middle" justify="space-between">
             {showDataset ? (
               <StyledFormItem
                 expanded={expanded}
@@ -996,7 +951,7 @@ const FiltersConfigForm = (
                 </StyledRowFormItem>
               )}
               {hasDataset && hasAdditionalFilters && (
-                <CleanFormItem name={['filters', filterId, 'preFilter']}>
+                <FormItem name={['filters', filterId, 'preFilter']}>
                   <CollapsibleControl
                     initialValue={hasPreFilter}
                     title={t('Pre-filter available values')}
@@ -1080,7 +1035,7 @@ const FiltersConfigForm = (
                       ? timeColumn
                       : undefined}
                   </CollapsibleControl>
-                </CleanFormItem>
+                </FormItem>
               )}
               {formFilter?.filterType !== 'filter_range' ? (
                 <CleanFormItem name={['filters', filterId, 'sortFilter']}>
