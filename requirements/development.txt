@@ -636,7 +636,7 @@ pyopenssl==25.0.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
-pyparsing==3.2.1
+pyparsing==3.2.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
