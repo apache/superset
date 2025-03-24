@@ -295,7 +295,6 @@ class Markdown extends PureComponent {
     const { hasError } = this.state;
 
     return (
-      <div className="menu-item">
         <SafeMarkdown
           source={
             hasError
@@ -305,7 +304,6 @@ class Markdown extends PureComponent {
         htmlSanitization={this.props.htmlSanitization}
           htmlSchemaOverrides={this.props.htmlSchemaOverrides}
         />
-      </div>
     );
   }
 
