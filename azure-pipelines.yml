@@ -1,0 +1,139 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  - development
+  - staging
+  - production
+
+pr:
+  branches:
+    exclude:
+      - '*'
+    include: []
+
+variables:
+  imageRepository: 'shipmnts/superset'
+  tag: '$(Build.BuildId)'
+  dockerRegistryServiceConnection: 'dockerhub-service-connection'
+  k8sNamespace: 'default'
+  k8sDeploymentName: 'superset'
+  dockerfilePath: '**/Dockerfile'
+  vmImageName: 'ubuntu-latest'
+  
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: Docker@2
+      displayName: Login to registry
+      inputs:
+        command: login
+        containerRegistry: $(dockerRegistryServiceConnection)
+    - task: Bash@3
+      displayName: Pulling docker image
+      inputs:
+        targetType: inline
+        script: |
+          docker pull $(imageRepository):$(Build.SourceBranchName) || exit 0
+    - task: Docker@2
+      displayName: Build image from dockerfile
+      inputs:
+        command: build
+        repository: $(imageRepository)
+        dockerfile: '**/Dockerfile'
+        tags: |
+          latest
+          $(tag)
+          $(Build.SourceBranchName)
+        arguments: '--cache-from $(imageRepository):$(Build.SourceBranchName) --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg BRANCH=$(Build.SourceBranchName)'
+
+    - task: Docker@2
+      displayName: push image to container registry 
+      inputs:
+        command: push
+        repository: $(imageRepository)
+        tags: |
+          latest
+          $(tag)
+          $(Build.SourceBranchName)
+    - upload: deployment
+      artifact: deployment
+- stage: Development
+  condition: and(succeeded(), eq(variables['build.SourceBranchName'], 'development'))
+  displayName: Development Deploy stage
+  dependsOn: Build
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'development.default'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - task: KubernetesManifest@0
+              displayName: Deploy to Kubernetes cluster
+              inputs:
+                action: deploy
+                manifests: |
+                  $(Pipeline.Workspace)/deployment/development/superset-deployment.yaml
+                containers: |
+                  $(imageRepository):$(tag)
+
+- stage: Staging
+  condition: and(succeeded(), eq(variables['build.SourceBranchName'], 'staging'))
+  displayName: Staging Deploy stage
+  dependsOn: Build
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'staging.default'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - task: KubernetesManifest@0
+              displayName: Deploy to Kubernetes cluster
+              inputs:
+                action: deploy
+                manifests: |
+                  $(Pipeline.Workspace)/deployment/staging/superset-deployment.yaml
+                containers: |
+                  $(imageRepository):$(tag)
+
+- stage: Production
+  condition: and(succeeded(), eq(variables['build.SourceBranchName'], 'production'))
+  displayName: Production Deploy stage
+  dependsOn: Build
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'production.default'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - task: KubernetesManifest@0
+              displayName: Deploy to Kubernetes cluster
+              inputs:
+                action: deploy
+                manifests: |
+                  $(Pipeline.Workspace)/deployment/production/superset-deployment.yaml
+                containers: |
+                  $(imageRepository):$(tag)
