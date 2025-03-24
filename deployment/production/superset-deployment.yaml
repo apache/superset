@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: superset
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: superset
+  template:
+    metadata:
+      labels:
+        app: superset
+    spec:
+      containers:
+        - name: superset
+          image: shipmnts/superset
+          ports:
+            - containerPort: 8088
+          envFrom:
+            - secretRef:
+                name: superset-secret
+          imagePullPolicy: "Always"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: superset-service
+  namespace: default
+spec:
+  type: NodePort
+  selector:
+    app: superset
+  ports:
+    - name: http
+      port: 8088
+      targetPort: 8088
+      nodePort: 30080

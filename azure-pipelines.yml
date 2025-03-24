@@ -86,7 +86,7 @@ stages:
               inputs:
                 action: deploy
                 manifests: |
-                  $(Pipeline.Workspace)/deployment/superset-deployment.yaml
+                  $(Pipeline.Workspace)/deployment/development/superset-deployment.yaml
                 containers: |
                   $(imageRepository):$(tag)
 
@@ -110,7 +110,7 @@ stages:
               inputs:
                 action: deploy
                 manifests: |
-                  $(Pipeline.Workspace)/deployment/superset-deployment.yaml
+                  $(Pipeline.Workspace)/deployment/staging/superset-deployment.yaml
                 containers: |
                   $(imageRepository):$(tag)
 
@@ -134,6 +134,6 @@ stages:
               inputs:
                 action: deploy
                 manifests: |
-                  $(Pipeline.Workspace)/deployment/superset-deployment.yaml
+                  $(Pipeline.Workspace)/deployment/production/superset-deployment.yaml
                 containers: |
                   $(imageRepository):$(tag)
