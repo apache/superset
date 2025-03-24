@@ -792,7 +792,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                       allowClear
                       allowNewOptions
                       placeholder={t(
-                        'A comma separated list of columns that should be parsed as dates',
+                        'Select column names from a dropdown list that should be parsed as dates.',
                       )}
                     />
                   </StyledFormItem>
