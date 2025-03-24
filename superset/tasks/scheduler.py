@@ -14,17 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
-from datetime import datetime
+from __future__ import annotations
 
-from celery import Celery
+import logging
+from datetime import datetime, timezone
+from typing import Any
+
+from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
 
 from superset import app, is_feature_enabled
 from superset.commands.exceptions import CommandException
+from superset.commands.logs.prune import LogPruneCommand
 from superset.commands.report.exceptions import ReportScheduleUnexpectedError
 from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
+from superset.commands.sql_lab.query import QueryPruneCommand
 from superset.daos.report import ReportScheduleDAO
 from superset.extensions import celery_app
 from superset.stats_logger import BaseStatsLogger
@@ -50,7 +55,7 @@ def scheduler() -> None:
         datetime.fromisoformat(scheduler.request.expires)
         - app.config["CELERY_BEAT_SCHEDULER_EXPIRES"]
         if scheduler.request.expires
-        else datetime.utcnow()
+        else datetime.now(tz=timezone.utc)
     )
     for active_schedule in active_schedules:
         for schedule in cron_schedule_window(
@@ -74,7 +79,7 @@ def scheduler() -> None:
 
 
 @celery_app.task(name="reports.execute", bind=True)
-def execute(self: Celery.task, report_schedule_id: int) -> None:
+def execute(self: Task, report_schedule_id: int) -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("reports.execute")
 
@@ -94,7 +99,7 @@ def execute(self: Celery.task, report_schedule_id: int) -> None:
         ).run()
     except ReportScheduleUnexpectedError:
         logger.exception(
-            "An unexpected occurred while executing the report: %s", task_id
+            "An unexpected error occurred while executing the report: %s", task_id
         )
         self.update_state(state="FAILURE")
     except CommandException as ex:
@@ -119,3 +124,49 @@ def prune_log() -> None:
         logger.warning("A timeout occurred while pruning report schedule logs: %s", ex)
     except CommandException:
         logger.exception("An exception occurred while pruning report schedule logs")
+
+
+@celery_app.task(name="prune_query", bind=True)
+def prune_query(
+    self: Task, retention_period_days: int | None = None, **kwargs: Any
+) -> None:
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+    stats_logger.incr("prune_query")
+
+    # TODO: Deprecated: Remove support for passing retention period via options in 6.0
+    if retention_period_days is None:
+        retention_period_days = prune_query.request.properties.get(
+            "retention_period_days"
+        )
+        logger.warning(
+            "Your `prune_query` beat schedule uses `options` to pass the retention "
+            "period, please use `kwargs` instead."
+        )
+
+    try:
+        QueryPruneCommand(retention_period_days).run()
+    except CommandException as ex:
+        logger.exception("An error occurred while pruning queries: %s", ex)
+
+
+@celery_app.task(name="prune_logs", bind=True)
+def prune_logs(
+    self: Task, retention_period_days: int | None = None, **kwargs: Any
+) -> None:
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+    stats_logger.incr("prune_logs")
+
+    # TODO: Deprecated: Remove support for passing retention period via options in 6.0
+    if retention_period_days is None:
+        retention_period_days = prune_logs.request.properties.get(
+            "retention_period_days"
+        )
+        logger.warning(
+            "Your `prune_logs` beat schedule uses `options` to pass the retention "
+            "period, please use `kwargs` instead."
+        )
+
+    try:
+        LogPruneCommand(retention_period_days).run()
+    except CommandException as ex:
+        logger.exception("An error occurred while pruning logs: %s", ex)

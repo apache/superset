@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FC } from 'react';
 import { styled, t } from '@superset-ui/core';
 
 import { Typography } from 'src/components';
@@ -33,7 +33,7 @@ export const StyledDivContainer = styled.div`
   //margin-bottom: 10px;
 `;
 
-const ColumnsPreview: React.FC<ColumnsPreviewProps> = ({
+const ColumnsPreview: FC<ColumnsPreviewProps> = ({
   columns,
   maxColumnsToShow = 4,
 }) => {

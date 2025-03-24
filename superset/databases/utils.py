@@ -14,19 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional, Union
+
+from __future__ import annotations
+
+from typing import Any, TYPE_CHECKING
 
 from sqlalchemy.engine.url import make_url, URL
 
 from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.sql_parse import Table
+
+if TYPE_CHECKING:
+    from superset.databases.schemas import (
+        TableMetadataColumnsResponse,
+        TableMetadataForeignKeysIndexesResponse,
+        TableMetadataResponse,
+    )
 
 
 def get_foreign_keys_metadata(
     database: Any,
-    table_name: str,
-    schema_name: Optional[str],
-) -> list[dict[str, Any]]:
-    foreign_keys = database.get_foreign_keys(table_name, schema_name)
+    table: Table,
+) -> list[TableMetadataForeignKeysIndexesResponse]:
+    foreign_keys = database.get_foreign_keys(table)
     for fk in foreign_keys:
         fk["column_names"] = fk.pop("constrained_columns")
         fk["type"] = "fk"
@@ -34,9 +44,10 @@ def get_foreign_keys_metadata(
 
 
 def get_indexes_metadata(
-    database: Any, table_name: str, schema_name: Optional[str]
-) -> list[dict[str, Any]]:
-    indexes = database.get_indexes(table_name, schema_name)
+    database: Any,
+    table: Table,
+) -> list[TableMetadataForeignKeysIndexesResponse]:
+    indexes = database.get_indexes(table)
     for idx in indexes:
         idx["type"] = "index"
     return indexes
@@ -51,30 +62,27 @@ def get_col_type(col: dict[Any, Any]) -> str:
     return dtype
 
 
-def get_table_metadata(
-    database: Any, table_name: str, schema_name: Optional[str]
-) -> dict[str, Any]:
+def get_table_metadata(database: Any, table: Table) -> TableMetadataResponse:
     """
     Get table metadata information, including type, pk, fks.
     This function raises SQLAlchemyError when a schema is not found.
 
     :param database: The database model
-    :param table_name: Table name
-    :param schema_name: schema name
+    :param table: Table instance
     :return: Dict table metadata ready for API response
     """
     keys = []
-    columns = database.get_columns(table_name, schema_name)
-    primary_key = database.get_pk_constraint(table_name, schema_name)
+    columns = database.get_columns(table)
+    primary_key = database.get_pk_constraint(table)
     if primary_key and primary_key.get("constrained_columns"):
         primary_key["column_names"] = primary_key.pop("constrained_columns")
         primary_key["type"] = "pk"
         keys += [primary_key]
-    foreign_keys = get_foreign_keys_metadata(database, table_name, schema_name)
-    indexes = get_indexes_metadata(database, table_name, schema_name)
+    foreign_keys = get_foreign_keys_metadata(database, table)
+    indexes = get_indexes_metadata(database, table)
     keys += foreign_keys + indexes
-    payload_columns: list[dict[str, Any]] = []
-    table_comment = database.get_table_comment(table_name, schema_name)
+    payload_columns: list[TableMetadataColumnsResponse] = []
+    table_comment = database.get_table_comment(table)
     for col in columns:
         dtype = get_col_type(col)
         payload_columns.append(
@@ -87,11 +95,10 @@ def get_table_metadata(
             }
         )
     return {
-        "name": table_name,
+        "name": table.table,
         "columns": payload_columns,
         "selectStar": database.select_star(
-            table_name,
-            schema=schema_name,
+            table,
             indent=True,
             cols=columns,
             latest_partition=True,
@@ -103,7 +110,7 @@ def get_table_metadata(
     }
 
 
-def make_url_safe(raw_url: Union[str, URL]) -> URL:
+def make_url_safe(raw_url: str | URL) -> URL:
     """
     Wrapper for SQLAlchemy's make_url(), which tends to raise too detailed of
     errors, which inevitably find their way into server logs. ArgumentErrors
@@ -116,8 +123,8 @@ def make_url_safe(raw_url: Union[str, URL]) -> URL:
         url = raw_url.strip()
         try:
             return make_url(url)  # noqa
-        except Exception:
-            raise DatabaseInvalidError()  # pylint: disable=raise-missing-from
+        except Exception as ex:
+            raise DatabaseInvalidError() from ex
 
     else:
         return raw_url

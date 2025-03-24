@@ -1,0 +1,463 @@
+---
+title: SQL Templating
+hide_title: true
+sidebar_position: 5
+version: 1
+---
+
+# SQL Templating
+
+## Jinja Templates
+
+SQL Lab and Explore supports [Jinja templating](https://jinja.palletsprojects.com/en/2.11.x/) in queries.
+To enable templating, the `ENABLE_TEMPLATE_PROCESSING` [feature flag](/docs/configuration/configuring-superset#feature-flags) needs to be enabled in
+`superset_config.py`. When templating is enabled, python code can be embedded in virtual datasets and
+in Custom SQL in the filter and metric controls in Explore. By default, the following variables are
+made available in the Jinja context:
+
+- `columns`: columns which to group by in the query
+- `filter`: filters applied in the query
+- `from_dttm`: start `datetime` value from the selected time range (`None` if undefined) (deprecated beginning in version 5.0, use `get_time_filter` instead)
+- `to_dttm`: end `datetime` value from the selected time range (`None` if undefined). (deprecated beginning in version 5.0, use `get_time_filter` instead)
+- `groupby`: columns which to group by in the query (deprecated)
+- `metrics`: aggregate expressions in the query
+- `row_limit`: row limit of the query
+- `row_offset`: row offset of the query
+- `table_columns`: columns available in the dataset
+- `time_column`: temporal column of the query (`None` if undefined)
+- `time_grain`: selected time grain (`None` if undefined)
+
+For example, to add a time range to a virtual dataset, you can write the following:
+
+```sql
+SELECT *
+FROM tbl
+WHERE dttm_col > '{{ from_dttm }}' and dttm_col < '{{ to_dttm }}'
+```
+
+You can also use [Jinja's logic](https://jinja.palletsprojects.com/en/2.11.x/templates/#tests)
+to make your query robust to clearing the timerange filter:
+
+```sql
+SELECT *
+FROM tbl
+WHERE (
+    {% if from_dttm is not none %}
+        dttm_col > '{{ from_dttm }}' AND
+    {% endif %}
+    {% if to_dttm is not none %}
+        dttm_col < '{{ to_dttm }}' AND
+    {% endif %}
+    1 = 1
+)
+```
+
+The `1 = 1` at the end ensures a value is present for the `WHERE` clause even when
+the time filter is not set. For many database engines, this could be replaced with `true`.
+
+Note that the Jinja parameters are called within _double_ brackets in the query and with
+_single_ brackets in the logic blocks.
+
+To add custom functionality to the Jinja context, you need to overload the default Jinja
+context in your environment by defining the `JINJA_CONTEXT_ADDONS` in your superset configuration
+(`superset_config.py`). Objects referenced in this dictionary are made available for users to use
+where the Jinja context is made available.
+
+```python
+JINJA_CONTEXT_ADDONS = {
+    'my_crazy_macro': lambda x: x*2,
+}
+```
+
+Default values for jinja templates can be specified via `Parameters` menu in the SQL Lab user interface.
+In the UI you can assign a set of parameters as JSON
+
+```json
+{
+  "my_table": "foo"
+}
+```
+
+The parameters become available in your SQL (example: `SELECT * FROM {{ my_table }}` ) by using Jinja templating syntax.
+SQL Lab template parameters are stored with the dataset as `TEMPLATE PARAMETERS`.
+
+There is a special ``_filters`` parameter which can be used to test filters used in the jinja template.
+
+```json
+{
+  "_filters": [
+    {
+      "col": "action_type",
+      "op": "IN",
+      "val": ["sell", "buy"]
+    }
+  ]
+}
+```
+
+```sql
+SELECT action, count(*) as times
+FROM logs
+WHERE action in {{ filter_values('action_type')|where_in }}
+GROUP BY action
+```
+
+Note ``_filters`` is not stored with the dataset. It's only used within the SQL Lab UI.
+
+Besides default Jinja templating, SQL lab also supports self-defined template processor by setting
+the `CUSTOM_TEMPLATE_PROCESSORS` in your superset configuration. The values in this dictionary
+overwrite the default Jinja template processors of the specified database engine. The example below
+configures a custom presto template processor which implements its own logic of processing macro
+template with regex parsing. It uses the `$` style macro instead of `{{ }}` style in Jinja
+templating.
+
+By configuring it with `CUSTOM_TEMPLATE_PROCESSORS`, a SQL template on a presto database is
+processed by the custom one rather than the default one.
+
+```python
+def DATE(
+    ts: datetime, day_offset: SupportsInt = 0, hour_offset: SupportsInt = 0
+) -> str:
+    """Current day as a string."""
+    day_offset, hour_offset = int(day_offset), int(hour_offset)
+    offset_day = (ts + timedelta(days=day_offset, hours=hour_offset)).date()
+    return str(offset_day)
+
+class CustomPrestoTemplateProcessor(PrestoTemplateProcessor):
+    """A custom presto template processor."""
+
+    engine = "presto"
+
+    def process_template(self, sql: str, **kwargs) -> str:
+        """Processes a sql template with $ style macro using regex."""
+        # Add custom macros functions.
+        macros = {
+            "DATE": partial(DATE, datetime.utcnow())
+        }  # type: Dict[str, Any]
+        # Update with macros defined in context and kwargs.
+        macros.update(self.context)
+        macros.update(kwargs)
+
+        def replacer(match):
+            """Expand $ style macros with corresponding function calls."""
+            macro_name, args_str = match.groups()
+            args = [a.strip() for a in args_str.split(",")]
+            if args == [""]:
+                args = []
+            f = macros[macro_name[1:]]
+            return f(*args)
+
+        macro_names = ["$" + name for name in macros.keys()]
+        pattern = r"(%s)\s*\(([^()]*)\)" % "|".join(map(re.escape, macro_names))
+        return re.sub(pattern, replacer, sql)
+
+CUSTOM_TEMPLATE_PROCESSORS = {
+    CustomPrestoTemplateProcessor.engine: CustomPrestoTemplateProcessor
+}
+```
+
+SQL Lab also includes a live query validation feature with pluggable backends. You can configure
+which validation implementation is used with which database engine by adding a block like the
+following to your configuration file:
+
+```python
+FEATURE_FLAGS = {
+    'SQL_VALIDATORS_BY_ENGINE': {
+        'presto': 'PrestoDBSQLValidator',
+    }
+}
+```
+
+The available validators and names can be found in
+[sql_validators](https://github.com/apache/superset/tree/master/superset/sql_validators).
+
+## Available Macros
+
+In this section, we'll walkthrough the pre-defined Jinja macros in Superset.
+
+**Current Username**
+
+The `{{ current_username() }}` macro returns the `username` of the currently logged in user.
+
+If you have caching enabled in your Superset configuration, then by default the `username` value will be used
+by Superset when calculating the cache key. A cache key is a unique identifier that determines if there's a
+cache hit in the future and Superset can retrieve cached data.
+
+You can disable the inclusion of the `username` value in the calculation of the
+cache key by adding the following parameter to your Jinja code:
+
+```python
+{{ current_username(add_to_cache_keys=False) }}
+```
+
+**Current User ID**
+
+The `{{ current_user_id() }}` macro returns the account ID of the currently logged in user.
+
+If you have caching enabled in your Superset configuration, then by default the account `id` value will be used
+by Superset when calculating the cache key. A cache key is a unique identifier that determines if there's a
+cache hit in the future and Superset can retrieve cached data.
+
+You can disable the inclusion of the account `id` value in the calculation of the
+cache key by adding the following parameter to your Jinja code:
+
+```python
+{{ current_user_id(add_to_cache_keys=False) }}
+```
+
+**Current User Email**
+
+The `{{ current_user_email() }}` macro returns the email address of the currently logged in user.
+
+If you have caching enabled in your Superset configuration, then by default the email address value will be used
+by Superset when calculating the cache key. A cache key is a unique identifier that determines if there's a
+cache hit in the future and Superset can retrieve cached data.
+
+You can disable the inclusion of the email value in the calculation of the
+cache key by adding the following parameter to your Jinja code:
+
+```python
+{{ current_user_email(add_to_cache_keys=False) }}
+```
+
+**Custom URL Parameters**
+
+The `{{ url_param('custom_variable') }}` macro lets you define arbitrary URL
+parameters and reference them in your SQL code.
+
+Here's a concrete example:
+
+- You write the following query in SQL Lab:
+
+  ```sql
+  SELECT count(*)
+  FROM ORDERS
+  WHERE country_code = '{{ url_param('countrycode') }}'
+  ```
+
+- You're hosting Superset at the domain www.example.com and you send your
+  coworker in Spain the following SQL Lab URL `www.example.com/superset/sqllab?countrycode=ES`
+  and your coworker in the USA the following SQL Lab URL `www.example.com/superset/sqllab?countrycode=US`
+- For your coworker in Spain, the SQL Lab query will be rendered as:
+
+  ```sql
+  SELECT count(*)
+  FROM ORDERS
+  WHERE country_code = 'ES'
+  ```
+
+- For your coworker in the USA, the SQL Lab query will be rendered as:
+
+  ```sql
+  SELECT count(*)
+  FROM ORDERS
+  WHERE country_code = 'US'
+  ```
+
+**Explicitly Including Values in Cache Key**
+
+The `{{ cache_key_wrapper() }}` function explicitly instructs Superset to add a value to the
+accumulated list of values used in the calculation of the cache key.
+
+This function is only needed when you want to wrap your own custom function return values
+in the cache key. You can gain more context
+[here](https://github.com/apache/superset/blob/efd70077014cbed62e493372d33a2af5237eaadf/superset/jinja_context.py#L133-L148).
+
+Note that this function powers the caching of the `user_id` and `username` values
+in the `current_user_id()` and `current_username()` function calls (if you have caching enabled).
+
+**Filter Values**
+
+You can retrieve the value for a specific filter as a list using `{{ filter_values() }}`.
+
+This is useful if:
+
+- You want to use a filter component to filter a query where the name of filter component column doesn't match the one in the select statement
+- You want to have the ability to filter inside the main query for performance purposes
+
+Here's a concrete example:
+
+```sql
+SELECT action, count(*) as times
+FROM logs
+WHERE
+    action in {{ filter_values('action_type')|where_in }}
+GROUP BY action
+```
+
+There `where_in` filter converts the list of values from `filter_values('action_type')` into a string suitable for an `IN` expression.
+
+**Filters for a Specific Column**
+
+The `{{ get_filters() }}` macro returns the filters applied to a given column. In addition to
+returning the values (similar to how `filter_values()` does), the `get_filters()` macro
+returns the operator specified in the Explore UI.
+
+This is useful if:
+
+- You want to handle more than the IN operator in your SQL clause
+- You want to handle generating custom SQL conditions for a filter
+- You want to have the ability to filter inside the main query for speed purposes
+
+Here's a concrete example:
+
+```sql
+ WITH RECURSIVE
+    superiors(employee_id, manager_id, full_name, level, lineage) AS (
+    SELECT
+        employee_id,
+        manager_id,
+        full_name,
+    1 as level,
+    employee_id as lineage
+    FROM
+        employees
+    WHERE
+    1=1
+
+    {# Render a blank line #}
+    {%- for filter in get_filters('full_name', remove_filter=True) -%}
+
+    {%- if filter.get('op') == 'IN' -%}
+        AND
+        full_name IN {{ filter.get('val')|where_in }}
+    {%- endif -%}
+
+    {%- if filter.get('op') == 'LIKE' -%}
+        AND
+        full_name LIKE {{ "'" + filter.get('val') + "'" }}
+    {%- endif -%}
+
+    {%- endfor -%}
+    UNION ALL
+        SELECT
+            e.employee_id,
+            e.manager_id,
+            e.full_name,
+    s.level + 1 as level,
+    s.lineage
+        FROM
+            employees e,
+        superiors s
+        WHERE s.manager_id = e.employee_id
+    )
+
+    SELECT
+    employee_id, manager_id, full_name, level, lineage
+    FROM
+    superiors
+    order by lineage, level
+```
+
+**Time Filter**
+
+The `{{ get_time_filter() }}` macro returns the time filter applied to a specific column. This is useful if you want
+to handle time filters inside the virtual dataset, as by default the time filter is placed on the outer query. This can
+considerably improve performance, as many databases and query engines are able to optimize the query better
+if the temporal filter is placed on the inner query, as opposed to the outer query.
+
+The macro takes the following parameters:
+
+- `column`: Name of the temporal column. Leave undefined to reference the time range from a Dashboard Native Time Range
+  filter (when present).
+- `default`: The default value to fall back to if the time filter is not present, or has the value `No filter`
+- `target_type`: The target temporal type as recognized by the target  database (e.g. `TIMESTAMP`, `DATE` or
+  `DATETIME`). If `column` is defined, the format will default to the type of the column. This is used to produce
+  the format of the `from_expr` and `to_expr` properties of the returned `TimeFilter` object.
+- `strftime`: format using the `strftime` method of `datetime` for custom time formatting.
+  ([see docs for valid format codes](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes)).
+  When defined `target_type` will be ignored.
+- `remove_filter`: When set to true, mark the filter as processed, removing it from the outer query. Useful when a
+  filter should only apply to the inner query.
+
+The return type has the following properties:
+
+- `from_expr`: the start of the time filter (if any)
+- `to_expr`: the end of the time filter (if any)
+- `time_range`: The applied time range
+
+Here's a concrete example using the `logs` table from the Superset metastore:
+
+```
+{% set time_filter = get_time_filter("dttm", remove_filter=True) %}
+{% set from_expr = time_filter.from_expr %}
+{% set to_expr = time_filter.to_expr %}
+{% set time_range = time_filter.time_range %}
+SELECT
+  *,
+  '{{ time_range }}' as time_range
+FROM logs
+{% if from_expr or to_expr %}WHERE 1 = 1
+{% if from_expr %}AND dttm >= {{ from_expr }}{% endif %}
+{% if to_expr %}AND dttm < {{ to_expr }}{% endif %}
+{% endif %}
+```
+
+Assuming we are creating a table chart with a simple `COUNT(*)` as the metric with a time filter `Last week` on the
+`dttm` column, this would render the following query on Postgres (note the formatting of the temporal filters, and
+the absence of time filters on the outer query):
+
+```
+SELECT COUNT(*) AS count
+FROM
+  (SELECT *,
+          'Last week' AS time_range
+   FROM public.logs
+   WHERE 1 = 1
+     AND dttm >= TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+     AND dttm < TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')) AS virtual_table
+ORDER BY count DESC
+LIMIT 1000;
+```
+
+When using the `default` parameter, the templated query can be simplified, as the endpoints will always be defined
+(to use a fixed time range, you can also use something like `default="2024-08-27 : 2024-09-03"`)
+
+```
+{% set time_filter = get_time_filter("dttm", default="Last week", remove_filter=True) %}
+SELECT
+  *,
+  '{{ time_filter.time_range }}' as time_range
+FROM logs
+WHERE
+  dttm >= {{ time_filter.from_expr }}
+  AND dttm < {{ time_filter.to_expr }}
+```
+
+**Datasets**
+
+It's possible to query physical and virtual datasets using the `dataset` macro. This is useful if you've defined computed columns and metrics on your datasets, and want to reuse the definition in adhoc SQL Lab queries.
+
+To use the macro, first you need to find the ID of the dataset. This can be done by going to the view showing all the datasets, hovering over the dataset you're interested in, and looking at its URL. For example, if the URL for a dataset is https://superset.example.org/explore/?dataset_type=table&dataset_id=42 its ID is 42.
+
+Once you have the ID you can query it as if it were a table:
+
+```sql
+SELECT * FROM {{ dataset(42) }} LIMIT 10
+```
+
+If you want to select the metric definitions as well, in addition to the columns, you need to pass an additional keyword argument:
+
+```sql
+SELECT * FROM {{ dataset(42, include_metrics=True) }} LIMIT 10
+```
+
+Since metrics are aggregations, the resulting SQL expression will be grouped by all non-metric columns. You can specify a subset of columns to group by instead:
+
+```sql
+SELECT * FROM {{ dataset(42, include_metrics=True, columns=["ds", "category"]) }} LIMIT 10
+```
+
+**Metrics**
+
+The `{{ metric('metric_key', dataset_id) }}` macro can be used to retrieve the metric SQL syntax from a dataset. This can be useful for different purposes:
+
+- Override the metric label in the chart level
+- Combine multiple metrics in a calculation
+- Retrieve a metric syntax in SQL lab
+- Re-use metrics across datasets
+
+This macro avoids copy/paste, allowing users to centralize the metric definition in the dataset layer.
+
+The `dataset_id` parameter is optional, and if not provided Superset will use the current dataset from context (for example, when using this macro in the Chart Builder, by default the `macro_key` will be searched in the dataset powering the chart).
+The parameter can be used in SQL Lab, or when fetching a metric from another dataset.

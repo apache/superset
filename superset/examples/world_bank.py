@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Loads datasets, dashboards and slices in a new superset instance"""
-import json
+import logging
 import os
 
 import pandas as pd
@@ -36,11 +35,14 @@ from superset.examples.helpers import (
 )
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils import core as utils
+from superset.sql_parse import Table
+from superset.utils import core as utils, json
 from superset.utils.core import DatasourceType
 
+logger = logging.getLogger(__name__)
 
-def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-statements
+
+def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
     only_metadata: bool = False,
     force: bool = False,
     sample: bool = False,
@@ -50,7 +52,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     database = superset.utils.database.get_example_database()
     with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
-        table_exists = database.has_table_by_name(tbl_name)
+        table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
             url = get_example_url("countries.json.gz")
@@ -80,7 +82,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
                 index=False,
             )
 
-    print("Creating table [wb_health_population] reference")
+    logger.debug("Creating table [wb_health_population] reference")
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
@@ -109,7 +111,6 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
                 SqlMetric(metric_name=metric, expression=f"{aggr_func}({col})")
             )
 
-    db.session.commit()
     tbl.fetch_metadata()
 
     slices = create_slices(tbl)
@@ -117,7 +118,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     for slc in slices:
         merge_slice(slc)
 
-    print("Creating a World's Health Bank dashboard")
+    logger.debug("Creating a World's Health Bank dashboard")
     dash_name = "World Bank's Data"
     slug = "world_health"
     dash = db.session.query(Dashboard).filter_by(slug=slug).first()
@@ -133,7 +134,6 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = slug
     dash.slices = slices
-    db.session.commit()
 
 
 def create_slices(tbl: BaseDatasource) -> list[Slice]:
@@ -195,12 +195,12 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
         ),
         Slice(
             slice_name="Growth Rate",
-            viz_type="line",
+            viz_type="echarts_timeseries_line",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type="line",
+                viz_type="echarts_timeseries_line",
                 since="1960-01-01",
                 metrics=["sum__SP_POP_TOTL"],
                 num_period_compare="10",
@@ -281,14 +281,14 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
         ),
         Slice(
             slice_name="World's Pop Growth",
-            viz_type="area",
+            viz_type="echarts_area",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 since="1960-01-01",
                 until="now",
-                viz_type="area",
+                viz_type="echarts_area",
                 groupby=["region"],
                 metrics=metrics,
             ),

@@ -18,7 +18,7 @@
 from typing import Any
 
 from marshmallow import Schema
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import select
 
 from superset import db
@@ -34,6 +34,7 @@ from superset.commands.dashboard.importers.v1.utils import (
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
+from superset.commands.utils import update_chart_config_dataset
 from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
@@ -43,7 +44,6 @@ from superset.models.dashboard import Dashboard, dashboard_slices
 
 
 class ImportDashboardsCommand(ImportModelsCommand):
-
     """Import dashboards"""
 
     dao = DashboardDAO
@@ -60,7 +60,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
     # TODO (betodealmeida): refactor to use code from other commands
     # pylint: disable=too-many-branches, too-many-locals
     @staticmethod
-    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
+    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:  # noqa: C901
         # discover charts and datasets associated with dashboards
         chart_uuids: set[str] = set()
         dataset_uuids: set[str] = set()
@@ -114,12 +114,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
             ):
                 # update datasource id, type, and name
                 dataset_dict = dataset_info[config["dataset_uuid"]]
-                config.update(dataset_dict)
-                # pylint: disable=line-too-long
-                dataset_uid = f"{dataset_dict['datasource_id']}__{dataset_dict['datasource_type']}"
-                config["params"].update({"datasource": dataset_uid})
-                if "query_context" in config:
-                    config["query_context"] = None
+                config = update_chart_config_dataset(config, dataset_dict)
 
                 chart = import_chart(config, overwrite=False)
                 charts.append(chart)

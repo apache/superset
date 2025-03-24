@@ -286,3 +286,175 @@ test('SQL ad-hoc filter values', () => {
     sqlExpression: 'select * from sample_column_1;',
   });
 });
+
+test('no controlState value but valid column in datasource', () => {
+  const controlState = {
+    ...sharedControls.columns,
+    options: [], // no options in the control state
+  };
+
+  expect(
+    getValues({
+      ...controlState,
+      value: 'sample_column_1', // column only available in datasource
+    }),
+  ).toEqual('sample_column_1');
+
+  expect(
+    getValues({
+      ...controlState,
+      value: 'non_existing_column',
+    }),
+  ).toEqual(controlState.default);
+});
+
+test('no controlState value but valid saved metric in datasource', () => {
+  const controlState = {
+    ...sharedControls.metrics,
+    savedMetrics: [], // no saved metrics in the control state
+  };
+
+  expect(
+    getValues({
+      ...controlState,
+      value: 'saved_metric_2', // metric only available in datasource
+    }),
+  ).toEqual('saved_metric_2');
+
+  expect(
+    getValues({
+      ...controlState,
+      value: 'non_existing_metric',
+    }),
+  ).toEqual(controlState.default);
+});
+
+test('no controlState value but valid adhoc metric in datasource', () => {
+  const controlState = {
+    ...sharedControls.metrics,
+    columns: [], // no columns in control state
+  };
+
+  expect(
+    getValues({
+      ...controlState,
+      value: {
+        expressionType: 'SIMPLE',
+        column: { column_name: 'sample_column_1' }, // only in datasource
+      },
+    }),
+  ).toEqual({
+    expressionType: 'SIMPLE',
+    column: { column_name: 'sample_column_1' },
+  });
+
+  expect(
+    getValues({
+      ...controlState,
+      value: {
+        expressionType: 'SIMPLE',
+        column: { column_name: 'non_existing_column' },
+      },
+    }),
+  ).toEqual(controlState.default);
+});
+
+test('no controlState value but valid adhoc filter in datasource', () => {
+  const controlState = {
+    ...sharedControls.adhoc_filters,
+    columns: [], // no columns in control state
+  };
+
+  expect(
+    getValues({
+      ...controlState,
+      value: {
+        expressionType: 'SIMPLE',
+        subject: 'sample_column_1', // column available in datasource
+      },
+    }),
+  ).toEqual({
+    expressionType: 'SIMPLE',
+    subject: 'sample_column_1',
+  });
+
+  expect(
+    getValues({
+      ...controlState,
+      value: {
+        expressionType: 'SIMPLE',
+        subject: 'non_existing_column',
+      },
+    }),
+  ).toEqual(controlState.default);
+});
+
+test('SQL ad-hoc metric values without controlState columns', () => {
+  const controlState = {
+    ...sharedControls.metrics,
+    columns: [], // No columns in controlState
+  };
+
+  expect(
+    getValues({
+      ...controlState,
+      value: {
+        expressionType: 'SQL',
+        sqlExpression: 'SELECT COUNT(*) FROM sample_table;',
+      },
+    }),
+  ).toEqual({
+    datasourceWarning: true,
+    expressionType: 'SQL',
+    sqlExpression: 'SELECT COUNT(*) FROM sample_table;',
+  });
+
+  expect(
+    getValues({
+      ...controlState,
+      value: {
+        expressionType: 'SQL',
+        sqlExpression: 'SELECT column FROM non_existing_table;',
+      },
+    }),
+  ).toEqual({
+    datasourceWarning: true,
+    expressionType: 'SQL',
+    sqlExpression: 'SELECT column FROM non_existing_table;',
+  });
+});
+
+test('SQL ad-hoc filter values without controlState columns', () => {
+  const controlState = {
+    ...sharedControls.adhoc_filters,
+    columns: [], // No columns in controlState
+  };
+
+  expect(
+    getValues({
+      ...controlState,
+      value: {
+        expressionType: 'SQL',
+        sqlExpression: 'SELECT * FROM sample_table WHERE column = 1;',
+      },
+    }),
+  ).toEqual({
+    datasourceWarning: true,
+    expressionType: 'SQL',
+    sqlExpression: 'SELECT * FROM sample_table WHERE column = 1;',
+  });
+
+  expect(
+    getValues({
+      ...controlState,
+      value: {
+        expressionType: 'SQL',
+        sqlExpression: 'SELECT * FROM non_existing_table;',
+      },
+    }),
+  ).toEqual({
+    datasourceWarning: true,
+    expressionType: 'SQL',
+    sqlExpression: 'SELECT * FROM non_existing_table;',
+  });
+});

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
+import logging
 
 import pandas as pd
 from sqlalchemy import BigInteger, Date, inspect, String
@@ -24,6 +25,7 @@ import superset.utils.database as database_utils
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils.core import DatasourceType
 
 from .helpers import (
@@ -34,6 +36,8 @@ from .helpers import (
     misc_dash_slices,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def load_country_map_data(only_metadata: bool = False, force: bool = False) -> None:
     """Loading data for map with country map"""
@@ -42,7 +46,7 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
 
     with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
-        table_exists = database.has_table_by_name(tbl_name)
+        table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
             url = get_example_url("birth_france_data_for_country_map.csv")
@@ -72,10 +76,10 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
                 },
                 index=False,
             )
-        print("Done loading table!")
-        print("-" * 80)
+        logger.debug("Done loading table!")
+        logger.debug("-" * 80)
 
-    print("Creating table reference")
+    logger.debug("Creating table reference")
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
@@ -87,7 +91,6 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
     if not any(col.metric_name == "avg__2004" for col in obj.metrics):
         col = str(column("2004").compile(db.engine))
         obj.metrics.append(SqlMetric(metric_name="avg__2004", expression=f"AVG({col})"))
-    db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 
@@ -108,7 +111,7 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
         "select_country": "france",
     }
 
-    print("Creating a slice")
+    logger.debug("Creating a slice")
     slc = Slice(
         slice_name="Birth in France by department in 2016",
         viz_type="country_map",

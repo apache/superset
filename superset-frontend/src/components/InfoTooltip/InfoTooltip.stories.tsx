@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import InfoTooltip, { InfoTooltipProps } from 'src/components/InfoTooltip';
 
 export default {
@@ -45,27 +44,27 @@ InteractiveInfoTooltip.argTypes = {
     defaultValue: 'top',
     control: {
       type: 'select',
-      options: [
-        'bottom',
-        'left',
-        'right',
-        'top',
-        'topLeft',
-        'topRight',
-        'bottomLeft',
-        'bottomRight',
-        'leftTop',
-        'leftBottom',
-        'rightTop',
-        'rightBottom',
-      ],
     },
+    options: [
+      'bottom',
+      'left',
+      'right',
+      'top',
+      'topLeft',
+      'topRight',
+      'bottomLeft',
+      'bottomRight',
+      'leftTop',
+      'leftBottom',
+      'rightTop',
+      'rightBottom',
+    ],
   },
   trigger: {
     defaultValue: 'hover',
     control: {
       type: 'select',
-      options: ['hover', 'click'],
     },
+    options: ['hover', 'click'],
   },
 };

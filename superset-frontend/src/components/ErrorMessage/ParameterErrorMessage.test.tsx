@@ -17,10 +17,8 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import ParameterErrorMessage from './ParameterErrorMessage';
 
 jest.mock(
@@ -52,7 +50,7 @@ const mockedProps = {
     message: 'Error message',
   },
   source: 'dashboard' as ErrorSource,
-  subtitle: 'Error message',
+  subtitle: 'Error message subtitle',
 };
 
 test('should render', () => {

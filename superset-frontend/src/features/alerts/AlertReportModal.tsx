@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
+  ChangeEvent,
   FunctionComponent,
   useState,
   useEffect,
@@ -24,6 +25,7 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
+
 import {
   css,
   isFeatureEnabled,
@@ -32,6 +34,7 @@ import {
   SupersetClient,
   SupersetTheme,
   t,
+  VizType,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -44,7 +47,7 @@ import TimezoneSelector from 'src/components/TimezoneSelector';
 import { propertyComparator } from 'src/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { AntdCheckbox, AsyncSelect, Select } from 'src/components';
+import { AntdCheckbox, AsyncSelect, Select, TreeSelect } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -55,15 +58,20 @@ import {
   ChartObject,
   DashboardObject,
   DatabaseObject,
+  Extra,
   MetaObject,
   Operator,
   Recipient,
   AlertsReportsConfig,
   ValidationObject,
   Sections,
+  TabNode,
+  SelectValue,
+  ContentType,
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import Icons from 'src/components/Icons';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -73,15 +81,10 @@ import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
-  'pivot_table_v2',
+  VizType.PivotTable,
   'table',
-  'paired_ttest',
+  VizType.PairedTTest,
 ];
-
-type SelectValue = {
-  value: string;
-  label: string;
-};
 
 export interface AlertReportModalProps {
   addSuccessToast: (msg: string) => void;
@@ -96,9 +99,18 @@ export interface AlertReportModalProps {
 const DEFAULT_WORKING_TIMEOUT = 3600;
 const DEFAULT_CRON_VALUE = '0 0 * * *'; // every day
 const DEFAULT_RETENTION = 90;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = ['Email'];
+const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = [
+  NotificationMethodOption.Email,
+];
 const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
+const DEFAULT_EXTRA_DASHBOARD_OPTIONS: Extra = {
+  dashboard: {
+    anchor: '',
+  },
+};
+
 const CONDITIONS = [
   {
     label: t('< (Smaller than)'),
@@ -178,6 +190,8 @@ const FORMAT_OPTIONS = {
   },
 };
 
+type FORMAT_OPTIONS_KEY = keyof typeof FORMAT_OPTIONS;
+
 // Apply to final text input components of each collapse panel
 const noMarginBottom = css`
   margin-bottom: 0;
@@ -187,7 +201,7 @@ const noMarginBottom = css`
 Height of modal body defined here, total width defined at component invocation as antd prop.
  */
 const StyledModal = styled(Modal)`
-  .ant-modal-body {
+  .antd5-modal-body {
     height: 720px;
   }
 
@@ -211,6 +225,10 @@ const StyledModal = styled(Modal)`
       flex: 1 1 auto;
     }
   }
+`;
+
+const StyledTreeSelect = styled(TreeSelect)`
+  width: 100%;
 `;
 
 const StyledSwitchContainer = styled.div`
@@ -367,6 +385,8 @@ export const TRANSLATIONS = {
   CRONTAB_ERROR_TEXT: t('crontab'),
   WORKING_TIMEOUT_ERROR_TEXT: t('working timeout'),
   RECIPIENTS_ERROR_TEXT: t('recipients'),
+  EMAIL_SUBJECT_ERROR_TEXT: t('email subject'),
+  EMAIL_VALIDATION_ERROR_TEXT: t('invalid email'),
   ERROR_TOOLTIP_MESSAGE: t(
     'Not all required fields are complete. Please provide the following:',
   ),
@@ -388,7 +408,13 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
 
   return (
     <StyledNotificationAddButton className={status} onClick={checkStatus}>
-      <i className="fa fa-plus" />{' '}
+      <Icons.PlusOutlined
+        iconSize="m"
+        css={theme => ({
+          margin: `auto ${theme.gridUnit * 2}px auto 0`,
+          verticalAlign: 'middle',
+        })}
+      />
       {status === 'active'
         ? t('Add another notification method')
         : t('Add delivery method')}
@@ -434,6 +460,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [sourceOptions, setSourceOptions] = useState<MetaObject[]>([]);
   const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
+  const [tabOptions, setTabOptions] = useState<TabNode[]>([]);
+
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
     [Sections.General]: {
@@ -484,6 +512,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const isEditMode = alert !== null;
   const formatOptionEnabled =
     isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
+  const tabsEnabled = isFeatureEnabled(FeatureFlag.AlertReportTabs);
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -491,6 +520,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [notificationSettings, setNotificationSettings] = useState<
     NotificationSetting[]
   >([]);
+  const [emailSubject, setEmailSubject] = useState<string>('');
+  const [emailError, setEmailError] = useState(false);
+
   const onNotificationAdd = () => {
     setNotificationSettings([
       ...notificationSettings,
@@ -511,7 +543,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ]);
 
     setNotificationAddState(
-      notificationSettings.length === allowedNotificationMethods.length
+      notificationSettings.length === allowedNotificationMethodsCount
         ? 'hidden'
         : 'disabled',
     );
@@ -537,12 +569,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     active: true,
     creation_method: 'alerts_reports',
     crontab: ALERT_REPORTS_DEFAULT_CRON_VALUE,
+    extra: DEFAULT_EXTRA_DASHBOARD_OPTIONS,
     log_retention: ALERT_REPORTS_DEFAULT_RETENTION,
     working_timeout: ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
     name: '',
     owners: [],
     recipients: [],
     sql: '',
+    email_subject: '',
     validator_config_json: {},
     validator_type: '',
     force_screenshot: false,
@@ -553,13 +587,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     index: number,
     setting: NotificationSetting,
   ) => {
-    // if you've changed notification method
+    const settings: NotificationSetting[] = [...notificationSettings];
+    settings[index] = setting;
+
+    // if you've changed notification method -> remove trailing methods
     if (notificationSettings[index].method !== setting.method) {
       notificationSettings[index] = setting;
 
       setNotificationSettings(
         notificationSettings.filter((_, idx) => idx <= index),
       );
+
       if (notificationSettings.length - 1 > index) {
         setNotificationAddState('active');
       }
@@ -567,6 +605,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       if (setting.method !== undefined && notificationAddState !== 'hidden') {
         setNotificationAddState('active');
       }
+    } else {
+      setNotificationSettings(settings);
     }
   };
 
@@ -576,6 +616,22 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     settings.splice(index, 1);
     setNotificationSettings(settings);
     setNotificationAddState('active');
+  };
+
+  const updateAnchorState = (value: any) => {
+    setCurrentAlert(currentAlertData => {
+      const dashboardState = currentAlertData?.extra?.dashboard;
+      const extra = {
+        dashboard: {
+          ...dashboardState,
+          anchor: value,
+        },
+      };
+      return {
+        ...currentAlertData,
+        extra,
+      };
+    });
   };
 
   // Alert fetch logic
@@ -606,13 +662,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         recipients.push({
           recipient_config_json: {
             target: setting.recipients,
+            ccTarget: setting.cc,
+            bccTarget: setting.bcc,
           },
           type: setting.method,
         });
       }
     });
 
-    const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
+    const shouldEnableForceScreenshot =
+      contentType === ContentType.Chart && !isReport;
     const data: any = {
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
@@ -621,9 +680,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       validator_config_json: conditionNotNull
         ? {}
         : currentAlert?.validator_config_json,
-      chart: contentType === 'chart' ? currentAlert?.chart?.value : null,
+      chart:
+        contentType === ContentType.Chart ? currentAlert?.chart?.value : null,
       dashboard:
-        contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
+        contentType === ContentType.Dashboard
+          ? currentAlert?.dashboard?.value
+          : null,
       custom_width: isScreenshot ? currentAlert?.custom_width : undefined,
       database: currentAlert?.database?.value,
       owners: (currentAlert?.owners || []).map(
@@ -631,6 +693,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ),
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
+      extra: contentType === ContentType.Dashboard ? currentAlert?.extra : {},
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -638,7 +701,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
 
     data.context_markdown = 'string';
-
     if (isEditMode) {
       // Edit
       if (currentAlert?.id) {
@@ -761,6 +823,57 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     [],
   );
 
+  const dashboard = currentAlert?.dashboard;
+  useEffect(() => {
+    if (!tabsEnabled) return;
+
+    if (dashboard?.value) {
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/${dashboard.value}/tabs`,
+      })
+        .then(response => {
+          const { tab_tree: tabTree, all_tabs: allTabs } = response.json.result;
+          const allTabsWithOrder = tabTree.map(
+            (tab: { value: string }) => tab.value,
+          );
+
+          // Only show all tabs when there are more than one tab
+          if (allTabsWithOrder.length > 1) {
+            tabTree.push({
+              title: 'All Tabs',
+              // select tree only works with string value
+              value: JSON.stringify(allTabsWithOrder),
+            });
+          }
+
+          setTabOptions(tabTree);
+
+          const anchor = currentAlert?.extra?.dashboard?.anchor;
+          if (anchor) {
+            try {
+              const parsedAnchor = JSON.parse(anchor);
+              if (Array.isArray(parsedAnchor)) {
+                // Check if all elements in parsedAnchor list are in allTabs
+                const isValidSubset = parsedAnchor.every(tab => tab in allTabs);
+                if (!isValidSubset) {
+                  updateAnchorState(undefined);
+                }
+              } else {
+                throw new Error('Parsed value is not an array');
+              }
+            } catch (error) {
+              if (!(anchor in allTabs)) {
+                updateAnchorState(undefined);
+              }
+            }
+          }
+        })
+        .catch(() => {
+          addDangerToast(t('There was an error retrieving dashboard tabs.'));
+        });
+    }
+  }, [dashboard, tabsEnabled, currentAlert?.extra, addDangerToast]);
+
   const databaseLabel = currentAlert?.database && !currentAlert.database.label;
   useEffect(() => {
     // Find source if current alert has one set
@@ -872,9 +985,30 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/chart/${chart.value}`,
     }).then(response => setChartVizType(response.json.result.viz_type));
 
+  const updateEmailSubject = () => {
+    const chartLabel = currentAlert?.chart?.label;
+    const dashboardLabel = currentAlert?.dashboard?.label;
+    if (!currentAlert?.name) {
+      setEmailSubject('');
+      return;
+    }
+    switch (contentType) {
+      case ContentType.Chart:
+        setEmailSubject(`${currentAlert?.name}: ${chartLabel || ''}`);
+        break;
+
+      case ContentType.Dashboard:
+        setEmailSubject(`${currentAlert?.name}: ${dashboardLabel || ''}`);
+        break;
+
+      default:
+        setEmailSubject('');
+    }
+  };
+
   // Handle input/textarea updates
   const onInputChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
     const {
       target: { type, value, name },
@@ -882,14 +1016,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const parsedValue = type === 'number' ? parseInt(value, 10) || null : value;
 
     updateAlertState(name, parsedValue);
+
+    if (name === 'name') {
+      updateEmailSubject();
+    }
   };
 
-  const onCustomWidthChange = (value: number | null | undefined) => {
-    updateAlertState('custom_width', value);
+  const onCustomWidthChange = (value: number | string | null | undefined) => {
+    const numValue =
+      value === null ||
+      value === undefined ||
+      (typeof value === 'string' && Number.isNaN(Number(value)))
+        ? null
+        : Number(value);
+    updateAlertState('custom_width', numValue);
   };
 
   const onTimeoutVerifyChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
     const { target } = event;
     const value = +target.value;
@@ -920,6 +1064,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onDashboardChange = (dashboard: SelectValue) => {
     updateAlertState('dashboard', dashboard || undefined);
     updateAlertState('chart', null);
+    if (tabsEnabled) {
+      setTabOptions([]);
+      updateAnchorState('');
+    }
   };
 
   const onChartChange = (chart: SelectValue) => {
@@ -945,7 +1093,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('validator_config_json', config);
   };
 
-  const onThresholdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const onThresholdChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { target } = event;
 
     const config = {
@@ -995,6 +1143,31 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     return hasInfo;
   };
 
+  const checkEmailFormat = () => {
+    if (!notificationSettings.length) {
+      return true;
+    }
+
+    const validateEmails = (emails: string): boolean => {
+      if (!emails) return true; // No emails to validate
+      return emails
+        .split(/[,;]/)
+        .every(email => EMAIL_REGEX.test(email.trim()));
+    };
+
+    // Use array method to check conditions
+    return notificationSettings.every(setting => {
+      if (!!setting.method && setting.method === 'Email') {
+        return (
+          (!setting.recipients?.length || validateEmails(setting.recipients)) &&
+          (!setting.cc || validateEmails(setting.cc)) &&
+          (!setting.bcc || validateEmails(setting.bcc))
+        );
+      }
+      return true; // Non-Email methods are considered valid
+    });
+  };
+
   const validateGeneralSection = () => {
     const errors = [];
     if (!currentAlert?.name?.length) {
@@ -1009,8 +1182,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const errors = [];
     if (
       !(
-        (contentType === 'dashboard' && !!currentAlert?.dashboard) ||
-        (contentType === 'chart' && !!currentAlert?.chart)
+        (contentType === ContentType.Dashboard && !!currentAlert?.dashboard) ||
+        (contentType === ContentType.Chart && !!currentAlert?.chart)
       )
     ) {
       errors.push(TRANSLATIONS.CONTENT_ERROR_TEXT);
@@ -1050,8 +1223,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const validateNotificationSection = () => {
+    const errors = [];
     const hasErrors = !checkNotificationSettings();
-    const errors = hasErrors ? [TRANSLATIONS.RECIPIENTS_ERROR_TEXT] : [];
+
+    if (hasErrors) {
+      errors.push(TRANSLATIONS.RECIPIENTS_ERROR_TEXT);
+    } else {
+      // Check for email format errors
+      const hasValidationErrors = !checkEmailFormat();
+      if (hasValidationErrors) {
+        errors.push(TRANSLATIONS.EMAIL_VALIDATION_ERROR_TEXT);
+      }
+    }
+
+    if (emailError) {
+      errors.push(TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT);
+    }
+
+    // Update validation status with combined errors
     updateValidationStatus(Sections.Notification, errors);
   };
 
@@ -1108,8 +1297,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setNotificationSettings([
         {
           recipients: '',
+          cc: '',
+          bcc: '',
           options: allowedNotificationMethods,
-          method: 'Email',
+          method: NotificationMethodOption.Email,
         },
       ]);
       setNotificationAddState('active');
@@ -1129,6 +1320,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           // @ts-ignore: Type not assignable
           recipients: config.target || setting.recipient_config_json,
           options: allowedNotificationMethods,
+          cc: config.ccTarget || '',
+          bcc: config.bccTarget || '',
         };
       });
 
@@ -1138,7 +1331,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           ? 'hidden'
           : 'active',
       );
-      setContentType(resource.chart ? 'chart' : 'dashboard');
+      setContentType(
+        resource.chart ? ContentType.Chart : ContentType.Dashboard,
+      );
       setReportFormat(resource.report_format || DEFAULT_NOTIFICATION_FORMAT);
       const validatorConfig =
         typeof resource.validator_config_json === 'string'
@@ -1193,6 +1388,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentAlertSafe = currentAlert || {};
   useEffect(() => {
     validateAll();
+    updateEmailSubject();
   }, [
     currentAlertSafe.name,
     currentAlertSafe.owners,
@@ -1206,10 +1402,25 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     contentType,
     notificationSettings,
     conditionNotNull,
+    emailError,
   ]);
   useEffect(() => {
     enforceValidation();
   }, [validationStatus]);
+
+  const allowedNotificationMethodsCount = useMemo(
+    () =>
+      allowedNotificationMethods.reduce((accum: string[], setting: string) => {
+        if (
+          accum.some(nm => nm.includes('slack')) &&
+          setting.toLowerCase().includes('slack')
+        ) {
+          return accum;
+        }
+        return [...accum, setting.toLowerCase()];
+      }, []).length,
+    [allowedNotificationMethods],
+  );
 
   // Show/hide
   if (isHidden && show) {
@@ -1235,6 +1446,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
 
     return titleText;
+  };
+
+  const handleErrorUpdate = (hasError: boolean) => {
+    setEmailError(hasError);
   };
 
   return (
@@ -1476,7 +1691,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             />
           </StyledInputContainer>
           <StyledInputContainer>
-            {contentType === 'chart' ? (
+            {contentType === ContentType.Chart ? (
               <>
                 <div className="control-label">
                   {t('Select chart')}
@@ -1539,22 +1754,42 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onChange={onFormatChange}
                   value={reportFormat}
                   options={
-                    contentType === 'dashboard'
-                      ? ['pdf', 'png'].map(key => FORMAT_OPTIONS[key])
+                    contentType === ContentType.Dashboard
+                      ? ['pdf', 'png'].map(
+                          key => FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
+                        )
                       : /* If chart is of text based viz type: show text
                   format option */
                         TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType)
                         ? Object.values(FORMAT_OPTIONS)
-                        : ['pdf', 'png', 'csv'].map(key => FORMAT_OPTIONS[key])
+                        : ['pdf', 'png', 'csv'].map(
+                            key => FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
+                          )
                   }
                   placeholder={t('Select format')}
                 />
               </>
             )}
           </StyledInputContainer>
+          {tabsEnabled && contentType === ContentType.Dashboard && (
+            <StyledInputContainer>
+              <>
+                <div className="control-label">{t('Select tab')}</div>
+                <StyledTreeSelect
+                  disabled={tabOptions?.length === 0}
+                  treeData={tabOptions}
+                  value={currentAlert?.extra?.dashboard?.anchor}
+                  onSelect={updateAnchorState}
+                  placeholder={t('Select a tab')}
+                />
+              </>
+            </StyledInputContainer>
+          )}
           {isScreenshot && (
             <StyledInputContainer
-              css={!isReport && contentType === 'chart' && noMarginBottom}
+              css={
+                !isReport && contentType === ContentType.Chart && noMarginBottom
+              }
             >
               <div className="control-label">{t('Screenshot width')}</div>
               <div className="input-container">
@@ -1570,7 +1805,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </div>
             </StyledInputContainer>
           )}
-          {(isReport || contentType === 'dashboard') && (
+          {(isReport || contentType === ContentType.Dashboard) && (
             <div className="inline-container">
               <StyledCheckbox
                 data-test="bypass-cache"
@@ -1622,11 +1857,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 ariaLabel={t('Log retention')}
                 placeholder={t('Log retention')}
                 onChange={onLogRetentionChange}
-                value={
-                  typeof currentAlert?.log_retention === 'number'
-                    ? currentAlert?.log_retention
-                    : ALERT_REPORTS_DEFAULT_RETENTION
-                }
+                value={currentAlert?.log_retention}
                 options={RETENTION_OPTIONS}
                 sortComparator={propertyComparator('value')}
               />
@@ -1688,12 +1919,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 key={`NotificationMethod-${i}`}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
+                onInputChange={onInputChange}
+                email_subject={currentAlert?.email_subject || ''}
+                defaultSubject={emailSubject || ''}
+                setErrorSubject={handleErrorUpdate}
               />
             </StyledNotificationMethodWrapper>
           ))}
           {
             // Prohibit 'add notification method' button if only one present
-            allowedNotificationMethods.length > notificationSettings.length && (
+            allowedNotificationMethodsCount > notificationSettings.length && (
               <NotificationMethodAdd
                 data-test="notification-add"
                 status={notificationAddState}

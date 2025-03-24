@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import { Link } from 'react-router-dom';
 import {
@@ -30,7 +29,7 @@ import { getDashboardFormData } from 'spec/fixtures/mockDashboardFormData';
 import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { URL_PARAMS } from 'src/constants';
-import { JsonObject } from '@superset-ui/core';
+import { JsonObject, VizType } from '@superset-ui/core';
 
 import ChartPage from '.';
 
@@ -56,7 +55,7 @@ describe('ChartPage', () => {
   test('fetches metadata on mount', async () => {
     const exploreApiRoute = 'glob:*/api/v1/explore/*';
     const exploreFormData = getExploreFormData({
-      viz_type: 'table',
+      viz_type: VizType.Table,
       show_cell_bars: true,
     });
     fetchMock.get(exploreApiRoute, {
@@ -127,7 +126,7 @@ describe('ChartPage', () => {
     test('overrides the form_data with exploreFormData when location is updated', async () => {
       const dashboardFormData = {
         ...getDashboardFormData(),
-        viz_type: 'table',
+        viz_type: VizType.Table,
         show_cell_bars: true,
       };
       (getFormDataWithExtraFilters as jest.Mock).mockReturnValue(
@@ -135,7 +134,7 @@ describe('ChartPage', () => {
       );
       const exploreApiRoute = 'glob:*/api/v1/explore/*';
       const exploreFormData = getExploreFormData({
-        viz_type: 'table',
+        viz_type: VizType.Table,
         show_cell_bars: true,
       });
       fetchMock.get(exploreApiRoute, {

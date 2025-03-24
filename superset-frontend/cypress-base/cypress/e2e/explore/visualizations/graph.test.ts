@@ -82,9 +82,8 @@ describe('Visualization > Graph', () => {
 
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
-    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
-      .focus()
-      .type('bnbColors{enter}');
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
+    cy.focused().type('bnbColors{enter}');
     cy.get(
       '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="bnbColors"]',
     ).should('exist');

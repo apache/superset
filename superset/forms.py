@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 """Contains the logic to create cohesive forms on the explore view"""
-import json
+
 from typing import Any, Optional
 
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 from wtforms import Field
+
+from superset.utils import json
 
 
 class JsonListField(Field):

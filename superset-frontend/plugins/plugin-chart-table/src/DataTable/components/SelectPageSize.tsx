@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { memo } from 'react';
 import { t } from '@superset-ui/core';
 import { formatSelectOptions } from '@superset-ui/chart-controls';
 
@@ -48,8 +48,13 @@ function DefaultSelectRenderer({
           const [size, text] = Array.isArray(option)
             ? option
             : [option, option];
+          const sizeLabel = size === 0 ? t('all') : size;
           return (
-            <option key={size} value={size}>
+            <option
+              aria-label={t('Show %s entries', sizeLabel)}
+              key={size}
+              value={size}
+            >
               {text}
             </option>
           );
@@ -70,7 +75,7 @@ function getOptionValue(x: SizeOption) {
   return Array.isArray(x) ? x[0] : x;
 }
 
-export default React.memo(function SelectPageSize({
+export default memo(function SelectPageSize({
   total,
   options: sizeOptions,
   current: currentSize,

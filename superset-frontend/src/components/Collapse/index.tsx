@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { styled } from '@superset-ui/core';
-import { Collapse as AntdCollapse } from 'antd';
-import { CollapseProps as AntdCollapseProps } from 'antd/lib/collapse';
+// eslint-disable-next-line no-restricted-imports
+import { Collapse as AntdCollapse } from 'antd'; // TODO: Remove antd
+// eslint-disable-next-line no-restricted-imports
+import { CollapseProps as AntdCollapseProps } from 'antd/lib/collapse'; // TODO: Remove antd
 
 export interface CollapseProps extends AntdCollapseProps {
   light?: boolean;

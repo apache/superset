@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { MouseEvent } from 'react';
+import { PureComponent, MouseEvent } from 'react';
 import {
   t,
   getNumberFormatter,
-  smartDateVerboseFormatter,
+  getTimeFormatter,
+  SMART_DATE_VERBOSE_ID,
   computeMaxFontSize,
   BRAND_COLOR,
   styled,
@@ -41,11 +42,11 @@ const PROPORTION = {
   TRENDLINE: 0.3,
 };
 
-class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
+class BigNumberVis extends PureComponent<BigNumberVizProps> {
   static defaultProps = {
     className: '',
     headerFormatter: defaultNumberFormatter,
-    formatTime: smartDateVerboseFormatter,
+    formatTime: getTimeFormatter(SMART_DATE_VERBOSE_ID),
     headerFontSize: PROPORTION.HEADER,
     kickerFontSize: PROPORTION.KICKER,
     mainColor: BRAND_COLOR,
@@ -97,6 +98,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
       !formatTime ||
       !showTimestamp ||
       typeof timestamp === 'string' ||
+      typeof timestamp === 'bigint' ||
       typeof timestamp === 'boolean'
     )
       return null;
@@ -119,7 +121,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
         className="kicker"
         style={{
           fontSize,
-          height: maxHeight,
+          height: 'auto',
         }}
       >
         {text}
@@ -155,7 +157,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     document.body.append(container);
     const fontSize = computeMaxFontSize({
       text,
-      maxWidth: width - 8, // Decrease 8px for more precise font size
+      maxWidth: width * 0.9, // reduced it's max width
       maxHeight,
       className: 'header-line',
       container,
@@ -173,8 +175,10 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
       <div
         className="header-line"
         style={{
+          display: 'flex',
+          alignItems: 'center',
           fontSize,
-          height: maxHeight,
+          height: 'auto',
           color: numberColor,
         }}
         onContextMenu={onContextMenu}
@@ -203,7 +207,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
       document.body.append(container);
       fontSize = computeMaxFontSize({
         text,
-        maxWidth: width,
+        maxWidth: width * 0.9, // max width reduced
         maxHeight,
         className: 'subheader-line',
         container,
@@ -355,6 +359,7 @@ export default styled(BigNumberVis)`
       position: relative;
       line-height: 1em;
       white-space: nowrap;
+      margin-bottom:${theme.gridUnit * 2}px;
       span {
         position: absolute;
         bottom: 0;

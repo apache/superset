@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useRef, useEffect } from 'react';
+// TODO: Remove fa-icon
+/* eslint-disable icons/no-fa-icons-usage */
+import { useState, useRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import type { Table } from 'src/SqlLab/types';
 import Collapse from 'src/components/Collapse';
@@ -32,6 +34,7 @@ import {
   syncTable,
 } from 'src/SqlLab/actions/sqlLab';
 import {
+  tableApiUtil,
   useTableExtendedMetadataQuery,
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
@@ -41,6 +44,8 @@ import { IconTooltip } from 'src/components/IconTooltip';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Loading from 'src/components/Loading';
 import useEffectEvent from 'src/hooks/useEffectEvent';
+import { ActionType } from 'src/types/Action';
+import Icons from 'src/components/Icons';
 import ColumnElement, { ColumnKeyTypeType } from '../ColumnElement';
 import ShowSQL from '../ShowSQL';
 
@@ -101,30 +106,32 @@ const StyledCollapsePanel = styled(Collapse.Panel)`
 `;
 
 const TableElement = ({ table, ...props }: TableElementProps) => {
-  const { dbId, schema, name, expanded } = table;
+  const { dbId, catalog, schema, name, expanded } = table;
   const theme = useTheme();
   const dispatch = useDispatch();
   const {
-    data: tableMetadata,
+    currentData: tableMetadata,
     isSuccess: isMetadataSuccess,
-    isLoading: isMetadataLoading,
+    isFetching: isMetadataFetching,
     isError: hasMetadataError,
   } = useTableMetadataQuery(
     {
       dbId,
+      catalog,
       schema,
       table: name,
     },
     { skip: !expanded },
   );
   const {
-    data: tableExtendedMetadata,
+    currentData: tableExtendedMetadata,
     isSuccess: isExtraMetadataSuccess,
     isLoading: isExtraMetadataLoading,
     isError: hasExtendedMetadataError,
   } = useTableExtendedMetadataQuery(
     {
       dbId,
+      catalog,
       schema,
       table: name,
     },
@@ -175,6 +182,13 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     setSortColumns(prevState => !prevState);
   };
 
+  const refreshTableMetadata = () => {
+    dispatch(
+      tableApiUtil.invalidateTags([{ type: 'TableMetadatas', id: name }]),
+    );
+    dispatch(syncTable(table, tableData));
+  };
+
   const renderWell = () => {
     let partitions;
     let metadata;
@@ -189,7 +203,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
             text={partitionQuery}
             shouldShowText={false}
             tooltipText={tt}
-            copyNode={<i className="fa fa-clipboard" />}
+            copyNode={<Icons.CopyOutlined iconSize="s" />}
           />
         );
       }
@@ -246,9 +260,11 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           ))}
           triggerNode={
             <IconTooltip
-              className="fa fa-key pull-left m-l-2"
+              className="pull-left m-l-2"
               tooltip={t('View keys & indexes (%s)', tableData.indexes.length)}
-            />
+            >
+              <Icons.KeyOutlined iconSize="s" />
+            </IconTooltip>
           }
         />
       );
@@ -256,7 +272,6 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     return (
       <ButtonGroup
         css={css`
-          display: flex;
           column-gap: ${theme.gridUnit * 1.5}px;
           margin-right: ${theme.gridUnit}px;
           & span {
@@ -266,6 +281,16 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           }
         `}
       >
+        <IconTooltip
+          className="pull-left m-l-2 pointer"
+          onClick={refreshTableMetadata}
+          tooltip={t('Refresh table schema')}
+        >
+          <Icons.SyncOutlined
+            iconSize="m"
+            iconColor={theme.colors.primary.dark2}
+          />
+        </IconTooltip>
         {keyLink}
         <IconTooltip
           className={
@@ -286,7 +311,11 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
                 aria-label="Copy"
                 tooltip={t('Copy SELECT statement to the clipboard')}
               >
-                <i aria-hidden className="fa fa-clipboard pull-left m-l-2" />
+                <Icons.CopyOutlined
+                  iconSize="m"
+                  iconColor={theme.colors.primary.dark2}
+                  aria-hidden
+                />
               </IconTooltip>
             }
             text={tableData.selectStar}
@@ -301,17 +330,23 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           />
         )}
         <IconTooltip
-          className="fa fa-times table-remove pull-left m-l-2 pointer"
+          className=" table-remove pull-left m-l-2 pointer"
           onClick={removeTable}
           tooltip={t('Remove table preview')}
-        />
+        >
+          <Icons.CloseOutlined
+            iconSize="m"
+            iconColor={theme.colors.primary.dark2}
+            aria-hidden
+          />
+        </IconTooltip>
       </ButtonGroup>
     );
   };
 
   const renderHeader = () => {
     const element: HTMLInputElement | null = tableNameRef.current;
-    let trigger: string[] = [];
+    let trigger = [] as ActionType[];
     if (element && element.offsetWidth < element.scrollWidth) {
       trigger = ['hover'];
     }
@@ -339,7 +374,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
         </Tooltip>
 
         <div className="pull-right header-right-side">
-          {isMetadataLoading || isExtraMetadataLoading ? (
+          {isMetadataFetching || isExtraMetadataLoading ? (
             <Loading position="inline" />
           ) : (
             <Fade

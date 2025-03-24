@@ -119,7 +119,7 @@ export const antDTabsStyles = css`
 `;
 
 export const antDModalNoPaddingStyles = css`
-  .ant-modal-body {
+  .antd5-modal-body {
     padding-left: 0;
     padding-right: 0;
     padding-top: 0;
@@ -131,10 +131,12 @@ export const infoTooltip = (theme: SupersetTheme) => css`
   svg {
     margin-bottom: ${theme.gridUnit * 0.25}px;
   }
+  display: flex;
 `;
 
 export const toggleStyle = (theme: SupersetTheme) => css`
   padding-left: ${theme.gridUnit * 2}px;
+  padding-right: ${theme.gridUnit * 2}px;
 `;
 
 export const formScrollableStyles = (theme: SupersetTheme) => css`
@@ -146,101 +148,43 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
     height: ${theme.gridUnit * 40}px;
   }
 
-  .ant-modal-header {
+  .antd5-modal-header {
     padding: ${theme.gridUnit * 4.5}px ${theme.gridUnit * 4}px
       ${theme.gridUnit * 4}px;
   }
 
-  .ant-modal-close-x .close {
-    color: ${theme.colors.grayscale.dark1};
+  .antd5-modal-close-x .close {
     opacity: 1;
   }
 
-  .ant-modal-body {
+  .antd5-modal-body {
     height: ${theme.gridUnit * MODAL_BODY_HEIGHT}px;
   }
 
-  .ant-modal-footer {
+  .antd5-modal-footer {
     height: ${theme.gridUnit * 16.25}px;
   }
 `;
 
 export const antDAlertStyles = (theme: SupersetTheme) => css`
-  border: 1px solid ${theme.colors.info.base};
-  padding: ${theme.gridUnit * 4}px;
   margin: ${theme.gridUnit * 4}px 0;
-
-  .ant-alert-message {
-    color: ${theme.colors.info.dark2};
-    font-size: ${theme.typography.sizes.m}px;
-    font-weight: ${theme.typography.weights.bold};
-  }
-
-  .ant-alert-description {
-    color: ${theme.colors.info.dark2};
-    font-size: ${theme.typography.sizes.m}px;
-    line-height: ${theme.gridUnit * 5}px;
-
-    a {
-      text-decoration: underline;
-    }
-
-    .ant-alert-icon {
-      margin-right: ${theme.gridUnit * 2.5}px;
-      font-size: ${theme.typography.sizes.l}px;
-      position: relative;
-      top: ${theme.gridUnit / 4}px;
-    }
-  }
 `;
 
 export const StyledAlertMargin = styled.div`
   ${({ theme }) => css`
-    margin: 0 ${theme.gridUnit * 4}px -${theme.gridUnit * 4}px;
+    margin: 0 ${theme.gridUnit * 4}px ${theme.gridUnit * 4}px;
   `}
 `;
 
 export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
-  border: ${theme.colors.error.base} 1px solid;
-  padding: ${theme.gridUnit * 4}px;
   margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
-  color: ${theme.colors.error.dark2};
-  .ant-alert-message {
-    font-size: ${theme.typography.sizes.m}px;
-    font-weight: ${theme.typography.weights.bold};
-  }
-  .ant-alert-description {
-    font-size: ${theme.typography.sizes.m}px;
-    line-height: ${theme.gridUnit * 5}px;
-    .ant-alert-icon {
-      margin-right: ${theme.gridUnit * 2.5}px;
-      font-size: ${theme.typography.sizes.l}px;
-      position: relative;
-      top: ${theme.gridUnit / 4}px;
-    }
-  }
 `;
 
 export const antdWarningAlertStyles = (theme: SupersetTheme) => css`
-  border: 1px solid ${theme.colors.warning.light1};
-  padding: ${theme.gridUnit * 4}px;
   margin: ${theme.gridUnit * 4}px 0;
-  color: ${theme.colors.warning.dark2};
 
-  .ant-alert-message {
+  .antd5-alert-message {
     margin: 0;
-  }
-
-  .ant-alert-description {
-    font-size: ${theme.typography.sizes.s + 1}px;
-    line-height: ${theme.gridUnit * 4}px;
-
-    .ant-alert-icon {
-      margin-right: ${theme.gridUnit * 2.5}px;
-      font-size: ${theme.typography.sizes.l + 1}px;
-      position: relative;
-      top: ${theme.gridUnit / 4}px;
-    }
   }
 `;
 
@@ -465,7 +409,6 @@ export const CreateHeaderSubtitle = styled.div`
 export const EditHeaderTitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.light1};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  text-transform: uppercase;
 `;
 
 export const EditHeaderSubtitle = styled.div`
@@ -480,7 +423,6 @@ export const CredentialInfoForm = styled.div`
   }
 
   .label-select {
-    text-transform: uppercase;
     color: ${({ theme }) => theme.colors.grayscale.dark1};
     font-size: 11px;
     margin: 0 5px ${({ theme }) => theme.gridUnit * 2}px;
@@ -493,7 +435,7 @@ export const CredentialInfoForm = styled.div`
   }
 
   .input-container {
-    margin: ${({ theme }) => theme.gridUnit * 7}px 0;
+    margin: ${({ theme }) => theme.gridUnit * 4}px 0;
     display: flex;
     flex-direction: column;
 }
@@ -512,15 +454,26 @@ export const CredentialInfoForm = styled.div`
   }
 
   .input-container {
+    width: 100%;
+
+    button {
+      width: fit-content;
+    }
+
+    .credentials-uploaded {
+      display: flex;
+      align-items: center;
+      gap: ${({ theme }) => theme.gridUnit * 3}px;
+      width: fit-content;
+    }
+
+    .credentials-uploaded-btn, .credentials-uploaded-remove {
+      flex: 0 0 auto;
+    }
+
+    /* hide native file upload input element */
     .input-upload {
       display: none !important;
-    }
-    .input-upload-current {
-      display: flex;
-      justify-content: space-between;
-    }
-    .input-upload-btn {
-      width: ${({ theme }) => theme.gridUnit * 32}px
     }
   }`;
 
@@ -553,7 +506,6 @@ export const SelectDatabaseStyles = styled.div`
   }
 
   .label-available-select {
-    text-transform: uppercase;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
   }
 

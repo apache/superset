@@ -23,7 +23,7 @@ import {
   getColumnLabel,
   getNumberFormatter,
 } from '@superset-ui/core';
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import Echart from '../components/Echart';
 import { NULL_STRING } from '../constants';
 import { EventHandlers } from '../types';
@@ -97,7 +97,7 @@ export default function EchartsTreemap({
 
   const handleChange = useCallback(
     (data, treePathInfo) => {
-      if (!emitCrossFilters) {
+      if (!emitCrossFilters || groupby.length === 0) {
         return;
       }
 
@@ -144,7 +144,10 @@ export default function EchartsTreemap({
           });
           onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
             drillToDetail: drillToDetailFilters,
-            crossFilter: getCrossFilterDataMask(data, treePathInfo),
+            crossFilter:
+              groupby.length > 0
+                ? getCrossFilterDataMask(data, treePathInfo)
+                : undefined,
             drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
           });
         }

@@ -18,6 +18,7 @@
 from typing import Any, Optional
 
 import pytest
+from pytest_mock import MockerFixture
 from sqlalchemy import JSON, types
 from sqlalchemy.engine.url import make_url
 
@@ -65,7 +66,9 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.starrocks import StarRocksEngineSpec as spec
+    from superset.db_engine_specs.starrocks import (
+        StarRocksEngineSpec as spec,  # noqa: N813
+    )
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
@@ -124,3 +127,49 @@ def test_get_schema_from_engine_params() -> None:
         )
         is None
     )
+
+
+def test_impersonation_username(mocker: MockerFixture) -> None:
+    """
+    Test impersonation and make sure that `impersonate_user` leaves the URL
+    unchanged and that `get_prequeries` returns the appropriate impersonation query.
+    """
+    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
+
+    database = mocker.MagicMock()
+    database.impersonate_user = True
+    database.get_effective_user.return_value = "alice"
+
+    assert StarRocksEngineSpec.impersonate_user(
+        database,
+        username="alice",
+        user_token=None,
+        url=make_url("starrocks://service_user@localhost:9030/hive.default"),
+        engine_kwargs={},
+    ) == (make_url("starrocks://service_user@localhost:9030/hive.default"), {})
+
+    assert StarRocksEngineSpec.get_prequeries(database) == [
+        'EXECUTE AS "alice" WITH NO REVERT;'
+    ]
+
+
+def test_impersonation_disabled(mocker: MockerFixture) -> None:
+    """
+    Test that impersonation is not applied when the feature is disabled in
+    `impersonate_user` and `get_prequeries`.
+    """
+    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
+
+    database = mocker.MagicMock()
+    database.impersonate_user = False
+    database.get_effective_user.return_value = "alice"
+
+    assert StarRocksEngineSpec.impersonate_user(
+        database,
+        username="alice",
+        user_token=None,
+        url=make_url("starrocks://service_user@localhost:9030/hive.default"),
+        engine_kwargs={},
+    ) == (make_url("starrocks://service_user@localhost:9030/hive.default"), {})
+
+    assert StarRocksEngineSpec.get_prequeries(database) == []

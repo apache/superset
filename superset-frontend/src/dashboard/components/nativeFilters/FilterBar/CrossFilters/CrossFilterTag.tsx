@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import {
   styled,
   css,

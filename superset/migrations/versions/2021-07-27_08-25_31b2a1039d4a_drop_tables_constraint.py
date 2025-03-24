@@ -24,7 +24,6 @@ Create Date: 2021-07-27 08:25:20.755453
 
 from alembic import op
 from sqlalchemy import engine
-from sqlalchemy.exc import OperationalError, ProgrammingError
 
 from superset.utils.core import generic_find_uq_constraint_name
 

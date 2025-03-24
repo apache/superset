@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, waitFor } from 'spec/helpers/testing-library';
 import ListView from './ListView';
 
@@ -62,7 +61,7 @@ test('redirects to first page when page index is invalid', async () => {
   });
   await waitFor(() => {
     expect(window.location.search).toEqual('?pageIndex=0');
-    expect(fetchData).toBeCalledTimes(2);
+    expect(fetchData).toHaveBeenCalledTimes(2);
     expect(fetchData).toHaveBeenCalledWith(
       expect.objectContaining({ pageIndex: 9 }),
     );

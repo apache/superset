@@ -16,7 +16,6 @@
 # under the License.
 # isort:skip_file
 import functools
-import json
 import logging
 from typing import Any, Callable
 from collections.abc import Iterator
@@ -30,6 +29,7 @@ from superset.models.core import Database
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
 from superset.utils.ssh_tunnel import mask_password_info
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 def parse_extra(extra_payload: str) -> dict[str, Any]:
     try:
         extra = json.loads(extra_payload)
-    except json.decoder.JSONDecodeError:
+    except json.JSONDecodeError:
         logger.info("Unable to decode `extra` field: %s", extra_payload)
         return {}
 
@@ -106,9 +106,10 @@ class ExportDatabasesCommand(ExportModelsCommand):
     def _export(
         model: Database, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:
-        yield ExportDatabasesCommand._file_name(
-            model
-        ), lambda: ExportDatabasesCommand._file_content(model)
+        yield (
+            ExportDatabasesCommand._file_name(model),
+            lambda: ExportDatabasesCommand._file_content(model),
+        )
 
         if export_related:
             db_file_name = get_filename(model.database_name, model.id, skip_id=True)
@@ -127,6 +128,9 @@ class ExportDatabasesCommand(ExportModelsCommand):
                 payload["version"] = EXPORT_VERSION
                 payload["database_uuid"] = str(model.uuid)
 
-                yield file_path, functools.partial(  # type: ignore
-                    yaml.safe_dump, payload, sort_keys=False
+                yield (
+                    file_path,
+                    functools.partial(  # type: ignore
+                        yaml.safe_dump, payload, sort_keys=False
+                    ),
                 )

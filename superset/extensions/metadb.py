@@ -33,7 +33,7 @@ and applying any filters (as well as sorting, limiting, and offsetting).
 
 Note that no aggregation is done on the database. Aggregations and other operations like
 joins and unions are done in memory, using the SQLite engine.
-"""
+"""  # noqa: E501
 
 from __future__ import annotations
 
@@ -72,7 +72,6 @@ from superset import db, feature_flag_manager, security_manager, sql_parse
 
 # pylint: disable=abstract-method
 class SupersetAPSWDialect(APSWDialect):
-
     """
     A SQLAlchemy dialect for an internal Superset engine.
 
@@ -187,7 +186,6 @@ class FallbackField(Field[Any, str]):
 
 # pylint: disable=too-many-instance-attributes
 class SupersetShillelaghAdapter(Adapter):
-
     """
     A Shillelagh adapter for Superset tables.
 
@@ -272,14 +270,11 @@ class SupersetShillelaghAdapter(Adapter):
         self.schema = parts.pop(-1) if parts else None
         self.catalog = parts.pop(-1) if parts else None
 
-        if self.catalog:
-            raise NotImplementedError("Catalogs are not currently supported")
-
-        # If the table has a single integer primary key we use that as the row ID in order
+        # If the table has a single integer primary key we use that as the row ID in order  # noqa: E501
         # to perform updates and deletes. Otherwise we can only do inserts and selects.
         self._rowid: str | None = None
 
-        # Does the database allow DML?
+        # Does the database allow DDL/DML?
         self._allow_dml: bool = False
 
         # Read column information from the database, and store it for later.
@@ -316,7 +311,8 @@ class SupersetShillelaghAdapter(Adapter):
         # store this callable for later whenever we need an engine
         self.engine_context = partial(
             database.get_sqla_engine,
-            self.schema,
+            catalog=self.catalog,
+            schema=self.schema,
         )
 
         # fetch column names and types
@@ -338,7 +334,9 @@ class SupersetShillelaghAdapter(Adapter):
         primary_keys = [
             column for column in list(self._table.primary_key) if column.primary_key
         ]
-        if len(primary_keys) == 1 and primary_keys[0].type.python_type == int:
+        if len(primary_keys) == 1 and isinstance(
+            primary_keys[0].type.python_type, type(int)
+        ):
             self._rowid = primary_keys[0].name
 
         self.columns = {
@@ -414,7 +412,7 @@ class SupersetShillelaghAdapter(Adapter):
             connection = engine.connect()
             rows = connection.execute(query)
             for i, row in enumerate(rows):
-                data = dict(zip(self.columns, row))
+                data = dict(zip(self.columns, row, strict=False))
                 data["rowid"] = data[self._rowid] if self._rowid else i
                 yield data
 

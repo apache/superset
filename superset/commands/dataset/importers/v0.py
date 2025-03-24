@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Callable, Optional
 
@@ -34,6 +33,8 @@ from superset.connectors.sqla.models import (
     TableColumn,
 )
 from superset.models.core import Database
+from superset.utils import json
+from superset.utils.decorators import transaction
 from superset.utils.dict_import_export import DATABASES_KEY
 
 logger = logging.getLogger(__name__)
@@ -211,7 +212,6 @@ def import_from_dict(data: dict[str, Any], sync: Optional[list[str]] = None) -> 
         logger.info("Importing %d %s", len(data.get(DATABASES_KEY, [])), DATABASES_KEY)
         for database in data.get(DATABASES_KEY, []):
             Database.import_from_dict(database, sync=sync)
-        db.session.commit()
     else:
         logger.info("Supplied object is not a dictionary.")
 
@@ -240,10 +240,10 @@ class ImportDatasetsCommand(BaseCommand):
         if kwargs.get("sync_metrics"):
             self.sync.append("metrics")
 
+    @transaction()
     def run(self) -> None:
         self.validate()
 
-        # TODO (betodealmeida): add rollback in case of error
         for file_name, config in self._configs.items():
             logger.info("Importing dataset from file %s", file_name)
             if isinstance(config, dict):

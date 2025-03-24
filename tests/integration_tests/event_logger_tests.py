@@ -21,7 +21,7 @@ from datetime import timedelta
 from typing import Any, Optional
 from unittest.mock import patch
 
-from flask import current_app
+from flask import current_app  # noqa: F401
 from freezegun import freeze_time
 
 from superset import security_manager
@@ -39,7 +39,7 @@ class TestEventLogger(unittest.TestCase):
         # unmodified object
         obj = DBEventLogger()
         res = get_event_logger_from_cfg_value(obj)
-        self.assertIs(obj, res)
+        assert obj is res
 
     def test_config_class_deprecation(self):
         # test that assignment of a class object to EVENT_LOGGER is correctly
@@ -51,12 +51,12 @@ class TestEventLogger(unittest.TestCase):
             res = get_event_logger_from_cfg_value(DBEventLogger)
 
         # class is instantiated and returned
-        self.assertIsInstance(res, DBEventLogger)
+        assert isinstance(res, DBEventLogger)
 
-    def test_raises_typerror_if_not_abc(self):
+    def test_raises_typeerror_if_not_abc(self):
         # test that assignment of non AbstractEventLogger derived type raises
         # TypeError
-        with self.assertRaises(TypeError):
+        with self.assertRaises(TypeError):  # noqa: PT027
             get_event_logger_from_cfg_value(logging.getLogger())
 
     @patch.object(DBEventLogger, "log")
@@ -71,19 +71,16 @@ class TestEventLogger(unittest.TestCase):
         with app.test_request_context("/superset/dashboard/1/?myparam=foo"):
             result = test_func()
             payload = mock_log.call_args[1]
-            self.assertEqual(result, 1)
-            self.assertEqual(
-                payload["records"],
-                [
-                    {
-                        "myparam": "foo",
-                        "path": "/superset/dashboard/1/",
-                        "url_rule": "/superset/dashboard/<dashboard_id_or_slug>/",
-                        "object_ref": test_func.__qualname__,
-                    }
-                ],
-            )
-            self.assertGreaterEqual(payload["duration_ms"], 50)
+            assert result == 1
+            assert payload["records"] == [
+                {
+                    "myparam": "foo",
+                    "path": "/superset/dashboard/1/",
+                    "url_rule": "/superset/dashboard/<dashboard_id_or_slug>/",
+                    "object_ref": test_func.__qualname__,
+                }
+            ]
+            assert payload["duration_ms"] >= 50
 
     @patch.object(DBEventLogger, "log")
     def test_log_this_with_extra_payload(self, mock_log):
@@ -98,19 +95,16 @@ class TestEventLogger(unittest.TestCase):
         with app.test_request_context():
             result = test_func(1, karg1=2)  # pylint: disable=no-value-for-parameter
             payload = mock_log.call_args[1]
-            self.assertEqual(result, 2)
-            self.assertEqual(
-                payload["records"],
-                [
-                    {
-                        "foo": "bar",
-                        "path": "/",
-                        "karg1": 2,
-                        "object_ref": test_func.__qualname__,
-                    }
-                ],
-            )
-            self.assertGreaterEqual(payload["duration_ms"], 100)
+            assert result == 2
+            assert payload["records"] == [
+                {
+                    "foo": "bar",
+                    "path": "/",
+                    "karg1": 2,
+                    "object_ref": test_func.__qualname__,
+                }
+            ]
+            assert payload["duration_ms"] >= 100
 
     @patch("superset.utils.core.g", spec={})
     @freeze_time("Jan 14th, 2020", auto_tick_seconds=15)
@@ -144,8 +138,11 @@ class TestEventLogger(unittest.TestCase):
         assert logger.records == [
             {
                 "records": [{"path": "/", "engine": "bar"}],
+                "database_id": None,
                 "user_id": 2,
-                "duration": 15000.0,
+                "duration": 15000,
+                "curated_payload": {},
+                "curated_form_data": {},
             }
         ]
 
@@ -191,8 +188,11 @@ class TestEventLogger(unittest.TestCase):
                         "payload_override": {"engine": "sqlite"},
                     }
                 ],
+                "database_id": None,
                 "user_id": 2,
                 "duration": 5558756000,
+                "curated_payload": {},
+                "curated_form_data": {},
             }
         ]
 
@@ -229,4 +229,4 @@ class TestEventLogger(unittest.TestCase):
                 payload_override={"engine": "sqlite"},
             )
 
-        assert logger.records[0]["user_id"] == None
+        assert logger.records[0]["user_id"] == None  # noqa: E711

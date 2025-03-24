@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { render, fireEvent, screen } from 'spec/helpers/testing-library';
 import { NoAnimationDropdown } from './index'; // adjust the import path as needed
 

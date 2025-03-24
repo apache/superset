@@ -18,8 +18,10 @@
  */
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { Spin, Tag } from 'antd';
-import AntdSelect from 'antd/lib/select';
+// eslint-disable-next-line no-restricted-imports
+import { Spin, Tag } from 'antd'; // TODO: Remove antd
+// eslint-disable-next-line no-restricted-imports
+import AntdSelect from 'antd/lib/select'; // TODO: Remove antd
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `
@@ -41,7 +43,7 @@ export const StyledContainer = styled.div<{ headerPosition: string }>`
 
 export const StyledSelect = styled(AntdSelect, {
   shouldForwardProp: prop => prop !== 'headerPosition' && prop !== 'oneLine',
-})<{ headerPosition: string; oneLine?: boolean }>`
+})<{ headerPosition?: string; oneLine?: boolean }>`
   ${({ theme, headerPosition, oneLine }) => `
     flex: ${headerPosition === 'left' ? 1 : 0};
     && .ant-select-selector {

@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { Filter, NativeFilterType } from '@superset-ui/core';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FormInstance } from 'src/components';
 import getControlItemsMap, { ControlItemsProps } from './getControlItemsMap';
 import { getControlItems, setNativeFilterFieldValues } from './utils';
@@ -65,6 +63,7 @@ const filterMock: Filter = {
 };
 
 const createProps: () => ControlItemsProps = () => ({
+  expanded: false,
   datasetId: 1,
   disabled: false,
   forceUpdate: jest.fn(),
@@ -72,6 +71,7 @@ const createProps: () => ControlItemsProps = () => ({
   filterId: 'filterId',
   filterToEdit: filterMock,
   filterType: 'filterType',
+  formChanged: jest.fn(),
 });
 
 const createControlItems = () => [
@@ -159,23 +159,23 @@ test('Clicking on checkbox', () => {
   (getControlItems as jest.Mock).mockReturnValue(createControlItems());
   const controlItemsMap = getControlItemsMap(props);
   renderControlItems(controlItemsMap);
-  expect(props.forceUpdate).not.toBeCalled();
-  expect(setNativeFilterFieldValues).not.toBeCalled();
+  expect(props.forceUpdate).not.toHaveBeenCalled();
+  expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
   userEvent.click(screen.getByRole('checkbox'));
-  expect(setNativeFilterFieldValues).toBeCalled();
-  expect(props.forceUpdate).toBeCalled();
+  expect(setNativeFilterFieldValues).toHaveBeenCalled();
+  expect(props.forceUpdate).toHaveBeenCalled();
 });
 
-test('Clicking on checkbox when resetConfig:flase', () => {
+test('Clicking on checkbox when resetConfig:false', () => {
   const props = createProps();
   (getControlItems as jest.Mock).mockReturnValue([
     { name: 'name_1', config: { renderTrigger: true, resetConfig: false } },
   ]);
   const controlItemsMap = getControlItemsMap(props);
   renderControlItems(controlItemsMap);
-  expect(props.forceUpdate).not.toBeCalled();
-  expect(setNativeFilterFieldValues).not.toBeCalled();
+  expect(props.forceUpdate).not.toHaveBeenCalled();
+  expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
   userEvent.click(screen.getByRole('checkbox'));
-  expect(props.forceUpdate).toBeCalled();
-  expect(setNativeFilterFieldValues).not.toBeCalled();
+  expect(props.forceUpdate).toHaveBeenCalled();
+  expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
 });

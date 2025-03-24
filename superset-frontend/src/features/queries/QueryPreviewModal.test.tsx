@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { MouseEvent } from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 
@@ -25,7 +25,7 @@ import { styledMount as mount } from 'spec/helpers/theming';
 
 import { QueryObject } from 'src/views/CRUD/types';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 import { QueryState } from '@superset-ui/core';
 import QueryPreviewModal from './QueryPreviewModal';
 
@@ -82,8 +82,8 @@ describe('QueryPreviewModal', () => {
     await waitForComponentToPaint(wrapper);
   });
 
-  it('renders a SynxHighlighter', () => {
-    expect(wrapper.find(SyntaxHighlighter)).toExist();
+  it('renders a SyntaxHighlighter', () => {
+    expect(wrapper.find(SyntaxHighlighter)).toBeTruthy();
   });
 
   it('toggles between user sql and executed sql', () => {
@@ -98,7 +98,7 @@ describe('QueryPreviewModal', () => {
         .props();
 
       if (typeof props.onClick === 'function') {
-        props.onClick({} as React.MouseEvent);
+        props.onClick({} as MouseEvent);
       }
     });
 
@@ -130,7 +130,7 @@ describe('QueryPreviewModal', () => {
           .first()
           .props();
         if (typeof props.onClick === 'function') {
-          props.onClick({} as React.MouseEvent);
+          props.onClick({} as MouseEvent);
         }
       });
 
@@ -143,7 +143,7 @@ describe('QueryPreviewModal', () => {
       act(() => {
         const props = wrapper.find('[data-test="next-query"]').first().props();
         if (typeof props.onClick === 'function') {
-          props.onClick({} as React.MouseEvent);
+          props.onClick({} as MouseEvent);
         }
       });
 
@@ -173,7 +173,7 @@ describe('QueryPreviewModal', () => {
         .props();
 
       if (typeof props.onClick === 'function') {
-        props.onClick({} as React.MouseEvent);
+        props.onClick({} as MouseEvent);
       }
 
       expect(mockedProps.openInSqlLab).toHaveBeenCalled();

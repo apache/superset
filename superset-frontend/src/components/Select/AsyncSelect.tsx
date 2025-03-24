@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   forwardRef,
+  FocusEvent,
   ReactElement,
   RefObject,
   UIEvent,
@@ -29,13 +30,15 @@ import React, {
   useImperativeHandle,
   ClipboardEvent,
 } from 'react';
+
 import {
   ensureIsArray,
   t,
   usePrevious,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+// eslint-disable-next-line no-restricted-imports
+import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
 import { debounce, isEqual, uniq } from 'lodash';
 import Icons from 'src/components/Icons';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
@@ -85,7 +88,8 @@ import { customTagRender } from './CustomTag';
 
 const Error = ({ error }: { error: string }) => (
   <StyledError>
-    <Icons.ErrorSolid /> <StyledErrorMessage>{error}</StyledErrorMessage>
+    <Icons.ExclamationCircleOutlined />{' '}
+    <StyledErrorMessage>{error}</StyledErrorMessage>
   </StyledError>
 );
 
@@ -461,7 +465,7 @@ const AsyncSelect = forwardRef(
       fireOnChange();
     };
 
-    const handleOnBlur = (event: React.FocusEvent<HTMLElement>) => {
+    const handleOnBlur = (event: FocusEvent<HTMLElement>) => {
       setInputValue('');
       onBlur?.(event);
     };

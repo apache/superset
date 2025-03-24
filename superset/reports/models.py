@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
+
 from cron_descriptor import get_description
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -61,6 +62,7 @@ class ReportScheduleValidatorType(StrEnum):
 class ReportRecipientType(StrEnum):
     EMAIL = "Email"
     SLACK = "Slack"
+    SLACKV2 = "SlackV2"
 
 
 class ReportState(StrEnum):
@@ -171,6 +173,8 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     custom_height = Column(Integer, nullable=True)
 
     extra: ReportScheduleExtra  # type: ignore
+
+    email_subject = Column(String(255))
 
     def __repr__(self) -> str:
         return str(self.name)

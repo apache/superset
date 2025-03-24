@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useContext, useMemo, useState } from 'react';
+import { memo, useContext, useMemo, useState } from 'react';
 import {
   createHtmlPortalNode,
   InPortal,
@@ -34,7 +34,7 @@ import { FilterControlProps } from './types';
 import { FilterCardPlacement } from '../../FilterCard/types';
 import { useIsFilterInScope } from '../../state';
 
-const StyledIcon = styled.div`
+const FilterStyledIcon = styled.div`
   position: absolute;
   right: 0;
 `;
@@ -207,8 +207,9 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
         textOverflow: 'ellipsis',
         whiteSpace: 'normal',
       }}
-      getPopupContainer={trigger => trigger.parentElement as HTMLElement}
     >
+      {/* TODO: Remove fa-icon */}
+      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
       <i
         className="fa fa-info-circle text-muted"
         css={(theme: SupersetTheme) => ({
@@ -253,14 +254,17 @@ const FilterControl = ({
   const label = useMemo(
     () => (
       <FilterControlTitleBox>
-        <FilterControlTitle data-test="filter-control-name">
+        <FilterControlTitle
+          id={`filter-name-${filter.id}`}
+          data-test="filter-control-name"
+        >
           {name}
         </FilterControlTitle>
         {isRequired && <RequiredFieldIndicator />}
         {filter.description?.trim() && (
           <DescriptionToolTip description={filter.description} />
         )}
-        <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
+        <FilterStyledIcon data-test="filter-icon">{icon}</FilterStyledIcon>
       </FilterControlTitleBox>
     ),
     [
@@ -315,7 +319,7 @@ const FilterControl = ({
           <div>
             <FormItem
               label={label}
-              aria-label={name}
+              htmlFor={filter.id}
               required={filter?.controlValues?.enableEmptyFilter}
               validateStatus={validateStatus}
             >
@@ -328,4 +332,4 @@ const FilterControl = ({
   );
 };
 
-export default React.memo(FilterControl);
+export default memo(FilterControl);

@@ -23,13 +23,12 @@ Create Date: 2018-11-12 13:31:07.578090
 """
 
 # revision identifiers, used by Alembic.
-import json
-
 from alembic import op
 from sqlalchemy import Column, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 
 revision = "4ce8df208545"
 down_revision = "55e910a74826"
@@ -45,7 +44,7 @@ class Dashboard(Base):
     json_metadata = Column(Text)
 
 
-def upgrade():
+def upgrade():  # noqa: C901
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
@@ -77,7 +76,7 @@ def upgrade():
                                 val["__time_range"] = f"{__from} : {__to}"
                         json_metadata["default_filters"] = json.dumps(filters)
                         has_update = True
-                except Exception:
+                except Exception:  # noqa: S110
                     pass
 
             # filter_immune_slice_fields:
@@ -100,9 +99,9 @@ def upgrade():
                         # just abandon __from and __to
                         if "__time_range" not in val:
                             val.append("__time_range")
-                    json_metadata[
-                        "filter_immune_slice_fields"
-                    ] = filter_immune_slice_fields
+                    json_metadata["filter_immune_slice_fields"] = (
+                        filter_immune_slice_fields
+                    )
                     has_update = True
 
             if has_update:

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { smartDateFormatter, t } from '@superset-ui/core';
+import { SMART_DATE_ID, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlSubSectionHeader,
@@ -25,7 +25,6 @@ import {
   getStandardizedControls,
   temporalColumnMixin,
 } from '@superset-ui/chart-controls';
-import React from 'react';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 const config: ControlPanelConfig = {
@@ -145,7 +144,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
               description: D3_FORMAT_DOCS,
-              default: smartDateFormatter.id,
+              default: SMART_DATE_ID,
             },
           },
         ],
@@ -280,7 +279,7 @@ const config: ControlPanelConfig = {
       label: t('Number format'),
     },
     x_axis: {
-      label: t('TEMPORAL X-AXIS'),
+      label: t('Temporal X-Axis'),
       ...temporalColumnMixin,
     },
   },

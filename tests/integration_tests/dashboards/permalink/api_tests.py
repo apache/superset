@@ -15,24 +15,26 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections.abc import Iterator
-from unittest.mock import patch
+from unittest.mock import patch  # noqa: F401
 from uuid import uuid3
 
 import pytest
-from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.orm import Session
+from flask_appbuilder.security.sqla.models import User  # noqa: F401
+from sqlalchemy.orm import Session  # noqa: F401
 
 from superset import db
-from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
+from superset.commands.dashboard.exceptions import (
+    DashboardAccessDeniedError,  # noqa: F401
+)
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import decode_permalink_id
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
-from tests.integration_tests.test_app import app
+from tests.integration_tests.test_app import app  # noqa: F401
 
 STATE = {
     "dataMask": {"FILTER_1": "foo"},
@@ -41,7 +43,7 @@ STATE = {
 
 
 @pytest.fixture
-def dashboard_id(load_world_bank_dashboard_with_slices) -> int:
+def dashboard_id(load_world_bank_dashboard_with_slices) -> int:  # noqa: F811
     dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
     return dashboard.id
 

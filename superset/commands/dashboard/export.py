@@ -16,7 +16,6 @@
 # under the License.
 # isort:skip_file
 
-import json
 import logging
 import random
 import string
@@ -36,6 +35,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ def append_charts(position: dict[str, Any], charts: set[Slice]) -> dict[str, Any
             "parents": ["ROOT_ID", "GRID_ID"],
         }
 
-    for chart_hash, chart in zip(chart_hashes, charts):
+    for chart_hash, chart in zip(chart_hashes, charts, strict=False):
         position[chart_hash] = {
             "children": [],
             "id": chart_hash,
@@ -126,9 +126,21 @@ class ExportDashboardsCommand(ExportModelsCommand):
             if value:
                 try:
                     payload[new_name] = json.loads(value)
-                except (TypeError, json.decoder.JSONDecodeError):
+                except (TypeError, json.JSONDecodeError):
                     logger.info("Unable to decode `%s` field: %s", key, value)
                     payload[new_name] = {}
+
+        # Extract all native filter datasets and replace native
+        # filter dataset references with uuid
+        for native_filter in payload.get("metadata", {}).get(
+            "native_filter_configuration", []
+        ):
+            for target in native_filter.get("targets", []):
+                dataset_id = target.pop("datasetId", None)
+                if dataset_id is not None:
+                    dataset = DatasetDAO.find_by_id(dataset_id)
+                    if dataset:
+                        target["datasetUuid"] = str(dataset.uuid)
 
         # the mapping between dashboard -> charts is inferred from the position
         # attribute, so if it's not present we need to add a default config
@@ -154,9 +166,10 @@ class ExportDashboardsCommand(ExportModelsCommand):
     def _export(
         model: Dashboard, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:
-        yield ExportDashboardsCommand._file_name(
-            model
-        ), lambda: ExportDashboardsCommand._file_content(model)
+        yield (
+            ExportDashboardsCommand._file_name(model),
+            lambda: ExportDashboardsCommand._file_content(model),
+        )
 
         if export_related:
             chart_ids = [chart.id for chart in model.slices]
@@ -175,20 +188,18 @@ class ExportDashboardsCommand(ExportModelsCommand):
             if value:
                 try:
                     payload[new_name] = json.loads(value)
-                except (TypeError, json.decoder.JSONDecodeError):
+                except (TypeError, json.JSONDecodeError):
                     logger.info("Unable to decode `%s` field: %s", key, value)
                     payload[new_name] = {}
 
-        # Extract all native filter datasets and replace native
-        # filter dataset references with uuid
-        for native_filter in payload.get("metadata", {}).get(
-            "native_filter_configuration", []
-        ):
-            for target in native_filter.get("targets", []):
-                dataset_id = target.pop("datasetId", None)
-                if dataset_id is not None:
-                    dataset = DatasetDAO.find_by_id(dataset_id)
-                    if dataset:
-                        target["datasetUuid"] = str(dataset.uuid)
-                        if export_related:
+        if export_related:
+            # Extract all native filter datasets and export referenced datasets
+            for native_filter in payload.get("metadata", {}).get(
+                "native_filter_configuration", []
+            ):
+                for target in native_filter.get("targets", []):
+                    dataset_id = target.pop("datasetId", None)
+                    if dataset_id is not None:
+                        dataset = DatasetDAO.find_by_id(dataset_id)
+                        if dataset:
                             yield from ExportDatasetsCommand([dataset_id]).run()

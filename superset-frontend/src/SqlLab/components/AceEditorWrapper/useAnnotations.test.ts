@@ -157,7 +157,7 @@ test('returns server error description', async () => {
   );
 });
 
-test('returns sesion expire description when CSRF token expired', async () => {
+test('returns session expire description when CSRF token expired', async () => {
   const errorMessage = 'CSRF token expired';
   fetchMock.post(
     queryValidationApiRoute,

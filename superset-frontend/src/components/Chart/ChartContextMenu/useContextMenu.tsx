@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { BaseFormData, ContextMenuFilters } from '@superset-ui/core';
 import ChartContextMenu, {
   ChartContextMenuRef,

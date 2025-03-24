@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AppSection,
   DataMask,
@@ -30,7 +30,8 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+// eslint-disable-next-line no-restricted-imports
+import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
 import { debounce } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import { Select } from 'src/components';
@@ -293,6 +294,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         extra={formItemExtra}
       >
         <Select
+          name={formData.nativeFilterId}
           allowClear
           allowNewOptions={!searchAllOptions}
           allowSelectAll={!searchAllOptions}

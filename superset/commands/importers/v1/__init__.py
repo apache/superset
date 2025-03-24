@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Any, Optional
 
-from marshmallow import Schema, validate
+from marshmallow import Schema, validate  # noqa: F401
 from marshmallow.exceptions import ValidationError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -26,12 +27,15 @@ from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.commands.importers.v1.utils import (
     load_configs,
     load_metadata,
-    load_yaml,
-    METADATA_FILE_NAME,
+    load_yaml,  # noqa: F401
+    METADATA_FILE_NAME,  # noqa: F401
     validate_metadata_type,
 )
 from superset.daos.base import BaseDAO
-from superset.models.core import Database
+from superset.models.core import Database  # noqa: F401
+from superset.utils.decorators import transaction
+
+logger = logging.getLogger(__name__)
 
 
 class ImportModelsCommand(BaseCommand):
@@ -67,21 +71,18 @@ class ImportModelsCommand(BaseCommand):
     def _get_uuids(cls) -> set[str]:
         return {str(model.uuid) for model in db.session.query(cls.dao.model_cls).all()}
 
+    @transaction()
     def run(self) -> None:
         self.validate()
 
-        # rollback to prevent partial imports
         try:
             self._import(self._configs, self.overwrite)
-            db.session.commit()
-        except CommandException as ex:
-            db.session.rollback()
-            raise ex
+        except CommandException:
+            raise
         except Exception as ex:
-            db.session.rollback()
             raise self.import_error() from ex
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # noqa: F811
         exceptions: list[ValidationError] = []
 
         # verify that the metadata file is present and valid
@@ -93,7 +94,7 @@ class ImportModelsCommand(BaseCommand):
         if self.dao.model_cls:
             validate_metadata_type(metadata, self.dao.model_cls.__name__, exceptions)
 
-        # load the configs and make sure we have confirmation to overwrite existing models
+        # load the configs and make sure we have confirmation to overwrite existing models  # noqa: E501
         self._configs = load_configs(
             self.contents,
             self.schemas,
@@ -106,6 +107,8 @@ class ImportModelsCommand(BaseCommand):
         self._prevent_overwrite_existing_model(exceptions)
 
         if exceptions:
+            for ex in exceptions:
+                logger.warning("Import Error: %s", ex)
             raise CommandInvalidError(
                 f"Error importing {self.model_name}",
                 exceptions,

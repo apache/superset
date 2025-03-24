@@ -18,7 +18,7 @@
 from typing import Any
 
 from marshmallow import Schema
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.chart.exceptions import ChartImportError
@@ -26,6 +26,7 @@ from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
+from superset.commands.utils import update_chart_config_dataset
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.chart import ChartDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
@@ -33,7 +34,6 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 
 
 class ImportChartsCommand(ImportModelsCommand):
-
     """Import charts"""
 
     dao = ChartDAO
@@ -47,7 +47,7 @@ class ImportChartsCommand(ImportModelsCommand):
     import_error = ChartImportError
 
     @staticmethod
-    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
+    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:  # noqa: C901
         # discover datasets associated with charts
         dataset_uuids: set[str] = set()
         for file_name, config in configs.items():
@@ -87,16 +87,10 @@ class ImportChartsCommand(ImportModelsCommand):
 
                 # update datasource id, type, and name
                 dataset = datasets[config["dataset_uuid"]]
-                config.update(
-                    {
-                        "datasource_id": dataset.id,
-                        "datasource_type": "table",
-                        "datasource_name": dataset.table_name,
-                    }
-                )
-                config["params"].update({"datasource": dataset.uid})
-
-                if "query_context" in config:
-                    config["query_context"] = None
-
+                dataset_dict = {
+                    "datasource_id": dataset.id,
+                    "datasource_type": "table",
+                    "datasource_name": dataset.table_name,
+                }
+                config = update_chart_config_dataset(config, dataset_dict)
                 import_chart(config, overwrite=overwrite)

@@ -17,12 +17,10 @@
  * under the License.
  */
 
-import React from 'react';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import sinon from 'sinon';
-import userEvent from '@testing-library/user-event';
 import mockState from 'spec/fixtures/mockState';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
@@ -31,6 +29,7 @@ import {
   render,
   waitFor,
   fireEvent,
+  userEvent,
 } from 'spec/helpers/testing-library';
 import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
@@ -118,7 +117,7 @@ describe('ChartHolder', () => {
         'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
       ),
     ).not.toBeInTheDocument(); // description should display only in Explore view
-    expect(screen.getByAltText('empty')).toBeVisible();
+    expect(screen.getByRole('img', { name: 'empty' })).toBeVisible();
   });
 
   it('should render anchor link when not editing', async () => {

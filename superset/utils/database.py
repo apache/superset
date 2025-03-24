@@ -54,13 +54,12 @@ def get_or_create_db(
         )
         db.session.add(database)
         database.set_sqlalchemy_uri(sqlalchemy_uri)
-        db.session.commit()
 
     # todo: it's a bad idea to do an update in a get/create function
     if database and database.sqlalchemy_uri_decrypted != sqlalchemy_uri:
         database.set_sqlalchemy_uri(sqlalchemy_uri)
-        db.session.commit()
 
+    db.session.flush()
     return database
 
 
@@ -80,4 +79,4 @@ def remove_database(database: Database) -> None:
     from superset import db
 
     db.session.delete(database)
-    db.session.commit()
+    db.session.flush()

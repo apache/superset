@@ -22,15 +22,13 @@ import {
   NumberFormats,
   GenericDataType,
   getMetricLabel,
-  t,
-  smartDateVerboseFormatter,
-  TimeFormatter,
   getXAxisLabel,
   Metric,
-  ValueFormatter,
   getValueFormatter,
+  t,
+  tooltipHtml,
 } from '@superset-ui/core';
-import { EChartsCoreOption, graphic } from 'echarts';
+import { EChartsCoreOption, graphic } from 'echarts/core';
 import {
   BigNumberVizProps,
   BigNumberDatum,
@@ -40,24 +38,6 @@ import {
 import { getDateFormatter, parseMetricValue } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
-
-const defaultNumberFormatter = getNumberFormatter();
-export function renderTooltipFactory(
-  formatDate: TimeFormatter = smartDateVerboseFormatter,
-  formatValue: ValueFormatter | TimeFormatter = defaultNumberFormatter,
-) {
-  return function renderTooltip(params: { data: TimeSeriesDatum }[]) {
-    return `
-      ${formatDate(params[0].data[0])}
-      <br />
-      <strong>
-        ${
-          params[0].data[1] === null ? t('N/A') : formatValue(params[0].data[1])
-        }
-      </strong>
-    `;
-  };
-}
 
 const formatPercentChange = getNumberFormatter(
   NumberFormats.PERCENT_SIGNED_1_POINT,
@@ -249,7 +229,18 @@ export default function transformProps(
           ...getDefaultTooltip(refs),
           show: !inContextMenu,
           trigger: 'axis',
-          formatter: renderTooltipFactory(formatTime, headerFormatter),
+          formatter: (params: { data: TimeSeriesDatum }[]) =>
+            tooltipHtml(
+              [
+                [
+                  metricName,
+                  params[0].data[1] === null
+                    ? t('N/A')
+                    : headerFormatter.format(params[0].data[1]),
+                ],
+              ],
+              formatTime(params[0].data[0]),
+            ),
         },
         aria: {
           enabled: true,

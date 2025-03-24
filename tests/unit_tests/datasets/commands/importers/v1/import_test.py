@@ -17,7 +17,6 @@
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import, invalid-name
 
 import copy
-import json
 import re
 import uuid
 from typing import Any
@@ -25,18 +24,21 @@ from unittest.mock import Mock, patch
 
 import pytest
 from flask import current_app
-from pytest_mock import MockFixture
+from flask_appbuilder.security.sqla.models import Role, User
+from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenDataURI,
-    ImportFailedError,
 )
 from superset.commands.dataset.importers.v1.utils import validate_data_uri
+from superset.commands.exceptions import ImportFailedError
+from superset.utils import json
+from superset.utils.core import override_user
 
 
-def test_import_dataset(mocker: MockFixture, session: Session) -> None:
+def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     """
     Test importing a dataset.
     """
@@ -62,6 +64,7 @@ def test_import_dataset(mocker: MockFixture, session: Session) -> None:
         "default_endpoint": None,
         "offset": -8,
         "cache_timeout": 3600,
+        "catalog": "public",
         "schema": "my_schema",
         "sql": None,
         "params": {
@@ -116,6 +119,7 @@ def test_import_dataset(mocker: MockFixture, session: Session) -> None:
     assert sqla_table.default_endpoint is None
     assert sqla_table.offset == -8
     assert sqla_table.cache_timeout == 3600
+    assert sqla_table.catalog == "public"
     assert sqla_table.schema == "my_schema"
     assert sqla_table.sql is None
     assert sqla_table.params == json.dumps(
@@ -151,12 +155,13 @@ def test_import_dataset(mocker: MockFixture, session: Session) -> None:
     assert sqla_table.database.id == database.id
 
 
-def test_import_dataset_duplicate_column(mocker: MockFixture, session: Session) -> None:
+def test_import_dataset_duplicate_column(
+    mocker: MockerFixture, session: Session
+) -> None:
     """
     Test importing a dataset with a column that already exists.
     """
     from superset import security_manager
-    from superset.columns.models import Column as NewColumn
     from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.models.core import Database
@@ -277,13 +282,13 @@ def test_import_dataset_duplicate_column(mocker: MockFixture, session: Session) 
     assert sqla_table.database.id == database.id
 
 
-def test_import_column_extra_is_string(mocker: MockFixture, session: Session) -> None:
+def test_import_column_extra_is_string(mocker: MockerFixture, session: Session) -> None:
     """
     Test importing a dataset when the column extra is a string.
     """
     from superset import security_manager
     from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
@@ -361,7 +366,7 @@ def test_import_column_extra_is_string(mocker: MockFixture, session: Session) ->
 
 
 def test_import_dataset_extra_empty_string(
-    mocker: MockFixture, session: Session
+    mocker: MockerFixture, session: Session
 ) -> None:
     """
     Test importing a dataset when the extra field is an empty string.
@@ -420,13 +425,13 @@ def test_import_dataset_extra_empty_string(
     dataset_config["database_id"] = database.id
     sqla_table = import_dataset(dataset_config)
 
-    assert sqla_table.extra == None
+    assert sqla_table.extra is None  # noqa: E711
 
 
 @patch("superset.commands.dataset.importers.v1.utils.request")
 def test_import_column_allowed_data_url(
     request: Mock,
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
@@ -503,7 +508,7 @@ def test_import_column_allowed_data_url(
 
 
 def test_import_dataset_managed_externally(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
@@ -532,6 +537,55 @@ def test_import_dataset_managed_externally(
     sqla_table = import_dataset(config)
     assert sqla_table.is_managed_externally is True
     assert sqla_table.external_url == "https://example.org/my_table"
+
+
+def test_import_dataset_without_owner_permission(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test importing a dataset that is managed externally.
+    """
+    from superset import security_manager
+    from superset.commands.dataset.importers.v1.utils import import_dataset
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import dataset_config
+
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_config)
+    config["database_id"] = database.id
+
+    import_dataset(config)
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(user):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dataset(config, overwrite=True)
+
+        assert (
+            str(excinfo.value)
+            == "A dataset already exists and user doesn't have permissions to overwrite it"  # noqa: E501
+        )
+
+    # Assert that the can write to chart was checked
+    mock_can_access.assert_called_with("can_write", "Dataset")
 
 
 @pytest.mark.parametrize(

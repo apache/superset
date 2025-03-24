@@ -115,7 +115,7 @@ source set_release_env.sh 1.5.1rc1 myid@apache.org
 
 The script will output the exported variables. Here's example for 1.5.1rc1:
 
-```
+```env
 -------------------------------
 Set Release env variables
 SUPERSET_VERSION=1.5.1
@@ -264,13 +264,13 @@ python changelog.py --previous_version 1.5.0 --current_version ${SUPERSET_GITHUB
 
 Finally, bump the version number on `superset-frontend/package.json` (replace with whichever version is being released excluding the RC version):
 
-```
+```json
 "version": "0.38.0"
 ```
 
 Commit the change with the version number, then git tag the version with the release candidate and push to the branch:
 
-```
+```bash
 # add changed files and commit
 git add ...
 git commit ...
@@ -366,7 +366,7 @@ The script will interactively ask for extra information needed to fill out the e
 voting description, it will generate a passing, non passing or non conclusive email.
 Here's an example:
 
-```
+```text
 A List of people with +1 binding vote (ex: Max,Grace,Krist): Daniel,Alan,Max,Grace
 A List of people with +1 non binding vote (ex: Ville): Ville
 A List of people with -1 vote (ex: John):
@@ -437,7 +437,7 @@ cd ${SUPERSET_RELEASE_RC}
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements/base.txt
-pip install twine
+pip install build twine
 ```
 
 Create the distribution
@@ -445,8 +445,19 @@ Create the distribution
 ```bash
 cd superset-frontend/
 npm ci && npm run build
+# Compile translations for the frontend
+npm run build-translation
+
 cd ../
-flask fab babel-compile --target superset/translations
+
+
+# Compile translations for the backend
+./scripts/translations/generate_mo_files.sh
+
+# update build version number
+sed -i '' "s/version_string = .*/version_string = \"$SUPERSET_VERSION\"/" setup.py
+
+# build the python distribution
 python setup.py sdist
 ```
 
@@ -458,6 +469,7 @@ an account first if you don't have one, and reference your username
 while requesting access to push packages.
 
 ```bash
+twine upload dist/apache_superset-${SUPERSET_VERSION}-py3-none-any.whl
 twine upload dist/apache-superset-${SUPERSET_VERSION}.tar.gz
 ```
 
@@ -497,7 +509,7 @@ We also need to update the Environment section of [ISSUE_TEMPLATE/bug-report.yml
 
 Docker release with proper tags should happen automatically as version
 tags get pushed to the `apache/superset` GitHub repository through this
-[GitHub action](https://github.com/apache/superset/blob/master/.github/workflows/docker-release.yml)
+[GitHub action](https://github.com/apache/superset/blob/master/.github/workflows/docker.yml)
 
 Note that this GH action implements a `workflow_dispatch` trigger,
 meaning that it can be triggered manually from the GitHub UI. If anything
@@ -506,3 +518,24 @@ and re-push the proper images and tags through this interface. The action
 takes the version (ie `3.1.1`), the git reference (any SHA, tag or branch
 reference), and whether to force the `latest` Docker tag on the
 generated images.
+
+### Npm Release
+
+You might want to publish the latest @superset-ui release to npm
+
+```bash
+cd superset/superset-frontend
+```
+
+An automated GitHub action will run and generate a new tag, which will contain a version number provided as a parameter.
+
+```bash
+export GH_TOKEN={GITHUB_TOKEN}
+npx lerna version {VERSION} --conventional-commits --create-release github --no-private --yes --message {COMMIT_MESSAGE}
+```
+
+This action will publish the specified version to npm registry.
+
+```bash
+npx lerna publish from-package --yes
+```

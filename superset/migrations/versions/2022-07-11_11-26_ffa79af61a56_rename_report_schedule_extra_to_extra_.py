@@ -28,8 +28,8 @@ Create Date: 2022-07-11 11:26:00.010714
 revision = "ffa79af61a56"
 down_revision = "409c7b420ab0"
 
-from alembic import op
-from sqlalchemy.types import Text
+from alembic import op  # noqa: E402
+from sqlalchemy.types import Text  # noqa: E402
 
 
 def upgrade():

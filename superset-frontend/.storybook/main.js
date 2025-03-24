@@ -29,7 +29,7 @@ module.exports = {
   addons: [
     getAbsolutePath('@storybook/addon-essentials'),
     getAbsolutePath('@storybook/addon-links'),
-    getAbsolutePath('storybook-addon-jsx'),
+    '@mihkeleidast/storybook-addon-source',
     getAbsolutePath('@storybook/addon-controls'),
     getAbsolutePath('@storybook/addon-mdx-gfm'),
   ],

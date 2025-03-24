@@ -32,6 +32,7 @@ from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
     APP_DIR,
@@ -53,9 +54,11 @@ from superset.extensions import (
     talisman,
 )
 from superset.security import SupersetSecurityManager
+from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
 from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import is_test, pessimistic_connection_handling
+from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
 if TYPE_CHECKING:
@@ -128,8 +131,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.charts.data.api import ChartDataRestApi
         from superset.connectors.sqla.views import (
             RowLevelSecurityView,
-            SqlMetricInlineView,
-            TableColumnInlineView,
             TableModelView,
         )
         from superset.css_templates.api import CssTemplateRestApi
@@ -154,38 +155,36 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.row_level_security.api import RLSRestApi
         from superset.security.api import SecurityRestApi
         from superset.sqllab.api import SqlLabRestApi
+        from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
         from superset.views.alerts import AlertView, ReportView
-        from superset.views.all_entities import TaggedObjectsModelView, TaggedObjectView
+        from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
-        from superset.views.chart.views import SliceAsync, SliceModelView
+        from superset.views.chart.views import SliceModelView
         from superset.views.core import Superset
-        from superset.views.css_templates import (
-            CssTemplateAsyncModelView,
-            CssTemplateModelView,
-        )
+        from superset.views.css_templates import CssTemplateModelView
         from superset.views.dashboard.views import (
             Dashboard,
             DashboardModelView,
-            DashboardModelViewAsync,
         )
-        from superset.views.database.views import ColumnarToDatabaseView, DatabaseView
+        from superset.views.database.views import DatabaseView
         from superset.views.datasource.views import DatasetEditor, Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
+        from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
-        from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
         from superset.views.sql_lab.views import (
             SavedQueryView,
-            SavedQueryViewApi,
             TableSchemaView,
             TabStateView,
         )
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
+
+        set_app_error_handlers(self.superset_app)
 
         #
         # Setup API views
@@ -221,6 +220,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SavedQueryRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
+        appbuilder.add_api(SqlLabPermalinkRestApi)
         #
         # Setup regular views
         #
@@ -290,27 +290,18 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Setup views with no menu
         #
         appbuilder.add_view_no_menu(Api)
-        appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
-        appbuilder.add_view_no_menu(ColumnarToDatabaseView)
         appbuilder.add_view_no_menu(Dashboard)
-        appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
         appbuilder.add_view_no_menu(DatasetEditor)
         appbuilder.add_view_no_menu(EmbeddedView)
         appbuilder.add_view_no_menu(ExploreView)
         appbuilder.add_view_no_menu(ExplorePermalinkView)
-        appbuilder.add_view_no_menu(KV)
         appbuilder.add_view_no_menu(SavedQueryView)
-        appbuilder.add_view_no_menu(SavedQueryViewApi)
-        appbuilder.add_view_no_menu(SliceAsync)
         appbuilder.add_view_no_menu(SqllabView)
-        appbuilder.add_view_no_menu(SqlMetricInlineView)
         appbuilder.add_view_no_menu(Superset)
-        appbuilder.add_view_no_menu(TableColumnInlineView)
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
-        appbuilder.add_view_no_menu(TaggedObjectView)
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
@@ -434,7 +425,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "to override it.\n"
                 "Use a strong complex alphanumeric string and use a tool to help"
                 " you generate \n"
-                "a sufficiently random sequence, ex: openssl rand -base64 42"
+                "a sufficiently random sequence, ex: openssl rand -base64 42 \n"
+                "For more info, see: https://superset.apache.org/docs/"
+                "configuration/configuring-superset#specifying-a-secret_key"
             )
             logger.warning(bottom_banner)
 
@@ -478,11 +471,36 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_wtf()
         self.configure_middlewares()
         self.configure_cache()
+        self.set_db_default_isolation()
+        self.configure_sqlglot_dialects()
 
         with self.superset_app.app_context():
             self.init_app_in_ctx()
 
         self.post_init()
+
+    def set_db_default_isolation(self) -> None:
+        # This block sets the default isolation level for mysql to READ COMMITTED if not
+        # specified in the config. You can set your isolation in the config by using
+        # SQLALCHEMY_ENGINE_OPTIONS
+        eng_options = self.config["SQLALCHEMY_ENGINE_OPTIONS"] or {}
+        isolation_level = eng_options.get("isolation_level")
+        set_isolation_level_to = None
+
+        if not isolation_level:
+            backend = make_url_safe(
+                self.config["SQLALCHEMY_DATABASE_URI"]
+            ).get_backend_name()
+            if backend in ("mysql", "postgresql"):
+                set_isolation_level_to = "READ COMMITTED"
+
+        if set_isolation_level_to:
+            logger.info(
+                "Setting database isolation level to %s",
+                set_isolation_level_to,
+            )
+            with self.superset_app.app_context():
+                db.engine.execution_options(isolation_level=set_isolation_level_to)
 
     def configure_auth_provider(self) -> None:
         machine_auth_provider_factory.init_app(self.superset_app)
@@ -515,6 +533,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def configure_feature_flags(self) -> None:
         feature_flag_manager.init_app(self.superset_app)
 
+    def configure_sqlglot_dialects(self) -> None:
+        extensions = self.config["SQLGLOT_DIALECTS_EXTENSIONS"]
+
+        if callable(extensions):
+            extensions = extensions()
+
+        SQLGLOT_DIALECTS.update(extensions)
+
+    @transaction()
     def configure_fab(self) -> None:
         if self.config["SILENCE_FAB"]:
             logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)
@@ -546,7 +573,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.superset_app.url_map.converters["regex"] = RegexConverter
         self.superset_app.url_map.converters["object_type"] = ObjectTypeConverter
 
-    def configure_middlewares(self) -> None:
+    def configure_middlewares(self) -> None:  # noqa: C901
         if self.config["ENABLE_CORS"]:
             # pylint: disable=import-outside-toplevel
             from flask_cors import CORS
@@ -588,7 +615,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         talisman_enabled = self.config["TALISMAN_ENABLED"]
         talisman_config = (
             self.config["TALISMAN_DEV_CONFIG"]
-            if self.superset_app.debug
+            if self.superset_app.debug or self.config["DEBUG"]
             else self.config["TALISMAN_CONFIG"]
         )
         csp_warning = self.config["CONTENT_SECURITY_POLICY_WARNING"]
@@ -613,7 +640,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "We haven't found any Content Security Policy (CSP) defined in "
                 "the configurations. Please make sure to configure CSP using the "
                 "TALISMAN_ENABLED and TALISMAN_CONFIG keys or any other external "
-                "software. Failing to configure CSP have serious security implications. "
+                "software. Failing to configure CSP have serious security implications. "  # noqa: E501
                 "Check https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more "
                 "information. You can disable this warning using the "
                 "CONTENT_SECURITY_POLICY_WARNING key."

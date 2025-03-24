@@ -23,8 +23,7 @@ from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-import simplejson as json
-from flask import abort, flash, g, redirect, render_template, request, Response
+from flask import abort, flash, g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
@@ -71,10 +70,9 @@ from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.superset_typing import FlaskResponse
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
-    base_json_conv,
     DatasourceType,
     get_user_id,
     ReservedUrlParameters,
@@ -87,11 +85,10 @@ from superset.views.base import (
     data_payload_response,
     deprecated,
     generate_download_headers,
-    get_error_msg,
-    handle_api_exception,
     json_error_response,
     json_success,
 )
+from superset.views.error_handling import handle_api_exception
 from superset.views.utils import (
     bootstrap_user_data,
     check_datasource_perms,
@@ -206,7 +203,7 @@ class Superset(BaseSupersetView):
     @permission_name("explore_json")
     @expose("/explore_json/data/<cache_key>", methods=("GET",))
     @check_resource_permissions(check_explore_cache_perms)
-    @deprecated(eol_version="4.0.0")
+    @deprecated(eol_version="5.0.0")
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
 
@@ -225,7 +222,7 @@ class Superset(BaseSupersetView):
             response_type = cached.get("response_type")
             # Set form_data in Flask Global as it is used as a fallback
             # for async queries with jinja context
-            setattr(g, "form_data", form_data)
+            g.form_data = form_data
             datasource_id, datasource_type = get_datasource_info(None, None, form_data)
 
             viz_obj = get_viz(
@@ -259,7 +256,7 @@ class Superset(BaseSupersetView):
     )
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
-    @deprecated(eol_version="4.0.0")
+    @deprecated(eol_version="5.0.0")
     def explore_json(
         self, datasource_type: str | None = None, datasource_id: int | None = None
     ) -> FlaskResponse:
@@ -397,7 +394,7 @@ class Superset(BaseSupersetView):
     )
     @deprecated()
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-    def explore(
+    def explore(  # noqa: C901
         self,
         datasource_type: str | None = None,
         datasource_id: int | None = None,
@@ -444,7 +441,7 @@ class Superset(BaseSupersetView):
                 if form_data_key:
                     flash(
                         _(
-                            "Form data not found in cache, reverting to dataset metadata."
+                            "Form data not found in cache, reverting to dataset metadata."  # noqa: E501
                         )
                     )
 
@@ -476,10 +473,10 @@ class Superset(BaseSupersetView):
         if not viz_type and datasource and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
 
-        selectedColumns = []
+        selectedColumns = []  # noqa: N806
 
         if "selectedColumns" in form_data:
-            selectedColumns = form_data.pop("selectedColumns")
+            selectedColumns = form_data.pop("selectedColumns")  # noqa: N806
 
         if "viz_type" not in form_data:
             form_data["viz_type"] = app.config["DEFAULT_VIZ_TYPE"]
@@ -577,7 +574,7 @@ class Superset(BaseSupersetView):
         return self.render_template(
             "superset/basic.html",
             bootstrap_data=json.dumps(
-                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+                bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
             ),
             entry="explore",
             title=title,
@@ -585,7 +582,7 @@ class Superset(BaseSupersetView):
         )
 
     @staticmethod
-    def save_or_overwrite_slice(
+    def save_or_overwrite_slice(  # noqa: C901
         # pylint: disable=too-many-arguments,too-many-locals
         slc: Slice | None,
         slice_add_perm: bool,
@@ -621,10 +618,12 @@ class Superset(BaseSupersetView):
 
         if action == "saveas" and slice_add_perm:
             ChartDAO.create(slc)
+            db.session.commit()  # pylint: disable=consider-using-transaction
             msg = _("Chart [{}] has been saved").format(slc.slice_name)
             flash(msg, "success")
         elif action == "overwrite" and slice_overwrite_perm:
             ChartDAO.update(slc)
+            db.session.commit()  # pylint: disable=consider-using-transaction
             msg = _("Chart [{}] has been overwritten").format(slc.slice_name)
             flash(msg, "success")
 
@@ -678,7 +677,7 @@ class Superset(BaseSupersetView):
 
         if dash and slc not in dash.slices:
             dash.slices.append(slc)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
         response = {
             "can_add": slice_add_perm,
@@ -765,7 +764,7 @@ class Superset(BaseSupersetView):
                     }
                     for slc in slices
                 ],
-                default=base_json_conv,
+                default=json.base_json_conv,
             ),
         )
 
@@ -793,9 +792,16 @@ class Superset(BaseSupersetView):
         try:
             dashboard.raise_for_access()
         except SupersetSecurityException as ex:
+            # anonymous users should get the login screen, others should go to dashboard list  # noqa: E501
+            if g.user is None or g.user.is_anonymous:
+                redirect_url = f"{appbuilder.get_url_for_login}?next={request.url}"
+                warn_msg = "Users must be logged in to view this dashboard."
+            else:
+                redirect_url = "/dashboard/list/"
+                warn_msg = utils.error_msg_from_exception(ex)
             return redirect_with_flash(
-                url="/dashboard/list/",
-                message=utils.error_msg_from_exception(ex),
+                url=redirect_url,
+                message=warn_msg,
                 category="danger",
             )
         add_extra_log_payload(
@@ -819,7 +825,7 @@ class Superset(BaseSupersetView):
                     "user": bootstrap_user_data(g.user, include_perms=True),
                     "common": common_bootstrap_payload(),
                 },
-                default=utils.pessimistic_json_iso_dttm_ser,
+                default=json.pessimistic_json_iso_dttm_ser,
             ),
             standalone_mode=ReservedUrlParameters.is_standalone_mode(),
         )
@@ -858,10 +864,6 @@ class Superset(BaseSupersetView):
     def log(self) -> FlaskResponse:
         return Response(status=200)
 
-    @expose("/theme/")
-    def theme(self) -> FlaskResponse:
-        return self.render_template("superset/theme.html")
-
     @api
     @handle_api_exception
     @has_access
@@ -888,13 +890,6 @@ class Superset(BaseSupersetView):
         datasource.raise_for_access()
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
 
-    @app.errorhandler(500)
-    def show_traceback(self) -> FlaskResponse:
-        return (
-            render_template("superset/traceback.html", error_msg=get_error_msg()),
-            500,
-        )
-
     @event_logger.log_this
     @expose("/welcome/")
     def welcome(self) -> FlaskResponse:
@@ -920,7 +915,7 @@ class Superset(BaseSupersetView):
             "superset/spa.html",
             entry="spa",
             bootstrap_data=json.dumps(
-                payload, default=utils.pessimistic_json_iso_dttm_ser
+                payload, default=json.pessimistic_json_iso_dttm_ser
             ),
         )
 

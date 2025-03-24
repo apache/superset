@@ -14,14 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
-from unittest.mock import ANY, Mock, patch
+
+from unittest.mock import ANY, patch
 
 import pytest
+from sqlalchemy.sql.elements import TextClause
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.exceptions import DatasourceTypeNotSupportedError
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 
@@ -39,7 +41,7 @@ class TestDatasourceApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col1/values/")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         for val in range(10):
             assert val in response["result"]
@@ -49,7 +51,7 @@ class TestDatasourceApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         for val in ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]:
             assert val in response["result"]
@@ -59,7 +61,7 @@ class TestDatasourceApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col3/values/")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         for val in [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]:
             assert val in response["result"]
@@ -69,16 +71,16 @@ class TestDatasourceApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col4/values/")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["result"], [None])
+        assert response["result"] == [None]
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_integers_with_nulls(self):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col6/values/")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         for val in [1, None, 3, 4, 5, 6, 7, 8, 9, 10]:
             assert val in response["result"]
@@ -90,27 +92,27 @@ class TestDatasourceApi(SupersetTestCase):
         rv = self.client.get(
             f"api/v1/datasource/not_table/{table.id}/column/col1/values/"
         )
-        self.assertEqual(rv.status_code, 400)
+        assert rv.status_code == 400
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["message"], "Invalid datasource type: not_table")
+        assert response["message"] == "Invalid datasource type: not_table"
 
     @patch("superset.datasource.api.DatasourceDAO.get_datasource")
     def test_get_column_values_datasource_type_not_supported(self, get_datasource_mock):
         get_datasource_mock.side_effect = DatasourceTypeNotSupportedError
         self.login(ADMIN_USERNAME)
         rv = self.client.get("api/v1/datasource/table/1/column/col1/values/")
-        self.assertEqual(rv.status_code, 400)
+        assert rv.status_code == 400
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            response["message"], "DAO datasource query source type is not supported"
+        assert (
+            response["message"] == "DAO datasource query source type is not supported"
         )
 
     def test_get_column_values_datasource_not_found(self):
         self.login(ADMIN_USERNAME)
         rv = self.client.get("api/v1/datasource/table/999/column/col1/values/")
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["message"], "Datasource does not exist")
+        assert response["message"] == "Datasource does not exist"
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_no_datasource_access(self):
@@ -124,27 +126,11 @@ class TestDatasourceApi(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         table = self.get_virtual_dataset()
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col1/values/")
-        self.assertEqual(rv.status_code, 403)
+        assert rv.status_code == 403
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            response["message"],
-            "This endpoint requires the datasource virtual_dataset, "
-            "database or `all_datasource_access` permission",
-        )
-
-    @patch("superset.datasource.api.DatasourceDAO.get_datasource")
-    def test_get_column_values_not_implemented_error(self, get_datasource_mock):
-        datasource = Mock()
-        datasource.values_for_column.side_effect = NotImplementedError
-        get_datasource_mock.return_value = datasource
-
-        self.login(ADMIN_USERNAME)
-        rv = self.client.get("api/v1/datasource/sl_table/1/column/col1/values/")
-        self.assertEqual(rv.status_code, 400)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            response["message"],
-            "Unable to get column values for datasource type: sl_table",
+        assert (
+            response["message"] == f"This endpoint requires the datasource {table.id}, "
+            "database or `all_datasource_access` permission"
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
@@ -153,7 +139,7 @@ class TestDatasourceApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         table.normalize_columns = True
-        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")  # noqa: F841
         values_for_column_mock.assert_called_with(
             column_name="col2",
             limit=10000,
@@ -166,7 +152,7 @@ class TestDatasourceApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         table.normalize_columns = True
-        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")  # noqa: F841
         denormalize_name_mock.assert_not_called()
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
@@ -175,7 +161,7 @@ class TestDatasourceApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         table.normalize_columns = False
-        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")  # noqa: F841
         values_for_column_mock.assert_called_with(
             column_name="col2",
             limit=10000,
@@ -188,5 +174,33 @@ class TestDatasourceApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         table.normalize_columns = False
-        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")  # noqa: F841
         denormalize_name_mock.assert_called_with(ANY, "col2")
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_with_rls(self):
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        with patch.object(
+            table, "get_sqla_row_level_filters", return_value=[TextClause("col2 = 'b'")]
+        ):
+            rv = self.client.get(
+                f"api/v1/datasource/table/{table.id}/column/col2/values/"
+            )
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            assert response["result"] == ["b"]
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_with_rls_no_values(self):
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        with patch.object(
+            table, "get_sqla_row_level_filters", return_value=[TextClause("col2 = 'q'")]
+        ):
+            rv = self.client.get(
+                f"api/v1/datasource/table/{table.id}/column/col2/values/"
+            )
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            assert response["result"] == []

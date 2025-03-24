@@ -102,7 +102,7 @@ Some of the new features in this release are disabled by default. Each has a fea
 This release includes **hundreds** of bugfixes and stability enhancements. Future major releases will have a continued emphasis on providing a stable and bug-free experience for the user.
 
 # PR Highlights
-Below is a highlight of the PRs included in this update. The full list is much longer, and can be found [here](apache/incubator-superset/CHANGELOG.md).
+Below is a highlight of the PRs included in this update. The full list is much longer, and can be found [here](https://github.com/apache/superset/blob/master/CHANGELOG.md).
 
 ## User Experience
 - Revert "refactor: Remove usages of reactable from TimeTable (#11046)" (#[11150](https://github.com/apache/incubator-superset/pull/11150))
@@ -222,4 +222,4 @@ Below is a highlight of the PRs included in this update. The full list is much l
 ## Complete Changelog
 Backwards incompatible changes and can be found [here](../../UPDATING.md).
 
-To see the complete changelog, see [apache/incubator-superset/CHANGELOG.md](https://github.com/apache/superset/blob/master/CHANGELOG.md)
+To see the complete changelog, see [apache/superset/CHANGELOG.md](https://github.com/apache/superset/blob/master/CHANGELOG.md)

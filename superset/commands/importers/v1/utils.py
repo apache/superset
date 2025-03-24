@@ -15,7 +15,7 @@
 
 import logging
 from pathlib import Path, PurePosixPath
-from typing import Any, Optional
+from typing import Any, Callable, Dict, Optional, Type
 from zipfile import ZipFile
 
 import yaml
@@ -75,7 +75,7 @@ def load_metadata(contents: dict[str, str]) -> dict[str, str]:
 
         # otherwise we raise the validation error
         ex.messages = {METADATA_FILE_NAME: ex.messages}
-        raise ex
+        raise
 
     return metadata
 
@@ -96,7 +96,7 @@ def validate_metadata_type(
 
 
 # pylint: disable=too-many-locals,too-many-arguments
-def load_configs(
+def load_configs(  # noqa: C901
     contents: dict[str, str],
     schemas: dict[str, Schema],
     passwords: dict[str, str],
@@ -173,16 +173,16 @@ def load_configs(
 
                 # populate ssh_tunnel_passwords from the request or from existing DBs
                 if file_name in ssh_tunnel_priv_key_passwords:
-                    config["ssh_tunnel"][
-                        "private_key_password"
-                    ] = ssh_tunnel_priv_key_passwords[file_name]
+                    config["ssh_tunnel"]["private_key_password"] = (
+                        ssh_tunnel_priv_key_passwords[file_name]
+                    )
                 elif (
                     prefix == "databases"
                     and config["uuid"] in db_ssh_tunnel_priv_key_passws
                 ):
-                    config["ssh_tunnel"][
-                        "private_key_password"
-                    ] = db_ssh_tunnel_priv_key_passws[config["uuid"]]
+                    config["ssh_tunnel"]["private_key_password"] = (
+                        db_ssh_tunnel_priv_key_passws[config["uuid"]]
+                    )
 
                 schema.load(config)
                 configs[file_name] = config
@@ -214,3 +214,19 @@ def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
         for file_name in bundle.namelist()
         if is_valid_config(file_name)
     }
+
+
+def get_resource_mappings_batched(
+    model_class: Type[Any],
+    batch_size: int = 1000,
+    value_func: Callable[[Any], Any] = lambda x: x.id,
+) -> Dict[str, Any]:
+    offset = 0
+    mapping = {}
+    while True:
+        batch = db.session.query(model_class).limit(batch_size).offset(offset).all()
+        if not batch:
+            break
+        mapping.update({str(x.uuid): value_func(x) for x in batch})
+        offset += batch_size
+    return mapping

@@ -21,7 +21,7 @@ Revises: 31b2a1039d4a
 Create Date: 2021-08-02 16:39:45.329151
 
 """
-import json
+
 import logging
 
 from alembic import op
@@ -29,6 +29,7 @@ from sqlalchemy import Column, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "e323605f370a"
@@ -54,7 +55,7 @@ def upgrade():
     for database in session.query(Database).all():
         try:
             extra = json.loads(database.extra)
-        except json.decoder.JSONDecodeError as ex:
+        except json.JSONDecodeError as ex:
             logging.warning(str(ex))
             continue
 

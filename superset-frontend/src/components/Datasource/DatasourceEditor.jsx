@@ -17,13 +17,12 @@
  * under the License.
  */
 import rison from 'rison';
-import React, { useCallback } from 'react';
+import { PureComponent, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Radio } from 'src/components/Radio';
 import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
-import shortid from 'shortid';
 import {
   css,
   isFeatureEnabled,
@@ -57,6 +56,7 @@ import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
+import { fetchSyncedColumns, updateColumns } from './utils';
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -94,7 +94,7 @@ const StyledTableTabs = styled(Tabs)`
 `;
 
 const StyledBadge = styled(Badge)`
-  .ant-badge-count {
+  .antd5-badge-count {
     line-height: ${({ theme }) => theme.gridUnit * 4}px;
     height: ${({ theme }) => theme.gridUnit * 4}px;
     margin-left: ${({ theme }) => theme.gridUnit}px;
@@ -137,8 +137,19 @@ const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
     margin-top: ${theme.gridUnit * 3}px;
     margin-left: ${theme.gridUnit * 3}px;
+    button>span>:first-of-type {
+      margin-right: 0;
+    }
   `}
 `;
+
+const sqlTooltipOptions = {
+  placement: 'topRight',
+  title: t(
+    'If changes are made to your SQL query, ' +
+      'columns in your dataset will be synced when saving the dataset.',
+  ),
+};
 
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
@@ -576,7 +587,7 @@ function OwnersSelector({ datasource, onChange }) {
   );
 }
 
-class DatasourceEditor extends React.PureComponent {
+class DatasourceEditor extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -694,115 +705,31 @@ class DatasourceEditor extends React.PureComponent {
     });
   }
 
-  updateColumns(cols) {
-    // cols: Array<{column_name: string; is_dttm: boolean; type: string;}>
-    const { databaseColumns } = this.state;
-    const databaseColumnNames = cols.map(col => col.column_name);
-    const currentCols = databaseColumns.reduce(
-      (agg, col) => ({
-        ...agg,
-        [col.column_name]: col,
-      }),
-      {},
-    );
-    const finalColumns = [];
-    const results = {
-      added: [],
-      modified: [],
-      removed: databaseColumns
-        .map(col => col.column_name)
-        .filter(col => !databaseColumnNames.includes(col)),
-    };
-    cols.forEach(col => {
-      const currentCol = currentCols[col.column_name];
-      if (!currentCol) {
-        // new column
-        finalColumns.push({
-          id: shortid.generate(),
-          column_name: col.column_name,
-          type: col.type,
-          groupby: true,
-          filterable: true,
-          is_dttm: col.is_dttm,
-        });
-        results.added.push(col.column_name);
-      } else if (
-        currentCol.type !== col.type ||
-        (!currentCol.is_dttm && col.is_dttm)
-      ) {
-        // modified column
-        finalColumns.push({
-          ...currentCol,
-          type: col.type,
-          is_dttm: currentCol.is_dttm || col.is_dttm,
-        });
-        results.modified.push(col.column_name);
-      } else {
-        // unchanged
-        finalColumns.push(currentCol);
-      }
-    });
-    if (
-      results.added.length ||
-      results.modified.length ||
-      results.removed.length
-    ) {
-      this.setColumns({ databaseColumns: finalColumns });
-    }
-    return results;
-  }
-
-  syncMetadata() {
+  async syncMetadata() {
     const { datasource } = this.state;
-    const params = {
-      datasource_type: datasource.type || datasource.datasource_type,
-      database_name:
-        datasource.database.database_name || datasource.database.name,
-      schema_name: datasource.schema,
-      table_name: datasource.table_name,
-      normalize_columns: datasource.normalize_columns,
-      always_filter_main_dttm: datasource.always_filter_main_dttm,
-    };
-    Object.entries(params).forEach(([key, value]) => {
-      // rison can't encode the undefined value
-      if (value === undefined) {
-        params[key] = null;
-      }
-    });
-    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode_uri(
-      params,
-    )}`;
     this.setState({ metadataLoading: true });
-
-    SupersetClient.get({ endpoint })
-      .then(({ json }) => {
-        const results = this.updateColumns(json);
-        if (results.modified.length) {
-          this.props.addSuccessToast(
-            t('Modified columns: %s', results.modified.join(', ')),
-          );
-        }
-        if (results.removed.length) {
-          this.props.addSuccessToast(
-            t('Removed columns: %s', results.removed.join(', ')),
-          );
-        }
-        if (results.added.length) {
-          this.props.addSuccessToast(
-            t('New columns added: %s', results.added.join(', ')),
-          );
-        }
-        this.props.addSuccessToast(t('Metadata has been synced'));
-        this.setState({ metadataLoading: false });
-      })
-      .catch(response =>
-        getClientErrorObject(response).then(({ error, statusText }) => {
-          this.props.addDangerToast(
-            error || statusText || t('An error has occurred'),
-          );
-          this.setState({ metadataLoading: false });
-        }),
+    try {
+      const newCols = await fetchSyncedColumns(datasource);
+      const columnChanges = updateColumns(
+        datasource.columns,
+        newCols,
+        this.props.addSuccessToast,
       );
+      this.setColumns({
+        databaseColumns: columnChanges.finalColumns.filter(
+          col => !col.expression, // remove calculated columns
+        ),
+      });
+      this.props.addSuccessToast(t('Metadata has been synced'));
+      this.setState({ metadataLoading: false });
+    } catch (error) {
+      const { error: clientError, statusText } =
+        await getClientErrorObject(error);
+      this.props.addDangerToast(
+        clientError || statusText || t('An error has occurred'),
+      );
+      this.setState({ metadataLoading: false });
+    }
   }
 
   findDuplicates(arr, accessor) {
@@ -894,7 +821,8 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="default_endpoint"
           label={t('Default URL')}
           description={t(
-            'Default URL to redirect to when accessing from the dataset list page',
+            `Default URL to redirect to when accessing from the dataset list page.
+            Accepts relative URLs such as <span style=„white-space: nowrap;”>/superset/dashboard/{id}/</span>`,
           )}
           control={<TextControl controlId="default_endpoint" />}
         />
@@ -1043,16 +971,26 @@ class DatasourceEditor extends React.PureComponent {
     );
   }
 
-  renderSourceFieldset(theme) {
+  renderSourceFieldset() {
     const { datasource } = this.state;
     return (
       <div>
         <EditLockContainer>
           <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
             {this.state.isEditMode ? (
-              <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
+              <Icons.UnlockOutlined
+                iconSize="xl"
+                css={theme => css`
+                  margin: auto ${theme.gridUnit}px auto 0;
+                `}
+              />
             ) : (
-              <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
+              <Icons.LockOutlined
+                iconSize="xl"
+                css={theme => ({
+                  margin: `auto ${theme.gridUnit}px auto 0`,
+                })}
+              />
             )}
           </span>
           {!this.state.isEditMode && (
@@ -1085,12 +1023,17 @@ class DatasourceEditor extends React.PureComponent {
                   <Col xs={24} md={12}>
                     <Field
                       fieldKey="databaseSelector"
-                      label={t('virtual')}
+                      label={t('Virtual')}
                       control={
                         <div css={{ marginTop: 8 }}>
                           <DatabaseSelector
                             db={datasource?.database}
+                            catalog={datasource.catalog}
                             schema={datasource.schema}
+                            onCatalogChange={catalog =>
+                              this.state.isEditMode &&
+                              this.onDatasourcePropChange('catalog', catalog)
+                            }
                             onSchemaChange={schema =>
                               this.state.isEditMode &&
                               this.onDatasourcePropChange('schema', schema)
@@ -1139,6 +1082,7 @@ class DatasourceEditor extends React.PureComponent {
                         maxLines={Infinity}
                         readOnly={!this.state.isEditMode}
                         resize="both"
+                        tooltipOptions={sqlTooltipOptions}
                       />
                     }
                   />
@@ -1164,9 +1108,16 @@ class DatasourceEditor extends React.PureComponent {
                         }}
                         dbId={datasource.database?.id}
                         handleError={this.props.addDangerToast}
+                        catalog={datasource.catalog}
                         schema={datasource.schema}
                         sqlLabMode={false}
                         tableValue={datasource.table_name}
+                        onCatalogChange={
+                          this.state.isEditMode
+                            ? catalog =>
+                                this.onDatasourcePropChange('catalog', catalog)
+                            : undefined
+                        }
                         onSchemaChange={
                           this.state.isEditMode
                             ? schema =>
@@ -1446,7 +1397,7 @@ class DatasourceEditor extends React.PureComponent {
                     className="sync-from-source"
                     disabled={this.state.isEditMode}
                   >
-                    <i className="fa fa-database" />{' '}
+                    <Icons.DatabaseOutlined iconSize="m" />
                     {t('Sync columns from source')}
                   </Button>
                 </StyledButtonWrapper>

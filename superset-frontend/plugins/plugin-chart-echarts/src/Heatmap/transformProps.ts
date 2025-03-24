@@ -18,22 +18,33 @@
  */
 import {
   GenericDataType,
+  NumberFormats,
   QueryFormColumn,
   getColumnLabel,
   getMetricLabel,
   getSequentialSchemeRegistry,
   getTimeFormatter,
   getValueFormatter,
+  rgbToHex,
+  addAlpha,
+  supersetTheme,
+  tooltipHtml,
 } from '@superset-ui/core';
 import memoizeOne from 'memoize-one';
 import { maxBy, minBy } from 'lodash';
-import { EChartsOption, HeatmapSeriesOption } from 'echarts';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { ComposeOption } from 'echarts/core';
+import type { HeatmapSeriesOption } from 'echarts/charts';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import { HeatmapChartProps, HeatmapTransformedProps } from './types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
 import { NULL_STRING } from '../constants';
+import { getPercentFormatter } from '../utils/formatters';
+
+type EChartsOption = ComposeOption<HeatmapSeriesOption>;
+
+const DEFAULT_ECHARTS_BOUNDS = [0, 200];
 
 // Calculated totals per x and y categories plus total
 const calculateTotals = memoizeOne(
@@ -75,9 +86,11 @@ export default function transformProps(
     linearColorScheme,
     leftMargin,
     legendType = 'continuous',
-    metric,
+    metric = '',
     normalizeAcross,
     normalized,
+    borderColor,
+    borderWidth = 0,
     showLegend,
     showPercentage,
     showValues,
@@ -109,6 +122,7 @@ export default function transformProps(
 
   const xAxisFormatter = getAxisFormatter(coltypes[0]);
   const yAxisFormatter = getAxisFormatter(coltypes[1]);
+  const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
   const valueFormatter = getValueFormatter(
     metric,
     currencyFormats,
@@ -119,10 +133,14 @@ export default function transformProps(
 
   let [min, max] = (valueBounds || []).map(parseAxisBound);
   if (min === undefined) {
-    min = minBy(data, row => row[colorColumn])?.[colorColumn] as number;
+    min =
+      (minBy(data, row => row[colorColumn])?.[colorColumn] as number) ||
+      DEFAULT_ECHARTS_BOUNDS[0];
   }
   if (max === undefined) {
-    max = maxBy(data, row => row[colorColumn])?.[colorColumn] as number;
+    max =
+      (maxBy(data, row => row[colorColumn])?.[colorColumn] as number) ||
+      DEFAULT_ECHARTS_BOUNDS[1];
   }
 
   const series: HeatmapSeriesOption[] = [
@@ -135,7 +153,7 @@ export default function transformProps(
           if (!value) {
             return NULL_STRING;
           }
-          if (typeof value === 'boolean') {
+          if (typeof value === 'boolean' || typeof value === 'bigint') {
             return String(value);
           }
           return value;
@@ -143,8 +161,24 @@ export default function transformProps(
       ),
       label: {
         show: showValues,
-        formatter: (params: CallbackDataParams) =>
-          valueFormatter(params.value[2]),
+        formatter: (params: CallbackDataParams) => {
+          const paramsValue = params.value as (string | number)[];
+          return valueFormatter(paramsValue?.[2] as number | null | undefined);
+        },
+      },
+      itemStyle: {
+        borderColor: addAlpha(
+          rgbToHex(borderColor.r, borderColor.g, borderColor.b),
+          borderColor.a,
+        ),
+        borderWidth,
+      },
+      emphasis: {
+        itemStyle: {
+          borderColor: supersetTheme.colors.grayscale.light5,
+          shadowBlur: 10,
+          shadowColor: supersetTheme.colors.grayscale.dark2,
+        },
       },
     },
   ];
@@ -165,9 +199,10 @@ export default function transformProps(
           yAxisLabel,
           metricLabel,
         );
-        const x = params.value[0];
-        const y = params.value[1];
-        const value = params.value[2];
+        const paramsValue = params.value as (string | number)[];
+        const x = paramsValue?.[0];
+        const y = paramsValue?.[1];
+        const value = paramsValue?.[2] as number | null | undefined;
         const formattedX = xAxisFormatter(x);
         const formattedY = yAxisFormatter(y);
         const formattedValue = valueFormatter(value);
@@ -175,29 +210,22 @@ export default function transformProps(
         let suffix = 'heatmap';
         if (typeof value === 'number') {
           if (normalizeAcross === 'x') {
-            percentage = (value / totals.x[x]) * 100;
+            percentage = value / totals.x[x];
             suffix = formattedX;
           } else if (normalizeAcross === 'y') {
-            percentage = (value / totals.y[y]) * 100;
+            percentage = value / totals.y[y];
             suffix = formattedY;
           } else {
-            percentage = (value / totals.total) * 100;
+            percentage = value / totals.total;
             suffix = 'heatmap';
           }
         }
-        return `
-          <div>
-            <div>${colnames[0]}: <b>${formattedX}</b></div>
-            <div>${colnames[1]}: <b>${formattedY}</b></div>
-            <div>${colnames[2]}: <b>${formattedValue}</b></div>
-            ${
-              showPercentage
-                ? `<div>% (${suffix}): <b>${valueFormatter(
-                    percentage,
-                  )}%</b></div>`
-                : ''
-            }
-          </div>`;
+        const title = `${formattedX} (${formattedY})`;
+        const row = [colnames[2], formattedValue];
+        if (showPercentage) {
+          row.push(`${percentFormatter(percentage)} (${suffix})`);
+        }
+        return tooltipHtml([row], title);
       },
     },
     visualMap: {
@@ -210,7 +238,7 @@ export default function transformProps(
       top: 0,
       itemHeight: legendType === 'continuous' ? 300 : 14,
       itemWidth: 15,
-      formatter: min => valueFormatter(min as number),
+      formatter: (min: number) => valueFormatter(min),
       inRange: {
         color: colors,
       },

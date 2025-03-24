@@ -18,7 +18,7 @@
  */
 
 import { ReactNode } from 'react';
-import { PopoverProps } from 'antd/lib/popover';
+import { PopoverProps } from 'src/components/Popover';
 import { Comparator, ControlComponentProps } from '@superset-ui/chart-controls';
 
 export type ConditionalFormattingConfig = {
@@ -38,6 +38,7 @@ export type ConditionalFormattingControlProps = ControlComponentProps<
   verboseMap: Record<string, string>;
   label: string;
   description: string;
+  extraColorChoices?: { label: string; value: string }[];
 };
 
 export type FormattingPopoverProps = PopoverProps & {
@@ -46,4 +47,5 @@ export type FormattingPopoverProps = PopoverProps & {
   config?: ConditionalFormattingConfig;
   title: string;
   children: ReactNode;
+  extraColorChoices?: { label: string; value: string }[];
 };

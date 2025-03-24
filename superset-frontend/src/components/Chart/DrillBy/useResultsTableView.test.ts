@@ -18,8 +18,13 @@
  */
 
 import { renderHook } from '@testing-library/react-hooks';
-import userEvent from '@testing-library/user-event';
-import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { useResultsTableView } from './useResultsTableView';
 
 const MOCK_CHART_DATA_RESULT = [
@@ -65,7 +70,7 @@ const MOCK_CHART_DATA_RESULT = [
 
 test('Displays results table for 1 query', () => {
   const { result } = renderHook(() =>
-    useResultsTableView(MOCK_CHART_DATA_RESULT.slice(0, 1), '1__table'),
+    useResultsTableView(MOCK_CHART_DATA_RESULT.slice(0, 1), '1__table', true),
   );
   render(result.current, { useRedux: true });
   expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
@@ -76,7 +81,7 @@ test('Displays results table for 1 query', () => {
 
 test('Displays results for 2 queries', async () => {
   const { result } = renderHook(() =>
-    useResultsTableView(MOCK_CHART_DATA_RESULT, '1__table'),
+    useResultsTableView(MOCK_CHART_DATA_RESULT, '1__table', true),
   );
   render(result.current, { useRedux: true });
   const getActiveTabElement = () =>

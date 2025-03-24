@@ -17,7 +17,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactElement, ReactNode, ReactText } from 'react';
+import { ReactElement, ReactNode, ReactText, ComponentType } from 'react';
+
 import type {
   AdhocColumn,
   Column,
@@ -82,9 +83,19 @@ export interface Dataset {
   owners?: Owner[];
   filter_select?: boolean;
   filter_select_enabled?: boolean;
+  column_names?: string[];
+  catalog?: string;
+  schema?: string;
+  table_name?: string;
+  database?: Record<string, unknown>;
+  normalize_columns?: boolean;
+  always_filter_main_dttm?: boolean;
 }
 
 export interface ControlPanelState {
+  slice: {
+    slice_id: number;
+  };
   form_data: QueryFormData;
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
@@ -175,7 +186,7 @@ export type InternalControlType =
   | keyof SharedControlComponents; // expanded in `expandControlConfig`
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ControlType = InternalControlType | React.ComponentType<any>;
+export type ControlType = InternalControlType | ComponentType<any>;
 
 export type TabOverride = 'data' | 'customize' | boolean;
 
@@ -257,6 +268,10 @@ export interface BaseControlConfig<
     props: ControlPanelsContainerProps,
     controlData: AnyDict,
   ) => boolean;
+  disableStash?: boolean;
+  hidden?:
+    | boolean
+    | ((props: ControlPanelsContainerProps, controlData: AnyDict) => boolean);
 }
 
 export interface ControlValueValidator<
@@ -314,9 +329,7 @@ export type SharedControlConfig<
 /** --------------------------------------------
  * Custom controls
  * --------------------------------------------- */
-export type CustomControlConfig<P = {}> = BaseControlConfig<
-  React.ComponentType<P>
-> &
+export type CustomControlConfig<P = {}> = BaseControlConfig<ComponentType<P>> &
   // two run-time properties from superset-frontend/src/explore/components/Control.jsx
   Omit<P, 'onChange' | 'hovered'>;
 
@@ -356,6 +369,13 @@ export type CustomControlItem = {
   config: BaseControlConfig<any, any, any>;
 };
 
+export const isCustomControlItem = (obj: unknown): obj is CustomControlItem =>
+  typeof obj === 'object' &&
+  obj !== null &&
+  typeof ('name' in obj && obj.name) === 'string' &&
+  typeof ('config' in obj && obj.config) === 'object' &&
+  (obj as CustomControlItem).config !== null;
+
 // use ReactElement instead of ReactNode because `string`, `number`, etc. may
 // interfere with other ControlSetItem types
 export type ExpandedControlItem = CustomControlItem | ReactElement | null;
@@ -376,6 +396,10 @@ export interface ControlPanelSectionConfig {
   expanded?: boolean;
   tabOverride?: TabOverride;
   controlSetRows: ControlSetRow[];
+  visibility?: (
+    props: ControlPanelsContainerProps,
+    controlData: AnyDict,
+  ) => boolean;
 }
 
 export interface StandardizedControls {
@@ -496,6 +520,13 @@ export enum SortSeriesType {
   Sum = 'sum',
   Avg = 'avg',
 }
+
+export type LegendPaddingType = {
+  top?: number;
+  bottom?: number;
+  left?: number;
+  right?: number;
+};
 
 export type SortSeriesData = {
   sort_series_type: SortSeriesType;

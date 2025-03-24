@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, ReactElement } from 'react';
+import { ReactNode, ReactElement } from 'react';
 import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
-import { AntdDropdown, AntdDropdownProps } from 'src/components';
+import { Dropdown, DropdownProps } from 'src/components/Dropdown';
 import { TooltipPlacement } from 'src/components/Tooltip';
 import {
   DynamicEditableTitle,
@@ -35,7 +35,7 @@ export const menuTriggerStyles = (theme: SupersetTheme) => css`
   padding: 0;
   border: 1px solid ${theme.colors.primary.dark2};
 
-  &.ant-btn > span.anticon {
+  &.antd5-btn > span.anticon {
     line-height: 0;
     transition: inherit;
   }
@@ -93,7 +93,7 @@ const buttonsStyles = (theme: SupersetTheme) => css`
   align-items: center;
   padding-left: ${theme.gridUnit * 2}px;
 
-  & .fave-unfave-icon {
+  & .anticon-star {
     padding: 0 ${theme.gridUnit}px;
 
     &:first-of-type {
@@ -116,7 +116,7 @@ export type PageHeaderWithActionsProps = {
   titlePanelAdditionalItems: ReactNode;
   rightPanelAdditionalItems: ReactNode;
   additionalActionsMenu: ReactElement;
-  menuDropdownProps: Omit<AntdDropdownProps, 'overlay'>;
+  menuDropdownProps: Omit<DropdownProps, 'overlay'>;
   tooltipProps?: {
     text?: string;
     placement?: TooltipPlacement;
@@ -155,9 +155,9 @@ export const PageHeaderWithActions = ({
         {rightPanelAdditionalItems}
         <div css={additionalActionsContainerStyles}>
           {showMenuDropdown && (
-            <AntdDropdown
+            <Dropdown
               trigger={['click']}
-              overlay={additionalActionsMenu}
+              dropdownRender={() => additionalActionsMenu}
               {...menuDropdownProps}
             >
               <Button
@@ -168,12 +168,12 @@ export const PageHeaderWithActions = ({
                 placement={tooltipProps?.placement}
                 data-test="actions-trigger"
               >
-                <Icons.MoreHoriz
+                <Icons.EllipsisOutlined
                   iconColor={theme.colors.primary.dark2}
                   iconSize="l"
                 />
               </Button>
-            </AntdDropdown>
+            </Dropdown>
           )}
         </div>
       </div>

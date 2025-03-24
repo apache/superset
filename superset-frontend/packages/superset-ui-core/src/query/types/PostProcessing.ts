@@ -233,6 +233,20 @@ interface _PostProcessingRank {
 }
 export type PostProcessingRank = _PostProcessingRank | DefaultPostProcessing;
 
+interface _PostProcessingHistogram {
+  operation: 'histogram';
+  options?: {
+    column: string;
+    groupby: string[];
+    bins: number;
+    cumulative?: boolean;
+    normalize?: boolean;
+  };
+}
+export type PostProcessingHistogram =
+  | _PostProcessingHistogram
+  | DefaultPostProcessing;
+
 /**
  * Parameters for chart data postprocessing.
  * See superset/utils/pandas_processing.py.
@@ -251,6 +265,7 @@ export type PostProcessingRule =
   | PostProcessingResample
   | PostProcessingRename
   | PostProcessingFlatten
+  | PostProcessingHistogram
   | PostProcessingRank;
 
 export function isPostProcessingAggregation(
@@ -317,4 +332,28 @@ export function isPostProcessingResample(
   rule?: PostProcessingRule,
 ): rule is PostProcessingResample {
   return rule?.operation === 'resample';
+}
+
+export function isPostProcessingRename(
+  rule?: PostProcessingRule,
+): rule is PostProcessingRename {
+  return rule?.operation === 'rename';
+}
+
+export function isPostProcessingFlatten(
+  rule?: PostProcessingRule,
+): rule is PostProcessingFlatten {
+  return rule?.operation === 'flatten';
+}
+
+export function isPostProcessingRank(
+  rule?: PostProcessingRule,
+): rule is PostProcessingRank {
+  return rule?.operation === 'rank';
+}
+
+export function isPostProcessingHistogram(
+  rule?: PostProcessingRule,
+): rule is PostProcessingHistogram {
+  return rule?.operation === 'histogram';
 }

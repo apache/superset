@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import MetadataBar, { MIN_NUMBER_ITEMS, MAX_NUMBER_ITEMS } from './MetadataBar';
+import MetadataBar from './MetadataBar';
+import { MIN_NUMBER_ITEMS, MAX_NUMBER_ITEMS } from './constants';
 
 export type { MetadataBarProps } from './MetadataBar';
 

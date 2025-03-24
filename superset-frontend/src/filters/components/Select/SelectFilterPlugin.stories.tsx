@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { action } from '@storybook/addon-actions';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { mockQueryDataForCountries } from 'spec/fixtures/mockNativeFilters';

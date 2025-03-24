@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import cx from 'classnames';
 import { css, styled, t } from '@superset-ui/core';
 
@@ -57,12 +57,13 @@ const BackgroundStyleOption = styled.div`
 
     /* Create the transparent rect icon */
     &.background--transparent:before {
-      background-image: linear-gradient(
-          45deg,
+      background-image:
+        linear-gradient(45deg, ${theme.colors.text.label} 25%, transparent 25%),
+        linear-gradient(
+          -45deg,
           ${theme.colors.text.label} 25%,
           transparent 25%
         ),
-        linear-gradient(-45deg, ${theme.colors.text.label} 25%, transparent 25%),
         linear-gradient(45deg, transparent 75%, ${theme.colors.text.label} 75%),
         linear-gradient(-45deg, transparent 75%, ${theme.colors.text.label} 75%);
       background-size: ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
@@ -96,7 +97,7 @@ function renderOption(option: OptionProps) {
   );
 }
 
-export default class BackgroundStyleDropdown extends React.PureComponent<BackgroundStyleDropdownProps> {
+export default class BackgroundStyleDropdown extends PureComponent<BackgroundStyleDropdownProps> {
   render() {
     const { id, value, onChange } = this.props;
     return (

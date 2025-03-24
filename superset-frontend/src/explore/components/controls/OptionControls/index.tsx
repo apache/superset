@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef } from 'react';
+import { useRef, ReactNode } from 'react';
+
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { styled, t, useTheme, keyframes, css } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -81,7 +82,7 @@ export const CaretContainer = styled.div`
 `;
 
 export const CloseContainer = styled.div`
-  height: 100%;
+  height: auto;
   width: ${({ theme }) => theme.gridUnit * 6}px;
   border-right: solid 1px ${({ theme }) => theme.colors.grayscale.dark2}0C;
   cursor: pointer;
@@ -231,7 +232,7 @@ export const AddIconButton = styled.button`
 `;
 
 interface DragItem {
-  index: number;
+  dragIndex: number;
   type: string;
 }
 
@@ -252,7 +253,7 @@ export const OptionControlLabel = ({
   multi = true,
   ...props
 }: {
-  label: string | React.ReactNode;
+  label: string | ReactNode;
   savedMetric?: savedMetricType;
   adhocMetric?: AdhocMetric;
   onRemove: () => void;
@@ -287,7 +288,7 @@ export const OptionControlLabel = ({
       if (!ref.current) {
         return;
       }
-      const dragIndex = item.index;
+      const { dragIndex } = item;
       const hoverIndex = index;
       // Don't replace items with themselves
       if (dragIndex === hoverIndex) {
@@ -322,13 +323,13 @@ export const OptionControlLabel = ({
       // but it's good here for the sake of performance
       // to avoid expensive index searches.
       // eslint-disable-next-line no-param-reassign
-      item.index = hoverIndex;
+      item.dragIndex = hoverIndex;
     },
   });
   const [{ isDragging }, drag] = useDrag({
     item: {
       type,
-      index,
+      dragIndex: index,
       value: savedMetric?.metric_name ? savedMetric : adhocMetric,
     },
     collect: monitor => ({
@@ -372,16 +373,25 @@ export const OptionControlLabel = ({
       withCaret={withCaret}
       data-test="option-label"
       {...props}
+      css={css`
+        text-align: center;
+      `}
     >
       <CloseContainer
         role="button"
         data-test="remove-control-button"
         onClick={onRemove}
       >
-        <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
+        <Icons.CloseOutlined
+          iconSize="m"
+          iconColor={theme.colors.grayscale.light1}
+          css={css`
+            vertical-align: sub;
+          `}
+        />
       </CloseContainer>
       <Label data-test="control-label">
-        {isFunction && <Icons.FieldDerived />}
+        {isFunction && <Icons.FunctionOutlined iconSize="m" />}
         {getLabelContent()}
       </Label>
       {(!!datasourceWarningMessage || isExtra) && (
@@ -400,7 +410,13 @@ export const OptionControlLabel = ({
       )}
       {withCaret && (
         <CaretContainer>
-          <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
+          <Icons.RightOutlined
+            iconSize="m"
+            css={css`
+              margin-top: ${theme.gridUnit}px;
+            `}
+            iconColor={theme.colors.grayscale.light1}
+          />
         </CaretContainer>
       )}
     </OptionControlContainer>

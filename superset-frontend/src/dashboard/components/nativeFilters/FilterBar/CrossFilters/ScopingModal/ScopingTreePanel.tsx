@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import {
   css,
@@ -118,7 +118,6 @@ const ChartSelect = ({
         <Tooltip title={t('Tooltip')} placement="top">
           <Icons.InfoCircleOutlined
             iconSize="xs"
-            iconColor={theme.colors.grayscale.base}
             css={css`
               & > span {
                 line-height: 0;

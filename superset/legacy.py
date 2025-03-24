@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Code related with dealing with legacy / change management"""
+
 from typing import Any
 
 

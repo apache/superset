@@ -22,3 +22,4 @@ export { default as sharedControlComponents } from './components';
 export * from './components';
 export * from './customControls';
 export * from './mixins';
+export * from './dndControls';

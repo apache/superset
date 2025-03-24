@@ -38,7 +38,7 @@ from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
 )
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(
@@ -50,9 +50,13 @@ from tests.unit_tests.fixtures.common import dttm
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec as spec
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseEngineSpec as spec,  # noqa: N813
+    )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -80,9 +84,13 @@ def test_execute_connection_error() -> None:
     ],
 )
 def test_connect_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec as spec
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseEngineSpec as spec,  # noqa: N813
+    )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -196,7 +204,9 @@ def test_connect_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec as spec
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseConnectEngineSpec as spec,  # noqa: N813
+    )
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
@@ -209,7 +219,9 @@ def test_connect_get_column_spec(
     ],
 )
 def test_connect_make_label_compatible(column_name: str, expected_result: str) -> None:
-    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec as spec
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseConnectEngineSpec as spec,  # noqa: N813
+    )
 
     label = spec.make_label_compatible(column_name)
     assert label == expected_result

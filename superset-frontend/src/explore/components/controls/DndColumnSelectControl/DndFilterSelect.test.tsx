@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 
@@ -49,6 +48,7 @@ import { DndItemType } from '../../DndItemType';
 import DatasourcePanelDragOption from '../../DatasourcePanel/DatasourcePanelDragOption';
 
 jest.mock('src/components/AsyncAceEditor', () => ({
+  ...jest.requireActual('src/components/AsyncAceEditor'),
   SQLEditor: (props: AsyncAceEditorProps) => (
     <div data-test="react-ace">{props.value}</div>
   ),
