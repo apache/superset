@@ -65,7 +65,7 @@ const config: ControlPanelConfig = {
               label: t('Subheader'),
               renderTrigger: true,
               description: t(
-                'Description text that shows up below your Big Number. Act as a prefix if Comparaison period lag is enabled',
+                'Description text that shows up below your Big Number. Act as a prefix if Comparison period lag is enabled',
               ),
             },
           },
