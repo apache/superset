@@ -17,11 +17,11 @@
  * under the License.
  */
 
-// eslint-disable-next-line no-restricted-imports
-import AntTable, {
+import { Table as AntTable } from 'antd-v5';
+import {
   TablePaginationConfig,
   TableProps as AntTableProps,
-} from 'antd-v5/lib/table';
+} from 'antd-v5/es/table';
 import classNames from 'classnames';
 import { useResizeDetector } from 'react-resize-detector';
 import { useEffect, useRef, useState, useCallback, CSSProperties } from 'react';
@@ -52,15 +52,15 @@ const StyledCell = styled('div')<{ height?: number }>(
 
 const StyledTable = styled(AntTable)(
   ({ theme }) => `
-    th.ant-table-cell {
-      font-weight: ${theme.typography.weights.bold};
+    th.antd5-table-cell {
+      font-weight: ${theme.fontWeightStrong};
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .ant-spin-nested-loading .ant-spin .ant-spin-dot {
-      width: ${theme.gridUnit * 12}px;
+      width: ${theme.sizeUnit * 12}px;
       height: unset;
     }
 `,

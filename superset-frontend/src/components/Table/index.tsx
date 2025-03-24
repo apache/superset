@@ -18,15 +18,12 @@
  */
 import { useState, useEffect, useRef, Key, FC } from 'react';
 
-// eslint-disable-next-line no-restricted-imports
-import AntTable, {
-  ColumnsType,
-  TableProps as AntTableProps,
-} from 'antd-v5/lib/table';
-import { PaginationProps } from 'antd-v5/lib/pagination';
+import { Table as AntTable } from 'antd-v5';
+import { ColumnsType, TableProps as AntTableProps } from 'antd-v5/es/table';
+import { PaginationProps } from 'antd-v5/es/pagination';
 import { t, useTheme, logging, styled } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
-import { RowSelectionType } from 'antd-v5/lib/table/interface';
+import { RowSelectionType } from 'antd-v5/es/table/interface';
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
 import VirtualTable, { VirtualTableProps } from './VirtualTable';
 
@@ -163,27 +160,27 @@ const HEADER_HEIGHT = 68;
 
 const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
   ({ theme, height }) => `
-    .ant-table-body {
+    .antd5-table-body {
       overflow: auto;
     }
 
     .ant-spin-nested-loading .ant-spin .ant-spin-dot {
-      width: ${theme.gridUnit * 12}px;
+      width: ${theme.sizeUnit * 12}px;
       height: unset;
     }
 
-   td.ant-table-cell {
+   td.antd5-table-cell {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    .ant-table-tbody > tr > td {
+    .antd5-table-tbody > tr > td {
       white-space: nowrap;
       overflow: hidden;
     }
 
-    .ant-table.ant-table-small {
+    .antd5-table.antd5-table-small {
       font-size: ${theme.fontSizeSM}px;
     }
   `,
@@ -192,8 +189,8 @@ const StyledVirtualTable = styled(
   VirtualTable as React.FC<VirtualTableProps<any>>,
 )(
   ({ theme }) => `
-  .virtual-table .ant-table-container:before,
-  .virtual-table .ant-table-container:after {
+  .virtual-table .antd5-table-container:before,
+  .virtual-table .antd5-table-container:after {
     display: none;
   }
   .virtual-table-cell {
