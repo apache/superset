@@ -68,7 +68,9 @@ ENV DEV_MODE=${DEV_MODE}
 
 COPY docker/ /app/docker/
 # Arguments for build configuration
-ARG NPM_BUILD_CMD="build"
+#ARG NPM_BUILD_CMD="build"
+ARG NPM_BUILD_CMD="build-dev"
+
 
 # Install system dependencies required for node-gyp
 RUN /app/docker/apt-install.sh build-essential python3 zstd

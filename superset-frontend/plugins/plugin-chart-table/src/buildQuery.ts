@@ -197,18 +197,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       moreProps.row_limit = undefined; // Remove row limit for export
       moreProps.row_offset = 0; // Reset offset for export
     }
-    //
-    // if (formDataCopy.result_type === 'full' && (formDataCopy.result_format === 'csv' || formDataCopy.result_format === 'xlsx') && formDataCopy.query_mode === 'raw') {
-    //   moreProps.row_limit = undefined; // Remove row limit for export
-    //   moreProps.row_offset = 0; // Reset offset for export
-    // } else {
-    //   if (formDataCopy.server_pagination) {
-    //     moreProps.row_limit =
-    //       ownState.pageSize ?? formDataCopy.server_page_length;
-    //     moreProps.row_offset =
-    //       (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
-    //   }
-    // }
 
     if (!temporalColumn) {
       // This query is not using temporal column, so it doesn't need time grain
