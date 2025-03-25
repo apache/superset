@@ -211,8 +211,7 @@ GOOGLE_PROVIDER = {
         'access_token_url': 'https://accounts.google.com/o/oauth2/token',
         'authorize_url': 'https://accounts.google.com/o/oauth2/auth',
         'client_id': GOOGLE_CLIENT_ID,
-        'client_secret': GOOGLE_CLIENT_SECRET,
-        'redirect_uri': 'http://localhost:8088/oauth-authorized/google',  # Asegurar que sea válido
+        'client_secret': GOOGLE_CLIENT_SECRET
     }
 }
 
