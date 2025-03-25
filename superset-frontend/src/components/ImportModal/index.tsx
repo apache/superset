@@ -17,14 +17,10 @@
  * under the License.
  */
 import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
-
-// eslint-disable-next-line no-restricted-imports
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import { styled, t } from '@superset-ui/core';
-
 import Button from 'src/components/Button';
 import Modal from 'src/components/Modal';
-import Upload from 'src/components/Upload';
+import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
 import ImportErrorAlert from './ImportErrorAlert';

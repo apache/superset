@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Vanilla Ant Design components from v4 that require migration
-// eslint-disable-next-line no-restricted-imports
-import { Upload } from 'antd'; // TODO: Remove antd
-// Vanilla Ant Design components from v4 that require migration
-// eslint-disable-next-line no-restricted-imports
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd NB: in this case use lib to avoid to encounter empty export
+import { Upload, type UploadFile } from 'antd-v5';
+import { type UploadChangeParam } from 'antd-v5/es/upload';
 
 export default Upload;
-export { UploadChangeParam, UploadFile };
+export type { UploadChangeParam, UploadFile };

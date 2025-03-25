@@ -65,7 +65,7 @@ const meta: Meta<typeof Upload> = {
     },
     progress: { control: 'object', description: 'Custom progress bar' },
     showUploadList: {
-      control: 'object',
+      control: 'boolean',
       description: 'Customize upload list display',
     },
     withCredentials: {
@@ -87,13 +87,15 @@ export const Default: Story = {
     </Upload>
   ),
   args: {
+    accept: 'image/*,.pdf',
     name: 'file',
-    multiple: true,
+    multiple: false,
     action: '',
     disabled: false,
     listType: 'text',
     showUploadList: true,
-    method: 'post',
+    method: 'POST',
     withCredentials: false,
+    directory: false,
   },
 };

@@ -26,7 +26,7 @@ import {
   waitFor,
   userEvent,
 } from 'spec/helpers/testing-library';
-import { UploadFile } from 'antd/lib/upload/interface';
+import { UploadFile } from 'src/components/Upload';
 
 const csvProps = {
   show: true,
