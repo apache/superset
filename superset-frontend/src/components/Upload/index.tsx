@@ -16,21 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sharedControlComponents } from '@superset-ui/chart-controls';
-import Select from 'src/components/Select';
-import { Input, InputNumber } from 'src/components/Input';
-import Slider from 'src/components/Slider';
-import CurrencyControl from '../../CurrencyControl';
-import CheckboxControl from '../../CheckboxControl';
+// Vanilla Ant Design components from v4 that require migration
+// eslint-disable-next-line no-restricted-imports
+import { Upload } from 'antd'; // TODO: Remove antd
+// Vanilla Ant Design components from v4 that require migration
+// eslint-disable-next-line no-restricted-imports
+import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd NB: in this case use lib to avoid to encounter empty export
 
-export const ControlFormItemComponents = {
-  Slider,
-  InputNumber,
-  Input,
-  Select,
-  // Directly export Checkbox will result in "using name from external module" error
-  // ref: https://stackoverflow.com/questions/43900035/ts4023-exported-variable-x-has-or-is-using-name-y-from-external-module-but
-  Checkbox: CheckboxControl,
-  RadioButtonControl: sharedControlComponents.RadioButtonControl,
-  CurrencyControl,
-};
+export default Upload;
+export { UploadChangeParam, UploadFile };

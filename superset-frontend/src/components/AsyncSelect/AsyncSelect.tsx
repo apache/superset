@@ -58,7 +58,7 @@ import {
   getOption,
   isObject,
   isEqual as utilsIsEqual,
-} from './utils';
+} from '../Select/utils';
 import {
   AsyncSelectProps,
   AsyncSelectRef,
@@ -67,7 +67,7 @@ import {
   SelectOptionsType,
   SelectOptionsTypePage,
   SelectProps,
-} from './types';
+} from '../../types/SelectType';
 import {
   StyledCheckOutlined,
   StyledContainer,
@@ -76,7 +76,7 @@ import {
   StyledHeader,
   StyledSelect,
   StyledStopOutlined,
-} from './styles';
+} from '../Select/styles';
 import {
   DEFAULT_PAGE_SIZE,
   EMPTY_OPTIONS,
@@ -84,7 +84,7 @@ import {
   TOKEN_SEPARATORS,
   DEFAULT_SORT_COMPARATOR,
 } from './constants';
-import { customTagRender } from './CustomTag';
+import { customTagRender } from '../Select/CustomTag';
 
 const Error = ({ error }: { error: string }) => (
   <StyledError>

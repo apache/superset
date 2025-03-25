@@ -16,20 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/*
- * Re-exporting of components in src/components to facilitate
- * their imports by other components.
- * E.g. import { Select } from 'src/components'
- */
-export { default as Select } from './Select/Select';
-export { default as AsyncSelect } from './Select/AsyncSelect';
-export { default as Button } from './Button';
-export { default as Card } from './Card';
-// Vanilla Ant Design components from v4 that require migration
-// eslint-disable-next-line no-restricted-imports
-export { Upload } from 'antd'; // TODO: Remove antd
-
 /*
  * Components that conflict with the ones in src/components.
  * We should try to avoid using Ant Design directly. The components

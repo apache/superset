@@ -22,7 +22,12 @@ import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; 
 import { ReactElement, RefObject } from 'react';
 import Icons from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
-import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
+import {
+  LabeledValue,
+  RawValue,
+  SelectOptionsType,
+  V,
+} from '../../types/SelectType';
 
 const { Option } = AntdSelect;
 

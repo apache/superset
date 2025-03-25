@@ -18,7 +18,7 @@
  */
 import { ReactNode, ComponentType, ReactElement, FC } from 'react';
 import { styled, useTheme } from '@superset-ui/core';
-import { Card } from 'src/components';
+import Card from 'src/components/Card';
 import Skeleton from 'src/components/Skeleton';
 import { Tooltip } from 'src/components/Tooltip';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';

@@ -38,7 +38,7 @@ import {
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
-import { Select } from 'src/components';
+import Select from 'src/components/Select';
 
 import { Form, FormItem } from 'src/components/Form';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';

@@ -22,7 +22,7 @@ import { Tag as AntdTag } from 'antd'; // TODO: Remove antd
 import { styled, useCSSTextTruncation } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Tooltip } from '../Tooltip';
-import { CustomTagProps } from './types';
+import { CustomTagProps } from '../../types/SelectType';
 import { SELECT_ALL_VALUE } from './utils';
 import { NoElement } from './styles';
 

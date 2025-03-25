@@ -34,7 +34,7 @@ import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import { SelectOptionsType } from 'src/components/Select/types';
+import { SelectOptionsType } from 'src/types/SelectType';
 import { StyledSelect } from 'src/components/Select/styles';
 import { handleFilterOptionHelper } from 'src/components/Select/utils';
 import { getColorNamespace } from 'src/utils/colorScheme';

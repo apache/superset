@@ -24,7 +24,7 @@ import {
   MultipleValueComparators,
 } from '@superset-ui/chart-controls';
 import { Form, FormItem, FormProps } from 'src/components/Form';
-import Select from 'src/components/Select/Select';
+import Select from 'src/components/Select';
 import { Col, Row } from 'src/components/Grid';
 import { InputNumber } from 'src/components/Input';
 import Button from 'src/components/Button';

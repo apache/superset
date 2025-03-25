@@ -18,7 +18,7 @@
  */
 import { FC, ChangeEvent, useEffect, useState } from 'react';
 
-import { Select } from 'src/components';
+import Select from 'src/components/Select';
 import {
   isFeatureEnabled,
   FeatureFlag,

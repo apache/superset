@@ -24,7 +24,7 @@ import { FixedSizeList as List } from 'react-window';
 import { createFilter } from 'react-search-input';
 import { t, styled, css } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
-import { Select } from 'src/components';
+import Select from 'src/components/Select';
 import Loading from 'src/components/Loading';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';

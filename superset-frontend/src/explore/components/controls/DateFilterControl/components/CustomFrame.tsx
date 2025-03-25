@@ -22,7 +22,7 @@ import { Col, Row } from 'src/components/Grid';
 import { InputNumber } from 'src/components/Input';
 import { DatePicker } from 'src/components/DatePicker';
 import { Radio } from 'src/components/Radio';
-import Select from 'src/components/Select/Select';
+import Select from 'src/components/Select';
 import {
   SINCE_GRAIN_OPTIONS,
   SINCE_MODE_OPTIONS,

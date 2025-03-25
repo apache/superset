@@ -24,7 +24,7 @@ import { styled, t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import Modal from 'src/components/Modal';
-import { Upload } from 'src/components';
+import Upload from 'src/components/Upload';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
 import ImportErrorAlert from './ImportErrorAlert';

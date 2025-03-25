@@ -59,7 +59,8 @@ import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/
 import { useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { Input } from 'src/components/Input';
-import { Select, FormInstance } from 'src/components';
+import { FormInstance } from 'src/components';
+import Select from 'src/components/Select';
 import Collapse from 'src/components/Collapse';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';

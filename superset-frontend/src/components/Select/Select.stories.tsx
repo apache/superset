@@ -18,7 +18,7 @@
  */
 import { StoryObj } from '@storybook/react';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { SelectOptionsType, SelectProps } from './types';
+import { SelectOptionsType, SelectProps } from '../../types/SelectType';
 import Select from './Select';
 
 export default {

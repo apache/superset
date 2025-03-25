@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
-import { Select } from 'src/components';
+import Select from 'src/components/Select';
 import { Tooltip } from 'src/components/Tooltip';
 import { EmptyState } from 'src/components/EmptyState';
 import { Form, FormItem } from 'src/components/Form';
