@@ -184,7 +184,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             TabStateView,
         )
         from superset.views.sqllab import SqllabView
-        from superset.views.sqllab_poc import SqlLabPocView
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
         from superset.views.users_list import UsersListView
@@ -325,7 +324,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(ExplorePermalinkView)
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SqllabView)
-        appbuilder.add_view_no_menu(SqlLabPocView)
         appbuilder.add_view_no_menu(Superset)
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)
@@ -342,15 +340,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             "SQL Editor",
             label=__("SQL Lab"),
             href=f"{app_root}/sqllab/",
-            category_icon="fa-flask",
-            icon="fa-flask",
-            category="SQL Lab",
-            category_label=__("SQL"),
-        )
-        appbuilder.add_link(
-            "SQL Editor POC",
-            label=__("SQL Lab POC"),
-            href="/sqllab_poc/",
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
