@@ -48,6 +48,9 @@ export const Table = styled.table`
       tr:first-of-type > td {
         border-top: 0;
       }
+      tr > td {
+        border-top: 1px solid ${theme.colorSplit};
+      }
     }
     th {
       position: sticky;

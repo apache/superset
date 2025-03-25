@@ -480,7 +480,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleDuplicate}
                   >
-                    <Icons.CopyOutlined />
+                    <Icons.CopyOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
