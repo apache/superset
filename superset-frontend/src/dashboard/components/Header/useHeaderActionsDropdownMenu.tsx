@@ -98,7 +98,7 @@ export const useHeaderActionsMenu = ({
           break;
         case MenuKeys.ToggleFullscreen: {
           const isCurrentlyStandalone =
-            getUrlParam(URL_PARAMS.standalone) === 1;
+            Number(getUrlParam(URL_PARAMS.standalone)) === 1;
           const url = getDashboardUrl({
             pathname: window.location.pathname,
             filters: getActiveFilters(),
