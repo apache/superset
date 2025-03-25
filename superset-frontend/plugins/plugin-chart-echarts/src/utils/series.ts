@@ -38,7 +38,6 @@ import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
 import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
-import naturalCompare from 'natural-compare-lite';
 import {
   NULL_STRING,
   StackControlsValue,
@@ -157,12 +156,15 @@ export function sortAndFilterSeries(
     case SortSeriesType.Avg:
       aggregator = name => ({ name, value: meanBy(rows, name) });
       break;
-    default:
-      return [...seriesNames].sort((a, b) =>
-        sortSeriesAscending
-          ? naturalCompare(a.toLowerCase(), b.toLowerCase())
-          : naturalCompare(b.toLowerCase(), a.toLowerCase()),
+    default: {
+      const collator = new Intl.Collator(undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
+      return seriesNames.sort((a, b) =>
+        sortSeriesAscending ? collator.compare(a, b) : collator.compare(b, a),
       );
+    }
   }
 
   const sortedValues = seriesNames.map(aggregator);
