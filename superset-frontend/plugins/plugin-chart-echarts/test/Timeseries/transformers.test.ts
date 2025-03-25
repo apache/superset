@@ -159,7 +159,7 @@ describe('transformNegativeLabelsPosition', () => {
     expect((result as any)[0].data[4].label).toBe(undefined);
   });
 
-  test('label position to bar type and stack ', () => {
+  test('label position to bar type and stack', () => {
     const isHorizontal = false;
     const series: any[] = [
       {
