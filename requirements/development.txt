@@ -107,7 +107,7 @@ click-didyoumean==0.3.1
     # via
     #   -c requirements/base.txt
     #   celery
-click-option-group==0.5.6
+click-option-group==0.5.7
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -343,7 +343,7 @@ holidays==0.25
     #   -c requirements/base.txt
     #   apache-superset
     #   prophet
-humanize==4.12.1
+humanize==4.12.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -543,7 +543,7 @@ pillow==10.3.0
     # via
     #   apache-superset
     #   matplotlib
-platformdirs==4.3.6
+platformdirs==4.3.7
     # via
     #   -c requirements/base.txt
     #   requests-cache
@@ -636,7 +636,7 @@ pyopenssl==25.0.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
-pyparsing==3.2.1
+pyparsing==3.2.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
