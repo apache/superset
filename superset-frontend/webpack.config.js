@@ -554,7 +554,7 @@ if (isDevMode) {
 
   config.devServer = {
     devMiddleware: {
-      writeToDisk: filePath => /assets\/images/.test(filePath),
+      writeToDisk: true,
     },
     historyApiFallback: true,
     hot: true,
