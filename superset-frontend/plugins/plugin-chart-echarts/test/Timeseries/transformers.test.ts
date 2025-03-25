@@ -18,7 +18,10 @@
  */
 import { CategoricalColorScale } from '@superset-ui/core';
 import { EchartsTimeseriesSeriesType } from '@superset-ui/plugin-chart-echarts';
-import { transformSeries } from '../../src/Timeseries/transformers';
+import {
+  transformSeries,
+  transformNegativeLabelsPosition,
+} from '../../src/Timeseries/transformers';
 
 // Mock the colorScale function
 const mockColorScale = jest.fn(
@@ -80,5 +83,103 @@ describe('transformSeries', () => {
     expect((result as any).itemStyle.borderWidth).toBe(0);
     expect((result as any).itemStyle.borderType).toBeUndefined();
     expect((result as any).itemStyle.borderColor).toBeUndefined();
+  });
+});
+
+describe('transformNegativeLabelsPosition', () => {
+  test('label position bottom of negative value no Horizontal', () => {
+    const isHorizontal = false;
+    const series: any[] = [
+      {
+        data: [
+          [2020, 1],
+          [2021, 3],
+          [2022, -2],
+          [2023, -5],
+          [2024, 4],
+        ],
+        type: 'bar',
+        stack: undefined,
+      },
+    ];
+
+    const result = transformNegativeLabelsPosition(series, isHorizontal);
+    expect((result as any)[0].data[0].label).toBe(undefined);
+    expect((result as any)[0].data[1].label).toBe(undefined);
+    expect((result as any)[0].data[2].label.position).toBe('bottom');
+    expect((result as any)[0].data[3].label.position).toBe('bottom');
+    expect((result as any)[0].data[4].label).toBe(undefined);
+  });
+
+  test('label position left of negative value is Horizontal', () => {
+    const isHorizontal = true;
+    const series: any[] = [
+      {
+        data: [
+          [1, 2020],
+          [-3, 2021],
+          [2, 2022],
+          [-4, 2023],
+          [-6, 2024],
+        ],
+        type: 'bar',
+        stack: undefined,
+      },
+    ];
+
+    const result = transformNegativeLabelsPosition(series, isHorizontal);
+    expect((result as any)[0].data[0].label).toBe(undefined);
+    expect((result as any)[0].data[1].label.position).toBe('left');
+    expect((result as any)[0].data[2].label).toBe(undefined);
+    expect((result as any)[0].data[3].label.position).toBe('left');
+    expect((result as any)[0].data[4].label.position).toBe('left');
+  });
+
+  test('label position to line type', () => {
+    const isHorizontal = false;
+    const series: any[] = [
+      {
+        data: [
+          [2020, 1],
+          [2021, 3],
+          [2022, -2],
+          [2023, -5],
+          [2024, 4],
+        ],
+        type: 'line',
+        stack: undefined,
+      },
+    ];
+
+    const result = transformNegativeLabelsPosition(series, isHorizontal);
+    expect((result as any)[0].data[0].label).toBe(undefined);
+    expect((result as any)[0].data[1].label).toBe(undefined);
+    expect((result as any)[0].data[2].label).toBe(undefined);
+    expect((result as any)[0].data[3].label).toBe(undefined);
+    expect((result as any)[0].data[4].label).toBe(undefined);
+  });
+
+  test('label position to bar type and stack ', () => {
+    const isHorizontal = false;
+    const series: any[] = [
+      {
+        data: [
+          [2020, 1],
+          [2021, 3],
+          [2022, -2],
+          [2023, -5],
+          [2024, 4],
+        ],
+        type: 'bar',
+        stack: 'obs',
+      },
+    ];
+
+    const result = transformNegativeLabelsPosition(series, isHorizontal);
+    expect((result as any)[0].data[0].label).toBe(undefined);
+    expect((result as any)[0].data[1].label).toBe(undefined);
+    expect((result as any)[0].data[2].label).toBe(undefined);
+    expect((result as any)[0].data[3].label).toBe(undefined);
+    expect((result as any)[0].data[4].label).toBe(undefined);
   });
 });

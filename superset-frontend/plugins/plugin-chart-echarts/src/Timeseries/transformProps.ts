@@ -630,8 +630,6 @@ export default function transformProps(
     series: transformNegativeLabelsPosition(
       dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
       isHorizontal,
-      seriesType,
-      stack,
     ),
     toolbox: {
       show: zoomable,

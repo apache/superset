@@ -631,8 +631,6 @@ export function getPadding(
 export function transformNegativeLabelsPosition(
   series: SeriesOption[],
   isHorizontal: boolean,
-  seriesType: EchartsTimeseriesSeriesType,
-  stack: StackType,
 ): SeriesOption[] {
   /*
    * Adjusts label position for negative values in bar series
@@ -643,7 +641,7 @@ export function transformNegativeLabelsPosition(
    * @returns Series with adjusted label positions for negative values
    */
   const shouldTransform = (item: SeriesOption): boolean =>
-    Array.isArray(item.data) && seriesType === 'bar' && !stack;
+    Array.isArray(item.data) && item.type === 'bar' && !item.stack;
 
   const transformValue = (value: any) => {
     const [xValue, yValue] = Array.isArray(value) ? value : [null, null];
