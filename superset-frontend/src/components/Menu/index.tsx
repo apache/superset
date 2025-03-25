@@ -100,7 +100,7 @@ const StyledNav = styled(AntdMenu)`
         width: 100%;
         height: 2px;
         background-color: ${theme.colors.primary.base};
-        bottom: 0;
+        bottom: ${theme.sizeUnit / 4}px;
         left: 0;
         transform: scale(0);
         transition: 0.2s all ease-out;
