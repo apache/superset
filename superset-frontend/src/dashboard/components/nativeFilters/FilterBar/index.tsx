@@ -297,7 +297,11 @@ const FilterBar: FC<FiltersBarProps> = ({
       isApplyDisabled,
     ],
   );
+  const isEmbedded =  window !== window.parent;
+  if(isEmbedded && filterValues.length === 0){
+    hidden=true;
 
+  }
   const filterBarComponent =
     orientation === FilterBarOrientation.Horizontal ? (
       <Horizontal

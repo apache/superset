@@ -28,7 +28,6 @@ import {
   JsonObject,
   finestTemporalGrainFormatter,
   t,
-  tn,
 } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
@@ -209,7 +208,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const placeholderText =
     data.length === 0
       ? t('No data')
-      : tn('%s option', '%s options', data.length, data.length);
+      : t('All data');
 
   const formItemExtra = useMemo(() => {
     if (filterState.validateMessage) {

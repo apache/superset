@@ -16,63 +16,57 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  MouseEvent,
-  Key,
-  KeyboardEvent,
-  useState,
-  useRef,
-  RefObject,
-} from 'react';
+import {Key, KeyboardEvent, MouseEvent, RefObject, useEffect, useRef, useState,} from 'react';
 
-import { RouteComponentProps, useHistory } from 'react-router-dom';
-import { extendedDayjs } from 'src/utils/dates';
+import {RouteComponentProps, useHistory} from 'react-router-dom';
+import {extendedDayjs} from 'src/utils/dates';
 import {
   Behavior,
+  BinaryQueryObjectFilterClause,
   css,
-  isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
+  isFeatureEnabled,
+  QueryFormData,
   styled,
   t,
   VizType,
-  BinaryQueryObjectFilterClause,
-  QueryFormData,
 } from '@superset-ui/core';
-import { useSelector } from 'react-redux';
-import { Menu } from 'src/components/Menu';
-import { NoAnimationDropdown } from 'src/components/Dropdown';
+import {useSelector} from 'react-redux';
+import {Menu} from 'src/components/Menu';
+import {NoAnimationDropdown} from 'src/components/Dropdown';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
-import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
-import { Tooltip } from 'src/components/Tooltip';
+import {getSliceHeaderTooltip} from 'src/dashboard/util/getSliceHeaderTooltip';
+import {Tooltip} from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
-import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
-import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
-import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
-import { MenuKeys, RootState } from 'src/dashboard/types';
+import {ResultsPaneOnDashboard} from 'src/explore/components/DataTablesPane';
+import {DrillDetailMenuItems} from 'src/components/Chart/DrillDetail';
+import {LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE} from 'src/logger/LogUtils';
+import {MenuKeys, RootState} from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
-import { usePermissions } from 'src/hooks/usePermissions';
+import {usePermissions} from 'src/hooks/usePermissions';
 import Button from 'src/components/Button';
-import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
-import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
+import {
+  useCrossFiltersScopingModal
+} from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
+import {ViewResultsModalTrigger} from './ViewResultsModalTrigger';
 
 // TODO: replace 3 dots with an icon
 const VerticalDotsContainer = styled.div`
-  padding: ${({ theme }) => theme.gridUnit / 4}px
-    ${({ theme }) => theme.gridUnit * 1.5}px;
+  padding: ${({theme}) => theme.gridUnit / 4}px ${({theme}) => theme.gridUnit * 1.5}px;
 
   .dot {
     display: block;
 
-    height: ${({ theme }) => theme.gridUnit}px;
-    width: ${({ theme }) => theme.gridUnit}px;
+    height: ${({theme}) => theme.gridUnit}px;
+    width: ${({theme}) => theme.gridUnit}px;
     border-radius: 50%;
-    margin: ${({ theme }) => theme.gridUnit / 2}px 0;
+    margin: ${({theme}) => theme.gridUnit / 2}px 0;
 
-    background-color: ${({ theme }) => theme.colors.text.label};
+    background-color: ${({theme}) => theme.colors.text.label};
   }
 
   &:hover {
@@ -82,8 +76,8 @@ const VerticalDotsContainer = styled.div`
 
 const RefreshTooltip = styled.div`
   height: auto;
-  margin: ${({ theme }) => theme.gridUnit}px 0;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  margin: ${({theme}) => theme.gridUnit}px 0;
+  color: ${({theme}) => theme.colors.grayscale.base};
   line-height: 21px;
   display: flex;
   flex-direction: column;
@@ -96,9 +90,9 @@ const getScreenshotNodeSelector = (chartId: string | number) =>
 
 const VerticalDotsTrigger = () => (
   <VerticalDotsContainer>
-    <span className="dot" />
-    <span className="dot" />
-    <span className="dot" />
+    <span className="dot"/>
+    <span className="dot"/>
+    <span className="dot"/>
   </VerticalDotsContainer>
 );
 
@@ -145,6 +139,7 @@ export interface SliceHeaderControlsProps {
 
   crossFiltersEnabled?: boolean;
 }
+
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
 
@@ -155,9 +150,50 @@ const dropdownIconsStyles = css`
   }
 `;
 
+const parseJsonValue = (value: any) => {
+  if (!value) return [];
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch (error) {
+      return [];
+    }
+  }
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (value instanceof Set) {
+    return Array.from(value);
+  }
+  return [];
+};
+
+
+
+
 const SliceHeaderControls = (
   props: SliceHeaderControlsPropsWithRouter | SliceHeaderControlsProps,
 ) => {
+
+  function sendWindowPostMessge(messageData: any) {
+    if (window.self !== window.top) {
+      window.parent.postMessage(messageData, '*', [new MessageChannel().port2]);
+      window.postMessage({'notification':'publish-event',"data":messageData}, '*');
+    } else {
+      window.postMessage({'notification':'alert-event',"data":messageData}, '*');
+    }
+  }
+
+
+  function onBulkActionClick(key: any, selectedIds: unknown[]) {
+    sendWindowPostMessge({
+      action: 'bulk-action',
+      actionType: key,
+      chartId: slice.slice_id,
+      value:selectedIds,
+    });
+
+  }
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
   // setting openKeys undefined falls back to uncontrolled behaviour
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -175,23 +211,56 @@ const SliceHeaderControls = (
 
   const canEditCrossFilters =
     useSelector<RootState, boolean>(
-      ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
+      ({dashboardInfo}) => dashboardInfo.dash_edit_perm,
     ) &&
     getChartMetadataRegistry()
       .get(props.slice.viz_type)
       ?.behaviors?.includes(Behavior.InteractiveChart);
   const canExplore = props.supersetCanExplore;
-  const { canDrillToDetail, canViewQuery, canViewTable } = usePermissions();
+  const {canDrillToDetail, canViewQuery, canViewTable} = usePermissions();
   const refreshChart = () => {
     if (props.updatedDttm) {
       props.forceRefresh(props.slice.slice_id, props.dashboardId);
     }
   };
+  const bulkActionLabel=props?.formData?.bulk_action_label;
+  const nonSplitActions = parseJsonValue(props?.formData?.non_split_actions);
+  const splitActions = parseJsonValue(props?.formData?.split_actions);
+  const [selectedRows, setSelectedRows] = useState<Set<any>>(new Set());
+  const [hasSelection, setHasSelection] = useState(false);
+
+  // Load selected rows from localStorage on component mount
+  useEffect(() => {
+    const checkSelection = () => {
+      const savedSelectedRows = localStorage.getItem(`selectedRows_${slice.slice_id}`);
+      const parsed: any[] = savedSelectedRows ? parseJsonValue(savedSelectedRows) : [];
+      const rowsSet = new Set(parsed);
+      setSelectedRows(rowsSet);
+      setHasSelection(rowsSet?.size > 0);
+    };
+
+    // Initial check
+    checkSelection();
+
+    // Listen for storage events to react to changes in other tabs/windows
+    const handleStorageChange = (event: any) => {
+      if (event.key === `selectedRows_${slice.slice_id}`) {
+        checkSelection();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [props.slice.slice_id]);
 
   const handleMenuClick = ({
-    key,
-    domEvent,
-  }: {
+                             key,
+                             domEvent,
+                           }: {
     key: Key;
     domEvent: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>;
   }) => {
@@ -294,12 +363,14 @@ const SliceHeaderControls = (
     isFullSize,
     cachedDttm = [],
     updatedDttm = null,
-    addSuccessToast = () => {},
-    addDangerToast = () => {},
+    addSuccessToast = () => {
+    },
+    addDangerToast = () => {
+    },
     supersetCanShare = false,
     isCached = [],
   } = props;
-  const isTable = slice.viz_type === VizType.Table;
+  const isTable = slice.viz_type === VizType.Table || slice.viz_type === VizType.RemitaTable;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
     extendedDayjs.utc(itemCachedDttm).fromNow(),
@@ -334,7 +405,18 @@ const SliceHeaderControls = (
     zIndex: isFullSize ? 101 : 99,
     animationDuration: '0s',
   };
-
+  const isActionVisible = (action: any, hasSelection: boolean) => {
+    if (!action?.visibilityCondition || action.visibilityCondition === 'all') {
+      return true;
+    }
+    if (action.visibilityCondition === 'selected') {
+      return hasSelection;
+    }
+    if (action.visibilityCondition === 'unselected') {
+      return !hasSelection;
+    }
+    return true;
+  };
   const menu = (
     <Menu
       onClick={handleMenuClick}
@@ -345,7 +427,7 @@ const SliceHeaderControls = (
       <Menu.Item
         key={MenuKeys.ForceRefresh}
         disabled={props.chartStatus === 'loading'}
-        style={{ height: 'auto', lineHeight: 'initial' }}
+        style={{height: 'auto', lineHeight: 'initial'}}
         data-test="refresh-chart-menu-item"
       >
         {t('Force refresh')}
@@ -356,7 +438,7 @@ const SliceHeaderControls = (
 
       <Menu.Item key={MenuKeys.Fullscreen}>{fullscreenLabel}</Menu.Item>
 
-      <Menu.Divider />
+      <Menu.Divider/>
 
       {slice.description && (
         <Menu.Item key={MenuKeys.ToggleChartDescription}>
@@ -383,7 +465,7 @@ const SliceHeaderControls = (
         </Menu.Item>
       )}
 
-      {(canExplore || canEditCrossFilters) && <Menu.Divider />}
+      {(canExplore || canEditCrossFilters) && <Menu.Divider/>}
 
       {(canExplore || canViewQuery) && (
         <Menu.Item key={MenuKeys.ViewQuery}>
@@ -392,7 +474,7 @@ const SliceHeaderControls = (
               <div data-test="view-query-menu-item">{t('View query')}</div>
             }
             modalTitle={t('View query')}
-            modalBody={<ViewQueryModal latestQueryFormData={props.formData} />}
+            modalBody={<ViewQueryModal latestQueryFormData={props.formData}/>}
             draggable
             resizable
             responsive
@@ -435,7 +517,7 @@ const SliceHeaderControls = (
         />
       )}
 
-      {(slice.description || canExplore) && <Menu.Divider />}
+      {(slice.description || canExplore) && <Menu.Divider/>}
 
       {supersetCanShare && (
         <ShareMenuItems
@@ -455,21 +537,21 @@ const SliceHeaderControls = (
         <Menu.SubMenu title={t('Download')} key={MenuKeys.Download}>
           <Menu.Item
             key={MenuKeys.ExportCsv}
-            icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+            icon={<Icons.FileOutlined css={dropdownIconsStyles}/>}
           >
             {t('Export to .CSV')}
           </Menu.Item>
           {isPivotTable && (
             <Menu.Item
               key={MenuKeys.ExportPivotCsv}
-              icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+              icon={<Icons.FileOutlined css={dropdownIconsStyles}/>}
             >
               {t('Export to Pivoted .CSV')}
             </Menu.Item>
           )}
           <Menu.Item
             key={MenuKeys.ExportXlsx}
-            icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+            icon={<Icons.FileOutlined css={dropdownIconsStyles}/>}
           >
             {t('Export to Excel')}
           </Menu.Item>
@@ -480,13 +562,13 @@ const SliceHeaderControls = (
               <>
                 <Menu.Item
                   key={MenuKeys.ExportFullCsv}
-                  icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+                  icon={<Icons.FileOutlined css={dropdownIconsStyles}/>}
                 >
                   {t('Export to full .CSV')}
                 </Menu.Item>
                 <Menu.Item
                   key={MenuKeys.ExportFullXlsx}
-                  icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+                  icon={<Icons.FileOutlined css={dropdownIconsStyles}/>}
                 >
                   {t('Export to full Excel')}
                 </Menu.Item>
@@ -495,11 +577,49 @@ const SliceHeaderControls = (
 
           <Menu.Item
             key={MenuKeys.DownloadAsImage}
-            icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
+            icon={<Icons.FileImageOutlined css={dropdownIconsStyles}/>}
           >
             {t('Download as image')}
           </Menu.Item>
         </Menu.SubMenu>
+      )}
+      {/* Add splitActions as a submenu */}
+      {splitActions?.length > 0 && (
+        <Menu.SubMenu key="split-actions" title={bulkActionLabel}>
+          {splitActions
+            .map((action: any) => {
+              const visible = isActionVisible(action, hasSelection);
+              return (
+                <Menu.Item
+                  key={action.key}
+                  disabled={action.boundToSelection && !visible}
+                  onClick={() => onBulkActionClick?.(action.key, Array.from(selectedRows))}
+                >
+                  {action.label}
+                </Menu.Item>
+              );
+            })}
+        </Menu.SubMenu>
+      )}
+
+      {nonSplitActions.length > 0 && (
+        <>
+          <Menu.Divider />
+          {nonSplitActions
+            .filter((action: any) => action?.showInSliceHeader)
+            .map((action: any) => {
+              const visible = isActionVisible(action, hasSelection);
+              return (
+                <Menu.Item
+                  key={action.key}
+                  disabled={action.boundToSelection && !visible}
+                  onClick={() => onBulkActionClick?.(action.key, Array.from(selectedRows))}
+                >
+                  {action.label}
+                </Menu.Item>
+              );
+            })}
+        </>
       )}
     </Menu>
   );
@@ -508,7 +628,7 @@ const SliceHeaderControls = (
     <>
       {isFullSize && (
         <Icons.FullscreenExitOutlined
-          style={{ fontSize: 22 }}
+          style={{fontSize: 22}}
           onClick={() => {
             props.handleToggleFullSize();
           }}
@@ -528,7 +648,7 @@ const SliceHeaderControls = (
           aria-label="More Options"
           aria-haspopup="true"
         >
-          <VerticalDotsTrigger />
+          <VerticalDotsTrigger/>
         </Button>
       </NoAnimationDropdown>
       <DrillDetailModal
@@ -547,3 +667,5 @@ const SliceHeaderControls = (
 };
 
 export default SliceHeaderControls;
+
+

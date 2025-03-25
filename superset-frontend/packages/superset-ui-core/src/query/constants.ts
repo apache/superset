@@ -31,8 +31,8 @@ export const EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS: (keyof ExtraFormDataOverrideEx
   ['relative_start', 'relative_end', 'time_grain_sqla'];
 
 export const EXTRA_FORM_DATA_APPEND_KEYS: (keyof ExtraFormDataAppend)[] = [
-  'adhoc_filters',
-  'filters',
+  // 'adhoc_filters',
+  // 'filters',
   'interactive_groupby',
   'interactive_highlight',
   'interactive_drilldown',

@@ -1930,6 +1930,7 @@ EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 # connection via the UI (without downtime).
 CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 
+JWT_VERIFY_SUB = False
 
 # When updating a DB connection or manually triggering a perm sync, the command
 # happens in sync mode. If you have a celery worker configured, it's recommended
