@@ -30,8 +30,9 @@ import { InputNumber } from 'src/components/Input';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import Metadata from 'src/components/Metadata';
 import { isNumber } from 'lodash';
+import { FormItem } from 'src/components/Form';
 import { PluginFilterRangeProps } from './types';
-import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
+import { StatusMessage, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
 
@@ -340,7 +341,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
-        <StyledFormItem
+        <FormItem
           aria-labelledby={`filter-name-${formData.nativeFilterId}`}
           extra={formItemExtra}
         >
@@ -382,7 +383,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           {(rangeInput ||
             filterBarOrientation === FilterBarOrientation.Vertical) &&
             !filterState.validateStatus && <Metadata value={metadataText} />}
-        </StyledFormItem>
+        </FormItem>
       )}
     </FilterPluginStyle>
   );
