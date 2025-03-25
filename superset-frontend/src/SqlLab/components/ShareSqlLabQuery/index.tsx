@@ -75,6 +75,7 @@ const ShareSqlLabQuery = ({
     return (
       <Button
         buttonSize="small"
+        buttonStyle="secondary"
         tooltip={tooltip}
         css={css`
           span > :first-of-type {
