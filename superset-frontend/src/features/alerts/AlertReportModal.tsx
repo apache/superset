@@ -523,7 +523,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [nativeFilterOptions, setNativeFilterOptions] = useState<object[]>([]);
   const [tabNativeFilters, setTabNativeFilters] = useState<object>({});
   const [nativeFilterData, setNativeFilterData] = useState<ExtraNativeFilter[]>(
-    [{}],
+    [
+      {
+        nativeFilterId: null,
+        columnLabel: '',
+        columnName: '',
+        filterValues: [],
+      },
+    ],
   );
 
   console.log(nativeFilterData);
@@ -1980,7 +1987,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     <div>
                       {fields.map(({ key, name }) => (
                         <div className="filters-container" key={key}>
-                          {console.log(name)}
                           <div className="filters-dash-container">
                             <div className="control-label">
                               <span>{t('Select Dashboard Filter')}</span>
@@ -2023,17 +2029,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               mode="multiple"
                             />
                           </div>
-                          {name !== 0 && (
-                            <div className="filters-delete">
-                              <Icons.Trash
-                                className="filters-trashcan"
-                                onClick={() => {
-                                  handleRemoveFilterField(name);
-                                  remove(name);
-                                }}
-                              />
-                            </div>
-                          )}
+                          <div className="filters-delete">
+                            <Icons.DeleteOutlined
+                              className="filters-trashcan"
+                              onClick={() => {
+                                handleRemoveFilterField(name);
+                                remove(name);
+                              }}
+                            />
+                          </div>
                         </div>
                       ))}
                       <div className="filters-add-container">
