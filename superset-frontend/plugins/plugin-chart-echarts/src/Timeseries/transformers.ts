@@ -646,7 +646,8 @@ export function transformNegativeLabelsPosition(
     Array.isArray(item.data) && seriesType === 'bar' && !stack;
 
   const transformValue = (value: any) => {
-    const axisValue = isHorizontal ? value[0] : value[1];
+    const [xValue, yValue] = Array.isArray(value) ? value : [null, null];
+    const axisValue = isHorizontal ? xValue : yValue;
 
     return axisValue < 0
       ? {
