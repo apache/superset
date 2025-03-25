@@ -60,3 +60,12 @@ class AnnotationLayerPutSchema(Schema):
     descr = fields.String(
         metadata={"description": annotation_layer_descr}, required=False
     )
+
+
+class AnnotationGetSchema(Schema):
+    id = fields.Integer()
+    start_dttm = fields.DateTime()
+    end_dttm = fields.DateTime()
+    short_descr = fields.String()
+    long_descr = fields.String()
+    json_metadata = fields.String()
