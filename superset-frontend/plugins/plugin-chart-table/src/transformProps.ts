@@ -347,6 +347,7 @@ const processComparisonColumns = (
       } = props;
       const savedFormat = columnFormats?.[col.key];
       const savedCurrency = currencyFormats?.[col.key];
+      const originalLabel = col.label;
       if (
         (col.isMetric || col.isPercentMetric) &&
         !col.key.includes(comparisonSuffix) &&
@@ -355,6 +356,7 @@ const processComparisonColumns = (
         return [
           {
             ...col,
+            originalLabel,
             label: t('Main'),
             key: `${t('Main')} ${col.key}`,
             config: getComparisonColConfig(t('Main'), col.key, columnConfig),
@@ -368,6 +370,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
+            originalLabel,
             label: `#`,
             key: `# ${col.key}`,
             config: getComparisonColConfig(`#`, col.key, columnConfig),
@@ -381,6 +384,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
+            originalLabel,
             label: `△`,
             key: `△ ${col.key}`,
             config: getComparisonColConfig(`△`, col.key, columnConfig),
@@ -394,6 +398,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
+            originalLabel,
             label: `%`,
             key: `% ${col.key}`,
             config: getComparisonColConfig(`%`, col.key, columnConfig),
