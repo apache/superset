@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createRef, useCallback, useMemo } from 'react';
+import { createRef, useCallback, useEffect, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
 import Tabs from 'src/components/Tabs';
@@ -35,6 +35,8 @@ import {
 } from '../../constants';
 import Results from './Results';
 import TablePreview from '../TablePreview';
+import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
+import useExtensions, { ResolvedModule } from 'src/hooks/useExtensions';
 
 const TAB_HEIGHT = 130;
 
@@ -93,6 +95,16 @@ const SouthPane = ({
 }: SouthPaneProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
+
+  // Initialize SQL Lab extensions
+  const extensions = useExtensions();
+  const { views } = useExtensionsContext();
+  useEffect(() => {
+    extensions.forEach((extension: ResolvedModule) => {
+      extension.activate();
+    });
+  }, [extensions]);
+
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
@@ -177,6 +189,11 @@ const SouthPane = ({
             latestQueryId={latestQueryId}
           />
         </Tabs.TabPane>
+        {Object.entries(views).map(entry => (
+          <Tabs.TabPane tab={entry[0]} key={entry[0]} closable={false}>
+            {entry[1]}
+          </Tabs.TabPane>
+        ))}
         {pinnedTables.map(({ id, dbId, catalog, schema, name }) => (
           <Tabs.TabPane
             tab={
