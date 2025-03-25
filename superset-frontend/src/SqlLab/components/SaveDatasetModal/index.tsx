@@ -20,7 +20,7 @@
 import { useCallback, useState, FormEvent } from 'react';
 
 import { Radio, RadioChangeEvent } from 'src/components/Radio';
-import AsyncSelect from 'src/components/AsyncSelect';
+import { AsyncSelect } from 'src/components/Select';
 import { Input } from 'src/components/Input';
 import StyledModal from 'src/components/Modal';
 import Button from 'src/components/Button';

@@ -27,9 +27,9 @@ import {
   t,
 } from '@superset-ui/core';
 import { CSSObject } from '@emotion/react';
-import Select from 'src/components/Select';
+import { Select } from 'src/components/Select';
 import { ViewState } from 'src/views/types';
-import { SelectProps } from 'src/types/SelectType';
+import { SelectProps } from 'src/components/Select/types';
 import ControlHeader from '../../ControlHeader';
 
 export interface CurrencyControlProps {

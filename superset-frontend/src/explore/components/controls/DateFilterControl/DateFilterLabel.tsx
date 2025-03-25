@@ -32,7 +32,7 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 import Modal from 'src/components/Modal';
 import { Divider } from 'src/components/Divider';
 import Icons from 'src/components/Icons';
-import Select from 'src/components/Select';
+import { Select } from 'src/components/Select';
 import { Tooltip } from 'src/components/Tooltip';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';

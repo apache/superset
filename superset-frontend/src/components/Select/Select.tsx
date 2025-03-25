@@ -58,11 +58,7 @@ import {
   isObject,
   isEqual as utilsIsEqual,
 } from './utils';
-import {
-  RawValue,
-  SelectOptionsType,
-  SelectProps,
-} from '../../types/SelectType';
+import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
   StyledCheckOutlined,
   StyledContainer,

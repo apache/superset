@@ -22,8 +22,8 @@ import {
   AsyncSelectProps,
   AsyncSelectRef,
   SelectOptionsTypePage,
-} from 'src/types/SelectType';
-import AsyncSelect from './AsyncSelect';
+} from 'src/components/Select/types';
+import { AsyncSelect } from '.';
 
 export default {
   title: 'AsyncSelect',
