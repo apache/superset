@@ -89,7 +89,7 @@ const TableViewStyles = styled.div<{
   th[role='columnheader'] {
     z-index: 1;
     border-bottom: ${({ theme }) =>
-      `${theme.sizeUnit - 2}px solid ${theme.colors.grayscale.light2}`};
+      `${theme.sizeUnit - 2}px solid ${theme.colorSplit}`};
     ${({ small }) => small && `padding-bottom: 0;`}
   }
 `;
@@ -101,7 +101,7 @@ const PaginationStyles = styled.div<{
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  background-color: ${({ theme }) => theme.colorBgElevated};
 
   ${({ isPaginationSticky }) =>
     isPaginationSticky &&
@@ -113,7 +113,7 @@ const PaginationStyles = styled.div<{
 
   .row-count-container {
     margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorText};
   }
 `;
 
