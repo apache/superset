@@ -364,9 +364,11 @@ const DropdownContainer = forwardRef(
             />
 
             <Popover
-              overlayInnerStyle={{
-                maxHeight: `${MAX_HEIGHT}px`,
-                overflow: showOverflow ? 'auto' : 'visible',
+              styles={{
+                body: {
+                  maxHeight: `${MAX_HEIGHT}px`,
+                  overflow: showOverflow ? 'auto' : 'visible',
+                },
               }}
               content={popoverContent}
               trigger="click"
