@@ -36,8 +36,9 @@ const ThemedSyntaxHighlighter = ({
     language="sql"
     style={style}
     customStyle={{
-      background: 'transparent',
-      padding: themeObject.theme.sizeUnit,
+      background: themeObject.theme.colorBgElevated,
+      padding: themeObject.theme.sizeUnit * 4,
+      border: 0,
     }}
   >
     {children}
