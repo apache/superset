@@ -55,7 +55,8 @@ def check_for_expired_llm_context():
         elif task_result.status == "SUCCESS":
             context_settings = json.loads(database.llm_context_options or "{}")
             refresh_interval = int(context_settings.get("refresh_interval", "12")) * 60 * 60
-            if (datetime.datetime.now() - latest_task.started_time).total_seconds() > refresh_interval:
+            old_started_time = latest_task.started_time.replace(tzinfo=datetime.timezone.utc)
+            if (datetime.datetime.now(datetime.timezone.utc) - old_started_time).total_seconds() > refresh_interval:
                 logger.info(f"Old LLM context expired - generating for database {database.id}")
                 initiate_context_generation(database.id)
             elif not task_result.result:
@@ -85,6 +86,7 @@ def initiate_context_generation(pk: int):
     )
     ContextBuilderTaskDAO.create(context_task)
     db.session.commit()
+    logger.info(f"Task {task.id} created for database {pk}")
 
     return task
 

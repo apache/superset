@@ -139,37 +139,39 @@ def get_state(pk: int) -> dict:
     """
     Get the state of the LLM context.
     """
-    # Possible states:
-    # - Unconfigured; no API key or model has been selected
-    # - Invalid API key; The LLM has been configured but it doesn't work
-    # - Generating; The context is being generated
-    # - Context error; The context could not be generated
-    # - Ready; Everything is ready to go
+
+    tasks = ContextBuilderTaskDAO.get_last_two_tasks_for_database(pk)
+    if not tasks:
+        return {
+            "status": "waiting",
+        }
     
-    # TODO(AW): Should we test the API key?
-    # client = genai.Client(api_key=GEMINI_API_KEY)
-    # try:
-    #     response = client.models.generate_content(
-    #         model=GEMINI_MODEL,
-    #         contents="Checking if this API key works",
-    #     )
-    # except Exception as e:
-    #     logger.error(f"Failed to test API key: {str(e)}")
-    #     return {
-    #         "state": "Invalid API key",
-    #         "message": str(e),
-    #     }
-    (status, result) = _get_schema_json_from_worker(pk)
-    if status == 'ERROR' or status == 'NOT_FOUND':
-        return {
-            "state": "Context error",
+    latest_task = tasks[0]
+    context_builder_worker = AsyncResult(latest_task.task_id)
+    status = 'waiting'
+    context = None
+
+    if context_builder_worker.status == 'PENDING':
+        status = 'building'
+        older_task = tasks[1] if len(tasks) > 1 else None
+        if older_task:
+            old_context_worker = AsyncResult(older_task.task_id)
+            context = {
+                "build_time": older_task.started_time,
+                "status": old_context_worker.status,
+            }
+            if old_context_worker.status == 'ERROR':
+                context["message"] = old_context_worker.result["error"]
+    else:
+        context = {
+            "build_time": latest_task.started_time,
+            "status": context_builder_worker.status,
+            "size": 0,
         }
-    if status == 'PENDING':
-        return {
-            "state": "Generating",
-        }
+
     return {
-        "state": "Ready",
+        "context": context,
+        "status": status,
     }
 
 def generate_context_for_db(pk: int):

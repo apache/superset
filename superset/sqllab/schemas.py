@@ -173,3 +173,13 @@ class GenerateSqlResponseSchema(Schema):
 
 class GenerateDbContextSchema(Schema):
     database_id = fields.Integer(required=True)
+
+class AiAssistantStatusResponseSchema(Schema):
+    context = fields.Dict(
+        allow_none=True,
+        status = fields.String(required=True),
+        build_time = fields.DateTime(required=True),
+        message = fields.String(allow_none=True),
+        size = fields.Integer(allow_none=True)
+    )
+    status = fields.String(required=True)
