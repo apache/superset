@@ -28,8 +28,8 @@ const Toolbar = () => (
       margin: 8px;
     `}
   >
-    <Icons.Table />
-    <Icons.NavDashboard />
+    <Icons.TableOutlined />
+    <Icons.PlusCircleOutlined />
   </div>
 );
 
@@ -61,14 +61,14 @@ const CenterTopPanel = () => (
       border-bottom: 1px solid ${theme.colors.grayscale.light2};
     `}
   >
-    <Icons.Cards />
+    <Icons.StarOutlined />
     SQL Editor plugin
   </div>
 );
 
 const CenterBottomPanel = () => (
   <div css={PlaceholderStyles}>
-    <Icons.Cards />
+    <Icons.StarOutlined />
     SQL execution plugins
   </div>
 );
@@ -84,7 +84,7 @@ const RightPanel = () => (
       width: 400px;
     `}
   >
-    <Icons.Cards />
+    <Icons.StarOutlined />
     AI Chat plugin
   </div>
 );
