@@ -160,14 +160,16 @@ def get_state(pk: int) -> dict:
                 "build_time": older_task.started_time,
                 "status": old_context_worker.status,
             }
-            if old_context_worker.status == 'ERROR':
-                context["message"] = old_context_worker.result["error"]
+            if old_context_worker.status == 'FAILURE':
+                context["message"] = str(old_context_worker.result)
     else:
         context = {
             "build_time": latest_task.started_time,
             "status": context_builder_worker.status,
             "size": 0,
         }
+        if context_builder_worker.status == 'FAILURE':
+            context["message"] = str(context_builder_worker.result)
 
     return {
         "context": context,
