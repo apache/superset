@@ -11,6 +11,7 @@ from flask_jwt_extended import (
     get_jwt_identity,
     jwt_required,
 )
+from authlib.integrations.flask_client import OAuth
 
 class CustomOAuthView(AuthOAuthView):
     @expose('/login/', methods=['GET', 'POST'])
@@ -27,6 +28,7 @@ class CustomOAuthView(AuthOAuthView):
             return str(user.id)
         else :
             return super(CustomOAuthView,self).login(provider)
+
 
 guest_role_pvms = [
     ("can_read", "SavedQuery"),
