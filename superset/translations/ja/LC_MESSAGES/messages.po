@@ -616,8 +616,8 @@ msgstr ">= (大きいか等しい)"
 msgid "A Big Number"
 msgstr "大きな数字"
 
-msgid "A comma separated list of columns that should be parsed as dates"
-msgstr "日付として解析する必要がある列のカンマ区切りのリスト"
+msgid "Select column names from a dropdown list that should be parsed as dates."
+msgstr "日付として解析する列の名前をドロップダウン・リストから選択する。"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "ファイルのアップロードを許可するスキーマのカンマ区切りのリスト"

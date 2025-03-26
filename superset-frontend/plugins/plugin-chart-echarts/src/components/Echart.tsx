@@ -122,7 +122,6 @@ const getTheme = (options: any) => {
     },
     tooltip: {
       backgroundColor: token.colorBgContainer,
-      borderColor: token.colorSplit,
       textStyle: { color: token.colorText },
     },
     axisPointer: {

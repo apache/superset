@@ -17,9 +17,11 @@
 # pylint: disable=invalid-name, unused-argument
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 import pytest
+from flask_appbuilder.security.sqla.models import Role
 from freezegun import freeze_time
 from jinja2 import DebugUndefined
 from jinja2.sandbox import SandboxedEnvironment
@@ -38,6 +40,7 @@ from superset.jinja_context import (
     metric_macro,
     safe_proxy,
     TimeFilter,
+    to_datetime,
     WhereInMacro,
 )
 from superset.models.core import Database
@@ -358,6 +361,7 @@ def test_user_macros(mocker: MockerFixture):
         - ``current_user_id``
         - ``current_username``
         - ``current_user_email``
+        - ``current_user_roles``
     """
     mock_g = mocker.patch("superset.utils.core.g")
     mock_cache_key_wrapper = mocker.patch(
@@ -366,11 +370,13 @@ def test_user_macros(mocker: MockerFixture):
     mock_g.user.id = 1
     mock_g.user.username = "my_username"
     mock_g.user.email = "my_email@test.com"
+    mock_g.user.roles = [Role(name="my_role1"), Role(name="my_role2")]
     cache = ExtraCache()
     assert cache.current_user_id() == 1
     assert cache.current_username() == "my_username"
     assert cache.current_user_email() == "my_email@test.com"
-    assert mock_cache_key_wrapper.call_count == 3
+    assert cache.current_user_roles() == ["my_role1", "my_role2"]
+    assert mock_cache_key_wrapper.call_count == 4
 
 
 def test_user_macros_without_cache_key_inclusion(mocker: MockerFixture):
@@ -384,10 +390,12 @@ def test_user_macros_without_cache_key_inclusion(mocker: MockerFixture):
     mock_g.user.id = 1
     mock_g.user.username = "my_username"
     mock_g.user.email = "my_email@test.com"
+    mock_g.user.roles = [Role(name="my_role1"), Role(name="my_role2")]
     cache = ExtraCache()
     assert cache.current_user_id(False) == 1
     assert cache.current_username(False) == "my_username"
     assert cache.current_user_email(False) == "my_email@test.com"
+    assert cache.current_user_roles(False) == ["my_role1", "my_role2"]
     assert mock_cache_key_wrapper.call_count == 0
 
 
@@ -401,6 +409,7 @@ def test_user_macros_without_user_info(mocker: MockerFixture):
     assert cache.current_user_id() == None  # noqa: E711
     assert cache.current_username() == None  # noqa: E711
     assert cache.current_user_email() == None  # noqa: E711
+    assert cache.current_user_roles() == None  # noqa: E711
 
 
 def test_where_in() -> None:
@@ -427,6 +436,59 @@ def test_where_in_empty_list() -> None:
     assert where_in([]) == "()"
     # With the default_to_none parameter set to True, it should return None
     assert where_in([], default_to_none=True) is None
+
+
+@pytest.mark.parametrize(
+    "value,format,output",
+    [
+        ("2025-03-20 15:55:00", None, datetime(2025, 3, 20, 15, 55)),
+        (None, None, None),
+        ("2025-03-20", "%Y-%m-%d", datetime(2025, 3, 20)),
+        ("'2025-03-20'", "%Y-%m-%d", datetime(2025, 3, 20)),
+    ],
+)
+def test_to_datetime(
+    value: str | None, format: str | None, output: datetime | None
+) -> None:
+    """
+    Test the ``to_datetime`` custom filter.
+    """
+
+    result = (
+        to_datetime(value, format=format) if format is not None else to_datetime(value)
+    )
+    assert result == output
+
+
+@pytest.mark.parametrize(
+    "value,format,match",
+    [
+        (
+            "2025-03-20",
+            None,
+            "time data '2025-03-20' does not match format '%Y-%m-%d %H:%M:%S'",
+        ),
+        (
+            "2025-03-20 15:55:00",
+            "%Y-%m-%d",
+            "unconverted data remains:  15:55:00",
+        ),
+    ],
+)
+def test_to_datetime_raises(value: str, format: str | None, match: str) -> None:
+    """
+    Test the ``to_datetime`` custom filter raises with an incorrect
+    format.
+    """
+    with pytest.raises(
+        ValueError,
+        match=match,
+    ):
+        (
+            to_datetime(value, format=format)
+            if format is not None
+            else to_datetime(value)
+        )
 
 
 def test_dataset_macro(mocker: MockerFixture) -> None:

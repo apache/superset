@@ -72,7 +72,7 @@ const Collapse = Object.assign(
           `}
       }
       .ant-collapse-content {
-        //background-color: ${({ theme }) => theme.colorBgLayout};
+        color: ${({ theme }) => theme.colorText};
         .ant-collapse-content-box {
           .loading.inline {
             margin: ${({ theme }) => theme.sizeUnit * 12}px auto;

@@ -36,7 +36,7 @@ describe('Theme', () => {
       const theme = Theme.fromConfig();
 
       // Verify default primary color is set
-      expect(theme.theme.colorPrimary).toBe('#20a7c9');
+      expect(theme.theme.colorPrimary).toBe('#2893b3');
 
       // Verify default font family is set
       expect(theme.theme.fontFamily).toContain('Inter');
