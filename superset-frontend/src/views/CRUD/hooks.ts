@@ -98,13 +98,8 @@ export function useListViewResource<D extends object = any>(
 
   useEffect(() => {
     if (!infoEnable) return;
-    // security/roles/search doesn't have an _info endpoint
-    const cleanedResource =
-      resource === 'security/roles/search'
-        ? resource.replace(/\/search$/, '')
-        : resource;
     SupersetClient.get({
-      endpoint: `/api/v1/${cleanedResource}/_info?q=${rison.encode({
+      endpoint: `/api/v1/${resource}/_info?q=${rison.encode({
         keys: ['permissions'],
       })}`,
     }).then(

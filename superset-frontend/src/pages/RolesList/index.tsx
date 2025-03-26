@@ -38,7 +38,6 @@ import {
   PermissionResource,
   UserObject,
 } from 'src/features/roles/types';
-import { updateRolePermissions } from 'src/features/roles/utils';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import Icons from 'src/components/Icons';
 
@@ -85,6 +84,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
     'security/roles/search',
     t('Role'),
     addDangerToast,
+    false,
   );
   const [modalState, setModalState] = useState({
     edit: false,
@@ -203,12 +203,8 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
     fetchUsers();
   }, [fetchUsers]);
 
-  const handleRoleDelete = async ({ id, name, permission_ids }: RoleObject) => {
+  const handleRoleDelete = async ({ id, name }: RoleObject) => {
     try {
-      if (permission_ids.length > 0) {
-        await updateRolePermissions(id, []);
-      }
-
       await SupersetClient.delete({
         endpoint: `/api/v1/security/roles/${id}`,
       });
@@ -227,10 +223,6 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
     await Promise.all(
       rolesToDelete.map(async role => {
         try {
-          if (role.permission_ids.length > 0) {
-            await updateRolePermissions(role.id, []);
-          }
-
           await SupersetClient.delete({
             endpoint: `api/v1/security/roles/${role.id}`,
           });

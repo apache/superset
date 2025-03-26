@@ -25,6 +25,7 @@ from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
+from flask_appbuilder.security.sqla.apis import RoleApi
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_group_role,
@@ -125,6 +126,18 @@ class SupersetRoleListWidget(ListWidget):  # pylint: disable=too-few-public-meth
         super().__init__(**kwargs)
 
 
+class SupersetRoleApi(RoleApi):
+    """
+    Overriding the RoleApi to be able to delete roles with permissions
+    """
+
+    def pre_delete(self, item: Model) -> None:
+        """
+        Overriding this method to be able to delete items when they have constraints
+        """
+        item.permissions = []
+
+
 UserModelView.list_widget = SupersetSecurityListWidget
 PermissionViewModelView.list_widget = SupersetSecurityListWidget
 PermissionModelView.list_widget = SupersetSecurityListWidget
@@ -210,6 +223,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 ):
     userstatschartview = None
     READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
+
+    role_api = SupersetRoleApi
 
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
