@@ -115,7 +115,7 @@ const QueryContainer = styled.div`
   }
 `;
 
-const SavedQueries = ({
+export const SavedQueries = ({
   user,
   addDangerToast,
   addSuccessToast,

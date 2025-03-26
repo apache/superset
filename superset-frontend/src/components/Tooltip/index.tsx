@@ -17,7 +17,6 @@
  * under the License.
  */
 // eslint-disable-next-line no-restricted-imports
-import { supersetTheme } from '@superset-ui/core'; // TODO: DO not import theme directly
 import { Tooltip as AntdTooltip } from 'antd-v5';
 import type { TooltipProps } from 'antd-v5';
 
