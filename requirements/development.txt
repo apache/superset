@@ -496,6 +496,7 @@ outcome==1.3.0.post0
     # via
     #   -c requirements/base.txt
     #   trio
+    #   trio-websocket
 packaging==24.2
     # via
     #   -c requirements/base.txt
@@ -743,7 +744,7 @@ rsa==4.9
     #   google-auth
 ruff==0.8.0
     # via apache-superset
-selenium==4.27.1
+selenium==4.30.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -830,12 +831,12 @@ tqdm==4.67.1
     #   prophet
 trino==0.330.0
     # via apache-superset
-trio==0.28.0
+trio==0.29.0
     # via
     #   -c requirements/base.txt
     #   selenium
     #   trio-websocket
-trio-websocket==0.11.1
+trio-websocket==0.12.2
     # via
     #   -c requirements/base.txt
     #   selenium
