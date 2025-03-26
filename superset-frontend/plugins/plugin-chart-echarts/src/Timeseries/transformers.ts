@@ -636,8 +636,6 @@ export function transformNegativeLabelsPosition(
    * Adjusts label position for negative values in bar series
    * @param series - Array of series options
    * @param isHorizontal - Whether chart is horizontal
-   * @param seriesType - Type of the series (only 'bar' will be processed)
-   * @param stack - Stack configuration (no transformation if stacked)
    * @returns Series with adjusted label positions for negative values
    */
   const shouldTransform = (item: SeriesOption): boolean =>
