@@ -1,0 +1,4 @@
+[submodule "dcc-custom-branch"]
+    path = dcc-custom-branch
+    url = https://github.com/apache/superset.git
+    branch = dcc-custom-branch
