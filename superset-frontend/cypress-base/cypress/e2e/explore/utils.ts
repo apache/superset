@@ -58,6 +58,10 @@ export function interceptExploreGet() {
   }).as('getExplore');
 }
 
+export const interceptChartDashboardsGet = () => {
+  cy.intercept('GET', '/api/v1/dashboard/?q=*').as('chartDashboards');
+};
+
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
@@ -67,31 +71,40 @@ export function setFilter(filter: string, option: string) {
   cy.wait('@filtering');
 }
 
-export function saveChartToDashboard(dashboardName: string) {
+export function saveChartToDashboard(chartName: string, dashboardName: string) {
   interceptDashboardGet();
   interceptUpdate();
   interceptExploreGet();
+  interceptChartDashboardsGet();
 
   cy.getBySel('query-save-button')
     .should('be.enabled')
     .should('not.be.disabled')
-    .click();
-  cy.getBySelLike('chart-modal').should('be.visible');
-  cy.get(
-    '[data-test="save-chart-modal-select-dashboard-form"] [aria-label="Select a dashboard"]',
-  )
-    .first()
-    .click();
-  cy.get(
-    '.antd5-select-selection-search-input[aria-label="Select a dashboard"]',
-  ).type(dashboardName, { force: true });
-  cy.get(`.antd5-select-item-option[title="${dashboardName}"]`).click();
-  cy.getBySel('btn-modal-save').click();
+    .click({ force: true });
 
-  cy.wait('@update');
+  cy.getBySel('save-modal-body')
+    .should('be.visible')
+    .then($modal => {
+      cy.wait(500); // chromium will crash without this in headless mode
+      cy.wrap($modal)
+        .find(
+          '.antd5-select-selection-search-input[aria-label="Select a dashboard"]',
+        )
+        .type(dashboardName, { force: true });
+      cy.wait('@chartDashboards');
+      cy.wrap($modal)
+        .find(`.antd5-select-item-option[title="${dashboardName}"]`)
+        .click();
+      cy.getBySel('btn-modal-save').click();
+      cy.wait('@update');
+    });
+  cy.getBySel('save-modal-body').should('not.exist');
+  cy.getBySel('query-save-button').should('be.disabled');
   cy.wait('@get');
   cy.wait('@getExplore');
   cy.contains(`was added to dashboard [${dashboardName}]`);
+  cy.contains(`Chart [${chartName}] has been overwritten`);
+  cy.getBySel('query-save-button').should('be.enabled');
 }
 
 export function visitSampleChartFromList(chartName: string) {

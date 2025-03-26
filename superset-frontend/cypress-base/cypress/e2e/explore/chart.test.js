@@ -80,8 +80,8 @@ function verifyMetabar(text) {
   cy.getBySel('metadata-bar').contains(text);
 }
 
-function saveAndVerifyDashboard(number) {
-  saveChartToDashboard(`${number} - Sample dashboard`);
+function saveAndVerifyDashboard(chartName, number) {
+  saveChartToDashboard(chartName, `${number} - Sample dashboard`);
   verifyMetabar(
     number > 1 ? `Added to ${number} dashboards` : 'Added to 1 dashboard',
   );
@@ -106,17 +106,17 @@ describe('Cross-referenced dashboards', () => {
     openDashboardsAddedTo();
     verifyDashboardsSubmenuItem('None');
 
-    saveAndVerifyDashboard('1');
-    saveAndVerifyDashboard('2');
-    saveAndVerifyDashboard('3');
-    saveAndVerifyDashboard('4');
-    saveAndVerifyDashboard('5');
-    saveAndVerifyDashboard('6');
-    saveAndVerifyDashboard('7');
-    saveAndVerifyDashboard('8');
-    saveAndVerifyDashboard('9');
-    saveAndVerifyDashboard('10');
-    saveAndVerifyDashboard('11');
+    saveAndVerifyDashboard('1 - Sample chart', '1');
+    saveAndVerifyDashboard('1 - Sample chart', '2');
+    saveAndVerifyDashboard('1 - Sample chart', '3');
+    saveAndVerifyDashboard('1 - Sample chart', '4');
+    saveAndVerifyDashboard('1 - Sample chart', '5');
+    saveAndVerifyDashboard('1 - Sample chart', '6');
+    saveAndVerifyDashboard('1 - Sample chart', '7');
+    saveAndVerifyDashboard('1 - Sample chart', '8');
+    saveAndVerifyDashboard('1 - Sample chart', '9');
+    saveAndVerifyDashboard('1 - Sample chart', '10');
+    saveAndVerifyDashboard('1 - Sample chart', '11');
 
     verifyDashboardSearch();
     verifyDashboardLink();

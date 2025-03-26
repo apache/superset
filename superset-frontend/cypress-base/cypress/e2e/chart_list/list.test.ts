@@ -81,12 +81,12 @@ describe('Charts list', () => {
       cy.wait('@get');
     });
 
-    it.only('should show the newly added dashboards in a tooltip', () => {
+    it('should show the newly added dashboards in a tooltip', () => {
       interceptDashboardGet();
       visitSampleChartFromList('1 - Sample chart');
-      saveChartToDashboard('1 - Sample dashboard');
-      saveChartToDashboard('2 - Sample dashboard');
-      saveChartToDashboard('3 - Sample dashboard');
+      saveChartToDashboard('1 - Sample chart', '1 - Sample dashboard');
+      saveChartToDashboard('1 - Sample chart', '2 - Sample dashboard');
+      saveChartToDashboard('1 - Sample chart', '3 - Sample dashboard');
       visitChartList();
 
       cy.getBySel('count-crosslinks').should('be.visible');
