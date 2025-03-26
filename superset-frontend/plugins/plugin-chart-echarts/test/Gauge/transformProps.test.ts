@@ -82,7 +82,7 @@ describe('Echarts Gauge transformProps', () => {
     expect(result.height).toBe(600);
 
     // Test series data
-    const seriesData = result.echartOptions.series[0].data;
+    const seriesData = (result.echartOptions as any).series[0].data;
     expect(seriesData).toHaveLength(1);
     expect(seriesData[0].value).toBe(16595);
     expect(seriesData[0].name).toBe('');
@@ -132,7 +132,7 @@ describe('Echarts Gauge transformProps', () => {
     expect(result.height).toBe(600);
 
     // Test series data
-    const seriesData = result.echartOptions.series[0].data;
+    const seriesData = (result.echartOptions as any).series[0].data;
     expect(seriesData).toHaveLength(2);
 
     // First data point
@@ -193,7 +193,7 @@ describe('Echarts Gauge transformProps', () => {
     expect(result.height).toBe(600);
 
     // Test series data
-    const seriesData = result.echartOptions.series[0].data;
+    const seriesData = (result.echartOptions as any).series[0].data;
     expect(seriesData).toHaveLength(2);
 
     // First data point
@@ -257,7 +257,7 @@ describe('Echarts Gauge transformProps', () => {
     expect(result.height).toBe(600);
 
     // Test axisLine intervals
-    const { axisLine } = result.echartOptions.series[0];
+    const { axisLine } = (result.echartOptions as any).series[0];
     expect(axisLine.roundCap).toBe(false);
     expect(axisLine.lineStyle.width).toBe(14);
     expect(axisLine.lineStyle.color).toEqual([
@@ -266,7 +266,7 @@ describe('Echarts Gauge transformProps', () => {
     ]);
 
     // Test series data
-    const seriesData = result.echartOptions.series[0].data;
+    const seriesData = (result.echartOptions.series as any)[0].data;
     expect(seriesData).toHaveLength(2);
 
     // First data point
