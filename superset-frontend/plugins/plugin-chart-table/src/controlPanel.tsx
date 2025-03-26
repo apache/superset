@@ -233,7 +233,6 @@ const config: ControlPanelConfig = {
             name: 'time_grain_sqla',
             config: {
               ...sharedControls.time_grain_sqla,
-              default: null,
               visibility: ({ controls }) => {
                 const dttmLookup = Object.fromEntries(
                   ensureIsArray(controls?.groupby?.options).map(option => [
