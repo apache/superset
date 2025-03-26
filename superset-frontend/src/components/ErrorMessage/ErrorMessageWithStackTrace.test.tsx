@@ -22,15 +22,6 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import ErrorMessageWithStackTrace from './ErrorMessageWithStackTrace';
 import BasicErrorAlert from './BasicErrorAlert';
 
-jest.mock('src/components/Icons', () => ({
-  ErrorSolid: ({ iconColor }: { iconColor: string }) => (
-    <span role="img" aria-label="error-solid" style={{ color: iconColor }} />
-  ),
-  WarningSolid: ({ iconColor }: { iconColor: string }) => (
-    <span role="img" aria-label="warning-solid" style={{ color: iconColor }} />
-  ),
-}));
-
 const mockedProps = {
   level: 'warning' as ErrorLevel,
   link: 'https://sample.com',
