@@ -69,11 +69,10 @@ export const useNativeFilters = () => {
 
   useEffect(() => {
     if (
-      isFeatureEnabled(FeatureFlag.FilterBarClosedByDefault) &&
-      expandFilters === null
-        ? true
-        : expandFilters === false ||
-          (filterValues.length === 0 && nativeFiltersEnabled)
+      (isFeatureEnabled(FeatureFlag.FilterBarClosedByDefault) &&
+        expandFilters === null) ||
+      expandFilters === false ||
+      (filterValues.length === 0 && nativeFiltersEnabled)
     ) {
       toggleDashboardFiltersOpen(false);
     } else {
