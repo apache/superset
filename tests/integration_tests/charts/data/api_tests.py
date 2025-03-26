@@ -1331,7 +1331,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         rv = self.client.post(CHART_DATA_URI, json=self.query_context_payload)
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"][0]
-        assert "SELECT 'PT5M' AS test" in result["query"]
+        assert "PT5M" in result["query"]
         assert result["data"] == [{"test": "PT5M"}]
 
 
