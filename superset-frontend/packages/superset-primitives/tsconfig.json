@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
     "declaration": true,
     "declarationDir": "lib",
     "outDir": "lib",
@@ -8,8 +9,12 @@
     "jsx": "preserve",
     "baseUrl": ".",
     "module": "esnext",
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "paths": {
+      "@apache-superset/types": ["../../packages/superset-types/src"]
+    },
+    "skipLibCheck": true
   },
   "include": ["src/**/*.ts*"],
-  "exclude": ["lib", "test"]
+  "exclude": ["lib"]
 }

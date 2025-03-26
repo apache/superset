@@ -1,20 +1,20 @@
 {
   "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
     "declaration": true,
     "declarationDir": "lib",
-    "outDir": "lib",
-    "strict": true,
-    "rootDir": "src",
+    "esModuleInterop": true,
     "jsx": "preserve",
-    "baseUrl": ".",
+    "lib": ["dom", "esnext"],
     "module": "esnext",
     "moduleResolution": "node",
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+    "outDir": "lib",
+    "rootDir": "src",
+    "strict": true,
     "target": "esnext",
-    "lib": ["dom", "esnext"]
+    "typeRoots": ["src"]
   },
-  "include": ["src/**/*.ts*", "src/**/*.d.ts"],
+  "include": ["src"],
   "exclude": ["lib", "test"]
 }
