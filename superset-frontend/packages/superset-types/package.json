@@ -15,7 +15,7 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "babel src --out-dir lib --extensions \".ts,.tsx\"",
-    "build:types": "tsc --emitDeclarationOnly"
+    "type": "tsc --emitDeclarationOnly"
   },
   "devDependencies": {
     "@babel/preset-react": "^7.26.3",
