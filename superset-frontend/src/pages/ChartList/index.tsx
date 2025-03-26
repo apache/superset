@@ -75,6 +75,7 @@ import { findPermission } from 'src/utils/findPermission';
 import { DashboardCrossLinks } from 'src/components/ListView/DashboardCrossLinks';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import PublishedLabel from 'src/components/Label/reusable/PublishedLabel';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -366,6 +367,16 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
+            original: { published },
+          },
+        }: any) => <PublishedLabel isPublished={published} />,
+        Header: t('Status'),
+        accessor: 'published',
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
             original: { viz_type: vizType },
           },
         }: any) => registry.get(vizType)?.name || vizType,
@@ -577,6 +588,18 @@ function ChartList(props: ChartListProps) {
         input: 'search',
         operator: FilterOperator.ChartAllText,
       },
+          {
+            Header: t('Status'),
+            key: 'published',
+            id: 'published',
+            input: 'select',
+            operator: FilterOperator.Equals,
+            unfilteredLabel: t('Any'),
+            selects: [
+              { label: t('Published'), value: true },
+              { label: t('Draft'), value: false },
+            ],
+          },
       {
         Header: t('Type'),
         key: 'viz_type',
