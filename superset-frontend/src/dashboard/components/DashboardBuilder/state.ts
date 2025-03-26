@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { RootState } from 'src/dashboard/types';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   useFilters,
   useNativeFiltersDataMask,
@@ -68,8 +69,11 @@ export const useNativeFilters = () => {
 
   useEffect(() => {
     if (
-      expandFilters === false ||
-      (filterValues.length === 0 && nativeFiltersEnabled)
+      isFeatureEnabled(FeatureFlag.FilterBarClosedByDefault) &&
+      expandFilters === null
+        ? true
+        : expandFilters === false ||
+          (filterValues.length === 0 && nativeFiltersEnabled)
     ) {
       toggleDashboardFiltersOpen(false);
     } else {
