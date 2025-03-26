@@ -118,7 +118,6 @@ const ChartSelect = ({
         <Tooltip title={t('Tooltip')} placement="top">
           <Icons.InfoCircleOutlined
             iconSize="xs"
-            iconColor={theme.colors.grayscale.base}
             css={css`
               & > span {
                 line-height: 0;

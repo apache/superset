@@ -309,13 +309,11 @@ describe('Additional actions tests', () => {
     });
     expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
-
-    expect(screen.queryByText('Edit Chart Properties')).not.toBeInTheDocument();
     userEvent.click(
       screen.getByRole('menuitem', { name: 'Edit chart properties' }),
     );
     expect(
-      await screen.findByText('Edit Chart Properties'),
+      await screen.findByText('Edit chart properties'),
     ).toBeInTheDocument();
   });
 

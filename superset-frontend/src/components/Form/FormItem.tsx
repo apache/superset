@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Form from 'antd/lib/form';
+// eslint-disable-next-line no-restricted-imports
+import Form from 'antd/lib/form'; // TODO: Remove antd
 import { styled } from '@superset-ui/core';
 
 const StyledItem = styled(Form.Item)`

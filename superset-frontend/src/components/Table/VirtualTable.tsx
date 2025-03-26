@@ -17,10 +17,11 @@
  * under the License.
  */
 
+// eslint-disable-next-line no-restricted-imports
 import AntTable, {
   TablePaginationConfig,
   TableProps as AntTableProps,
-} from 'antd/lib/table';
+} from 'antd/lib/table'; // TODO: Remove antd
 import classNames from 'classnames';
 import { useResizeDetector } from 'react-resize-detector';
 import { useEffect, useRef, useState, useCallback, CSSProperties } from 'react';
@@ -41,7 +42,7 @@ const StyledCell = styled('div')<{ height?: number }>(
   text-overflow: ellipsis;
   padding-left: ${theme.sizeUnit * 2}px;
   padding-right: ${theme.sizeUnit}px;
-  border-bottom: 1px solid ${theme.colors.grayscale.light3};
+  border-bottom: 1px solid ${theme.colorSplit};
   transition: background 0.3s;
   line-height: ${height}px;
   box-sizing: border-box;

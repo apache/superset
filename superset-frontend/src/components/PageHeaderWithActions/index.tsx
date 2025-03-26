@@ -38,13 +38,6 @@ export const menuTriggerStyles = (theme: SupersetTheme) => css`
     line-height: 0;
     transition: inherit;
   }
-
-  &:hover:not(:focus) > span.anticon {
-    color: ${theme.colors.primary.light1};
-  }
-  &:focus-visible {
-    outline: 2px solid ${theme.colors.primary.dark2};
-  }
 `;
 
 const headerStyles = (theme: SupersetTheme) => css`
@@ -92,7 +85,7 @@ const buttonsStyles = (theme: SupersetTheme) => css`
   align-items: center;
   padding-left: ${theme.sizeUnit * 2}px;
 
-  & .fave-unfave-icon {
+  & .anticon-star {
     padding: 0 ${theme.sizeUnit}px;
 
     &:first-of-type {
@@ -167,7 +160,7 @@ export const PageHeaderWithActions = ({
                 placement={tooltipProps?.placement}
                 data-test="actions-trigger"
               >
-                <Icons.MoreHoriz
+                <Icons.EllipsisOutlined
                   iconColor={theme.colors.primary.dark2}
                   iconSize="l"
                 />

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { styled, css, SupersetTheme, useTheme } from '@superset-ui/core';
 import cx from 'classnames';
 import { Interweave } from 'interweave';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -24,18 +24,26 @@ import Icons from 'src/components/Icons';
 import { ToastType, ToastMeta } from './types';
 
 const ToastContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  ${({ theme }) => css`
+    display: flex;
+    justify-content: center;
+    align-items: center;
 
-  span {
-    padding: 0 11px;
-  }
+    span {
+      padding: 0 ${theme.sizeUnit * 2}px;
+    }
+
+    .toast__close,
+    .toast__close span {
+      padding: 0;
+    }
+  `}
 `;
 
-const StyledIcon = (theme: SupersetTheme) => css`
+const notificationStyledIcon = (theme: SupersetTheme) => css`
   min-width: ${theme.sizeUnit * 5}px;
-  color: ${theme.colors.grayscale.base};
+  color: ${theme.colorIcon};
+  margin-right: 0;
 `;
 
 interface ToastPresenterProps {
@@ -76,17 +84,39 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
     };
   }, [handleClosePress, toast.duration]);
 
+  const theme = useTheme();
+
   let className = 'toast--success';
-  let icon = <Icons.CircleCheckSolid css={theme => StyledIcon(theme)} />;
+  let icon = (
+    <Icons.CheckCircleFilled
+      css={theme => notificationStyledIcon(theme)}
+      iconColor={theme.colorSuccess}
+    />
+  );
 
   if (toast.toastType === ToastType.Warning) {
-    icon = <Icons.WarningSolid css={StyledIcon} />;
+    icon = (
+      <Icons.ExclamationCircleFilled
+        css={notificationStyledIcon}
+        iconColor={theme.colorWarning}
+      />
+    );
     className = 'toast--warning';
   } else if (toast.toastType === ToastType.Danger) {
-    icon = <Icons.ErrorSolid css={StyledIcon} />;
+    icon = (
+      <Icons.ExclamationCircleFilled
+        css={notificationStyledIcon}
+        iconColor={theme.colorError}
+      />
+    );
     className = 'toast--danger';
   } else if (toast.toastType === ToastType.Info) {
-    icon = <Icons.InfoSolid css={StyledIcon} />;
+    icon = (
+      <Icons.InfoCircleFilled
+        css={notificationStyledIcon}
+        iconColor={theme.colorInfo}
+      />
+    );
     className = 'toast--info';
   }
 
@@ -98,8 +128,9 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
     >
       {icon}
       <Interweave content={toast.text} noHtml={!toast.allowHtml} />
-      <i
-        className="fa fa-close pull-right pointer"
+      <Icons.CloseOutlined
+        iconSize="m"
+        className="toast__close pointer"
         role="button"
         tabIndex={0}
         onClick={handleClosePress}

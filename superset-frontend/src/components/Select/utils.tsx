@@ -17,10 +17,10 @@
  * under the License.
  */
 import { ensureIsArray, t } from '@superset-ui/core';
-import { Select } from 'antd-v5';
 import { LabeledValue as AntdLabeledValue } from 'antd-v5/lib/select';
 import { ReactElement, RefObject } from 'react';
 import Icons from 'src/components/Icons';
+import { Option } from './Select';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
 import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
 
@@ -39,7 +39,7 @@ export const renderSelectOptions = (
     const value = isOptObject ? opt.value : opt;
     const { customLabel, id, ...optProps } = opt;
     return (
-      <Select.Option
+      <Option
         {...optProps}
         key={value}
         label={label}
@@ -47,7 +47,7 @@ export const renderSelectOptions = (
         aria-label={label}
       >
         {isOptObject && customLabel ? customLabel : label}
-      </Select.Option>
+      </Option>
     );
   });
 

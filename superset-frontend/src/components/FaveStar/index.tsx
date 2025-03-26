@@ -19,7 +19,7 @@
 
 import { useCallback, useEffect, MouseEvent } from 'react';
 
-import { css, t, styled } from '@superset-ui/core';
+import { css, t, styled, useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 
@@ -46,6 +46,7 @@ const FaveStar = ({
   saveFaveStar,
   fetchFaveStar,
 }: FaveStarProps) => {
+  const theme = useTheme();
   useEffect(() => {
     fetchFaveStar?.(itemId);
   }, [fetchFaveStar, itemId]);
@@ -66,7 +67,19 @@ const FaveStar = ({
       data-test="fave-unfave-icon"
       role="button"
     >
-      {isStarred ? <Icons.FavoriteSelected /> : <Icons.FavoriteUnselected />}
+      {isStarred ? (
+        <Icons.StarFilled
+          aria-label="starred"
+          iconSize="l"
+          iconColor={theme.colors.warning.base}
+        />
+      ) : (
+        <Icons.StarOutlined
+          aria-label="unstarred"
+          iconSize="l"
+          iconColor={theme.colors.grayscale.light1}
+        />
+      )}
     </StyledLink>
   );
 

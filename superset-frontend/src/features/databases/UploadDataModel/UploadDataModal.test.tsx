@@ -78,11 +78,11 @@ beforeEach(() => {
     result: [],
   });
 
-  fetchMock.get('glob:*api/v1/database/1/schemas/', {
+  fetchMock.get('glob:*api/v1/database/1/schemas/?q=(upload_allowed:!t)', {
     result: ['information_schema', 'public'],
   });
 
-  fetchMock.get('glob:*api/v1/database/2/schemas/', {
+  fetchMock.get('glob:*api/v1/database/2/schemas/?q=(upload_allowed:!t)', {
     result: ['schema1', 'schema2'],
   });
 });
@@ -615,8 +615,6 @@ test('form without required fields', async () => {
 });
 
 test('CSV form post', async () => {
-  jest.setTimeout(10000);
-
   render(<UploadDataModal {...csvProps} />, {
     useRedux: true,
   });
@@ -675,8 +673,6 @@ test('CSV form post', async () => {
 });
 
 test('Excel form post', async () => {
-  jest.setTimeout(10000);
-
   render(<UploadDataModal {...excelProps} />, {
     useRedux: true,
   });
@@ -735,7 +731,6 @@ test('Excel form post', async () => {
 });
 
 test('Columnar form post', async () => {
-  jest.setTimeout(10000);
   render(<UploadDataModal {...columnarProps} />, {
     useRedux: true,
   });

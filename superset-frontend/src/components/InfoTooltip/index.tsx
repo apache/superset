@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, useTheme, css } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { ActionType } from 'src/types/Action';
@@ -61,8 +61,15 @@ const defaultOverlayStyle = {
   fontSize: '12px',
   lineHeight: '16px',
 };
-
-const defaultColor = 'rgba(0,0,0,0.9)';
+const InfoIconContainer = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-left: ${theme.sizeUnit}px;
+  `}
+`;
 
 export default function InfoTooltip({
   tooltip,
@@ -70,13 +77,13 @@ export default function InfoTooltip({
   placement = 'right',
   trigger = 'hover',
   overlayStyle = defaultOverlayStyle,
-  bgColor = defaultColor,
+  bgColor,
   viewBox = '0 -1 24 24',
 }: InfoTooltipProps) {
   const theme = useTheme();
   const alteredIconStyle = {
     ...iconStyle,
-    color: iconStyle.color || theme.colors.grayscale.base,
+    color: iconStyle.color || theme.colorIcon,
   };
   return (
     <StyledTooltip
@@ -86,7 +93,15 @@ export default function InfoTooltip({
       overlayStyle={overlayStyle}
       color={bgColor}
     >
-      <Icons.InfoSolidSmall style={alteredIconStyle} viewBox={viewBox} />
+      <InfoIconContainer>
+        <Icons.InfoCircleFilled
+          aria-label="info-tooltip"
+          data-test="info-tooltip-icon"
+          iconSize="m"
+          style={alteredIconStyle}
+          viewBox={viewBox}
+        />
+      </InfoIconContainer>
     </StyledTooltip>
   );
 }

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useRef, useState } from 'react';
-import { SupersetTheme, t } from '@superset-ui/core';
+import { SupersetTheme, css, t } from '@superset-ui/core';
 import { Button, Select } from 'src/components';
 import FormLabel from 'src/components/Form/FormLabel';
 import Icons from 'src/components/Icons';
@@ -69,7 +69,9 @@ export const EncryptedField = ({
           </FormLabel>
           <Select
             defaultValue={uploadOption}
-            css={{ width: '100%' }}
+            css={css`
+              width: 100%;
+            `}
             onChange={option => setUploadOption(option as number)}
             options={[
               {
@@ -111,14 +113,14 @@ export const EncryptedField = ({
           >
             {!fileToUpload && (
               <Button onClick={() => selectedFileInputRef.current?.click()}>
-                <Icons.Link iconSize="m" />
+                <Icons.LinkOutlined iconSize="m" />
                 {t('Upload credentials')}
               </Button>
             )}
             {fileToUpload && (
               <div className="credentials-uploaded">
                 <Button block disabled>
-                  <Icons.Link iconSize="m" />
+                  <Icons.LinkOutlined iconSize="m" />
                   {t('Credentials uploaded')}
                 </Button>
                 <Icons.DeleteFilled

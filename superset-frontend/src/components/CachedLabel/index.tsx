@@ -21,6 +21,7 @@ import { useState, MouseEventHandler, FC } from 'react';
 import { t } from '@superset-ui/core';
 import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
+import Icons from 'src/components/Icons';
 import { TooltipContent } from './TooltipContent';
 
 export interface CacheLabelProps {
@@ -48,8 +49,11 @@ const CacheLabel: FC<CacheLabelProps> = ({
         onClick={onClick}
         onMouseOver={() => setHovered(true)}
         onMouseOut={() => setHovered(false)}
+        icon={<Icons.ReloadOutlined iconSize="m" />}
       >
-        {t('Cached')} <i className="fa fa-refresh" />
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
+        {t('Cached')}
       </Label>
     </Tooltip>
   );

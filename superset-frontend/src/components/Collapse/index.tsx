@@ -17,8 +17,10 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { Collapse as AntdCollapse } from 'antd';
-import { CollapseProps as AntdCollapseProps } from 'antd/lib/collapse';
+// eslint-disable-next-line no-restricted-imports
+import { Collapse as AntdCollapse } from 'antd'; // TODO: Remove antd
+// eslint-disable-next-line no-restricted-imports
+import { CollapseProps as AntdCollapseProps } from 'antd/lib/collapse'; // TODO: Remove antd
 
 export interface CollapseProps extends AntdCollapseProps {
   light?: boolean;
@@ -70,7 +72,7 @@ const Collapse = Object.assign(
           `}
       }
       .ant-collapse-content {
-        //background-color: ${({ theme }) => theme.colorBgLayout};
+        color: ${({ theme }) => theme.colorText};
         .ant-collapse-content-box {
           .loading.inline {
             margin: ${({ theme }) => theme.sizeUnit * 12}px auto;

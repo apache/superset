@@ -40,7 +40,7 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
-import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
+import { StaticPosition, StyledTooltip } from './styles';
 
 interface QueryTableQuery
   extends Omit<
@@ -178,7 +178,12 @@ const QueryTable = ({
       },
       timed_out: {
         config: {
-          icon: <Icons.Clock iconColor={theme.colorError} iconSize="m" />,
+          icon: (
+            <Icons.ClockCircleOutlined
+              iconColor={theme.colorError}
+              iconSize="m"
+            />
+          ),
           label: t('Offline'),
         },
       },
@@ -264,7 +269,7 @@ const QueryTable = ({
             buttonStyle="link"
             onClick={() => openQuery(q.queryId)}
           >
-            <i className="fa fa-external-link m-r-3" />
+            <Icons.Full iconSize="m" iconColor={theme.colors.primary.dark1} />
             {t('Edit')}
           </Button>
         );
@@ -329,7 +334,7 @@ const QueryTable = ({
               placement="top"
               className="pointer"
             >
-              <Icons.Edit iconSize="xl" />
+              <Icons.EditOutlined iconSize="l" />
             </StyledTooltip>
             <StyledTooltip
               onClick={() => openQueryInNewTab(query)}
@@ -337,7 +342,7 @@ const QueryTable = ({
               placement="top"
               className="pointer"
             >
-              <Icons.PlusCircleOutlined iconSize="xl" css={verticalAlign} />
+              <Icons.PlusCircleOutlined iconSize="l" />
             </StyledTooltip>
             {q.id !== latestQueryId && (
               <StyledTooltip
@@ -345,7 +350,7 @@ const QueryTable = ({
                 onClick={() => dispatch(removeQuery(query))}
                 className="pointer"
               >
-                <Icons.Trash iconSize="xl" />
+                <Icons.DeleteOutlined iconSize="l" />
               </StyledTooltip>
             )}
           </div>

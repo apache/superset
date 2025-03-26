@@ -18,7 +18,7 @@
  */
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
+import { styled, SupersetClient, t, useTheme, css } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
@@ -115,7 +115,7 @@ const QueryContainer = styled.div`
   }
 `;
 
-const SavedQueries = ({
+export const SavedQueries = ({
   user,
   addDangerToast,
   addSuccessToast,
@@ -207,6 +207,13 @@ const SavedQueries = ({
             }
           }}
         >
+          <Icons.UploadOutlined
+            iconSize="l"
+            css={css`
+              margin-right: ${theme.sizeUnit}px;
+              vertical-align: baseline;
+            `}
+          />
           {t('Share')}
         </Menu.Item>
         {canDelete && (
@@ -258,8 +265,23 @@ const SavedQueries = ({
         buttons={[
           {
             name: (
-              <Link to="/sqllab?new=true">
-                <i className="fa fa-plus" />
+              <Link
+                to="/sqllab?new=true"
+                css={css`
+                  &:hover {
+                    color: currentColor;
+                    text-decoration: none;
+                  }
+                `}
+              >
+                <Icons.PlusOutlined
+                  css={css`
+                    margin: auto ${theme.sizeUnit * 2}px auto 0;
+                    vertical-align: text-top;
+                  `}
+                  iconSize="m"
+                  iconColor={theme.colors.primary.dark1}
+                />
                 {t('SQL Query')}
               </Link>
             ),
@@ -325,9 +347,7 @@ const SavedQueries = ({
                         trigger={['click', 'hover']}
                       >
                         <Button buttonSize="xsmall" buttonStyle="link">
-                          <Icons.MoreVert
-                            iconColor={theme.colors.grayscale.base}
-                          />
+                          <Icons.MoreOutlined iconColor={theme.colorText} />
                         </Button>
                       </Dropdown>
                     </ListViewCard.Actions>
