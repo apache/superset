@@ -8424,7 +8424,7 @@ msgstr "行制限"
 msgid "Rows"
 msgstr "行"
 
-msgid "Rows per page, 0 means no pagination"
+msgid "Rows per page, All means no pagination"
 msgstr "ページごとの行数、0 はページネーションなしを意味します"
 
 msgid "Rows subtotal position"

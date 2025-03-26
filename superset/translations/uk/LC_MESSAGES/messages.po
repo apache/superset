@@ -8888,7 +8888,7 @@ msgstr "Межа рядка"
 msgid "Rows"
 msgstr "Ряди"
 
-msgid "Rows per page, 0 means no pagination"
+msgid "Rows per page, All means no pagination"
 msgstr "Рядки на сторінку, 0 означає, що немає пагінації"
 
 msgid "Rows subtotal position"
