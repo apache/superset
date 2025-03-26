@@ -57,11 +57,7 @@ export default function BasicErrorAlert({
 
   return (
     <div style={style} role="alert">
-      {level === 'error' ? (
-        <Icons.ErrorSolid iconColor={variants.text} />
-      ) : (
-        <Icons.WarningSolid iconColor={variants.text} />
-      )}
+      <Icons.ExclamationCircleFilled iconColor={variants.text} />
       <StyledContent>
         <StyledTitle>{title}</StyledTitle>
         <p>{body}</p>

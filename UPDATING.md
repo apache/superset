@@ -33,12 +33,10 @@ assists people when migrating to a new version.
 - [31794](https://github.com/apache/superset/pull/31794) Removed the previously deprecated `DASHBOARD_CROSS_FILTERS` feature flag
 - [31774](https://github.com/apache/superset/pull/31774): Fixes the spelling of the `USE-ANALAGOUS-COLORS` feature flag. Please update any scripts/configuration item to use the new/corrected `USE-ANALOGOUS-COLORS` flag spelling.
 - [31582](https://github.com/apache/superset/pull/31582) Removed the legacy Area, Bar, Event Flow, Heatmap, Histogram, Line, Sankey, and Sankey Loop charts. They were all automatically migrated to their ECharts counterparts with the exception of the Event Flow and Sankey Loop charts which were removed as they were not actively maintained and not widely used. If you were using the Event Flow or Sankey Loop charts, you will need to find an alternative solution.
-- [31198](https://github.com/apache/superset/pull/31198) Disallows by default the use of the following ClickHouse functions: "version", "currentDatabase", "hostName".
 - [29798](https://github.com/apache/superset/pull/29798) Since 3.1.0, the intial schedule for an alert or report was mistakenly offset by the specified timezone's relation to UTC. The initial schedule should now begin at the correct time.
 - [30021](https://github.com/apache/superset/pull/30021) The `dev` layer in our Dockerfile no long includes firefox binaries, only Chromium to reduce bloat/docker-build-time.
 - [30099](https://github.com/apache/superset/pull/30099) Translations are no longer included in the default docker image builds. If your environment requires translations, you'll want to set the docker build arg `BUILD_TRANSACTION=true`.
 - [31262](https://github.com/apache/superset/pull/31262) NOTE: deprecated `pylint` in favor of `ruff` as our only python linter. Only affect development workflows positively (not the release itself). It should cover most important rules, be much faster, but some things linting rules that were enforced before may not be enforce in the exact same way as before.
-- [31173](https://github.com/apache/superset/pull/31173) Modified `fetch_csrf_token` to align with HTTP standards, particularly regarding how cookies are handled. If you encounter any issues related to CSRF functionality, please report them as a new issue and reference this PR for context.
 - [31413](https://github.com/apache/superset/pull/31413) Enable the DATE_FORMAT_IN_EMAIL_SUBJECT feature flag to allow users to specify a date format for the email subject, which will then be replaced with the actual date.
 - [31385](https://github.com/apache/superset/pull/31385) Significant docker refactor, reducing access levels for the `superset` user, streamlining layer building, ...
 - [31503](https://github.com/apache/superset/pull/31503) Deprecating python 3.9.x support, 3.11 is now the recommended version and 3.10 is still supported over the Superset 5.0 lifecycle.
@@ -50,6 +48,11 @@ assists people when migrating to a new version.
 - [31260](https://github.com/apache/superset/pull/31260) Docker images now use `uv pip install` instead of `pip install` to manage the python envrionment. Most docker-based deployments will be affected, whether you derive one of the published images, or have custom bootstrap script that install python libraries (drivers)
 
 ### Potential Downtime
+
+## 4.1.2
+
+- [31198](https://github.com/apache/superset/pull/31198) Disallows by default the use of the following ClickHouse functions: "version", "currentDatabase", "hostName".
+- [31173](https://github.com/apache/superset/pull/31173) Modified `fetch_csrf_token` to align with HTTP standards, particularly regarding how cookies are handled. If you encounter any issues related to CSRF functionality, please report them as a new issue and reference this PR for context.
 
 ## 4.1.0
 

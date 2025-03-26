@@ -115,7 +115,7 @@ const QueryContainer = styled.div`
   }
 `;
 
-const SavedQueries = ({
+export const SavedQueries = ({
   user,
   addDangerToast,
   addSuccessToast,
@@ -347,7 +347,7 @@ const SavedQueries = ({
                         trigger={['click', 'hover']}
                       >
                         <Button buttonSize="xsmall" buttonStyle="link">
-                          <Icons.MoreVert iconColor={theme.colorText} />
+                          <Icons.MoreOutlined iconColor={theme.colorText} />
                         </Button>
                       </Dropdown>
                     </ListViewCard.Actions>
