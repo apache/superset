@@ -18,6 +18,11 @@
  */
 import fetchMock from 'fetch-mock';
 import { fireEvent, render, within } from 'spec/helpers/testing-library';
+import { FeatureFlag } from '@superset-ui/core';
+import {
+  OPEN_FILTER_BAR_WIDTH,
+  CLOSED_FILTER_BAR_WIDTH,
+} from 'src/dashboard/constants';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
@@ -261,5 +266,45 @@ describe('DashboardBuilder', () => {
     });
     const filterbar = getByTestId('dashboard-filters-panel');
     expect(filterbar).toHaveStyleRule('width', `${expectedValue}px`);
+  });
+
+  it('filter panel state when featureflag is true', () => {
+    (global as any).featureFlags = {
+      [FeatureFlag.FilterBarClosedByDefault]: true,
+    };
+    const setter = jest.fn();
+    (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+      CLOSED_FILTER_BAR_WIDTH,
+      setter,
+    ]);
+    const { getByTestId } = setup({
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        dash_edit_perm: true,
+      },
+    });
+
+    const filterbar = getByTestId('dashboard-filters-panel');
+    expect(filterbar).toHaveStyleRule('width', `${CLOSED_FILTER_BAR_WIDTH}px`);
+  });
+
+  it('filter panel state when featureflag is false', () => {
+    (global as any).featureFlags = {
+      [FeatureFlag.FilterBarClosedByDefault]: false,
+    };
+    const setter = jest.fn();
+    (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+      OPEN_FILTER_BAR_WIDTH,
+      setter,
+    ]);
+    const { getByTestId } = setup({
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        dash_edit_perm: true,
+      },
+    });
+
+    const filterbar = getByTestId('dashboard-filters-panel');
+    expect(filterbar).toHaveStyleRule('width', `${OPEN_FILTER_BAR_WIDTH}px`);
   });
 });
