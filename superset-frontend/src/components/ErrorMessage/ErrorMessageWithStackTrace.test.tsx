@@ -22,14 +22,6 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import ErrorMessageWithStackTrace from './ErrorMessageWithStackTrace';
 import BasicErrorAlert from './BasicErrorAlert';
 
-jest.mock(
-  'src/components/Icons/Icon',
-  () =>
-    ({ fileName }: { fileName: string }) => (
-      <span role="img" aria-label={fileName.replace('_', '-')} />
-    ),
-);
-
 const mockedProps = {
   level: 'warning' as ErrorLevel,
   link: 'https://sample.com',

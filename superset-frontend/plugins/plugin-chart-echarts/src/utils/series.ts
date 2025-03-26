@@ -441,7 +441,7 @@ export function getLegendProps(
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeSM,
       color: theme.colorText,
-      borderColor: theme.colorBgBase,
+      borderColor: theme.colorBorder,
     },
   };
   const MIN_LEGEND_WIDTH = 0;
