@@ -367,6 +367,7 @@ test.skip('Sends the correct schema when changing the schema', async () => {
   await waitFor(() => expect(fetchMock.calls(databaseApiRoute).length).toBe(1));
   rerender(<DatabaseSelector {...props} />);
   expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
+  expect(props.onDbChange).toHaveBeenCalledTimes(0);
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type to search schemas',
   });

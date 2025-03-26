@@ -14,7 +14,7 @@ import { useDatabaseTables } from 'src/hooks/apiResources';
 import { Select } from 'src/components';
 import {
   StyledInputContainer,
-  StyledTokenEstimate,
+  // StyledTokenEstimate,
   StyledTopKForm,
   antdCollapseStyles,
 } from './styles';
@@ -26,7 +26,7 @@ import {
 import SchemaSelector from './SchemaSelector';
 import { wideButton } from './styles';
 import Button from 'src/components/Button';
-import { useAssistantBuildContextQuery } from 'src/hooks/apiResources';
+// import { useAssistantBuildContextQuery } from 'src/hooks/apiResources';
 
 const AI_ASSISTANT_DEFAULT_INSTRUCTIONS = `You are a postgresql database expert. Given an input question, create a syntactically correct postgresql query. You MUST only answer with the SQL query, nothing else. Unless the user specifies a specific number of results they wish to obtain, always limit your query to at most return 1000 results. You can order the results by relevant columns. You MUST check that the query doesn't contain syntax errors or incorrect table, views, column names or joins on wrong columns. Fix any error you might find before returning your answer. DO NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the database. To construct your database query you MUST ALWAYS use the database metadata information provided to you as a JSON file. Do NOT skip this step. This JSON file specifies all the database schemas, for each schema all its relations (which are tables, and views) and for each table its columns, indexes, and foreign key constraints. The unique indexes are very useful to understand what differentiates one record to another in the same relation. The foreign key constraints are very useful to find the correct columns to join.`;
 

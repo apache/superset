@@ -88,7 +88,7 @@ const NowrapDiv = styled.div`
 
 const ColumnElement = ({ column }: ColumnElementProps) => {
   let columnName: ReactNode = column.name;
-  let icons = [];
+  let icons: ReactNode[] = [];
   if (column.keys && column.keys.length > 0) {
     columnName = <strong>{column.name}</strong>;
     icons = column.keys.map((key, i) => (

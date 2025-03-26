@@ -27,7 +27,7 @@ import {
   LatestQueryEditorVersion,
   QueryEditorVersion,
 } from 'src/SqlLab/types';
-import { query } from '../fixtures';
+// import { query } from '../fixtures';
 
 export function dedupeTabHistory(tabHistory: string[]) {
   return tabHistory.reduce<string[]>(
