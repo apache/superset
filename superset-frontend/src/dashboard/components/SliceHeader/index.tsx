@@ -90,10 +90,6 @@ const ChartHeaderStyles = styled.div`
       display: flex;
       align-items: center;
       height: 24px;
-
-      & > * {
-        margin-left: ${theme.gridUnit * 2}px;
-      }
     }
 
     .dropdown.btn-group {
@@ -222,6 +218,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               placement="top"
               title={annotationsLoading}
             >
+              {/* TODO: Remove fa-icon */}
+              {/* eslint-disable-next-line icons/no-fa-icons-usage */}
               <i
                 role="img"
                 aria-label={annotationsLoading}
@@ -235,6 +233,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               placement="top"
               title={annotationsError}
             >
+              {/* TODO: Remove fa-icon */}
+              {/* eslint-disable-next-line icons/no-fa-icons-usage */}
               <i
                 role="img"
                 aria-label={annotationsError}

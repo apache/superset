@@ -257,7 +257,7 @@ it('edit scope and save', async () => {
       within(screen.getByTestId('scoping-list-panel'))
         .getByText('chart 4')
         .closest('div')!,
-    ).getByLabelText('trash'),
+    ).getByLabelText('delete'),
   );
   expect(
     within(screen.getByTestId('scoping-list-panel')).queryByText('chart 4'),

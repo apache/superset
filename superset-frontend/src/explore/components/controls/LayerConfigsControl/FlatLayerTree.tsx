@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PlusOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { css, styled, t } from '@superset-ui/core';
-import { Button, Tree } from 'antd';
-import { TreeProps } from 'antd/lib/tree';
+// eslint-disable-next-line no-restricted-imports
+import { Button, Tree } from 'antd'; // TODO: Remove antd
+// eslint-disable-next-line no-restricted-imports
+import { TreeProps } from 'antd/lib/tree'; // TODO: Remove antd
 import { forwardRef } from 'react';
 import { FlatLayerDataNode, FlatLayerTreeProps, LayerConf } from './types';
 import { handleDrop } from './dragDropUtil';
@@ -133,7 +135,7 @@ export const FlatLayerTree = forwardRef<HTMLDivElement, FlatLayerTreeProps>(
           onClick={onAddLayer}
           size="small"
           type="dashed"
-          icon={<PlusOutlined />}
+          icon={<Icons.PlusOutlined iconSize="m" />}
         >
           {addLayerLabel}
         </Button>

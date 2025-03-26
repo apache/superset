@@ -19,7 +19,7 @@
 
 import { useMemo, useState } from 'react';
 import rison from 'rison';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, useTheme, css } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
@@ -37,6 +37,7 @@ import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerM
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import Icons from 'src/components/Icons';
 
 const PAGE_SIZE = 25;
 
@@ -55,6 +56,7 @@ function AnnotationLayersList({
   addSuccessToast,
   user,
 }: AnnotationLayersListProps) {
+  const theme = useTheme();
   const {
     state: {
       loading,
@@ -177,7 +179,7 @@ function AnnotationLayersList({
                   label: 'edit-action',
                   tooltip: t('Edit template'),
                   placement: 'bottom',
-                  icon: 'Edit',
+                  icon: 'EditOutlined',
                   onClick: handleEdit,
                 }
               : null,
@@ -186,7 +188,7 @@ function AnnotationLayersList({
                   label: 'delete-action',
                   tooltip: t('Delete template'),
                   placement: 'bottom',
-                  icon: 'Trash',
+                  icon: 'DeleteOutlined',
                   onClick: handleDelete,
                 }
               : null,
@@ -214,7 +216,14 @@ function AnnotationLayersList({
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Annotation layer')}
+          <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
+            iconSize="m"
+            css={css`
+              vertical-align: text-top;
+            `}
+          />
+          {t('Annotation layer')}
         </>
       ),
       buttonStyle: 'primary',
@@ -271,7 +280,11 @@ function AnnotationLayersList({
     buttonAction: () => handleAnnotationLayerEdit(null),
     buttonText: (
       <>
-        <i className="fa fa-plus" /> {t('Annotation layer')}
+        <Icons.PlusOutlined
+          iconSize="m"
+          iconColor={theme.colors.primary.light5}
+        />
+        {t('Annotation layer')}
       </>
     ),
   };

@@ -1292,6 +1292,19 @@ def get_user_email() -> str | None:
         return None
 
 
+def get_user_roles() -> list[str] | None:
+    """
+    Get the roles (if defined) associated with the current user.
+
+    :returns: The sorted list of roles
+    """
+
+    try:
+        return sorted([role.name for role in g.user.roles])
+    except Exception:  # pylint: disable=broad-except
+        return None
+
+
 @contextmanager
 def override_user(user: User | None, force: bool = True) -> Iterator[Any]:
     """
@@ -1682,18 +1695,26 @@ def normalize_dttm_col(
                     utc=False,
                     unit=unit,
                     origin="unix",
-                    errors="raise",
+                    errors="coerce",
                     exact=False,
                 )
             else:
                 # Column has already been formatted as a timestamp.
-                df[_col.col_label] = dttm_series.apply(pd.Timestamp)
+                try:
+                    df[_col.col_label] = dttm_series.apply(
+                        lambda x: pd.Timestamp(x) if pd.notna(x) else pd.NaT
+                    )
+                except ValueError:
+                    logger.warning(
+                        "Unable to convert column %s to datetime, ignoring",
+                        _col.col_label,
+                    )
         else:
             df[_col.col_label] = pd.to_datetime(
                 df[_col.col_label],
                 utc=False,
                 format=_col.timestamp_format,
-                errors="raise",
+                errors="coerce",
                 exact=False,
             )
         if _col.offset:

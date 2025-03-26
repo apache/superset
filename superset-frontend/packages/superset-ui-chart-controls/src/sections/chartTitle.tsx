@@ -84,7 +84,7 @@ export const titleControls: ControlPanelSectionConfig = {
           clearable: true,
           label: t('Y Axis Title Margin'),
           renderTrigger: true,
-          default: TITLE_MARGIN_OPTIONS[0],
+          default: TITLE_MARGIN_OPTIONS[1],
           choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),
           description: t('Changing this control takes effect instantly'),
         },

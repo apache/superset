@@ -310,6 +310,7 @@
     "eslint-import-resolver-typescript": "^3.7.0",
     "eslint-plugin-cypress": "^3.6.0",
     "eslint-plugin-file-progress": "^1.5.0",
+    "eslint-plugin-icons": "file:eslint-rules/eslint-plugin-icons",
     "eslint-plugin-import": "^2.24.2",
     "eslint-plugin-jest": "^27.8.0",
     "eslint-plugin-jest-dom": "^5.5.0",
@@ -339,7 +340,7 @@
     "mini-css-extract-plugin": "^2.9.0",
     "open-cli": "^8.0.0",
     "po2json": "^0.4.5",
-    "prettier": "3.3.3",
+    "prettier": "3.5.3",
     "prettier-plugin-packagejson": "^2.5.3",
     "process": "^0.11.10",
     "react-resizable": "^3.0.5",
@@ -372,7 +373,8 @@
     "core-js": "^3.38.1",
     "d3-color": "^3.1.0",
     "puppeteer": "^22.4.1",
-    "underscore": "^1.13.7"
+    "underscore": "^1.13.7",
+    "jspdf": "^3.0.1"
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
