@@ -395,7 +395,7 @@ export function runQuery(query, runPreviewOnly) {
       json: true,
       runAsync: query.runAsync,
       catalog: query.catalog,
-      schema: query.schema,
+      schema: Array.isArray(query.schema) && query.schema.length > 0 ? query.schema[0] : query.schema,
       sql: query.sql,
       sql_editor_id: query.sqlEditorId,
       tab: query.tab,

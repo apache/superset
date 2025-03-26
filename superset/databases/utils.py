@@ -285,8 +285,8 @@ def get_column_top_k_values(
     top_k: int = 10,
     top_k_limit: int = 100000,
 ) -> List:
-    db_type = database.db_engine_spec.engine
-    logging.info(f"Getting top k values for {column_name} in {table.__str__()} {schema} {db_type}")
+    # db_type = database.db_engine_spec.engine
+    # logging.info(f"Getting top k values for {column_name} in {table.__str__()} {schema} {db_type}")
 
     query = f"""
     SELECT \"{column_name}\" AS value, COUNT(*) AS frequency
