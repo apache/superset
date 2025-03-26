@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component } from 'react';
+import { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { SketchPicker } from 'react-color';
 import { getCategoricalSchemeRegistry, styled, css } from '@superset-ui/core';
@@ -65,17 +65,18 @@ const styles = {
       'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyRCgLaBCAAgXwixzAS0pgAAAABJRU5ErkJggg==") left center',
   },
 };
-export default class ColorPickerControl extends Component {
-  constructor(props) {
-    super(props);
-    this.onChange = this.onChange.bind(this);
-  }
 
-  onChange(col) {
-    this.props.onChange(col.rgb);
-  }
+const ColorPickerControl = props => {
+  const { onChange, value, ...restProps } = props;
 
-  renderPopover() {
+  const handleChange = useCallback(
+    col => {
+      onChange(col.rgb);
+    },
+    [onChange],
+  );
+
+  const renderPopover = () => {
     const presetColors = getCategoricalSchemeRegistry()
       .get()
       .colors.filter((s, i) => i < 7);
@@ -87,37 +88,34 @@ export default class ColorPickerControl extends Component {
             padding: 0 !important;
             box-shadow: none !important;
           `}
-          color={this.props.value}
-          onChange={this.onChange}
+          color={value}
+          onChange={handleChange}
           presetColors={presetColors}
         />
       </div>
     );
-  }
+  };
 
-  render() {
-    const c = this.props.value || { r: 0, g: 0, b: 0, a: 0 };
-    const colStyle = {
-      ...styles.color,
-      background: `rgba(${c.r}, ${c.g}, ${c.b}, ${c.a})`,
-    };
-    return (
-      <div>
-        <ControlHeader {...this.props} />
-        <Popover
-          trigger="click"
-          placement="right"
-          content={this.renderPopover()}
-        >
-          <StyledSwatch>
-            <div style={styles.checkerboard} />
-            <div style={colStyle} />
-          </StyledSwatch>
-        </Popover>
-      </div>
-    );
-  }
-}
+  const c = value || { r: 0, g: 0, b: 0, a: 0 };
+  const colStyle = {
+    ...styles.color,
+    background: `rgba(${c.r}, ${c.g}, ${c.b}, ${c.a})`,
+  };
+
+  return (
+    <div>
+      <ControlHeader {...restProps} value={value} onChange={onChange} />
+      <Popover trigger="click" placement="right" content={renderPopover()}>
+        <StyledSwatch>
+          <div style={styles.checkerboard} />
+          <div style={colStyle} />
+        </StyledSwatch>
+      </Popover>
+    </div>
+  );
+};
 
 ColorPickerControl.propTypes = propTypes;
 ColorPickerControl.defaultProps = defaultProps;
+
+export default ColorPickerControl;

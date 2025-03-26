@@ -327,50 +327,48 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   };
 
   const loadDatabaseOptions = useMemo(
-    () =>
-      (input = '', page: number, pageSize: number) => {
-        const query = rison.encode_uri({
-          filters: [
-            {
-              col: 'allow_file_upload',
-              opr: 'eq',
-              value: true,
-            },
-          ],
-          page,
-          page_size: pageSize,
-        });
-        return SupersetClient.get({
-          endpoint: `/api/v1/database/?q=${query}`,
-        }).then(response => {
-          const list = response.json.result.map(
-            (item: { id: number; database_name: string }) => ({
-              value: item.id,
-              label: item.database_name,
-            }),
-          );
-          return { data: list, totalCount: response.json.count };
-        });
-      },
+    () => () => {
+      const query = rison.encode_uri({
+        filters: [
+          {
+            col: 'allow_file_upload',
+            opr: 'eq',
+            value: true,
+          },
+        ],
+        page: 0,
+        page_size: 25,
+      });
+      return SupersetClient.get({
+        endpoint: `/api/v1/database/?q=${query}`,
+      }).then(response => {
+        const list = response.json.result.map(
+          (item: { id: number; database_name: string }) => ({
+            value: item.id,
+            label: item.database_name,
+          }),
+        );
+        return { data: list, totalCount: response.json.count };
+      });
+    },
     [],
   );
 
   const loadSchemaOptions = useMemo(
-    () =>
-      (input = '', page: number, pageSize: number) => {
-        if (!currentDatabaseId) {
-          return Promise.resolve({ data: [], totalCount: 0 });
-        }
-        return SupersetClient.get({
-          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/?q=(upload_allowed:!t)`,
-        }).then(response => {
-          const list = response.json.result.map((item: string) => ({
-            value: item,
-            label: item,
-          }));
-          return { data: list, totalCount: response.json.count };
-        });
-      },
+    () => () => {
+      if (!currentDatabaseId) {
+        return Promise.resolve({ data: [], totalCount: 0 });
+      }
+      return SupersetClient.get({
+        endpoint: `/api/v1/database/${currentDatabaseId}/schemas/?q=(upload_allowed:!t)`,
+      }).then(response => {
+        const list = response.json.result.map((item: string) => ({
+          value: item,
+          label: item,
+        }));
+        return { data: list, totalCount: response.json.count };
+      });
+    },
     [currentDatabaseId],
   );
 
@@ -538,7 +536,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
   }, [delimiter]);
 
-  const validateUpload = (_: any, value: string) => {
+  const validateUpload = () => {
     if (fileList.length === 0) {
       return Promise.reject(t('Uploading a file is required'));
     }
@@ -553,7 +551,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     return Promise.resolve();
   };
 
-  const validateDatabase = (_: any, value: string) => {
+  const validateDatabase = () => {
     if (!currentDatabaseId) {
       return Promise.reject(t('Selecting a database is required'));
     }

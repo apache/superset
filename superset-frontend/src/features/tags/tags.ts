@@ -74,11 +74,9 @@ export function fetchTags(
   {
     objectType,
     objectId,
-    includeTypes = false,
   }: {
     objectType: string;
     objectId: number;
-    includeTypes: boolean;
   },
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
@@ -151,11 +149,9 @@ export function addTag(
   {
     objectType,
     objectId,
-    includeTypes = false,
   }: {
     objectType: string;
     objectId: number;
-    includeTypes: boolean;
   },
   tag: string,
   callback: (text: string) => void,
