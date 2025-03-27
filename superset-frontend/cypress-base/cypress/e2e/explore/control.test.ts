@@ -61,6 +61,7 @@ describe('Datasource control', () => {
       .contains('Drop columns/metrics here or click')
       .click();
 
+    cy.wait(500); // TODO: @msyavuz chrome renderer crashes without this
     cy.get('input[aria-label="Select saved metrics"]').type(
       `${newMetricName}{enter}`,
     );
