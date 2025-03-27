@@ -294,8 +294,8 @@ export const chartListView = {
   },
   table: {
     bulkSelect: {
-      checkboxOff: '[aria-label="checkbox_off"]',
-      checkboxOn: '[aria-label="checkbox_on"]',
+      checkboxOff: '[aria-label="checkbox-off"]',
+      checkboxOn: '[aria-label="checkbox-on"]',
       action: dataTestLocator('bulk-select-action'),
     },
     tableList: dataTestLocator('listview-table'),
@@ -413,8 +413,8 @@ export const dashboardListView = {
     selectedStarIcon: "[aria-label='star']",
     unselectedStarIcon: "[aria-label='star']",
     bulkSelect: {
-      checkboxOff: '[aria-label="checkbox_off"]',
-      checkboxOn: '[aria-label="checkbox_on"]',
+      checkboxOff: '[aria-label="checkbox-off"]',
+      checkboxOn: '[aria-label="checkbox-on"]',
       action: dataTestLocator('bulk-select-action'),
     },
     tableRow: {

@@ -123,7 +123,7 @@ describe('Charts list', () => {
     it('should bulk select in list mode', () => {
       toggleBulkSelect();
       cy.get('#header-toggle-all').click();
-      cy.get('[aria-label="checkbox_on"]').should('have.length', 26);
+      cy.get('[aria-label="checkbox-on"]').should('have.length', 26);
       cy.getBySel('bulk-select-copy').contains('25 Selected');
       cy.getBySel('bulk-select-action')
         .should('have.length', 2)
@@ -132,7 +132,7 @@ describe('Charts list', () => {
           expect($btns).to.contain('Export');
         });
       cy.getBySel('bulk-select-deselect-all').click();
-      cy.get('[aria-label="checkbox_on"]').should('have.length', 0);
+      cy.get('[aria-label="checkbox-on"]').should('have.length', 0);
       cy.getBySel('bulk-select-copy').contains('0 Selected');
       cy.getBySel('bulk-select-action').should('not.exist');
     });
