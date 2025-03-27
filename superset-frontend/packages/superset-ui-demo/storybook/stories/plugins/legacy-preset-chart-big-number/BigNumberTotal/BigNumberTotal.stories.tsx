@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import { BigNumberTotalChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 
@@ -37,7 +37,7 @@ export const totalBasic = () => (
     formData={{
       metric: 'sum__num',
       subheader: 'total female participants',
-      vizType: 'big_number_total',
+      vizType: VizType.BigNumberTotal,
       yAxisFormat: '.3s',
     }}
   />
@@ -52,7 +52,7 @@ export const totalNoData = () => (
     formData={{
       metric: 'sum__num',
       subheader: 'total female participants',
-      vizType: 'big_number_total',
+      vizType: VizType.BigNumberTotal,
       yAxisFormat: '.3s',
     }}
   />

@@ -115,14 +115,14 @@ def test_import_dashboard_without_permission(
         import_dashboard(dashboard_config)
     assert (
         str(excinfo.value)
-        == "Dashboard doesn't exist and user doesn't have permission to create dashboards"
+        == "Dashboard doesn't exist and user doesn't have permission to create dashboards"  # noqa: E501
     )
 
     # Assert that the can write to dashboard was checked
     mock_can_access.assert_called_once_with("can_write", "Dashboard")
 
 
-def test_import_existing_dashboard_without_permission(
+def test_import_existing_dashboard_without_access_permission(
     mocker: MockerFixture,
     session_with_data: Session,
 ) -> None:
@@ -142,12 +142,61 @@ def test_import_existing_dashboard_without_permission(
         .one_or_none()
     )
 
-    with override_user("admin"):
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(admin):
         with pytest.raises(ImportFailedError) as excinfo:
             import_dashboard(dashboard_config, overwrite=True)
         assert (
             str(excinfo.value)
-            == "A dashboard already exists and user doesn't have permissions to overwrite it"
+            == "A dashboard already exists and user doesn't have permissions to overwrite it"  # noqa: E501
+        )
+
+    # Assert that the can write to dashboard was checked
+    mock_can_access.assert_called_once_with("can_write", "Dashboard")
+    mock_can_access_dashboard.assert_called_once_with(dashboard)
+
+
+def test_import_existing_dashboard_without_owner_permission(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Test importing a dashboard when a user doesn't have ownership and is not an Admin.
+    """
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
+    mock_can_access_dashboard = mocker.patch.object(
+        security_manager, "can_access_dashboard", return_value=True
+    )
+
+    dashboard = (
+        session_with_data.query(Dashboard)
+        .filter(Dashboard.uuid == dashboard_config["uuid"])
+        .one_or_none()
+    )
+
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(user):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dashboard(dashboard_config, overwrite=True)
+        assert (
+            str(excinfo.value)
+            == "A dashboard already exists and user doesn't have permissions to overwrite it"  # noqa: E501
         )
 
     # Assert that the can write to dashboard was checked
@@ -161,7 +210,7 @@ def test_import_existing_dashboard_with_permission(
 ) -> None:
     """
     Test importing a dashboard that exists when a user has access permission to that dashboard.
-    """
+    """  # noqa: E501
     mock_can_access = mocker.patch.object(
         security_manager, "can_access", return_value=True
     )

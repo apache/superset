@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 
 from datetime import datetime
-import imp
+from importlib.util import find_spec
 from contextlib import contextmanager
 from typing import Any, Union, Optional
 from unittest.mock import Mock, patch, MagicMock
@@ -49,7 +49,7 @@ from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
 
 FAKE_DB_NAME = "fake_db_100"
-DEFAULT_PASSWORD = "general"
+DEFAULT_PASSWORD = "general"  # noqa: S105
 test_client = app.test_client()
 
 
@@ -256,11 +256,11 @@ class SupersetTestCase(TestCase):
         return db.session.query(SqlaTable).filter_by(id=table_id).one()
 
     @staticmethod
-    def is_module_installed(module_name):
+    def is_module_installed(module_name: str) -> bool:
         try:
-            imp.find_module(module_name)
-            return True
-        except ImportError:
+            spec = find_spec(module_name)
+            return spec is not None
+        except (ModuleNotFoundError, ValueError, TypeError, ImportError):
             return False
 
     def get_or_create(self, cls, criteria, **kwargs):
@@ -555,7 +555,7 @@ class SupersetTestCase(TestCase):
         dashboard_title: str,
         slug: Optional[str],
         owners: list[int],
-        roles: list[int] = [],
+        roles: list[int] = [],  # noqa: B006
         created_by=None,
         slices: Optional[list[Slice]] = None,
         position_json: str = "",
@@ -565,8 +565,8 @@ class SupersetTestCase(TestCase):
         certified_by: Optional[str] = None,
         certification_details: Optional[str] = None,
     ) -> Dashboard:
-        obj_owners = list()
-        obj_roles = list()
+        obj_owners = list()  # noqa: C408
+        obj_roles = list()  # noqa: C408
         slices = slices or []
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
@@ -595,7 +595,7 @@ class SupersetTestCase(TestCase):
     def get_list(
         self,
         asset_type: str,
-        filter: dict[str, Any] = {},
+        filter: dict[str, Any] = {},  # noqa: B006
         username: str = ADMIN_USERNAME,
     ) -> Response:
         """

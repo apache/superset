@@ -66,7 +66,9 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.starrocks import StarRocksEngineSpec as spec
+    from superset.db_engine_specs.starrocks import (
+        StarRocksEngineSpec as spec,  # noqa: N813
+    )
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
@@ -129,7 +131,7 @@ def test_get_schema_from_engine_params() -> None:
 
 def test_impersonation_username(mocker: MockerFixture) -> None:
     """
-    Test impersonation and make sure that `get_url_for_impersonation` leaves the URL
+    Test impersonation and make sure that `impersonate_user` leaves the URL
     unchanged and that `get_prequeries` returns the appropriate impersonation query.
     """
     from superset.db_engine_specs.starrocks import StarRocksEngineSpec
@@ -138,12 +140,13 @@ def test_impersonation_username(mocker: MockerFixture) -> None:
     database.impersonate_user = True
     database.get_effective_user.return_value = "alice"
 
-    assert StarRocksEngineSpec.get_url_for_impersonation(
-        url=make_url("starrocks://service_user@localhost:9030/hive.default"),
-        impersonate_user=True,
+    assert StarRocksEngineSpec.impersonate_user(
+        database,
         username="alice",
-        access_token=None,
-    ) == make_url("starrocks://service_user@localhost:9030/hive.default")
+        user_token=None,
+        url=make_url("starrocks://service_user@localhost:9030/hive.default"),
+        engine_kwargs={},
+    ) == (make_url("starrocks://service_user@localhost:9030/hive.default"), {})
 
     assert StarRocksEngineSpec.get_prequeries(database) == [
         'EXECUTE AS "alice" WITH NO REVERT;'
@@ -153,7 +156,7 @@ def test_impersonation_username(mocker: MockerFixture) -> None:
 def test_impersonation_disabled(mocker: MockerFixture) -> None:
     """
     Test that impersonation is not applied when the feature is disabled in
-    `get_url_for_impersonation` and `get_prequeries`.
+    `impersonate_user` and `get_prequeries`.
     """
     from superset.db_engine_specs.starrocks import StarRocksEngineSpec
 
@@ -161,11 +164,12 @@ def test_impersonation_disabled(mocker: MockerFixture) -> None:
     database.impersonate_user = False
     database.get_effective_user.return_value = "alice"
 
-    assert StarRocksEngineSpec.get_url_for_impersonation(
-        url=make_url("starrocks://service_user@localhost:9030/hive.default"),
-        impersonate_user=False,
+    assert StarRocksEngineSpec.impersonate_user(
+        database,
         username="alice",
-        access_token=None,
-    ) == make_url("starrocks://service_user@localhost:9030/hive.default")
+        user_token=None,
+        url=make_url("starrocks://service_user@localhost:9030/hive.default"),
+        engine_kwargs={},
+    ) == (make_url("starrocks://service_user@localhost:9030/hive.default"), {})
 
     assert StarRocksEngineSpec.get_prequeries(database) == []

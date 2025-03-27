@@ -72,7 +72,7 @@ const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
     min-width: auto;
   }
 
-  .ant-modal-body {
+  .antd5-modal-body {
     padding: 0px;
   }
 
@@ -81,10 +81,10 @@ const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
     css`
       height: 100%;
 
-      .ant-modal-body {
+      .antd5-modal-body {
         flex: 1 1 auto;
       }
-      .ant-modal-content {
+      .antd5-modal-content {
         height: 100%;
       }
     `}
@@ -297,7 +297,6 @@ function FiltersConfigModal({
     setRemovedFilters,
     setOrderedFilters,
     setSaveAlertVisible,
-    filterChanges,
     filterId => {
       setFilterChanges(prev => ({
         ...prev,
@@ -510,7 +509,8 @@ function FiltersConfigModal({
       unsavedFiltersIds.length > 0 ||
       form.isFieldsTouched() ||
       changed ||
-      didChangeOrder
+      didChangeOrder ||
+      Object.values(removedFilters).some(f => f?.isPending)
     ) {
       setSaveAlertVisible(true);
     } else {
@@ -705,7 +705,7 @@ function FiltersConfigModal({
 
   return (
     <StyledModalWrapper
-      visible={isOpen}
+      open={isOpen}
       maskClosable={false}
       title={t('Add and edit filters')}
       expanded={expanded}

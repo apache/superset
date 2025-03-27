@@ -34,6 +34,19 @@ def test_timezone_conversion() -> None:
     assert pd.read_excel(contents)["dt"][0] == "2023-01-01 00:00:00+00:00"
 
 
+def test_quote_formulas() -> None:
+    """
+    Test that formulas are quoted in Excel.
+    """
+    df = pd.DataFrame({"formula": ["=SUM(A1:A2)", "normal", "@SUM(A1:A2)"]})
+    contents = df_to_excel(df)
+    assert pd.read_excel(contents)["formula"].tolist() == [
+        "'=SUM(A1:A2)",
+        "normal",
+        "'@SUM(A1:A2)",
+    ]
+
+
 def test_column_data_types_with_one_numeric_column():
     df = pd.DataFrame(
         {
@@ -92,3 +105,27 @@ def test_column_data_types_with_failing_conversion():
     assert not is_numeric_dtype(df["col1"])
     assert not is_numeric_dtype(df["col2"])
     assert not is_numeric_dtype(df["col3"])
+
+
+def test_column_data_types_with_large_numeric_values():
+    df = pd.DataFrame(
+        {
+            "big_number": [
+                10**14,
+                999999999999999,
+                10**15 + 1,
+                10**16,
+                1100108628127863,
+                2**54,
+            ],
+        }
+    )
+    apply_column_types(df, [GenericDataType.NUMERIC])
+    assert df["big_number"].tolist() == [
+        100000000000000,
+        999999999999999,
+        "1000000000000001",
+        "10000000000000000",
+        "1100108628127863",
+        "18014398509481984",
+    ]

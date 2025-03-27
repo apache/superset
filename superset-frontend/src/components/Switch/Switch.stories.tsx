@@ -33,12 +33,15 @@ export const InteractiveSwitch = ({ checked, ...rest }: SwitchProps) => {
     />
   );
 };
+const defaultCheckedValue = true;
 
 InteractiveSwitch.args = {
-  checked: false,
+  checked: defaultCheckedValue,
   disabled: false,
   loading: false,
   title: 'Switch',
+  defaultChecked: defaultCheckedValue,
+  autoFocus: true,
 };
 
 InteractiveSwitch.argTypes = {

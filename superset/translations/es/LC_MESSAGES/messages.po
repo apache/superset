@@ -599,8 +599,12 @@ msgid "A Big Number"
 msgstr "Número Grande"
 
 msgid "A comma separated list of columns that should be parsed as dates"
+
+#, fuzzy
+msgid "Select column names from a dropdown list that should be parsed as dates."
+
 msgstr ""
-"Una lista separada por comas de columnas que deben ser parseadas como "
+"Seleccione en la lista desplegable los nombres de las columnas que deben analizarse como "
 "fechas."
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
@@ -11487,7 +11491,7 @@ msgstr "Truncar el eje Y"
 
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
-" applicable for numercal X axis."
+" applicable for numerical X axis."
 msgstr ""
 "Truncar el eje Y. Puede ser sobreescrito al especificar un límite máximo "
 "o mínimo"

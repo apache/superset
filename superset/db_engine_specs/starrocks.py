@@ -204,23 +204,22 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         return parse.unquote(database.split(".")[1])
 
     @classmethod
-    def get_url_for_impersonation(
+    def impersonate_user(
         cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
         url: URL,
-        impersonate_user: bool,
-        username: Union[str, None] = None,
-        access_token: Union[str, None] = None,
-    ) -> URL:
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
         """
-        Return a modified URL with the username set.
+        Impersonate the given user.
 
-        :param url: SQLAlchemy URL object
-        :param impersonate_user: Flag indicating if impersonation is enabled
-        :param username: Effective username
-        :param access_token: Personal access token
+        User impersonation is actually achieved via `get_prequeries`, so this method
+        needs to ensure that the username is not added to the URL when user
+        impersonation is enabled (the behavior of the base class).
         """
-        # Leave URL unchanged. We will impersonate with the pre-query below.
-        return url
+        return url, engine_kwargs
 
     @classmethod
     def get_prequeries(

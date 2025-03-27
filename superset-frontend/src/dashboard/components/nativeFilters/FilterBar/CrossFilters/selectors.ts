@@ -21,36 +21,37 @@ import {
   DataMaskStateWithId,
   getColumnLabel,
   isDefined,
-  JsonObject,
 } from '@superset-ui/core';
-import { DashboardLayout } from 'src/dashboard/types';
+import { LayoutItem } from 'src/dashboard/types';
 import { CrossFilterIndicator, getCrossFilterIndicator } from '../../selectors';
 
 export const crossFiltersSelector = (props: {
   dataMask: DataMaskStateWithId;
-  chartConfiguration: JsonObject;
-  dashboardLayout: DashboardLayout;
+  chartIds: number[];
+  chartLayoutItems: LayoutItem[];
   verboseMaps: { [key: string]: Record<string, string> };
 }): CrossFilterIndicator[] => {
-  const { dataMask, chartConfiguration, dashboardLayout, verboseMaps } = props;
-  const chartsIds = Object.keys(chartConfiguration);
+  const { dataMask, chartIds, chartLayoutItems, verboseMaps } = props;
 
-  return chartsIds
+  return chartIds
     .map(chartId => {
-      const id = Number(chartId);
       const filterIndicator = getCrossFilterIndicator(
-        id,
-        dataMask[id],
-        dashboardLayout,
+        chartId,
+        dataMask[chartId],
+        chartLayoutItems,
       );
       if (
         isDefined(filterIndicator.column) &&
         isDefined(filterIndicator.value)
       ) {
         const verboseColName =
-          verboseMaps[id]?.[getColumnLabel(filterIndicator.column)] ||
+          verboseMaps[chartId]?.[getColumnLabel(filterIndicator.column)] ||
           filterIndicator.column;
-        return { ...filterIndicator, column: verboseColName, emitterId: id };
+        return {
+          ...filterIndicator,
+          column: verboseColName,
+          emitterId: chartId,
+        };
       }
       return null;
     })

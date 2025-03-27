@@ -22,7 +22,7 @@ import TagType from 'src/types/TagType';
 import { Tag as AntdTag } from 'antd-v5';
 import { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
-import { CloseOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
@@ -31,7 +31,9 @@ const StyledTag = styled(AntdTag)`
   `};
 `;
 
-export const CustomCloseIcon = <CloseOutlined role="button" />;
+export const CustomCloseIcon = (
+  <Icons.CloseOutlined iconSize="xs" role="button" />
+);
 
 const MAX_DISPLAY_CHAR = 20;
 
@@ -43,11 +45,13 @@ const Tag = ({
   editable = false,
   onClick = undefined,
   toolTipTitle = name,
+  children,
+  ...rest
 }: TagType) => {
   const isLongTag = useMemo(() => name.length > MAX_DISPLAY_CHAR, [name]);
   const tagDisplay = isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
 
-  const handleClose = () => (index ? onDelete?.(index) : null);
+  const handleClose = () => (index !== undefined ? onDelete?.(index) : null);
 
   const whatRole = onClick ? (!id ? 'button' : 'link') : undefined;
 
@@ -59,25 +63,32 @@ const Tag = ({
             key={id}
             closable={editable}
             onClose={handleClose}
-            color="blue"
             closeIcon={editable ? CustomCloseIcon : undefined}
+            {...rest}
           >
-            {tagDisplay}
+            {children || tagDisplay}
           </StyledTag>
         </Tooltip>
       ) : (
         <Tooltip title={toolTipTitle} key={toolTipTitle}>
-          <StyledTag data-test="tag" key={id} onClick={onClick} role={whatRole}>
+          <StyledTag
+            data-test="tag"
+            key={id}
+            onClick={onClick}
+            role={whatRole}
+            {...rest}
+          >
+            {' '}
             {id ? (
               <a
                 href={`/superset/all_entities/?id=${id}`}
                 target="_blank"
                 rel="noreferrer"
               >
-                {tagDisplay}
+                {children || tagDisplay}
               </a>
             ) : (
-              tagDisplay
+              children || tagDisplay
             )}
           </StyledTag>
         </Tooltip>

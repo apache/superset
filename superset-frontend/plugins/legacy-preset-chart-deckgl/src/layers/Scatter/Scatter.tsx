@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ScatterplotLayer } from 'deck.gl/typed';
+import { ScatterplotLayer } from '@deck.gl/layers';
 import {
   Datasource,
   getMetricLabel,
@@ -90,8 +90,8 @@ export function getLayer(
     id: `scatter-layer-${fd.slice_id}` as const,
     data: dataWithRadius,
     fp64: true,
-    getFillColor: d => d.color,
-    getRadius: d => d.radius,
+    getFillColor: (d: any) => d.color,
+    getRadius: (d: any) => d.radius,
     radiusMinPixels: Number(fd.min_radius) || undefined,
     radiusMaxPixels: Number(fd.max_radius) || undefined,
     stroked: false,

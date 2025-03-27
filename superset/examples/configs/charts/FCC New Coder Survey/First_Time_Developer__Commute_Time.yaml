@@ -15,42 +15,41 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: First Time Developer & Commute Time
-viz_type: sankey
+viz_type: sankey_v2
 params:
   adhoc_filters:
-  - clause: WHERE
-    comparator: '1'
-    expressionType: SIMPLE
-    filterOptionName: filter_9hkcdqhiqor_84pk01t2k9
-    isExtra: false
-    isNew: false
-    operator: ==
-    sqlExpression: null
-    subject: is_software_dev
-  - clause: WHERE
-    comparator: 'NULL'
-    expressionType: SIMPLE
-    filterOptionName: filter_d5l1qwsthl_okyuouvmors
-    isExtra: false
-    isNew: false
-    operator: '!='
-    sqlExpression: null
-    subject: first_time_developer
-  - clause: WHERE
-    comparator: 'NULL'
-    expressionType: SIMPLE
-    filterOptionName: filter_95548uvadi_f990s8nzl4
-    isExtra: false
-    isNew: false
-    operator: '!='
-    sqlExpression: null
-    subject: communite_time
+    - clause: WHERE
+      comparator: "1"
+      expressionType: SIMPLE
+      filterOptionName: filter_9hkcdqhiqor_84pk01t2k9
+      isExtra: false
+      isNew: false
+      operator: ==
+      sqlExpression: null
+      subject: is_software_dev
+    - clause: WHERE
+      comparator: "NULL"
+      expressionType: SIMPLE
+      filterOptionName: filter_d5l1qwsthl_okyuouvmors
+      isExtra: false
+      isNew: false
+      operator: "!="
+      sqlExpression: null
+      subject: first_time_developer
+    - clause: WHERE
+      comparator: "NULL"
+      expressionType: SIMPLE
+      filterOptionName: filter_95548uvadi_f990s8nzl4
+      isExtra: false
+      isNew: false
+      operator: "!="
+      sqlExpression: null
+      subject: communite_time
   color_scheme: supersetColors
   datasource: 42__table
   granularity_sqla: time_start
-  groupby:
-  - first_time_developer
-  - communite_time
+  source: first_time_developer
+  target: communite_time
   label_colors: {}
   metric: count
   queryFields:
@@ -59,7 +58,7 @@ params:
   row_limit: 10000
   time_range: No filter
   url_params: {}
-  viz_type: sankey
+  viz_type: sankey_v2
 cache_timeout: null
 uuid: 067c4a1e-ae03-4c0c-8e2a-d2c0f4bf43c3
 version: 1.0.0

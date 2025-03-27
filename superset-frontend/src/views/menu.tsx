@@ -28,6 +28,7 @@ import createCache from '@emotion/cache';
 import { ThemeProvider } from '@superset-ui/core';
 import Menu from 'src/features/home/Menu';
 import { theme } from 'src/preamble';
+import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { setupStore } from './store';
 
@@ -45,16 +46,18 @@ const app = (
   // @ts-ignore: emotion types defs are incompatible between core and cache
   <CacheProvider value={emotionCache}>
     <ThemeProvider theme={theme}>
-      <Provider store={store}>
-        <BrowserRouter>
-          <QueryParamProvider
-            ReactRouterRoute={Route}
-            stringifyOptions={{ encode: false }}
-          >
-            <Menu data={menu} />
-          </QueryParamProvider>
-        </BrowserRouter>
-      </Provider>
+      <AntdThemeProvider>
+        <Provider store={store}>
+          <BrowserRouter>
+            <QueryParamProvider
+              ReactRouterRoute={Route}
+              stringifyOptions={{ encode: false }}
+            >
+              <Menu data={menu} />
+            </QueryParamProvider>
+          </BrowserRouter>
+        </Provider>
+      </AntdThemeProvider>
     </ThemeProvider>
   </CacheProvider>
 );

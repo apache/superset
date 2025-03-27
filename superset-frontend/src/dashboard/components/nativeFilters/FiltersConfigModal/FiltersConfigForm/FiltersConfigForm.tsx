@@ -40,6 +40,8 @@ import {
   ClientErrorObject,
   getClientErrorObject,
   SLOW_DEBOUNCE,
+  useTheme,
+  css,
 } from '@superset-ui/core';
 import { debounce, isEqual } from 'lodash';
 import {
@@ -209,11 +211,6 @@ const DefaultValueContainer = styled.div`
   align-items: center;
 `;
 
-const RefreshIcon = styled(Icons.Refresh)`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  color: ${({ theme }) => theme.colors.primary.base};
-`;
-
 const StyledCollapse = styled(Collapse)`
   border-left: 0;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -355,6 +352,7 @@ const FiltersConfigForm = (
   }: FiltersConfigFormProps,
   ref: RefObject<any>,
 ) => {
+  const theme = useTheme();
   const isRemoved = !!removedFilters[filterId];
   const [error, setError] = useState<ClientErrorObject>();
   const [metrics, setMetrics] = useState<Metric[]>([]);
@@ -583,9 +581,9 @@ const FiltersConfigForm = (
     !datasetId || datasetDetails || formFilter?.dataset?.label;
 
   const updateFormValues = useCallback(
-    (values: any) => {
+    (values: any, triggerFormChange = true) => {
       setNativeFilterFieldValues(form, filterId, values);
-      formChanged();
+      if (triggerFormChange) formChanged();
     },
     [filterId, form, formChanged],
   );
@@ -1106,15 +1104,16 @@ const FiltersConfigForm = (
                       initialValue={sort}
                       label={<StyledLabel>{t('Sort type')}</StyledLabel>}
                     >
-                      <Radio.Group
+                      <Radio.GroupWrapper
+                        options={[
+                          { value: true, label: t('Sort ascending') },
+                          { value: false, label: t('Sort descending') },
+                        ]}
                         onChange={value => {
                           onSortChanged(value.target.value);
                           formChanged();
                         }}
-                      >
-                        <Radio value>{t('Sort ascending')}</Radio>
-                        <Radio value={false}>{t('Sort descending')}</Radio>
-                      </Radio.Group>
+                      />
                     </StyledRowFormItem>
                     {hasMetrics && (
                       <StyledRowSubFormItem
@@ -1181,22 +1180,23 @@ const FiltersConfigForm = (
                         <StyledLabel>{t('Single value type')}</StyledLabel>
                       }
                     >
-                      <Radio.Group
+                      <Radio.GroupWrapper
                         onChange={value => {
                           onEnableSingleValueChanged(value.target.value);
                           formChanged();
                         }}
-                      >
-                        <Radio value={SingleValueType.Minimum}>
-                          {t('Minimum')}
-                        </Radio>
-                        <Radio value={SingleValueType.Exact}>
-                          {t('Exact')}
-                        </Radio>
-                        <Radio value={SingleValueType.Maximum}>
-                          {t('Maximum')}
-                        </Radio>
-                      </Radio.Group>
+                        options={[
+                          {
+                            label: t('Minimum'),
+                            value: SingleValueType.Minimum,
+                          },
+                          { label: t('Exact'), value: SingleValueType.Exact },
+                          {
+                            label: t('Maximum'),
+                            value: SingleValueType.Maximum,
+                          },
+                        ]}
+                      />
                     </StyledRowFormItem>
                   </CollapsibleControl>
                 </CleanFormItem>
@@ -1273,7 +1273,7 @@ const FiltersConfigForm = (
                             return [...prevErroredFilters, filterId];
                           });
                           return Promise.reject(
-                            new Error(t('Default value is required')),
+                            new Error(t('Please choose a valid value')),
                           );
                         },
                       },
@@ -1321,7 +1321,14 @@ const FiltersConfigForm = (
                         )}
                         {hasDataset && datasetId && (
                           <Tooltip title={t('Refresh the default values')}>
-                            <RefreshIcon onClick={() => refreshHandler(true)} />
+                            <Icons.SyncOutlined
+                              iconSize="xl"
+                              iconColor={theme.colors.primary.base}
+                              css={css`
+                                margin-left: ${theme.gridUnit * 2}px;
+                              `}
+                              onClick={() => refreshHandler(true)}
+                            />
                           </Tooltip>
                         )}
                       </DefaultValueContainer>
@@ -1353,7 +1360,6 @@ const FiltersConfigForm = (
           forceUpdate={forceUpdate}
           filterScope={filterToEdit?.scope}
           formFilterScope={formFilter?.scope}
-          formScopingType={formFilter?.scoping}
           initiallyExcludedCharts={initiallyExcludedCharts}
         />
       </TabPane>

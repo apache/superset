@@ -37,7 +37,7 @@ def test_table() -> None:
     Test the `Table` class and its string conversion.
 
     Special characters in the table, schema, or catalog name should be escaped correctly.
-    """
+    """  # noqa: E501
     assert str(Table("tbname")) == "tbname"
     assert str(Table("tbname", "schemaname")) == "schemaname.tbname"
     assert (
@@ -301,7 +301,7 @@ def test_format_no_dialect() -> None:
     Test format with an engine that has no corresponding dialect.
     """
     assert (
-        SQLScript("SELECT col FROM t WHERE col NOT IN (1, 2)", "firebolt").format()
+        SQLScript("SELECT col FROM t WHERE col NOT IN (1, 2)", "dremio").format()
         == "SELECT col\nFROM t\nWHERE col NOT IN (1,\n                  2)"
     )
 
@@ -311,7 +311,7 @@ def test_split_no_dialect() -> None:
     Test the statement split when the engine has no corresponding dialect.
     """
     sql = "SELECT col FROM t WHERE col NOT IN (1, 2); SELECT * FROM t; SELECT foo"
-    statements = SQLScript(sql, "firebolt").statements
+    statements = SQLScript(sql, "dremio").statements
     assert len(statements) == 3
     assert statements[0]._sql == "SELECT col FROM t WHERE col NOT IN (1, 2)"
     assert statements[1]._sql == "SELECT * FROM t"
@@ -901,7 +901,6 @@ on $left.Day1 == $right.Day
 @pytest.mark.parametrize(
     ("engine", "sql", "expected"),
     [
-        # SQLite tests
         ("sqlite", "SELECT 1", False),
         ("sqlite", "INSERT INTO foo VALUES (1)", True),
         ("sqlite", "UPDATE foo SET bar = 2 WHERE id = 1", True),
@@ -946,6 +945,28 @@ on $left.Day1 == $right.Day
         ("kustokql", "set querytrace; Events | take 100", False),
         ("kustokql", ".drop table foo", True),
         ("kustokql", ".set-or-append table foo <| bar", True),
+        ("base", "SHOW LOCKS test EXTENDED", False),
+        ("base", "SET hivevar:desc='Legislators'", False),
+        ("base", "UPDATE t1 SET col1 = NULL", True),
+        ("base", "EXPLAIN SELECT 1", False),
+        ("base", "SELECT 1", False),
+        ("base", "WITH bla AS (SELECT 1) SELECT * FROM bla", False),
+        ("base", "SHOW CATALOGS", False),
+        ("base", "SHOW TABLES", False),
+        ("hive", "UPDATE t1 SET col1 = NULL", True),
+        ("hive", "INSERT OVERWRITE TABLE tabB SELECT a.Age FROM TableA", True),
+        ("hive", "SHOW LOCKS test EXTENDED", False),
+        ("hive", "SET hivevar:desc='Legislators'", False),
+        ("hive", "EXPLAIN SELECT 1", False),
+        ("hive", "SELECT 1", False),
+        ("hive", "WITH bla AS (SELECT 1) SELECT * FROM bla", False),
+        ("presto", "SET hivevar:desc='Legislators'", False),
+        ("presto", "UPDATE t1 SET col1 = NULL", True),
+        ("presto", "INSERT OVERWRITE TABLE tabB SELECT a.Age FROM TableA", True),
+        ("presto", "SHOW LOCKS test EXTENDED", False),
+        ("presto", "EXPLAIN SELECT 1", False),
+        ("presto", "SELECT 1", False),
+        ("presto", "WITH bla AS (SELECT 1) SELECT * FROM bla", False),
     ],
 )
 def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
@@ -979,3 +1000,188 @@ def test_custom_dialect(app: None) -> None:
     Test that custom dialects are loaded correctly.
     """
     assert SQLGLOT_DIALECTS.get("custom") == Dialects.MYSQL
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "ascend",
+        "awsathena",
+        "base",
+        "bigquery",
+        "clickhouse",
+        "clickhousedb",
+        "cockroachdb",
+        "couchbase",
+        "crate",
+        "databend",
+        "databricks",
+        "db2",
+        "denodo",
+        "dremio",
+        "drill",
+        "druid",
+        "duckdb",
+        "dynamodb",
+        "elasticsearch",
+        "exa",
+        "firebird",
+        "firebolt",
+        "gsheets",
+        "hana",
+        "hive",
+        "ibmi",
+        "impala",
+        "kustokql",
+        "kustosql",
+        "kylin",
+        "mariadb",
+        "motherduck",
+        "mssql",
+        "mysql",
+        "netezza",
+        "oceanbase",
+        "ocient",
+        "odelasticsearch",
+        "oracle",
+        "pinot",
+        "postgresql",
+        "presto",
+        "pydoris",
+        "redshift",
+        "risingwave",
+        "rockset",
+        "shillelagh",
+        "snowflake",
+        "solr",
+        "sqlite",
+        "starrocks",
+        "superset",
+        "teradatasql",
+        "trino",
+        "vertica",
+    ],
+)
+def test_is_mutating(engine: str) -> None:
+    """
+    Global tests for `is_mutating`, covering all supported engines.
+    """
+    assert not SQLStatement(
+        "with source as ( select 1 as one ) select * from source",
+        engine=engine,
+    ).is_mutating()
+
+
+def test_optimize() -> None:
+    """
+    Test that the `optimize` method works as expected.
+
+    The SQL optimization only works with engines that have a corresponding dialect.
+    """
+    sql = """
+SELECT anon_1.a, anon_1.b
+FROM (SELECT some_table.a AS a, some_table.b AS b, some_table.c AS c
+FROM some_table) AS anon_1
+WHERE anon_1.a > 1 AND anon_1.b = 2
+    """
+
+    optimized = """SELECT
+  anon_1.a,
+  anon_1.b
+FROM (
+  SELECT
+    some_table.a AS a,
+    some_table.b AS b,
+    some_table.c AS c
+  FROM some_table
+  WHERE
+    some_table.a > 1 AND some_table.b = 2
+) AS anon_1
+WHERE
+  TRUE AND TRUE"""
+
+    not_optimized = """
+SELECT anon_1.a,
+       anon_1.b
+FROM
+  (SELECT some_table.a AS a,
+          some_table.b AS b,
+          some_table.c AS c
+   FROM some_table) AS anon_1
+WHERE anon_1.a > 1
+  AND anon_1.b = 2"""
+
+    assert SQLStatement(sql, "sqlite").optimize().format() == optimized
+    assert SQLStatement(sql, "dremio").optimize().format() == not_optimized
+
+
+def test_firebolt() -> None:
+    """
+    Test that Firebolt 3rd party dialect is registered correctly.
+
+    We need a custom dialect for Firebolt because it parses `NOT col IN (1, 2)` as
+    `(NOT col) IN (1, 2)` instead of `NOT (col IN (1, 2))`, which will fail when `col`
+    is not a boolean.
+
+    Note that `NOT col = 1` works as expected in Firebolt, parsing as `NOT (col = 1)`.
+    """
+    sql = "SELECT col NOT IN (1, 2) FROM tbl"
+    assert (
+        SQLStatement(sql, "firebolt").format()
+        == """
+SELECT
+  NOT (
+    col IN (1, 2)
+  )
+FROM tbl
+    """.strip()
+    )
+
+    sql = "SELECT NOT col = 1 FROM tbl"
+    assert (
+        SQLStatement(sql, "firebolt").format()
+        == """
+SELECT
+  NOT col = 1
+FROM tbl
+    """.strip()
+    )
+
+
+def test_firebolt_old() -> None:
+    """
+    Test the dialect for the old Firebolt syntax.
+    """
+    from superset.sql.dialects import FireboltOld
+    from superset.sql.parse import SQLGLOT_DIALECTS
+
+    SQLGLOT_DIALECTS["firebolt"] = FireboltOld
+
+    sql = "SELECT * FROM t1 UNNEST(col1 AS foo)"
+    assert (
+        SQLStatement(sql, "firebolt").format()
+        == """SELECT
+  *
+FROM t1 UNNEST(col1 AS foo)"""
+    )
+
+
+def test_firebolt_old_escape_string() -> None:
+    """
+    Test the dialect for the old Firebolt syntax.
+    """
+    from superset.sql.dialects import FireboltOld
+    from superset.sql.parse import SQLGLOT_DIALECTS
+
+    SQLGLOT_DIALECTS["firebolt"] = FireboltOld
+
+    # both '' and \' are valid escape sequences
+    sql = r"SELECT 'foo''bar', 'foo\'bar'"
+
+    # but they normalize to ''
+    assert (
+        SQLStatement(sql, "firebolt").format()
+        == """SELECT
+  'foo''bar',
+  'foo''bar'"""
+    )

@@ -17,9 +17,11 @@
  * under the License.
  */
 import { useState, FC } from 'react';
-
-import { Tooltip, Typography } from 'antd';
-import { ParagraphProps } from 'antd/es/typography/Paragraph';
+// eslint-disable-next-line no-restricted-imports
+import { Typography } from 'antd'; // TODO: Remove antd
+// eslint-disable-next-line no-restricted-imports
+import { ParagraphProps } from 'antd/es/typography/Paragraph'; // TODO: Remove antd
+import { Tooltip } from '../Tooltip';
 
 const TooltipParagraph: FC<ParagraphProps> = ({
   children,

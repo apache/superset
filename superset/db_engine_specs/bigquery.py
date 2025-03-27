@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import urllib
 from datetime import datetime
@@ -36,7 +37,6 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import sqltypes
 
-from superset import sql_parse
 from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
@@ -44,12 +44,14 @@ from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
+from superset.sql.parse import SQLScript
 from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils, json
 from superset.utils.hashing import md5_sha_from_str
 
 try:
+    import google.auth
     from google.cloud import bigquery
     from google.oauth2 import service_account
 
@@ -66,6 +68,9 @@ except ModuleNotFoundError:
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
+
+
+logger = logging.getLogger()
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     "Access Denied: Project (?P<project_name>.+?): User does not have "
@@ -409,7 +414,11 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         pandas_gbq.to_gbq(df, **to_gbq_kwargs)
 
     @classmethod
-    def _get_client(cls, engine: Engine) -> bigquery.Client:
+    def _get_client(
+        cls,
+        engine: Engine,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> bigquery.Client:
         """
         Return the BigQuery client associated with an engine.
         """
@@ -418,10 +427,19 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 "Could not import libraries needed to connect to BigQuery."
             )
 
-        credentials = service_account.Credentials.from_service_account_info(
-            engine.dialect.credentials_info
-        )
-        return bigquery.Client(credentials=credentials)
+        if credentials_info := engine.dialect.credentials_info:
+            credentials = service_account.Credentials.from_service_account_info(
+                credentials_info
+            )
+            return bigquery.Client(credentials=credentials)
+
+        try:
+            credentials = google.auth.default()[0]
+            return bigquery.Client(credentials=credentials)
+        except google.auth.exceptions.DefaultCredentialsError as ex:
+            raise SupersetDBAPIConnectionError(
+                "The database credentials could not be found."
+            ) from ex
 
     @classmethod
     def estimate_query_cost(  # pylint: disable=too-many-arguments
@@ -441,25 +459,25 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         :param sql: SQL query with possibly multiple statements
         :param source: Source of the query (eg, "sql_lab")
         """
-        extra = database.get_extra() or {}
+        extra = database.get_extra(source) or {}
         if not cls.get_allow_cost_estimate(extra):
             raise SupersetException("Database does not support cost estimation")
 
-        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
-        statements = parsed_query.get_statements()
+        parsed_script = SQLScript(sql, engine=cls.engine)
 
         with cls.get_engine(
             database,
             catalog=catalog,
             schema=schema,
+            source=source,
         ) as engine:
-            client = cls._get_client(engine)
+            client = cls._get_client(engine, database)
             return [
                 cls.custom_estimate_statement_cost(
                     cls.process_statement(statement, database),
                     client,
                 )
-                for statement in statements
+                for statement in parsed_script.statements
             ]
 
     @classmethod
@@ -477,7 +495,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             return project
 
         with database.get_sqla_engine() as engine:
-            client = cls._get_client(engine)
+            client = cls._get_client(engine, database)
             return client.project
 
     @classmethod
@@ -493,7 +511,17 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         """
         engine: Engine
         with database.get_sqla_engine() as engine:
-            client = cls._get_client(engine)
+            try:
+                client = cls._get_client(engine, database)
+            except SupersetDBAPIConnectionError:
+                logger.warning(
+                    "Could not connect to database to get catalogs due to missing "
+                    "credentials. This is normal in certain circustances, for example, "
+                    "doing an import."
+                )
+                # return {} here, since it will be repopulated when creds are added
+                return set()
+
             projects = client.list_projects()
 
         return {project.project_id for project in projects}

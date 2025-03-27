@@ -260,7 +260,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
         md["refresh_frequency"] = data.get("refresh_frequency", 0)
         md["color_scheme"] = data.get("color_scheme", "")
         md["label_colors"] = data.get("label_colors", {})
-        md["shared_label_colors"] = data.get("shared_label_colors", {})
+        md["shared_label_colors"] = data.get("shared_label_colors", [])
+        md["map_label_colors"] = data.get("map_label_colors", {})
         md["color_scheme_domain"] = data.get("color_scheme_domain", [])
         md["cross_filters_enabled"] = data.get("cross_filters_enabled", True)
         dashboard.json_metadata = json.dumps(md)
@@ -389,6 +390,24 @@ class DashboardDAO(BaseDAO[Dashboard]):
             dashboard.json_metadata = json.dumps(metadata)
 
         return updated_configuration
+
+    @classmethod
+    def update_colors_config(
+        cls, dashboard: Dashboard, attributes: dict[str, Any]
+    ) -> None:
+        metadata = json.loads(dashboard.json_metadata or "{}")
+
+        for key in [
+            "color_scheme_domain",
+            "color_scheme",
+            "shared_label_colors",
+            "map_label_colors",
+            "label_colors",
+        ]:
+            if key in attributes:
+                metadata[key] = attributes[key]
+
+        dashboard.json_metadata = json.dumps(metadata)
 
     @staticmethod
     def add_favorite(dashboard: Dashboard) -> None:

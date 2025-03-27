@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { buildQueryContext, ApiV1 } from '@superset-ui/core';
+import { buildQueryContext, ApiV1, VizType } from '@superset-ui/core';
 import setupClientForTest from '../setupClientForTest';
 
 describe('API v1 > getChartData()', () => {
@@ -39,7 +39,7 @@ describe('API v1 > getChartData()', () => {
     const result = await ApiV1.getChartData(
       buildQueryContext({
         granularity: 'minute',
-        viz_type: 'word_cloud',
+        viz_type: VizType.WordCloud,
         datasource: '1__table',
       }),
     );

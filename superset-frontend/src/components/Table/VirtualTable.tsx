@@ -17,10 +17,11 @@
  * under the License.
  */
 
+// eslint-disable-next-line no-restricted-imports
 import AntTable, {
   TablePaginationConfig,
   TableProps as AntTableProps,
-} from 'antd/lib/table';
+} from 'antd/lib/table'; // TODO: Remove antd
 import classNames from 'classnames';
 import { useResizeDetector } from 'react-resize-detector';
 import { useEffect, useRef, useState, useCallback, CSSProperties } from 'react';
@@ -53,7 +54,6 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
     th.ant-table-cell {
       font-weight: ${theme.typography.weights.bold};
       color: ${theme.colors.grayscale.dark1};
-      user-select: none;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;

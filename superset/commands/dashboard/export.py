@@ -83,7 +83,7 @@ def append_charts(position: dict[str, Any], charts: set[Slice]) -> dict[str, Any
             "parents": ["ROOT_ID", "GRID_ID"],
         }
 
-    for chart_hash, chart in zip(chart_hashes, charts):
+    for chart_hash, chart in zip(chart_hashes, charts, strict=False):
         position[chart_hash] = {
             "children": [],
             "id": chart_hash,

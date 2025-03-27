@@ -103,8 +103,8 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, An
 def get_permissions(
     user: User,
 ) -> tuple[dict[str, list[tuple[str]]], DefaultDict[str, list[str]]]:
-    if not user.roles:
-        raise AttributeError("User object does not have roles")
+    if not user.roles and not user.groups:
+        raise AttributeError("User object does not have roles or groups")
 
     data_permissions = defaultdict(set)
     roles_permissions = security_manager.get_user_roles_permissions(user)
@@ -180,7 +180,7 @@ def get_form_data(
 
     # Fallback to using the Flask globals (used for cache warmup and async queries)
     if not form_data and hasattr(g, "form_data"):
-        form_data = getattr(g, "form_data")
+        form_data = g.form_data
         # chart data API requests are JSON
         json_data = form_data["queries"][0] if "queries" in form_data else {}
         form_data.update(json_data)
@@ -329,7 +329,7 @@ def get_dashboard_extra_filters(
     return []
 
 
-def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-blocks
+def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-blocks  # noqa: C901
     layout: dict[str, dict[str, Any]],
     filter_scopes: dict[str, dict[str, Any]],
     default_filters: dict[str, dict[str, list[Any]]],

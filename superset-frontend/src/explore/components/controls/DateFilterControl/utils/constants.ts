@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import moment from 'moment';
 import { t } from '@superset-ui/core';
 import {
   SelectOptionType,
   PreviousCalendarWeek,
   PreviousCalendarMonth,
+  PreviousCalendarQuarter,
   PreviousCalendarYear,
   CommonRangeType,
   CalendarRangeType,
@@ -32,6 +32,8 @@ import {
   CurrentQuarter,
   CurrentDay,
 } from 'src/explore/components/controls/DateFilterControl/types';
+import { CheckboxOptionType } from 'src/components/Radio';
+import { extendedDayjs } from 'src/utils/dates';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Common', label: t('Last') },
@@ -42,7 +44,7 @@ export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'No filter', label: t('No filter') },
 ];
 
-export const COMMON_RANGE_OPTIONS: SelectOptionType[] = [
+export const COMMON_RANGE_OPTIONS: CheckboxOptionType[] = [
   { value: 'Last day', label: t('Last day') },
   { value: 'Last week', label: t('Last week') },
   { value: 'Last month', label: t('Last month') },
@@ -50,19 +52,20 @@ export const COMMON_RANGE_OPTIONS: SelectOptionType[] = [
   { value: 'Last year', label: t('Last year') },
 ];
 export const COMMON_RANGE_VALUES_SET = new Set(
-  COMMON_RANGE_OPTIONS.map(({ value }) => value),
+  COMMON_RANGE_OPTIONS.map(value => value.value),
 );
 
-export const CALENDAR_RANGE_OPTIONS: SelectOptionType[] = [
+export const CALENDAR_RANGE_OPTIONS: CheckboxOptionType[] = [
   { value: PreviousCalendarWeek, label: t('previous calendar week') },
   { value: PreviousCalendarMonth, label: t('previous calendar month') },
+  { value: PreviousCalendarQuarter, label: t('previous calendar quarter') },
   { value: PreviousCalendarYear, label: t('previous calendar year') },
 ];
 export const CALENDAR_RANGE_VALUES_SET = new Set(
-  CALENDAR_RANGE_OPTIONS.map(({ value }) => value),
+  CALENDAR_RANGE_OPTIONS.map(value => value.value),
 );
 
-export const CURRENT_RANGE_OPTIONS: SelectOptionType[] = [
+export const CURRENT_RANGE_OPTIONS: CheckboxOptionType[] = [
   { value: CurrentDay, label: t('Current day') },
   { value: CurrentWeek, label: t('Current week') },
   { value: CurrentMonth, label: t('Current month') },
@@ -70,7 +73,7 @@ export const CURRENT_RANGE_OPTIONS: SelectOptionType[] = [
   { value: CurrentYear, label: t('Current year') },
 ];
 export const CURRENT_RANGE_VALUES_SET = new Set(
-  CURRENT_RANGE_OPTIONS.map(({ value }) => value),
+  CURRENT_RANGE_OPTIONS.map(value => value.value),
 );
 
 const GRAIN_OPTIONS = [
@@ -119,6 +122,7 @@ export const COMMON_RANGE_SET: Set<CommonRangeType> = new Set([
 export const CALENDAR_RANGE_SET: Set<CalendarRangeType> = new Set([
   PreviousCalendarWeek,
   PreviousCalendarMonth,
+  PreviousCalendarQuarter,
   PreviousCalendarYear,
 ]);
 
@@ -130,30 +134,16 @@ export const CURRENT_CALENDAR_RANGE_SET: Set<CurrentRangeType> = new Set([
   CurrentYear,
 ]);
 
-export const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
-export const SEVEN_DAYS_AGO = moment()
+export const DAYJS_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
+export const SEVEN_DAYS_AGO = extendedDayjs()
   .utc()
   .startOf('day')
   .subtract(7, 'days')
-  .format(MOMENT_FORMAT);
-export const MIDNIGHT = moment().utc().startOf('day').format(MOMENT_FORMAT);
-
-export const LOCALE_MAPPING = {
-  en: () => import('antd/lib/date-picker/locale/en_US'),
-  fr: () => import('antd/lib/date-picker/locale/fr_FR'),
-  es: () => import('antd/lib/date-picker/locale/es_ES'),
-  it: () => import('antd/lib/date-picker/locale/it_IT'),
-  zh: () => import('antd/lib/date-picker/locale/zh_CN'),
-  ja: () => import('antd/lib/date-picker/locale/ja_JP'),
-  de: () => import('antd/lib/date-picker/locale/de_DE'),
-  pt: () => import('antd/lib/date-picker/locale/pt_PT'),
-  pt_BR: () => import('antd/lib/date-picker/locale/pt_BR'),
-  ru: () => import('antd/lib/date-picker/locale/ru_RU'),
-  ko: () => import('antd/lib/date-picker/locale/ko_KR'),
-  sk: () => import('antd/lib/date-picker/locale/sk_SK'),
-  sl: () => import('antd/lib/date-picker/locale/sl_SI'),
-  nl: () => import('antd/lib/date-picker/locale/nl_NL'),
-};
+  .format(DAYJS_FORMAT);
+export const MIDNIGHT = extendedDayjs()
+  .utc()
+  .startOf('day')
+  .format(DAYJS_FORMAT);
 
 export enum DateFilterTestKey {
   CommonFrame = 'common-frame',

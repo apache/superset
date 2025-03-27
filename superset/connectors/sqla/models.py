@@ -67,7 +67,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table
 from sqlalchemy.sql.elements import ColumnClause, TextClause
-from sqlalchemy.sql.expression import Label, TextAsFrom
+from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
@@ -104,7 +104,7 @@ from superset.models.helpers import (
     QueryResult,
 )
 from superset.models.slice import Slice
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql_parse import Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -359,12 +359,15 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
     @property
     def verbose_map(self) -> dict[str, str]:
         verb_map = {"__timestamp": "Time"}
-        verb_map.update(
-            {o.metric_name: o.verbose_name or o.metric_name for o in self.metrics}
-        )
-        verb_map.update(
-            {o.column_name: o.verbose_name or o.column_name for o in self.columns}
-        )
+
+        for o in self.metrics:
+            if o.metric_name not in verb_map:
+                verb_map[o.metric_name] = o.verbose_name or o.metric_name
+
+        for o in self.columns:
+            if o.column_name not in verb_map:
+                verb_map[o.column_name] = o.verbose_name or o.column_name
+
         return verb_map
 
     @property
@@ -404,7 +407,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "select_star": self.select_star,
         }
 
-    def data_for_slices(  # pylint: disable=too-many-locals
+    def data_for_slices(  # pylint: disable=too-many-locals  # noqa: C901
         self, slices: list[Slice]
     ) -> dict[str, Any]:
         """
@@ -421,7 +424,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             # pull out all required metrics from the form_data
             for metric_param in METRIC_FORM_DATA_PARAMS:
                 for metric in utils.as_list(form_data.get(metric_param) or []):
-                    metric_names.add(utils.get_metric_name(metric))
+                    metric_names.add(utils.get_metric_name(metric, self.verbose_map))
                     if utils.is_adhoc_metric(metric):
                         column_ = metric.get("column") or {}
                         if column_name := column_.get("column_name"):
@@ -473,6 +476,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             metric
             for metric in data["metrics"]
             if metric["metric_name"] in metric_names
+            or metric["verbose_name"] in metric_names
         ]
 
         filtered_columns: list[Column] = []
@@ -507,7 +511,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         return data
 
     @staticmethod
-    def filter_values_handler(  # pylint: disable=too-many-arguments
+    def filter_values_handler(  # pylint: disable=too-many-arguments  # noqa: C901
         values: FilterValues | None,
         operator: str,
         target_generic_type: utils.GenericDataType,
@@ -727,7 +731,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
 
         :param template_processor: The template processor to apply to the filters.
         :returns: A list of SQL clauses to be ANDed together.
-        """
+        """  # noqa: E501
         template_processor = template_processor or self.get_template_processor()
 
         all_filters: list[TextClause] = []
@@ -921,7 +925,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
     @property
     def database(self) -> Database:
-        return self.table.database if self.table else self._database
+        return self.table.database if self.table else self._database  # type: ignore
 
     @property
     def db_engine_spec(self) -> builtins.type[BaseEngineSpec]:
@@ -1062,7 +1066,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         "extra",
         "warning_text",
     ]
-    update_from_object_fields = list(s for s in export_fields if s != "table_id")
+    update_from_object_fields = list(s for s in export_fields if s != "table_id")  # noqa: C400
     export_parent = "table"
 
     def __repr__(self) -> str:
@@ -1364,7 +1368,7 @@ class SqlaTable(
         df.columns = ["field", "type"]
         return df.to_html(
             index=False,
-            classes=("dataframe table table-striped table-bordered " "table-condensed"),
+            classes=("dataframe table table-striped table-bordered table-condensed"),
         )
 
     @property
@@ -1469,34 +1473,13 @@ class SqlaTable(
         return tbl
 
     def get_from_clause(
-        self, template_processor: BaseTemplateProcessor | None = None
+        self,
+        template_processor: BaseTemplateProcessor | None = None,
     ) -> tuple[TableClause | Alias, str | None]:
-        """
-        Return where to select the columns and metrics from. Either a physical table
-        or a virtual table with it's own subquery. If the FROM is referencing a
-        CTE, the CTE is returned as the second value in the return tuple.
-        """
         if not self.is_virtual:
             return self.get_sqla_table(), None
 
-        from_sql = self.get_rendered_sql(template_processor) + "\n"
-        parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
-        if not (
-            parsed_query.is_unknown()
-            or self.db_engine_spec.is_readonly_query(parsed_query)
-        ):
-            raise QueryObjectValidationError(
-                _("Virtual dataset query must be read-only")
-            )
-
-        cte = self.db_engine_spec.get_cte_query(from_sql)
-        from_clause = (
-            table(self.db_engine_spec.cte_alias)
-            if cte
-            else TextAsFrom(self.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
-        )
-
-        return from_clause, cte
+        return super().get_from_clause(template_processor)
 
     def adhoc_metric_to_sqla(
         self,
@@ -1514,7 +1497,7 @@ class SqlaTable(
         :rtype: sqlalchemy.sql.column
         """
         expression_type = metric.get("expressionType")
-        label = utils.get_metric_name(metric)
+        label = utils.get_metric_name(metric, self.verbose_map)
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             metric_column = metric.get("column") or {}
@@ -1589,7 +1572,11 @@ class SqlaTable(
                     # probe adhoc column type
                     tbl, _ = self.get_from_clause(template_processor)
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
-                    sql = self.database.compile_sqla_query(qry)
+                    sql = self.database.compile_sqla_query(
+                        qry,
+                        catalog=self.catalog,
+                        schema=self.schema,
+                    )
                     col_desc = get_columns_description(
                         self.database,
                         self.catalog,
@@ -1770,7 +1757,7 @@ class SqlaTable(
             # errors. This is particularly important for database OAuth2, see SIP-85.
             raise
         except Exception as ex:  # pylint: disable=broad-except
-            # TODO (betodealmeida): review exception handling while querying the external
+            # TODO (betodealmeida): review exception handling while querying the external  # noqa: E501
             # database. Ideally we'd expect and handle external database error, but
             # everything else / the default should be to let things bubble up.
             df = pd.DataFrame()
@@ -1924,6 +1911,7 @@ class SqlaTable(
             for method, perms in zip(
                 (SqlaTable.perm, SqlaTable.schema_perm, SqlaTable.catalog_perm),
                 (permissions, schema_perms, catalog_perms),
+                strict=False,
             )
             if perms
         ]
@@ -1958,7 +1946,7 @@ class SqlaTable(
     def default_query(qry: Query) -> Query:
         return qry.filter_by(is_sqllab_view=False)
 
-    def has_extra_cache_key_calls(self, query_obj: QueryObjectDict) -> bool:
+    def has_extra_cache_key_calls(self, query_obj: QueryObjectDict) -> bool:  # noqa: C901
         """
         Detects the presence of calls to `ExtraCache` methods in items in query_obj that
         can be templated. If any are present, the query must be evaluated to extract
@@ -2054,7 +2042,7 @@ class SqlaTable(
         """
         session = inspect(target).session  # pylint: disable=disallowed-name
 
-        # Forces an update to the table's changed_on value when a metric or column on the
+        # Forces an update to the table's changed_on value when a metric or column on the  # noqa: E501
         # table is updated. This busts the cache key for all charts that use the table.
         session.execute(update(SqlaTable).where(SqlaTable.id == target.table.id))
 

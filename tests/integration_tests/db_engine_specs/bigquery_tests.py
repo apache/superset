@@ -248,11 +248,11 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         )
 
     def test_extract_errors(self):
-        msg = "403 POST https://bigquery.googleapis.com/bigquery/v2/projects/test-keel-310804/jobs?prettyPrint=false: Access Denied: Project profound-keel-310804: User does not have bigquery.jobs.create permission in project profound-keel-310804"
+        msg = "403 POST https://bigquery.googleapis.com/bigquery/v2/projects/test-keel-310804/jobs?prettyPrint=false: Access Denied: Project profound-keel-310804: User does not have bigquery.jobs.create permission in project profound-keel-310804"  # noqa: E501
         result = BigQueryEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message='Unable to connect. Verify that the following roles are set on the service account: "BigQuery Data Viewer", "BigQuery Metadata Viewer", "BigQuery Job User" and the following permissions are set "bigquery.readsessions.create", "bigquery.readsessions.getData"',
+                message='Unable to connect. Verify that the following roles are set on the service account: "BigQuery Data Viewer", "BigQuery Metadata Viewer", "BigQuery Job User" and the following permissions are set "bigquery.readsessions.create", "bigquery.readsessions.getData"',  # noqa: E501
                 error_type=SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
@@ -267,11 +267,11 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = "bigquery error: 404 Not found: Dataset fakeDataset:bogusSchema was not found in location"
+        msg = "bigquery error: 404 Not found: Dataset fakeDataset:bogusSchema was not found in location"  # noqa: E501
         result = BigQueryEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message='The schema "bogusSchema" does not exist. A valid schema must be used to run this query.',
+                message='The schema "bogusSchema" does not exist. A valid schema must be used to run this query.',  # noqa: E501
                 error_type=SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
@@ -279,22 +279,22 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1003,
-                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                         },
                         {
                             "code": 1004,
-                            "message": "Issue 1004 - The column was deleted or renamed in the database.",
+                            "message": "Issue 1004 - The column was deleted or renamed in the database.",  # noqa: E501
                         },
                     ],
                 },
             )
         ]
 
-        msg = 'Table name "badtable" missing dataset while no default dataset is set in the request'
+        msg = 'Table name "badtable" missing dataset while no default dataset is set in the request'  # noqa: E501
         result = BigQueryEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message='The table "badtable" does not exist. A valid table must be used to run this query.',
+                message='The table "badtable" does not exist. A valid table must be used to run this query.',  # noqa: E501
                 error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
@@ -302,11 +302,11 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1003,
-                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                         },
                         {
                             "code": 1005,
-                            "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                            "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
                         },
                     ],
                 },
@@ -325,11 +325,11 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1003,
-                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                         },
                         {
                             "code": 1004,
-                            "message": "Issue 1004 - The column was deleted or renamed in the database.",
+                            "message": "Issue 1004 - The column was deleted or renamed in the database.",  # noqa: E501
                         },
                     ],
                 },
@@ -340,7 +340,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         result = BigQueryEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message='Please check your query for syntax errors at or near "from_". Then, try running your query again.',
+                message='Please check your query for syntax errors at or near "from_". Then, try running your query again.',  # noqa: E501
                 error_type=SupersetErrorType.SYNTAX_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={

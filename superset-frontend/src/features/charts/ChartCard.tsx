@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isFeatureEnabled, FeatureFlag, t, useTheme } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t, css } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icons from 'src/components/Icons';
@@ -24,11 +24,12 @@ import Chart from 'src/types/Chart';
 
 import ListViewCard from 'src/components/ListViewCard';
 import Label from 'src/components/Label';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
+import Button from 'src/components/Button';
 
 interface ChartCardProps {
   chart: Chart;
@@ -67,10 +68,43 @@ export default function ChartCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
-  const theme = useTheme();
-
   const menu = (
     <Menu>
+      {canEdit && (
+        <Menu.Item>
+          <div
+            data-test="chart-list-edit-option"
+            role="button"
+            tabIndex={0}
+            onClick={() => openChartEditModal(chart)}
+          >
+            <Icons.EditOutlined
+              iconSize="l"
+              css={css`
+                vertical-align: text-top;
+              `}
+            />{' '}
+            {t('Edit')}
+          </div>
+        </Menu.Item>
+      )}
+      {canExport && (
+        <Menu.Item>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => handleBulkChartExport([chart])}
+          >
+            <Icons.UploadOutlined
+              iconSize="l"
+              css={css`
+                vertical-align: text-top;
+              `}
+            />{' '}
+            {t('Export')}
+          </div>
+        </Menu.Item>
+      )}
       {canDelete && (
         <Menu.Item>
           <ConfirmStatusChange
@@ -100,33 +134,16 @@ export default function ChartCard({
                 className="action-button"
                 onClick={confirmDelete}
               >
-                <Icons.Trash iconSize="l" /> {t('Delete')}
+                <Icons.DeleteOutlined
+                  iconSize="l"
+                  css={css`
+                    vertical-align: text-top;
+                  `}
+                />{' '}
+                {t('Delete')}
               </div>
             )}
           </ConfirmStatusChange>
-        </Menu.Item>
-      )}
-      {canExport && (
-        <Menu.Item>
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => handleBulkChartExport([chart])}
-          >
-            <Icons.Share iconSize="l" /> {t('Export')}
-          </div>
-        </Menu.Item>
-      )}
-      {canEdit && (
-        <Menu.Item>
-          <div
-            data-test="chart-list-edit-option"
-            role="button"
-            tabIndex={0}
-            onClick={() => openChartEditModal(chart)}
-          >
-            <Icons.EditAlt iconSize="l" /> {t('Edit')}
-          </div>
         </Menu.Item>
       )}
     </Menu>
@@ -172,9 +189,11 @@ export default function ChartCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <AntdDropdown overlay={menu}>
-              <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
-            </AntdDropdown>
+            <Dropdown dropdownRender={() => menu} trigger={['click', 'hover']}>
+              <Button buttonSize="xsmall" type="link">
+                <Icons.MoreOutlined iconSize="xl" />
+              </Button>
+            </Dropdown>
           </ListViewCard.Actions>
         }
       />

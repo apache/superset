@@ -61,9 +61,7 @@ describe('useFilterFocusHighlightStyles', () => {
   });
 
   it('should return unfocused styles if chart is not in scope of focused native filter', async () => {
-    mockGetRelatedCharts.mockReturnValue({
-      'test-filter': [],
-    });
+    mockGetRelatedCharts.mockReturnValue([]);
     const store = createMockStore({
       nativeFilters: {
         focusedFilterId: 'test-filter',
@@ -83,9 +81,7 @@ describe('useFilterFocusHighlightStyles', () => {
   });
 
   it('should return unfocused styles if chart is not in scope of hovered native filter', async () => {
-    mockGetRelatedCharts.mockReturnValue({
-      'test-filter': [],
-    });
+    mockGetRelatedCharts.mockReturnValue([]);
     const store = createMockStore({
       nativeFilters: {
         hoveredFilterId: 'test-filter',
@@ -106,9 +102,7 @@ describe('useFilterFocusHighlightStyles', () => {
 
   it('should return focused styles if chart is in scope of focused native filter', async () => {
     const chartId = 18;
-    mockGetRelatedCharts.mockReturnValue({
-      testFilter: [chartId],
-    });
+    mockGetRelatedCharts.mockReturnValue([chartId]);
     const store = createMockStore({
       nativeFilters: {
         focusedFilterId: 'testFilter',
@@ -129,69 +123,13 @@ describe('useFilterFocusHighlightStyles', () => {
 
   it('should return focused styles if chart is in scope of hovered native filter', async () => {
     const chartId = 18;
-    mockGetRelatedCharts.mockReturnValue({
-      testFilter: [chartId],
-    });
+    mockGetRelatedCharts.mockReturnValue([chartId]);
     const store = createMockStore({
       nativeFilters: {
         hoveredFilterId: 'testFilter',
         filters: {
           testFilter: {
             chartsInScope: [chartId],
-          },
-        },
-      },
-    });
-    renderWrapper(chartId, store);
-
-    const container = screen.getByTestId('test-component');
-
-    const styles = getComputedStyle(container);
-    expect(parseFloat(styles.opacity)).toBe(1);
-  });
-
-  it('should return unfocused styles if focusedFilterField is targeting a different chart', async () => {
-    const chartId = 18;
-    mockGetRelatedCharts.mockReturnValue({
-      testFilter: [],
-    });
-    const store = createMockStore({
-      dashboardState: {
-        focusedFilterField: {
-          chartId: 10,
-          column: 'test',
-        },
-      },
-      dashboardFilters: {
-        10: {
-          scopes: {},
-        },
-      },
-    });
-    renderWrapper(chartId, store);
-
-    const container = screen.getByTestId('test-component');
-
-    const styles = getComputedStyle(container);
-    expect(parseFloat(styles.opacity)).toBe(0.3);
-  });
-
-  it('should return focused styles if focusedFilterField chart equals our own', async () => {
-    const chartId = 18;
-    mockGetRelatedCharts.mockReturnValue({
-      testFilter: [chartId],
-    });
-    const store = createMockStore({
-      dashboardState: {
-        focusedFilterField: {
-          chartId,
-          column: 'test',
-        },
-      },
-      dashboardFilters: {
-        [chartId]: {
-          scopes: {
-            otherColumn: {},
           },
         },
       },

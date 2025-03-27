@@ -94,7 +94,7 @@ def replace(source, target):
                             )
 
                     slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()

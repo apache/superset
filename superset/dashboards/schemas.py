@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import re
-from typing import Any, Union
+from typing import Any, Mapping, Union
 
 from marshmallow import fields, post_dump, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
@@ -70,8 +70,7 @@ json_metadata_description = (
     " specific parameters."
 )
 published_description = (
-    "Determines whether or not this dashboard is visible in "
-    "the list of all dashboards."
+    "Determines whether or not this dashboard is visible in the list of all dashboards."
 )
 charts_description = (
     "The names of the dashboard's charts. Names are used for legacy reasons."
@@ -116,6 +115,28 @@ def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
         raise ValidationError(errors)
 
 
+class SharedLabelsColorsField(fields.Field):
+    """
+    A custom field that accepts either a list of strings or a dictionary.
+    """
+
+    def _deserialize(
+        self,
+        value: Union[list[str], dict[str, str]],
+        attr: Union[str, None],
+        data: Union[Mapping[str, Any], None],
+        **kwargs: dict[str, Any],
+    ) -> list[str]:
+        if isinstance(value, list):
+            if all(isinstance(item, str) for item in value):
+                return value
+        elif isinstance(value, dict):
+            # Enforce list (for backward compatibility)
+            return []
+
+        raise ValidationError("Not a valid list")
+
+
 class DashboardJSONMetadataSchema(Schema):
     # native_filter_configuration is for dashboard-native filters
     native_filter_configuration = fields.List(fields.Dict(), allow_none=True)
@@ -137,7 +158,8 @@ class DashboardJSONMetadataSchema(Schema):
     color_namespace = fields.Str(allow_none=True)
     positions = fields.Dict(allow_none=True)
     label_colors = fields.Dict()
-    shared_label_colors = fields.Dict()
+    shared_label_colors = SharedLabelsColorsField()
+    map_label_colors = fields.Dict()
     color_scheme_domain = fields.List(fields.Str())
     cross_filters_enabled = fields.Boolean(dump_default=True)
     # used for v0 import/export
@@ -157,7 +179,7 @@ class DashboardJSONMetadataSchema(Schema):
 
         This field was removed in https://github.com/apache/superset/pull/23228, but might
         be present in old exports.
-        """
+        """  # noqa: E501
         if "show_native_filters" in data:
             del data["show_native_filters"]
 
@@ -189,7 +211,7 @@ class DashboardGetResponseSchema(Schema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description}
     )
-    thumbnail_url = fields.String()
+    thumbnail_url = fields.String(allow_none=True)
     published = fields.Boolean()
     css = fields.String(metadata={"description": css_description})
     json_metadata = fields.String(metadata={"description": json_metadata_description})
@@ -405,19 +427,28 @@ class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
     reordered = fields.List(fields.String(), allow_none=False)
 
 
+class DashboardColorsConfigUpdateSchema(BaseDashboardSchema):
+    color_namespace = fields.String(allow_none=True)
+    color_scheme = fields.String(allow_none=True)
+    map_label_colors = fields.Dict(allow_none=False)
+    shared_label_colors = SharedLabelsColorsField()
+    label_colors = fields.Dict(allow_none=False)
+    color_scheme_domain = fields.List(fields.String(), allow_none=False)
+
+
 class DashboardScreenshotPostSchema(Schema):
-    dataMask = fields.Dict(
+    dataMask = fields.Dict(  # noqa: N815
         keys=fields.Str(),
         values=fields.Raw(),
         metadata={"description": "An object representing the data mask."},
     )
-    activeTabs = fields.List(
+    activeTabs = fields.List(  # noqa: N815
         fields.Str(), metadata={"description": "A list representing active tabs."}
     )
     anchor = fields.String(
         metadata={"description": "A string representing the anchor."}
     )
-    urlParams = fields.List(
+    urlParams = fields.List(  # noqa: N815
         fields.Tuple(
             (fields.Str(), fields.Str()),
         ),
@@ -434,7 +465,7 @@ class GetFavStarIdsSchema(Schema):
     result = fields.List(
         fields.Nested(ChartFavStarResponseResult),
         metadata={
-            "description": "A list of results for each corresponding chart in the request"
+            "description": "A list of results for each corresponding chart in the request"  # noqa: E501
         },
     )
 
@@ -475,12 +506,18 @@ class DashboardCacheScreenshotResponseSchema(Schema):
     image_url = fields.String(
         metadata={"description": "The url to fetch the screenshot"}
     )
+    task_status = fields.String(
+        metadata={"description": "The status of the async screenshot"}
+    )
+    task_updated_at = fields.String(
+        metadata={"description": "The timestamp of the last change in status"}
+    )
 
 
 class CacheScreenshotSchema(Schema):
-    dataMask = fields.Dict(keys=fields.Str(), values=fields.Raw(), required=False)
-    activeTabs = fields.List(fields.Str(), required=False)
+    dataMask = fields.Dict(keys=fields.Str(), values=fields.Raw(), required=False)  # noqa: N815
+    activeTabs = fields.List(fields.Str(), required=False)  # noqa: N815
     anchor = fields.Str(required=False)
-    urlParams = fields.List(
+    urlParams = fields.List(  # noqa: N815
         fields.List(fields.Str(), validate=lambda x: len(x) == 2), required=False
     )

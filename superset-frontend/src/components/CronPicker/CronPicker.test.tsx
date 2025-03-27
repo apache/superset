@@ -28,7 +28,7 @@ test('Should send correct props to ReactCronPicker', () => {
     myCustomProp: 'myCustomProp',
   };
   render(<CronPicker {...(props as any)} />);
-  expect(spy).toBeCalledWith(
+  expect(spy).toHaveBeenCalledWith(
     expect.objectContaining({
       className: expect.any(String),
       locale: expect.anything(),

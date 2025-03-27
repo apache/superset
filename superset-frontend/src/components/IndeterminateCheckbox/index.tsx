@@ -84,6 +84,7 @@ const IndeterminateCheckbox = forwardRef(
       onChange,
       title = '',
       labelText = '',
+      ...rest
     }: IndeterminateCheckboxProps,
     ref: MutableRefObject<any>,
   ) => {
@@ -107,6 +108,7 @@ const IndeterminateCheckbox = forwardRef(
             ref={resolvedRef}
             checked={checked}
             onChange={onChange}
+            {...rest}
           />
         </InputContainer>
         <CheckboxLabel title={title} htmlFor={id}>

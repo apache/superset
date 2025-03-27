@@ -47,7 +47,7 @@ def superset() -> None:
 
 
 # add sub-commands
-for load, module_name, is_pkg in pkgutil.walk_packages(
+for load, module_name, is_pkg in pkgutil.walk_packages(  # noqa: B007
     cli.__path__, cli.__name__ + "."
 ):
     module = importlib.import_module(module_name)

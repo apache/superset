@@ -25,6 +25,7 @@ import ParameterErrorMessage from 'src/components/ErrorMessage/ParameterErrorMes
 import DatasetNotFoundErrorMessage from 'src/components/ErrorMessage/DatasetNotFoundErrorMessage';
 import InvalidSQLErrorMessage from 'src/components/ErrorMessage/InvalidSQLErrorMessage';
 import OAuth2RedirectMessage from 'src/components/ErrorMessage/OAuth2RedirectMessage';
+import FrontendNetworkErrorMessage from 'src/components/ErrorMessage/FrontendNetworkErrorMessage';
 
 import setupErrorMessagesExtra from './setupErrorMessagesExtra';
 
@@ -34,6 +35,10 @@ export default function setupErrorMessages() {
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
     TimeoutErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
+    FrontendNetworkErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.BACKEND_TIMEOUT_ERROR,

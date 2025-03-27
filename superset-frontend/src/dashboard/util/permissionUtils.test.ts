@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as uiCore from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   UndefinedUser,
   UserWithPermissionsAndRoles,
@@ -97,10 +97,12 @@ const dashboard: Dashboard = {
   roles: [],
 };
 
-let isFeatureEnabledMock: jest.MockInstance<
-  boolean,
-  [feature: uiCore.FeatureFlag]
->;
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 describe('canUserEditDashboard', () => {
   it('allows owners to edit', () => {
@@ -184,16 +186,13 @@ test('userHasPermission returns true if user has permission', () => {
 
 describe('canUserSaveAsDashboard with RBAC feature flag disabled', () => {
   beforeAll(() => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(
-        (featureFlag: uiCore.FeatureFlag) =>
-          featureFlag !== uiCore.FeatureFlag.DashboardRbac,
-      );
+    mockedIsFeatureEnabled.mockImplementation(
+      (featureFlag: FeatureFlag) => featureFlag !== FeatureFlag.DashboardRbac,
+    );
   });
 
   afterAll(() => {
-    isFeatureEnabledMock.mockRestore();
+    mockedIsFeatureEnabled.mockRestore();
   });
 
   it('allows owners', () => {
@@ -211,16 +210,13 @@ describe('canUserSaveAsDashboard with RBAC feature flag disabled', () => {
 
 describe('canUserSaveAsDashboard with RBAC feature flag enabled', () => {
   beforeAll(() => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(
-        (featureFlag: uiCore.FeatureFlag) =>
-          featureFlag === uiCore.FeatureFlag.DashboardRbac,
-      );
+    mockedIsFeatureEnabled.mockImplementation(
+      (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.DashboardRbac,
+    );
   });
 
   afterAll(() => {
-    isFeatureEnabledMock.mockRestore();
+    mockedIsFeatureEnabled.mockRestore();
   });
 
   it('allows owners', () => {
