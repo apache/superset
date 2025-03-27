@@ -124,7 +124,11 @@ export const GridStory: Story = {
       <Col
         key={i}
         span={24 / colCount}
-        style={{ background: '#ddd', padding: '8px', textAlign: 'center' }}
+        style={{
+          background: '#ddd',
+          padding: '8px',
+          textAlign: 'center',
+        }}
       >
         Column {i + 1}
       </Col>
@@ -162,7 +166,16 @@ export const GridStory: Story = {
             onChange={setColCount}
           />
         </div>
-        <Row gutter={[gutter, vgutter]}>{cols}</Row>
+        <Row
+          gutter={[gutter, vgutter]}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(auto-fill, minmax(calc(100% / 4 - ${gutter}px), 1fr))`,
+            gap: `${vgutter}px ${gutter}px`,
+          }}
+        >
+          {cols}
+        </Row>
       </div>
     );
   },
