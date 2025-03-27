@@ -2017,6 +2017,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             <Select
                               ariaLabel={t('Value')}
                               placeholder={t('Select Value')}
+                              disabled={
+                                !nativeFilterData[key]?.optionFilterValues
+                              }
                               value={nativeFilterData[key]?.filterValues}
                               // @ts-ignore
                               options={
@@ -2029,15 +2032,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               mode="multiple"
                             />
                           </div>
-                          <div className="filters-delete">
-                            <Icons.DeleteOutlined
-                              className="filters-trashcan"
-                              onClick={() => {
-                                handleRemoveFilterField(name);
-                                remove(name);
-                              }}
-                            />
-                          </div>
+                          {name !== 0 && (
+                            <div className="filters-delete">
+                              <Icons.DeleteOutlined
+                                className="filters-trashcan"
+                                onClick={() => {
+                                  handleRemoveFilterField(name);
+                                  remove(name);
+                                }}
+                              />
+                            </div>
+                          )}
                         </div>
                       ))}
                       <div className="filters-add-container">
