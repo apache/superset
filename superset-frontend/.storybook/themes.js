@@ -16,32 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// eslint-disable-next-line no-restricted-imports
-import { Tooltip as AntdTooltip } from 'antd-v5';
-import type { TooltipProps } from 'antd-v5';
-
-// Re-export the types
-export type { TooltipProps };
-export type TooltipPlacement =
-  | 'top'
-  | 'left'
-  | 'right'
-  | 'bottom'
-  | 'topLeft'
-  | 'topRight'
-  | 'bottomLeft'
-  | 'bottomRight'
-  | 'leftTop'
-  | 'leftBottom'
-  | 'rightTop'
-  | 'rightBottom';
-
-export const Tooltip = ({ overlayStyle, ...props }: TooltipProps) => (
-  <AntdTooltip
-    styles={{
-      body: { overflow: 'hidden', textOverflow: 'ellipsis' },
-      root: overlayStyle ?? {},
-    }}
-    {...props}
-  />
-);
+export const themes = {
+  superset: {
+    algorithm: 'light',
+  },
+  supersetDark: {
+    token: {},
+    algorithm: 'dark',
+  },
+  funky: {
+    token: {
+      colorPrimary: '#f759ab', // hot pink
+      colorSuccess: '#52c41a',
+      colorWarning: '#faad14',
+      colorError: '#ff4d4f',
+      colorInfo: '#40a9ff',
+      borderRadius: 12,
+      fontFamily: 'Comic Sans MS, cursive',
+    },
+    algorithm: 'light',
+  },
+  funkyDark: {
+    token: {
+      colorPrimary: '#f759ab', // hot pink
+      colorSuccess: '#52c41a',
+      colorWarning: '#faad14',
+      colorError: '#ff4d4f',
+      colorInfo: '#40a9ff',
+      borderRadius: 12,
+      fontFamily: 'Comic Sans MS, cursive',
+    },
+    algorithm: 'dark',
+  },
+};

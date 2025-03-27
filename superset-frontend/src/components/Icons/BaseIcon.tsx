@@ -47,7 +47,7 @@ export const BaseIconComponent: React.FC<
 }) => {
   const theme = useTheme();
   const iconCss = css`
-    color: ${iconColor || theme.colors.grayscale.base};
+    color: ${iconColor || theme.colorIcon};
     font-size: ${iconSize
       ? `${themeObject.getFontSize(iconSize) || theme.fontSize}px`
       : '24px'};

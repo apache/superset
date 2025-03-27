@@ -56,7 +56,7 @@ const IconBlock = styled.div`
     font-size: ${({ theme }) =>
       theme.fontSizeSM}; // Optional: adjust font size for elegance
     color: ${({ theme }) =>
-      theme.colors.grayscale.base}; // Optional: subtle color for the name
+      theme.colorText}; // Optional: subtle color for the name
   }
 `;
 

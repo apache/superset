@@ -38,13 +38,6 @@ export const menuTriggerStyles = (theme: SupersetTheme) => css`
     line-height: 0;
     transition: inherit;
   }
-
-  &:hover:not(:focus) > span.anticon {
-    color: ${theme.colors.primary.light1};
-  }
-  &:focus-visible {
-    outline: 2px solid ${theme.colors.primary.dark2};
-  }
 `;
 
 const headerStyles = (theme: SupersetTheme) => css`
