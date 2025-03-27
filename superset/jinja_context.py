@@ -182,12 +182,13 @@ class ExtraCache:
         :returns: List of role names
         """
         try:
-            roles = sorted([role.name for role in security_manager.get_user_roles()])
-
-            if roles:
+            user_roles = sorted(
+                [role.name for role in security_manager.get_user_roles()]
+            )
+            if user_roles:
                 if add_to_cache_keys:
-                    self.cache_key_wrapper(json.dumps(roles))
-                return roles
+                    self.cache_key_wrapper(json.dumps(user_roles))
+                return user_roles
             return None
         except Exception:  # pylint: disable=broad-except
             return None
