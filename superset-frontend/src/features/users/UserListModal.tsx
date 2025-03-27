@@ -25,6 +25,7 @@ import Checkbox from 'src/components/Checkbox';
 import Select from 'src/components/Select/Select';
 import { Role, UserObject } from 'src/pages/UsersList';
 import { FormInstance } from 'src/components';
+import Icons from 'src/components/Icons';
 import { BaseUserListModalProps, FormValues } from './types';
 import { createUser, updateUser } from './utils';
 
@@ -87,7 +88,17 @@ function UserListModal({
     <FormModal
       show={show}
       onHide={onHide}
-      title={isEditMode ? t('Edit User') : t('Add User')}
+      title={
+        isEditMode ? (
+          <>
+            <Icons.EditOutlined iconSize="l" /> {t('Edit User')}
+          </>
+        ) : (
+          <>
+            <Icons.PlusOutlined iconSize="l" /> {t('Add User')}
+          </>
+        )
+      }
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       requiredFields={requiredFields}
