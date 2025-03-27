@@ -23,9 +23,31 @@ import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { GlobalStyles } from '../src/GlobalStyles';
+import { Global } from '@emotion/react';
+import { css } from '@superset-ui/core';
+import { themes } from './themes';
+import { App, Layout, Space, Content } from 'antd-v5';
 
 import 'src/theme.ts';
 import './storybook.css';
+
+export const GlobalStylesOverrides = () => (
+  <Global
+    styles={css`
+      html,
+      body,
+      #storybook-root {
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 100vh !important;
+      }
+
+      .antd5-app {
+        min-height: 100vh !important;
+      }
+    `}
+  />
+);
 
 const store = createStore(
   combineReducers(reducerIndex),
@@ -33,11 +55,38 @@ const store = createStore(
   compose(applyMiddleware(thunk)),
 );
 
-const themeDecorator = Story => {
+export const globalTypes = {
+  theme: {
+    name: 'Theme',
+    description: 'Global theme for components',
+    defaultValue: 'superset',
+    toolbar: {
+      icon: 'paintbrush',
+      items: Object.keys(themes),
+    },
+  },
+};
+
+const themeDecorator = (Story, context) => {
+  const themeKey = context.globals.theme || 'superset';
+  themeObject.setConfig(themes[themeKey]);
+
   return (
     <themeObject.SupersetThemeProvider>
-      <GlobalStyles />
-      <Story />
+      <App>
+        <GlobalStyles />
+        <GlobalStylesOverrides />
+        <Layout
+          style={{
+            minHeight: '100vh',
+            width: '100%',
+            padding: 24,
+            backgroundColor: themeObject.theme.colorBgBase,
+          }}
+        >
+          <Story {...context} />
+        </Layout>
+      </App>
     </themeObject.SupersetThemeProvider>
   );
 };

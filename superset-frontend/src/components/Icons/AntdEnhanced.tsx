@@ -28,6 +28,7 @@ import {
   AreaChartOutlined,
   ArrowRightOutlined,
   BarChartOutlined,
+  BgColorsOutlined,
   BellOutlined,
   BookOutlined,
   CaretUpOutlined,
