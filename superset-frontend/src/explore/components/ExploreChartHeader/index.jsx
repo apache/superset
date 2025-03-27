@@ -36,6 +36,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
+import ChartPublishedStatus from '../ExploreChartPublish';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -222,6 +223,12 @@ export const ExploreChartHeader = ({
                 currentFormData={{ ...formData, chartTitle: sliceName }}
               />
             ) : null}
+            {/* DO THE PUBLISHED STATUS HERE */}
+            <ChartPublishedStatus
+              sliceId={slice?.slice_id}
+              userCanOverwrite={canOverwrite}
+              isPublished={slice?.published}
+            />
             {metadataBar}
           </div>
         }
