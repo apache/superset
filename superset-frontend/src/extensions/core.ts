@@ -16,8 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './core';
-export * from './commands';
-export * from './extensions';
-export * from './environment';
-export * from './sqlLab';
+import { getExtensionsContextValue } from './ExtensionsContextUtils';
+
+export const core = {
+  registerView: (id: string, view: React.ReactElement): void => {
+    const { registerView: register } = getExtensionsContextValue();
+    register(id, view);
+  },
+};

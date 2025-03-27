@@ -16,8 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './core';
-export * from './commands';
-export * from './extensions';
-export * from './environment';
-export * from './sqlLab';
+export const environment = {};

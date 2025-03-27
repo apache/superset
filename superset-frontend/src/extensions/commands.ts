@@ -16,8 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './core';
-export * from './commands';
-export * from './extensions';
-export * from './environment';
-export * from './sqlLab';
+import { Disposable } from '@apache-superset/primitives';
+
+// Export an object what contains a commands key and a registerCommand function
+// TODO: Make it typeof types.commands
+export const commands = {
+  registerCommand(
+    command: string,
+    callback: (...args: any[]) => any,
+    thisArg?: any,
+  ): Disposable {
+    console.log('registering command', command);
+    return new Disposable(() => {
+      console.log('disposing command', command);
+    });
+  },
+};
