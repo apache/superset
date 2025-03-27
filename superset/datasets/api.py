@@ -35,7 +35,7 @@ from flask_babel import ngettext
 from jinja2.exceptions import TemplateSyntaxError
 from marshmallow import ValidationError
 
-from superset import event_logger
+from superset import event_logger, is_feature_enabled
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.delete import DeleteDatasetCommand
 from superset.commands.dataset.duplicate import DuplicateDatasetCommand
@@ -1155,6 +1155,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         response["id"] = pk
         response[API_RESULT_RES_KEY] = show_model_schema.dump(item, many=False)
+
+        # remove folders from resposne if `DATASET_FOLDERS` is disabled, so that it's
+        # possible to inspect if the feature is supported or not
+        if (
+            not is_feature_enabled("DATASET_FOLDERS")
+            and "folders" in response[API_RESULT_RES_KEY]
+        ):
+            del response[API_RESULT_RES_KEY]["folders"]
 
         if parse_boolean_string(request.args.get("include_rendered_sql")):
             try:
