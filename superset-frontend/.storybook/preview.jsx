@@ -59,7 +59,7 @@ export const globalTypes = {
   theme: {
     name: 'Theme',
     description: 'Global theme for components',
-    defaultValue: 'light',
+    defaultValue: 'superset',
     toolbar: {
       icon: 'paintbrush',
       items: Object.keys(themes),
@@ -68,7 +68,7 @@ export const globalTypes = {
 };
 
 const themeDecorator = (Story, context) => {
-  const themeKey = context.globals.theme || 'light';
+  const themeKey = context.globals.theme || 'superset';
   themeObject.setConfig(themes[themeKey]);
 
   return (
