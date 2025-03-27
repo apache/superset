@@ -34,7 +34,7 @@ import {
 export function isSerializableConfig(
   config: AnyThemeConfig,
 ): config is SerializableThemeConfig {
-  const { algorithm } = config || {};
+  const { algorithm } = config;
 
   if (algorithm === undefined) return true;
 

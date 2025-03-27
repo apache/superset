@@ -46,7 +46,7 @@ describe('Dashboard actions', () => {
     // Verify the color of the filled star (gold)
     cy.get('@starIconFilled')
       .should('have.css', 'color')
-      .and('eq', 'rgb(252, 199, 0)');
+      .and('eq', 'rgb(217, 172, 3)');
 
     // Click on StarFilled (removes from favorites)
     cy.get('@starIconFilled').click();
