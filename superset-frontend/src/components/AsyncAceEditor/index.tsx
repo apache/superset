@@ -241,7 +241,7 @@ export default function AsyncAceEditor(
                 }
 
                 .ace_editor .ace_constant {
-                  color: ${token.colorWarningText} !important;
+                  color: ${token.colorWarningActive} !important;
                 }
 
                 .ace_editor .ace_function {
