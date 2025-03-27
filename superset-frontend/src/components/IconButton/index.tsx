@@ -70,6 +70,9 @@ const IconButton: React.FC<IconButtonProps> = ({
   return (
     <Card
       hoverable
+      role="button"
+      tabIndex={0}
+      aria-label={buttonText}
       {...cardProps}
       cover={renderIcon()}
       style={{
