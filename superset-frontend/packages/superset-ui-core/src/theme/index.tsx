@@ -31,6 +31,7 @@ export {
   withTheme,
 } from '@emotion/react';
 export { default as createEmotionCache } from '@emotion/cache';
+export { default as exampleThemes } from './exampleThemes';
 
 declare module '@emotion/react' {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -51,7 +52,7 @@ export function useTheme() {
 const styled = emotionStyled;
 
 // launching in in dark mode for now while iterating
-const themeObject = Theme.fromConfig({});
+const themeObject = Theme.fromConfig({ algorithm: 'dark' });
 
 const { theme } = themeObject;
 const supersetTheme = theme;
