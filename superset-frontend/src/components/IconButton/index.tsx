@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import { Card, Typography } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -32,6 +33,22 @@ const IconButton: React.FC<IconButtonProps> = ({
   altText,
   ...cardProps
 }) => {
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (cardProps.onClick) {
+        cardProps.onClick(e as any);
+      }
+      if (e.key === ' ') {
+        e.preventDefault();
+      }
+    }
+    if (cardProps.onKeyDown) {
+      cardProps.onKeyDown(e);
+    }
+  };
+
   const renderIcon = () => {
     if (icon) {
       return (
@@ -73,11 +90,24 @@ const IconButton: React.FC<IconButtonProps> = ({
       role="button"
       tabIndex={0}
       aria-label={buttonText}
+      onKeyDown={handleKeyDown}
+      onFocus={e => {
+        cardProps.onFocus?.(e);
+        setIsFocused(true);
+      }}
+      onBlur={e => {
+        cardProps.onBlur?.(e);
+        setIsFocused(false);
+      }}
       {...cardProps}
       cover={renderIcon()}
       style={{
         padding: '12px',
         textAlign: 'center',
+        outline: 'none',
+        border: isFocused ? '2px solid #1890ff' : undefined,
+        boxShadow: isFocused ? '0 0 0 3px rgba(24, 144, 255, 0.1)' : undefined,
+        ...cardProps.style,
       }}
     >
       <Tooltip title={buttonText}>
