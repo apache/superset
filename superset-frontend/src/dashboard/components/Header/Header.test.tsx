@@ -438,6 +438,12 @@ test('should NOT render MetadataBar when embedded', () => {
   ).not.toBeInTheDocument();
 });
 
+test('should have fullscreen option in dropdown', async () => {
+  setup();
+  await openActionsDropdown();
+  expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+});
+
 test('should render MetadataBar when not in edit mode and not embedded', () => {
   const state = {
     dashboardInfo: {
