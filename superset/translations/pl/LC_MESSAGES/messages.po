@@ -1028,7 +1028,7 @@ msgid "Added"
 msgstr "Dodano"
 
 #, fuzzy, python-format
-msgid "Added to 1 dashboard"
+msgid "Added to %s dashboard"
 msgid_plural "Added to %s dashboards"
 msgstr[0] "Dodano do 1 pulpitu"
 msgstr[1] "Dodano do %s pulpitów"
