@@ -82,6 +82,7 @@ import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import Icons from 'src/components/Icons';
+import { native } from 'rimraf';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -939,6 +940,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           setTabNativeFilters(nativeFilters);
 
           const anchor = currentAlert?.extra?.dashboard?.anchor;
+
           if (anchor) {
             setNativeFilterOptions(
               nativeFilters[anchor].map((filter: any) => ({
@@ -962,6 +964,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 updateAnchorState(undefined);
               }
             }
+          } else {
+            setNativeFilterOptions(
+              nativeFilters.NO_TAB.map((filter: any) => ({
+                value: filter.id,
+                label: filter.name,
+              })),
+            );
           }
         })
         .catch(() => {
@@ -1243,7 +1252,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onChangeDashboardFilter = (idx: number, nativeFilterId: string) => {
     // set dashboardFilter
-    const anchor = currentAlert?.extra?.dashboard?.anchor;
+    const anchor = currentAlert?.extra?.dashboard?.anchor || 'NO_TAB';
 
     // @ts-ignore
     const inScopeFilters = tabNativeFilters[anchor];
@@ -1998,7 +2007,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             </div>
                             <Select
                               className="filters-dash-select"
-                              disabled={nativeFilterOptions?.length < 1}
+                              // disabled={nativeFilterOptions?.length < 1}
                               ariaLabel={t('Select Filter')}
                               placeholder={t('Select Filter')}
                               // @ts-ignore
