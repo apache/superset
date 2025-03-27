@@ -1126,7 +1126,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
-        query = self.get_session.query(Role).filter(Role.id.in_(role_ids))
+        query = self.get_session.query(self.role_model).filter(
+            self.role_model.id.in_(role_ids)
+        )
         return query.all()
 
     def copy_role(
