@@ -46,7 +46,7 @@ describe('Dashboard actions', () => {
     // Verify the color of the filled star (gold)
     cy.get('@starIconFilled')
       .should('have.css', 'color')
-      .and('eq', 'rgb(217, 172, 3)');
+      .and('eq', 'rgb(252, 199, 0)');
 
     // Click on StarFilled (removes from favorites)
     cy.get('@starIconFilled').click();
@@ -62,6 +62,6 @@ describe('Dashboard actions', () => {
     // Verify the color of the outlined star (gray)
     cy.get('@starIconOutlinedAfter')
       .should('have.css', 'color')
-      .and('eq', 'rgb(133, 133, 133)');
+      .and('eq', 'rgb(178, 178, 178)');
   });
 });
