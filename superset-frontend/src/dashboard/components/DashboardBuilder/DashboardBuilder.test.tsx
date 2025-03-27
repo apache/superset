@@ -269,7 +269,7 @@ describe('DashboardBuilder', () => {
   });
 
   it('filter panel state when featureflag is true', () => {
-    (global as any).featureFlags = {
+    window.featureFlags = {
       [FeatureFlag.FilterBarClosedByDefault]: true,
     };
     const setter = jest.fn();
@@ -289,7 +289,7 @@ describe('DashboardBuilder', () => {
   });
 
   it('filter panel state when featureflag is false', () => {
-    (global as any).featureFlags = {
+    window.featureFlags = {
       [FeatureFlag.FilterBarClosedByDefault]: false,
     };
     const setter = jest.fn();
