@@ -122,19 +122,6 @@ RadioGroupWithOptionsStory.args = {
       ),
     },
     {
-      value: 2,
-      label: (
-        <Space align="center" direction="vertical">
-          <Icons.DotChartOutlined
-            css={css`
-              font-size: 18;
-            `}
-          />
-          DotChart
-        </Space>
-      ),
-    },
-    {
       value: 3,
       label: (
         <Space align="center" direction="vertical">

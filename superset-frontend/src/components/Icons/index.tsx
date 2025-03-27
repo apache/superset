@@ -18,51 +18,21 @@
  */
 
 import { FC } from 'react';
-import { startCase } from 'lodash';
-import AntdEnhancedIcons from './AntdEnhanced';
-import Icon from './Icon';
+import { antdEnhancedIcons } from './AntdEnhanced';
+import { iconOverrides } from './CustomIcon';
 import IconType from './types';
-
-const IconFileNames = [
-  // to keep custom
-  'ballot',
-  'big-number-chart-tile',
-  'binoculars',
-  'category',
-  'certified',
-  'checkbox-half',
-  'checkbox-off',
-  'checkbox-on',
-  'circle_solid',
-  'drag',
-  'error_solid_small_red',
-  'error',
-  'full',
-  'layers',
-  'queued',
-  'redo',
-  'running',
-  'slack',
-  'square',
-  'sort_asc',
-  'sort_desc',
-  'sort',
-  'transparent',
-  'triangle_down',
-  'undo',
-];
-
-const iconOverrides: Record<string, FC<IconType>> = {};
-IconFileNames.forEach(fileName => {
-  const keyName = startCase(fileName).replace(/ /g, '');
-  iconOverrides[keyName] = (props: IconType) => (
-    <Icon customIcons fileName={fileName} {...props} />
-  );
-});
 
 export type { IconType };
 
-export default {
-  ...AntdEnhancedIcons,
+export type IconNameType =
+  | keyof typeof antdEnhancedIcons
+  | keyof typeof iconOverrides;
+
+type IconComponentType = Record<IconNameType, FC<IconType>>;
+
+const Icons: IconComponentType = {
+  ...antdEnhancedIcons,
   ...iconOverrides,
 };
+
+export default Icons;

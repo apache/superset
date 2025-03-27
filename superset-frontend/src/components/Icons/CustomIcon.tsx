@@ -22,6 +22,34 @@ import TransparentIcon from 'src/assets/images/icons/transparent.svg';
 import { IconType } from './types';
 import { BaseIconComponent } from './BaseIcon';
 
+const customIcons = [
+  'Ballot',
+  'BigNumberChartTile',
+  'Binoculars',
+  'Category',
+  'Certified',
+  'CheckboxHalf',
+  'CheckboxOff',
+  'CheckboxOn',
+  'CircleSolid',
+  'Drag',
+  'ErrorSolidSmallRed',
+  'Error',
+  'Full',
+  'Layers',
+  'Queued',
+  'Redo',
+  'Running',
+  'Slack',
+  'Square',
+  'SortAsc',
+  'SortDesc',
+  'Sort',
+  'Transparent',
+  'TriangleDown',
+  'Undo',
+] as const;
+
 export const Icon = (props: IconType) => {
   const [, setLoaded] = useState(false);
   const ImportedSVG = useRef<FC<SVGProps<SVGSVGElement>>>();
@@ -51,4 +79,14 @@ export const Icon = (props: IconType) => {
   );
 };
 
-export default Icon;
+export const iconOverrides = Object.fromEntries(
+  customIcons.map(customIcon => {
+    const fileName = customIcon
+      .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+      .toLowerCase();
+    return [
+      customIcon,
+      (props: IconType) => <Icon customIcons fileName={fileName} {...props} />,
+    ];
+  }),
+) as Record<(typeof customIcons)[number], FC<IconType>>;

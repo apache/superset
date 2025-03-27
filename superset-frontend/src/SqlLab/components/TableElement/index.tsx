@@ -263,7 +263,10 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
               className="pull-left m-l-2"
               tooltip={t('View keys & indexes (%s)', tableData.indexes.length)}
             >
-              <Icons.KeyOutlined iconSize="s" />
+              <Icons.TableOutlined
+                iconSize="m"
+                iconColor={theme.colors.primary.dark2}
+              />
             </IconTooltip>
           }
         />

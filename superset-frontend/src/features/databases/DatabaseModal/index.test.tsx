@@ -678,7 +678,7 @@ describe('DatabaseModal', () => {
       });
       // These are the checkbox SVGs that cover the actual checkboxes
       const checkboxOffSVGs = screen.getAllByRole('img', {
-        name: /checkbox-off/i,
+        name: /checkbox_off/i,
       });
       const tooltipIcons = within(advancedTabPanel).getAllByRole('img', {
         name: /info-tooltip/i,
