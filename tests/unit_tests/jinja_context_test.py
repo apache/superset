@@ -417,19 +417,6 @@ def test_user_macros_without_user_info(mocker: MockerFixture):
     assert cache.current_user_roles() == None  # noqa: E711
 
 
-def test_current_user_roles_empty(mocker: MockerFixture):
-    """
-    Test all user macros when no user info is available.
-    """
-    mock_g = mocker.patch("superset.utils.core.g")
-    mock_g.user = None
-    cache = ExtraCache()
-    assert cache.current_user_id() == None  # noqa: E711
-    assert cache.current_username() == None  # noqa: E711
-    assert cache.current_user_email() == None  # noqa: E711
-    assert cache.current_user_roles() == None  # noqa: E711
-
-
 def test_where_in() -> None:
     """
     Test the ``where_in`` Jinja2 filter.
