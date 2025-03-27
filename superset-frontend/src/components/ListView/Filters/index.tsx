@@ -75,6 +75,7 @@ function UIFilters(
             selects,
             toolTipDescription,
             onFilterUpdate,
+            dateFilterValueType,
           },
           index,
         ) => {
@@ -134,6 +135,7 @@ function UIFilters(
                 key={key}
                 name={id}
                 onSubmit={value => updateFilterValue(index, value)}
+                dateFilterValueType={dateFilterValueType || 'unix'}
               />
             );
           }

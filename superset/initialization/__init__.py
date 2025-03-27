@@ -183,6 +183,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
+        from superset.views.users_list import UsersListView
 
         set_app_error_handlers(self.superset_app)
 
@@ -391,6 +392,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
+        )
+
+        appbuilder.add_view(
+            UsersListView,
+            "Users",
+            label=__("Users"),
+            category="Security",
+            category_label=__("Security"),
         )
 
     def init_app_in_ctx(self) -> None:
