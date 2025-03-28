@@ -18,6 +18,8 @@
  */
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { lazy, ComponentType, ComponentProps } from 'react';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 // not lazy loaded since this is the home page.
 import Home from 'src/pages/Home';
@@ -121,6 +123,10 @@ const RowLevelSecurityList = lazy(
     import(
       /* webpackChunkName: "RowLevelSecurityList" */ 'src/pages/RowLevelSecurityList'
     ),
+);
+
+const RolesList = lazy(
+  () => import(/* webpackChunkName: "RolesList" */ 'src/pages/RolesList'),
 );
 
 type Routes = {
@@ -235,6 +241,16 @@ if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   routes.push({
     path: '/superset/tags/',
     Component: Tags,
+  });
+}
+
+const user = getBootstrapData()?.user;
+const isAdmin = isUserAdmin(user);
+
+if (isAdmin) {
+  routes.push({
+    path: '/roles/',
+    Component: RolesList,
   });
 }
 
