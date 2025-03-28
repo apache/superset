@@ -97,7 +97,7 @@ class RedisCacheBackend(RedisCache):
         }
 
         # Handle username separately as it's optional for Redis authentication.
-        if configured_username := config.get("CACHE_REDIS_USER", ""):
+        if configured_username := config.get("CACHE_REDIS_USER"):
             kwargs["username"] = configured_username
 
         return cls(**kwargs)
