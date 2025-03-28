@@ -20,9 +20,12 @@ import { useEffect, useState } from 'react';
 import { t, SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Select } from 'src/components';
-import { SelectOptionsType, SelectProps } from 'src/components/Select/types';
-// eslint-disable-next-line no-restricted-imports
-import { SelectValue, LabeledValue } from 'antd/lib/select'; // TODO: Remove antd
+import {
+  SelectValue,
+  LabeledValue,
+  SelectOptionsType,
+  SelectProps,
+} from 'src/components/Select';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 type SelectAsyncProps = Omit<SelectProps, 'options' | 'ariaLabel' | 'onChange'>;
@@ -97,10 +100,12 @@ const SelectAsyncControl = ({
         endpoint: dataEndpoint,
       })
         .then(response => {
-          const data = mutator
-            ? mutator(response.json, value)
-            : response.json.result;
-          setOptions(data);
+          if (value) {
+            const data = mutator
+              ? mutator(response.json, value)
+              : response.json.result;
+            setOptions(data);
+          }
         })
         .catch(onError)
         .finally(() => {

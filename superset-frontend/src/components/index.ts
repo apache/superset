@@ -58,7 +58,10 @@ export {
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
   Form as AntdForm,
-  Select as AntdSelect,
+  Input as AntdInput,
+  Slider as AntdSlider,
+  Tabs as AntdTabs,
+  Tooltip as AntdTooltip,
 } from 'antd';
 
 // Exported types

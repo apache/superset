@@ -17,19 +17,9 @@
  * under the License.
  */
 
-import { MouseEventHandler } from 'react';
-
-export interface TagType {
-  id?: number;
-  className?: string;
-  type?: string | number;
-  editable?: boolean;
-  onDelete?: (index: number) => void;
-  onClick?: MouseEventHandler<HTMLSpanElement>;
-  name: string;
-  index?: number | undefined;
-  toolTipTitle?: string;
-  children?: React.ReactNode;
-}
-
-export default TagType;
+export * from './types';
+export * from './Select';
+export * from './styles';
+export * from './CustomTag';
+export * from './AsyncSelect';
+export * from './constants';

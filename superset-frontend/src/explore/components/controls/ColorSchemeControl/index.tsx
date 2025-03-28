@@ -28,19 +28,16 @@ import {
   getLabelsColorMap,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import AntdSelect from 'antd/lib/select'; // TODO: Remove antd
 import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { SelectOptionsType } from 'src/components/Select/types';
 import { StyledSelect } from 'src/components/Select/styles';
+import { Option, OptGroup } from 'src/components/Select/Select';
 import { handleFilterOptionHelper } from 'src/components/Select/utils';
 import { getColorNamespace } from 'src/utils/colorScheme';
 import ColorSchemeLabel from './ColorSchemeLabel';
-
-const { Option, OptGroup } = AntdSelect;
 
 export type OptionData = SelectOptionsType[number]['options'][number];
 
@@ -311,11 +308,11 @@ const ColorSchemeControl = ({
       <StyledSelect
         css={css`
           width: 100%;
-          & .ant-select-item.ant-select-item-group {
+          & .antd5-select-item.antd5-select-item-group {
             padding-left: ${theme.sizeUnit}px;
             font-size: ${theme.fontSize}px;
           }
-          & .ant-select-item-option-grouped {
+          & .antd5-select-item-option-grouped {
             padding-left: ${theme.sizeUnit * 3}px;
           }
         `}

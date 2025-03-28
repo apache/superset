@@ -149,6 +149,7 @@ function selectColorScheme(
   color: string,
   target = 'dashboard-edit-properties-form',
 ) {
+  cy.wait(1000); // chromium will crash without this in headless mode
   cy.get(`[data-test="${target}"] input[aria-label="Select color scheme"]`)
     .first()
     .then($input => {
@@ -163,7 +164,7 @@ function saveAndGo(dashboard = 'Tabbed Dashboard') {
   cy.getBySel('query-save-button').click();
   cy.getBySel('save-modal-body').then($modal => {
     cy.wrap($modal)
-      .find("div[aria-label='Select a dashboard'] .ant-select-selection-item")
+      .find("div[aria-label='Select a dashboard'] .antd5-select-selection-item")
       .should('have.text', dashboard);
     cy.getBySel('save-overwrite-radio').should('not.be.disabled');
     cy.getBySel('save-overwrite-radio').click();
