@@ -125,7 +125,7 @@ export default function transformProps(
           percentChange = compareValue
             ? (bigNumber - compareValue) / Math.abs(compareValue)
             : 0;
-          formattedSubheader = `${formatPercentChange(
+          formattedSubheader = `${subheader} ${formatPercentChange(
             percentChange,
           )} ${compareSuffix}`;
         }
