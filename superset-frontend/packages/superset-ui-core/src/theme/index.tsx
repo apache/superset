@@ -20,7 +20,7 @@ import emotionStyled from '@emotion/styled';
 import { useTheme as useThemeBasic } from '@emotion/react';
 // import { theme as antdThemeImport } from 'antd-v5';
 import { Theme } from './Theme';
-import type { SupersetTheme } from './types';
+import type { SupersetTheme, SerializableThemeConfig } from './types';
 
 export {
   css,
@@ -31,6 +31,7 @@ export {
   withTheme,
 } from '@emotion/react';
 export { default as createEmotionCache } from '@emotion/cache';
+export { default as exampleThemes } from './exampleThemes';
 
 declare module '@emotion/react' {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -56,4 +57,5 @@ const themeObject = Theme.fromConfig({});
 const { theme } = themeObject;
 const supersetTheme = theme;
 
-export { Theme, SupersetTheme, themeObject, styled, theme, supersetTheme };
+export { Theme, themeObject, styled, theme, supersetTheme };
+export type { SupersetTheme, SerializableThemeConfig };
