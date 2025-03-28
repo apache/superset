@@ -110,6 +110,7 @@ import {
   FilterOutlined,
   UnorderedListOutlined,
   WarningOutlined,
+  RetweetOutlined,
 } from '@ant-design/icons';
 import { IconType } from './types';
 import { BaseIconComponent } from './BaseIcon';
@@ -205,6 +206,7 @@ const AntdIcons = {
   FilterOutlined,
   UnorderedListOutlined,
   WarningOutlined,
+  RetweetOutlined,
 };
 
 const AntdEnhancedIcons = Object.keys(AntdIcons)
