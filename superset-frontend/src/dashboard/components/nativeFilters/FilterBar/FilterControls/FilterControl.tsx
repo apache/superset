@@ -42,7 +42,6 @@ const FilterStyledIcon = styled.div`
 const VerticalFilterControlTitle = styled.h4`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   color: ${({ theme }) => theme.colorText};
-  margin: 0;
   overflow-wrap: anywhere;
 `;
 
@@ -78,22 +77,22 @@ const HorizontalOverflowFilterControlTitleBox = styled(
 
 const VerticalFilterControlContainer = styled(Form)`
   width: 100%;
-  && .ant-form-item-label > label {
+  && .antd5-form-item-label > label {
     text-transform: none;
     width: 100%;
     padding-right: ${({ theme }) => theme.sizeUnit * 11}px;
   }
-  .ant-form-item-tooltip {
+  .antd5-form-item-tooltip {
     margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
 const HorizontalFilterControlContainer = styled(Form)`
-  && .ant-form-item-label > label {
+  && .antd5-form-item-label > label {
     margin-bottom: 0;
     text-transform: none;
   }
-  .ant-form-item-tooltip {
+  .antd5-form-item-tooltip {
     margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
@@ -101,7 +100,7 @@ const HorizontalFilterControlContainer = styled(Form)`
 const HorizontalOverflowFilterControlContainer = styled(
   VerticalFilterControlContainer,
 )`
-  && .ant-form-item-label {
+  && .antd5-form-item-label {
     line-height: 1;
     & > label {
       padding-right: unset;
@@ -110,9 +109,11 @@ const HorizontalOverflowFilterControlContainer = styled(
 `;
 
 const VerticalFormItem = styled(StyledFormItem)`
-  .ant-form-item-label {
+  .antd5-form-item-label {
     overflow: visible;
-    label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+    label.antd5-form-item-required:not(
+        .antd5-form-item-required-mark-optional
+      ) {
       &::after {
         display: none;
       }
@@ -126,11 +127,13 @@ const HorizontalFormItem = styled(StyledFormItem)`
     align-items: center;
   }
 
-  .ant-form-item-label {
+  .antd5-form-item-label {
     overflow: visible;
     padding-bottom: 0;
     margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
-    label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+    label.antd5-form-item-required:not(
+        .antd5-form-item-required-mark-optional
+      ) {
       &::after {
         display: none;
       }
@@ -141,7 +144,7 @@ const HorizontalFormItem = styled(StyledFormItem)`
     }
   }
 
-  .ant-form-item-control {
+  .antd5-form-item-control {
     width: ${({ theme }) => theme.sizeUnit * 41}px;
   }
 `;

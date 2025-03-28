@@ -47,8 +47,6 @@ const HorizontalBarContent = styled.div`
     flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-start;
-    line-height: 0;
-
     .loading {
       margin: ${theme.sizeUnit * 2}px auto ${theme.sizeUnit * 2}px;
       padding: 0;

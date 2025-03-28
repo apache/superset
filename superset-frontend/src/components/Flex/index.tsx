@@ -16,18 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import { PluginFilterStylesProps } from './types';
 
-export const RESPONSIVE_WIDTH = 0;
+import { Flex as AntdFlex } from 'antd-v5';
+import { ComponentProps } from 'react';
 
-export const FilterPluginStyle = styled.div<PluginFilterStylesProps>`
-  min-height: ${({ height }) => height}px;
-  width: ${({ width }) => (width === RESPONSIVE_WIDTH ? '100%' : `${width}px`)};
-`;
+export type FlexProps = ComponentProps<typeof AntdFlex>;
 
-export const StatusMessage = styled.div<{
-  status?: 'error' | 'warning' | 'info';
-}>`
-  color: ${({ theme, status = 'error' }) => theme.colors[status]?.base};
-`;
+export function Flex(props: FlexProps) {
+  return <AntdFlex {...props} />;
+}

@@ -98,7 +98,7 @@ export const StyledGeoStyler = styled(GeoStylerWrapper)`
       font-weight: ${theme.fontWeightNormal};
       font-size: ${theme.fontSizeXL}px;
     }
-    .ant-form-item-control {
+    .antd5-form-item-control {
       flex: unset;
     }
   `}
