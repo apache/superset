@@ -29,6 +29,7 @@ import {
   ArrowRightOutlined,
   BarChartOutlined,
   BellOutlined,
+  BgColorsOutlined,
   BookOutlined,
   CaretUpOutlined,
   CaretDownOutlined,
