@@ -38,6 +38,7 @@ import {
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
+import Button from 'src/components/Button';
 
 import { InputNumber } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
@@ -47,7 +48,14 @@ import TimezoneSelector from 'src/components/TimezoneSelector';
 import { propertyComparator } from 'src/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { AntdCheckbox, AsyncSelect, Select, TreeSelect } from 'src/components';
+// todo(hughhh): migrate to src/components/Form
+import {
+  AntdCheckbox,
+  AsyncSelect,
+  Select,
+  TreeSelect,
+  AntdForm,
+} from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -68,10 +76,13 @@ import {
   TabNode,
   SelectValue,
   ContentType,
+  ExtraNativeFilter,
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import Icons from 'src/components/Icons';
+import { native } from 'rimraf';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -322,6 +333,55 @@ export const StyledInputContainer = styled.div`
     .input-label {
       margin-left: 10px;
     }
+
+    .filters {
+      margin: 5px 0;
+
+      .filters-container {
+        display: flex;
+      }
+
+      .filters-dash-container {
+        display: flex;
+        flex-direction: column;
+        max-width: 174px;
+        flex: 1;
+        margin-right: 16px;
+
+        .control-label {
+          flex: 1;
+        }
+      }
+
+      .filters-dash-select {
+        flex: 1;
+      }
+
+      .filters-dashvalue-container {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
+
+      .filters-delete {
+        display: flex;
+        margin-top: 23px;
+      }
+
+      .filters-trashcan {
+        display: 'flex';
+        color: ${theme.colors.grayscale.light1};
+      }
+      .filters-add-container {
+        flex: '.25';
+        padding: '7px 0';
+
+        .filters-add-btn {
+          padding: 0;
+          color: ${theme.colors.primary.base};
+        }
+      }
+    }
   `}
 `;
 
@@ -461,6 +521,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
   const [tabOptions, setTabOptions] = useState<TabNode[]>([]);
+  const [nativeFilterOptions, setNativeFilterOptions] = useState<object[]>([]);
+  const [tabNativeFilters, setTabNativeFilters] = useState<object>({});
+  const [nativeFilterData, setNativeFilterData] = useState<ExtraNativeFilter[]>(
+    [
+      {
+        nativeFilterId: null,
+        columnLabel: '',
+        columnName: '',
+        filterValues: [],
+      },
+    ],
+  );
+
+  console.log(nativeFilterData);
 
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
@@ -672,6 +746,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     const shouldEnableForceScreenshot =
       contentType === ContentType.Chart && !isReport;
+
+    if (currentAlert?.extra?.dashboard) {
+      currentAlert.extra.dashboard.nativeFilters = nativeFilterData.map(
+        ({ columnName, columnLabel, nativeFilterId, filterValues }) => ({
+          columnName,
+          columnLabel,
+          nativeFilterId,
+          filterValues,
+        }),
+      );
+    }
+
     const data: any = {
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
@@ -832,7 +918,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         endpoint: `/api/v1/dashboard/${dashboard.value}/tabs`,
       })
         .then(response => {
-          const { tab_tree: tabTree, all_tabs: allTabs } = response.json.result;
+          const {
+            tab_tree: tabTree,
+            all_tabs: allTabs,
+            native_filters: nativeFilters,
+          } = response.json.result;
           const allTabsWithOrder = tabTree.map(
             (tab: { value: string }) => tab.value,
           );
@@ -847,9 +937,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           }
 
           setTabOptions(tabTree);
+          setTabNativeFilters(nativeFilters);
 
           const anchor = currentAlert?.extra?.dashboard?.anchor;
+
           if (anchor) {
+            setNativeFilterOptions(
+              nativeFilters[anchor].map((filter: any) => ({
+                value: filter.id,
+                label: filter.name,
+              })),
+            );
             try {
               const parsedAnchor = JSON.parse(anchor);
               if (Array.isArray(parsedAnchor)) {
@@ -866,6 +964,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 updateAnchorState(undefined);
               }
             }
+          } else {
+            setNativeFilterOptions(
+              nativeFilters.NO_TAB.map((filter: any) => ({
+                value: filter.id,
+                label: filter.name,
+              })),
+            );
           }
         })
         .catch(() => {
@@ -1022,6 +1127,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
+  const handleAddFilterField = () => {
+    setNativeFilterData([
+      ...nativeFilterData,
+      {
+        nativeFilterId: null,
+        columnLabel: '',
+        columnName: '',
+        filterValues: [],
+      },
+    ]);
+  };
+
+  const handleRemoveFilterField = (filterIdx: number) => {
+    const filters = nativeFilterData || [];
+    filters.splice(filterIdx, 1);
+    setNativeFilterData(filters);
+  };
+
   const onCustomWidthChange = (value: number | string | null | undefined) => {
     const numValue =
       value === null ||
@@ -1066,6 +1189,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('chart', null);
     if (tabsEnabled) {
       setTabOptions([]);
+      setNativeFilterOptions([]);
       updateAnchorState('');
     }
   };
@@ -1124,6 +1248,78 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onForceScreenshotChange = (event: any) => {
     setForceScreenshot(event.target.checked);
+  };
+
+  const onChangeDashboardFilter = (idx: number, nativeFilterId: string) => {
+    // set dashboardFilter
+    const anchor = currentAlert?.extra?.dashboard?.anchor || 'NO_TAB';
+
+    // @ts-ignore
+    const inScopeFilters = tabNativeFilters[anchor];
+    const filter = inScopeFilters.filter(
+      (f: any) => f.id === nativeFilterId,
+    )[0];
+
+    const { datasetId } = filter.targets[0];
+    const columnName = filter.targets[0].column.name;
+
+    const columnLabel = nativeFilterOptions.filter(
+      // @ts-ignore
+      filter => filter.value === nativeFilterId,
+      // @ts-ignore
+    )[0].label;
+    const dashboardId = currentAlert?.dashboard?.value;
+
+    // Get values tied to the selected filter
+    const filterValues = {
+      formData: {
+        datasource: `${datasetId}__table`,
+        groupby: [columnName],
+        metrics: ['count'],
+        row_limit: 1000,
+        showSearch: true,
+        viz_type: 'filter_select',
+        type: 'NATIVE_FILTER',
+        dashboardId,
+      },
+      force: false,
+      ownState: {},
+    };
+
+    getChartDataRequest(filterValues).then(response => {
+      const newFilterValues = response.json.result[0].data.map((item: any) => ({
+        value: item[columnName],
+        label: item[columnName],
+      }));
+
+      setNativeFilterData(
+        nativeFilterData.map((filter, index) =>
+          index === idx
+            ? {
+                ...filter,
+                nativeFilterId,
+                columnLabel,
+                columnName,
+                optionFilterValues: newFilterValues,
+                filterValues: [], // reset filter values on filter change
+              }
+            : filter,
+        ),
+      );
+    });
+  };
+
+  const onChangeDashboardFilterValue = (
+    idx: number,
+    filterValues: string[],
+  ) => {
+    // todo(hughhh): refactor to handle multiple native filters
+    setNativeFilterData(
+      nativeFilterData.map((filter, index) =>
+        index === idx ? { ...filter, filterValues } : filter,
+      ),
+    );
+    // setSelectedNativeFilter({ ...nativeFilter, filterValues });
   };
 
   // Make sure notification settings has the required info
@@ -1309,6 +1505,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   useEffect(() => {
     if (resource) {
+      // Add native filter settings
+
+      if (resource.extra?.dashboard?.nativeFilters) {
+        // @ts-ignore
+        setNativeFilterData(resource.extra?.dashboard?.nativeFilters);
+      }
+
       // Add notification settings
       const settings = (resource.recipients || []).map(setting => {
         const config =
@@ -1771,9 +1974,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </>
             )}
           </StyledInputContainer>
+
           {tabsEnabled && contentType === ContentType.Dashboard && (
             <StyledInputContainer>
-              <>
+              <div>
                 <div className="control-label">{t('Select tab')}</div>
                 <StyledTreeSelect
                   disabled={tabOptions?.length === 0}
@@ -1782,7 +1986,90 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onSelect={updateAnchorState}
                   placeholder={t('Select a tab')}
                 />
-              </>
+              </div>
+              <AntdForm className="filters" name="form" autoComplete="off">
+                <AntdForm.List
+                  name="filters"
+                  initialValue={nativeFilterData} // only show one filter field on create
+                >
+                  {(fields, { add, remove }) => (
+                    <div>
+                      {fields.map(({ key, name }) => (
+                        <div className="filters-container" key={key}>
+                          <div className="filters-dash-container">
+                            <div className="control-label">
+                              <span>{t('Select Dashboard Filter')}</span>
+                              <StyledTooltip
+                                tooltip={t(
+                                  'Choose from existing dashboard filters and select a value to refine your report results.',
+                                )}
+                              />
+                            </div>
+                            <Select
+                              className="filters-dash-select"
+                              // disabled={nativeFilterOptions?.length < 1}
+                              ariaLabel={t('Select Filter')}
+                              placeholder={t('Select Filter')}
+                              // @ts-ignore
+                              value={nativeFilterData[key]?.nativeFilterId}
+                              // @ts-ignore
+                              options={nativeFilterOptions}
+                              onChange={value =>
+                                // @ts-ignore
+                                onChangeDashboardFilter(key, value)
+                              }
+                              oneLine
+                            />
+                          </div>
+                          <div className="filters-dashvalue-container">
+                            <div className="control-label">{t('Value')}</div>
+                            <Select
+                              ariaLabel={t('Value')}
+                              placeholder={t('Select Value')}
+                              disabled={
+                                !nativeFilterData[key]?.optionFilterValues
+                              }
+                              value={nativeFilterData[key]?.filterValues}
+                              // @ts-ignore
+                              options={
+                                nativeFilterData[key]?.optionFilterValues
+                              }
+                              onChange={value =>
+                                // @ts-ignore
+                                onChangeDashboardFilterValue(key, value)
+                              }
+                              mode="multiple"
+                            />
+                          </div>
+                          {name !== 0 && (
+                            <div className="filters-delete">
+                              <Icons.DeleteOutlined
+                                className="filters-trashcan"
+                                onClick={() => {
+                                  handleRemoveFilterField(name);
+                                  remove(name);
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      <div className="filters-add-container">
+                        <Button
+                          className="filters-add-btn"
+                          type="link"
+                          onClick={() => {
+                            handleAddFilterField();
+                            add();
+                          }}
+                        >
+                          + {t('Apply another dashboard filter')}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </AntdForm.List>
+              </AntdForm>
             </StyledInputContainer>
           )}
           {isScreenshot && (
@@ -1805,6 +2092,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </div>
             </StyledInputContainer>
           )}
+
           {(isReport || contentType === ContentType.Dashboard) && (
             <div className="inline-container">
               <StyledCheckbox
