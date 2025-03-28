@@ -627,3 +627,38 @@ export function getPadding(
     isHorizontal,
   );
 }
+
+export function transformNegativeLabelsPosition(
+  series: SeriesOption[],
+  isHorizontal: boolean,
+): SeriesOption[] {
+  /*
+   * Adjusts label position for negative values in bar series
+   * @param series - Array of series options
+   * @param isHorizontal - Whether chart is horizontal
+   * @returns Series with adjusted label positions for negative values
+   */
+  const shouldTransform = (item: SeriesOption): boolean =>
+    Array.isArray(item.data) && item.type === 'bar' && !item.stack;
+
+  const transformValue = (value: any) => {
+    const [xValue, yValue] = Array.isArray(value) ? value : [null, null];
+    const axisValue = isHorizontal ? xValue : yValue;
+
+    return axisValue < 0
+      ? {
+          value,
+          label: {
+            position: isHorizontal ? 'left' : 'bottom',
+          },
+        }
+      : value;
+  };
+
+  return series.map((item: SeriesOption) => ({
+    ...item,
+    data: shouldTransform(item)
+      ? (item.data as any).map(transformValue)
+      : item.data,
+  }));
+}
