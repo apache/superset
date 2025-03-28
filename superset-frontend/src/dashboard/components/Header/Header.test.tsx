@@ -449,7 +449,7 @@ test('should hide edit button when in fullscreen mode', () => {
 
   setup(fullscreenState);
   expect(screen.queryByTestId('edit-dashboard-button')).not.toBeInTheDocument();
-  expect(screen.getByRole('img', { name: 'more-horiz' })).toBeInTheDocument();
+  expect(screen.getByTestId('actions-trigger')).toBeInTheDocument();
 });
 
 test('should have fullscreen option in dropdown', async () => {
