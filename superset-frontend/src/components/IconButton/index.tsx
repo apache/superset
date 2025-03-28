@@ -36,6 +36,9 @@ const IconButton: React.FC<IconButtonProps> = ({
   const [isFocused, setIsFocused] = useState(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (cardProps.onKeyDown) {
+      cardProps.onKeyDown(e);
+    }
     if (e.key === 'Enter' || e.key === ' ') {
       if (cardProps.onClick) {
         cardProps.onClick(e as any);
@@ -43,9 +46,6 @@ const IconButton: React.FC<IconButtonProps> = ({
       if (e.key === ' ') {
         e.preventDefault();
       }
-    }
-    if (cardProps.onKeyDown) {
-      cardProps.onKeyDown(e);
     }
   };
 
