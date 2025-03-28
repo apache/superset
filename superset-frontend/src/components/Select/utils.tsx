@@ -17,12 +17,12 @@
  * under the License.
  */
 import { ensureIsArray, t } from '@superset-ui/core';
-import { LabeledValue as AntdLabeledValue } from 'antd-v5/lib/select';
+import { LabeledValue as AntdLabeledValue } from 'src/components/Select';
 import { ReactElement, RefObject } from 'react';
 import Icons from 'src/components/Icons';
 import { Option } from './Select';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
-import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
+import { CustomLabeledValue, RawValue, SelectOptionsType, V } from './types';
 
 export const SELECT_ALL_VALUE: RawValue = t('Select All');
 export const selectAllOption = {
@@ -69,9 +69,15 @@ export function getValue(
   return isLabeledValue(option) ? option.value : option;
 }
 
-export function isEqual(a: V | LabeledValue, b: V | LabeledValue, key: string) {
-  const actualA = isObject(a) && key in a ? a[key as keyof LabeledValue] : a;
-  const actualB = isObject(b) && key in b ? b[key as keyof LabeledValue] : b;
+export function isEqual(
+  a: V | CustomLabeledValue,
+  b: V | CustomLabeledValue,
+  key: string,
+) {
+  const actualA =
+    isObject(a) && key in a ? a[key as keyof CustomLabeledValue] : a;
+  const actualB =
+    isObject(b) && key in b ? b[key as keyof CustomLabeledValue] : b;
   // When comparing the values we use the equality
   // operator to automatically convert different types
   // eslint-disable-next-line eqeqeq
@@ -80,9 +86,9 @@ export function isEqual(a: V | LabeledValue, b: V | LabeledValue, key: string) {
 
 export function getOption(
   value: V,
-  options?: V | LabeledValue | (V | LabeledValue)[],
+  options?: V | CustomLabeledValue | (V | CustomLabeledValue)[],
   checkLabel = false,
-): V | LabeledValue {
+): V | CustomLabeledValue {
   const optionsArray = ensureIsArray(options);
   return optionsArray.find(
     x =>
@@ -92,7 +98,7 @@ export function getOption(
 
 export function hasOption(
   value: V,
-  options?: V | LabeledValue | (V | LabeledValue)[],
+  options?: V | CustomLabeledValue | (V | CustomLabeledValue)[],
   checkLabel = false,
 ): boolean {
   return getOption(value, options, checkLabel) !== undefined;
@@ -104,8 +110,8 @@ export function hasOption(
  * */
 export const propertyComparator =
   (property: string) => (a: AntdLabeledValue, b: AntdLabeledValue) => {
-    const propertyA = a[property as keyof LabeledValue];
-    const propertyB = b[property as keyof LabeledValue];
+    const propertyA = a[property as keyof CustomLabeledValue];
+    const propertyB = b[property as keyof CustomLabeledValue];
     if (typeof propertyA === 'string' && typeof propertyB === 'string') {
       return propertyA.localeCompare(propertyB);
     }
@@ -215,8 +221,8 @@ export const handleFilterOptionHelper = (
     const searchValue = search.trim().toLowerCase();
     if (optionFilterProps?.length) {
       return optionFilterProps.some(prop => {
-        const optionProp = option?.[prop as keyof LabeledValue]
-          ? String(option[prop as keyof LabeledValue])
+        const optionProp = option?.[prop as keyof CustomLabeledValue]
+          ? String(option[prop as keyof CustomLabeledValue])
               .trim()
               .toLowerCase()
           : '';

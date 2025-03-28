@@ -30,9 +30,13 @@ export type RawValue = string | number;
 
 export type V = string | number | null | undefined;
 
-export type LabeledValue = { label?: ReactNode; value?: V };
+export type LabeledValue = AntdLabeledValue;
+
+export type CustomLabeledValue = { label?: ReactNode; value?: V };
 
 export type AntdProps = AntdSelectProps<AntdSelectValue>;
+
+export type SelectValue = AntdSelectValue;
 
 export type { RefSelectProps };
 

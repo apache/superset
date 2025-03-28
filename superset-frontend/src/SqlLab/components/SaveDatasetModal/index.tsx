@@ -49,7 +49,7 @@ import {
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
-import { SelectValue } from 'antd-v5/lib/select';
+import { SelectValue } from 'src/components/Select';
 import { isEmpty } from 'lodash';
 
 interface QueryDatabase {

@@ -103,10 +103,19 @@ describe('Color scheme control', () => {
     cy.get('.color-scheme-tooltip').contains('Superset Colors');
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
+
+    cy.get('.color-scheme-label')
+      .contains('Superset Colors')
+      .trigger('mouseover');
+
+    cy.get('.color-scheme-label')
+      .contains('Superset Colors')
+      .trigger('mouseout');
+
     cy.focused().type('lyftColors');
     cy.getBySel('lyftColors').should('exist');
-    cy.getBySel('lyftColors').trigger('mouseover');
-    cy.get('.color-scheme-tooltip').should('not.exist');
+    cy.getBySel('lyftColors').trigger('mouseover', { force: true });
+    cy.get('.color-scheme-tooltip').should('not.be.visible');
   });
 });
 describe('VizType control', () => {

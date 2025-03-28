@@ -30,7 +30,7 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-import { LabeledValue as AntdLabeledValue } from 'antd-v5/lib/select';
+import { LabeledValue as AntdLabeledValue } from 'src/components/Select';
 import { debounce } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import { Select } from 'src/components';

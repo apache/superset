@@ -23,7 +23,7 @@ import {
   useMemo,
   useEffect,
 } from 'react';
-import { SelectValue } from 'antd-v5/lib/select';
+import { SelectValue } from 'src/components/Select';
 
 import {
   styled,

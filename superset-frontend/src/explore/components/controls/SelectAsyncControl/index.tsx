@@ -20,8 +20,12 @@ import { useEffect, useState } from 'react';
 import { t, SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Select } from 'src/components';
-import { SelectOptionsType, SelectProps } from 'src/components/Select/types';
-import { SelectValue, LabeledValue } from 'antd-v5/lib/select';
+import {
+  SelectValue,
+  LabeledValue,
+  SelectOptionsType,
+  SelectProps,
+} from 'src/components/Select';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 type SelectAsyncProps = Omit<SelectProps, 'options' | 'ariaLabel' | 'onChange'>;

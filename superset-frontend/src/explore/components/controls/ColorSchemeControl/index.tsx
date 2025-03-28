@@ -28,18 +28,16 @@ import {
   getLabelsColorMap,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import Select from 'antd-v5/lib/select';
 import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { SelectOptionsType } from 'src/components/Select/types';
 import { StyledSelect } from 'src/components/Select/styles';
+import { Option, OptGroup } from 'src/components/Select/Select';
 import { handleFilterOptionHelper } from 'src/components/Select/utils';
 import { getColorNamespace } from 'src/utils/colorScheme';
 import ColorSchemeLabel from './ColorSchemeLabel';
-
-const { Option, OptGroup } = Select;
 
 export type OptionData = SelectOptionsType[number]['options'][number];
 
