@@ -14,25 +14,45 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
-"""Unit tests for Superset"""
 
-import unittest
 import copy
+import time
+import unittest
 from datetime import datetime
 from io import BytesIO
-import time
 from typing import Any, Optional
 from unittest import mock
 from zipfile import ZipFile
 
-from flask import Response
+import pytest
+from flask import g, Response
 from flask.ctx import AppContext
-from tests.integration_tests.conftest import with_feature_flags
+
 from superset.charts.data.api import ChartDataRestApi
+from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.errors import SupersetErrorType
+from superset.extensions import async_query_manager_factory, db
+from superset.models.annotations import AnnotationLayer
+from superset.models.slice import Slice
 from superset.models.sql_lab import Query
+from superset.superset_typing import AdhocColumn
+from superset.utils import json
+from superset.utils.core import (
+    AdhocMetricExpressionType,
+    AnnotationType,
+    backend,
+    ExtraFiltersReasonType,
+    get_example_default_schema,
+)
+from superset.utils.database import get_example_database, get_main_database
+from tests.common.query_context_generator import ANNOTATION_LAYERS
+from tests.integration_tests.annotation_layers.fixtures import (
+    create_annotation_layers,  # noqa: F401
+)
 from tests.integration_tests.base_tests import SupersetTestCase, test_client
-from tests.integration_tests.annotation_layers.fixtures import create_annotation_layers  # noqa: F401
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     GAMMA_NO_CSV_USERNAME,
@@ -42,36 +62,12 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
-from tests.integration_tests.test_app import app
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,  # noqa: F401
     load_energy_table_data,  # noqa: F401
+    load_energy_table_with_slice,  # noqa: F401
 )
-import pytest
-from superset.models.slice import Slice
-
-from superset.commands.chart.data.get_data_command import ChartDataCommand
-from superset.connectors.sqla.models import TableColumn, SqlaTable
-from superset.errors import SupersetErrorType
-from superset.extensions import async_query_manager_factory, db
-from superset.models.annotations import AnnotationLayer
-from superset.superset_typing import AdhocColumn
-from superset.utils.core import (
-    AnnotationType,
-    backend,
-    get_example_default_schema,
-    AdhocMetricExpressionType,
-    ExtraFiltersReasonType,
-)
-from superset.utils import json
-from superset.utils.database import get_example_database, get_main_database
-from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-
-from tests.common.query_context_generator import ANNOTATION_LAYERS
 from tests.integration_tests.fixtures.query_context import get_query_context
-
 from tests.integration_tests.test_app import app  # noqa: F811
-
 
 CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
@@ -1285,6 +1281,58 @@ class TestGetChartDataApi(BaseTestChartDataApi):
                 "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,
             }
         ]
+
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_as_guest_user(self, is_guest_user, has_guest_access):
+        """
+        Chart data API: Test response does not inlcude the SQL query for embedded
+        users.
+        """
+        g.user.rls = []
+        is_guest_user.return_value = True
+        has_guest_access.return_value = True
+
+        rv = self.client.post(CHART_DATA_URI, json=self.query_context_payload)
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        excluded_key = "query"
+        assert all([excluded_key not in query for query in result])  # noqa: C419
+
+    def test_chart_data_table_chart_with_time_grain_filter(self):
+        """
+        Chart data API: Test that a table chart that's not using a temporal column can
+        still receive a time grain filter (for Jinja purposes).
+        """
+        metric_def = {
+            "aggregate": None,
+            "column": None,
+            "datasourceWarning": False,
+            "expressionType": "SQL",
+            "hasCustomLabel": True,
+            "label": "test",
+            "optionName": "metric_1eef4v0fryc_m7tm09g1hu",
+            "sqlExpression": "'{{ time_grain }}'",
+        }
+        self.query_context_payload["queries"][0]["columns"] = []
+        self.query_context_payload["queries"][0]["metrics"] = [metric_def]
+        self.query_context_payload["queries"][0]["row_limit"] = 1
+        self.query_context_payload["queries"][0]["extras"] = {
+            "where": "",
+            "having": "",
+            "time_grain_sqla": "PT5M",
+        }
+        self.query_context_payload["queries"][0]["orderby"] = [[metric_def, True]]
+        del self.query_context_payload["queries"][0]["granularity"]
+        del self.query_context_payload["queries"][0]["time_range"]
+        self.query_context_payload["queries"][0]["filters"] = []
+
+        rv = self.client.post(CHART_DATA_URI, json=self.query_context_payload)
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"][0]
+        assert "PT5M" in result["query"]
+        assert result["data"] == [{"test": "PT5M"}]
 
 
 @pytest.fixture
