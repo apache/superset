@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { sqlLab } from '@apache-superset/types';
 
 const Example: React.FC = () => {
+  const [logs, setLogs] = React.useState<string[]>([]);
+
   const containerStyle: React.CSSProperties = {
     minHeight: '300px',
     display: 'flex',
@@ -9,20 +11,26 @@ const Example: React.FC = () => {
     padding: '20px',
   };
 
-  const textStyle: React.CSSProperties = {
-    fontSize: '18px',
-    color: '#333',
-    marginTop: '10px',
-  };
+  useEffect(() => {
+    const queryRun = sqlLab.onDidQueryRun((sql: string) =>
+      setLogs(prevLogs => [...prevLogs, sql]),
+    );
+    const queryFail = sqlLab.onDidQueryFail((error: string) =>
+      setLogs(prevLogs => [...prevLogs, error]),
+    );
+    return () => {
+      queryRun.dispose();
+      queryFail.dispose();
+    };
+  }, []);
 
   return (
     <div style={containerStyle}>
-      I'm an extension that shows the databases in the SQL Lab workspace.
+      I'm an extension that shows a log of successful queries and error
+      messages.
       <ul>
-        {sqlLab.databases.map(database => (
-          <div style={textStyle}>
-            <li>{database.name}</li>
-          </div>
+        {logs.map(log => (
+          <li>{log}</li>
         ))}
       </ul>
     </div>

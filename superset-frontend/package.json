@@ -218,6 +218,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "@apache-superset/types": "file:packages/superset-types",
     "@applitools/eyes-storybook": "^3.50.9",
     "@babel/cli": "^7.22.6",
     "@babel/compat-data": "^7.26.8",
