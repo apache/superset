@@ -237,23 +237,6 @@ const StyledCollapse = styled(Collapse)`
   }
 `;
 
-const StyledTabs = styled(Tabs)`
-  .ant-tabs-nav {
-    position: sticky;
-    top: 0;
-    background: ${({ theme }) => theme.colors.grayscale.light5};
-    z-index: 1;
-  }
-
-  .ant-tabs-nav-list {
-    padding: 0;
-  }
-
-  .ant-form-item-label {
-    padding-bottom: 0;
-  }
-`;
-
 const StyledAsterisk = styled.span`
   color: ${({ theme }) => theme.colorError};
   font-size: ${({ theme }) => theme.fontSizeSM}px;
@@ -813,12 +796,11 @@ const FiltersConfigForm = (
       />
     </StyledRowFormItem>
   );
-
   return (
-    <StyledTabs
+    <Tabs
       activeKey={activeTabKey}
       onChange={activeKey => setActiveTabKey(activeKey)}
-      centered
+      tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
     >
       <TabPane
         tab={FilterTabs.configuration.name}
@@ -1363,7 +1345,7 @@ const FiltersConfigForm = (
           initiallyExcludedCharts={initiallyExcludedCharts}
         />
       </TabPane>
-    </StyledTabs>
+    </Tabs>
   );
 };
 
