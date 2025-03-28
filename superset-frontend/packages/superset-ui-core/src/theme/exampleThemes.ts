@@ -16,13 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const themes = {
-  superset: {
-    algorithm: 'light',
-  },
+/* eslint-disable theme-colors/no-literal-colors */
+import { SerializableThemeConfig } from './types';
+
+const exampleThemes: Record<string, SerializableThemeConfig> = {
+  superset: {},
   supersetDark: {
     token: {},
     algorithm: 'dark',
+  },
+  supersetCompact: {
+    token: {},
+    algorithm: 'compact',
   },
   funky: {
     token: {
@@ -34,7 +39,7 @@ export const themes = {
       borderRadius: 12,
       fontFamily: 'Comic Sans MS, cursive',
     },
-    algorithm: 'light',
+    algorithm: 'default',
   },
   funkyDark: {
     token: {
@@ -49,3 +54,4 @@ export const themes = {
     algorithm: 'dark',
   },
 };
+export default exampleThemes;
