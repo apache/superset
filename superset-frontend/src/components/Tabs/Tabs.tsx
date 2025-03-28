@@ -40,7 +40,7 @@ const StyledTabs = ({
       }
       .antd5-tabs-tab {
         flex: 1 1 auto;
-        
+
         .short-link-trigger.btn {
           padding: 0 ${theme.sizeUnit}px;
           & > .fa.fa-link {
