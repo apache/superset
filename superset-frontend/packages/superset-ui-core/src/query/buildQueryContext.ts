@@ -67,5 +67,6 @@ export default function buildQueryContext(
     form_data: formData,
     result_format: formData.result_format || 'json',
     result_type: formData.result_type || 'full',
+    result_location: formData.result_location || 'superset',
   };
 }
