@@ -249,6 +249,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "List Roles",
         "List Groups",
         "ResetPasswordView",
+        "RoleModelView",
         "UserGroupModelView",
         "Row Level Security",
         "Row Level Security Filters",
@@ -258,8 +259,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "User Registrations",
         "User's Statistics",
         # Guarding all AB_ADD_SECURITY_API = True REST APIs
-        "Role",
         "RoleRestAPI",
+        "Role",
         "Permission",
         "PermissionViewMenu",
         "ViewMenu",
