@@ -16,42 +16,69 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import IconButton, { IconButtonProps } from '.';
+import { Meta, StoryObj } from '@storybook/react';
+import IconButton from '.';
 
-export default {
-  title: 'IconButton',
+const meta: Meta<typeof IconButton> = {
+  title: 'Components/IconButton',
   component: IconButton,
-};
-
-export const InteractiveIconButton = (args: IconButtonProps) => (
-  <IconButton
-    buttonText={args.buttonText}
-    altText={args.altText}
-    icon={args.icon}
-    href={args.href}
-    target={args.target}
-    htmlType={args.htmlType}
-  />
-);
-
-InteractiveIconButton.args = {
-  buttonText: 'This is the IconButton text',
-  altText: 'This is an example of non-default alt text',
-  href: 'https://preset.io/',
-  target: '_blank',
-};
-
-InteractiveIconButton.argTypes = {
-  icon: {
-    defaultValue: '/images/icons/sql.svg',
-    control: {
-      type: 'select',
+  argTypes: {
+    icon: {
+      control: {
+        type: 'select',
+        options: [
+          '/images/icons/sql.svg',
+          '/images/icons/server.svg',
+          '/images/icons/image.svg',
+          null,
+        ],
+      },
     },
-    options: [
-      '/images/icons/sql.svg',
-      '/images/icons/server.svg',
-      '/images/icons/image.svg',
-      'Click to see example alt text',
-    ],
+    onClick: { action: 'clicked' },
+  },
+  parameters: {
+    a11y: {
+      enabled: true,
+    },
+  },
+};
+
+export default meta;
+
+type Story = StoryObj<typeof IconButton>;
+
+export const Default: Story = {
+  args: {
+    buttonText: 'Default IconButton',
+    altText: 'Default icon button',
+    icon: '/images/icons/sql.svg',
+  },
+};
+
+export const WithoutIcon: Story = {
+  args: {
+    buttonText: 'IconButton without custom icon',
+  },
+};
+
+export const LongText: Story = {
+  args: {
+    buttonText:
+      'This is a very long button text that will be truncated with ellipsis to show multiline behavior',
+    icon: '/images/icons/server.svg',
+  },
+};
+
+export const CustomOnClick: Story = {
+  args: {
+    buttonText: 'Clickable IconButton',
+    icon: '/images/icons/image.svg',
+  },
+};
+
+export const Disabled: Story = {
+  args: {
+    buttonText: 'Disabled IconButton',
+    icon: '/images/icons/sql.svg',
   },
 };
