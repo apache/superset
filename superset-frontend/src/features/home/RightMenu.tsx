@@ -25,7 +25,6 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { get, isEmpty } from 'lodash';
-import { Switch } from 'src/components/Switch';
 import ThemeEditor from 'src/components/ThemeEditor';
 
 import {
@@ -38,7 +37,6 @@ import {
   useTheme,
   isFeatureEnabled,
   FeatureFlag,
-  themeObject,
 } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
@@ -494,11 +492,6 @@ const RightMenu = ({
         )}
         {(isFeatureEnabled(FeatureFlag.DarkThemeSwitch) || true) && (
           <span>
-            <Switch
-              onChange={(checked: boolean) => {
-                themeObject.toggleDarkMode(checked);
-              }}
-            />
             <ThemeEditor />
           </span>
         )}
