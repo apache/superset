@@ -62,3 +62,20 @@ def is_secure_url(url: str) -> bool:
     """
     parsed_url = urlparse(url)
     return parsed_url.scheme == "https"
+
+
+def is_safe_redirect_url(source_url: str, target_url: str) -> bool:
+    """
+    Validates whether it's safe to redirect from source URL to the target URL.
+
+    Checks that the URL scheme and netloc match.
+
+    :param source_url: the current request.host_url.
+    :param target_url: the URL we plan to redirect to.
+    """
+    source_parsed = urlparse(source_url)
+    target_parsed = urlparse(target_url)
+    return (
+        source_parsed.scheme == target_parsed.scheme
+        and source_parsed.netloc == target_parsed.netloc
+    )
