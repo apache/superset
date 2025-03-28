@@ -439,7 +439,6 @@ test('should NOT render MetadataBar when embedded', () => {
 });
 
 test('should hide edit button when in fullscreen mode', () => {
-  // Create a fullscreen state
   const fullscreenState = {
     ...initialState,
     dashboardState: {
@@ -449,22 +448,14 @@ test('should hide edit button when in fullscreen mode', () => {
   };
 
   setup(fullscreenState);
-
-  // Edit button should be hidden in fullscreen mode
   expect(screen.queryByTestId('edit-dashboard-button')).not.toBeInTheDocument();
-
-  // The actions menu button should still be visible
   expect(screen.getByRole('img', { name: 'more-horiz' })).toBeInTheDocument();
 });
 
 test('should have fullscreen option in dropdown', async () => {
   setup();
   await openActionsDropdown();
-
-  // In normal mode, we should see "Enter fullscreen" option
   expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
-
-  // We can also verify that "Exit fullscreen" is not present
   expect(screen.queryByText('Exit fullscreen')).not.toBeInTheDocument();
 });
 
