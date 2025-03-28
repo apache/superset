@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Space } from 'src/components/Space';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { css } from '@superset-ui/core';
 import { Radio, RadioProps, RadioGroupWrapperProps } from './index';
 

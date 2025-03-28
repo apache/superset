@@ -115,6 +115,9 @@ import { FC } from 'react';
 import { IconType } from './types';
 import { BaseIconComponent } from './BaseIcon';
 
+// partial name matches work too
+const EXCLUDED_ICONS = ['TwoTone'];
+
 const AntdIcons = {
   AlignCenterOutlined,
   AlignLeftOutlined,
@@ -214,7 +217,7 @@ export const antdEnhancedIcons: Record<
   AntdIconNames,
   FC<IconType>
 > = Object.keys(AntdIcons)
-  .filter(k => !k.includes('TwoTone')) // Filter unwanted keys if needed
+  .filter(key => !EXCLUDED_ICONS.some(excluded => key.includes(excluded)))
   .reduce(
     (acc, key) => {
       acc[key as AntdIconNames] = (props: IconType) => (

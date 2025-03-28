@@ -45,7 +45,7 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import Loading from 'src/components/Loading';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { ActionType } from 'src/types/Action';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import ColumnElement, { ColumnKeyTypeType } from '../ColumnElement';
 import ShowSQL from '../ShowSQL';
 

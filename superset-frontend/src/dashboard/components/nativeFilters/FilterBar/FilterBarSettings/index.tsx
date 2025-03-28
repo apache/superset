@@ -26,7 +26,7 @@ import {
   saveFilterBarOrientation,
   saveCrossFiltersSetting,
 } from 'src/dashboard/actions/dashboardInfo';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Checkbox from 'src/components/Checkbox';
 import { Dropdown } from 'src/components/Dropdown';
 import { Button } from 'src/components';

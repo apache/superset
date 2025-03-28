@@ -23,7 +23,10 @@ import AsyncIcon from './AsyncIcon';
 import IconType from './types';
 
 export type { IconType };
-
+/**
+ * Filename is going to be inferred from the icon name.
+ * i.e. BigNumberChartTile => assets/images/icons/big_number_chart_tile
+ */
 const customIcons = [
   'Ballot',
   'BigNumberChartTile',
@@ -70,9 +73,7 @@ export type IconNameType =
 
 type IconComponentType = Record<IconNameType, FC<IconType>>;
 
-const Icons: IconComponentType = {
+export const Icons: IconComponentType = {
   ...antdEnhancedIcons,
   ...iconOverrides,
 };
-
-export default Icons;

@@ -17,7 +17,7 @@
  * under the License.
  */
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import CopyToClipboard from '.';
 

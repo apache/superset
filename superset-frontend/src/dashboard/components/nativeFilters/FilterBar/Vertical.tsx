@@ -31,7 +31,7 @@ import {
 } from 'react';
 import cx from 'classnames';
 import { styled, t, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Loading from 'src/components/Loading';
 import { EmptyState } from 'src/components/EmptyState';
 import { getFilterBarTestId } from './utils';

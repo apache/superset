@@ -19,7 +19,7 @@
 import { ReactElement } from 'react';
 import { styled } from '@superset-ui/core';
 import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
-import Icons, { IconNameType } from 'src/components/Icons';
+import { Icons, IconNameType } from 'src/components/Icons';
 
 export type ActionProps = {
   label: string;
