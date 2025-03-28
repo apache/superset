@@ -49,9 +49,9 @@ const CacheLabel: FC<CacheLabelProps> = ({
         onClick={onClick}
         onMouseOver={() => setHovered(true)}
         onMouseOut={() => setHovered(false)}
+        icon={<Icons.RetweetOutlined iconSize="m" />}
       >
         {t('Cached')}
-        <Icons.RetweetOutlined iconSize="m" />
       </Label>
     </Tooltip>
   );
