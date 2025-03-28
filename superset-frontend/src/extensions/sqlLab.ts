@@ -16,6 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Disposable } from '@apache-superset/primitives';
+import { core } from '@apache-superset/types';
+import {
+  QUERY_FAILED,
+  QUERY_SUCCESS,
+  querySuccess,
+} from 'src/SqlLab/actions/sqlLab';
+import { createActionListener } from './utils';
+
+// TODO: Refactor to return all needed parameters. Add them to the interface.
+export const onDidQueryRun: core.Event<string> = (
+  listener: (e: string) => void,
+  thisArgs?: any,
+): Disposable =>
+  createActionListener(
+    QUERY_SUCCESS,
+    listener,
+    (action: ReturnType<typeof querySuccess>) => action.query.sql,
+    thisArgs,
+  );
+
+export const onDidQueryFail: core.Event<string> = (
+  listener: (e: string) => void,
+  thisArgs?: any,
+): Disposable =>
+  createActionListener(
+    QUERY_FAILED,
+    listener,
+    (action: {
+      type: string;
+      query: any;
+      msg: string;
+      link: any;
+      errors: any;
+    }) => action.msg,
+    thisArgs,
+  );
+
 export const sqlLab = {
   databases: [
     {
@@ -28,4 +66,6 @@ export const sqlLab = {
       name: 'database3',
     },
   ],
+  onDidQueryRun,
+  onDidQueryFail,
 };

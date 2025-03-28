@@ -109,7 +109,7 @@ export declare namespace sqlLab {
 
   export const onDidQueryStop: Event<string>;
 
-  export const onDidQueryError: Event<string>;
+  export const onDidQueryFail: Event<string>;
 
   export const onDidQuerySuccess: Event<string>;
 }
