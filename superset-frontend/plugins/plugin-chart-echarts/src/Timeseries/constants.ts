@@ -85,6 +85,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   orientation: OrientationType.Vertical,
   sort_series_type: 'sum',
   sort_series_ascending: false,
+  overrideLineStyle: null,
 };
 
 export const TIME_SERIES_DESCRIPTION_TEXT: string = t(
