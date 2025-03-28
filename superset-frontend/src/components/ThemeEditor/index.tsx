@@ -16,30 +16,51 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { Modal, Button, Tooltip, Flex } from 'antd-v5';
-import { themeObject } from '@superset-ui/core';
+import { Modal, Tooltip, Flex, Select } from 'antd-v5';
+import Button from 'src/components/Button';
+import {
+  themeObject,
+  exampleThemes,
+  SerializableThemeConfig,
+  SupersetTheme,
+} from '@superset-ui/core';
 import { useState } from 'react';
 import Icons from 'src/components/Icons';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
-const ThemeEditor = ({
+interface ThemeEditorProps {
+  initialTheme?: SupersetTheme;
+  tooltipTitle?: string;
+  modalTitle?: string;
+}
+
+const ThemeEditor: React.FC<ThemeEditorProps> = ({
   initialTheme = {},
   tooltipTitle = 'Edit Theme',
   modalTitle = 'Theme Editor',
 }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [jsonMetadata, setJsonMetadata] = useState('{}');
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const jsonTheme: string = themeObject.json();
+  const [jsonMetadata, setJsonMetadata] = useState<string>(jsonTheme);
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
 
-  const handleOpenModal = () => {
+  // Get theme names for the Select options
+  const themeOptions: { value: string; label: string }[] = Object.keys(
+    exampleThemes,
+  ).map(key => ({
+    value: key,
+    label: key,
+  }));
+
+  const handleOpenModal = (): void => {
     setIsModalOpen(true);
   };
 
-  const handleCancel = () => {
+  const handleCancel = (): void => {
     setIsModalOpen(false);
   };
 
-  const handleSave = () => {
+  const handleSave = (): void => {
     try {
       const parsedTheme = JSON.parse(jsonMetadata);
       console.log('Parsed theme:', parsedTheme);
@@ -51,20 +72,31 @@ const ThemeEditor = ({
     }
   };
 
+  const handleThemeChange = (value: string): void => {
+    setSelectedTheme(value);
+    // When a theme is selected, update the JSON editor with the theme definition
+    const themeData = exampleThemes[value] || ({} as SerializableThemeConfig);
+    setJsonMetadata(JSON.stringify(themeData, null, 2));
+  };
+
   return (
     <>
       <Tooltip title={tooltipTitle} placement="bottom">
         <Button
-          type="text"
-          icon={<Icons.EditOutlined />}
+          buttonStyle="link"
+          icon={
+            <Icons.BgColorsOutlined
+              iconSize="l"
+              iconColor={themeObject.theme.colorPrimary}
+            />
+          }
           onClick={handleOpenModal}
           aria-label="Edit theme"
           size="large"
         />
       </Tooltip>
-
       <Modal
-        title="Theme Editor"
+        title={modalTitle}
         open={isModalOpen}
         onCancel={handleCancel}
         width={800}
@@ -76,23 +108,37 @@ const ThemeEditor = ({
         }}
         footer={
           <Flex justify="end" gap="small">
-            <Button onClick={handleCancel}>Cancel</Button>
+            <Button onClick={handleCancel} buttonStyle="secondary">
+              Cancel
+            </Button>
             <Button type="primary" onClick={handleSave}>
               Apply Theme
             </Button>
           </Flex>
         }
       >
-        <JsonEditor
-          showLoadingForImport
-          name="json_metadata"
-          value={jsonMetadata}
-          onChange={setJsonMetadata}
-          tabSize={2}
-          width="100%"
-          height="200px"
-          wrapEnabled
-        />
+        <Flex vertical gap="middle">
+          <div>
+            Select a theme template:
+            <Select
+              placeholder="Choose a theme"
+              style={{ width: '100%', marginTop: '8px' }}
+              options={themeOptions}
+              onChange={handleThemeChange}
+              value={selectedTheme}
+            />
+          </div>
+          <JsonEditor
+            showLoadingForImport
+            name="json_metadata"
+            value={jsonMetadata}
+            onChange={setJsonMetadata}
+            tabSize={2}
+            width="100%"
+            height="200px"
+            wrapEnabled
+          />
+        </Flex>
       </Modal>
     </>
   );

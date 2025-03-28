@@ -123,6 +123,7 @@ const AntdIcons = {
   AreaChartOutlined,
   ArrowRightOutlined,
   BarChartOutlined,
+  BgColorsOutlined,
   BellOutlined,
   BookOutlined,
   CaretUpOutlined,

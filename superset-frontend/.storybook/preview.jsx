@@ -17,15 +17,13 @@
  * under the License.
  */
 import { withJsx } from '@mihkeleidast/storybook-addon-source';
-import { themeObject } from '@superset-ui/core';
+import { themeObject, css, exampleThemes } from '@superset-ui/core';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { GlobalStyles } from '../src/GlobalStyles';
 import { Global } from '@emotion/react';
-import { css } from '@superset-ui/core';
-import { themes } from './themes';
 import { App, Layout, Space, Content } from 'antd-v5';
 
 import 'src/theme.ts';
@@ -62,14 +60,14 @@ export const globalTypes = {
     defaultValue: 'superset',
     toolbar: {
       icon: 'paintbrush',
-      items: Object.keys(themes),
+      items: Object.keys(exampleThemes),
     },
   },
 };
 
 const themeDecorator = (Story, context) => {
   const themeKey = context.globals.theme || 'superset';
-  themeObject.setConfig(themes[themeKey]);
+  themeObject.setConfig(exampleThemes[themeKey]);
 
   return (
     <themeObject.SupersetThemeProvider>

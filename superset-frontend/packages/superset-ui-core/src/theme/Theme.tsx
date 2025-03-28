@@ -220,6 +220,10 @@ export class Theme {
     this.setConfig(newConfig);
   }
 
+  json(): string {
+    return JSON.stringify(serializeThemeConfig(this.antdConfig), null, 2);
+  }
+
   getColorVariants(color: string): ColorVariants {
     const firstLetterCapped = color.charAt(0).toUpperCase() + color.slice(1);
     if (color === 'default' || color === 'grayscale') {
