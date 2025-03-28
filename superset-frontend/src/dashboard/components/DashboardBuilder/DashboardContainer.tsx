@@ -300,7 +300,6 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
           id={DASHBOARD_GRID_ID}
           activeKey={activeKey}
           renderTabBar={renderTabBar}
-          fullWidth={false}
           animated={false}
           allowOverflow
           onFocus={handleFocus}

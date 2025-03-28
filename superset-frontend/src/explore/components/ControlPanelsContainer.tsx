@@ -759,7 +759,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       <Tabs
         id="controlSections"
         data-test="control-tabs"
-        fullWidth={showCustomizeTab}
         tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
         allowOverflow={false}
       >

@@ -83,8 +83,8 @@ const StyledTabsContainer = styled.div`
     background-color: ${theme.colors.grayscale.light5};
 
     .dashboard-component-tabs-content {
-      min-height: ${({ theme }) => theme.sizeUnit * 12}px;
-      margin-top: ${({ theme }) => theme.sizeUnit / 4}px;
+      min-height: ${theme.sizeUnit * 12}px;
+      margin-top: ${theme.sizeUnit / 4}px;
       position: relative;
     }
 
@@ -92,7 +92,7 @@ const StyledTabsContainer = styled.div`
       overflow: visible;
 
       .antd5-tabs-nav-wrap {
-        min-height: ${({ theme }) => theme.sizeUnit * 12.5}px;
+        min-height: ${theme.sizeUnit * 12.5}px;
       }
 
       .antd5-tabs-content-holder {

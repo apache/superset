@@ -221,7 +221,6 @@ export const DataTablesPane = ({
   return (
     <SouthPane data-test="some-purposeful-instance">
       <Tabs
-        fullWidth={false}
         tabBarExtraContent={CollapseButton}
         activeKey={panelOpen ? activeTabKey : ''}
         onTabClick={handleTabClick}

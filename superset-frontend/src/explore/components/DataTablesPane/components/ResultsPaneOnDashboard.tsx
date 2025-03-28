@@ -79,7 +79,7 @@ export const ResultsPaneOnDashboard = ({
 
   return (
     <Wrapper>
-      <Tabs fullWidth={false} items={items} />
+      <Tabs items={items} />
     </Wrapper>
   );
 };
