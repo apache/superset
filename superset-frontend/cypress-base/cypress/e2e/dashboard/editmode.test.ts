@@ -149,7 +149,7 @@ function selectColorScheme(
   color: string,
   target = 'dashboard-edit-properties-form',
 ) {
-  cy.wait(500); // chromium will crash without this in headless mode
+  cy.wait(750); // chromium will crash without this in headless mode
   cy.get(`[data-test="${target}"] input[aria-label="Select color scheme"]`)
     .first()
     .then($input => {
