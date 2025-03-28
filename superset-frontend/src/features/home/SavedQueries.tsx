@@ -280,7 +280,7 @@ const SavedQueries = ({
                   `}
                   iconSize="m"
                   iconColor={theme.colors.primary.dark1}
-                />
+                />{' '}
                 {t('SQL Query')}
               </Link>
             ),
