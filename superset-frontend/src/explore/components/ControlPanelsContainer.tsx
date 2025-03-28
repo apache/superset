@@ -157,40 +157,6 @@ const Styles = styled.div`
   }
 `;
 
-const ControlPanelsTabs = styled(Tabs)`
-  ${({ theme, fullWidth }) => css`
-    height: 100%;
-    overflow: visible;
-    .ant-tabs-nav {
-      margin-bottom: 0;
-    }
-    .ant-tabs-nav-list {
-      width: ${fullWidth ? '100%' : '50%'};
-    }
-    .ant-tabs-tabpane {
-      height: 100%;
-    }
-    .ant-tabs-content-holder {
-      padding-top: ${theme.sizeUnit * 4}px;
-    }
-
-    .ant-collapse-ghost > .ant-collapse-item {
-      &:not(:last-child) {
-        border-bottom: 1px solid ${theme.colorSplit};
-      }
-
-      & > .ant-collapse-header {
-        font-size: ${theme.fontSizeSM}px;
-      }
-
-      & > .ant-collapse-content > .ant-collapse-content-box {
-        padding-bottom: 0;
-        font-size: ${theme.fontSizeSM}px;
-      }
-    }
-  `}
-`;
-
 const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
   !!section.label && sections.legacyTimeseriesTime.label === section.label;
 

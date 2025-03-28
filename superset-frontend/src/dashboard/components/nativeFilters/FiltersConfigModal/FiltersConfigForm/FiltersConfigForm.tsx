@@ -35,7 +35,6 @@ import {
   JsonResponse,
   NativeFilterType,
   styled,
-  useTheme,
   SupersetApiError,
   t,
   ClientErrorObject,
@@ -797,7 +796,6 @@ const FiltersConfigForm = (
       />
     </StyledRowFormItem>
   );
-  const theme = useTheme();
   return (
     <Tabs
       activeKey={activeTabKey}

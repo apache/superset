@@ -21,13 +21,11 @@ import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd-v5'; // TODO:
 import Icons from 'src/components/Icons';
 
 export interface TabsProps extends AntdTabsProps {
-  fullWidth?: boolean;
   allowOverflow?: boolean;
 }
 
 const StyledTabs = ({
   animated = false,
-  fullWidth = true,
   allowOverflow = true,
   ...props
 }: TabsProps) => (
@@ -42,14 +40,7 @@ const StyledTabs = ({
       }
       .antd5-tabs-tab {
         flex: 1 1 auto;
-        &:hover {
-          .anchor-link-container {
-            cursor: pointer;
-            .fa.fa-link {
-              visibility: visible;
-            }
-          }
-        }
+        
         .short-link-trigger.btn {
           padding: 0 ${theme.sizeUnit}px;
           & > .fa.fa-link {
@@ -57,13 +48,6 @@ const StyledTabs = ({
           }
         }
       }
-      ${fullWidth &&
-      css`
-        .antd5-tabs-nav-list {
-          width: 100%;
-        }
-      `};
-
       .antd5-tabs-tab-btn {
         display: flex;
         flex: 1 1 auto;
@@ -77,7 +61,7 @@ const StyledTabs = ({
           color: ${theme.colorError};
         }
       }
-      .ant-tabs-ink-bar {
+      .antd5-tabs-ink-bar {
         background: ${theme.colorPrimary};
       }
     `}
@@ -91,7 +75,7 @@ const Tabs = Object.assign(StyledTabs, {
 });
 
 const StyledEditableTabs = styled(StyledTabs)`
-  ${({ theme, fullWidth }) => `
+  ${({ theme }) => `
     .antd5-tabs-content-holder {
       background: ${theme.colors.grayscale.light5};
     }
@@ -105,16 +89,6 @@ const StyledEditableTabs = styled(StyledTabs)`
       padding-bottom: 0;
       height: ${theme.sizeUnit * 6}px;
     }
-
-    ${
-      fullWidth
-        ? css`
-            .antd5-tabs-nav-list {
-              width: 100%;
-            }
-          `
-        : ''
-    }
   `}
 `;
 
@@ -127,7 +101,6 @@ export const EditableTabs = Object.assign(StyledEditableTabs, {
 
 EditableTabs.defaultProps = {
   type: 'editable-card',
-  fullWidth: false,
   animated: { inkBar: true, tabPane: false },
 };
 
