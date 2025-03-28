@@ -3047,7 +3047,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
-        response = self._cache_screenshot(dashboard.id, {"permalink": "1234"})
+        response = self._cache_screenshot(dashboard.id, {"permalinkKey": "1234"})
         assert response.status_code == 202
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
