@@ -104,7 +104,9 @@ export default function Label(props: LabelProps) {
       icon={icon}
       css={labelStyles}
       {...rest}
-    />
+    >
+      {children}
+    </Tag>
   );
 }
 export { DatasetTypeLabel, PublishedLabel };
