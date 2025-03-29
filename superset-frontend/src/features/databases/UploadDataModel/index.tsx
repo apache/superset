@@ -39,7 +39,7 @@ import { AntdForm } from 'src/components';
 import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
 import { Select, AsyncSelect } from 'src/components/Select';
 import { Row, Col } from 'src/components/Grid';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
 import withToasts from 'src/components/MessageToasts/withToasts';

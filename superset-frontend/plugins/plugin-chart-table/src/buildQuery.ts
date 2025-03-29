@@ -198,11 +198,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
     }
 
-    if (!temporalColumn) {
-      // This query is not using temporal column, so it doesn't need time grain
-      extras.time_grain_sqla = undefined;
-    }
-
     let queryObject = {
       ...baseQueryObject,
       columns,

@@ -34,8 +34,8 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
 import { Select } from 'src/components/Select';
-import Icons from 'src/components/Icons';
 import RefreshLabel from 'src/components/RefreshLabel';
 import {
   NotificationMethodOption,

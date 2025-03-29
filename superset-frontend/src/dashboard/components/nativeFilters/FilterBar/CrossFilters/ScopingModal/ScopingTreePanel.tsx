@@ -37,7 +37,7 @@ import {
 } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { SelectOptionsType } from 'src/components/Select/types';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import Alert from 'src/components/Alert';
 import { NEW_CHART_SCOPING_ID } from './constants';

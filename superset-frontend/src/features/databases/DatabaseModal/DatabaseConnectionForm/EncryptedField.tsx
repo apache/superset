@@ -21,7 +21,7 @@ import { SupersetTheme, t } from '@superset-ui/core';
 import { AntdSelect } from 'src/components';
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/Form/FormLabel';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { DatabaseParameters, FieldPropTypes } from '../../types';
 import { infoTooltip, CredentialInfoForm } from '../styles';
 
