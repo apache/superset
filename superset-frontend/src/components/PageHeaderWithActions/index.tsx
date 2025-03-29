@@ -21,8 +21,7 @@ import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { Dropdown, DropdownProps } from 'src/components/Dropdown';
 import { TooltipPlacement } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
-import {
-  DynamicEditableTitle,
+import DynamicEditableTitle, {
   DynamicEditableTitleProps,
 } from '../DynamicEditableTitle';
 import CertifiedBadge, { CertifiedBadgeProps } from '../CertifiedBadge';
