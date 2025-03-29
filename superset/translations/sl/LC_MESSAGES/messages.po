@@ -1044,7 +1044,7 @@ msgid "Added"
 msgstr "Dodano"
 
 #, python-format
-msgid "Added to 1 dashboard"
+msgid "Added to %s dashboard"
 msgid_plural "Added to %s dashboards"
 msgstr[0] "Dodano na 1 nadzorno ploščo"
 msgstr[1] "Dodano na %s nadzorni plošči"
