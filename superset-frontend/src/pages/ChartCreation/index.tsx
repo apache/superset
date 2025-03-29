@@ -45,7 +45,7 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 export interface ChartCreationProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;
