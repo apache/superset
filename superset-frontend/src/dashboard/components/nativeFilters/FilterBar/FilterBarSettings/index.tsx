@@ -29,7 +29,7 @@ import {
 import { Icons } from 'src/components/Icons';
 import Checkbox from 'src/components/Checkbox';
 import { Dropdown } from 'src/components/Dropdown';
-import { Button } from 'src/components';
+import Button from 'src/components/Button';
 import { Space } from 'src/components/Space';
 import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';

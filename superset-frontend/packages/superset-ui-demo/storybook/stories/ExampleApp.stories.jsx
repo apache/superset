@@ -27,7 +27,7 @@ import {
   Space,
 } from 'antd-v5';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 const { Header, Content, Sider } = Layout;
 

@@ -18,7 +18,7 @@
  */
 import { styled } from '@superset-ui/core';
 import { Badge as AntdBadge } from 'antd-v5';
-import { BadgeProps as AntdBadgeProps } from 'antd-v5/lib/badge';
+import { BadgeProps as AntdBadgeProps } from 'antd-v5/es/badge';
 
 export type { AntdBadgeProps as BadgeProps };
 

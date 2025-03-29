@@ -17,10 +17,13 @@
  * under the License.
  */
 
-import { Input as AntdInput, InputNumber as AntdInputNumber } from 'antd-v5';
-
-export const Input = AntdInput;
+import { Input as Antd5Input, InputNumber as AntdInputNumber } from 'antd-v5';
 
 export const InputNumber = AntdInputNumber;
 
-export const { TextArea } = AntdInput;
+export const Input = Object.assign(Antd5Input, {
+  TextArea: Antd5Input.TextArea,
+  Search: Antd5Input.Search,
+  Password: Antd5Input.Password,
+  OTP: Antd5Input.OTP,
+});

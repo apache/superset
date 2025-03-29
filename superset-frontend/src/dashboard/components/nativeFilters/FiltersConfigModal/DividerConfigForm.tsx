@@ -18,7 +18,7 @@
  */
 import { FC } from 'react';
 import { FormItem } from 'src/components/Form';
-import { Input, TextArea } from 'src/components/Input';
+import { Input } from 'src/components/Input';
 import { NativeFilterType, styled, t } from '@superset-ui/core';
 
 interface Props {
@@ -51,7 +51,7 @@ const DividerConfigForm: FC<Props> = ({ componentId, divider }) => (
       label={t('Description')}
       name={['filters', componentId, 'description']}
     >
-      <TextArea rows={4} />
+      <Input.TextArea rows={4} />
     </FormItem>
     <FormItem
       hidden
