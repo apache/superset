@@ -20,7 +20,11 @@
 import { SerializableThemeConfig } from './types';
 
 const exampleThemes: Record<string, SerializableThemeConfig> = {
-  superset: {},
+  superset: {
+    token: {
+      colorBgElevated: '#fafafa',
+    },
+  },
   supersetDark: {
     token: {},
     algorithm: 'dark',
