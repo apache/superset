@@ -336,11 +336,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             func.max(partitions_table.c.partition_id).label("max_partition_id")
         ).where(partitions_table.c.table_name == table.table)
 
-        from sqlalchemy_bigquery import BigQueryDialect
-
         # Compile to BigQuery SQL
         compiled_query = query.compile(
-            dialect=BigQueryDialect(),
+            dialect=database.get_dialect(),
             compile_kwargs={"literal_binds": True},
         )
 
