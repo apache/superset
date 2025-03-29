@@ -51,7 +51,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import ErrorAlert from 'src/components/ImportModal/ErrorAlert';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import {
   testDatabaseConnection,
   useSingleViewResource,
