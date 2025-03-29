@@ -33,7 +33,7 @@ import {
   withTheme,
 } from '@superset-ui/core';
 import SelectControl from 'src/explore/components/controls/SelectControl';
-import { AsyncSelect } from 'src/components';
+import { AsyncSelect } from 'src/components/Select';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import PopoverSection from 'src/components/PopoverSection';

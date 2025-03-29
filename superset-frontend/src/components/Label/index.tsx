@@ -23,7 +23,7 @@ import {
   ReactNode,
 } from 'react';
 
-import Tag from 'src/components/Tag';
+import { Tag } from 'src/components/Tag';
 import { css } from '@emotion/react';
 import { useTheme, themeObject } from '@superset-ui/core';
 import DatasetTypeLabel from 'src/components/Label/reusable/DatasetTypeLabel';

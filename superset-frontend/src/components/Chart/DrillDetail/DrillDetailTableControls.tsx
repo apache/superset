@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import Tag from 'src/components/Tag';
+import { Tag } from 'src/components/Tag';
 import {
   BinaryQueryObjectFilterClause,
   css,

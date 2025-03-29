@@ -24,6 +24,7 @@ import type { TagProps } from 'antd-v5/es';
 import type { CheckableTagProps } from 'antd-v5/es/tag';
 import { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from 'src/components/Icons';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
@@ -63,7 +64,11 @@ const SupersetTag = ({
             key={id}
             closable={editable}
             onClose={handleClose}
-            closeIcon={editable}
+            closeIcon={
+              editable ? (
+                <Icons.CloseOutlined iconSize="xs" role="button" />
+              ) : undefined
+            }
             {...rest}
           >
             {children || tagDisplay}
@@ -99,9 +104,7 @@ const SupersetTag = ({
   return tagElem;
 };
 
-const Tag = Object.assign(SupersetTag, {
+export const Tag = Object.assign(SupersetTag, {
   CheckableTag: AntdTag.CheckableTag,
 });
-
-export default Tag;
 export type { TagProps, CheckableTagProps };
