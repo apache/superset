@@ -22,7 +22,6 @@ import re
 import urllib
 from datetime import datetime
 from re import Pattern
-from textwrap import dedent
 from typing import Any, TYPE_CHECKING, TypedDict
 
 import pandas as pd
@@ -35,7 +34,9 @@ from sqlalchemy import column, func, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.sql import sqltypes
+from sqlalchemy.sql import column as sql_column, select, sqltypes
+from sqlalchemy.sql.expression import table as sql_table
+from sqlalchemy_bigquery import BigQueryDialect
 
 from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
@@ -315,16 +316,38 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         database: Database,
         table: Table,
     ) -> Select | None:
-        full_table_name = f"`{table.schema}`.INFORMATION_SCHEMA.PARTITIONS"
+        # Compose schema from catalog and schema
+        schema_parts = []
         if table.catalog:
-            full_table_name = f"`{table.catalog}`.{full_table_name}"
-        sql = dedent(f"""\
-            SELECT
-                MAX(partition_id) AS max_partition_id
-            FROM {full_table_name}
-            WHERE table_name = '{table.table}'
-        """)
-        df = database.get_df(sql)
+            schema_parts.append(table.catalog)
+        if table.schema:
+            schema_parts.append(table.schema)
+        schema_parts.append("INFORMATION_SCHEMA")
+        schema = ".".join(schema_parts)
+        # Define a virtual table reference to INFORMATION_SCHEMA.PARTITIONS
+        partitions_table = sql_table(
+            "PARTITIONS",
+            sql_column("partition_id"),
+            sql_column("table_name"),
+            schema=schema,
+        )
+
+        # Build the query
+        query = select(
+            func.max(partitions_table.c.partition_id).label("max_partition_id")
+        ).where(partitions_table.c.table_name == table.table)
+
+        # Compile to BigQuery SQL
+        compiled_query = query.compile(
+            dialect=BigQueryDialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+
+        # Run the query and handle result
+        df = database.get_df(str(compiled_query))
+        if df.empty or df.iat[0, 0] is None:
+            return None
+
         return df.iat[0, 0]
 
     @classmethod
