@@ -91,6 +91,7 @@ from superset.dashboards.schemas import (
     screenshot_query_schema,
     TabsPayloadSchema,
     thumbnail_query_schema,
+    DashboardOwnersResponseSchema,
 )
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
@@ -173,6 +174,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "get_datasets",
         "get_tabs",
         "get_embedded",
+        "get_users",
         "set_embedded",
         "delete_embedded",
         "thumbnail",
@@ -304,6 +306,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         DashboardCacheScreenshotResponseSchema,
         DashboardCopySchema,
         DashboardGetResponseSchema,
+        DashboardOwnersResponseSchema,
         DashboardDatasetSchema,
         TabsPayloadSchema,
         GetFavStarIdsSchema,
@@ -1646,4 +1649,64 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     microsecond=0
                 ).timestamp(),
             },
+        )
+
+    @expose("/<id_or_slug>/users", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_users",
+        log_to_statsd=False,
+    )
+    def get_users(self, id_or_slug: str) -> Response:
+        """Get users associated with a dashboard.
+        ---
+        get:
+          summary: Get users associated with a dashboard
+          parameters:
+          - in: path
+            name: id_or_slug
+            schema:
+              type: string
+            description: Either the id of the dashboard, or its slug
+          responses:
+            200:
+              description: List of users
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/DashboardOwnersResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            dash_id = int(id_or_slug)
+            dash = self.datamodel.get(dash_id, self._base_filters)
+        except ValueError:
+            dash = self.datamodel.session.query(Dashboard)\
+                .filter_by(slug=id_or_slug).first()
+        if dash is None:
+            return self.response_404()
+        owners = dash.owners
+        users_list = [
+            {
+                "id": owner.id,
+                "last_name": owner.last_name
+            }
+            for owner in owners
+        ]
+        return self.response(
+            200,
+            result=users_list,
         )

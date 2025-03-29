@@ -171,6 +171,15 @@ class UserSchema(Schema):
     last_name = fields.String()
 
 
+class UserOwner(Schema):
+    id = fields.Int()
+    name = fields.String()
+
+
+class DashboardOwnersResponseSchema(Schema):
+    users = fields.List(fields.Nested(UserOwner))
+
+
 class RolesSchema(Schema):
     id = fields.Int()
     name = fields.String()
