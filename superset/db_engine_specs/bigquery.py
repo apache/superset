@@ -36,7 +36,6 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import column as sql_column, select, sqltypes
 from sqlalchemy.sql.expression import table as sql_table
-from sqlalchemy_bigquery import BigQueryDialect
 
 from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
@@ -336,6 +335,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         query = select(
             func.max(partitions_table.c.partition_id).label("max_partition_id")
         ).where(partitions_table.c.table_name == table.table)
+
+        from sqlalchemy_bigquery import BigQueryDialect
 
         # Compile to BigQuery SQL
         compiled_query = query.compile(
