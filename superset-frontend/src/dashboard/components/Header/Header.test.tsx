@@ -438,6 +438,27 @@ test('should NOT render MetadataBar when embedded', () => {
   ).not.toBeInTheDocument();
 });
 
+test('should hide edit button when in fullscreen mode', () => {
+  const fullscreenState = {
+    ...initialState,
+    dashboardState: {
+      ...initialState.dashboardState,
+      isFullscreenMode: true,
+    },
+  };
+
+  setup(fullscreenState);
+  expect(screen.queryByTestId('edit-dashboard-button')).not.toBeInTheDocument();
+  expect(screen.getByTestId('actions-trigger')).toBeInTheDocument();
+});
+
+test('should have fullscreen option in dropdown', async () => {
+  setup();
+  await openActionsDropdown();
+  expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+  expect(screen.queryByText('Exit fullscreen')).not.toBeInTheDocument();
+});
+
 test('should render MetadataBar when not in edit mode and not embedded', () => {
   const state = {
     dashboardInfo: {
