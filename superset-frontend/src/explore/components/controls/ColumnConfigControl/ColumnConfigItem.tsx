@@ -47,8 +47,8 @@ export default memo(function ColumnConfigItem({
       )}
       trigger="click"
       placement="right"
-      overlayInnerStyle={{ width, height }}
-      overlayClassName="column-config-popover"
+      styles={{ body: { width, height } }}
+      rootClassName="column-config-popover"
     >
       <div
         css={{
