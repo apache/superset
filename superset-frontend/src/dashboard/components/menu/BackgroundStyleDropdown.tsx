@@ -35,7 +35,6 @@ interface BackgroundStyleDropdownProps {
 const BackgroundStyleOption = styled.div`
   ${({ theme }) => css`
     display: inline-block;
-
     &:before {
       content: '';
       width: 1em;
@@ -44,17 +43,14 @@ const BackgroundStyleOption = styled.div`
       display: inline-block;
       vertical-align: middle;
     }
-
     &.background--white {
       padding-left: 0;
       background: transparent;
-
       &:before {
         background: ${theme.colors.grayscale.light5};
         border: 1px solid ${theme.colors.grayscale.light2};
       }
     }
-
     /* Create the transparent rect icon */
     &.background--transparent:before {
       background-image:

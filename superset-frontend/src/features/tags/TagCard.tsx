@@ -23,7 +23,7 @@ import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListViewCard from 'src/components/ListViewCard';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Tag } from 'src/views/CRUD/types';
 import { deleteTags } from 'src/features/tags/tags';
 import { Button } from 'src/components';

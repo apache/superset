@@ -24,7 +24,7 @@ import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { shallowEqual, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 export type URLShortLinkButtonProps = {
   dashboardId: number;

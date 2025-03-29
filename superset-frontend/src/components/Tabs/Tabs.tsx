@@ -19,7 +19,7 @@
 import { css, styled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import AntdTabs, { TabsProps as AntdTabsProps } from 'antd/lib/tabs'; // TODO: Remove antd
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 export interface TabsProps extends AntdTabsProps {
   fullWidth?: boolean;

@@ -22,7 +22,7 @@ import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { RangePicker } from 'src/components/DatePicker';
 import { extendedDayjs } from 'src/utils/dates';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { JsonEditor } from 'src/components/AsyncAceEditor';

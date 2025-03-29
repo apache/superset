@@ -29,7 +29,7 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { t, styled } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
 

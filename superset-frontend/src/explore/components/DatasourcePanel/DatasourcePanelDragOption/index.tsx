@@ -25,7 +25,7 @@ import {
   StyledColumnOption,
   StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 import { DatasourcePanelDndItem } from '../types';
 

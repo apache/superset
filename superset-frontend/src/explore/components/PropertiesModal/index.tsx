@@ -36,7 +36,7 @@ import {
   useTheme,
   css,
 } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/Tags/utils';

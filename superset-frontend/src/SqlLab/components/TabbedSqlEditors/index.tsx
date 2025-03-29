@@ -36,7 +36,7 @@ import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyState } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { locationContext } from 'src/pages/SqlLab/LocationContext';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 

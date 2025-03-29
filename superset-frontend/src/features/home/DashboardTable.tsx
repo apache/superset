@@ -40,7 +40,7 @@ import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import EmptyState from './EmptyState';
 import SubMenu from './SubMenu';
 import { WelcomeTable } from './types';

@@ -21,7 +21,7 @@ import { useCallback, useEffect, MouseEvent } from 'react';
 
 import { css, t, styled, useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 export interface FaveStarProps {
   itemId: number;

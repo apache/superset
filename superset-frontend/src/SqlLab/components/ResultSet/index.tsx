@@ -79,7 +79,7 @@ import {
   LOG_ACTIONS_SQLLAB_CREATE_CHART,
   LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
 } from 'src/logger/LogUtils';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { findPermission } from 'src/utils/findPermission';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';

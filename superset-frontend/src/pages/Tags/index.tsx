@@ -39,7 +39,7 @@ import ListView, {
 } from 'src/components/ListView';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';

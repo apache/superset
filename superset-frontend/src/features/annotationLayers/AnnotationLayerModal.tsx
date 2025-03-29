@@ -21,7 +21,7 @@ import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 

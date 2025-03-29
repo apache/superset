@@ -38,7 +38,7 @@ import {
   toggleLeftBar,
 } from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import Icons, { IconType } from 'src/components/Icons';
+import { Icons, IconType } from 'src/components/Icons';
 
 const TabTitleWrapper = styled.div`
   display: flex;

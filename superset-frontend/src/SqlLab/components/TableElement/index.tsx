@@ -45,7 +45,7 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import Loading from 'src/components/Loading';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { ActionType } from 'src/types/Action';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import ColumnElement, { ColumnKeyTypeType } from '../ColumnElement';
 import ShowSQL from '../ShowSQL';
 
@@ -263,7 +263,10 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
               className="pull-left m-l-2"
               tooltip={t('View keys & indexes (%s)', tableData.indexes.length)}
             >
-              <Icons.KeyOutlined iconSize="s" />
+              <Icons.TableOutlined
+                iconSize="m"
+                iconColor={theme.colors.primary.dark2}
+              />
             </IconTooltip>
           }
         />

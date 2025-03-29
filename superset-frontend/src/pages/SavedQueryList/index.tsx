@@ -57,7 +57,7 @@ import Tag from 'src/types/TagType';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { loadTags } from 'src/components/Tags/utils';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';

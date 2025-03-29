@@ -30,7 +30,7 @@ import {
   t,
 } from '@superset-ui/core';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { Skeleton, AntdBreadcrumb as Breadcrumb, Button } from 'src/components';
 import { Dropdown } from 'src/components/Dropdown';

@@ -43,7 +43,7 @@ import {
   Select,
   Upload,
 } from 'src/components';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
 // eslint-disable-next-line no-restricted-imports

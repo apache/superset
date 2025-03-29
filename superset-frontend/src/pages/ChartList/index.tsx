@@ -62,7 +62,7 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import Tag from 'src/types/TagType';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';

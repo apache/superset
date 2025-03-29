@@ -30,7 +30,7 @@ import { Menu } from 'src/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
 import DeleteModal from 'src/components/DeleteModal';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { User } from 'src/types/bootstrapTypes';
 import {
   CardContainer,

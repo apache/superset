@@ -19,7 +19,7 @@
 import { action } from '@storybook/addon-actions';
 import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import FaveStar from 'src/components/FaveStar';
 import ListViewCard from '.';
 

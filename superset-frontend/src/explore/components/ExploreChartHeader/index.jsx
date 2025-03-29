@@ -25,7 +25,7 @@ import { css, logging, SupersetClient, t, useTheme } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';

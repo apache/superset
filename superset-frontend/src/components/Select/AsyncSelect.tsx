@@ -40,7 +40,7 @@ import {
 // eslint-disable-next-line no-restricted-imports
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
 import { debounce, isEqual, uniq } from 'lodash';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
 import {
   getValue,

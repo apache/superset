@@ -26,9 +26,11 @@ jest.mock('src/components/Dropdown', () => ({
 }));
 
 jest.mock('src/components/Icons', () => ({
-  Sort: () => <div data-test="mock-sort" />,
-  SortAsc: () => <div data-test="mock-sort-asc" />,
-  SortDesc: () => <div data-test="mock-sort-desc" />,
+  Icons: {
+    Sort: jest.fn(() => <div data-test="mock-sort" />),
+    SortAsc: jest.fn(() => <div data-test="mock-sort-asc" />),
+    SortDesc: jest.fn(() => <div data-test="mock-sort-desc" />),
+  },
 }));
 
 class MockApi extends EventTarget {

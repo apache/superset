@@ -18,7 +18,7 @@
  */
 import { LegacyRef } from 'react';
 import { css, styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 interface DragHandleProps {
   position: 'left' | 'top';

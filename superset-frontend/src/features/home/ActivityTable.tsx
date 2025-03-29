@@ -30,7 +30,7 @@ import {
   getEditedObjects,
 } from 'src/views/CRUD/utils';
 import { Chart } from 'src/types/Chart';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable, RecentActivity } from './types';

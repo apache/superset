@@ -18,7 +18,7 @@
  */
 import { MainNav as Menu } from 'src/components/Menu';
 import { styled, css, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 const { SubMenu } = Menu;
 export interface Languages {

@@ -64,7 +64,7 @@ import Collapse from 'src/components/Collapse';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { FormItem } from 'src/components/Form';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { Radio } from 'src/components/Radio';

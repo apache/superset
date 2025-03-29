@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import Button from 'src/components/Button';
 

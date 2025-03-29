@@ -19,7 +19,7 @@
 
 import { styled, useTheme, css } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { ActionType } from 'src/types/Action';
 
 export interface InfoTooltipProps {

@@ -20,7 +20,7 @@ import { CSSProperties, FC } from 'react';
 
 import { css, Metric, styled, t, useTheme } from '@superset-ui/core';
 
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { DndItemValue } from './types';

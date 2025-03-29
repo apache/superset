@@ -41,7 +41,7 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 
 import { AnnotationObject } from 'src/features/annotations/types';
 import AnnotationModal from 'src/features/annotations/AnnotationModal';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 const PAGE_SIZE = 25;
 

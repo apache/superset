@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Space } from 'src/components/Space';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { css } from '@superset-ui/core';
 import { Radio, RadioProps, RadioGroupWrapperProps } from './index';
 
@@ -118,19 +118,6 @@ RadioGroupWithOptionsStory.args = {
             `}
           />
           LineChart
-        </Space>
-      ),
-    },
-    {
-      value: 2,
-      label: (
-        <Space align="center" direction="vertical">
-          <Icons.DotChartOutlined
-            css={css`
-              font-size: 18;
-            `}
-          />
-          DotChart
         </Space>
       ),
     },

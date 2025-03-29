@@ -23,7 +23,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { supersetTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Button from 'src/components/Button';
 import Popover from 'src/components/Popover';
 

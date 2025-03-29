@@ -46,7 +46,7 @@ import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';

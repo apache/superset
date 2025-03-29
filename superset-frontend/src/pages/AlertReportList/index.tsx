@@ -57,7 +57,7 @@ import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 const extensionsRegistry = getExtensionsRegistry();
 

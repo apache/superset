@@ -21,7 +21,7 @@ import { useMemo, FC, ReactElement } from 'react';
 import { t, styled, useTheme, SupersetTheme } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
