@@ -96,15 +96,15 @@ const Controls = styled.div`
     display: flex;
     flex-direction: row;
     padding:
-      ${theme.gridUnit * 4}px
-      ${theme.gridUnit * 3}px
-      ${theme.gridUnit * 4}px
-      ${theme.gridUnit * 3}px;
+      ${theme.sizeUnit * 4}px
+      ${theme.sizeUnit * 3}px
+      ${theme.sizeUnit * 4}px
+      ${theme.sizeUnit * 3}px;
   `}
 `;
 
 const StyledSelect = styled(Select)<{ id?: string }>`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
   min-width: 150px;
 `;
 
@@ -112,7 +112,7 @@ const NewChartButtonContainer = styled.div`
   ${({ theme }) => css`
     display: flex;
     justify-content: flex-end;
-    padding-right: ${theme.gridUnit * 2}px;
+    padding-right: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -120,7 +120,7 @@ const NewChartButton = styled(Button)`
   ${({ theme }) => css`
     height: auto;
     & > .anticon > span {
-      margin: auto -${theme.gridUnit}px auto 0;
+      margin: auto -${theme.sizeUnit}px auto 0;
     }
     & > [role='img']:first-of-type {
       padding-bottom: 1px;
@@ -406,9 +406,9 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
             flex-direction: row;
             justify-content: flex-start;
             align-items: center;
-            gap: ${theme.gridUnit}px;
-            padding: 0 ${theme.gridUnit * 3}px ${theme.gridUnit * 4}px
-              ${theme.gridUnit * 3}px;
+            gap: ${theme.sizeUnit}px;
+            padding: 0 ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px
+              ${theme.sizeUnit * 3}px;
           `}
         >
           <Checkbox

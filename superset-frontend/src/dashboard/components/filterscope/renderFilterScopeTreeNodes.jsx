@@ -24,9 +24,9 @@ import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 const ChartIcon = styled(Icons.BarChartOutlined)`
   ${({ theme }) => `
     position: relative;
-    top: ${theme.gridUnit - 1}px;
-    color: ${theme.colors.primary.base};
-    margin-right: ${theme.gridUnit * 2}px;
+    top: ${theme.sizeUnit - 1}px;
+    color: ${theme.colorPrimary};
+    margin-right: ${theme.sizeUnit * 2}px;
   `}
 `;
 

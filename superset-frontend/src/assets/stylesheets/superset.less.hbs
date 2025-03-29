@@ -1,0 +1,552 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+@import './less/index.less';
+@import './less/variables.less';
+@import './less/index.less';
+
+@datasource-sql-expression-width: 315px;
+
+span,
+div,
+i {
+  &:focus {
+    outline: none;
+  }
+}
+
+.alert.alert-danger > .debugger {
+  color: @danger;
+}
+
+.no-wrap {
+  white-space: nowrap;
+}
+
+input.form-control {
+  background-color: @lightest;
+}
+
+.disabledButton {
+  pointer-events: none;
+}
+
+.col-left-fixed {
+  width: 350px;
+  position: absolute;
+  float: left;
+}
+
+.col-offset {
+  margin-left: 365px;
+}
+
+.slice_description {
+  padding: 8px;
+  margin: 5px 0;
+  border: 1px solid @gray-light;
+  background-color: @gray-bg;
+  border-radius: @border-radius-large;
+  font-size: @font-size-s;
+}
+
+.slice_info {
+  cursor: pointer;
+}
+
+.padded {
+  padding: 10px;
+}
+
+.intable-longtext {
+  max-height: 200px;
+  overflow: auto;
+}
+
+.container-fluid {
+  text-align: left;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+input[type='checkbox'] {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+}
+
+.widget-is-cached {
+  display: none;
+}
+
+.header span.label {
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.notbtn {
+  cursor: default;
+  box-shadow: none;
+  border: 1px solid @gray;
+}
+
+hr {
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
+
+span.title-block {
+  background-color: @gray-bg;
+  border-radius: @border-radius-large;
+  padding: 6px 12px;
+  margin: 0px 10px;
+  font-size: @font-size-xl;
+}
+
+.nvtooltip {
+  table td {
+    font-size: @font-size-s !important;
+  }
+}
+
+div.navbar {
+  .dropdown-menu .fineprint {
+    line-height: 1.5rem;
+    padding: 10px 20px 5px 20px;
+    color: @gray-light;
+    font-size: @font-size-m;
+
+    div {
+      white-space: nowrap;
+    }
+  }
+}
+
+.datasource {
+  form {
+    div.form-control,
+    input.form-control {
+      margin-bottom: 5px !important;
+    }
+  }
+
+  .tooltip-inner {
+    max-width: 350px;
+  }
+}
+
+img.viz-thumb-option {
+  width: 100px;
+  border: 1px solid @gray;
+  margin-right: 5px;
+  border-radius: @border-radius-large;
+}
+
+.select2-drop.bigdrop .select2-results {
+  max-height: 700px;
+}
+
+#is_cached {
+  display: none;
+}
+
+.slice_container.faded {
+  opacity: 0.2;
+}
+
+.navbar .alert {
+  padding: 5px 10px;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.table-condensed {
+  font-size: @font-size-s;
+}
+
+.table-condensed input[type='checkbox'] {
+  float: left;
+}
+
+table.table-no-hover tr:hover {
+  background-color: initial;
+}
+
+.editable-title input {
+  outline: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  cursor: initial;
+}
+
+.editable-title textarea {
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  cursor: initial;
+  border: 1px solid @gray;
+  border-radius: @border-radius-normal;
+}
+
+.editable-title input[type='text'] {
+  border: 1px solid @gray;
+  border-radius: @border-radius-normal;
+  padding: 2px;
+}
+
+.editable-title.datasource-sql-expression {
+  font-feature-settings: @font-feature-settings;
+  font-family: @font-family-monospace;
+  display: inline-block;
+  min-width: @datasource-sql-expression-width;
+  width: 100%;
+}
+
+.editable-title.datasource-sql-expression input {
+  width: 95%;
+  padding-bottom: 5px;
+}
+
+.editable-title.datasource-sql-expression textarea {
+  min-height: 100px;
+  width: 95%;
+}
+
+.editable-title input[type='button'] {
+  border-color: transparent;
+  background: transparent;
+  font-size: inherit;
+  white-space: normal;
+  text-align: left;
+  cursor: initial;
+}
+
+.editable-title.editable-title--editable input[type='button'] {
+  cursor: pointer;
+}
+
+.editable-title.editable-title--editing input[type='button'] {
+  cursor: text;
+}
+
+.anchor-link-container {
+  position: absolute;
+
+  .btn.btn-sm,
+  .btn.btn-sm:active {
+    border: none;
+    padding-top: 0;
+    padding-bottom: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .fa.fa-link {
+    position: relative;
+    top: 2px;
+    right: 0;
+    visibility: hidden;
+    font-size: @font-size-s;
+    text-align: center;
+    vertical-align: middle;
+  }
+}
+
+.dashboard-component.dashboard-component-header .anchor-link-container {
+  .fa.fa-link {
+    font-size: @font-size-l;
+  }
+}
+
+.dashboard-component.dashboard-component-header:hover {
+  .anchor-link-container {
+    cursor: pointer;
+
+    .fa.fa-link {
+      visibility: visible;
+    }
+  }
+}
+
+.m-r-5 {
+  margin-right: 5px;
+}
+
+.m-r-3 {
+  margin-right: 3px;
+}
+
+.m-t-4 {
+  margin-top: 4px;
+}
+
+.m-t-5 {
+  margin-top: 5px;
+}
+
+.m-t-10 {
+  margin-top: 10px;
+}
+
+.m-t-20 {
+  margin-top: 20px;
+}
+
+.m-b-10 {
+  margin-bottom: 10px;
+}
+
+.m-l-2 {
+  margin-left: 2px;
+}
+
+.m-l-4 {
+  margin-left: 4px;
+}
+
+.m-l-5 {
+  margin-left: 5px;
+}
+
+.m-l-10 {
+  margin-left: 10px;
+}
+
+.m-l-25 {
+  margin-left: 25px;
+}
+
+.p-l-0 {
+  padding-left: 0;
+}
+
+.p-t-8 {
+  padding-top: 8;
+}
+
+.p-r-2 {
+  padding-right: 2;
+}
+
+.list-container {
+  position: relative;
+}
+
+.list-search-container {
+  position: relative;
+}
+
+.list-search-container .dropdown-toggle {
+  position: absolute;
+  top: -43px;
+  right: 25px;
+  border: 0;
+  padding: 0 18px;
+}
+
+.list-search-container .fa-filter {
+  position: relative;
+  left: -8px;
+}
+
+.list-search-container .dropdown-menu {
+  top: -19px;
+  right: 0;
+  left: auto;
+  float: none;
+}
+
+.list-container .pagination-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 20px;
+}
+
+.list-container .pagination-container .pagination {
+  margin: 0 15px;
+}
+
+.list-container .pagination-container strong {
+  margin-right: 5px;
+}
+
+.list-container .list-add-action {
+  position: absolute;
+  top: -30px;
+  right: 15px;
+}
+
+.list-container .form-actions-container {
+  padding: 0 0 20px 10px;
+  display: inline;
+}
+
+.form-actions-container button {
+  display: flex;
+
+  .caret {
+    margin: 0 8px;
+  }
+}
+
+.list-container .filter-action {
+  margin: 10px 10px 0 10px;
+  padding-bottom: 15px;
+}
+
+.list-add-action .btn.btn-sm {
+  padding: 6px 6px;
+  font-size: @font-size-xs;
+  line-height: 2px;
+  border-radius: 50%;
+  box-shadow: 2px 2px 4px -1px fade(@darkest, @opacity-light);
+  i {
+    width: 10px;
+  }
+}
+
+iframe {
+  border: none;
+  width: 100%;
+}
+
+.text-transparent {
+  color: transparent;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.popover {
+  max-width: 500px;
+}
+
+.float-left {
+  float: left;
+}
+
+.float-right {
+  float: right;
+}
+
+g.annotation-container {
+  line {
+    stroke: @brand-primary;
+  }
+
+  rect.annotation {
+    stroke: @brand-primary;
+    fill-opacity: 0.1;
+    stroke-width: 1;
+  }
+}
+
+.stroke-primary {
+  stroke: @brand-primary;
+}
+
+.reactable-header-sortable {
+  position: relative;
+  padding-right: 40px;
+
+  &::after {
+    font: normal normal normal 14px/1 FontAwesome;
+    content: '\f0dc';
+    margin-left: 10px;
+    color: @brand-primary;
+  }
+}
+
+.reactable-header-sort-asc::after {
+  content: '\f0de';
+  color: @brand-primary;
+}
+
+.reactable-header-sort-desc::after {
+  content: '\f0dd';
+  color: @brand-primary;
+}
+
+tr.reactable-column-header th.reactable-header-sortable {
+  padding-right: 17px;
+}
+
+.align-right {
+  text-align: right;
+}
+
+td.filtered {
+  background-color: lighten(desaturate(@brand-primary, 50%), 50%);
+}
+
+.table-name {
+  font-size: @font-size-l;
+}
+.select2-container-multi {
+  width: 100% !important;
+}
+
+/*
+Hides the logo while loading the page.
+Emotion styles will take care of the correct styling
+*/
+.navbar-brand {
+  display: none;
+}
+
+// Making native radio buttons use brand color
+input[type='radio']:after {
+  width: 15px;
+  height: 15px;
+  border-radius: 15px;
+  top: -2px;
+  left: -1px;
+  position: relative;
+  background-color: #fff;
+  content: '';
+  display: inline-block;
+  visibility: visible;
+  border: 2px solid @gray;
+}
+
+input[type='radio']:checked:after {
+  width: 15px;
+  height: 15px;
+  border-radius: 15px;
+  top: -2px;
+  left: -1px;
+  position: relative;
+  background-color: #fff;
+  content: '';
+  display: inline-block;
+  visibility: visible;
+  border: 5px solid @brand-primary;
+}
+hr {
+  border-top: 1px solid @gray-light;
+}
+.ace_gutter-cell.ace_error {
+  background-image: url('../images/icons/error_solid_small_red.svg') !important;
+  background-position: -2px center !important;
+}

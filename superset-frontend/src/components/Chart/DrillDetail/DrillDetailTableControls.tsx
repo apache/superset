@@ -83,8 +83,8 @@ export default function TableControls({
       css={css`
         display: flex;
         justify-content: space-between;
-        padding: ${theme.gridUnit / 2}px 0;
-        margin-bottom: ${theme.gridUnit * 2}px;
+        padding: ${theme.sizeUnit / 2}px 0;
+        margin-bottom: ${theme.sizeUnit * 2}px;
       `}
     >
       <div
@@ -105,7 +105,7 @@ export default function TableControls({
           >
             <span
               css={css`
-                margin-right: ${theme.gridUnit}px;
+                margin-right: ${theme.sizeUnit}px;
               `}
             >
               {colName}

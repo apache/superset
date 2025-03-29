@@ -82,8 +82,8 @@ const StyledTabsContainer = styled.div`
     background-color: ${theme.colors.grayscale.light5};
 
     .dashboard-component-tabs-content {
-      min-height: ${theme.gridUnit * 12}px;
-      margin-top: ${theme.gridUnit / 4}px;
+      min-height: ${theme.sizeUnit * 12}px;
+      margin-top: ${theme.sizeUnit / 4}px;
       position: relative;
     }
 
@@ -91,7 +91,7 @@ const StyledTabsContainer = styled.div`
       overflow: visible;
 
       .ant-tabs-nav-wrap {
-        min-height: ${theme.gridUnit * 12.5}px;
+        min-height: ${theme.sizeUnit * 12.5}px;
       }
 
       .ant-tabs-content-holder {
@@ -105,7 +105,7 @@ const StyledTabsContainer = styled.div`
   `}
 `;
 const DropIndicator = styled.div`
-  border: 2px solid ${({ theme }) => theme.colors.primary.base};
+  border: 2px solid ${({ theme }) => theme.colorPrimary};
   width: 5px;
   height: 100%;
   position: absolute;

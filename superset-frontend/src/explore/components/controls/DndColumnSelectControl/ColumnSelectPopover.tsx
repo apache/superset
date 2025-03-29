@@ -56,7 +56,7 @@ import useResizeButton from './useResizeButton';
 const StyledSelect = styled(Select)`
   .metric-option {
     & > svg {
-      min-width: ${({ theme }) => `${theme.gridUnit * 4}px`};
+      min-width: ${({ theme }) => `${theme.sizeUnit * 4}px`};
     }
     & > .option-label {
       overflow: hidden;

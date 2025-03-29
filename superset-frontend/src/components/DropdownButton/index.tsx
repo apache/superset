@@ -49,7 +49,6 @@ export const DropdownButton = ({
         top: 0;
         width: 1px;
         height: 100%;
-        background-color: ${theme.colors.grayscale.light2};
       }
       .anticon {
         vertical-align: middle;
@@ -66,8 +65,8 @@ export const DropdownButton = ({
           .antd5-btn {
             height: 30px;
             box-shadow: none;
-            font-size: ${theme.typography.sizes.s}px;
-            font-weight: ${theme.typography.weights.bold};
+            font-size: ${theme.fontSizeSM}px;
+            font-weight: ${theme.fontWeightStrong};
           }
         `,
       ]}

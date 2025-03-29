@@ -32,7 +32,7 @@ export interface TimerProps {
 
 const TimerLabel = styled(Label)`
   text-align: left;
-  font-family: ${({ theme }) => theme.typography.families.monospace};
+  font-family: ${({ theme }) => theme.fontFamilyCode};
 `;
 
 export default function Timer({
@@ -51,11 +51,10 @@ export default function Timer({
     const colorMap: Record<Type, string> = {
       success: colors.success.dark2,
       warning: colors.warning.dark2,
-      danger: colors.error.dark2,
       info: colors.info.dark2,
       default: colors.grayscale.dark1,
       primary: colors.primary.dark2,
-      secondary: colors.secondary.dark2,
+      error: theme.colorError,
     };
 
     return colorMap[status] || colors.grayscale.dark1;

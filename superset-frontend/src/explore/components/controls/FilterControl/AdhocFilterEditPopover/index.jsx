@@ -55,15 +55,15 @@ const propTypes = {
 };
 
 const ResizeIcon = styled.i`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const FilterPopoverContentContainer = styled.div`
   .adhoc-filter-edit-tabs > .nav-tabs {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 
     & > li > a {
-      padding: ${({ theme }) => theme.gridUnit}px;
+      padding: ${({ theme }) => theme.sizeUnit}px;
     }
   }
 
@@ -72,22 +72,22 @@ const FilterPopoverContentContainer = styled.div`
   }
 
   .filter-edit-clause-info {
-    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
+    font-size: ${({ theme }) => theme.fontSizeXS}px;
   }
 
   .filter-edit-clause-section {
     display: flex;
     flex-direction: row;
-    gap: ${({ theme }) => theme.gridUnit * 5}px;
+    gap: ${({ theme }) => theme.sizeUnit * 5}px;
   }
 
   .adhoc-filter-simple-column-dropdown {
-    margin-top: ${({ theme }) => theme.gridUnit * 5}px;
+    margin-top: ${({ theme }) => theme.sizeUnit * 5}px;
   }
 `;
 
 const FilterActionsContainer = styled.div`
-  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 export default class AdhocFilterEditPopover extends Component {

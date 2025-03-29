@@ -111,7 +111,7 @@ class CollectionControl extends Component {
         onSortEnd={this.onSortEnd.bind(this)}
         bordered
         css={theme => ({
-          borderRadius: theme.gridUnit,
+          borderRadius: theme.sizeUnit,
         })}
       >
         {this.props.value.map((o, i) => {
@@ -123,7 +123,7 @@ class CollectionControl extends Component {
               css={theme => ({
                 justifyContent: 'flex-start',
                 display: '-webkit-flex',
-                paddingInline: theme.gridUnit * 3,
+                paddingInline: theme.sizeUnit * 3,
               })}
               key={this.props.keyAccessor(o)}
               index={i}
@@ -132,8 +132,8 @@ class CollectionControl extends Component {
               <div
                 css={theme => ({
                   flex: 1,
-                  marginLeft: theme.gridUnit * 2,
-                  marginRight: theme.gridUnit * 2,
+                  marginLeft: theme.sizeUnit * 2,
+                  marginRight: theme.sizeUnit * 2,
                 })}
               >
                 <Control

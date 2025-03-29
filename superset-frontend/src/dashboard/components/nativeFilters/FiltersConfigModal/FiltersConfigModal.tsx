@@ -96,7 +96,7 @@ export const StyledModalBody = styled.div<{ expanded: boolean }>`
   flex-direction: row;
   flex: 1;
   .filters-list {
-    width: ${({ theme }) => theme.gridUnit * 50}px;
+    width: ${({ theme }) => theme.sizeUnit * 50}px;
     overflow: auto;
   }
 `;
@@ -106,7 +106,7 @@ export const StyledForm = styled(AntdForm)`
 `;
 
 export const StyledExpandButtonWrapper = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 export const FILTERS_CONFIG_MODAL_TEST_ID = 'filters-config-modal';

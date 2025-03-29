@@ -36,10 +36,10 @@ const defaultProps = {
 const CheckBoxControlWrapper = styled.div`
   ${({ theme }) => css`
     .ControlHeader label {
-      color: ${theme.colors.grayscale.dark1};
+      color: ${theme.colorText};
     }
     span[role='checkbox'] {
-      padding-right: ${theme.gridUnit * 2}px;
+      padding-right: ${theme.sizeUnit * 2}px;
     }
   `}
 `;

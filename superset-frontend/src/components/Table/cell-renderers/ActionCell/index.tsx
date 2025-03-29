@@ -128,7 +128,7 @@ export function ActionCell(props: ActionCellProps) {
   return (
     <MenuDotsDropdown
       iconOrientation={IconOrientation.Horizontal}
-      onVisibleChange={handleVisibleChange}
+      onOpenChange={handleVisibleChange}
       trigger={['click']}
       overlay={
         <ActionMenu menuOptions={appendedMenuOptions} setVisible={setVisible} />
@@ -136,7 +136,7 @@ export function ActionCell(props: ActionCellProps) {
       disabled={
         !(appendedMenuOptions?.length && appendedMenuOptions.length > 0)
       }
-      visible={visible}
+      open={visible}
     />
   );
 }

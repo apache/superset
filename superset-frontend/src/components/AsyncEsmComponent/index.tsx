@@ -128,6 +128,7 @@ export default function AsyncEsmComponent<
     const Component = component || placeholder;
     return Component ? (
       // placeholder does not get the ref
+      // @ts-ignore: Suppress TypeScript error for ref assignment
       <Component ref={Component === component ? ref : null} {...props} />
     ) : null;
   });

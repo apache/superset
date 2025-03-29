@@ -55,7 +55,7 @@ export interface TableViewProps {
 }
 
 const EmptyWrapper = styled.div`
-  margin: ${({ theme }) => theme.gridUnit * 40}px 0;
+  margin: ${({ theme }) => theme.sizeUnit * 40}px 0;
 `;
 
 const TableViewStyles = styled.div<{
@@ -67,19 +67,20 @@ const TableViewStyles = styled.div<{
     scrollTable &&
     `
     flex: 1 1 auto;
-    margin-bottom: ${theme.gridUnit * 4}px;
+    margin-bottom: ${theme.sizeUnit * 4}px;
     overflow: auto;
   `}
+  color: ${({ theme }) => theme.colorText};
 
   .table-row {
-    ${({ theme, small }) => !small && `height: ${theme.gridUnit * 11 - 1}px;`}
+    ${({ theme, small }) => !small && `height: ${theme.sizeUnit * 11 - 1}px;`}
 
     .table-cell {
       ${({ theme, small }) =>
         small &&
         `
-        padding-top: ${theme.gridUnit + 1}px;
-        padding-bottom: ${theme.gridUnit + 1}px;
+        padding-top: ${theme.sizeUnit + 1}px;
+        padding-bottom: ${theme.sizeUnit + 1}px;
         line-height: 1.45;
       `}
     }
@@ -88,7 +89,7 @@ const TableViewStyles = styled.div<{
   th[role='columnheader'] {
     z-index: 1;
     border-bottom: ${({ theme }) =>
-      `${theme.gridUnit - 2}px solid ${theme.colors.grayscale.light2}`};
+      `${theme.sizeUnit - 2}px solid ${theme.colorSplit}`};
     ${({ small }) => small && `padding-bottom: 0;`}
   }
 `;
@@ -100,7 +101,7 @@ const PaginationStyles = styled.div<{
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  background-color: ${({ theme }) => theme.colorBgElevated};
 
   ${({ isPaginationSticky }) =>
     isPaginationSticky &&
@@ -111,8 +112,8 @@ const PaginationStyles = styled.div<{
     `};
 
   .row-count-container {
-    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
+    color: ${({ theme }) => theme.colorText};
   }
 `;
 

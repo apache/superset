@@ -89,6 +89,6 @@ test('renders with theme', () => {
   render(<ModalTrigger {...btnProps} />);
   const button = screen.getByRole('button');
   expect(button.firstChild).toHaveStyle(`
-    fontSize: ${supersetTheme.typography.sizes.s};
+    fontSize: ${supersetTheme.fontSizeSM};
   `);
 });

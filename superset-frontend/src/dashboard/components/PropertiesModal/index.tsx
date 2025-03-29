@@ -65,7 +65,7 @@ const StyledFormItem = styled(FormItem)`
 
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
+  border: 1px solid ${({ theme }) => theme.colorPrimaryBorder};
 `;
 
 type PropertiesModalProps = {
@@ -602,6 +602,7 @@ const PropertiesModal = ({
           <Button
             htmlType="button"
             buttonSize="small"
+            buttonStyle="secondary"
             onClick={handleOnCancel}
             data-test="properties-modal-cancel-button"
             cta

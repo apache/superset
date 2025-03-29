@@ -27,14 +27,14 @@ import { CrossFilterIndicator } from '../../selectors';
 const StyledCollapse = styled(Collapse)`
   ${({ theme }) => `
     .ant-collapse-header {
-      margin-bottom: ${theme.gridUnit * 4}px;
+      margin-bottom: ${theme.sizeUnit * 4}px;
     }
     .ant-collapse-item > .ant-collapse-header {
       padding-bottom: 0;
     }
     .ant-collapse-item > .ant-collapse-header > .ant-collapse-arrow {
-      font-size: ${theme.typography.sizes.xs}px;
-      padding-top: ${theme.gridUnit * 3}px;
+      font-size: ${theme.fontSizeXS}px;
+      padding-top: ${theme.sizeUnit * 3}px;
     }
     .ant-collapse-item > .ant-collapse-content > .ant-collapse-content-box {
       padding-top: 0;
@@ -44,7 +44,7 @@ const StyledCollapse = styled(Collapse)`
 
 const StyledCrossFiltersTitle = styled.span`
   ${({ theme }) => `
-    font-size: ${theme.typography.sizes.s}px;
+    font-size: ${theme.fontSizeSM}px;
   `}
 `;
 
@@ -91,7 +91,7 @@ const CrossFiltersVerticalCollapse = (props: {
             height: 1px;
             display: block;
             background: ${theme.colors.grayscale.light3};
-            margin: ${theme.gridUnit * 8}px auto 0 auto;
+            margin: ${theme.sizeUnit * 8}px auto 0 auto;
           `}
         />
       </Collapse.Panel>

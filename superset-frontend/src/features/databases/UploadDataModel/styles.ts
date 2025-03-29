@@ -26,7 +26,7 @@ export const StyledFormItem = styled(FormItem)`
   ${({ theme }) => css`
     flex: 1;
     margin-top: 0;
-    margin-bottom: ${theme.gridUnit * 2.5}px;
+    margin-bottom: ${theme.sizeUnit * 2.5}px;
   }
   `}
 `;
@@ -39,20 +39,20 @@ export const StyledSwitchContainer = styled.div`
 
 export const antdCollapseStyles = (theme: SupersetTheme) => css`
   .ant-collapse-header {
-    padding-top: ${theme.gridUnit * 3.5}px;
-    padding-bottom: ${theme.gridUnit * 2.5}px;
+    padding-top: ${theme.sizeUnit * 3.5}px;
+    padding-bottom: ${theme.sizeUnit * 2.5}px;
     .anticon.ant-collapse-arrow {
       top: calc(50% - ${antIconHeight / 2}px);
     }
     .helper {
       color: ${theme.colors.grayscale.base};
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
     }
   }
   h4 {
-    font-size: ${theme.typography.sizes.l}px;
+    font-size: ${theme.fontSizeLG}px;
     margin-top: 0;
-    margin-bottom: ${theme.gridUnit}px;
+    margin-bottom: ${theme.sizeUnit}px;
   }
   p.helper {
     margin-bottom: 0;
@@ -71,14 +71,14 @@ export const antDModalNoPaddingStyles = css`
 export const formStyles = (theme: SupersetTheme) => css`
   .switch-label {
     color: ${theme.colors.grayscale.base};
-    margin-left: ${theme.gridUnit * 4}px;
+    margin-left: ${theme.sizeUnit * 4}px;
   }
 `;
 
 export const antDModalStyles = (theme: SupersetTheme) => css`
   .antd5-modal-header {
-    padding: ${theme.gridUnit * 4.5}px ${theme.gridUnit * 4}px
-      ${theme.gridUnit * 4}px;
+    padding: ${theme.sizeUnit * 4.5}px ${theme.sizeUnit * 4}px
+      ${theme.sizeUnit * 4}px;
   }
 
   .antd5-modal-close-x .close {
@@ -86,11 +86,11 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
   }
 
   .antd5-modal-body {
-    height: ${theme.gridUnit * MODAL_BODY_HEIGHT}px;
+    height: ${theme.sizeUnit * MODAL_BODY_HEIGHT}px;
   }
 
   .antd5-modal-footer {
-    height: ${theme.gridUnit * 16.25}px;
+    height: ${theme.sizeUnit * 16.25}px;
   }
 
   .info-solid-small {
