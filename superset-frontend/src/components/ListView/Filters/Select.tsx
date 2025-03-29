@@ -25,7 +25,7 @@ import {
 } from 'react';
 
 import { t } from '@superset-ui/core';
-import { Select, AsyncSelect } from 'src/components/Select';
+import { Select, AsyncSelect } from 'src/components/Select/Select';
 import { Filter, SelectOption } from 'src/components/ListView/types';
 import { FormLabel } from 'src/components/Form';
 import { FilterContainer, BaseFilter, FilterHandler } from './Base';

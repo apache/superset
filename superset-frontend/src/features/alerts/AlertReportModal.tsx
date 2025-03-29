@@ -48,7 +48,7 @@ import { propertyComparator } from 'src/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
 import { AntdCheckbox } from 'src/components';
-import { Select, AsyncSelect } from 'src/components/Select';
+import { Select, AsyncSelect } from 'src/components/Select/Select';
 import TreeSelect from 'src/components/TreeSelect';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';

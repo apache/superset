@@ -36,7 +36,7 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import { Row, Col } from 'src/components/Grid';
-import { Select, AsyncSelect } from 'src/components';
+import { Select, AsyncSelect } from 'src/components/Select';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
