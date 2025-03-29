@@ -165,6 +165,7 @@ prophet = ["prophet>=1.1.5, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 rockset = ["rockset-sqlalchemy>=0.0.1, <1"]
 shillelagh = ["shillelagh[all]>=1.2.18, <2"]
+singlestore = ["sqlalchemy-singlestoredb>=1.1.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.2.4, <2"]
 spark = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
