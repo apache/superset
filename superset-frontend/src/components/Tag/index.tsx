@@ -24,7 +24,6 @@ import type { TagProps } from 'antd-v5/es';
 import type { CheckableTagProps } from 'antd-v5/es/tag';
 import { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
-import { Icons } from 'src/components/Icons';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
@@ -64,11 +63,7 @@ const SupersetTag = ({
             key={id}
             closable={editable}
             onClose={handleClose}
-            closeIcon={
-              editable ? (
-                <Icons.CloseOutlined iconSize="xs" role="button" />
-              ) : undefined
-            }
+            closeIcon={editable}
             {...rest}
           >
             {children || tagDisplay}
