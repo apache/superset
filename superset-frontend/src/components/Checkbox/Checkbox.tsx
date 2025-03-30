@@ -16,43 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CSSProperties } from 'react';
-import { styled } from '@superset-ui/core';
-import { CheckboxChecked, CheckboxUnchecked } from 'src/components/Checkbox';
+import { Checkbox as AntCheckbox } from 'antd-v5';
+import { ReactNode } from 'react';
 
 export interface CheckboxProps {
   checked: boolean;
   onChange: (val?: boolean) => void;
-  style?: CSSProperties;
-  className?: string;
+  disabled?: boolean;
+  children?: ReactNode;
 }
-
-const Styles = styled.span`
-  &,
-  & svg {
-    vertical-align: top;
-  }
-`;
 
 export default function Checkbox({
   checked,
   onChange,
-  style,
-  className,
+  disabled,
+  children,
 }: CheckboxProps) {
   return (
-    <Styles
-      style={style}
-      onClick={() => {
-        onChange(!checked);
-      }}
-      role="checkbox"
-      tabIndex={0}
-      aria-checked={checked}
-      aria-label="Checkbox"
-      className={className || ''}
+    <AntCheckbox
+      checked={checked}
+      onChange={e => onChange(e.target.checked)}
+      disabled={disabled}
     >
-      {checked ? <CheckboxChecked /> : <CheckboxUnchecked />}
-    </Styles>
+      {children}
+    </AntCheckbox>
   );
 }
