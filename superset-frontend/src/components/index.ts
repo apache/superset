@@ -26,6 +26,7 @@ export { default as Select } from './Select/Select';
 export { default as AsyncSelect } from './Select/AsyncSelect';
 export { default as Button } from './Button';
 export { default as Card } from './Card';
+export { default as Checkbox } from './Checkbox';
 
 // Vanilla Ant Design components from v5
 export {
@@ -55,7 +56,6 @@ export { Upload } from 'antd'; // TODO: Remove antd
 // eslint-disable-next-line no-restricted-imports
 export {
   Breadcrumb as AntdBreadcrumb,
-  Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
   Form as AntdForm,
   Select as AntdSelect,

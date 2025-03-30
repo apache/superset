@@ -22,40 +22,57 @@ import Checkbox, { CheckboxProps } from '.';
 export default {
   title: 'Checkbox',
   component: Checkbox,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Vanilla Ant Design v5 Checkbox component with no custom styling.',
+      },
+    },
+  },
 };
 
 const STATUSES = {
   checked: true,
   unchecked: false,
 };
-
 export const CheckboxGallery = () =>
-  Object.keys(STATUSES).map(status => (
+  Object.entries(STATUSES).map(([status, checked]) => (
     <div style={{ marginBottom: '16px' }} key={status}>
-      <Checkbox
-        onChange={() => {}}
-        checked={STATUSES[status as keyof typeof STATUSES]}
-        style={{ marginRight: '8px' }}
-      />
-      {`I'm a${STATUSES[status as keyof typeof STATUSES] ? '' : 'n'} ${status} checkbox`}
+      <Checkbox onChange={() => {}} checked={checked}>
+        {`I'm a${checked ? '' : 'n'} ${status} checkbox`}
+      </Checkbox>
     </div>
   ));
 
-export const InteractiveCheckbox = ({ checked, style }: CheckboxProps) => {
+export const InteractiveCheckbox = ({ checked }: CheckboxProps) => {
   const [, updateArgs] = useArgs();
   const toggleCheckbox = () => {
     updateArgs({ checked: !checked });
   };
 
   return (
-    <>
-      <Checkbox onChange={toggleCheckbox} checked={checked} style={style} />
+    <Checkbox onChange={toggleCheckbox} checked={checked}>
       I'm an interactive checkbox
-    </>
+    </Checkbox>
   );
 };
 
 InteractiveCheckbox.args = {
   checked: false,
-  style: { marginRight: '8px' },
 };
+
+export const DisabledCheckboxes = () => (
+  <>
+    <div>
+      <Checkbox disabled checked={false}>
+        I'm a disabled checkbox
+      </Checkbox>
+    </div>
+    <div>
+      <Checkbox disabled checked>
+        I'm a disabled checked checkbox
+      </Checkbox>
+    </div>
+  </>
+);
