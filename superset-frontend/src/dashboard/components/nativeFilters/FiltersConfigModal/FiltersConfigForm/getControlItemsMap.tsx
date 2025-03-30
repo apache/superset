@@ -21,7 +21,7 @@ import {
   InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
 import { ReactNode } from 'react';
-import { AntdCheckbox, FormInstance } from 'src/components';
+import { Checkbox, FormInstance } from 'src/components';
 import {
   Filter,
   getChartControlPanelRegistry,
@@ -187,9 +187,9 @@ export default function getControlItemsMap({
               valuePropName="checked"
               colon={false}
             >
-              <AntdCheckbox
+              <Checkbox
                 disabled={controlItem.config.affectsDataMask && disabled}
-                onChange={({ target: { checked } }) => {
+                onChange={checked => {
                   if (controlItem.config.requiredFirst) {
                     setNativeFilterFieldValues(form, filterId, {
                       requiredFirst: {
@@ -206,16 +206,7 @@ export default function getControlItemsMap({
                   formChanged();
                   forceUpdate();
                 }}
-              >
-                {controlItem.config.label}&nbsp;
-                {controlItem.config.description && (
-                  <InfoTooltipWithTrigger
-                    placement="top"
-                    label={controlItem.config.name}
-                    tooltip={controlItem.config.description}
-                  />
-                )}
-              </AntdCheckbox>
+              ></Checkbox>
             </StyledRowFormItem>
           </Tooltip>
         </>

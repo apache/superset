@@ -18,7 +18,7 @@
  */
 import { ReactNode, useEffect, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import { AntdCheckbox } from 'src/components';
+import { Checkbox } from 'src/components';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 interface CollapsibleControlProps {
@@ -38,10 +38,6 @@ const StyledContainer = styled.div<{ checked: boolean }>`
   align-items: flex-start;
   min-height: ${({ theme }) => theme.gridUnit * 10}px;
   padding-top: ${({ theme }) => theme.gridUnit * 2 + 2}px;
-
-  .checkbox {
-    margin-bottom: ${({ theme, checked }) => (checked ? theme.gridUnit : 0)}px;
-  }
 
   & > div {
     margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
@@ -65,8 +61,6 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
   const [isChecked, setIsChecked] = useState(initialValue);
 
   useEffect(() => {
-    // if external `checked` changed to `undefined`, it means that we work now in uncontrolled mode with local state
-    // and we need ignore external value
     if (checked !== undefined) {
       setIsChecked(checked);
     }
@@ -74,12 +68,10 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
 
   return (
     <StyledContainer checked={isChecked}>
-      <AntdCheckbox
-        className="checkbox"
+      <Checkbox
         checked={isChecked}
         disabled={disabled}
-        onChange={e => {
-          const value = e.target.checked;
+        onChange={(value: boolean) => {
           // external `checked` value has more priority then local state
           if (checked === undefined) {
             // uncontrolled mode
@@ -94,7 +86,7 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
             <InfoTooltipWithTrigger placement="top" tooltip={tooltip} />
           )}
         </>
-      </AntdCheckbox>
+      </Checkbox>
       {isChecked && <ChildrenContainer>{children}</ChildrenContainer>}
     </StyledContainer>
   );
