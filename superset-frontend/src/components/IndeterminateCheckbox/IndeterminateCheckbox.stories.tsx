@@ -16,21 +16,89 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useArgs } from '@storybook/preview-api';
 import IndeterminateCheckbox, { IndeterminateCheckboxProps } from '.';
+import { useState } from 'react';
+import type { CheckboxChangeEvent } from 'antd/es/checkbox';
 
 export default {
   title: 'IndeterminateCheckbox',
   component: IndeterminateCheckbox,
+  parameters: {
+    docs: {
+      description: {
+        component: 'A checkbox component that supports an indeterminate state, built on top of Ant Design v5 Checkbox.',
+      },
+    },
+  },
 };
 
-export const InteractiveIndeterminateCheckbox = (
-  args: IndeterminateCheckboxProps,
-) => <IndeterminateCheckbox {...args} />;
+const STATES = [
+  { id: 'unchecked', checked: false, indeterminate: false, labelText: 'Unchecked checkbox' },
+  { id: 'checked', checked: true, indeterminate: false, labelText: 'Checked checkbox' },
+  { id: 'indeterminate', checked: false, indeterminate: true, labelText: 'Indeterminate checkbox' },
+];
 
-InteractiveIndeterminateCheckbox.args = {
-  checked: false,
-  id: 'checkbox-id',
-  indeterminate: false,
-  title: 'Checkbox title',
-  onChange: () => null,
+export const BasicCheckboxStates = () =>
+  STATES.map(({ id, ...props }) => (
+    <div style={{ marginBottom: '16px' }} key={id}>
+      <IndeterminateCheckbox id={id} {...props} onChange={() => {}} />
+    </div>
+  ));
+
+export const Interactive = () => {
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const options = ['Option 1', 'Option 2', 'Option 3'];
+
+  const handleParentChange = (e: CheckboxChangeEvent) => {
+    setSelectedOptions(e.target.checked ? [...options] : []);
+  };
+
+  const handleChildChange = (option: string) => {
+    setSelectedOptions(prev =>
+      prev.includes(option)
+        ? prev.filter(item => item !== option)
+        : [...prev, option]
+    );
+  };
+
+  const isIndeterminate = selectedOptions.length > 0 && selectedOptions.length < options.length;
+  const isAllSelected = selectedOptions.length === options.length;
+
+  return (
+    <div>
+      <div style={{ marginBottom: '16px' }}>
+        <IndeterminateCheckbox
+          id="parent-checkbox"
+          checked={isAllSelected}
+          indeterminate={isIndeterminate}
+          onChange={handleParentChange}
+          labelText="Select All"
+        />
+      </div>
+      {options.map(option => (
+        <div style={{ marginLeft: '24px', marginBottom: '8px' }} key={option}>
+          <IndeterminateCheckbox
+            id={`checkbox-${option}`}
+            checked={selectedOptions.includes(option)}
+            onChange={() => handleChildChange(option)}
+            labelText={option}
+          />
+        </div>
+      ))}
+    </div>
+  );
 };
+
+const DISABLED_STATES = [
+  { id: 'disabled-unchecked', checked: false, indeterminate: false, labelText: 'Disabled unchecked' },
+  { id: 'disabled-checked', checked: true, indeterminate: false, labelText: 'Disabled checked' },
+  { id: 'disabled-indeterminate', checked: false, indeterminate: true, labelText: 'Disabled indeterminate' },
+];
+
+export const DisabledCheckboxes = () =>
+  DISABLED_STATES.map(({ id, ...props }) => (
+    <div style={{ marginBottom: '16px' }} key={id}>
+      <IndeterminateCheckbox id={id} {...props} disabled onChange={() => {}} />
+    </div>
+  ));
