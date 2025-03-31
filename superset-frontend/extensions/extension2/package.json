@@ -30,7 +30,7 @@
       "sqllab.panels": [
         {
           "id": "extension2.example",
-          "name": "Extension 2 - Component"
+          "name": "Logger"
         }
       ]
     }

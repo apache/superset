@@ -19,23 +19,6 @@
 import { Event, Database, Table, Schema } from './core';
 
 export declare namespace sqlLab {
-  export interface Tab {
-    /**
-     * The unique identifier of the tab.
-     */
-    id: string;
-
-    /**
-     * The title of the tab.
-     */
-    title: string;
-
-    /**
-     * The editor of the tab.
-     */
-    editor: Editor;
-  }
-
   export interface Editor {
     /**
      * The content of the editor.
@@ -75,11 +58,31 @@ export declare namespace sqlLab {
     dispose(): void;
   }
 
+  export interface Tab {
+    /**
+     * The unique identifier of the tab.
+     */
+    id: string;
+
+    /**
+     * The title of the tab.
+     */
+    title: string;
+
+    /**
+     * The editor of the tab.
+     */
+    editor: Editor;
+
+    /**
+     * The panels associated with the tab.
+     */
+    panels: Panel[];
+  }
+
   export const databases: Database[];
 
   export const tabs: Tab[];
-
-  export const panels: Panel[];
 
   export const onDidRefreshDatabase: Event<Database>;
 

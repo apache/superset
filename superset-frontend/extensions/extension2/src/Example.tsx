@@ -26,8 +26,7 @@ const Example: React.FC = () => {
 
   return (
     <div style={containerStyle}>
-      I'm an extension that shows a log of successful queries and error
-      messages.
+      I'm an extension that shows a log of successful and failed queries.
       <ul>
         {logs.map(log => (
           <li>{log}</li>

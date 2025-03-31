@@ -36,7 +36,8 @@ import {
 import Results from './Results';
 import TablePreview from '../TablePreview';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
-import useExtensions, { ResolvedModule } from 'src/hooks/useExtensions';
+import useExtensions, { Extension } from 'src/extensions/useExtensions';
+import { getContribution } from 'src/extensions/utils';
 
 const TAB_HEIGHT = 130;
 
@@ -98,9 +99,20 @@ const SouthPane = ({
 
   // Initialize SQL Lab extensions
   const extensions = useExtensions();
+
+  // TODO: Reference typed names and get rid of the conversion
+  const contributions = getContribution(
+    extensions,
+    'views',
+    'sqllab.panels',
+  ) as {
+    id: string;
+    name: string;
+  }[];
+
   const { views } = useExtensionsContext();
   useEffect(() => {
-    extensions.forEach((extension: ResolvedModule) => {
+    extensions.forEach((extension: Extension) => {
       extension.activate();
     });
   }, [extensions]);
@@ -189,9 +201,14 @@ const SouthPane = ({
             latestQueryId={latestQueryId}
           />
         </Tabs.TabPane>
-        {Object.entries(views).map(entry => (
-          <Tabs.TabPane tab={entry[0]} key={entry[0]} closable={false}>
-            {entry[1]}
+        {contributions.map(contribution => (
+          <Tabs.TabPane
+            key={contribution.id}
+            tab={contribution.name}
+            closable={false}
+            forceRender
+          >
+            {views[contribution.id]}
           </Tabs.TabPane>
         ))}
         {pinnedTables.map(({ id, dbId, catalog, schema, name }) => (
