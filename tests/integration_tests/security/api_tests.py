@@ -219,7 +219,7 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
 class TestSecurityRolesApi(SupersetTestCase):
     uri = "api/v1/security/roles/"  # noqa: F541
-    show_uri = "api/v1/security/roles/show/"
+    show_uri = "api/v1/security/roles/search/"
 
     @with_config({"FAB_ADD_SECURITY_API": True})
     def test_get_security_roles_admin(self):
@@ -286,7 +286,6 @@ class TestSecurityRolesApi(SupersetTestCase):
         response = self.client.get(self.show_uri)
         self.assert200(response)
 
-    @with_config({"FAB_ADD_SECURITY_API": True})
     def test_show_roles_gamma(self):
         """
         Security API: Gamma should not be able to show roles
