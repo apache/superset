@@ -31,7 +31,7 @@ import {
 import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { SelectOptionsType } from 'src/components/Select/types';
 import { StyledSelect } from 'src/components/Select/styles';
 import { Option, OptGroup } from 'src/components/Select/Select';

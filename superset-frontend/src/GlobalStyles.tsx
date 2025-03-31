@@ -23,6 +23,10 @@ import 'react-js-cron/dist/styles.css';
 export const GlobalStyles = () => (
   <Global
     styles={theme => css`
+      body {
+        background-color: ${theme.colorBgBase};
+      }
+
       h1,
       h2,
       h3,

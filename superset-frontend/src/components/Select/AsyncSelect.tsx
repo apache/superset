@@ -42,7 +42,7 @@ import {
   RefSelectProps,
 } from 'antd-v5/es/select';
 import { debounce, isEqual, uniq } from 'lodash';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
 import {
   getValue,

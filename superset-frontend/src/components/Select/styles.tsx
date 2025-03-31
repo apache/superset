@@ -17,9 +17,9 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
 import { Spin } from 'src/components/Spin';
 import { Select } from 'antd-v5';
+import { Icons } from 'src/components/Icons';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `

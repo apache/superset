@@ -192,7 +192,7 @@ function GridTable<RecordType extends object>({
             --ag-font-family: ${theme.fontFamily};
             --ag-font-size: ${theme.fontSize}px;
             --ag-row-height: ${rowHeight}px;
-            --ag-background-color: ${theme.colorBgContainer};
+            --ag-background-color: ${theme.colorBgBase};
             --ag-foreground-color: ${theme.colorText};
             --ag-header-background-color: ${theme.colorBgElevated};
             --ag-header-foreground-color: ${theme.colorTextHeading};
@@ -206,7 +206,7 @@ function GridTable<RecordType extends object>({
             --ag-checkbox-checked-color: ${theme.colorPrimary};
             --ag-disabled-foreground-color: ${theme.colorTextDisabled};
             ${!striped &&
-            `--ag-odd-row-background-color: ${theme.colorBgBase};`}
+            `--ag-odd-row-background-color: ${theme.colorBgElevated};`}
             --ag-font-size: ${GridSize.Middle === size
               ? theme.fontSize
               : theme.fontSizeSM}px;
@@ -246,7 +246,6 @@ function GridTable<RecordType extends object>({
         `}
       >
         <AgGridReact
-          // TODO: migrate to Theme API - https://www.ag-grid.com/react-data-grid/theming-migration/
           rowData={data}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}

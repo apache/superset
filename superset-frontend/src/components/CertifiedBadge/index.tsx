@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, useTheme } from '@superset-ui/core';
-import Icons, { IconType } from 'src/components/Icons';
+import { Icons, IconType } from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 
 export interface CertifiedBadgeProps {

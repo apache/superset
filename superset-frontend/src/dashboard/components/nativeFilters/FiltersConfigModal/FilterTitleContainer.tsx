@@ -19,7 +19,7 @@
 import { forwardRef, ReactNode } from 'react';
 
 import { styled, t, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { FilterRemoval } from './types';
 import DraggableFilter from './DraggableFilter';
 
