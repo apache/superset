@@ -439,6 +439,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         # without clobbering existing values (#42116).
         metadata_defaults: dict[str, Any] = {
             "expanded_slices": {},
+            "expand_all_slices": False,
             "refresh_frequency": 0,
             "color_scheme": "",
             "label_colors": {},
