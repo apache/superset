@@ -22,7 +22,7 @@ import {
   AsyncSelectProps,
   AsyncSelectRef,
   SelectOptionsTypePage,
-} from 'src/components/Select/types';
+} from './types';
 import { AsyncSelect } from '.';
 
 export default {
