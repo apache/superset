@@ -30,7 +30,7 @@ import {
 } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { Form } from 'src/components/Form';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
 import { testWithId } from 'src/utils/testUtils';

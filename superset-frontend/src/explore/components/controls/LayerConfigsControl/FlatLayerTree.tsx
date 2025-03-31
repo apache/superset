@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { css, styled, t } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { Button, Tree } from 'antd'; // TODO: Remove antd

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 // eslint-disable-next-line no-restricted-imports
 import { Button, Tag } from 'antd'; // TODO: Remove antd
 import { FC } from 'react';

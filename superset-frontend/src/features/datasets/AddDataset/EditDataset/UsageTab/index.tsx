@@ -34,7 +34,7 @@ import Table, {
 } from 'src/components/Table';
 import { EmptyState } from 'src/components/EmptyState';
 import ChartImage from 'src/assets/images/chart.svg';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { FilterOperator } from 'src/components/ListView';
@@ -124,11 +124,11 @@ const columns: ColumnsType<Chart> = [
 ];
 
 const emptyStateTableCSS = (theme: SupersetTheme) => css`
-  && th.ant-table-cell {
+  && th.antd5-table-cell {
     color: ${theme.colors.grayscale.light1};
   }
 
-  .ant-table-placeholder {
+  .antd5-table-placeholder {
     display: none;
   }
 `;

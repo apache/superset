@@ -24,7 +24,7 @@ import { Radio } from 'src/components/Radio';
 import { Input, TextArea } from 'src/components/Input';
 // eslint-disable-next-line no-restricted-imports
 import { Input as AntdInput, Tooltip } from 'antd'; // TODO: Remove antd
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { DatabaseObject, FieldPropTypes } from '../types';
 import { AuthType } from '.';
 
