@@ -19,10 +19,25 @@
 import { useEffect, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 
-interface Extension {
-  scope: string;
+export interface Contributions {
+  views: {
+    [key: string]: {
+      id: string;
+      name: string;
+    }[];
+  };
+  // TODO: Add other types of contributions
+}
+
+export interface Extension {
+  name: string;
+  description: string;
+  contributions: Contributions;
   exposedModules: string[];
   remoteEntry: string;
+  scope: string;
+  activate: Function;
+  deactivate: Function;
 }
 
 export interface ResolvedModule {
@@ -30,11 +45,8 @@ export interface ResolvedModule {
   deactivate: Function;
 }
 
-const loadExtension = async ({
-  scope,
-  exposedModules,
-  remoteEntry,
-}: Extension): Promise<ResolvedModule[]> => {
+const loadModules = async (extension: Extension): Promise<Extension> => {
+  const { remoteEntry, scope, exposedModules } = extension;
   await new Promise<void>((resolve, reject) => {
     const element = document.createElement('script');
     element.src = remoteEntry;
@@ -56,21 +68,19 @@ const loadExtension = async ({
   // @ts-ignore
   await container.init(__webpack_share_scopes__.default);
 
-  return Promise.all(
-    exposedModules.map(async module => {
-      const factory = await container.get(module);
-      const Module = factory();
-      return {
-        activate: Module.activate,
-        deactivate: Module.deactivate,
-      };
-    }),
-  );
+  // TODO: Assuming only index is exposed
+  const factory = await container.get(exposedModules[0]);
+  const Module = factory();
+  return {
+    ...extension,
+    activate: Module.activate,
+    deactivate: Module.deactivate,
+  };
 };
 
 // TODO: We need to add filter to only load the extensions of a particular module or based on activation events.
 const useExtensions = () => {
-  const [extensions, setExtensions] = useState<ResolvedModule[]>([]);
+  const [extensions, setExtensions] = useState<Extension[]>([]);
 
   useEffect(() => {
     const fetchExtensions = async () => {
@@ -81,8 +91,11 @@ const useExtensions = () => {
         const extensions: Extension[] = response.json.result;
         const loadedExtensionsArray = await Promise.all(
           extensions.map(async extension => {
-            const Modules = await loadExtension(extension);
-            return Modules;
+            const modules = await loadModules(extension);
+            return {
+              ...extension,
+              ...modules,
+            };
           }),
         );
 

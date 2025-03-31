@@ -62,6 +62,7 @@ class ExtensionsRestApi(BaseSupersetApi):
                 "files": files,
                 "scope": extension.name,
                 "exposedModules": exposed_modules,
+                "contributions": manifest.get("contributions", {}),
             }
 
             result.append(extension_data)
