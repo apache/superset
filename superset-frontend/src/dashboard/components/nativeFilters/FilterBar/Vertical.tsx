@@ -103,12 +103,14 @@ const FilterBarEmptyStateContainer = styled.div`
 `;
 
 const FilterControlsWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.sizeUnit * 2}px;
-  padding: ${({ theme }) => theme.sizeUnit * 4}px;
-  // 108px padding to make room for buttons with position: absolute
-  padding-bottom: ${({ theme }) => theme.sizeUnit * 27}px;
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit * 4}px;
+    // 108px padding to make room for buttons with position: absolute
+    padding-bottom: ${theme.sizeUnit * 27}px;
+  `}
 `;
 
 export const FilterBarScrollContext = createContext(false);
