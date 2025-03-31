@@ -3040,6 +3040,18 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_success_permalink_payload(self):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        response = self._cache_screenshot(dashboard.id, {"permalinkKey": "1234"})
+        assert response.status_code == 202
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_cache_dashboard_screenshot_dashboard_validation(self):
         self.login(ADMIN_USERNAME)
         dashboard = (
