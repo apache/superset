@@ -294,4 +294,58 @@ describe('Rule modal', () => {
       { timeout: 10000 },
     );
   });
+
+  it('Select all button selects all available tables', async () => {
+    await renderAndWait(addNewRuleDefaultProps);
+
+    const tablesSelect = screen.getByRole('combobox', { name: /tables/i });
+    userEvent.click(tablesSelect);
+
+    const selectAllButton = screen.getByRole('button', {
+      name: 'Select all',
+      exact: true,
+    });
+    userEvent.click(selectAllButton);
+
+    await waitFor(() => {
+      const calls = fetchMock.calls(getRelatedTablesEndpoint);
+      // Verify that one of the API calls has the expected query parameters for getting all tables
+      const hasExpectedCall = calls.some(call =>
+        call[0].includes('q=(page:0,page_size:-1)'),
+      );
+      expect(hasExpectedCall).toBe(true);
+    });
+
+    expect(
+      screen.queryByText('wb_health_population', { selector: '.tag-content' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('birth_names', { selector: '.tag-content' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('long_lat', { selector: '.tag-content' }),
+    ).toBeInTheDocument();
+  });
+
+  it('Deselect all button clears all selected tables', async () => {
+    await renderAndWait(addNewRuleDefaultProps);
+
+    const tablesSelect = screen.getByRole('combobox', { name: /tables/i });
+    userEvent.click(tablesSelect);
+
+    await selectOption('birth_names', 'Tables');
+    expect(
+      screen.getByText('birth_names', { selector: '.tag-content' }),
+    ).toBeInTheDocument();
+
+    const deselectAllButton = screen.getByRole('button', {
+      name: 'Deselect all',
+      exact: true,
+    });
+    userEvent.click(deselectAllButton);
+
+    expect(
+      screen.queryByText('birth_names', { selector: '.tag-content' }),
+    ).not.toBeInTheDocument();
+  });
 });

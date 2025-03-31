@@ -102,6 +102,28 @@ const StyledTextArea = styled(TextArea)`
   margin-top: ${({ theme }) => theme.gridUnit}px;
 `;
 
+const StyledDropdownContainer = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    gap: ${theme.gridUnit}px;
+    padding: ${theme.gridUnit}px;
+    border-bottom: 1px solid ${theme.colors.grayscale.light2};
+  `}
+`;
+
+const StyledDropdownButton = styled.button`
+  ${({ theme }) => css`
+    padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+    border: 1px solid ${theme.colors.grayscale.light2};
+    border-radius: ${theme.gridUnit}px;
+    background: ${theme.colors.grayscale.light5};
+    cursor: pointer;
+    &:hover {
+      background: ${theme.colors.grayscale.light4};
+    }
+  `}
+`;
+
 export interface RowLevelSecurityModalProps {
   rule: RLSObject | null;
   addSuccessToast: (msg: string) => void;
@@ -321,6 +343,46 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     [],
   );
 
+  const tableDropdownRender = useCallback(
+    menu => (
+      <>
+        <StyledDropdownContainer>
+          <StyledDropdownButton
+            type="button"
+            onClick={() => {
+              const query = rison.encode({
+                page: 0,
+                page_size: -1,
+              });
+              SupersetClient.get({
+                endpoint: `/api/v1/rowlevelsecurity/related/tables?q=${query}`,
+              }).then(response => {
+                const allTables = response.json.result.map(
+                  (item: { value: number; text: string }) => ({
+                    key: item.value,
+                    label: item.text,
+                    value: item.value,
+                  }),
+                );
+                updateRuleState('tables', allTables || []);
+              });
+            }}
+          >
+            {t('Select all')}
+          </StyledDropdownButton>
+          <StyledDropdownButton
+            type="button"
+            onClick={() => updateRuleState('tables', [])}
+          >
+            {t('Deselect all')}
+          </StyledDropdownButton>
+        </StyledDropdownContainer>
+        {menu}
+      </>
+    ),
+    [],
+  );
+
   return (
     <StyledModal
       className="no-content-padding"
@@ -409,6 +471,8 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 onChange={onTablesChange}
                 value={(currentRule?.tables as SelectValue[]) || []}
                 options={loadTableOptions}
+                dropdownRender={tableDropdownRender}
+                showSearch
               />
             </div>
           </StyledInputContainer>
