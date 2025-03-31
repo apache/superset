@@ -17,11 +17,11 @@
  * under the License.
  */
 import { useState } from 'react';
+import { t, useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import Modal from 'src/components/Modal';
+import Modal from 'src/components/Modal/Modal';
 import { Icons } from 'src/components/Icons';
 import Alert from 'src/components/Alert';
-import { t, useTheme } from '@superset-ui/core';
 
 export interface ErrorAlertProps {
   errorType?: string; // Strong text on the first line
@@ -110,7 +110,7 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
     <Alert
       description={renderDescription()}
       type={type}
-      showIcon
+      showIcon={showIcon}
       closable={closable}
       className={className}
     >

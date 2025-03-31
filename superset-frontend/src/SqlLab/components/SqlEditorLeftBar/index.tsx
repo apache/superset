@@ -113,7 +113,9 @@ const SqlEditorLeftBar = ({
     'schema',
   ]);
 
-  const [_emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
+  // We're setting this state but not using it directly in the component
+  // It's used in the onEmptyResults callback
+  const [, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
   );
