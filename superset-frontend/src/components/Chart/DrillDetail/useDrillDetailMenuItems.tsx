@@ -118,7 +118,7 @@ export type DrillDetailMenuItemsProps = {
   forceSubmenuRender?: boolean;
 };
 
-const useDrillDetailMenuItems = ({
+export const useDrillDetailMenuItems = ({
   formData,
   filters = [],
   isContextMenu = false,
@@ -261,5 +261,3 @@ const useDrillDetailMenuItems = ({
     isContextMenu && drillToDetailByMenuItem,
   ].filter(Boolean) as ItemType[];
 };
-
-export default useDrillDetailMenuItems;

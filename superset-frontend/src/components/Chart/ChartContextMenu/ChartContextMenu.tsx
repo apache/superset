@@ -53,7 +53,7 @@ import { getMenuAdjustedY } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { DrillByMenuItems } from '../DrillBy/DrillByMenuItems';
 import DrillDetailModal from '../DrillDetail/DrillDetailModal';
-import useDrillDetailMenuItems from '../DrillDetail/DrillDetailMenuItems';
+import useDrillDetailMenuItems from '../DrillDetail/useDrillDetailMenuItems';
 
 export enum ContextMenuItem {
   CrossFilter,
