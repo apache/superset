@@ -258,11 +258,7 @@ export default function dashboardStateReducer(
       const updatedExpandedSlices = { ...state.expandedSlices };
       const { sliceId } = action;
       if (sliceId !== undefined) {
-        if (updatedExpandedSlices[sliceId]) {
-          delete updatedExpandedSlices[sliceId];
-        } else {
-          updatedExpandedSlices[sliceId] = true;
-        }
+        updatedExpandedSlices[sliceId] = !updatedExpandedSlices[sliceId];
       }
       return { ...state, expandedSlices: updatedExpandedSlices };
     },
