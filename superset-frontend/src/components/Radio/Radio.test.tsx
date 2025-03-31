@@ -17,37 +17,30 @@
  * under the License.
  */
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import '@testing-library/jest-dom';
-import Button from 'src/components/Button';
+import { Radio } from '.';
 
-describe('Button Component', () => {
-  test('renders button with text', () => {
+describe('Radio Component', () => {
+  test('renders radio button and allows selection', () => {
     render(
-      <ThemeProvider theme={supersetTheme}>
-        <Button>Click Me</Button>
-      </ThemeProvider>,
+      <Radio.Group>
+        <Radio value="option1">Option 1</Radio>
+        <Radio value="option2">Option 2</Radio>
+      </Radio.Group>,
     );
-    expect(screen.getByText('Click Me')).toBeInTheDocument();
-  });
 
-  test('calls onClick handler when clicked', () => {
-    const handleClick = jest.fn();
-    render(
-      <ThemeProvider theme={supersetTheme}>
-        <Button onClick={handleClick}>Click Me</Button>
-      </ThemeProvider>,
-    );
-    fireEvent.click(screen.getByText('Click Me'));
-    expect(handleClick).toHaveBeenCalledTimes(1);
-  });
+    const option1 = screen.getByLabelText('Option 1');
+    const option2 = screen.getByLabelText('Option 2');
 
-  test('renders a disabled button', () => {
-    render(
-      <ThemeProvider theme={supersetTheme}>
-        <Button disabled>Disabled</Button>
-      </ThemeProvider>,
-    );
-    expect(screen.getByRole('button', { name: 'Disabled' })).toBeDisabled();
+    expect(option1).not.toBeChecked();
+    expect(option2).not.toBeChecked();
+
+    fireEvent.click(option1);
+    expect(option1).toBeChecked();
+    expect(option2).not.toBeChecked();
+
+    fireEvent.click(option2);
+    expect(option1).not.toBeChecked();
+    expect(option2).toBeChecked();
   });
 });
