@@ -38,6 +38,7 @@ import TablePreview from '../TablePreview';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 import useExtensions, { Extension } from 'src/extensions/useExtensions';
 import { getContribution } from 'src/extensions/utils';
+import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 
 const TAB_HEIGHT = 130;
 
@@ -208,7 +209,7 @@ const SouthPane = ({
             closable={false}
             forceRender
           >
-            {views[contribution.id]}
+            {views[contribution.id] || <ExtensionPlaceholder />}
           </Tabs.TabPane>
         ))}
         {pinnedTables.map(({ id, dbId, catalog, schema, name }) => (
