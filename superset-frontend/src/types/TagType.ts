@@ -20,7 +20,7 @@ import { CSSProperties, MouseEventHandler, ReactNode } from 'react';
 import { SerializedStyles } from '@emotion/react';
 
 export interface TagType {
-  id?: string | number;
+  id?: number;
   type?: string | number;
   editable?: boolean;
   onDelete?: (index: number) => void;

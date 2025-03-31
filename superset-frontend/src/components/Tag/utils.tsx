@@ -37,9 +37,9 @@ const cachedSupersetGet = cacheWrapper(
 );
 
 type SelectTagsValue = {
-  value: number | string | undefined;
+  value: number | undefined;
   label: string | undefined;
-  key: number | string | undefined;
+  key: number | undefined;
 };
 
 export const tagToSelectOption = (
