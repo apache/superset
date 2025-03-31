@@ -40,6 +40,7 @@ type SaveModalProps = {
   dashboardTitle: string;
   dashboardInfo: Record<string, any>;
   expandedSlices: Record<string, any>;
+  expandAllSlices: boolean;
   layout: Record<string, any>;
   saveType: SaveType;
   triggerNode: JSX.Element;

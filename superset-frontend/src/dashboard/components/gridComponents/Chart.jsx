@@ -133,7 +133,7 @@ const Chart = props => {
   );
   const editMode = useSelector(state => state.dashboardState.editMode);
   const isExpanded = useSelector(
-    state => !!state.dashboardState.expandedSlices[props.id],
+    state => !!(state.dashboardState.expandedSlices[props.id] ?? state.dashboardState.expandAllSlices),
   );
   const supersetCanExplore = useSelector(
     state => !!state.dashboardInfo.superset_can_explore,
