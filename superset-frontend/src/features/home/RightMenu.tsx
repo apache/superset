@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// TODO: Remove fa-icon
+/* eslint-disable icons/no-fa-icons-usage */
 import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
 
 import rison from 'rison';
@@ -35,7 +37,7 @@ import {
 } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Label from 'src/components/Label';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -64,9 +66,6 @@ const versionInfoStyles = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.base};
   font-size: ${theme.typography.sizes.xs}px;
   white-space: nowrap;
-`;
-const StyledI = styled.div`
-  color: ${({ theme }) => theme.colors.primary.dark1};
 `;
 
 const styledDisabled = (theme: SupersetTheme) => css`
@@ -108,11 +107,18 @@ const styledChildMenu = (theme: SupersetTheme) => css`
 const { SubMenu } = Menu;
 
 const StyledSubMenu = styled(SubMenu)`
-  &.antd5-menu-submenu-active {
-    .antd5-menu-title-content {
-      color: ${({ theme }) => theme.colors.primary.base};
+  ${({ theme }) => css`
+    [data-icon='caret-down'] {
+      color: ${theme.colors.grayscale.base};
+      font-size: ${theme.typography.sizes.xxs}px;
+      margin-left: ${theme.gridUnit}px;
     }
-  }
+    &.antd5-menu-submenu-active {
+      .antd5-menu-title-content {
+        color: ${theme.colors.primary.base};
+      }
+    }
+  `}
 `;
 
 const RightMenu = ({
@@ -400,6 +406,10 @@ const RightMenu = ({
         </Label>
       )}
       <Menu
+        css={css`
+          display: flex;
+          flex-direction: row;
+        `}
         selectable={false}
         mode="horizontal"
         onClick={handleMenuSelection}
@@ -412,9 +422,12 @@ const RightMenu = ({
             key="sub1"
             data-test="new-dropdown"
             title={
-              <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
+              <Icons.PlusOutlined
+                iconColor={theme.colors.primary.dark1}
+                data-test="new-dropdown-icon"
+              />
             }
-            icon={<Icons.TriangleDown />}
+            icon={<Icons.CaretDownOutlined iconSize="xs" />}
           >
             {dropdownItems?.map?.(menu => {
               const canShowChild = menu.childs?.some(
@@ -477,7 +490,7 @@ const RightMenu = ({
         <StyledSubMenu
           key="sub3_settings"
           title={t('Settings')}
-          icon={<Icons.TriangleDown iconSize="xl" />}
+          icon={<Icons.CaretDownOutlined iconSize="xs" />}
         >
           {settings?.map?.((section, index) => [
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>

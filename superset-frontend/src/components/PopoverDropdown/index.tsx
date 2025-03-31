@@ -21,7 +21,7 @@ import cx from 'classnames';
 import { styled, useTheme } from '@superset-ui/core';
 import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 export interface OptionProps {
   value: string;
@@ -110,9 +110,12 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
     >
       <div role="button" css={{ display: 'flex', alignItems: 'center' }}>
         {selected && renderButton(selected)}
-        <Icons.CaretDown
-          iconColor={theme.colors.grayscale.base}
-          css={{ marginTop: theme.gridUnit * 0.5 }}
+        <Icons.DownOutlined
+          iconSize="s"
+          css={{
+            marginTop: theme.gridUnit * 0.5,
+            marginLeft: theme.gridUnit * 0.5,
+          }}
         />
       </div>
     </Dropdown>

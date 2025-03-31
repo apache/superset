@@ -105,7 +105,7 @@ describe('Header', () => {
 
   it('should render a DeleteComponentButton when focused in editMode', () => {
     setup({ editMode: true });
-    const trashButton = screen.getByRole('img', { name: 'trash' });
+    const trashButton = screen.getByRole('img', { name: 'delete' });
     expect(trashButton).toBeInTheDocument();
   });
 
@@ -113,7 +113,7 @@ describe('Header', () => {
     const deleteComponent = sinon.spy();
     setup({ editMode: true, deleteComponent });
 
-    const trashButton = screen.getByRole('img', { name: 'trash' });
+    const trashButton = screen.getByRole('img', { name: 'delete' });
     fireEvent.click(trashButton.parentElement);
 
     expect(deleteComponent.callCount).toBe(1);

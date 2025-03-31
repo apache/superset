@@ -722,6 +722,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     }
     fetch_values_predicate = None
 
+    normalize_columns = False
+
     @property
     def type(self) -> str:
         raise NotImplementedError()
@@ -1378,7 +1380,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if engine.dialect.identifier_preparer._double_percents:
                 sql = sql.replace("%%", "%")
 
-            df = pd.read_sql_query(sql=sql, con=engine)
+            df = pd.read_sql_query(sql=self.text(sql), con=engine)
             # replace NaN with None to ensure it can be serialized to JSON
             df = df.replace({np.nan: None})
             return df["column_values"].to_list()
@@ -1976,7 +1978,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         self.make_orderby_compatible(select_exprs, orderby_exprs)
 
-        for col, (orig_col, ascending) in zip(orderby_exprs, orderby, strict=False):  # noqa: B007
+        for col, (_orig_col, ascending) in zip(orderby_exprs, orderby, strict=False):  # noqa: B007
             if not db_engine_spec.allows_alias_in_orderby and isinstance(col, Label):
                 # if engine does not allow using SELECT alias in ORDER BY
                 # revert to the underlying column

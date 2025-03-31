@@ -20,7 +20,7 @@ import { useRef, FC } from 'react';
 
 import { NativeFilterType, styled, t, useTheme } from '@superset-ui/core';
 import { Button } from 'src/components';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 import FilterTitleContainer from './FilterTitleContainer';
 import { FilterRemoval } from './types';
@@ -109,7 +109,12 @@ const FilterTitlePane: FC<Props> = ({
         <Button
           buttonSize="default"
           buttonStyle="secondary"
-          icon={<Icons.Filter iconSize="m" />}
+          icon={
+            <Icons.FilterOutlined
+              iconColor={theme.colors.primary.dark1}
+              iconSize="m"
+            />
+          }
           data-test="add-new-filter-button"
           onClick={() => handleOnAdd(NativeFilterType.NativeFilter)}
         >
@@ -118,7 +123,12 @@ const FilterTitlePane: FC<Props> = ({
         <Button
           buttonSize="default"
           buttonStyle="secondary"
-          icon={<Icons.PicCenterOutlined iconSize="m" />}
+          icon={
+            <Icons.PicCenterOutlined
+              iconColor={theme.colors.primary.dark1}
+              iconSize="m"
+            />
+          }
           data-test="add-new-divider-button"
           onClick={() => handleOnAdd(NativeFilterType.Divider)}
         >
