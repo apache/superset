@@ -51,24 +51,12 @@ if desired. Most endpoints hit are logged as
 well as key events like query start and end in SQL Lab.
 
 To setup StatsD logging, it’s a matter of configuring the logger in your `superset_config.py`.
-If not already present, you need to ensure that the `statsd`-package is installed in superset's python environment.
+If not already present, you need to ensure that the `statsd`-package is installed in Superset's python environment.
 
 ```python
 from superset.stats_logger import StatsdStatsLogger
 STATS_LOGGER = StatsdStatsLogger(host='localhost', port=8125, prefix='superset')
 ```
-
-If you get the Error `ImportError: cannot import name 'StatsdStatsLogger' from 'superset.stats_logger' (/path/to/superset/env/superset/stats_logger.py)`, you can edit the `except Exception` block to print error details:
-```python
-try:
-    from statsd import StatsClient
-
-    class StatsdStatsLogger(BaseStatsLogger):
-    ...
-except Exception as e:  # pylint: disable=broad-except
-    print(e)
-```
-
 
 Note that it’s also possible to implement your own logger by deriving
 `superset.stats_logger.BaseStatsLogger`.
