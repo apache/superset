@@ -18,8 +18,7 @@
  */
 import { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
-import { AntdForm } from 'src/components';
-import { Row, Col } from 'src/components/Grid';
+import { Col, Row } from 'src/components/Grid';
 import { Form, FormLabel } from 'src/components/Form';
 import { Radio } from 'src/components/Radio';
 // eslint-disable-next-line no-restricted-imports
@@ -41,7 +40,7 @@ const StyledRow = styled(Row)`
   padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const StyledFormItem = styled(AntdForm.Item)`
+const StyledFormItem = styled(Form.Item)`
   margin-bottom: 0 !important;
 `;
 
