@@ -50,6 +50,7 @@ export type OnChangeFunction<RecordType> =
 export enum TableSize {
   Small = 'small',
   Middle = 'middle',
+  Large = 'large',
 }
 
 export interface TableProps<RecordType> {
@@ -76,7 +77,7 @@ export interface TableProps<RecordType> {
   /**
    * Controls the size of the table.
    */
-  size: TableSize;
+  size?: TableSize;
   /**
    * Controls if table rows are selectable and if multiple select is supported.
    */
