@@ -61,7 +61,7 @@ const StyledMenuItem = styled(AntdMenu.Item)`
         height: 3px;
         opacity: 0;
         transform: translateX(-50%);
-        transition: all ${({ theme }) => theme.motionDurationMid}s;
+        transition: translate ${({ theme }) => theme.motionDurationMid}s;
         background-color: ${({ theme }) => theme.colorPrimary};
       }
       &:focus {
