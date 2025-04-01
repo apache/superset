@@ -25,10 +25,10 @@
   ],
   "dependencies": {
     "@react-icons/all-files": "^4.1.0",
-    "@types/d3-array": "^2.9.0",
+    "@types/d3-array": "^3.2.1",
     "@types/react-table": "^7.7.20",
     "classnames": "^2.5.1",
-    "d3-array": "^2.4.0",
+    "d3-array": "^3.2.4",
     "lodash": "^4.17.21",
     "memoize-one": "^5.2.1",
     "react-table": "^7.8.0",
