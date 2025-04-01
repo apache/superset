@@ -40,7 +40,7 @@ export interface AiAssistantEditorProps {
   queryEditorId: string;
   onGenerateSql: (prompt: string) => void;
   isGeneratingSql: boolean;
-  schema?: string[];
+  schema?: string | string[];
   disabledMessage?: string;
 }
 
@@ -190,7 +190,7 @@ const AiAssistantEditor = ({
       ) : schema && schema.length > 0 ? (
         <SelectedSchemaMessage>
           <StyledInfoIcon />
-          {`Selecting schema will restrict the AI to generate SQL for only the selected schema. This will increase costs due to skipping the AI cache. Currently selected: ${schema.join(', ')}`}
+          {`Selecting schema will restrict the AI to generate SQL for only the selected schema. This will increase costs due to skipping the AI cache. Currently selected: ${Array.isArray(schema) ? schema.join(', ') : schema}`}
         </SelectedSchemaMessage>
       ) : null}
     </StyledToolbar>

@@ -270,11 +270,13 @@ const SqlEditor: FC<Props> = ({
     'catalog',
     'schema',
   ]);
-  const [savedLlmContext, setSavedLlmContext] = useState<SavedContextStatus | null>(false);
-  const llmContextStatus = useLlmContextStatus({
+  const [savedLlmContext, setSavedLlmContext] = useState<SavedContextStatus | null>(null);
+  useLlmContextStatus({
     dbId: queryEditor.dbId || 0,
     onSuccess: result => {
-      setSavedLlmContext(result.context);
+      if (result.context) {
+        setSavedLlmContext(result.context);
+      }
     }
   });
 
@@ -909,7 +911,7 @@ const SqlEditor: FC<Props> = ({
       ? t('AI Assistant is unavailable - please try again in a few minutes')
       : savedLlmContext.status === 'FAILURE'
       ? t('AI Assistant is unavailable due to a backend error')
-      : null;
+      : undefined;
 
     return database?.llm_enabled && (
       <AiAssistantEditor

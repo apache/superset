@@ -1,4 +1,4 @@
-import { ChangeEvent, EventHandler, useEffect, useState } from 'react';
+import { ChangeEvent, EventHandler, useState } from 'react';
 import {
   css,
   t,
@@ -78,14 +78,17 @@ const AIAssistantOptions = ({
 }) => {
   const [selectedProvider, setSelectedProvider] = useState<string | null>(db?.llm_provider || null);
   const [regenerating, setRegenerating] = useState(false);
-  const [savedContext, setSavedContext] = useState<SavedContextStatus | null>(false);
+  const [savedContext, setSavedContext] = useState<SavedContextStatus | null>(null);
   const tables = useDatabaseTables(db?.id || 0);
   const contextJson: LlmContextJson = JSON.parse(db?.llm_context_options || '{}');
-  const contextStatus = useLlmContextStatus({
+
+  useLlmContextStatus({
     dbId: db?.id || 0,
     onSuccess: result => {
       setRegenerating(result.status === 'building');
-      setSavedContext(result.context);
+      if (result.context) {
+        setSavedContext(result.context);
+      }
     }
   });
 

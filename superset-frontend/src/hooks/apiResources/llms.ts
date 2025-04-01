@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import useEffectEvent from 'src/hooks/useEffectEvent';
-import { toQueryString } from 'src/utils/urlUtils';
 import { api, JsonResponse } from './queryApi';
 
-import { useSchemas } from './schemas';
 
 export interface SavedContextStatus {
     build_time: string;
@@ -37,7 +35,7 @@ export interface LlmContextStatus {
 
 export type FetchLlmContextStatusQueryParams = {
   dbId?: string | number;
-  onSuccess?: (data: Data, isRefetched: boolean) => void;
+  onSuccess?: (data: LlmContextStatus, isRefetched: boolean) => void;
   onError?: (error: Response) => void;
 };
 
@@ -48,8 +46,8 @@ const llmContextApi = api.injectEndpoints({
       query: ({ dbId }) => ({
         endpoint: `api/v1/sqllab/db_context_status/`,
         urlParams: { pk: dbId },
+        transformResponse: ({ json }: JsonResponse) => json,
       }),
-      serializeQueryArgs: ({ queryArgs: { pk } }) => ({ pk }),
     }),
   }),
 });
@@ -67,7 +65,7 @@ export function useLlmContextStatus(options: FetchLlmContextStatusQueryParams) {
     { pollingInterval: 5000 },
   );
 
-  const handleOnSuccess = useEffectEvent((data: Data, isRefetched: boolean) => {
+  const handleOnSuccess = useEffectEvent((data: LlmContextStatus, isRefetched: boolean) => {
     onSuccess?.(data, isRefetched);
   });
 
@@ -83,11 +81,10 @@ export function useLlmContextStatus(options: FetchLlmContextStatusQueryParams) {
       isFetching,
       currentData,
       error,
-      originalArgs,
     } = result;
     if (requestId && !isFetching) {
       if (isSuccess && currentData) {
-        handleOnSuccess(currentData.json, false);
+        handleOnSuccess(currentData, false);
       }
       if (isError) {
         handleOnError(error as Response);
