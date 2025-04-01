@@ -58,6 +58,7 @@ export enum FeatureFlag {
   SlackEnableAvatars = 'SLACK_ENABLE_AVATARS',
   EnableDashboardScreenshotEndpoints = 'ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS',
   EnableDashboardDownloadWebDriverScreenshot = 'ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT',
+  PublishCharts = 'PUBLISH_CHARTS',
 }
 
 export type ScheduleQueriesProps = {

@@ -54,6 +54,7 @@ export default function ChartPublishedStatus({
     });
   };
 
+  // only show it if the user can overwrite
   if (userCanOverwrite) {
     // Show everybody the draft badge
     if (!published) {

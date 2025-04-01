@@ -21,7 +21,15 @@ import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'src/components/Tooltip';
-import { css, logging, SupersetClient, t, useTheme } from '@superset-ui/core';
+import {
+  css,
+  FeatureFlag,
+  isFeatureEnabled,
+  logging,
+  SupersetClient,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import Button from 'src/components/Button';
@@ -223,12 +231,13 @@ export const ExploreChartHeader = ({
                 currentFormData={{ ...formData, chartTitle: sliceName }}
               />
             ) : null}
-            {/* DO THE PUBLISHED STATUS HERE */}
-            <ChartPublishedStatus
-              sliceId={slice?.slice_id}
-              userCanOverwrite={canOverwrite}
-              isPublished={slice?.published}
-            />
+            {isFeatureEnabled(FeatureFlag.PublishCharts) && (
+              <ChartPublishedStatus
+                sliceId={slice?.slice_id}
+                userCanOverwrite={canOverwrite}
+                isPublished={slice?.published}
+              />
+            )}
             {metadataBar}
           </div>
         }
