@@ -16,28 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo } from 'react';
-import { TableInstance } from 'react-table';
-import { Table, TableSize } from 'src/components/Table';
-import { mapColumns, mapRows } from './utils';
 
-interface TableCollectionProps {
-  getTableProps: (userProps?: any) => any;
-  getTableBodyProps: (userProps?: any) => any;
-  prepareRow: TableInstance['prepareRow'];
-  headerGroups: TableInstance['headerGroups'];
-  rows: TableInstance['rows'];
-  columns: TableInstance['column'][];
-  loading: boolean;
-  highlightRowId?: number;
-  columnsForWrapText?: string[];
-}
+import { ColumnsType } from 'src/components/Table';
 
-export default memo(({ columns, rows, loading }: TableCollectionProps) => (
-  <Table
-    loading={loading}
-    columns={mapColumns(columns)}
-    data={mapRows(rows)}
-    size={TableSize.Middle}
-  />
-));
+export const mapColumns = (columns: any[]): ColumnsType =>
+  columns.map(column => ({
+    title: column.Header,
+    dataIndex: column.accessor,
+    key: column.accessor,
+    hidden: column.hidden,
+    render: (val, record) => {
+      if (column.Cell) {
+        return column.Cell({ row: { original: record } });
+      }
+      return val;
+    },
+  }));
+
+export const mapRows = (rows: any[]): any[] =>
+  rows.map(row => ({
+    ...row.values,
+    id: row.original.id,
+  }));
