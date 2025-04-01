@@ -92,7 +92,6 @@ import {
   transformIntervalAnnotation,
   transformSeries,
   transformTimeseriesAnnotation,
-  transformNegativeLabelsPosition,
 } from './transformers';
 import {
   OpacityEnum,
@@ -627,10 +626,7 @@ export default function transformProps(
       ),
       data: legendData as string[],
     },
-    series: transformNegativeLabelsPosition(
-      dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
-      isHorizontal,
-    ),
+    series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {
       show: zoomable,
       top: TIMESERIES_CONSTANTS.toolboxTop,

@@ -171,7 +171,7 @@ export function transformSeries(
     timeShiftColor?: boolean;
   },
 ): SeriesOption | undefined {
-  const { name } = series;
+  const { name, data } = series;
   const {
     area,
     connectNulls,
@@ -290,6 +290,9 @@ export function transformSeries(
       : { ...opts.lineStyle, opacity };
   return {
     ...series,
+    ...(Array.isArray(data) && seriesType === 'bar' && !stack
+      ? { data: transformNegativeLabelsPosition(series, isHorizontal) }
+      : null),
     connectNulls,
     queryIndex,
     yAxisIndex,
@@ -629,18 +632,15 @@ export function getPadding(
 }
 
 export function transformNegativeLabelsPosition(
-  series: SeriesOption[],
+  series: SeriesOption,
   isHorizontal: boolean,
-): SeriesOption[] {
+): TimeseriesDataRecord[] {
   /*
    * Adjusts label position for negative values in bar series
    * @param series - Array of series options
    * @param isHorizontal - Whether chart is horizontal
-   * @returns Series with adjusted label positions for negative values
+   * @returns data with adjusted label positions for negative values
    */
-  const shouldTransform = (item: SeriesOption): boolean =>
-    Array.isArray(item.data) && item.type === 'bar' && !item.stack;
-
   const transformValue = (value: any) => {
     const [xValue, yValue] = Array.isArray(value) ? value : [null, null];
     const axisValue = isHorizontal ? xValue : yValue;
@@ -655,10 +655,5 @@ export function transformNegativeLabelsPosition(
       : value;
   };
 
-  return series.map((item: SeriesOption) => ({
-    ...item,
-    data: shouldTransform(item)
-      ? (item.data as any).map(transformValue)
-      : item.data,
-  }));
+  return (series.data as TimeseriesDataRecord[]).map(transformValue);
 }
