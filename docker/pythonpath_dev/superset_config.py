@@ -94,10 +94,10 @@ class CeleryConfig:
             "task": "reports.prune_log",
             "schedule": crontab(minute=10, hour=0),
         },
-        # "check_for_expired_llm_context": {
-        #     "task": "check_for_expired_llm_context",
-        #     "schedule": crontab(minute=1, hour=0),
-        # }
+        "check_for_expired_llm_context": {
+            "task": "check_for_expired_llm_context",
+            "schedule": 300.0,
+        }
     }
 
 
