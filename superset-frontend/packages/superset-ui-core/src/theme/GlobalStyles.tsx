@@ -20,7 +20,6 @@ import { css, useTheme, Global } from '@emotion/react';
 
 export const GlobalStyles = () => {
   const theme = useTheme();
-  console.log('YOYO2', theme.colorLink);
   return (
     <Global
       key={`global-${theme.colorLink}`}
