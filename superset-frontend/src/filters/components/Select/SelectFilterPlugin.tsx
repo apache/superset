@@ -34,7 +34,7 @@ import {
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
 import { debounce } from 'lodash';
 import { useImmerReducer } from 'use-immer';
-import { Select } from 'src/components/Select';
+import { Select } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';

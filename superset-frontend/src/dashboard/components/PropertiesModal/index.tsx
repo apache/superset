@@ -22,8 +22,7 @@ import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { AntdForm } from 'src/components';
-import { AsyncSelect } from 'src/components/Select';
+import { AntdForm, AsyncSelect } from 'src/components';
 import { Row, Col } from 'src/components/Grid';
 import rison from 'rison';
 import {

@@ -27,7 +27,7 @@ import {
 import { styled, SupersetClient, SupersetError, t } from '@superset-ui/core';
 import type { LabeledValue as AntdLabeledValue } from 'antd-v5/es/select';
 import rison from 'rison';
-import { Select, AsyncSelect } from 'src/components/Select';
+import { Select, AsyncSelect } from 'src/components';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';

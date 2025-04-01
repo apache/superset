@@ -17,7 +17,7 @@
  * under the License.
  */
 import { sharedControlComponents } from '@superset-ui/chart-controls';
-import { Select } from 'src/components/Select';
+import { Select } from 'src/components';
 import { Input, InputNumber } from 'src/components/Input';
 import Slider from 'src/components/Slider';
 import CurrencyControl from '../../CurrencyControl';

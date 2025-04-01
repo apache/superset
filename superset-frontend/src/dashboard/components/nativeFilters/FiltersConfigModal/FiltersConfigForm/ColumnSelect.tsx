@@ -25,8 +25,7 @@ import {
   useChangeEffect,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { Select } from 'src/components/Select';
-import { FormInstance } from 'src/components';
+import { Select, FormInstance } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { NativeFiltersForm } from '../types';

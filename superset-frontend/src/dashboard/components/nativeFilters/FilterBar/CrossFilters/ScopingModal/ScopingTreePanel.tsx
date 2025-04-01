@@ -26,7 +26,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Select } from 'src/components/Select';
+import { Select } from 'src/components';
 import { noOp } from 'src/utils/common';
 import ScopingTree from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/ScopingTree';
 import {

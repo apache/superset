@@ -32,6 +32,13 @@ export {
   Select as AntdSelect,
 } from 'antd';
 
+/*
+ * Re-exporting of components in src/components to facilitate
+ * their imports by other components.
+ * E.g. import { Select } from 'src/components', probably in the future from '@superset-ui/components'
+ */
+export { Select, AsyncSelect } from './Select';
+
 // Exported types
 // eslint-disable-next-line no-restricted-imports
 export type { FormInstance } from 'antd/lib/form'; // TODO: Remove antd
