@@ -1061,6 +1061,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "viz_type": None,
             "query_context": None,
             "is_managed_externally": False,
+            "published": False,
         }
         data = json.loads(rv.data.decode("utf-8"))
         assert "changed_on_delta_humanized" in data["result"]

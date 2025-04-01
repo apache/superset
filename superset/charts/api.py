@@ -157,7 +157,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "tags.id",
         "tags.name",
         "tags.type",
-        "published"
+        "published",
     ]
 
     show_select_columns = show_columns + ["table.id"]
@@ -254,7 +254,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "tags": [ChartTagNameFilter, ChartTagIdFilter],
     }
     # Will just affect _info endpoint
-    edit_columns = ["slice_name", "published"]
+    edit_columns = ["slice_name"]
     add_columns = edit_columns
 
     add_model_schema = ChartPostSchema()
