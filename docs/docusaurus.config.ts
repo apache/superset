@@ -210,6 +210,13 @@ const config: Config = {
         remarkPlugins: [remarkImportPartial],
         // Enable MDX v2
         docItemComponent: '@theme/DocItem',
+        includeCurrentVersion: true,
+        versions: {
+          current: {
+            label: 'Next',
+            path: 'next',
+          },
+        },
       },
     ],
   ],

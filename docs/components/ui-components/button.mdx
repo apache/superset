@@ -3,29 +3,69 @@ title: Button Component
 sidebar_position: 1
 ---
 
-import { Meta, Story, Canvas, Controls } from '@storybook/blocks';
+import { StoryExample, StoryWithControls } from '../../src/components/StorybookWrapper';
 import Button from '../../../superset-frontend/src/components/Button';
-import * as ButtonStories from '../../../superset-frontend/src/components/Button/Button.stories';
 
 # Button Component
 
 The Button component is a fundamental UI element used throughout Superset for user interactions.
 
-<Meta of={ButtonStories} />
-
 ## Basic Usage
 
 The default button with primary styling:
 
-<Canvas>
-  <Story of={ButtonStories.ButtonGallery} />
-</Canvas>
+<StoryExample
+  component={() => (
+    <Button buttonStyle="primary" onClick={() => console.log('Clicked!')}>
+      Click Me
+    </Button>
+  )}
+/>
 
 ## Interactive Example
 
-<Canvas>
-  <Story of={ButtonStories.InteractiveButton} />
-</Canvas>
+<StoryWithControls
+  component={({ buttonStyle, buttonSize, label, disabled }) => (
+    <Button
+      buttonStyle={buttonStyle}
+      buttonSize={buttonSize}
+      disabled={disabled}
+      onClick={() => console.log('Clicked!')}
+    >
+      {label}
+    </Button>
+  )}
+  props={{
+    buttonStyle: 'primary',
+    buttonSize: 'default',
+    label: 'Click Me',
+    disabled: false
+  }}
+  controls={[
+    {
+      name: 'buttonStyle',
+      label: 'Button Style',
+      type: 'select',
+      options: ['primary', 'secondary', 'tertiary', 'success', 'warning', 'danger', 'default', 'link', 'dashed']
+    },
+    {
+      name: 'buttonSize',
+      label: 'Button Size',
+      type: 'select',
+      options: ['default', 'small', 'xsmall']
+    },
+    {
+      name: 'label',
+      label: 'Button Text',
+      type: 'text'
+    },
+    {
+      name: 'disabled',
+      label: 'Disabled',
+      type: 'boolean'
+    }
+  ]}
+/>
 
 ## Props
 
@@ -41,9 +81,24 @@ The default button with primary styling:
 | `href` | `string` | - | Turns button into an anchor link |
 | `target` | `string` | - | Target attribute for anchor links |
 
-## Examples
+## Usage
 
-### Button Styles
+```jsx
+import Button from 'src/components/Button';
+
+function MyComponent() {
+  return (
+    <Button
+      buttonStyle="primary"
+      onClick={() => console.log('Button clicked')}
+    >
+      Click Me
+    </Button>
+  );
+}
+```
+
+## Button Styles
 
 Superset provides a variety of button styles for different purposes:
 
@@ -56,7 +111,7 @@ Superset provides a variety of button styles for different purposes:
 - **Link**: Used for navigation
 - **Dashed**: Used for adding new items or features
 
-### Button Sizes
+## Button Sizes
 
 Buttons come in three sizes:
 

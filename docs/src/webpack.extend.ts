@@ -34,39 +34,64 @@ export default function webpackExtendPlugin(): Plugin<void> {
               __dirname,
               '../../superset-frontend/node_modules/@superset-ui/core',
             ),
-            'storybook/internal/components': require.resolve(
-              '@storybook/components',
+            // Add proper Storybook aliases
+            '@storybook/blocks': path.resolve(
+              __dirname,
+              '../node_modules/@storybook/blocks',
             ),
-            'storybook/internal/theming': require.resolve('@storybook/theming'),
-            'storybook/internal/client-logger': require.resolve(
-              '@storybook/client-logger',
+            '@storybook/components': path.resolve(
+              __dirname,
+              '../node_modules/@storybook/components',
             ),
-            'storybook/internal/csf': require.resolve('@storybook/csf'),
-            'storybook/internal/preview-api': require.resolve(
-              '@storybook/preview-api',
+            '@storybook/theming': path.resolve(
+              __dirname,
+              '../node_modules/@storybook/theming',
             ),
-            'storybook/internal/docs-tools': require.resolve(
-              '@storybook/docs-tools',
+            '@storybook/client-logger': path.resolve(
+              __dirname,
+              '../node_modules/@storybook/client-logger',
             ),
-            'storybook/internal/core-events': require.resolve(
-              '@storybook/core-events',
+            '@storybook/core-events': path.resolve(
+              __dirname,
+              '../node_modules/@storybook/core-events',
             ),
-            'storybook/internal/channels': require.resolve(
-              '@storybook/channels',
+            // Add internal Storybook aliases
+            'storybook/internal/components': path.resolve(
+              __dirname,
+              '../node_modules/@storybook/components',
+            ),
+            'storybook/internal/theming': path.resolve(
+              __dirname,
+              '../node_modules/@storybook/theming',
+            ),
+            'storybook/internal/client-logger': path.resolve(
+              __dirname,
+              '../node_modules/@storybook/client-logger',
+            ),
+            'storybook/internal/csf': path.resolve(
+              __dirname,
+              '../node_modules/@storybook/csf',
+            ),
+            'storybook/internal/preview-api': path.resolve(
+              __dirname,
+              '../node_modules/@storybook/preview-api',
+            ),
+            'storybook/internal/docs-tools': path.resolve(
+              __dirname,
+              '../node_modules/@storybook/docs-tools',
+            ),
+            'storybook/internal/core-events': path.resolve(
+              __dirname,
+              '../node_modules/@storybook/core-events',
+            ),
+            'storybook/internal/channels': path.resolve(
+              __dirname,
+              '../node_modules/@storybook/channels',
             ),
           },
         },
-        module: {
-          rules: [
-            {
-              test: /\.tsx?$/,
-              use: 'ts-loader',
-              // Only process files from superset-frontend, not our own TypeScript files
-              include: [path.resolve(__dirname, '../../superset-frontend')],
-              exclude: [/node_modules/, path.resolve(__dirname, '../src')],
-            },
-          ],
-        },
+        // We're removing the ts-loader rule that was processing superset-frontend files
+        // This will prevent TypeScript errors from files outside the docs directory
       };
     },
   };
