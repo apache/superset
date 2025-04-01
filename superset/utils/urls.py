@@ -16,7 +16,7 @@
 # under the License.
 import urllib
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 from flask import current_app, url_for
 
@@ -62,24 +62,3 @@ def is_secure_url(url: str) -> bool:
     """
     parsed_url = urlparse(url)
     return parsed_url.scheme == "https"
-
-
-def is_safe_redirect_url(source_url: str, target_url: str) -> bool:
-    """
-    Validates whether it's safe to redirect from source URL to the target URL.
-
-    Checks that the URL scheme and netloc match.
-
-    :param source_url: the current request.host_url.
-    :param target_url: the URL we plan to redirect to.
-    """
-    if not target_url:
-        return False
-    # Resolve relative target_url to block against XSS attacks
-    joined = urljoin(source_url, target_url)
-    parsed_source = urlparse(source_url)
-    parsed_target = urlparse(joined)
-    return (
-        parsed_source.scheme == parsed_target.scheme
-        and parsed_source.hostname == parsed_target.hostname
-    )

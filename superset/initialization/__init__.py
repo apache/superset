@@ -27,6 +27,7 @@ from deprecation import deprecated
 from flask import abort, Flask, redirect, request, session
 from flask_appbuilder import expose, IndexView
 from flask_appbuilder.api import safe
+from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import gettext as __, refresh
 from flask_compress import Compress
 from flask_session import Session
@@ -61,7 +62,6 @@ from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
-from superset.utils.urls import is_safe_redirect_url
 
 if TYPE_CHECKING:
     from superset.app import SupersetApp
@@ -721,10 +721,6 @@ class SupersetIndexView(IndexView):
         refresh()
         self.update_redirect()
 
-        redirect_to = request.headers.get("Referer")
-        if redirect_to and is_safe_redirect_url(
-            source_url=request.host_url,
-            target_url=redirect_to,
-        ):
-            return redirect(redirect_to)
+        if redirect_to := request.headers.get("Referer"):
+            return redirect(get_safe_redirect(redirect_to))
         return redirect(self.get_redirect())
