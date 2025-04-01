@@ -343,11 +343,15 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         )
 
         # Run the query and handle result
-        df = database.get_df(str(compiled_query))
-        if df.empty or df.iat[0, 0] is None:
-            return None
-
-        return df.iat[0, 0]
+        with database.get_raw_connection(
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as conn:
+            cursor = conn.cursor()
+            cursor.execute(str(compiled_query))
+            if row := cursor.fetchone():
+                return row[0]
+        return None
 
     @classmethod
     def get_time_partition_column(
