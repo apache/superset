@@ -25,7 +25,7 @@ import { css, styled, t, useTheme } from '@superset-ui/core';
 import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 
 import Label from 'src/components/Label';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import QueryHistory from '../QueryHistory';
 import {

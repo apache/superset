@@ -18,7 +18,7 @@
  */
 import { screen, render, userEvent } from 'spec/helpers/testing-library';
 import Button from '../Button';
-import Icons from '../Icons';
+import { Icons } from '../Icons';
 import DropdownContainer from '.';
 
 const generateItems = (n: number) =>

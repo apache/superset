@@ -25,7 +25,7 @@ import {
 } from 'react';
 
 import { t, styled, useTheme, css } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Input as AntdInput } from 'src/components/Input';
 import { SELECT_WIDTH } from 'src/components/ListView/utils';
 import { FormLabel } from 'src/components/Form';

@@ -20,7 +20,7 @@ import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { Input } from 'src/components/Input';
 import InfoTooltip from 'src/components/InfoTooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Button from 'src/components/Button';
 import errorIcon from 'src/assets/images/icons/error.svg';
 import FormItem from './FormItem';
