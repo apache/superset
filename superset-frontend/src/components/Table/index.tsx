@@ -162,7 +162,7 @@ const HEADER_HEIGHT = 68;
 const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
   ({ theme, height }) => `
     color: ${theme.colorText};
-    .ant-table-body {
+    .antd5-table-body {
       overflow: auto;
       height: ${height ? `${height}px` : undefined};
     }

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { memo } from 'react';
-import { TableInstance } from 'react-table';
+import { SortingRule, TableInstance } from 'react-table';
 import { Table, TableSize } from 'src/components/Table';
 import { mapColumns, mapRows } from './utils';
 
@@ -31,19 +31,31 @@ interface TableCollectionProps {
   loading: boolean;
   highlightRowId?: number;
   columnsForWrapText?: string[];
+  setSortBy: (updater: SortingRule<any>[]) => void;
 }
 
-export default memo(({ columns, rows, loading }: TableCollectionProps) => {
-  const mappedColumns = mapColumns(columns);
-  const mappedRows = mapRows(rows);
-  console.log({ columns, mappedColumns, rows, mappedRows });
-  return (
-    <Table
-      loading={loading}
-      columns={mappedColumns}
-      data={mappedRows}
-      size={TableSize.Middle}
-      pagination={false}
-    />
-  );
-});
+export default memo(
+  ({ columns, rows, loading, setSortBy }: TableCollectionProps) => {
+    const mappedColumns = mapColumns(columns);
+    const mappedRows = mapRows(rows);
+    return (
+      <Table
+        loading={loading}
+        columns={mappedColumns}
+        data={mappedRows}
+        size={TableSize.Middle}
+        pagination={false}
+        tableLayout="auto"
+        sortDirections={['ascend', 'descend', 'ascend']} // HACK: To disable default sorting
+        onChange={(pagination, filters, sorter: any) => {
+          setSortBy([
+            {
+              id: sorter.field,
+              desc: sorter.order === 'descend',
+            },
+          ] as SortingRule<any>[]);
+        }}
+      />
+    );
+  },
+);

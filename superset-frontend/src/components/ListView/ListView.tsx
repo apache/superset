@@ -438,6 +438,7 @@ function ListView<T extends object = any>({
               getTableBodyProps={getTableBodyProps}
               prepareRow={prepareRow}
               headerGroups={headerGroups}
+              setSortBy={setSortBy}
               rows={rows}
               columns={columns}
               loading={loading}

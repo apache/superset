@@ -19,22 +19,29 @@
 
 import { ColumnsType } from 'src/components/Table';
 
+const COLUMN_SIZE_MAP: Record<string, number> = {
+  xs: 25,
+  sm: 50,
+  md: 75,
+  lg: 100,
+  xl: 150,
+  xxl: 200,
+};
+
 export const mapColumns = (columns: any[]): ColumnsType =>
   columns.map(column => ({
     title: column.Header,
     dataIndex: column.accessor,
     key: column.accessor,
     hidden: column.hidden,
+    minWidth: COLUMN_SIZE_MAP[column.size] || column.size,
+    sorter: !column.disableSortBy,
     render: (val, record) => {
       if (column.Cell) {
-        return column.Cell({ row: { original: record } });
+        return column.Cell({ row: { original: { ...record } } });
       }
       return val;
     },
   }));
 
-export const mapRows = (rows: any[]): any[] =>
-  rows.map(row => ({
-    ...row.values,
-    id: row.original.id,
-  }));
+export const mapRows = (rows: any[]): any[] => rows.map(row => row.original);
