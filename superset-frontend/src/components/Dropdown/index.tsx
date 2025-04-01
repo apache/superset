@@ -29,7 +29,7 @@ import {
   DropdownProps as AntdDropdownProps,
 } from 'antd-v5';
 import { styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 const MenuDots = styled.div`
   width: ${({ theme }) => theme.gridUnit * 0.75}px;
@@ -91,7 +91,7 @@ const RenderIcon = (
 ) => {
   const component =
     iconOrientation === IconOrientation.Horizontal ? (
-      <Icons.MoreHoriz iconSize="xl" />
+      <Icons.EllipsisOutlined iconSize="xl" />
     ) : (
       <MenuDots />
     );

@@ -29,7 +29,7 @@ import {
   getExtensionsRegistry,
   usePrevious,
 } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
 import { AlertObject } from 'src/features/alerts/types';
 import { Menu } from 'src/components/Menu';
@@ -273,10 +273,10 @@ export default function HeaderReportDropDown({
         className="action-button action-schedule-report"
         onClick={() => showReportModal()}
       >
-        <Icons.Calendar />
+        <Icons.CalendarOutlined />
       </span>
     ) : (
-      menu(<Icons.Calendar />)
+      menu(<Icons.CalendarOutlined />)
     );
   return <>{canAddReports() && (useTextMenu ? textMenu() : iconMenu())}</>;
 }

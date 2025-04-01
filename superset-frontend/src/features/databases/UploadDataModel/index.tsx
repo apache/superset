@@ -43,10 +43,11 @@ import {
   Select,
   Upload,
 } from 'src/components';
-import { UploadOutlined } from '@ant-design/icons';
+import { Icons } from 'src/components/Icons';
 import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
+// eslint-disable-next-line no-restricted-imports
+import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   antdCollapseStyles,
@@ -184,8 +185,15 @@ export const validateUploadFileExtension = (
   }
 
   const fileType = extensionMatch[1].toLowerCase();
+<<<<<<< HEAD
   const normalizedAllowedExtensions = allowedExtensions.map(ext => ext.toLowerCase());
   return allowedExtensions.includes(fileType);
+=======
+  const lowerCaseAllowedExtensions = allowedExtensions.map(ext =>
+    ext.toLowerCase(),
+  );
+  return lowerCaseAllowedExtensions.includes(fileType);
+>>>>>>> upstream/master
 };
 
 interface StyledSwitchContainerProps extends SwitchProps {
@@ -359,7 +367,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
           return Promise.resolve({ data: [], totalCount: 0 });
         }
         return SupersetClient.get({
-          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/`,
+          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/?q=(upload_allowed:!t)`,
         }).then(response => {
           const list = response.json.result.map((item: string) => ({
             value: item,
@@ -631,7 +639,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                   >
                     <Button
                       aria-label={t('Select')}
-                      icon={<UploadOutlined />}
+                      icon={<Icons.UploadOutlined />}
                       loading={fileLoading}
                     >
                       {t('Select')}
@@ -790,7 +798,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                       allowClear
                       allowNewOptions
                       placeholder={t(
-                        'A comma separated list of columns that should be parsed as dates',
+                        'Select column names from a dropdown list that should be parsed as dates.',
                       )}
                     />
                   </StyledFormItem>

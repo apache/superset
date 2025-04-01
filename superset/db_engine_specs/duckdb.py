@@ -30,13 +30,13 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
 from superset.config import VERSION_STRING
-from superset.constants import TimeGrain, USER_AGENT
+from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.utils.core import get_user_agent, QuerySource
 
 if TYPE_CHECKING:
-    # prevent circular imports
     from superset.models.core import Database
 
 
@@ -162,7 +162,7 @@ class DuckDBParametersMixin:
         if missing := sorted(required - present):
             errors.append(
                 SupersetError(
-                    message=f'One or more parameters are missing: {", ".join(missing)}',
+                    message=f"One or more parameters are missing: {', '.join(missing)}",
                     error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                     level=ErrorLevel.WARNING,
                     extra={"missing": missing},
@@ -237,7 +237,9 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         return set(inspector.get_table_names(schema))
 
     @staticmethod
-    def get_extra_params(database: Database) -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         Add a user agent to be used in the requests.
         """
@@ -247,7 +249,8 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         config: dict[str, Any] = connect_args.setdefault("config", {})
         custom_user_agent = config.pop("custom_user_agent", "")
         delim = " " if custom_user_agent else ""
-        user_agent = USER_AGENT.replace(" ", "-").lower()
+        user_agent = get_user_agent(database, source)
+        user_agent = user_agent.replace(" ", "-").lower()
         user_agent = f"{user_agent}/{VERSION_STRING}{delim}{custom_user_agent}"
         config.setdefault("custom_user_agent", user_agent)
 

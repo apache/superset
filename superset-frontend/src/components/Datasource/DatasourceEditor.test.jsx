@@ -169,7 +169,7 @@ describe('DatasourceEditor', () => {
     });
 
     it('Source Tab: edit mode', () => {
-      const getLockBtn = screen.getByRole('img', { name: /lock-locked/i });
+      const getLockBtn = screen.getByRole('img', { name: /lock/i });
       userEvent.click(getLockBtn);
       const physicalRadioBtn = screen.getByRole('radio', {
         name: /physical \(table or view\)/i,
@@ -182,7 +182,7 @@ describe('DatasourceEditor', () => {
     });
 
     it('Source Tab: readOnly mode', () => {
-      const getLockBtn = screen.getByRole('img', { name: /lock-locked/i });
+      const getLockBtn = screen.getByRole('img', { name: /lock/i });
       expect(getLockBtn).toBeInTheDocument();
       const physicalRadioBtn = screen.getByRole('radio', {
         name: /physical \(table or view\)/i,

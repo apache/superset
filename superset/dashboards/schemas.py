@@ -70,8 +70,7 @@ json_metadata_description = (
     " specific parameters."
 )
 published_description = (
-    "Determines whether or not this dashboard is visible in "
-    "the list of all dashboards."
+    "Determines whether or not this dashboard is visible in the list of all dashboards."
 )
 charts_description = (
     "The names of the dashboard's charts. Names are used for legacy reasons."
@@ -522,3 +521,4 @@ class CacheScreenshotSchema(Schema):
     urlParams = fields.List(  # noqa: N815
         fields.List(fields.Str(), validate=lambda x: len(x) == 2), required=False
     )
+    permalinkKey = fields.Str(required=False)  # noqa: N815

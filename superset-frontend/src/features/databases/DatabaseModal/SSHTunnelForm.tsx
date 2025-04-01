@@ -22,8 +22,9 @@ import { AntdForm, Col, Row } from 'src/components';
 import { Form, FormLabel } from 'src/components/Form';
 import { Radio } from 'src/components/Radio';
 import { Input, TextArea } from 'src/components/Input';
-import { Input as AntdInput, Tooltip } from 'antd';
-import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
+// eslint-disable-next-line no-restricted-imports
+import { Input as AntdInput, Tooltip } from 'antd'; // TODO: Remove antd
+import { Icons } from 'src/components/Icons';
 import { DatabaseObject, FieldPropTypes } from '../types';
 import { AuthType } from '.';
 
@@ -155,11 +156,11 @@ const SSHTunnelForm = ({
                 iconRender={visible =>
                   visible ? (
                     <Tooltip title="Hide password.">
-                      <EyeInvisibleOutlined />
+                      <Icons.EyeInvisibleOutlined />
                     </Tooltip>
                   ) : (
                     <Tooltip title="Show password.">
-                      <EyeOutlined />
+                      <Icons.EyeOutlined />
                     </Tooltip>
                   )
                 }
@@ -203,11 +204,11 @@ const SSHTunnelForm = ({
                   iconRender={visible =>
                     visible ? (
                       <Tooltip title="Hide password.">
-                        <EyeInvisibleOutlined />
+                        <Icons.EyeInvisibleOutlined />
                       </Tooltip>
                     ) : (
                       <Tooltip title="Show password.">
-                        <EyeOutlined />
+                        <Icons.EyeOutlined />
                       </Tooltip>
                     )
                   }

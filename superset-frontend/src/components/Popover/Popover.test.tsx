@@ -23,7 +23,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { supersetTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Button from 'src/components/Button';
 import Popover from 'src/components/Popover';
 
@@ -58,7 +58,7 @@ test('it should render content when not visible but forceRender=true', () => {
 test('renders with icon child', async () => {
   render(
     <Popover content="Content sample" title="Popover title">
-      <Icons.Alert>Click me</Icons.Alert>
+      <Icons.WarningOutlined>Click me</Icons.WarningOutlined>
     </Popover>,
   );
   expect(await screen.findByRole('img')).toBeInTheDocument();

@@ -92,7 +92,7 @@ jest.mock('rehype-raw', () => () => jest.fn());
 
 // Mocks the Icon component due to its async nature
 // Tests should override this when needed
-jest.mock('src/components/Icons/Icon', () => ({
+jest.mock('src/components/Icons/AsyncIcon', () => ({
   __esModule: true,
   default: ({
     fileName,
@@ -111,13 +111,22 @@ jest.mock('src/components/Icons/Icon', () => ({
     />
   ),
   StyledIcon: ({
+    component: Component,
     role,
     'aria-label': ariaLabel,
     ...rest
   }: {
+    component: React.ComponentType<any>;
     role: string;
     'aria-label': AriaAttributes['aria-label'];
-  }) => <span role={role ?? 'img'} aria-label={ariaLabel} {...rest} />,
+  }) => (
+    <Component
+      role={role ?? 'img'}
+      alt={ariaLabel}
+      aria-label={ariaLabel}
+      {...rest}
+    />
+  ),
 }));
 
 process.env.WEBPACK_MODE = 'test';

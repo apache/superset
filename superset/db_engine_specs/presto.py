@@ -43,7 +43,6 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import cache_manager, db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
-from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
@@ -63,7 +62,6 @@ from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
-    # prevent circular imports
     from superset.models.core import Database
     from superset.sql_parse import Table
 
@@ -664,7 +662,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         if len(kwargs.keys()) != len(part_fields) - 1:
             # pylint: disable=consider-using-f-string
             msg = (
-                "A filter needs to be specified for {} out of the " "{} fields."
+                "A filter needs to be specified for {} out of the {} fields."
             ).format(len(part_fields) - 1, len(part_fields))
             raise SupersetTemplateException(msg)
 
@@ -955,33 +953,25 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return version is not None and Version(version) >= Version("0.319")
 
     @classmethod
-    def update_impersonation_config(  # pylint: disable=too-many-arguments
+    def impersonate_user(
         cls,
         database: Database,
-        connect_args: dict[str, Any],
-        uri: str,
         username: str | None,
-        access_token: str | None,
-    ) -> None:
-        """
-        Update a configuration dictionary
-        that can set the correct properties for impersonating users
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        if username is None:
+            return url, engine_kwargs
 
-        :param connect_args: the Database object
-        :param connect_args: config to be updated
-        :param uri: URI string
-        :param username: Effective username
-        :param access_token: Personal access token for OAuth2
-        :return: None
-        """
-        url = make_url_safe(uri)
+        url = url.set(username=username)
+
         backend_name = url.get_backend_name()
-
-        # Must be Presto connection, enable impersonation, and set optional param
-        # auth=LDAP|KERBEROS
-        # Set principal_username=$effective_username
-        if backend_name == "presto" and username is not None:
+        connect_args = engine_kwargs.setdefault("connect_args", {})
+        if backend_name == "presto":
             connect_args["principal_username"] = username
+
+        return url, engine_kwargs
 
     @classmethod
     def get_table_names(

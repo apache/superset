@@ -19,7 +19,7 @@
 import { css, SupersetTheme, t } from '@superset-ui/core';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import FormLabel from 'src/components/Form/FormLabel';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
 import { CatalogObject, FieldPropTypes } from '../../types';
 
@@ -40,7 +40,7 @@ export const TableCatalog = ({
       <div>
         {tableCatalog?.map((sheet: CatalogObject, idx: number) => (
           <>
-            <FormLabel className="catalog-label" required>
+            <FormLabel className="catalog-label">
               {t('Google Sheet Name and URL')}
             </FormLabel>
             <div className="catalog-name">
@@ -104,6 +104,13 @@ export const TableCatalog = ({
         >
           + {t('Add sheet')}
         </StyledFooterButton>
+      </div>
+      <div className="helper">
+        <div>
+          {t(
+            'In order to connect to non-public sheets you need to either provide a service account or configure an OAuth2 client.',
+          )}
+        </div>
       </div>
     </StyledCatalogTable>
   );

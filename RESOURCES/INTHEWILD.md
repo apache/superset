@@ -25,8 +25,8 @@ all you have to do is file a simple PR [like this one](https://github.com/apache
 the categorization is inaccurate, please file a PR with your correction as well.
 Join our growing community!
 
-
 ### Sharing Economy
+
 - [Airbnb](https://github.com/airbnb)
 - [Faasos](https://faasos.com/) [@shashanksingh]
 - [Free2Move](https://www.free2move.com/) [@PaoloTerzi]
@@ -36,6 +36,7 @@ Join our growing community!
 - [Ontruck](https://www.ontruck.com/)
 
 ### Financial Services
+
 - [Aktia Bank plc](https://www.aktia.com)
 - [American Express](https://www.americanexpress.com) [@TheLastSultan]
 - [bumper](https://www.bumper.co/) [@vasu-ram, @JamiePercival]
@@ -51,9 +52,11 @@ Join our growing community!
 - [Cover Genius](https://covergenius.com/)
 
 ### Gaming
+
 - [Popoko VM Games Studio](https://popoko.live)
 
 ### E-Commerce
+
 - [AiHello](https://www.aihello.com) [@ganeshkrishnan1]
 - [Bazaar Technologies](https://www.bazaartech.com) [@umair-abro]
 - [Dragonpass](https://www.dragonpass.com.cn/) [@zhxjdwh]
@@ -79,12 +82,14 @@ Join our growing community!
 - [Zepto](https://www.zeptonow.com/) [@gwthm-in]
 
 ### Enterprise Technology
+
 - [A3Data](https://a3data.com.br) [@neylsoncrepalde]
 - [Analytics Aura](https://analyticsaura.com/) [@Analytics-Aura]
 - [Apollo GraphQL](https://www.apollographql.com/) [@evans]
 - [Astronomer](https://www.astronomer.io) [@ryw]
 - [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
 - [Caizin](https://caizin.com/) [@tejaskatariya]
+- [Canonical](https://canonical.com)
 - [Careem](https://www.careem.com/) [@samraHanif0340]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
 - [Cyberhaven](https://www.cyberhaven.com/) [@toliver-ch]
@@ -109,6 +114,7 @@ Join our growing community!
 - [Ona](https://ona.io) [@pld]
 - [Orange](https://www.orange.com) [@icsu]
 - [Oslandia](https://oslandia.com)
+- [Oxylabs](https://oxylabs.io/) [@rytis-ulys]
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
 - [PlaidCloud](https://www.plaidcloud.com)
@@ -116,8 +122,11 @@ Join our growing community!
 - [PubNub](https://pubnub.com) [@jzucker2]
 - [ReadyTech](https://www.readytech.io)
 - [Reward Gateway](https://www.rewardgateway.com)
+- [RIADVICE](https://riadvice.tn) [@riadvice]
 - [ScopeAI](https://www.getscopeai.com) [@iloveluce]
+- [shipmnts](https://shipmnts.com)
 - [Showmax](https://showmax.com) [@bobek]
+- [SingleStore](https://www.singlestore.com/)
 - [TechAudit](https://www.techaudit.info) [@ETselikov]
 - [Tenable](https://www.tenable.com) [@dflionis]
 - [Tentacle](https://www.linkedin.com/company/tentacle-cmi/) [@jdclarke5]
@@ -131,6 +140,7 @@ Join our growing community!
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
 
 ### Media & Entertainment
+
 - [6play](https://www.6play.fr) [@CoryChaplin]
 - [bilibili](https://www.bilibili.com) [@Moinheart]
 - [BurdaForward](https://www.burda-forward.de/en/)
@@ -143,6 +153,7 @@ Join our growing community!
 - [Zaihang](https://www.zaih.com/)
 
 ### Education
+
 - [Aveti Learning](https://avetilearning.com/) [@TheShubhendra]
 - [Brilliant.org](https://brilliant.org/)
 - [Open edX](https://openedx.org/)
@@ -154,6 +165,7 @@ Join our growing community!
 - [WikiMedia Foundation](https://wikimediafoundation.org) [@vg]
 
 ### Energy
+
 - [Airboxlab](https://foobot.io) [@antoine-galataud]
 - [DouroECI](https://www.douroeci.com/) [@nunohelibeires]
 - [Safaricom](https://www.safaricom.co.ke/) [@mmutiso]
@@ -161,6 +173,7 @@ Join our growing community!
 - [Wattbewerb](https://wattbewerb.de/) [@wattbewerb]
 
 ### Healthcare
+
 - [Amino](https://amino.com) [@shkr]
 - [Bluesquare](https://www.bluesquarehub.com/) [@madewulf]
 - [Care](https://www.getcare.io/) [@alandao2021]
@@ -173,24 +186,30 @@ Join our growing community!
 - [2070Health](https://2070health.com/)
 
 ### HR / Staffing
+
 - [Swile](https://www.swile.co/) [@PaoloTerzi]
 - [Symmetrics](https://www.symmetrics.fyi)
 - [bluquist](https://bluquist.com/)
 
-### Government / Non-Profit
+### Government
+
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
 - [RIS3 Strategy of CZ, MIT CR](https://www.ris3.cz/) [@RIS3CZ]
 - [NRLM - Sarathi, India](https://pib.gov.in/PressReleasePage.aspx?PRID=1999586)
 
 ### Travel
+
 - [Agoda](https://www.agoda.com/) [@lostseaway, @maiake, @obombayo]
+- [HomeToGo](https://hometogo.com/) [@pedromartinsteenstrup]
 - [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
 
 ### Others
+
 - [10Web](https://10web.io/)
 - [AI inside](https://inside.ai/en/)
 - [Automattic](https://automattic.com/) [@Khrol, @Usiel]
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
+- [Flowbird](https://flowbird.com) [@EmmanuelCbd]
 - [GEOTAB](https://www.geotab.com) [@JZ6]
 - [Grassroot](https://www.grassrootinstitute.org/)
 - [Increff](https://www.increff.com/) [@ishansinghania]

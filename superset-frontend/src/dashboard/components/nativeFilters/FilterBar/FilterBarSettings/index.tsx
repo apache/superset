@@ -19,20 +19,14 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  styled,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { styled, t, useTheme, css } from '@superset-ui/core';
 import { MenuProps } from 'src/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   saveFilterBarOrientation,
   saveCrossFiltersSetting,
 } from 'src/dashboard/actions/dashboardInfo';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Checkbox from 'src/components/Checkbox';
 import { Dropdown } from 'src/components/Dropdown';
 import { Button } from 'src/components';
@@ -74,8 +68,8 @@ const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
   o === FilterBarOrientation.Vertical || o === FilterBarOrientation.Horizontal;
 
 const FilterBarSettings = () => {
-  const dispatch = useDispatch();
   const theme = useTheme();
+  const dispatch = useDispatch();
   const isCrossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
@@ -96,8 +90,6 @@ const FilterBarSettings = () => {
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
-  const canSetHorizontalFilterBar =
-    canEdit && isFeatureEnabled(FeatureFlag.HorizontalFilterBar);
 
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal();
 
@@ -193,7 +185,7 @@ const FilterBarSettings = () => {
           </FilterConfigurationLink>
         ),
       });
-      if (canSetHorizontalFilterBar) {
+      if (canEdit) {
         items.push({ type: 'divider' });
       }
     }
@@ -206,11 +198,9 @@ const FilterBarSettings = () => {
         key: CROSS_FILTERS_SCOPING_MENU_KEY,
         label: t('Cross-filtering scoping'),
       });
-      if (canSetHorizontalFilterBar) {
-        items.push({ type: 'divider' });
-      }
+      items.push({ type: 'divider' });
     }
-    if (canSetHorizontalFilterBar) {
+    if (canEdit) {
       items.push({
         key: 'placement',
         label: t('Orientation of filter bar'),
@@ -221,7 +211,15 @@ const FilterBarSettings = () => {
               <Space>
                 {t('Vertical (Left)')}
                 {selectedFilterBarOrientation ===
-                  FilterBarOrientation.Vertical && <Icons.Check />}
+                  FilterBarOrientation.Vertical && (
+                  <Icons.CheckOutlined
+                    iconColor={theme.colors.primary.base}
+                    css={css`
+                      vertical-align: -${theme.gridUnit * 0.03125}em;
+                    `}
+                    iconSize="m"
+                  />
+                )}
               </Space>
             ),
           },
@@ -231,7 +229,14 @@ const FilterBarSettings = () => {
               <Space>
                 {t('Horizontal (Top)')}
                 {selectedFilterBarOrientation ===
-                  FilterBarOrientation.Horizontal && <Icons.Check />}
+                  FilterBarOrientation.Horizontal && (
+                  <Icons.CheckOutlined
+                    iconSize="m"
+                    css={css`
+                      vertical-align: middle;
+                    `}
+                  />
+                )}
               </Space>
             ),
           },
@@ -243,7 +248,6 @@ const FilterBarSettings = () => {
   }, [
     selectedFilterBarOrientation,
     canEdit,
-    canSetHorizontalFilterBar,
     crossFiltersMenuItem,
     dashboardId,
     filterValues,
@@ -263,10 +267,15 @@ const FilterBarSettings = () => {
         }}
         trigger={['click']}
       >
-        <Button type="link">
-          <Icons.Gear
+        <Button
+          type="link"
+          css={css`
+            padding: 0;
+          `}
+        >
+          <Icons.SettingOutlined
+            iconSize="xl"
             name="gear"
-            iconColor={theme.colors.grayscale.base}
             data-test="filterbar-orientation-icon"
           />
         </Button>

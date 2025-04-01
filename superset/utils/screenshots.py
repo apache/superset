@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import base64
 import logging
 from datetime import datetime
 from enum import Enum
@@ -25,7 +26,6 @@ from typing import cast, TYPE_CHECKING, TypedDict
 from flask import current_app
 
 from superset import app, feature_flag_manager, thumbnail_cache
-from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.extensions import event_logger
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
@@ -64,7 +64,7 @@ class StatusValues(Enum):
 
 
 class ScreenshotCachePayloadType(TypedDict):
-    image: bytes | None
+    image: str | None
     timestamp: str
     status: str
 
@@ -83,14 +83,16 @@ class ScreenshotCachePayload:
     @classmethod
     def from_dict(cls, payload: ScreenshotCachePayloadType) -> ScreenshotCachePayload:
         return cls(
-            image=payload["image"],
+            image=base64.b64decode(payload["image"]) if payload["image"] else None,
             status=StatusValues(payload["status"]),
             timestamp=payload["timestamp"],
         )
 
     def to_dict(self) -> ScreenshotCachePayloadType:
         return {
-            "image": self._image,
+            "image": base64.b64encode(self._image).decode("utf-8")
+            if self._image
+            else None,
             "timestamp": self._timestamp,
             "status": self.status.value,
         }
@@ -346,7 +348,7 @@ class DashboardScreenshot(BaseScreenshot):
         self,
         window_size: bool | WindowSize | None = None,
         thumb_size: bool | WindowSize | None = None,
-        dashboard_state: DashboardPermalinkState | None = None,
+        permalink_key: str | None = None,
     ) -> str:
         window_size = window_size or self.window_size
         thumb_size = thumb_size or self.thumb_size
@@ -356,6 +358,6 @@ class DashboardScreenshot(BaseScreenshot):
             "type": "thumb",
             "window_size": window_size,
             "thumb_size": thumb_size,
-            "dashboard_state": dashboard_state,
+            "permalink_key": permalink_key,
         }
         return md5_sha_from_dict(args)

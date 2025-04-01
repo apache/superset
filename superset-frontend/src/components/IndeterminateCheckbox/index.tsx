@@ -26,7 +26,7 @@ import {
 } from 'react';
 
 import { styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 export interface IndeterminateCheckboxProps {
   indeterminate: boolean;

@@ -20,7 +20,7 @@ requires = ["setuptools>=40.9.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "apache-superset"
+name = "apache_superset"
 description = "A modern, enterprise-ready business intelligence web application"
 readme = "README.md"
 dynamic = ["version", "scripts", "entry-points"]
@@ -44,7 +44,7 @@ dependencies = [
     "cryptography>=42.0.4, <45.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <3.0.0",
-    "flask-appbuilder>=4.5.3, <5.0.0",
+    "flask-appbuilder>=4.6.1, <5.0.0",
     "flask-caching>=2.1.0, <3",
     "flask-compress>=1.13, <2.0",
     "flask-talisman>=1.0.0, <2.0",
@@ -125,7 +125,7 @@ denodo = ["denodo-sqlalchemy~=1.0.6"]
 dremio = ["sqlalchemy-dremio>=1.2.1, <4"]
 drill = ["sqlalchemy-drill>=1.1.4, <2"]
 druid = ["pydruid>=0.6.5,<0.7"]
-duckdb = ["duckdb-engine>=0.9.5, <0.10"]
+duckdb = ["duckdb-engine>=0.10", "duckdb>=1.1.0"]
 dynamodb = ["pydynamodb>=0.4.2"]
 solr = ["sqlalchemy-solr >= 0.2.0"]
 elasticsearch = ["elasticsearch-dbapi>=0.2.9, <0.3.0"]
@@ -144,7 +144,7 @@ hive = [
     "thrift_sasl>=0.4.3, < 1.0.0",
 ]
 impala = ["impyla>0.16.2, <0.17"]
-kusto = ["sqlalchemy-kusto>=2.0.0, <3"]
+kusto = ["sqlalchemy-kusto>=3.0.0, <4"]
 kylin = ["kylinpy>=2.8.1, <2.9"]
 mssql = ["pymssql>=2.2.8, <3"]
 mysql = ["mysqlclient>=2.1.0, <3"]

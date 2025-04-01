@@ -107,6 +107,7 @@ FRONTEND_CONF_KEYS = (
     "PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET",
     "JWT_ACCESS_CSRF_COOKIE_NAME",
     "SQLLAB_QUERY_RESULT_TIMEOUT",
+    "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
 )
 
 logger = logging.getLogger(__name__)
@@ -318,7 +319,10 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # verify client has google sheets installed
     available_specs = get_available_engine_specs()
-    frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
+    frontend_config["HAS_GSHEETS_INSTALLED"] = (
+        GSheetsEngineSpec in available_specs
+        and bool(available_specs[GSheetsEngineSpec])
+    )
 
     language = locale.language if locale else "en"
 

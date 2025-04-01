@@ -42,7 +42,6 @@ export default function ErrorMessageWithStackTrace({
   title = DEFAULT_TITLE,
   error,
   subtitle,
-  copyText,
   link,
   stackTrace,
   source,

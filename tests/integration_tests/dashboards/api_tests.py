@@ -2437,30 +2437,27 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert (
-            response
-            == {
-                "errors": [
-                    {
-                        "message": "Error importing dashboard",
-                        "error_type": "GENERIC_COMMAND_ERROR",
-                        "level": "warning",
-                        "extra": {
-                            "dashboards/imported_dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",  # noqa: E501
-                            "issue_codes": [
-                                {
-                                    "code": 1010,
-                                    "message": (
-                                        "Issue 1010 - Superset encountered an "
-                                        "error while running a command."
-                                    ),
-                                }
-                            ],
-                        },
-                    }
-                ]
-            }
-        )
+        assert response == {
+            "errors": [
+                {
+                    "message": "Error importing dashboard",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "dashboards/imported_dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",  # noqa: E501
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
 
         # import with overwrite flag
         buf = self.create_dashboard_import()
@@ -3039,6 +3036,18 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .first()
         )
         response = self._cache_screenshot(dashboard.id)
+        assert response.status_code == 202
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_success_permalink_payload(self):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        response = self._cache_screenshot(dashboard.id, {"permalinkKey": "1234"})
         assert response.status_code == 202
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)

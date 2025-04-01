@@ -19,7 +19,7 @@
 import { ReactChild, useCallback, Key } from 'react';
 
 import { t, styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 
@@ -74,13 +74,13 @@ export const ExportToCSVDropdown = ({
           <Menu.Item key={MenuKeys.ExportOriginal}>
             <MenuItemContent>
               {t('Original')}
-              <Icons.Download />
+              <Icons.DownloadOutlined />
             </MenuItemContent>
           </Menu.Item>
           <Menu.Item key={MenuKeys.ExportPivoted}>
             <MenuItemContent>
               {t('Pivoted')}
-              <Icons.Download />
+              <Icons.DownloadOutlined />
             </MenuItemContent>
           </Menu.Item>
         </Menu>

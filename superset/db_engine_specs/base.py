@@ -22,6 +22,7 @@ import logging
 import re
 import warnings
 from datetime import datetime
+from inspect import signature
 from re import Match, Pattern
 from typing import (
     Any,
@@ -73,7 +74,7 @@ from superset.superset_typing import (
     SQLAColumnType,
 )
 from superset.utils import core as utils, json
-from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.core import ColumnSpec, GenericDataType, QuerySource
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.json import redact_sensitive, reveal_sensitive
 from superset.utils.network import is_hostname_valid, is_port_open
@@ -1023,7 +1024,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         For instance special column like `__time` for Druid can be
         set to is_dttm=True. Note that this only gets called when new
         columns are detected/created"""
-        # TODO: Fix circular import caused by importing TableColumn
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -1128,7 +1128,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param database: Database instance
         :return: SQL query with limit clause
         """
-        # TODO: Fix circular import caused by importing Database
         if cls.limit_method == LimitMethod.WRAP_SQL:
             sql = sql.strip("\t\n ;")
             qry = (
@@ -1321,7 +1320,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         The flow works without this method doing anything, but it allows
         for handling the cursor and updating progress information in the
         query object"""
-        # TODO: Fix circular import error caused by importing sql_lab.Query
 
     @classmethod
     # pylint: disable=consider-using-transaction
@@ -1414,11 +1412,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         should also have the attribute ``supports_dynamic_schema`` set to true, so that
         Superset knows in which schema a given query is running in order to enforce
         permissions (see #23385 and #23401).
-
-        Currently, changing the catalog is not supported. The method accepts a catalog so
-        that when catalog support is added to Superset the interface remains the same.
-        This is important because DB engine specs can be installed from 3rd party
-        packages, so we want to keep these methods as stable as possible.
         """  # noqa: E501
         return uri, {
             **connect_args,
@@ -1637,7 +1630,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: SqlAlchemy query with additional where clause referencing the latest
         partition
         """
-        # TODO: Fix circular import caused by importing Database, TableColumn
         return None
 
     @classmethod
@@ -1768,7 +1760,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param sql: SQL query with possibly multiple statements
         :param source: Source of the query (eg, "sql_lab")
         """
-        extra = database.get_extra() or {}
+        extra = database.get_extra(source) or {}
         if not cls.get_allow_cost_estimate(extra):
             raise Exception(  # pylint: disable=broad-exception-raised
                 "Database does not support cost estimation"
@@ -1792,6 +1784,38 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             ]
 
     @classmethod
+    def impersonate_user(
+        cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Modify URL and/or engine kwargs to impersonate a different user.
+        """
+        # Update URL using old methods until 6.0.0.
+        url = cls.get_url_for_impersonation(url, True, username, user_token)
+
+        # Update engine kwargs using old methods. Note that #30674 modified the method
+        # signature, so we need to check if the method has the old signature.
+        connect_args = engine_kwargs.setdefault("connect_args", {})
+        args = [
+            connect_args,
+            url,
+            username,
+            user_token,
+        ]
+        if "database" in signature(cls.update_impersonation_config).parameters:
+            args.insert(0, database)
+
+        cls.update_impersonation_config(*args)
+
+        return url, engine_kwargs
+
+    @classmethod
+    @deprecated(deprecated_in="6.0.0")
     def get_url_for_impersonation(
         cls,
         url: URL,
@@ -1813,6 +1837,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return url
 
     @classmethod
+    @deprecated(deprecated_in="6.0.0")
     def update_impersonation_config(  # pylint: disable=too-many-arguments
         cls,
         database: Database,
@@ -2019,12 +2044,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @staticmethod
-    def get_extra_params(database: Database) -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         Some databases require adding elements to connection parameters,
         like passing certificates to `extra`. This can be done here.
 
         :param database: database instance from which to extract extras
+        :param source: in which context is the connection needed
         :raises CertificateException: If certificate is not valid/unparseable
         """
         extra: dict[str, Any] = {}
@@ -2434,7 +2462,7 @@ class BasicParametersMixin:
         if missing := sorted(required - present):
             errors.append(
                 SupersetError(
-                    message=f'One or more parameters are missing: {", ".join(missing)}',
+                    message=f"One or more parameters are missing: {', '.join(missing)}",
                     error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                     level=ErrorLevel.WARNING,
                     extra={"missing": missing},
@@ -2473,8 +2501,7 @@ class BasicParametersMixin:
             errors.append(
                 SupersetError(
                     message=(
-                        "The port must be an integer between 0 and 65535 "
-                        "(inclusive)."
+                        "The port must be an integer between 0 and 65535 (inclusive)."
                     ),
                     error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
                     level=ErrorLevel.ERROR,
