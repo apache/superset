@@ -150,7 +150,6 @@ def get_database_metadata(
     :param database: The database model
     :return: Database metadata ready for API response
     """
-    logger.info(f"get_database_metadata called with {include_indexes} {tables} {top_k} {top_k_limit}")
     logger.info(f"Getting metadata for database {database.database_name}")
     # Build the list of selected schemas from the list of tables by extracting the schema name
     schemas = set()
@@ -171,7 +170,6 @@ def get_database_metadata(
         if tables and (len(tables) > 0) and (schema not in schemas):
             logger.info(f"Skipping schema {schema} not in schemas")
             continue
-        logger.info(f"Getting metadata for schema {schema}")
         schema_info = get_schema_metadata(database, schema, tables=tables, include_indexes=include_indexes, top_k=top_k, top_k_limit=top_k_limit)
         schemas_info.append(schema_info)
     return schemas_info
@@ -198,7 +196,6 @@ def get_schema_metadata(
         if tables and len(tables) > 0 and f"{schema}.{table}" not in tables:
             logger.info(f"Skipping table {table} not in tables")
             continue
-        logger.info(f"Getting metadata for table {table} in schema {schema}")
         t = Table(catalog=catalog, schema=schema, table=table)
         table_metadata = get_table_relation_metadata(database, t, include_indexes=include_indexes, top_k=top_k, top_k_limit=top_k_limit)
         relations.append(table_metadata)
