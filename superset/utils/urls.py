@@ -16,7 +16,7 @@
 # under the License.
 import urllib
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from flask import current_app, url_for
 
@@ -73,9 +73,13 @@ def is_safe_redirect_url(source_url: str, target_url: str) -> bool:
     :param source_url: the current request.host_url.
     :param target_url: the URL we plan to redirect to.
     """
-    source_parsed = urlparse(source_url)
-    target_parsed = urlparse(target_url)
+    if not target_url:
+        return False
+    # Resolve relative target_url to block against XSS attacks
+    joined = urljoin(source_url, target_url)
+    parsed_source = urlparse(source_url)
+    parsed_target = urlparse(joined)
     return (
-        source_parsed.scheme == target_parsed.scheme
-        and source_parsed.netloc == target_parsed.netloc
+        parsed_source.scheme == parsed_target.scheme
+        and parsed_source.hostname == parsed_target.hostname
     )
