@@ -27,6 +27,10 @@ export const GlobalStyles = () => (
         background-color: ${theme.colorBgBase};
       }
 
+      a {
+        color: ${theme.colorLink};
+      }
+
       h1,
       h2,
       h3,
