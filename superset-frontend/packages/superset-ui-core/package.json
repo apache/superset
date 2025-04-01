@@ -38,7 +38,7 @@
     "math-expression-evaluator": "^2.0.6",
     "pretty-ms": "^9.2.0",
     "react-error-boundary": "^5.0.0",
-    "react-markdown": "^8.0.7",
+    "react-markdown": "^10.1.0",
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^3.0.1",
