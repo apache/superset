@@ -1,60 +1,129 @@
 ---
-title: Button (v1.0.0)
+title: Button Component (v1.0.0)
 sidebar_position: 1
 ---
 
-# Button Component
+import { StoryExample, StoryWithControls } from '../../../../src/components/StorybookWrapper';
+import Button from '../../../../../superset-frontend/src/components/Button';
+
+# Button Component (v1.0.0)
 
 The Button component is a fundamental UI element used throughout Superset for user interactions.
+
+## Basic Usage
+
+The default button with primary styling:
+
+<StoryExample
+  component={() => (
+    <Button buttonStyle="primary" onClick={() => console.log('Clicked!')}>
+      Click Me
+    </Button>
+  )}
+/>
+
+## Interactive Example
+
+<StoryWithControls
+  component={({ buttonStyle, buttonSize, label, disabled }) => (
+    <Button
+      buttonStyle={buttonStyle}
+      buttonSize={buttonSize}
+      disabled={disabled}
+      onClick={() => console.log('Clicked!')}
+    >
+      {label}
+    </Button>
+  )}
+  props={{
+    buttonStyle: 'primary',
+    buttonSize: 'default',
+    label: 'Click Me',
+    disabled: false
+  }}
+  controls={[
+    {
+      name: 'buttonStyle',
+      label: 'Button Style',
+      type: 'select',
+      options: ['primary', 'secondary', 'tertiary', 'success', 'warning', 'danger', 'default', 'link', 'dashed']
+    },
+    {
+      name: 'buttonSize',
+      label: 'Button Size',
+      type: 'select',
+      options: ['default', 'small', 'xsmall']
+    },
+    {
+      name: 'label',
+      label: 'Button Text',
+      type: 'text'
+    },
+    {
+      name: 'disabled',
+      label: 'Disabled',
+      type: 'boolean'
+    }
+  ]}
+/>
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `buttonStyle` | `string` | `'primary'` | Button style: 'primary', 'secondary', 'link', 'dashed', 'danger' |
-| `buttonSize` | `string` | `'default'` | Button size: 'small', 'default', 'large' |
+| `buttonStyle` | `'primary' \| 'secondary' \| 'tertiary' \| 'success' \| 'warning' \| 'danger' \| 'default' \| 'link' \| 'dashed'` | `'default'` | Button style |
+| `buttonSize` | `'default' \| 'small' \| 'xsmall'` | `'default'` | Button size |
 | `disabled` | `boolean` | `false` | Whether the button is disabled |
+| `cta` | `boolean` | `false` | Whether the button is a call-to-action button |
+| `tooltip` | `ReactNode` | - | Tooltip content |
+| `placement` | `TooltipProps['placement']` | - | Tooltip placement |
 | `onClick` | `function` | - | Callback when button is clicked |
 | `href` | `string` | - | Turns button into an anchor link |
 | `target` | `string` | - | Target attribute for anchor links |
 
-## Examples
-
-### Basic Button
+## Usage
 
 ```jsx
-import { Button } from '@superset-ui/core';
+import Button from 'src/components/Button';
 
-function Example() {
+function MyComponent() {
   return (
-    <Button buttonStyle="primary" onClick={() => console.log('Clicked!')}>
+    <Button
+      buttonStyle="primary"
+      onClick={() => console.log('Button clicked')}
+    >
       Click Me
     </Button>
   );
 }
 ```
 
-### Button Styles
+## Button Styles
 
-```jsx
-import { Button } from '@superset-ui/core';
+Superset provides a variety of button styles for different purposes:
 
-function Example() {
-  return (
-    <>
-      <Button buttonStyle="primary">Primary</Button>
-      <Button buttonStyle="secondary">Secondary</Button>
-      <Button buttonStyle="link">Link</Button>
-      <Button buttonStyle="dashed">Dashed</Button>
-      <Button buttonStyle="danger">Danger</Button>
-    </>
-  );
-}
-```
+- **Primary**: Used for primary actions
+- **Secondary**: Used for secondary actions
+- **Tertiary**: Used for less important actions
+- **Success**: Used for successful or confirming actions
+- **Warning**: Used for actions that require caution
+- **Danger**: Used for destructive actions
+- **Link**: Used for navigation
+- **Dashed**: Used for adding new items or features
+
+## Button Sizes
+
+Buttons come in three sizes:
+
+- **Default**: Standard size for most use cases
+- **Small**: Compact size for tight spaces
+- **XSmall**: Extra small size for very limited spaces
 
 ## Best Practices
 
 - Use primary buttons for the main action in a form or page
 - Use secondary buttons for alternative actions
+- Use danger buttons for destructive actions
 - Limit the number of primary buttons on a page to avoid confusion
 - Use consistent button styles throughout your application
+- Add tooltips to buttons when their purpose might not be immediately clear

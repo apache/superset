@@ -211,12 +211,28 @@ const config: Config = {
         // Enable MDX v2
         docItemComponent: '@theme/DocItem',
         includeCurrentVersion: true,
+        // Show version dropdown
+        lastVersion: '1.0.0',
+        onlyIncludeVersions: ['current', '1.0.0'],
+        // Set the default version to redirect to
         versions: {
           current: {
             label: 'Next',
             path: 'next',
+            banner: 'unreleased',
+          },
+          '1.0.0': {
+            label: '1.0.0',
+            path: '1.0.0',
+            banner: 'none',
           },
         },
+        // This sets which version is shown when accessing /components/
+        // without a specific version
+        disableVersioning: false,
+        // Show version dropdown in navbar
+        showLastUpdateAuthor: true,
+        showLastUpdateTime: true,
       },
     ],
   ],
@@ -265,6 +281,14 @@ const config: Config = {
         srcDark: '/img/superset-logo-horiz-dark.svg',
       },
       items: [
+        // Add version dropdown for components
+        {
+          type: 'docsVersionDropdown',
+          position: 'right',
+          docsPluginId: 'components',
+          dropdownItemsAfter: [],
+          dropdownActiveClassDisabled: true,
+        },
         {
           label: 'Documentation',
           to: '/docs/intro',

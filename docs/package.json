@@ -37,6 +37,7 @@
     "@storybook/docs-tools": "^8.6.11",
     "@storybook/preview-api": "^8.6.11",
     "@storybook/theming": "^8.6.11",
+    "@superset-ui/core": "^0.20.4",
     "@superset-ui/style": "^0.14.23",
     "antd": "^5.26.7",
     "caniuse-lite": "^1.0.30001707",
@@ -49,6 +50,7 @@
     "react-github-btn": "^1.4.0",
     "react-svg-pan-zoom": "^3.13.1",
     "remark-import-partial": "^0.0.2",
+    "reselect": "^5.1.1",
     "storybook": "^8.6.11",
     "swagger-ui-react": "^5.27.1",
     "ts-loader": "^9.5.2"

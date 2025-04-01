@@ -58,22 +58,10 @@ export function StoryWithControls({
   };
 
   return (
-    <div className="storybook-with-controls">
-      <div
-        className="storybook-example"
-        style={{
-          border: '1px solid #e8e8e8',
-          borderRadius: '4px',
-          padding: '20px',
-          marginBottom: '20px',
-        }}
-      >
-        {Component && <Component {...stateProps} />}
-      </div>
-
-      {controls.length > 0 && (
+    <ThemeProvider theme={supersetTheme}>
+      <div className="storybook-with-controls">
         <div
-          className="storybook-controls"
+          className="storybook-example"
           style={{
             border: '1px solid #e8e8e8',
             borderRadius: '4px',
@@ -81,42 +69,56 @@ export function StoryWithControls({
             marginBottom: '20px',
           }}
         >
-          <h4>Controls</h4>
-          {controls.map(control => (
-            <div key={control.name} style={{ marginBottom: '10px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>
-                {control.label || control.name}:
-              </label>
-              {control.type === 'select' ? (
-                <select
-                  value={stateProps[control.name]}
-                  onChange={e => updateProp(control.name, e.target.value)}
-                  style={{ width: '100%', padding: '5px' }}
-                >
-                  {control.options.map(option => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              ) : control.type === 'boolean' ? (
-                <input
-                  type="checkbox"
-                  checked={stateProps[control.name]}
-                  onChange={e => updateProp(control.name, e.target.checked)}
-                />
-              ) : (
-                <input
-                  type="text"
-                  value={stateProps[control.name]}
-                  onChange={e => updateProp(control.name, e.target.value)}
-                  style={{ width: '100%', padding: '5px' }}
-                />
-              )}
-            </div>
-          ))}
+          {Component && <Component {...stateProps} />}
         </div>
-      )}
-    </div>
+
+        {controls.length > 0 && (
+          <div
+            className="storybook-controls"
+            style={{
+              border: '1px solid #e8e8e8',
+              borderRadius: '4px',
+              padding: '20px',
+              marginBottom: '20px',
+            }}
+          >
+            <h4>Controls</h4>
+            {controls.map(control => (
+              <div key={control.name} style={{ marginBottom: '10px' }}>
+                <label style={{ display: 'block', marginBottom: '5px' }}>
+                  {control.label || control.name}:
+                </label>
+                {control.type === 'select' ? (
+                  <select
+                    value={stateProps[control.name]}
+                    onChange={e => updateProp(control.name, e.target.value)}
+                    style={{ width: '100%', padding: '5px' }}
+                  >
+                    {control.options.map(option => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                ) : control.type === 'boolean' ? (
+                  <input
+                    type="checkbox"
+                    checked={stateProps[control.name]}
+                    onChange={e => updateProp(control.name, e.target.checked)}
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={stateProps[control.name]}
+                    onChange={e => updateProp(control.name, e.target.value)}
+                    style={{ width: '100%', padding: '5px' }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </ThemeProvider>
   );
 }
