@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
-import { Card, Typography } from 'src/components';
+// eslint-disable-next-line
+import { Typography } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
+import Card, { CardProps } from 'src/components/Card';
 import Icons from 'src/components/Icons';
+import { SupersetTheme } from '@superset-ui/core';
 
-export interface IconButtonProps extends React.ComponentProps<typeof Card> {
+export interface IconButtonProps extends CardProps {
   buttonText: string;
   icon: string;
   altText?: string;
@@ -33,8 +35,6 @@ const IconButton: React.FC<IconButtonProps> = ({
   altText,
   ...cardProps
 }) => {
-  const [isFocused, setIsFocused] = useState(false);
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
       if (cardProps.onClick) {
@@ -48,32 +48,29 @@ const IconButton: React.FC<IconButtonProps> = ({
   };
 
   const renderIcon = () => {
-    const defaultIconStyle = {
-      fontSize: '48px',
-      color: 'var(--text-secondary)',
-    };
-
     const iconContent = icon ? (
       <img
         src={icon}
         alt={altText || buttonText}
-        style={{
+        css={(theme: SupersetTheme) => ({
           width: '100%',
           height: '120px',
           objectFit: 'contain',
-        }}
+        })}
       />
     ) : (
       <div
-        style={{
+        css={(theme: SupersetTheme) => ({
           display: 'flex',
-          justifyContent: 'center',
+          alignContent: 'center',
           alignItems: 'center',
           height: '120px',
-        }}
+        })}
       >
         <Icons.DatabaseOutlined
-          style={defaultIconStyle}
+          css={(theme: SupersetTheme) => ({
+            fontSize: '48px',
+          })}
           aria-label="default-icon"
         />
       </div>
@@ -82,13 +79,6 @@ const IconButton: React.FC<IconButtonProps> = ({
     return iconContent;
   };
 
-  const focusStyles = isFocused 
-    ? {
-        border: '2px solid #1890ff',
-        boxShadow: '0 0 0 3px rgba(24, 144, 255, 0.1)',
-      }
-    : {};
-
   return (
     <Card
       hoverable
@@ -96,23 +86,18 @@ const IconButton: React.FC<IconButtonProps> = ({
       tabIndex={0}
       aria-label={buttonText}
       onKeyDown={handleKeyDown}
-      onFocus={e => {
-        cardProps.onFocus?.(e);
-        setIsFocused(true);
-      }}
-      onBlur={e => {
-        cardProps.onBlur?.(e);
-        setIsFocused(false);
-      }}
-      {...cardProps}
       cover={renderIcon()}
-      style={{
+      css={(theme: SupersetTheme) => ({
         padding: '12px',
         textAlign: 'center',
         outline: 'none',
-        ...focusStyles,
+        ':focus': {
+          border: `2px solid ${theme.colors.primary.base}`,
+          boxShadow: `0 0 0 3px ${theme.colors.primary.light4}`,
+        },
         ...cardProps.style,
-      }}
+      })}
+      {...cardProps}
     >
       <Tooltip title={buttonText}>
         <Typography.Text ellipsis>{buttonText}</Typography.Text>
@@ -121,4 +106,4 @@ const IconButton: React.FC<IconButtonProps> = ({
   );
 };
 
-export default IconButton;
+export { IconButton };

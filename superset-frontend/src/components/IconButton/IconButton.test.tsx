@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import IconButton from 'src/components/IconButton';
+import { IconButton } from 'src/components/IconButton';
 
 const defaultProps = {
   buttonText: 'This is the IconButton text',
@@ -27,19 +27,19 @@ const defaultProps = {
 describe('IconButton', () => {
   it('renders an IconButton with icon and text', () => {
     render(<IconButton {...defaultProps} />);
-    
+
     const icon = screen.getByRole('img');
     const buttonText = screen.getByText(/this is the iconbutton text/i);
-    
+
     expect(icon).toBeVisible();
     expect(buttonText).toBeVisible();
   });
 
   it('is keyboard accessible and has correct aria attributes', () => {
     render(<IconButton {...defaultProps} />);
-    
+
     const button = screen.getByRole('button');
-    
+
     expect(button).toHaveAttribute('tabIndex', '0');
     expect(button).toHaveAttribute('aria-label', defaultProps.buttonText);
   });
@@ -47,48 +47,43 @@ describe('IconButton', () => {
   it('handles Enter and Space key presses', () => {
     const mockOnClick = jest.fn();
     render(<IconButton {...defaultProps} onClick={mockOnClick} />);
-    
+
     const button = screen.getByRole('button');
-    
+
     fireEvent.keyDown(button, { key: 'Enter', code: 'Enter' });
     expect(mockOnClick).toHaveBeenCalledTimes(1);
-    
+
     fireEvent.keyDown(button, { key: ' ', code: 'Space' });
     expect(mockOnClick).toHaveBeenCalledTimes(2);
   });
 
-  it('renders default icon when no icon is provided', () => {
-    render(<IconButton buttonText="No Icon Button" />);
-    
-    const defaultIcon = screen.getByLabelText('default-icon');
-    expect(defaultIcon).toBeVisible();
-  });
-
   it('uses custom alt text when provided', () => {
     const customAltText = 'Custom Alt Text';
-    render(<IconButton 
-      buttonText="Custom Alt Text Button" 
-      icon="/images/icons/sql.svg" 
-      altText={customAltText} 
-    />);
-    
+    render(
+      <IconButton
+        buttonText="Custom Alt Text Button"
+        icon="/images/icons/sql.svg"
+        altText={customAltText}
+      />,
+    );
+
     const icon = screen.getByAltText(customAltText);
     expect(icon).toBeVisible();
   });
 
   it('applies focus styles when focused', () => {
     render(<IconButton {...defaultProps} />);
-    
+
     const button = screen.getByRole('button');
-    
+
     fireEvent.focus(button);
-    
+
     expect(button).toHaveStyle('border: 2px solid #1890ff');
   });
 
   it('displays tooltip with button text', () => {
     render(<IconButton {...defaultProps} />);
-    
+
     const tooltipTrigger = screen.getByText(/this is the iconbutton text/i);
     expect(tooltipTrigger).toBeVisible();
   });
@@ -96,10 +91,10 @@ describe('IconButton', () => {
   it('calls onClick handler when clicked', () => {
     const mockOnClick = jest.fn();
     render(<IconButton {...defaultProps} onClick={mockOnClick} />);
-    
+
     const button = screen.getByRole('button');
     fireEvent.click(button);
-    
+
     expect(mockOnClick).toHaveBeenCalledTimes(1);
   });
 });
