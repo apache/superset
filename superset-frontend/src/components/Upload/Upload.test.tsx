@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import Upload from 'src/components/Upload';
 import Button from 'src/components/Button';
 
@@ -27,11 +30,9 @@ describe('Upload Component', () => {
     const handleChange = jest.fn();
 
     render(
-      <ThemeProvider theme={supersetTheme}>
-        <Upload onChange={handleChange}>
-          <Button>Click to Upload</Button>
-        </Upload>
-      </ThemeProvider>,
+      <Upload onChange={handleChange}>
+        <Button>Click to Upload</Button>
+      </Upload>,
     );
 
     const btn = screen.getByRole('button', { name: /click to upload/i });
