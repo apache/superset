@@ -107,6 +107,7 @@ ghostdriver.log
 testCSV.csv
 .terser-plugin-cache/
 apache-superset-*.tar.gz*
+apache_superset-*.tar.gz*
 release.json
 
 # Translation-related files
