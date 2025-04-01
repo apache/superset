@@ -32,7 +32,7 @@ import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import SaveModal, { PureSaveModal } from 'src/explore/components/SaveModal';
 
 jest.mock('src/components/Select', () => ({
-  ...jest.requireActual('src/components'),
+  ...jest.requireActual('src/components/Select/AsyncSelect'),
   AsyncSelect: ({ onChange }) => (
     <input
       data-test="mock-async-select"
