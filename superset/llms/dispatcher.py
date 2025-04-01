@@ -145,7 +145,11 @@ def get_state(pk: int) -> dict:
         return {
             "status": "waiting",
         }
-    
+
+    provider = _get_or_create_llm_provider(pk, DIALECT, "")
+    if not provider:
+        return None
+
     latest_task = tasks[0]
     context_builder_worker = AsyncResult(latest_task.task_id)
     status = 'waiting'
@@ -162,6 +166,8 @@ def get_state(pk: int) -> dict:
             }
             if old_context_worker.status == 'FAILURE':
                 context["message"] = str(old_context_worker.result)
+            if old_context_worker.status == 'SUCCESS':
+                context["size"] = provider.get_context_size()
     else:
         context = {
             "build_time": latest_task.started_time,
@@ -170,6 +176,8 @@ def get_state(pk: int) -> dict:
         }
         if context_builder_worker.status == 'FAILURE':
             context["message"] = str(context_builder_worker.result)
+        if context_builder_worker.status == 'SUCCESS':
+            context["size"] = provider.get_context_size()
 
     return {
         "context": context,

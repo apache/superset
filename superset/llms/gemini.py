@@ -20,6 +20,8 @@ class GeminiLlm(BaseLlm):
     cache_name = None
     cache_expiry = None
     cache_model = None
+    cached_size = None
+    cached_size_cache_name = None
 
     def _create_schema_cache(self, gemini_client, model, user_instructions) -> types.CachedContent:
         cached_content = gemini_client.caches.create(
@@ -183,3 +185,52 @@ class GeminiLlm(BaseLlm):
 
         logger.info(f"Generated SQL: {sql}")
         return sql
+    
+    def get_context_size(self) -> int:
+        """
+        Count the number of tokens in a prompt.
+        Cache the result in self.cached_size, which expires when self.cache_expiry changes.
+        """
+        db = DatabaseDAO.find_by_id(self.pk, True)
+        if not db:
+            logger.error(f"Database {self.pk} not found.")
+            return
+        
+        if not db.llm_provider == 'Gemini':
+            logger.error(f"LLM provider is not Gemini for database {self.pk}.")
+            return
+
+        llm_api_key = db.llm_api_key
+        if not llm_api_key:
+            logger.error(f"API key not set for database {self.pk}.")
+            return
+        
+        llm_model = db.llm_model
+        if not llm_model:
+            logger.error(f"Model not set for database {self.pk}.")
+            return
+        
+        # If we have a cached size and a valid cache_expiry, return the cached size
+        now = datetime.datetime.now(datetime.timezone.utc)
+        if self.cached_size is not None and self.cache_name == self.cached_size_cache_name:
+            logger.info(f"Using cached context size: {self.cached_size}")
+            return self.cached_size
+        else:
+            # Invalidate any old cached size
+            self.cached_size = None
+            self.cached_size_cache_name = None
+
+        llm_context_options = json.loads(db.llm_context_options)
+        user_instructions = llm_context_options.get("instructions", None)
+
+        gemini_client = genai.Client(api_key=llm_api_key)
+        response = gemini_client.models.count_tokens(
+            model=llm_model,
+            contents=[json.dumps(self.context), user_instructions if user_instructions else self.get_system_instructions()],
+        )
+        logger.info(f"Calculated context size: {response.total_tokens}")
+
+        # Cache the size until cache_expiry changes or is reached
+        self.cached_size = response.total_tokens
+        self.cached_size_cache_name = self.cache_name
+        return self.cached_size

@@ -62,6 +62,7 @@ import { Switch } from 'src/components/Switch';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
+import { SavedContextStatus, useLlmContextStatus } from 'src/hooks/apiResources';
 import { detectOS } from 'src/utils/common';
 import {
   addNewQueryEditor,
@@ -97,6 +98,7 @@ import {
   SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
   WINDOW_RESIZE_THROTTLE_MS,
 } from 'src/SqlLab/constants';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import {
   getItem,
   LocalStorageKeys,
@@ -263,6 +265,18 @@ const SqlEditor: FC<Props> = ({
 }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const storedQueryEditor = useQueryEditor(queryEditor.id, [
+    'dbId',
+    'catalog',
+    'schema',
+  ]);
+  const [savedLlmContext, setSavedLlmContext] = useState<SavedContextStatus | null>(false);
+  const llmContextStatus = useLlmContextStatus({
+    dbId: queryEditor.dbId || 0,
+    onSuccess: result => {
+      setSavedLlmContext(result.context);
+    }
+  });
 
   const {
     database,
@@ -374,11 +388,11 @@ const SqlEditor: FC<Props> = ({
     }
   };
 
-  const runAiAssistant = (prompt: string) => {
+  const runAiAssistant = useCallback((prompt: string) => {
     if (database) {
-      dispatch(generateSql(database.id, queryEditor, prompt));
+      dispatch(generateSql(database.id, storedQueryEditor, prompt));
     }
-  };
+  }, [database, storedQueryEditor]);
 
   useEffect(() => {
     if (autorun) {
@@ -890,13 +904,20 @@ const SqlEditor: FC<Props> = ({
     );
   };
 
-  const renderAiAssistantEditor = () => {   
+  const renderAiAssistantEditor = () => {
+    const disabledMessage = !savedLlmContext
+      ? t('AI Assistant is unavailable - please try again in a few minutes')
+      : savedLlmContext.status === 'FAILURE'
+      ? t('AI Assistant is unavailable due to a backend error')
+      : null;
+
     return database?.llm_enabled && (
       <AiAssistantEditor
         queryEditorId={queryEditor.id}
         onGenerateSql={runAiAssistant}
         isGeneratingSql={queryGenerator.isGeneratingQuery}
-        // disabledMessage='AI Assistant is unavailable - please check that the API key setting is correct'
+        disabledMessage={disabledMessage}
+        schema={storedQueryEditor.schema}
       />
     )
   }

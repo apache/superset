@@ -358,7 +358,7 @@ export function generateSql(databaseId, queryEditor, prompt) {
     const { sql } = getUpToDateQuery(getState(), queryEditor);
     return SupersetClient.post({
       endpoint: '/api/v1/sqllab/generate_sql/',
-      body: JSON.stringify({ database_id: databaseId, user_prompt: prompt, prior_context: sql }),
+      body: JSON.stringify({ database_id: databaseId, user_prompt: prompt, prior_context: sql, schemas: queryEditor.schema }),
       headers: { 'Content-Type': 'application/json' },
     })
       .then(({ json }) => {

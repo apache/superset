@@ -40,6 +40,7 @@ export interface AiAssistantEditorProps {
   queryEditorId: string;
   onGenerateSql: (prompt: string) => void;
   isGeneratingSql: boolean;
+  schema?: string[];
   disabledMessage?: string;
 }
 
@@ -55,6 +56,18 @@ const StyledIcon = styled(Icons.Lightbulb)`
     display: flex;
     svg {
       margin: 0;
+    }
+  }
+`;
+
+const StyledInfoIcon = styled(Icons.InfoCircleOutlined)`
+  &:first-of-type {
+    margin: 0;
+    display: flex;
+    svg {
+      margin: 0;
+      width: 16px;
+      height: 16px;
     }
   }
 `;
@@ -97,6 +110,19 @@ const DisabledMessage = styled.div`
   `}
 `;
 
+const SelectedSchemaMessage = styled.div`
+  ${({ theme }) => css`
+    color: ${theme.colors.grayscale.base};
+    margin-top: ${theme.gridUnit * 2}px;
+    margin-left: ${theme.gridUnit * 2}px;
+    font-size: ${theme.typography.sizes.s}px;
+    padding: ${theme.gridUnit * 2}px;
+    display: flex;
+    align-items: center;
+    column-gap: ${theme.gridUnit}px;
+  `}
+`;
+
 const onClick = (
   logAction: (name: string, payload: Record<string, any>) => void,
 ): void => {
@@ -107,6 +133,7 @@ const AiAssistantEditor = ({
   queryEditorId,
   onGenerateSql,
   isGeneratingSql = false,
+  schema = [],
   disabledMessage,
 }: AiAssistantEditorProps) => {
   const theme = useTheme();
@@ -156,11 +183,16 @@ const AiAssistantEditor = ({
           </Button>
         </StyledButton>
       </div>
-      {disabledMessage && (
+      {disabledMessage ? (
         <DisabledMessage>
           {disabledMessage}
         </DisabledMessage>
-      )}
+      ) : schema && schema.length > 0 ? (
+        <SelectedSchemaMessage>
+          <StyledInfoIcon />
+          {`Selecting schema will restrict the AI to generate SQL for only the selected schema. This will increase costs due to skipping the AI cache. Currently selected: ${schema.join(', ')}`}
+        </SelectedSchemaMessage>
+      ) : null}
     </StyledToolbar>
   );
 };

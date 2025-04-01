@@ -33,3 +33,9 @@ class BaseLlm():
 
     def get_system_instructions() -> str:
         raise NotImplementedError
+    
+    def get_context_size() -> int:
+        """
+        Return the size of the context in tokens.
+        """
+        raise NotImplementedError
