@@ -649,7 +649,7 @@ export function transformNegativeLabelsPosition(
       ? {
           value,
           label: {
-            position: isHorizontal ? 'left' : 'bottom',
+            position: 'outside',
           },
         }
       : value;

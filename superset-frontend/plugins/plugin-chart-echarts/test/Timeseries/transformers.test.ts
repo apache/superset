@@ -106,8 +106,8 @@ describe('transformNegativeLabelsPosition', () => {
     const result = transformNegativeLabelsPosition(series, isHorizontal);
     expect((result as any)[0].data[0].label).toBe(undefined);
     expect((result as any)[0].data[1].label).toBe(undefined);
-    expect((result as any)[0].data[2].label.position).toBe('bottom');
-    expect((result as any)[0].data[3].label.position).toBe('bottom');
+    expect((result as any)[0].data[2].label.position).toBe('outside');
+    expect((result as any)[0].data[3].label.position).toBe('outside');
     expect((result as any)[0].data[4].label).toBe(undefined);
   });
 
@@ -129,10 +129,10 @@ describe('transformNegativeLabelsPosition', () => {
 
     const result = transformNegativeLabelsPosition(series, isHorizontal);
     expect((result as any)[0].data[0].label).toBe(undefined);
-    expect((result as any)[0].data[1].label.position).toBe('left');
+    expect((result as any)[0].data[1].label.position).toBe('outside');
     expect((result as any)[0].data[2].label).toBe(undefined);
-    expect((result as any)[0].data[3].label.position).toBe('left');
-    expect((result as any)[0].data[4].label.position).toBe('left');
+    expect((result as any)[0].data[3].label.position).toBe('outside');
+    expect((result as any)[0].data[4].label.position).toBe('outside');
   });
 
   test('label position to line type', () => {
