@@ -53,7 +53,7 @@ export enum TableSize {
   Large = 'large',
 }
 
-export interface TableProps<RecordType> {
+export interface TableProps<RecordType> extends AntTableProps<RecordType> {
   /**
    * Data that will populate the each row and map to the column key.
    */
@@ -260,6 +260,7 @@ export function Table<RecordType extends object>(
     onRow,
     allowHTML = false,
     childrenColumnName,
+    ...rest
   } = props;
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -401,6 +402,7 @@ export function Table<RecordType extends object>(
           {...sharedProps}
           rowSelection={selectionTypeValue !== null ? rowSelection : undefined}
           sticky={sticky}
+          {...rest}
         />
       )}
       {virtualize && (
@@ -415,6 +417,7 @@ export function Table<RecordType extends object>(
             }),
           }}
           allowHTML={allowHTML}
+          {...rest}
         />
       )}
     </div>

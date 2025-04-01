@@ -33,11 +33,17 @@ interface TableCollectionProps {
   columnsForWrapText?: string[];
 }
 
-export default memo(({ columns, rows, loading }: TableCollectionProps) => (
-  <Table
-    loading={loading}
-    columns={mapColumns(columns)}
-    data={mapRows(rows)}
-    size={TableSize.Middle}
-  />
-));
+export default memo(({ columns, rows, loading }: TableCollectionProps) => {
+  const mappedColumns = mapColumns(columns);
+  const mappedRows = mapRows(rows);
+  console.log({ columns, mappedColumns, rows, mappedRows });
+  return (
+    <Table
+      loading={loading}
+      columns={mappedColumns}
+      data={mappedRows}
+      size={TableSize.Middle}
+      pagination={false}
+    />
+  );
+});
