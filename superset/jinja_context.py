@@ -33,6 +33,7 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
 
+from superset import security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
@@ -46,7 +47,6 @@ from superset.utils.core import (
     FilterOperator,
     get_user_email,
     get_user_id,
-    get_user_roles,
     get_username,
     merge_extra_filters,
 )
@@ -176,17 +176,22 @@ class ExtraCache:
 
     def current_user_roles(self, add_to_cache_keys: bool = True) -> list[str] | None:
         """
-        Return the list of roles of the user who is currently logged in.
+        Return the sorted list of roles of the user who is currently logged in.
 
         :param add_to_cache_keys: Whether the value should be included in the cache key
         :returns: List of role names
         """
-
-        if user_roles := get_user_roles():
+        try:
+            user_roles = sorted(
+                [role.name for role in security_manager.get_user_roles()]
+            )
+            if not user_roles:
+                return None
             if add_to_cache_keys:
                 self.cache_key_wrapper(json.dumps(user_roles))
             return user_roles
-        return None
+        except Exception:  # pylint: disable=broad-except
+            return None
 
     def cache_key_wrapper(self, key: Any) -> Any:
         """
