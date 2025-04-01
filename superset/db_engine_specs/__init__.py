@@ -61,8 +61,25 @@ def is_engine_spec(obj: Any) -> bool:
 def load_engine_specs() -> list[type[BaseEngineSpec]]:
     """
     Load all engine specs, native and 3rd party.
+
+    For context, DB engine specs can be installed from 3rd party Python packages via
+    entry points. This allows DB vendor to maintain their own engine specs in a release
+    cycle that's independent from Superset's.
+
+    These DB engine specs can replace the ones that come with Superset, by specifying
+    the `replaces` class attribute.
     """
     engine_specs: list[type[BaseEngineSpec]] = []
+
+    # load 3rd party engine specs first, so they have prioerity
+    if app.config["ALLOW_3RD_PARTY_DB_ENGINE_SPECS"]:
+        for ep in entry_points(group="superset.db_engine_specs"):
+            try:
+                engine_spec = ep.load()
+            except Exception:  # pylint: disable=broad-except
+                logger.warning("Unable to load Superset DB engine spec: %s", ep.name)
+                continue
+            engine_specs.append(engine_spec)
 
     # load standard engines
     db_engine_spec_dir = str(Path(__file__).parent)
@@ -73,14 +90,16 @@ def load_engine_specs() -> list[type[BaseEngineSpec]]:
             for attr in module.__dict__
             if is_engine_spec(getattr(module, attr))
         )
-    # load additional engines from external modules
-    for ep in entry_points(group="superset.db_engine_specs"):
-        try:
-            engine_spec = ep.load()
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Unable to load Superset DB engine spec: %s", ep.name)
-            continue
-        engine_specs.append(engine_spec)
+
+    # remove replaced engine specs
+    replaced = {
+        replaced_spec
+        for engine_spec in engine_specs
+        for replaced_spec in engine_spec.replaces
+    }
+    engine_specs = [
+        engine_spec for engine_spec in engine_specs if engine_spec not in replaced
+    ]
 
     return engine_specs
 

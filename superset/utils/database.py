@@ -17,14 +17,19 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app
 
 from superset.constants import EXAMPLES_DB_UUID
 
 if TYPE_CHECKING:
+    from marshmallow import Schema
+
     from superset.connectors.sqla.models import Database
+
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -80,3 +85,28 @@ def remove_database(database: Database) -> None:
 
     db.session.delete(database)
     db.session.flush()
+
+
+def parameters_json_schema(
+    name: str,
+    parameters_schema: Schema | None,
+) -> dict[str, Any]:
+    """
+    Return configuration parameters as OpenAPI.
+    """
+    if not parameters_schema:
+        return {}
+
+    spec = APISpec(
+        title="Database Parameters",
+        version="1.0.0",
+        openapi_version="3.0.2",
+        plugins=[MarshmallowPlugin()],
+    )
+    spec.components.schema(name, schema=parameters_schema)
+    json_schema = spec.to_dict()["components"]["schemas"][name]
+
+    # preserve field order
+    json_schema["order"] = list(json_schema["properties"].keys())
+
+    return json_schema

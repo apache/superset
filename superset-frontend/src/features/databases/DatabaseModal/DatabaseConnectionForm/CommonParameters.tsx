@@ -55,21 +55,19 @@ export const portField = ({
   validationErrors,
   db,
 }: FieldPropTypes) => (
-  <>
-    <ValidatedInput
-      id="port"
-      name="port"
-      type="number"
-      required={required}
-      value={db?.parameters?.port as number}
-      validationMethods={{ onBlur: getValidation }}
-      errorMessage={validationErrors?.port}
-      placeholder={t('e.g. 5432')}
-      className="form-group-w-50"
-      label={t('Port')}
-      onChange={changeMethods.onParametersChange}
-    />
-  </>
+  <ValidatedInput
+    id="port"
+    name="port"
+    type="number"
+    required={required}
+    value={db?.parameters?.port as number}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.port}
+    placeholder={t('e.g. 5432')}
+    className="form-group-w-50"
+    label={t('Port')}
+    onChange={changeMethods.onParametersChange}
+  />
 );
 export const httpPath = ({
   required,

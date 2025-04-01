@@ -127,7 +127,9 @@ class ConfigurationMethod(StrEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
-class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
+class Database(
+    Model, AuditMixinNullable, ImportExportMixin
+):  # pylint: disable=too-many-public-methods
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"
@@ -306,16 +308,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         if (masked_encrypted_extra := self.masked_encrypted_extra) is not None:
             with suppress(TypeError, json.JSONDecodeError):
                 encrypted_config = json.loads(masked_encrypted_extra)
-        try:
-            # pylint: disable=useless-suppression
-            parameters = self.db_engine_spec.get_parameters_from_uri(  # type: ignore
-                masked_uri,
-                encrypted_extra=encrypted_config,
-            )
-        except Exception:  # pylint: disable=broad-except
-            parameters = {}
 
-        return parameters
+        return self.db_engine_spec.get_parameters_from_uri(
+            masked_uri,
+            encrypted_extra=encrypted_config,
+        )
 
     @property
     def parameters_schema(self) -> dict[str, Any]:
@@ -402,9 +399,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         return (
             username
             if (username := get_username())
-            else object_url.username
-            if self.impersonate_user
-            else None
+            else object_url.username if self.impersonate_user else None
         )
 
     @contextmanager

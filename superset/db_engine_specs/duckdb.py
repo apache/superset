@@ -171,23 +171,6 @@ class DuckDBParametersMixin:
 
         return errors
 
-    @classmethod
-    def parameters_json_schema(cls) -> Any:
-        """
-        Return configuration parameters as OpenAPI.
-        """
-        if not cls.parameters_schema:
-            return None
-
-        spec = APISpec(
-            title="Database Parameters",
-            version="1.0.0",
-            openapi_version="3.0.2",
-            plugins=[MarshmallowPlugin()],
-        )
-        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]
-
 
 class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
     engine = "duckdb"

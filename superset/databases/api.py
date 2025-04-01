@@ -72,7 +72,10 @@ from superset.commands.importers.exceptions import (
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.constants import (
+    MODEL_API_RW_METHOD_PERMISSION_MAP,
+    RouteMethod,
+)
 from superset.daos.database import DatabaseDAO
 from superset.databases.decorators import check_table_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
@@ -126,6 +129,7 @@ from superset.utils.core import (
     get_username,
     parse_js_uri_path_item,
 )
+from superset.utils.database import parameters_json_schema
 from superset.utils.decorators import transaction
 from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info
@@ -1896,14 +1900,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 payload["default_driver"] = engine_spec.default_driver
 
             # show configuration parameters for DBs that support it
-            if (
-                hasattr(engine_spec, "parameters_json_schema")
-                and hasattr(engine_spec, "sqlalchemy_uri_placeholder")
-                and engine_spec.default_driver in drivers
-            ):
-                payload["parameters"] = engine_spec.parameters_json_schema()
-                payload["sqlalchemy_uri_placeholder"] = (
-                    engine_spec.sqlalchemy_uri_placeholder
+            if engine_spec.parameters_schema:
+                payload["parameters"] = parameters_json_schema(
+                    engine_spec.__name__,
+                    engine_spec.parameters_schema,
                 )
 
             available_databases.append(payload)

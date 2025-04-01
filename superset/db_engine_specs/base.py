@@ -40,8 +40,6 @@ from uuid import uuid4
 import pandas as pd
 import requests
 import sqlparse
-from apispec import APISpec
-from apispec.ext.marshmallow import MarshmallowPlugin
 from deprecation import deprecated
 from flask import current_app, g, url_for
 from flask_appbuilder.security.sqla.models import User
@@ -60,7 +58,11 @@ from sqlalchemy.types import TypeEngine
 from sqlparse.tokens import CTE
 
 from superset import db, sql_parse
-from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
+from superset.constants import (
+    DEFAULT_SQLALCHEMY_PLACEHOLDER,
+    QUERY_CANCEL_KEY,
+    TimeGrain as TimeGrainConstants,
+)
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
@@ -139,7 +141,9 @@ builtin_time_grains: dict[str | None, str] = {
 }
 
 
-class TimestampExpression(ColumnClause):  # pylint: disable=abstract-method, too-many-ancestors
+class TimestampExpression(
+    ColumnClause
+):  # pylint: disable=abstract-method, too-many-ancestors
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be used to render native column elements respecting
         engine-specific quoting rules as part of a string-based expression.
@@ -212,11 +216,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     engine_aliases: set[str] = set()
     drivers: dict[str, str] = {}
     default_driver: str | None = None
+    sqlalchemy_uri_placeholder = DEFAULT_SQLALCHEMY_PLACEHOLDER
 
-    # placeholder with the SQLAlchemy URI template
-    sqlalchemy_uri_placeholder = (
-        "engine+driver://user:password@host:port/dbname[?key=value&key=value...]"
-    )
+    # 3rd-party DB engine specs can define this when they replace a built-in engine spec
+    replaces: set["BaseEngineSpec"] = set()
+
+    # schema of parameters needed to build the SQLAlchemy URI
+    parameters_schema: Schema | None = None
+    encryption_parameters: dict[str, str] = {}
 
     disable_ssh_tunneling = False
 
@@ -398,9 +405,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     max_column_name_length: int | None = None
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
-    custom_errors: dict[
-        Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
-    ] = {}
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = (
+        {}
+    )
 
     # List of JSON path to fields in `encrypted_extra` that should be masked when the
     # database is edited. By default everything is masked.
@@ -612,6 +619,46 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         to define dynamic values for the attribute.
         """
         return cls.allows_alias_in_select
+
+    @classmethod
+    def build_sqlalchemy_uri(  # pylint: disable=unused-argument
+        cls,
+        parameters: dict[str, Any],
+        encrypted_extra: dict[str, str] | None = None,
+    ) -> str:
+        """
+        Method to build SQLAlchemy URI from discrete parameters.
+
+        This requires a Marshmallow schema to be set in the `parameters_schema` class
+        attribute.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    def get_parameters_from_uri(  # pylint: disable=unused-argument
+        cls,
+        uri: str,
+        encrypted_extra: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Method to extract parameters from SQLAlchemy URI.
+
+        This is the opposite of `build_sqlalchemy_uri`.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    def validate_parameters(
+        cls,
+        properties: BasicPropertiesType,
+    ) -> list[SupersetError]:
+        """
+        Validates parameters.
+
+        See the `BasicParametersMixin` class for an example of progressive validation of
+        parameters.
+        """
+        return []
 
     @classmethod
     def supports_url(cls, url: URL) -> bool:
@@ -2385,13 +2432,6 @@ class BasicParametersMixin:
     # schema describing the parameters used to configure the DB
     parameters_schema = BasicParametersSchema()
 
-    # recommended driver name for the DB engine spec
-    default_driver = ""
-
-    # query parameter to enable encryption in the database connection
-    # for Postgres this would be `{"sslmode": "verify-ca"}`, eg.
-    encryption_parameters: dict[str, str] = {}
-
     @classmethod
     def build_sqlalchemy_uri(  # pylint: disable=unused-argument
         cls,
@@ -2422,7 +2462,9 @@ class BasicParametersMixin:
 
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument
-        cls, uri: str, encrypted_extra: dict[str, Any] | None = None
+        cls,
+        uri: str,
+        encrypted_extra: dict[str, Any] | None = None,
     ) -> BasicParametersType:
         url = make_url_safe(uri)
         query = {
@@ -2497,6 +2539,8 @@ class BasicParametersMixin:
                     extra={"invalid": ["port"]},
                 ),
             )
+            return errors
+
         if not (isinstance(port, int) and 0 <= port < 2**16):
             errors.append(
                 SupersetError(
@@ -2519,20 +2563,3 @@ class BasicParametersMixin:
             )
 
         return errors
-
-    @classmethod
-    def parameters_json_schema(cls) -> Any:
-        """
-        Return configuration parameters as OpenAPI.
-        """
-        if not cls.parameters_schema:
-            return None
-
-        spec = APISpec(
-            title="Database Parameters",
-            version="1.0.0",
-            openapi_version="3.0.2",
-            plugins=[MarshmallowPlugin()],
-        )
-        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]

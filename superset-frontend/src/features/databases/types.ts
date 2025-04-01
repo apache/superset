@@ -315,13 +315,12 @@ export interface FieldPropTypes {
   clearValidationErrors: () => void;
   db?: DatabaseObject;
   dbModel?: DatabaseForm;
-  field: string;
-  default_value?: any;
-  description?: string;
   isEditMode?: boolean;
   sslForced?: boolean;
   defaultDBName?: string;
   editNewDb?: boolean;
+  field: string;
+  parameter: ParameterFieldSchema;
 }
 
 type ChangeMethodsType = FieldPropTypes['changeMethods'];
@@ -368,4 +367,16 @@ export interface DatabaseConnectionFormProps {
   getValidation: () => void;
   clearValidationErrors: () => void;
   getPlaceholder?: (field: string) => string | undefined;
+}
+
+/* Type for a field in the DB engine spec parameters schema */
+export interface ParameterFieldSchema {
+  title: string;
+  type: string;
+  enum?: any[];
+  default?: any;
+  description?: string;
+  ['x-help-text']?: string;
+  ['x-placeholder']?: string;
+  ['x-width']?: number;
 }

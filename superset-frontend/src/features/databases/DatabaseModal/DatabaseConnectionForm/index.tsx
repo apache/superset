@@ -17,16 +17,25 @@
  * under the License.
  */
 import { SupersetTheme } from '@superset-ui/core';
+import { Col, Row } from 'src/components';
 import { Form } from 'src/components/Form';
-import { FormFieldOrder, FORM_FIELD_MAP } from './constants';
+import { FORM_FIELD_MAP } from './constants';
 import { formScrollableStyles, validatedFormStyles } from '../styles';
-import { DatabaseConnectionFormProps } from '../../types';
+import { DatabaseConnectionFormProps, ParameterFieldSchema } from '../../types';
+import { GenericField } from './GenericField';
+
+interface ParametersSchema {
+  order: string[];
+  properties: {
+    [key: string]: ParameterFieldSchema;
+  };
+  required?: string[];
+}
 
 const DatabaseConnectionForm = ({
   dbModel,
   db,
   editNewDb,
-  getPlaceholder,
   getValidation,
   isEditMode = false,
   onAddTableCatalog,
@@ -41,62 +50,63 @@ const DatabaseConnectionForm = ({
   validationErrors,
   clearValidationErrors,
 }: DatabaseConnectionFormProps) => {
-  const parameters = dbModel?.parameters as {
-    properties: {
-      [key: string]: {
-        default?: any;
-        description?: string;
-      };
-    };
-    required?: string[];
-  };
+  const parameters = dbModel?.parameters as ParametersSchema;
+
+  let orderedEntries = Object.entries(parameters?.properties || []).sort(
+    ([keyA], [keyB]) =>
+      parameters.order.indexOf(keyA) - parameters.order.indexOf(keyB),
+  );
+
+  // database name should come first
+  orderedEntries = [
+    ['database_name', { title: 'Name', type: 'string' }],
+    ...orderedEntries,
+  ];
+
+  const components = orderedEntries.map(([key, value]) => {
+    const FormComponent = FORM_FIELD_MAP[key] || GenericField;
+
+    return (
+      <Col span={(value?.['x-width'] || 1) * 24}>
+        {FormComponent({
+          required: parameters.required?.includes(key),
+          changeMethods: {
+            onParametersChange,
+            onChange,
+            onQueryChange,
+            onParametersUploadFileChange,
+            onAddTableCatalog,
+            onRemoveTableCatalog,
+            onExtraInputChange,
+            onEncryptedExtraInputChange,
+          },
+          validationErrors,
+          getValidation,
+          clearValidationErrors,
+          db,
+          key,
+          field: key,
+          isEditMode,
+          sslForced,
+          editNewDb,
+          parameter: value,
+        })}
+      </Col>
+    );
+  });
 
   return (
     <Form>
       <div
-        // @ts-ignore
         css={(theme: SupersetTheme) => [
           formScrollableStyles,
           validatedFormStyles(theme),
         ]}
       >
-        {parameters &&
-          FormFieldOrder.filter(
-            (key: string) =>
-              Object.keys(parameters.properties).includes(key) ||
-              key === 'database_name',
-          ).map(field =>
-            // @ts-ignore TODO: fix ComponentClass for SSHTunnelSwitchComponent not having call signature.
-            FORM_FIELD_MAP[field]({
-              required: parameters.required?.includes(field),
-              changeMethods: {
-                onParametersChange,
-                onChange,
-                onQueryChange,
-                onParametersUploadFileChange,
-                onAddTableCatalog,
-                onRemoveTableCatalog,
-                onExtraInputChange,
-                onEncryptedExtraInputChange,
-              },
-              validationErrors,
-              getValidation,
-              clearValidationErrors,
-              db,
-              key: field,
-              field,
-              default_value: parameters.properties[field]?.default,
-              description: parameters.properties[field]?.description,
-              isEditMode,
-              sslForced,
-              editNewDb,
-              placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
-            }),
-          )}
+        <Row gutter={[4, 4]}>{components}</Row>
       </div>
     </Form>
   );
 };
-export const FormFieldMap = FORM_FIELD_MAP;
 
 export default DatabaseConnectionForm;

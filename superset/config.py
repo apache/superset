@@ -1148,8 +1148,8 @@ SQLLAB_CTAS_NO_LIMIT = False
 #         else:
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
-SQLLAB_CTAS_SCHEMA_NAME_FUNC: (
-    None | (Callable[[Database, models.User, str, str], str])
+SQLLAB_CTAS_SCHEMA_NAME_FUNC: None | (
+    Callable[[Database, models.User, str, str], str]
 ) = None
 
 # If enabled, it can be used to store the results of long-running queries
@@ -1429,6 +1429,20 @@ EXCLUDE_USERS_FROM_LISTS: list[str] | None = None
 # drivers.
 # e.g., DBS_AVAILABLE_DENYLIST: Dict[str, Set[str]] = {"databricks": {"pyhive", "pyodbc"}}  # noqa: E501
 DBS_AVAILABLE_DENYLIST: dict[str, set[str]] = {}
+
+# Allow Superset to use 3rd party DB engine specs, distributed in separate Python
+# packages, and registered under the `superset.db_engine_specs` entry point. Before
+# enabling this you should audit packages in your system that would be loaded, to
+# prevent a malicious package from injecting a DB engine spec that could steal database
+# credentials and have full access to your data. You can do this by running:
+#
+#   import importlib.metadata
+#
+#   entry_points = importlib.metadata.entry_points().get("superset.db_engine_specs", [])
+#   for ep in entry_points:
+#        print(ep.module)
+#
+ALLOW_3RD_PARTY_DB_ENGINE_SPECS = False
 
 # This auth provider is used by background (offline) tasks that need to access
 # protected resources. Can be overridden by end users in order to support

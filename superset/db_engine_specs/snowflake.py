@@ -350,24 +350,6 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             )
         return errors
 
-    @classmethod
-    def parameters_json_schema(cls) -> Any:
-        """
-        Return configuration parameters as OpenAPI.
-        """
-        if not cls.parameters_schema:
-            return None
-
-        ma_plugin = MarshmallowPlugin()
-        spec = APISpec(
-            title="Database Parameters",
-            version="1.0.0",
-            openapi_version="3.0.0",
-            plugins=[ma_plugin],
-        )
-
-        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]
 
     @staticmethod
     def update_params_from_encrypted_extra(

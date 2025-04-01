@@ -243,3 +243,8 @@ class CacheRegion(StrEnum):
     DEFAULT = "default"
     DATA = "data"
     THUMBNAIL = "thumbnail"
+
+
+DEFAULT_SQLALCHEMY_PLACEHOLDER = (
+    "engine+driver://user:password@host:port/dbname[?key1=value1&key2=value2...]"
+)

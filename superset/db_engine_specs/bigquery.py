@@ -640,26 +640,6 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return []
 
     @classmethod
-    def parameters_json_schema(cls) -> Any:
-        """
-        Return configuration parameters as OpenAPI.
-        """
-        if not cls.parameters_schema:
-            return None
-
-        spec = APISpec(
-            title="Database Parameters",
-            version="1.0.0",
-            openapi_version="3.0.0",
-            plugins=[ma_plugin],
-        )
-
-        ma_plugin.init_spec(spec)
-        ma_plugin.converter.add_attribute_function(encrypted_field_properties)
-        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]
-
-    @classmethod
     def select_star(  # pylint: disable=too-many-arguments
         cls,
         database: Database,

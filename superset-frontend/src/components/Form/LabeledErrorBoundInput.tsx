@@ -18,7 +18,7 @@
  */
 import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import { Input } from 'src/components/Input';
+import { Input, InputNumber } from 'src/components/Input';
 import InfoTooltip from 'src/components/InfoTooltip';
 import { Icons } from 'src/components/Icons';
 import Button from 'src/components/Button';
@@ -43,6 +43,10 @@ export interface LabeledErrorBoundInputProps {
 }
 
 const StyledInput = styled(Input)`
+  margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
+`;
+
+const StyledInputNumber = styled(InputNumber)`
   margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
 `;
 
@@ -99,6 +103,48 @@ const iconReset = css`
   }
 `;
 
+interface GetInputComponentProps {
+  name?: string;
+  type?: string;
+}
+
+const getInputComponent = (
+  props: GetInputComponentProps,
+  validationMethods: Record<string, unknown>,
+  visibilityToggle: boolean,
+): JSX.Element => {
+  if (visibilityToggle || props.name === 'password') {
+    return (
+      <StyledInputPassword
+        {...props}
+        {...validationMethods}
+        iconRender={visible =>
+          visible ? (
+            <Tooltip title={t('Hide password.')}>
+              <Icons.EyeInvisibleOutlined iconSize="m" css={iconReset} />
+            </Tooltip>
+          ) : (
+            <Tooltip title={t('Show password.')}>
+              <Icons.EyeOutlined
+                iconSize="m"
+                css={iconReset}
+                data-test="icon-eye"
+              />
+            </Tooltip>
+          )
+        }
+        role="textbox"
+      />
+    );
+  }
+
+  if (props.type === 'number') {
+    return <StyledInputNumber {...props} {...validationMethods} />;
+  }
+
+  return <StyledInput {...props} {...validationMethods} />;
+};
+
 const LabeledErrorBoundInput = ({
   label,
   validationMethods,
@@ -128,30 +174,7 @@ const LabeledErrorBoundInput = ({
       help={errorMessage || helpText}
       hasFeedback={!!errorMessage}
     >
-      {visibilityToggle || props.name === 'password' ? (
-        <StyledInputPassword
-          {...props}
-          {...validationMethods}
-          iconRender={visible =>
-            visible ? (
-              <Tooltip title={t('Hide password.')}>
-                <Icons.EyeInvisibleOutlined iconSize="m" css={iconReset} />
-              </Tooltip>
-            ) : (
-              <Tooltip title={t('Show password.')}>
-                <Icons.EyeOutlined
-                  iconSize="m"
-                  css={iconReset}
-                  data-test="icon-eye"
-                />
-              </Tooltip>
-            )
-          }
-          role="textbox"
-        />
-      ) : (
-        <StyledInput {...props} {...validationMethods} />
-      )}
+      {getInputComponent(props, validationMethods, visibilityToggle)}
       {get_url && description ? (
         <Button
           type="link"
