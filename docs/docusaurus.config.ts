@@ -240,29 +240,6 @@ const config: Config = {
         showLastUpdateTime: true,
       },
     ],
-    [
-      '@docusaurus/plugin-content-docs',
-      {
-        id: 'tutorials',
-        path: 'tutorials',
-        routeBasePath: 'tutorials',
-        sidebarPath: require.resolve('./sidebarTutorials.js'),
-        editUrl:
-          'https://github.com/apache/superset/edit/master/docs/tutorials',
-        remarkPlugins: [require('remark-import-partial')],
-        // Enable MDX v2
-        docItemComponent: '@theme/DocItem',
-        includeCurrentVersion: true,
-        // We'll create versions later, for now just show the current version
-        versions: {
-          current: {
-            label: 'Next',
-            path: '',
-            banner: 'unreleased',
-          },
-        },
-      },
-    ],
   ],
 
   presets: [
