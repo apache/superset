@@ -196,6 +196,17 @@ const config: Config = {
         ],
       },
     ],
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'components',
+        path: 'components',
+        routeBasePath: 'components',
+        sidebarPath: require.resolve('./sidebarComponents.js'),
+        editUrl:
+          'https://github.com/apache/superset/edit/master/docs/components',
+      },
+    ],
   ],
 
   presets: [
@@ -253,6 +264,28 @@ const config: Config = {
             {
               label: 'FAQ',
               to: '/docs/faq',
+            },
+          ],
+        },
+        {
+          label: 'Component Library',
+          to: '/components',
+          items: [
+            {
+              label: 'Introduction',
+              to: '/components',
+            },
+            {
+              label: 'UI Components',
+              to: '/components/ui-components/button',
+            },
+            {
+              label: 'Chart Components',
+              to: '/components/chart-components/bar-chart',
+            },
+            {
+              label: 'Layout Components',
+              to: '/components/layout-components/grid',
             },
           ],
         },
