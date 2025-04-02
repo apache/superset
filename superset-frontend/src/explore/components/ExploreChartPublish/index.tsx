@@ -28,7 +28,7 @@ export type ChartPublishedStatusType = {
 };
 
 const draftButtonTooltip = t(
-  'This chart is in draft. This indicated this chart is a work in progress.',
+  'This chart is in draft. This indicates this chart is a work in progress. Click to publish it.',
 );
 
 const publishedTooltip = t(

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""adding_publishing_filed_to_chart
+"""adding_publishing_field_to_chart
 
 Revision ID: bd200ee2fd0c
 Revises: 32bf93dfe2a4
@@ -28,14 +28,13 @@ down_revision = "32bf93dfe2a4"
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 
 def upgrade():
     op.add_column(
-        "slices", sa.Column("published", sa.Boolean(), nullable=True, default=False)
+        "slices",
+        sa.Column("published", sa.Boolean(), nullable=True, server_default=sa.false()),
     )
-    op.execute("UPDATE slices SET published=false")
 
 
 def downgrade():
