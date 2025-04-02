@@ -676,6 +676,7 @@ const Select = forwardRef(
           tagRender={customTagRender}
           css={props.css}
           {...props}
+          showSearch={shouldShowSearch}
           ref={ref}
         >
           {selectAllEnabled && (
