@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DocVersionBanner from '@theme-original/DocVersionBanner';
 import {
   useActivePlugin,
