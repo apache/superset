@@ -35,7 +35,7 @@ import ExploreHeader from '.';
 const chartEndpoint = 'glob:*api/v1/chart/*';
 
 fetchMock.get(chartEndpoint, { json: 'foo' });
-
+fetchMock.put(chartEndpoint, { published: true });
 window.featureFlags = {
   [FeatureFlag.EmbeddableCharts]: true,
 };
@@ -98,6 +98,7 @@ const createProps = (additionalProps = {}) => ({
     slice_id: 318,
     slice_name: 'Age distribution of respondents',
     slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
+    published: false,
   },
   slice_name: 'Age distribution of respondents',
   actions: {
@@ -503,5 +504,35 @@ describe('Additional actions tests', () => {
       userEvent.click(exportExcelElement);
       expect(spyExportChart.callCount).toBe(1);
     });
+  });
+});
+
+describe('Publish chart', () => {
+  test('Does not show publish chart if can overwrite is false', async () => {
+    window.featureFlags = {
+      [FeatureFlag.PublishCharts]: true,
+    };
+    const props = createProps();
+    render(<ExploreHeader {...props} />, {
+      useRedux: true,
+    });
+    expect(screen.queryByText('Draft')).not.toBeInTheDocument();
+  });
+
+  test('Should make put request when click on Publish Status', async () => {
+    window.featureFlags = {
+      [FeatureFlag.PublishCharts]: true,
+    };
+    const props = createProps({ canOverwrite: true });
+    render(<ExploreHeader {...props} />, {
+      useRedux: true,
+    });
+    // expect put request to be made
+    expect(fetchMock.calls().length).toBe(4);
+    userEvent.click(screen.getByText('Draft'));
+    await waitFor(() => {
+      expect(screen.getByText('Published')).toBeInTheDocument();
+    });
+    expect(fetchMock.calls().length).toBe(5);
   });
 });
