@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ErrorLevel, styled, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 const StyledContainer = styled.div<{ level: ErrorLevel }>`
   display: flex;

@@ -22,7 +22,7 @@ import TransparentIcon from 'src/assets/images/icons/transparent.svg';
 import { IconType } from './types';
 import { BaseIconComponent } from './BaseIcon';
 
-export const Icon = (props: IconType) => {
+const AsyncIcon = (props: IconType) => {
   const [, setLoaded] = useState(false);
   const ImportedSVG = useRef<FC<SVGProps<SVGSVGElement>>>();
   const { fileName } = props;
@@ -51,4 +51,4 @@ export const Icon = (props: IconType) => {
   );
 };
 
-export default Icon;
+export default AsyncIcon;

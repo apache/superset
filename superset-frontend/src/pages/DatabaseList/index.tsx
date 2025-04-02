@@ -42,7 +42,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import handleResourceExport from 'src/utils/export';

@@ -318,7 +318,8 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
-grpcio==1.68.0
+    #   sqlalchemy
+grpcio==1.71.0
     # via
     #   apache-superset
     #   google-api-core

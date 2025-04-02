@@ -22,7 +22,7 @@ import TagType from 'src/types/TagType';
 import { Tag as AntdTag } from 'antd-v5';
 import { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
