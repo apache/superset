@@ -17,11 +17,26 @@
  * under the License.
  */
 
-import React from 'react';
-import DocVersionBanner from '@theme-original/DocVersionBanner';
+.versionBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ifm-color-emphasis-700);
+  background-color: var(--ifm-color-emphasis-200);
+  border-radius: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  margin-right: 0.5rem;
+}
 
-// We're just passing through the original component
-// The version selector is now in DocVersionBadge
-export default function DocVersionBannerWrapper(props) {
-  return <DocVersionBanner {...props} />;
+.versionSelector {
+  cursor: pointer;
+  color: var(--ifm-color-primary);
+  font-weight: 500;
+  margin-left: 0.25rem;
+}
+
+.versionSelector:hover {
+  text-decoration: none;
+  color: var(--ifm-color-primary-darker);
 }
