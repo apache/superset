@@ -59,9 +59,17 @@ const EmbededLazyDashboardPage = () => {
   if (uiConfig?.emitDataMasks) {
     log('setting up Switchboard event emitter');
 
+    let previousDataMask = store.getState().dataMask;
+
     store.subscribe(() => {
-      const state = store.getState();
-      Switchboard.emit('getDataMasks', state.dataMask);
+      const currentState = store.getState();
+      const currentDataMask = currentState.dataMask;
+
+      // Only emit if the dataMask has changed
+      if (previousDataMask !== currentDataMask) {
+        Switchboard.emit('getDataMasks', currentDataMask);
+        previousDataMask = currentDataMask;
+      }
     });
   }
 
