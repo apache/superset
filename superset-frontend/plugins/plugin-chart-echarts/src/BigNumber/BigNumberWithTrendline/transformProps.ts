@@ -149,23 +149,23 @@ export default function transformProps(
     }
   }
 
-    if (compareLag > 0) {
-      const compareIndex = compareLag;
-      if (compareIndex < sortedData.length) {
-        const compareValue = sortedData[compareIndex][1];
-        // compare values must both be non-nulls
-        if (bigNumber !== null && compareValue !== null) {
-          percentChange = compareValue
-            ? (bigNumber - compareValue) / Math.abs(compareValue)
-            : 0;
-          trendText = `${formatPercentChange(percentChange)} ${compareSuffix}`;
-        }
+  if (compareLag > 0 && sortedData.length > 0) {
+    const compareIndex = compareLag;
+    if (compareIndex < sortedData.length) {
+      const compareValue = sortedData[compareIndex][1];
+      // compare values must both be non-nulls
+      if (bigNumber !== null && compareValue !== null) {
+        percentChange = compareValue
+          ? (Number(bigNumber) - compareValue) / Math.abs(compareValue)
+          : 0;
+        trendText = `${formatPercentChange(percentChange)} ${compareSuffix}`;
       }
     }
-    sortedData.reverse();
-    // @ts-ignore
-    trendLineData = showTrendLine ? reversedData : undefined;
   }
+
+  sortedData.reverse();
+  // @ts-ignore
+  const trendLineData: TimeSeriesDatum[] | undefined;
 
   let className = '';
   if (percentChange > 0) {
