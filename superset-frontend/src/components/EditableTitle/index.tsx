@@ -174,7 +174,7 @@ export default function EditableTitle({
   // be text or a button).
   let titleComponent =
     multiLine && isEditing ? (
-      <textArea
+      <textarea
         data-test="editable-title-input"
         ref={contentRef}
         value={value}
