@@ -58,10 +58,10 @@ export default function ChartPublishedStatus({
   if (userCanOverwrite) {
     // Show everybody the draft badge
     if (!published) {
-      // if they can edit the dash, make the badge a button
+      // if they can edit the chart, make the badge a button
       return (
         <Tooltip
-          id="unpublished-dashboard-tooltip"
+          id="unpublished-chart-tooltip"
           placement="bottom"
           title={draftButtonTooltip}
         >
@@ -74,10 +74,10 @@ export default function ChartPublishedStatus({
         </Tooltip>
       );
     }
-    // Show the published badge for the owner of the dashboard to toggle
+    // Show the published badge for the owner of the chart to toggle
     return (
       <Tooltip
-        id="published-dashboard-tooltip"
+        id="published-chart-tooltip"
         placement="bottom"
         title={publishedTooltip}
       >
