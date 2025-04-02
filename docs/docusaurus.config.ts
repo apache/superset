@@ -235,6 +235,29 @@ const config: Config = {
         showLastUpdateTime: true,
       },
     ],
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'tutorials',
+        path: 'tutorials',
+        routeBasePath: 'tutorials',
+        sidebarPath: require.resolve('./sidebarTutorials.js'),
+        editUrl:
+          'https://github.com/apache/superset/edit/master/docs/tutorials',
+        remarkPlugins: [require('remark-import-partial')],
+        // Enable MDX v2
+        docItemComponent: '@theme/DocItem',
+        includeCurrentVersion: true,
+        // We'll create versions later, for now just show the current version
+        versions: {
+          current: {
+            label: 'Next',
+            path: '',
+            banner: 'unreleased',
+          },
+        },
+      },
+    ],
   ],
 
   presets: [
@@ -288,6 +311,28 @@ const config: Config = {
           docsPluginId: 'components',
           dropdownItemsAfter: [],
           dropdownActiveClassDisabled: true,
+        },
+        // Add version dropdown for tutorials
+        {
+          type: 'docsVersionDropdown',
+          position: 'right',
+          docsPluginId: 'tutorials',
+          dropdownItemsAfter: [],
+          dropdownActiveClassDisabled: true,
+        },
+        {
+          label: 'Tutorials',
+          to: '/tutorials',
+          items: [
+            {
+              label: 'Introduction',
+              to: '/tutorials',
+            },
+            {
+              label: 'Getting Started',
+              to: '/tutorials/getting-started',
+            },
+          ],
         },
         {
           label: 'Documentation',
@@ -405,7 +450,6 @@ const config: Config = {
     //   src: 'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
     //   async: true,
     // },
-    '/script/matomo.js',
     {
       src: 'https://widget.kapa.ai/kapa-widget.bundle.js',
       async: true,
