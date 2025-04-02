@@ -96,7 +96,7 @@ class CeleryConfig:
         },
         "check_for_expired_llm_context": {
             "task": "check_for_expired_llm_context",
-            "schedule": 300.0,
+            "schedule": crontab(minute='*/5'),
         }
     }
 

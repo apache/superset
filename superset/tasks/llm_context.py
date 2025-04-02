@@ -14,7 +14,6 @@ from superset.databases.utils import get_database_metadata
 from superset.extensions import celery_app, security_manager
 from superset.models.core import ContextBuilderTask
 from superset.utils.core import override_user
-# from superset.llms.dispatcher import generate_context_for_db
 
 
 logger = get_task_logger(__name__)
@@ -23,7 +22,6 @@ logger.setLevel(logging.INFO)
 
 @celery_app.task(name="check_for_expired_llm_context")
 def check_for_expired_llm_context():
-    # Start by retrieving all databases and filtering out all the ones that do not have llm_enabled == True
     admin_user = security_manager.find_user(username="admin")
     if not admin_user:
         logger.error("Unable to find admin user")
@@ -47,7 +45,6 @@ def check_for_expired_llm_context():
             continue
 
         task_result = AsyncResult(latest_task.task_id)
-        logger.info(f"Task result ({latest_task.task_id}): {task_result.status}")
 
         if not task_result or task_result.status == "FAILURE":
             logger.info(f"Old context failed - generating for database {database.id}")
@@ -77,7 +74,6 @@ def reduce_json_token_count(data):
 def initiate_context_generation(pk: int):
     task = generate_llm_context.delay(pk)
 
-    # Record the task in the database
     context_task = ContextBuilderTask(
         database_id=pk,
         task_id=task.id,
