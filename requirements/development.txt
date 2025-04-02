@@ -202,7 +202,7 @@ flask==2.3.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
-flask-appbuilder==4.6.0
+flask-appbuilder==4.6.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -319,7 +319,7 @@ greenlet==3.1.1
     #   gevent
     #   shillelagh
     #   sqlalchemy
-grpcio==1.68.0
+grpcio==1.71.0
     # via
     #   apache-superset
     #   google-api-core
