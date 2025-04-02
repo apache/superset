@@ -39,7 +39,7 @@ import {
   UserObject,
 } from 'src/features/roles/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 const PAGE_SIZE = 25;
 

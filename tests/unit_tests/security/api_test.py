@@ -34,6 +34,7 @@ def test_csrf_not_exempt(app_context: None) -> None:
         "OpenApi",
         "PermissionViewMenuApi",
         "SupersetRoleApi",
+        "UserApi",
         "PermissionApi",
         "ViewMenuApi",
     }
