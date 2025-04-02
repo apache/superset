@@ -163,9 +163,11 @@ export default function transformProps(
     }
   }
 
-  sortedData.reverse();
-  // @ts-ignore
-  const trendLineData: TimeSeriesDatum[] | undefined;
+  if (data.length > 0) {
+    const reversedData = [...sortedData].reverse();
+    // @ts-ignore
+    trendLineData = showTrendLine ? reversedData : undefined;
+  }
 
   let className = '';
   if (percentChange > 0) {

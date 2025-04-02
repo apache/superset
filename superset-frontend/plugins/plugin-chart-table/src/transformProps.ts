@@ -356,6 +356,7 @@ const processComparisonColumns = (
         return [
           {
             ...col,
+            originalLabel,
             key: `${t('Main')} ${col.key}`,
             config: getComparisonColConfig(t('Main'), col.key, columnConfig),
             formatter: getComparisonColFormatter(
@@ -368,6 +369,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
+            originalLabel,
             label: col.key,
             key: `# ${col.key}`,
             config: getComparisonColConfig(`#`, col.key, columnConfig),
@@ -381,6 +383,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
+            originalLabel,
             label: col.key,
             key: `△ ${col.key}`,
             config: getComparisonColConfig(`△`, col.key, columnConfig),
@@ -394,6 +397,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
+            originalLabel,
             label: col.key,
             key: `% ${col.key}`,
             config: getComparisonColConfig(`%`, col.key, columnConfig),
