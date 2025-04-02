@@ -334,8 +334,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             if tabs_in_scope := filter.get("tabsInScope", []):
                 for tab_key in tabs_in_scope:
                     tab_filters[tab_key].append(filter)
-            else:
-                tab_filters["NO_TAB"].append(filter)
+            tab_filters["all"].append(filter)
 
         return tab_filters
 

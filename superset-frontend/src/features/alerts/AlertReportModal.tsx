@@ -82,7 +82,6 @@ import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import Icons from 'src/components/Icons';
-import { native } from 'rimraf';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -657,6 +656,61 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     grace_period: undefined,
   };
 
+  const fetchDashboardFilterValues = async (
+    dashboardId: number,
+    columnName: string,
+    datasetId: string,
+  ) => {
+    const filterValues = {
+      formData: {
+        datasource: `${datasetId}__table`,
+        groupby: [columnName],
+        metrics: ['count'],
+        row_limit: 1000,
+        showSearch: true,
+        viz_type: 'filter_select',
+        type: 'NATIVE_FILTER',
+        dashboardId,
+      },
+      force: false,
+      ownState: {},
+    };
+    const data = await getChartDataRequest(filterValues).then(response =>
+      response.json.result[0].data.map((item: any) => ({
+        value: item[columnName],
+        label: item[columnName],
+      })),
+    );
+
+    return data;
+  };
+
+  const addNativeFilterOptions = (nativeFilters: any) => {
+    nativeFilterData.map(nativeFilter => {
+      if (!nativeFilter.nativeFilterId) return;
+      const filter = nativeFilters.filter(
+        (f: any) => f.id === nativeFilter.nativeFilterId,
+      )[0];
+      const { datasetId } = filter.targets[0];
+      const columnName = filter.targets[0].column.name;
+      const dashboardId = currentAlert?.dashboard?.value;
+      // eslint-disable-next-line consistent-return
+      return fetchDashboardFilterValues(
+        dashboardId,
+        columnName,
+        datasetId,
+      ).then(options => {
+        setNativeFilterData(prev =>
+          prev.map(filter =>
+            filter.nativeFilterId === nativeFilter.nativeFilterId
+              ? { ...filter, optionFilterValues: options }
+              : filter,
+          ),
+        );
+      });
+    });
+  };
+
   const updateNotificationSetting = (
     index: number,
     setting: NotificationSetting,
@@ -683,7 +737,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setNotificationSettings(settings);
     }
   };
-
   const removeNotificationSetting = (index: number) => {
     const settings = notificationSettings.slice();
 
@@ -939,17 +992,25 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           setTabOptions(tabTree);
           setTabNativeFilters(nativeFilters);
 
+          if (isEditMode) {
+            // update options for all filters
+            addNativeFilterOptions(nativeFilters.all);
+          }
           const anchor = currentAlert?.extra?.dashboard?.anchor;
-
+          console.log(nativeFilters);
+          console.log('anchor', anchor);
           if (anchor) {
-            setNativeFilterOptions(
-              nativeFilters[anchor].map((filter: any) => ({
-                value: filter.id,
-                label: filter.name,
-              })),
-            );
             try {
               const parsedAnchor = JSON.parse(anchor);
+              if (!Array.isArray(parsedAnchor)) {
+                // only show filters scoped to anchor
+                setNativeFilterOptions(
+                  nativeFilters[anchor].map((filter: any) => ({
+                    value: filter.id,
+                    label: filter.name,
+                  })),
+                );
+              }
               if (Array.isArray(parsedAnchor)) {
                 // Check if all elements in parsedAnchor list are in allTabs
                 const isValidSubset = parsedAnchor.every(tab => tab in allTabs);
@@ -966,14 +1027,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             }
           } else {
             setNativeFilterOptions(
-              nativeFilters.NO_TAB.map((filter: any) => ({
+              nativeFilters.all.map((filter: any) => ({
                 value: filter.id,
                 label: filter.name,
               })),
             );
           }
         })
-        .catch(() => {
+        .catch(e => {
+          console.log(e);
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }
@@ -1190,6 +1252,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (tabsEnabled) {
       setTabOptions([]);
       setNativeFilterOptions([]);
+      setNativeFilterData([
+        {
+          nativeFilterId: null,
+          columnLabel: '',
+          columnName: '',
+          filterValues: [],
+        },
+      ]);
       updateAnchorState('');
     }
   };
@@ -1251,15 +1321,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onChangeDashboardFilter = (idx: number, nativeFilterId: string) => {
-    // set dashboardFilter
-    const anchor = currentAlert?.extra?.dashboard?.anchor || 'NO_TAB';
-
-    // @ts-ignore
-    const inScopeFilters = tabNativeFilters[anchor];
-    const filter = inScopeFilters.filter(
-      (f: any) => f.id === nativeFilterId,
-    )[0];
-
+    // find specific filter tied to the selected filter
+    const filters = Object.values(tabNativeFilters).flat();
+    const filter = filters.filter((f: any) => f.id === nativeFilterId)[0];
     const { datasetId } = filter.targets[0];
     const columnName = filter.targets[0].column.name;
 
@@ -1508,8 +1572,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       // Add native filter settings
 
       if (resource.extra?.dashboard?.nativeFilters) {
+        // grab remaining filterValues here....
+        // const optionFilterValues = fetch
+        // optionFilterValues
         // @ts-ignore
-        setNativeFilterData(resource.extra?.dashboard?.nativeFilters);
+        const filters = resource.extra.dashboard.nativeFilters;
+        setNativeFilterData(filters);
       }
 
       // Add notification settings
@@ -2007,7 +2075,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             </div>
                             <Select
                               className="filters-dash-select"
-                              // disabled={nativeFilterOptions?.length < 1}
+                              disabled={nativeFilterOptions?.length < 1}
                               ariaLabel={t('Select Filter')}
                               placeholder={t('Select Filter')}
                               // @ts-ignore
