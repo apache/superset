@@ -519,7 +519,7 @@ describe('Publish chart', () => {
     expect(screen.queryByText('Draft')).not.toBeInTheDocument();
   });
 
-  test('Should make put request when click on Publish Status', async () => {
+  test('If can overwrite and not published, expect draft', async () => {
     window.featureFlags = {
       [FeatureFlag.PublishCharts]: true,
     };
@@ -527,12 +527,20 @@ describe('Publish chart', () => {
     render(<ExploreHeader {...props} />, {
       useRedux: true,
     });
-    // expect put request to be made
-    expect(fetchMock.calls().length).toBe(4);
-    userEvent.click(screen.getByText('Draft'));
-    await waitFor(() => {
-      expect(screen.getByText('Published')).toBeInTheDocument();
+    expect(screen.queryByText('Draft')).toBeInTheDocument();
+  });
+
+  test('If can overwrite and not published, expect draft', async () => {
+    window.featureFlags = {
+      [FeatureFlag.PublishCharts]: true,
+    };
+    const props = createProps({
+      canOverwrite: true,
+      slice: { published: true },
     });
-    expect(fetchMock.calls().length).toBe(5);
+    render(<ExploreHeader {...props} />, {
+      useRedux: true,
+    });
+    expect(screen.queryByText('Published')).toBeInTheDocument();
   });
 });
