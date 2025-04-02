@@ -656,7 +656,6 @@ const Select = forwardRef(
           onSelect={handleOnSelect}
           onClear={handleClear}
           placeholder={placeholder}
-          showSearch={shouldShowSearch}
           tokenSeparators={tokenSeparators}
           value={selectValue}
           virtual={false}

@@ -143,7 +143,6 @@ function selectColorScheme(
   cy.get(`[data-test="${target}"] input[aria-label="Select color scheme"]`)
     .should('exist')
     .then($input => {
-      cy.wait(500); // chromium will crash in headless mode without this
       cy.wrap($input).type(color.slice(0, 5), { force: true });
       cy.getBySel(color).click({ force: true });
     });

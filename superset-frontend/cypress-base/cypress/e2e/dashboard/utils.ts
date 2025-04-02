@@ -264,7 +264,6 @@ export function fillNativeFilterForm(
   dataset?: string,
   filterColumn?: string,
 ) {
-  cy.wait(500); // chromium will crash without this in headless mode
   cy.get(nativeFilters.filtersPanel.filterTypeInput)
     .find(nativeFilters.filtersPanel.filterTypeItem)
     .click({ multiple: true, force: true });

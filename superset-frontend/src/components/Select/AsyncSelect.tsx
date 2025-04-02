@@ -628,7 +628,6 @@ const AsyncSelect = forwardRef(
           onClear={handleClear}
           options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
           placeholder={placeholder}
-          showSearch={showSearch}
           tokenSeparators={tokenSeparators}
           value={selectValue}
           suffixIcon={getSuffixIcon(isLoading, showSearch, isDropdownVisible)}
