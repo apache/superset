@@ -21,6 +21,8 @@ import { lazy, ComponentType, ComponentProps } from 'react';
 
 // not lazy loaded since this is the home page.
 import Home from 'src/pages/Home';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 const ChartCreation = lazy(
   () =>
@@ -121,6 +123,10 @@ const RowLevelSecurityList = lazy(
     import(
       /* webpackChunkName: "RowLevelSecurityList" */ 'src/pages/RowLevelSecurityList'
     ),
+);
+
+const UsersList = lazy(
+  () => import(/* webpackChunkName: "RolesList" */ 'src/pages/UsersList'),
 );
 
 type Routes = {
@@ -235,6 +241,16 @@ if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   routes.push({
     path: '/superset/tags/',
     Component: Tags,
+  });
+}
+
+const user = getBootstrapData()?.user;
+const isAdmin = isUserAdmin(user);
+
+if (isAdmin) {
+  routes.push({
+    path: '/users/',
+    Component: UsersList,
   });
 }
 
