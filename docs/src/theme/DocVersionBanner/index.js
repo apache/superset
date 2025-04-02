@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import DocVersionBanner from '@theme-original/DocVersionBanner';
 import {
   useActivePlugin,
@@ -35,6 +35,7 @@ export default function DocVersionBannerWrapper(props) {
   const activePlugin = useActivePlugin();
   const { pathname } = useLocation();
   const pluginId = activePlugin?.pluginId;
+  const [versionedPath, setVersionedPath] = useState('');
 
   // Only show version selector for docs, components, and tutorials
   const isVersioned = ['default', 'components', 'tutorials'].includes(pluginId);
@@ -43,16 +44,53 @@ export default function DocVersionBannerWrapper(props) {
   const versions = useVersions(pluginId);
   const version = useDocsVersion();
 
+  // Extract the current page path relative to the version
+  useEffect(() => {
+    if (!pathname || !version || !pluginId) return;
+
+    let relativePath = '';
+
+    // Handle different version path patterns
+    if (pathname.includes(`/${pluginId}/`)) {
+      // Extract the part after the version
+      // Example: /components/1.1.0/ui-components/button -> /ui-components/button
+      const parts = pathname.split(`/${pluginId}/`);
+      if (parts.length > 1) {
+        const afterPluginId = parts[1];
+        // Find where the version part ends
+        const versionParts = afterPluginId.split('/');
+        if (versionParts.length > 1) {
+          // Remove the version part and join the rest
+          relativePath = '/' + versionParts.slice(1).join('/');
+        }
+      }
+    }
+
+    setVersionedPath(relativePath);
+  }, [pathname, version, pluginId]);
+
   // Create dropdown items for version selection
-  const items = versions.map(v => ({
-    key: v.name,
-    label: (
-      <a href={v.path}>
-        {v.label}
-        {v.name === version.name && ' (current)'}
-      </a>
-    ),
-  }));
+  const items = versions.map(v => {
+    // Construct the URL for this version, preserving the current page
+    // v.path is the version-specific path like "1.0.0" or "next"
+    let versionUrl = v.path;
+
+    if (versionedPath) {
+      // Construct the full URL with the version and the current page path
+      versionUrl = v.path + versionedPath;
+    }
+
+    return {
+      key: v.name,
+      label: (
+        <a href={versionUrl}>
+          {v.label}
+          {v.name === version.name && ' (current)'}
+          {v.name === preferredVersion?.name && ' (preferred)'}
+        </a>
+      ),
+    };
+  });
 
   return (
     <>
