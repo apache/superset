@@ -16,38 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import TagType from 'src/types/TagType';
-import { TagsList } from '.';
-import { TagsListProps } from './TagsList';
+import Select from './Select';
+import AsyncSelect from './AsyncSelect';
 
-export default {
-  title: 'Tags',
-  component: TagsList,
-};
-
-export const InteractiveTagsList = ({
-  tags,
-  editable,
-  maxTags,
-}: TagsListProps) => (
-  <TagsList tags={tags} editable={editable} maxTags={maxTags} />
-);
-
-const tags: TagType[] = [
-  { name: 'tag1' },
-  { name: 'tag2' },
-  { name: 'tag3' },
-  { name: 'tag4' },
-  { name: 'tag5' },
-  { name: 'tag6' },
-];
-
-const editable = true;
-
-const maxTags = 3;
-
-InteractiveTagsList.args = {
-  tags,
-  editable,
-  maxTags,
-};
+export { Select, AsyncSelect };

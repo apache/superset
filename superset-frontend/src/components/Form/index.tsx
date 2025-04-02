@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Form, { FormProps } from './Form';
+import Form, { FormProps, FormItemProps, FormInstance } from './Form';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
 import LabeledErrorBoundInput from './LabeledErrorBoundInput';
 
 export { Form, FormItem, FormLabel, LabeledErrorBoundInput };
-export type { FormProps };
+export type { FormProps, FormItemProps, FormInstance };

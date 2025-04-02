@@ -188,7 +188,7 @@ export const AutoCompleteStory: Story = {
     placeholder: 'Type to search...',
     disabled: false,
     allowClear: true,
-    autoFocus: false,
+    autoFocus: true,
     backfill: false,
     defaultActiveFirstOption: true,
     defaultOpen: false,

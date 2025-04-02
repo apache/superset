@@ -23,7 +23,7 @@ import {
   css,
 } from '@superset-ui/core';
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
@@ -75,6 +75,7 @@ const ShareSqlLabQuery = ({
     return (
       <Button
         buttonSize="small"
+        buttonStyle="secondary"
         tooltip={tooltip}
         css={css`
           span > :first-of-type {

@@ -49,7 +49,6 @@ export const DropdownButton = ({
         top: 0;
         width: 1px;
         height: 100%;
-        background-color: ${theme.colors.grayscale.light2};
       }
       .anticon {
         vertical-align: middle;

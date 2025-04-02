@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { styled, css, SupersetTheme, useTheme } from '@superset-ui/core';
 import cx from 'classnames';
 import { Interweave } from 'interweave';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { ToastType, ToastMeta } from './types';
 
 const ToastContainer = styled.div`
@@ -84,19 +84,39 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
     };
   }, [handleClosePress, toast.duration]);
 
+  const theme = useTheme();
+
   let className = 'toast--success';
   let icon = (
-    <Icons.CheckCircleFilled css={theme => notificationStyledIcon(theme)} />
+    <Icons.CheckCircleFilled
+      css={theme => notificationStyledIcon(theme)}
+      iconColor={theme.colorSuccess}
+    />
   );
 
   if (toast.toastType === ToastType.Warning) {
-    icon = <Icons.ExclamationCircleFilled css={notificationStyledIcon} />;
+    icon = (
+      <Icons.ExclamationCircleFilled
+        css={notificationStyledIcon}
+        iconColor={theme.colorWarning}
+      />
+    );
     className = 'toast--warning';
   } else if (toast.toastType === ToastType.Danger) {
-    icon = <Icons.ExclamationCircleFilled css={notificationStyledIcon} />;
+    icon = (
+      <Icons.ExclamationCircleFilled
+        css={notificationStyledIcon}
+        iconColor={theme.colorError}
+      />
+    );
     className = 'toast--danger';
   } else if (toast.toastType === ToastType.Info) {
-    icon = <Icons.InfoCircleFilled css={notificationStyledIcon} />;
+    icon = (
+      <Icons.InfoCircleFilled
+        css={notificationStyledIcon}
+        iconColor={theme.colorInfo}
+      />
+    );
     className = 'toast--info';
   }
 

@@ -19,7 +19,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { IAceEditor } from 'react-ace/lib/types';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
-import { css, styled, usePrevious, useTheme } from '@superset-ui/core';
+import { css, usePrevious, useTheme } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 
 import { SQL_EDITOR_LEFTBAR_WIDTH } from 'src/SqlLab/constants';
@@ -47,45 +47,6 @@ type AceEditorWrapperProps = {
   height: string;
   hotkeys: HotKey[];
 };
-
-const StyledAceEditor = styled(AceEditor)`
-  ${({ theme }) => css`
-    color: ${theme.colorText};
-    && {
-      // double class is better than !important
-      border: 1px solid ${theme.colorBorder};
-      font-feature-settings:
-        'liga' off,
-        'calt' off;
-
-      .ace_editor {
-        font-family: 'Roboto Mono', monospace;
-        font-size: 14px;
-        background-color: ${theme.colorBgContainerDisabled};
-      }
-      .ace-github {
-        color: ${theme.colorText};
-      }
-
-      .ace_gutter {
-        background-color: ${theme.colorBgTextHover};
-        color: ${theme.colorText};
-      }
-
-      .ace_cursor {
-        color: ${theme.colorPrimaryText};
-      }
-
-      .ace_marker-layer .ace_active-line {
-        background: ${theme.colorBgTextHover};
-      }
-
-      .ace_marker-layer .ace_selection {
-        background: ${theme.colorPrimaryBgHover};
-      }
-    }
-  `}
-`;
 
 const AceEditorWrapper = ({
   autocomplete,
@@ -239,7 +200,7 @@ const AceEditorWrapper = ({
           }
         `}
       />
-      <StyledAceEditor
+      <AceEditor
         keywords={keywords}
         onLoad={onEditorLoad}
         onBlur={onBlurSql}

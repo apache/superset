@@ -16,17 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, ReactElement } from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { useState } from 'react';
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import Layout from 'src/components/Layout';
 import Button from 'src/components/Button';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 
 describe('Layout Component', () => {
-  const renderWithTheme = (ui: ReactElement) =>
-    render(<ThemeProvider theme={supersetTheme}>{ui}</ThemeProvider>);
-
   test('renders Layout with Header, Content, and Footer', () => {
     render(
       <Layout hasSider={false}>
@@ -95,7 +90,7 @@ describe('Layout Component', () => {
       );
     };
 
-    renderWithTheme(<TestLayout />);
+    render(<TestLayout />);
 
     const toggleButton = screen.getByRole('button', { name: 'Toggle' });
 

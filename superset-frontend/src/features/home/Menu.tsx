@@ -25,7 +25,7 @@ import { MainNav, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { NavLink, useLocation } from 'react-router-dom';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
 import {
@@ -42,8 +42,7 @@ interface MenuProps {
 
 const StyledHeader = styled.header`
   ${({ theme }) => `
-      background-color: ${theme.colorBgElevated};
-      margin-bottom: 2px;
+      background-color: ${theme.colorBgContainer};
       z-index: 10;
 
       &:nth-last-of-type(2) nav {

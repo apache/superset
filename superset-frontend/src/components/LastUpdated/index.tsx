@@ -25,7 +25,7 @@ import {
 
 import { extendedDayjs } from 'src/utils/dates';
 import { t, styled, css } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import dayjs from 'dayjs';
 
 const REFRESH_INTERVAL = 60000; // every minute

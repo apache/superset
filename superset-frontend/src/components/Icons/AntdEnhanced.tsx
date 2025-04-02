@@ -28,6 +28,7 @@ import {
   AreaChartOutlined,
   ArrowRightOutlined,
   BarChartOutlined,
+  BgColorsOutlined,
   BellOutlined,
   BookOutlined,
   CaretUpOutlined,
@@ -111,8 +112,12 @@ import {
   UnorderedListOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import { FC } from 'react';
 import { IconType } from './types';
 import { BaseIconComponent } from './BaseIcon';
+
+// partial name matches work too
+const EXCLUDED_ICONS = ['TwoTone'];
 
 const AntdIcons = {
   AlignCenterOutlined,
@@ -123,6 +128,7 @@ const AntdIcons = {
   AreaChartOutlined,
   ArrowRightOutlined,
   BarChartOutlined,
+  BgColorsOutlined,
   BellOutlined,
   BookOutlined,
   CaretUpOutlined,
@@ -205,19 +211,25 @@ const AntdIcons = {
   FilterOutlined,
   UnorderedListOutlined,
   WarningOutlined,
-};
+} as const;
 
-const AntdEnhancedIcons = Object.keys(AntdIcons)
-  .filter(k => !k.includes('TwoTone'))
-  .map(k => ({
-    [k]: (props: IconType) => (
-      <BaseIconComponent
-        component={AntdIcons[k as keyof typeof AntdIcons]}
-        fileName={k}
-        {...props}
-      />
-    ),
-  }))
-  .reduce((l, r) => ({ ...l, ...r }));
+type AntdIconNames = keyof typeof AntdIcons;
 
-export default AntdEnhancedIcons;
+export const antdEnhancedIcons: Record<
+  AntdIconNames,
+  FC<IconType>
+> = Object.keys(AntdIcons)
+  .filter(key => !EXCLUDED_ICONS.some(excluded => key.includes(excluded)))
+  .reduce(
+    (acc, key) => {
+      acc[key as AntdIconNames] = (props: IconType) => (
+        <BaseIconComponent
+          component={AntdIcons[key as AntdIconNames]}
+          fileName={key}
+          {...props}
+        />
+      );
+      return acc;
+    },
+    {} as Record<AntdIconNames, FC<IconType>>,
+  );

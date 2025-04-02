@@ -20,9 +20,10 @@
 import { styled } from '@superset-ui/core';
 import TagType from 'src/types/TagType';
 import { Tag as AntdTag } from 'antd-v5';
+import type { TagProps } from 'antd-v5/es';
+import type { CheckableTagProps } from 'antd-v5/es/tag';
 import { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
@@ -31,13 +32,9 @@ const StyledTag = styled(AntdTag)`
   `};
 `;
 
-export const CustomCloseIcon = (
-  <Icons.CloseOutlined iconSize="xs" role="button" />
-);
-
 const MAX_DISPLAY_CHAR = 20;
 
-const Tag = ({
+const SupersetTag = ({
   name,
   id,
   index = undefined,
@@ -48,8 +45,11 @@ const Tag = ({
   children,
   ...rest
 }: TagType) => {
-  const isLongTag = useMemo(() => name.length > MAX_DISPLAY_CHAR, [name]);
-  const tagDisplay = isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
+  const tagDisplay = useMemo(() => {
+    if (!name) return null;
+    const isLongTag = name.length > MAX_DISPLAY_CHAR;
+    return isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
+  }, [name]);
 
   const handleClose = () => (index !== undefined ? onDelete?.(index) : null);
 
@@ -63,7 +63,7 @@ const Tag = ({
             key={id}
             closable={editable}
             onClose={handleClose}
-            closeIcon={editable ? CustomCloseIcon : undefined}
+            closeIcon={editable}
             {...rest}
           >
             {children || tagDisplay}
@@ -99,4 +99,7 @@ const Tag = ({
   return tagElem;
 };
 
-export default Tag;
+export const Tag = Object.assign(SupersetTag, {
+  CheckableTag: AntdTag.CheckableTag,
+});
+export type { TagProps, CheckableTagProps };

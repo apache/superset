@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Meta, StoryObj } from '@storybook/react';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Tree, { TreeProps } from './index';
 import type { TreeDataNode } from './index';
 
