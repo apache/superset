@@ -19,7 +19,7 @@
 import { memo } from 'react';
 import { useTheme } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { ColumnTypeLabel } from '@superset-ui/chart-controls';
 import ColumnConfigPopover, {
   ColumnConfigPopoverProps,
@@ -100,7 +100,7 @@ export default memo(function ColumnConfigItem({
           }}
         >
           {column.isChildColumn && column.config?.visible === false && (
-            <Icons.EyeInvisible
+            <Icons.EyeInvisibleOutlined
               css={{
                 fontWeight: 'bold',
                 fontSize: '14px',
@@ -108,7 +108,7 @@ export default memo(function ColumnConfigItem({
               }}
             />
           )}
-          <Icons.CaretRight />
+          <Icons.CaretRightOutlined />
         </div>
       </div>
     </Popover>
