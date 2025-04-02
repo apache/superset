@@ -41,36 +41,37 @@ export type AntdMenuItemType = ReactElement & {
 export type MenuItemChildType = AntdMenuItemType;
 
 const StyledMenuItem = styled(AntdMenu.Item)`
-  a {
-    text-decoration: none;
-  }
-  &.antd5-menu-item {
-    div {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+  ${({ theme }) => css`
     a {
-      transition: background-color ${({ theme }) => theme.motionDurationMid}s;
-      &:after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 50%;
-        width: 0;
-        height: 3px;
-        opacity: 0;
-        transform: translateX(-50%);
-        transition: translate ${({ theme }) => theme.motionDurationMid}s;
-        background-color: ${({ theme }) => theme.colorPrimary};
+      text-decoration: none;
+    }
+    &.antd5-menu-item {
+      div {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
-      &:focus {
-        @media (max-width: 767px) {
-          background-color: ${({ theme }) => theme.colors.primary.light5};
+      a {
+        transition: background-color ${theme.motionDurationMid}s;
+        &:after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 50%;
+          width: 0;
+          height: 3px;
+          opacity: 0;
+          transform: translateX(-50%);
+          transition: translate ${theme.motionDurationMid}s;
+        }
+        &:focus {
+          @media (max-width: 767px) {
+            background-color: ${theme.colorPrimaryBgHover};
+          }
         }
       }
     }
-  }
+  `}
 `;
 
 const StyledMenu = styled(AntdMenu)`
@@ -99,7 +100,7 @@ const StyledNav = styled(AntdMenu)`
         position: absolute;
         width: 100%;
         height: 2px;
-        background-color: ${theme.colors.primary.base};
+        background-color: ${theme.colorPrimaryBorderHover};
         bottom: ${theme.sizeUnit / 4}px;
         left: 0;
         transform: scale(0);
