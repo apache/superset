@@ -24,7 +24,6 @@ import {
   userEvent,
 } from 'spec/helpers/testing-library';
 import { IAceEditorProps } from 'react-ace';
-import { TextArea } from 'src/components/Input';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 import AdhocFilterEditPopoverSqlTabContent from '.';
@@ -38,7 +37,7 @@ afterEach(async () => {
 
 jest.mock('src/components/AsyncAceEditor', () => ({
   SQLEditor: ({ value, onChange }: IAceEditorProps) => (
-    <TextArea
+    <textarea
       defaultValue={value}
       onChange={value => onChange?.(value.target.value)}
     />
