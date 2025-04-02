@@ -139,23 +139,36 @@ def get_state(pk: int) -> dict:
     """
     Get the state of the LLM context.
     """
+    status = 'waiting'
+    context = None
 
     tasks = ContextBuilderTaskDAO.get_last_two_tasks_for_database(pk)
     if not tasks:
         return {
-            "status": "waiting",
+            "status": status,
         }
 
     provider = _get_or_create_llm_provider(pk, DIALECT, "")
     if not provider:
-        return None
+        return {
+            "status": status,
+        }
 
     latest_task = tasks[0]
     context_builder_worker = AsyncResult(latest_task.task_id)
-    status = 'waiting'
-    context = None
+
+    logger.info(f"Checking task: {latest_task.task_id} - {context_builder_worker.status}")
 
     if context_builder_worker.status == 'PENDING':
+        # PENDING status is the default state for workers that haven't been completed yet, but
+        # we've introduced a PUBLISHED status for workers that have at least hit the queue. A
+        # PENDING status means that the task probably doesn't exist and might be from an old
+        # deployment.
+        return {
+            "status": status,
+        }
+
+    if context_builder_worker.status == 'PUBLISHED':
         status = 'building'
         older_task = tasks[1] if len(tasks) > 1 else None
         if older_task:
@@ -207,7 +220,7 @@ def generate_context_for_db(pk: int):
         started_time=datetime.datetime.now(datetime.timezone.utc),
     )
     ContextBuilderTaskDAO.create(context_task)
-    logger.info(f"Created context task {context_task}")
+    logger.info(f"Created context task {context_task.task_id}")
 
     return {
         "status": "Started"
@@ -215,4 +228,4 @@ def generate_context_for_db(pk: int):
 
 def generate_all_db_contexts():
     task = check_for_expired_llm_context.delay()
-    logger.info(f"Created context task {task}")
+    logger.info(f"Created context task {task.id}")

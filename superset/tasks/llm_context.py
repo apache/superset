@@ -46,7 +46,7 @@ def check_for_expired_llm_context():
 
         task_result = AsyncResult(latest_task.task_id)
 
-        if not task_result or task_result.status == "FAILURE":
+        if task_result.status == "PENDING" or task_result.status == "FAILURE":
             logger.info(f"Old context failed - generating for database {database.id}")
             initiate_context_generation(database.id)
         elif task_result.status == "SUCCESS":

@@ -159,7 +159,7 @@ const AIAssistantOptions = ({
                     { value: LlmProvider.Gemini, label: LlmProvider.Gemini },
                   ]
                 }
-                value={db?.llm_provider || ''}
+                value={db?.llm_provider}
                 onChange={handleProviderChange}
               />
             </div>
@@ -190,7 +190,7 @@ const AIAssistantOptions = ({
                               })) :
                               []
                           }
-                          value={db?.llm_model || ''}
+                          value={db?.llm_model}
                           onChange={handleModelChange}
                       />
                   </div>
