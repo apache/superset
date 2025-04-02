@@ -131,3 +131,20 @@ test('horizontal overflow mode, title and description', () => {
   const descriptionIcon = screen.queryByTestId('divider-description-icon');
   expect(descriptionIcon).not.toBeInTheDocument();
 });
+
+test('date range picker component', () => {
+  render(
+    <FilterDivider
+      title="Date Range"
+      description="Select a date range"
+      orientation={FilterBarOrientation.Vertical}
+    />,
+  );
+
+  const title = screen.getByRole('heading', { name: 'Date Range' });
+  expect(title).toBeVisible();
+  expect(title).toHaveTextContent('Date Range');
+  const description = screen.getByTestId('divider-description');
+  expect(description).toBeVisible();
+  expect(description).toHaveTextContent('Select a date range');
+});

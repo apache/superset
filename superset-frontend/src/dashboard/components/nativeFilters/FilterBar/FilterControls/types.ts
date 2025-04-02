@@ -45,3 +45,9 @@ export interface FilterControlProps extends BaseFilterProps {
   setFilterActive?: (isActive: boolean) => void;
   validateStatus?: string;
 }
+
+export interface DateRangePickerProps {
+  startDate: Date;
+  endDate: Date;
+  onChange: (startDate: Date, endDate: Date) => void;
+}
