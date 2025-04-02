@@ -467,8 +467,7 @@ const DashboardBuilder = () => {
     ELEMENT_ON_SCREEN_OPTIONS,
   );
 
-  const hideFilters = getUrlParam(URL_PARAMS.showFilters) === false;
-  const showFilterBar = !editMode && !hideFilters;
+  const showFilterBar = !editMode && nativeFiltersEnabled;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
