@@ -19,7 +19,7 @@
 import { memo } from 'react';
 import { useTheme } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
-import { EyeInvisibleOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { ColumnTypeLabel } from '@superset-ui/chart-controls';
 import ColumnConfigPopover, {
   ColumnConfigPopoverProps,
@@ -76,6 +76,9 @@ export default memo(function ColumnConfigItem({
         }}
       >
         <ColumnTypeLabel type={column.type} />
+        {column.name}
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         <span
           css={{
             paddingLeft: column.isChildColumn ? gridUnit * 7 : gridUnit,
@@ -90,14 +93,14 @@ export default memo(function ColumnConfigItem({
             alignItems: 'center',
             position: 'absolute',
             right: 3 * gridUnit,
-            top: '50%',
+            top: 3 * gridUnit,
             transform: 'translateY(-50%)',
             gap: gridUnit,
             color: colors.grayscale.light1,
           }}
         >
           {column.isChildColumn && column.config?.visible === false && (
-            <EyeInvisibleOutlined
+            <Icons.EyeInvisible
               css={{
                 fontWeight: 'bold',
                 fontSize: '14px',
@@ -105,7 +108,7 @@ export default memo(function ColumnConfigItem({
               }}
             />
           )}
-          <i className="fa fa-caret-right" />
+          <Icons.CaretRight />
         </div>
       </div>
     </Popover>
