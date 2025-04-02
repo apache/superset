@@ -37,8 +37,9 @@ import { Select } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import { FormItem } from 'src/components/Form';
 import { PluginFilterSelectProps, SelectValue } from './types';
-import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
+import { FilterPluginStyle, StatusMessage } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 
 type DataMaskAction =
@@ -288,7 +289,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   return (
     <FilterPluginStyle height={height} width={width}>
-      <StyledFormItem
+      <FormItem
         validateStatus={filterState.validateStatus}
         extra={formItemExtra}
       >
@@ -325,7 +326,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           sortComparator={sortComparator}
           onDropdownVisibleChange={setFilterActive}
         />
-      </StyledFormItem>
+      </FormItem>
     </FilterPluginStyle>
   );
 }

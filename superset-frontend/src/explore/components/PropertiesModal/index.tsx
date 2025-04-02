@@ -41,6 +41,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/Tags/utils';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import TagType from 'src/types/TagType';
+import { Form } from 'src/components/Form';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -52,9 +53,9 @@ export type PropertiesModalProps = {
   addSuccessToast: (msg: string) => void;
 };
 
-const FormItem = AntdForm.Item;
+const FormItem = Form.Item;
 
-const StyledFormItem = styled(AntdForm.Item)`
+const StyledFormItem = styled(Form.Item)`
   margin-bottom: 0;
 `;
 
@@ -71,7 +72,7 @@ function PropertiesModal({
 }: PropertiesModalProps) {
   const theme = useTheme();
   const [submitting, setSubmitting] = useState(false);
-  const [form] = AntdForm.useForm();
+  const [form] = Form.useForm();
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
   const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
@@ -293,7 +294,7 @@ function PropertiesModal({
       responsive
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
-      <AntdForm
+      <Form
         form={form}
         onFinish={onSubmit}
         layout="vertical"
@@ -407,7 +408,7 @@ function PropertiesModal({
             )}
           </Col>
         </Row>
-      </AntdForm>
+      </Form>
     </Modal>
   );
 }

@@ -22,7 +22,6 @@ import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import reducerIndex from 'spec/helpers/reducerIndex';
-import { GlobalStyles } from '../src/GlobalStyles';
 import { Global } from '@emotion/react';
 import { App, Layout, Space, Content } from 'antd-v5';
 

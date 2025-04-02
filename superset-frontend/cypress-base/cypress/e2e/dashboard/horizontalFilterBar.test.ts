@@ -157,11 +157,11 @@ describe('Horizontal FilterBar', () => {
     cy.get('.filter-item-wrapper').should('have.length', 3);
     openMoreFilters();
     cy.getBySel('form-item-value').should('have.length', 12);
-    cy.getBySel('filter-control-name').contains('test_10').should('be.visible');
+    cy.getBySel('filter-control-name').contains('test_9').should('be.visible');
     cy.getBySel('filter-control-name')
       .contains('test_12')
       .should('not.be.visible');
-    cy.get('.antd5-popover-inner').scrollTo('bottom');
+    cy.getBySel('filter-control-name').contains('test_12').scrollIntoView();
     cy.getBySel('filter-control-name').contains('test_12').should('be.visible');
   });
 
