@@ -502,7 +502,14 @@ class SingleStoreSpec(BaseEngineSpec):
         if schema:
             uri = uri.set(database=parse.quote(schema, safe=""))
 
-        return uri, connect_args
+        return uri, {
+            **connect_args,
+            "conn_attrs": {
+                "_connector_name": "SingleStore Superset Database Engine",
+                "_connector_version": "",
+                "_product_version": "",
+            },
+        }
 
     @classmethod
     def get_schema_from_engine_params(
