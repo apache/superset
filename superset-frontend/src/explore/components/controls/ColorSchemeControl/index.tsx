@@ -322,6 +322,7 @@ const ColorSchemeControl = ({
         onChange={handleOnChange}
         placeholder={t('Select scheme')}
         value={currentScheme}
+        showSearch
         getPopupContainer={triggerNode => triggerNode.parentNode}
         filterOption={(search, option) =>
           handleFilterOptionHelper(

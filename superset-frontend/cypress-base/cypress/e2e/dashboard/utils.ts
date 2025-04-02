@@ -234,6 +234,7 @@ export function enterNativeFilterEditModal(waitForDataset = true) {
   cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click({
     force: true,
   });
+  cy.wait(500);
   cy.get(nativeFilters.modal.container).should('be.visible');
   if (waitForDataset) {
     cy.wait('@getDataset');

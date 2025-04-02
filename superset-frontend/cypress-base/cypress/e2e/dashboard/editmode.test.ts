@@ -39,6 +39,7 @@ function openProperties() {
   cy.getBySel('header-actions-menu')
     .contains('Edit properties')
     .click({ force: true });
+  cy.wait(500);
   cy.get('.antd5-modal-body').should('be.visible');
 }
 
