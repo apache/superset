@@ -37,6 +37,7 @@ interface SelectFilterProps extends BaseFilter {
   onSelect: (selected: SelectOption | undefined, isClear?: boolean) => void;
   paginate?: boolean;
   selects: Filter['selects'];
+  loading?: boolean;
 }
 
 function SelectFilter(
@@ -47,6 +48,7 @@ function SelectFilter(
     initialValue,
     onSelect,
     selects = [],
+    loading = false,
   }: SelectFilterProps,
   ref: RefObject<FilterHandler>,
 ) {
@@ -115,6 +117,7 @@ function SelectFilter(
           placeholder={t('Select or type a value')}
           showSearch
           value={selectedOption}
+          loading={loading}
         />
       )}
     </FilterContainer>

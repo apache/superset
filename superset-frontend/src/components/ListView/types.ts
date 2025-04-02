@@ -59,6 +59,7 @@ export interface Filter {
     pageSize: number,
   ) => Promise<{ data: SelectOption[]; totalCount: number }>;
   paginate?: boolean;
+  loading?: boolean;
 }
 
 export type Filters = Filter[];
