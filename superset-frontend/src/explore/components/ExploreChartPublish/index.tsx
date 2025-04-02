@@ -47,7 +47,7 @@ export default function ChartPublishedStatus({
       endpoint: `/api/v1/chart/${sliceId}`,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        published: published,
+        published,
       }),
     }).then(() => {
       setPublished(published);

@@ -530,7 +530,7 @@ describe('Publish chart', () => {
     expect(screen.queryByText('Draft')).toBeInTheDocument();
   });
 
-  test('If can overwrite and not published, expect draft', async () => {
+  test('If can overwrite and published, expect published', async () => {
     window.featureFlags = {
       [FeatureFlag.PublishCharts]: true,
     };

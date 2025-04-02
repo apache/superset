@@ -50,7 +50,7 @@ test('renders with unpublished status and write permissions', async () => {
 });
 
 test('renders with published status and write permissions', async () => {
-  render(<ChartPublishedStatus {...defaultProps} isPublished={true} />);
+  render(<ChartPublishedStatus {...defaultProps} isPublished />);
   expect(screen.getByText('Published')).toBeInTheDocument();
   expect(fetchMock.calls().length).toBe(2);
   userEvent.click(screen.getByText('Published'));

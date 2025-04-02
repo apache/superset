@@ -592,19 +592,22 @@ function ChartList(props: ChartListProps) {
         input: 'search',
         operator: FilterOperator.ChartAllText,
       },
-      ...(isFeatureEnabled(FeatureFlag.PublishCharts) ?
-     [ {
-        Header: t('Status'),
-        key: 'published',
-        id: 'published',
-        input: 'select',
-        operator: FilterOperator.Equals,
-        unfilteredLabel: t('Any'),
-        selects: [
-          { label: t('Published'), value: true },
-          { label: t('Draft'), value: false },
-        ],
-      }] : []),
+      ...(isFeatureEnabled(FeatureFlag.PublishCharts)
+        ? [
+            {
+              Header: t('Status'),
+              key: 'published',
+              id: 'published',
+              input: 'select',
+              operator: FilterOperator.Equals,
+              unfilteredLabel: t('Any'),
+              selects: [
+                { label: t('Published'), value: true },
+                { label: t('Draft'), value: false },
+              ],
+            },
+          ]
+        : []),
       {
         Header: t('Type'),
         key: 'viz_type',
