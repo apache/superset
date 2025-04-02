@@ -309,22 +309,6 @@ const config: Config = {
         srcDark: '/img/superset-logo-horiz-dark.svg',
       },
       items: [
-        // Add version dropdown for components
-        {
-          type: 'docsVersionDropdown',
-          position: 'right',
-          docsPluginId: 'components',
-          dropdownItemsAfter: [],
-          dropdownActiveClassDisabled: true,
-        },
-        // Add version dropdown for tutorials
-        {
-          type: 'docsVersionDropdown',
-          position: 'right',
-          docsPluginId: 'tutorials',
-          dropdownItemsAfter: [],
-          dropdownActiveClassDisabled: true,
-        },
         {
           label: 'Tutorials',
           to: '/tutorials',

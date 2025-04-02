@@ -19,9 +19,59 @@
 
 import React from 'react';
 import DocVersionBanner from '@theme-original/DocVersionBanner';
+import {
+  useActivePlugin,
+  useDocsVersion,
+  useVersions,
+} from '@docusaurus/plugin-content-docs/client';
+import { useLocation } from '@docusaurus/router';
+import { useDocsPreferredVersion } from '@docusaurus/theme-common';
+import { Dropdown } from 'antd';
+import { DownOutlined } from '@ant-design/icons';
 
-// We're just passing through the original component
-// The version selector is now in DocVersionBadge
+import styles from './styles.module.css';
+
 export default function DocVersionBannerWrapper(props) {
-  return <DocVersionBanner {...props} />;
+  const activePlugin = useActivePlugin();
+  const { pathname } = useLocation();
+  const pluginId = activePlugin?.pluginId;
+
+  // Only show version selector for docs, components, and tutorials
+  const isVersioned = ['default', 'components', 'tutorials'].includes(pluginId);
+
+  const { preferredVersion } = useDocsPreferredVersion(pluginId);
+  const versions = useVersions(pluginId);
+  const version = useDocsVersion();
+
+  // Create dropdown items for version selection
+  const items = versions.map(v => ({
+    key: v.name,
+    label: (
+      <a href={v.path}>
+        {v.label}
+        {v.name === version.name && ' (current)'}
+      </a>
+    ),
+  }));
+
+  return (
+    <>
+      <DocVersionBanner {...props} />
+      {isVersioned && (
+        <div className={styles.versionBanner}>
+          <div className={styles.versionContainer}>
+            <span className={styles.versionLabel}>Version:</span>
+            <Dropdown menu={{ items }} trigger={['click']}>
+              <a
+                onClick={e => e.preventDefault()}
+                className={styles.versionSelector}
+              >
+                {version.label} <DownOutlined />
+              </a>
+            </Dropdown>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
