@@ -212,14 +212,19 @@ const config: Config = {
         docItemComponent: '@theme/DocItem',
         includeCurrentVersion: true,
         // Show version dropdown
-        lastVersion: '1.0.0',
-        onlyIncludeVersions: ['current', '1.0.0'],
+        lastVersion: '1.1.0',
+        onlyIncludeVersions: ['current', '1.1.0', '1.0.0'],
         // Set the default version to redirect to
         versions: {
           current: {
             label: 'Next',
             path: 'next',
             banner: 'unreleased',
+          },
+          '1.1.0': {
+            label: '1.1.0',
+            path: '1.1.0',
+            banner: 'none',
           },
           '1.0.0': {
             label: '1.0.0',
@@ -304,22 +309,6 @@ const config: Config = {
         srcDark: '/img/superset-logo-horiz-dark.svg',
       },
       items: [
-        // Add version dropdown for components
-        {
-          type: 'docsVersionDropdown',
-          position: 'right',
-          docsPluginId: 'components',
-          dropdownItemsAfter: [],
-          dropdownActiveClassDisabled: true,
-        },
-        // Add version dropdown for tutorials
-        {
-          type: 'docsVersionDropdown',
-          position: 'right',
-          docsPluginId: 'tutorials',
-          dropdownItemsAfter: [],
-          dropdownActiveClassDisabled: true,
-        },
         {
           label: 'Tutorials',
           to: '/tutorials',

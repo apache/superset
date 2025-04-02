@@ -34,6 +34,12 @@ export default function webpackExtendPlugin(): Plugin<void> {
               __dirname,
               '../../superset-frontend/node_modules/@superset-ui/core',
             ),
+            // Add aliases for our components to make imports easier
+            '@docs/components': path.resolve(__dirname, '../src/components'),
+            '@superset/components': path.resolve(
+              __dirname,
+              '../../superset-frontend/src/components',
+            ),
             // Add proper Storybook aliases
             '@storybook/blocks': path.resolve(
               __dirname,
