@@ -67,6 +67,39 @@ const sortData: DataRecord[] = [
   { my_x_axis: null, x: 4, y: 3, z: 7 },
 ];
 
+const sortDataWithNumbers: DataRecord[] = [
+  {
+    my_x_axis: 'my_axis',
+    '9. September': 6,
+    6: 1,
+    '11. November': 8,
+    8: 2,
+    '10. October': 1,
+    10: 4,
+    '3. March': 2,
+    '8. August': 6,
+    2: 1,
+    12: 3,
+    9: 1,
+    '1. January': 1,
+    '4. April': 12,
+    '2. February': 9,
+    5: 4,
+    3: 1,
+    11: 2,
+    '12. December': 4,
+    1: 7,
+    '6. June': 1,
+    4: 5,
+    7: 2,
+    c: 0,
+    '7. July': 2,
+    d: 0,
+    '5. May': 4,
+    a: 1,
+  },
+];
+
 const totalStackedValues = [3, 15, 14];
 
 test('sortRows by name ascending', () => {
@@ -287,6 +320,84 @@ test('sortAndFilterSeries by name descending', () => {
   expect(
     sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Name, false),
   ).toEqual(['z', 'y', 'x']);
+});
+test('sortAndFilterSeries by name with numbers asc', () => {
+  expect(
+    sortAndFilterSeries(
+      sortDataWithNumbers,
+      'my_x_axis',
+      [],
+      SortSeriesType.Name,
+      true,
+    ),
+  ).toEqual([
+    '1',
+    '1. January',
+    '2',
+    '2. February',
+    '3',
+    '3. March',
+    '4',
+    '4. April',
+    '5',
+    '5. May',
+    '6',
+    '6. June',
+    '7',
+    '7. July',
+    '8',
+    '8. August',
+    '9',
+    '9. September',
+    '10',
+    '10. October',
+    '11',
+    '11. November',
+    '12',
+    '12. December',
+    'a',
+    'c',
+    'd',
+  ]);
+});
+test('sortAndFilterSeries by name with numbers desc', () => {
+  expect(
+    sortAndFilterSeries(
+      sortDataWithNumbers,
+      'my_x_axis',
+      [],
+      SortSeriesType.Name,
+      false,
+    ),
+  ).toEqual([
+    'd',
+    'c',
+    'a',
+    '12. December',
+    '12',
+    '11. November',
+    '11',
+    '10. October',
+    '10',
+    '9. September',
+    '9',
+    '8. August',
+    '8',
+    '7. July',
+    '7',
+    '6. June',
+    '6',
+    '5. May',
+    '5',
+    '4. April',
+    '4',
+    '3. March',
+    '3',
+    '2. February',
+    '2',
+    '1. January',
+    '1',
+  ]);
 });
 
 describe('extractSeries', () => {

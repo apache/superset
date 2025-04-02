@@ -105,10 +105,10 @@ test('Should have add button', async () => {
   render(<CollectionControl {...props} />);
 
   expect(
-    await screen.findByRole('button', { name: 'plus-large' }),
+    await screen.findByRole('button', { name: 'plus' }),
   ).toBeInTheDocument();
   expect(props.onChange).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'plus-large' }));
+  userEvent.click(screen.getByRole('button', { name: 'plus' }));
   expect(props.onChange).toHaveBeenCalledWith([
     { key: 'hrYAZ5iBH' },
     undefined,

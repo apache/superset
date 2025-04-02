@@ -19,7 +19,7 @@
 import { memo, useCallback, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { css, t, useTheme, useTruncation } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import {
   DependencyItem,
@@ -88,7 +88,7 @@ export const DependenciesRow = memo(({ filter }: FilterCardRowProps) => {
             'Filter only displays values relevant to selections made in other filters.',
           )}
         >
-          <Icons.Info
+          <Icons.InfoCircleOutlined
             iconSize="m"
             iconColor={theme.colors.grayscale.light1}
             css={css`

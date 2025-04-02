@@ -18,7 +18,7 @@
  */
 import { MouseEventHandler, FC } from 'react';
 
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import IconButton from './IconButton';
 
 type DeleteComponentButtonProps = {
@@ -27,6 +27,8 @@ type DeleteComponentButtonProps = {
 
 const DeleteComponentButton: FC<DeleteComponentButtonProps> = ({
   onDelete,
-}) => <IconButton onClick={onDelete} icon={<Icons.Trash iconSize="xl" />} />;
+}) => (
+  <IconButton onClick={onDelete} icon={<Icons.DeleteOutlined iconSize="l" />} />
+);
 
 export default DeleteComponentButton;

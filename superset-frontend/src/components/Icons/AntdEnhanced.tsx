@@ -18,21 +18,30 @@
  */
 
 // NOTE: Targeted import (as opposed to `import *`) is important here for proper tree-shaking
+// eslint-disable-next-line no-restricted-imports
 import {
   AlignCenterOutlined,
   AlignLeftOutlined,
   AlignRightOutlined,
   ApartmentOutlined,
+  AppstoreOutlined,
+  AreaChartOutlined,
   ArrowRightOutlined,
   BarChartOutlined,
   BellOutlined,
   BookOutlined,
-  CaretDownOutlined,
-  CalendarOutlined,
   CaretUpOutlined,
+  CaretDownOutlined,
+  CaretLeftOutlined,
+  CaretRightOutlined,
+  CalendarOutlined,
   CheckOutlined,
+  CheckCircleOutlined,
+  CheckCircleFilled,
   CheckSquareOutlined,
   CloseOutlined,
+  CloseCircleOutlined,
+  ClockCircleOutlined,
   ColumnWidthOutlined,
   CommentOutlined,
   ConsoleSqlOutlined,
@@ -41,24 +50,37 @@ import {
   DatabaseOutlined,
   DeleteFilled,
   DownSquareOutlined,
+  DeleteOutlined,
   DownOutlined,
   DownloadOutlined,
   EditOutlined,
+  EllipsisOutlined,
   ExclamationCircleOutlined,
+  ExclamationCircleFilled,
   EyeOutlined,
   EyeInvisibleOutlined,
   FallOutlined,
+  FieldTimeOutlined,
   FileImageOutlined,
   FileOutlined,
+  FileTextOutlined,
   FireOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
   FundProjectionScreenOutlined,
+  FunctionOutlined,
   InfoCircleOutlined,
+  InfoCircleFilled,
+  InsertRowAboveOutlined,
   InsertRowBelowOutlined,
   LineChartOutlined,
+  LinkOutlined,
+  MailOutlined,
+  MinusCircleOutlined,
   LoadingOutlined,
   MonitorOutlined,
+  MoreOutlined,
+  PieChartOutlined,
   PicCenterOutlined,
   PlusCircleOutlined,
   PlusOutlined,
@@ -67,33 +89,58 @@ import {
   SaveOutlined,
   SearchOutlined,
   SettingOutlined,
+  StarOutlined,
+  StarFilled,
   StopOutlined,
   SyncOutlined,
+  TagOutlined,
   TagsOutlined,
+  TableOutlined,
+  LockOutlined,
   UnlockOutlined,
+  UploadOutlined,
   UpOutlined,
   UserOutlined,
+  VerticalAlignBottomOutlined,
+  VerticalAlignTopOutlined,
   VerticalLeftOutlined,
   VerticalRightOutlined,
+  NumberOutlined,
+  ThunderboltOutlined,
+  FilterOutlined,
+  UnorderedListOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
-import { StyledIcon } from './Icon';
-import IconType from './IconType';
+import { FC } from 'react';
+import { IconType } from './types';
+import { BaseIconComponent } from './BaseIcon';
+
+// partial name matches work too
+const EXCLUDED_ICONS = ['TwoTone'];
 
 const AntdIcons = {
   AlignCenterOutlined,
   AlignLeftOutlined,
   AlignRightOutlined,
   ApartmentOutlined,
+  AppstoreOutlined,
+  AreaChartOutlined,
   ArrowRightOutlined,
   BarChartOutlined,
   BellOutlined,
   BookOutlined,
-  CaretDownOutlined,
-  CalendarOutlined,
   CaretUpOutlined,
+  CaretDownOutlined,
+  CaretLeftOutlined,
+  CaretRightOutlined,
+  CalendarOutlined,
   CheckOutlined,
+  CheckCircleOutlined,
+  CheckCircleFilled,
   CheckSquareOutlined,
   CloseOutlined,
+  CloseCircleOutlined,
+  ClockCircleOutlined,
   ColumnWidthOutlined,
   CommentOutlined,
   ConsoleSqlOutlined,
@@ -102,24 +149,37 @@ const AntdIcons = {
   DatabaseOutlined,
   DeleteFilled,
   DownSquareOutlined,
+  DeleteOutlined,
   DownOutlined,
   DownloadOutlined,
   EditOutlined,
+  EllipsisOutlined,
   ExclamationCircleOutlined,
+  ExclamationCircleFilled,
   EyeOutlined,
   EyeInvisibleOutlined,
   FallOutlined,
+  FieldTimeOutlined,
   FileImageOutlined,
   FileOutlined,
+  FileTextOutlined,
   FireOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
   FundProjectionScreenOutlined,
+  FunctionOutlined,
   InfoCircleOutlined,
+  InfoCircleFilled,
+  InsertRowAboveOutlined,
   InsertRowBelowOutlined,
   LineChartOutlined,
+  LinkOutlined,
   LoadingOutlined,
+  MailOutlined,
+  MinusCircleOutlined,
   MonitorOutlined,
+  MoreOutlined,
+  PieChartOutlined,
   PicCenterOutlined,
   PlusCircleOutlined,
   PlusOutlined,
@@ -128,26 +188,46 @@ const AntdIcons = {
   SaveOutlined,
   SearchOutlined,
   SettingOutlined,
+  StarOutlined,
+  StarFilled,
   StopOutlined,
   SyncOutlined,
+  TagOutlined,
   TagsOutlined,
+  TableOutlined,
+  LockOutlined,
+  UploadOutlined,
   UnlockOutlined,
   UpOutlined,
   UserOutlined,
+  VerticalAlignBottomOutlined,
+  VerticalAlignTopOutlined,
   VerticalLeftOutlined,
   VerticalRightOutlined,
-};
+  NumberOutlined,
+  ThunderboltOutlined,
+  FilterOutlined,
+  UnorderedListOutlined,
+  WarningOutlined,
+} as const;
 
-const AntdEnhancedIcons = Object.keys(AntdIcons)
-  .filter(k => !k.includes('TwoTone'))
-  .map(k => ({
-    [k]: (props: IconType) => {
-      const whatRole = props?.onClick ? 'button' : 'img';
-      // @ts-ignore TODO(hainenber): fix the type compatiblity between
-      // StyledIcon component prop and AntdIcon values
-      return <StyledIcon component={AntdIcons[k]} role={whatRole} {...props} />;
+type AntdIconNames = keyof typeof AntdIcons;
+
+export const antdEnhancedIcons: Record<
+  AntdIconNames,
+  FC<IconType>
+> = Object.keys(AntdIcons)
+  .filter(key => !EXCLUDED_ICONS.some(excluded => key.includes(excluded)))
+  .reduce(
+    (acc, key) => {
+      acc[key as AntdIconNames] = (props: IconType) => (
+        <BaseIconComponent
+          component={AntdIcons[key as AntdIconNames]}
+          fileName={key}
+          {...props}
+        />
+      );
+      return acc;
     },
-  }))
-  .reduce((l, r) => ({ ...l, ...r }));
-
-export default AntdEnhancedIcons;
+    {} as Record<AntdIconNames, FC<IconType>>,
+  );
