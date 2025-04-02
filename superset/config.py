@@ -1608,6 +1608,7 @@ CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
+TALISMAN_ENABLED = False
 
 # If you want Talisman, how do you want it configured??
 # For more information on setting up Talisman, please refer to
@@ -1625,6 +1626,7 @@ TALISMAN_CONFIG = {
             "https://static.scarf.sh/",
             # "https://cdn.brandfolder.io", # Uncomment when SLACK_ENABLE_AVATARS is True  # noqa: E501
             "ows.terrestris.de",
+            "https://cdn.document360.io",
         ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
@@ -1656,6 +1658,7 @@ TALISMAN_DEV_CONFIG = {
             "https://static.scarf.sh/",
             "https://cdn.brandfolder.io",
             "ows.terrestris.de",
+            "https://cdn.document360.io",
         ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
