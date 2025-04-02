@@ -19,7 +19,7 @@
 import { Meta, StoryObj } from '@storybook/react';
 import Slider from 'src/components/Slider/index';
 import { useState } from 'react';
-import { Row, Col } from './index';
+import { Row, Col, ColProps, RowProps } from './index';
 
 export default {
   title: 'Components/Grid',
@@ -30,7 +30,13 @@ export default {
     align: {
       control: 'select',
       options: ['top', 'middle', 'bottom', 'stretch'],
-      description: 'Vertical alignment',
+      description: 'Vertical alignment of flex items.',
+      defaultValue: 'top',
+      table: {
+        category: 'Row',
+        type: { summary: 'string' },
+        defaultValue: { summary: 'top' },
+      },
     },
     justify: {
       control: 'select',
@@ -42,71 +48,154 @@ export default {
         'space-between',
         'space-evenly',
       ],
-      description: 'Horizontal arrangement',
+      description: 'Horizontal arrangement of flex items.',
+      defaultValue: undefined,
+      table: {
+        category: 'Row',
+        type: { summary: 'string' },
+        defaultValue: { summary: 'start' },
+      },
     },
     gutter: {
-      control: 'object',
-      description: 'Spacing between grids',
+      control: false,
+      description: 'Spacing between grids (horizontal and vertical).',
+      defaultValue: 0,
+      table: {
+        category: 'Row',
+        type: { summary: 'number | object | array' },
+        defaultValue: { summary: '0' },
+      },
     },
     wrap: {
       control: 'boolean',
-      description: 'Auto wrap line',
+      description: 'Whether the flex container is allowed to wrap its items.',
+      defaultValue: true,
+      table: {
+        category: 'Row',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'true' },
+      },
     },
     // Col properties
-    flex: {
-      control: 'text',
-      description: 'Flex layout style',
+    span: {
+      control: 'number',
+      description: 'Number of grid columns to span.',
+      defaultValue: 24,
+      table: {
+        category: 'Col',
+        type: { summary: 'number' },
+        defaultValue: { summary: 24 },
+      },
     },
     offset: {
       control: 'number',
-      description: 'The number of cells to offset Col from the left',
+      description: 'Number of grid columns to offset from the left.',
+      defaultValue: 0,
+      table: {
+        category: 'Col',
+        type: { summary: 'number' },
+        defaultValue: { summary: 0 },
+      },
     },
     order: {
       control: 'number',
-      description: 'Raster order',
+      description: 'Flex order style of the grid column.',
+      defaultValue: 0,
+      table: {
+        category: 'Col',
+        type: { summary: 'number' },
+        defaultValue: { summary: 0 },
+      },
     },
     pull: {
       control: 'number',
-      description: 'The number of cells that raster is moved to the left',
+      description: 'Number of grid columns to pull to the left.',
+      defaultValue: 0,
+      table: {
+        category: 'Col',
+        type: { summary: 'number' },
+        defaultValue: { summary: 0 },
+      },
     },
     push: {
       control: 'number',
-      description: 'The number of cells that raster is moved to the right',
+      description: 'Number of grid columns to push to the right.',
+      defaultValue: 0,
+      table: {
+        category: 'Col',
+        type: { summary: 'number' },
+        defaultValue: { summary: 0 },
+      },
     },
-    span: {
-      control: 'number',
-      description: 'Raster number of cells to occupy',
+    flex: {
+      control: 'text',
+      description: 'Flex layout style for the column.',
+      table: {
+        category: 'Col',
+        type: { summary: 'string | number' },
+      },
     },
+    // Responsive properties (xs, sm, md, etc.)
     xs: {
-      control: 'object',
-      description: 'Settings for screen < 576px',
+      control: 'number',
+      description:
+        'Settings for extra small screens (< 576px). Can be a number (span) or object.',
+      table: {
+        category: 'Col',
+        type: { summary: 'number | object' },
+      },
     },
     sm: {
-      control: 'object',
-      description: 'Settings for screen ≥ 576px',
+      control: 'number',
+      description:
+        'Settings for small screens (≥ 576px). Can be a number (span) or object.',
+      table: {
+        category: 'Col',
+        type: { summary: 'number | object' },
+      },
     },
     md: {
-      control: 'object',
-      description: 'Settings for screen ≥ 768px',
+      control: 'number',
+      description:
+        'Settings for medium screens (≥ 768px). Can be a number (span) or object.',
+      table: {
+        category: 'Col',
+        type: { summary: 'number | object' },
+      },
     },
     lg: {
-      control: 'object',
-      description: 'Settings for screen ≥ 992px',
+      control: 'number',
+      description:
+        'Settings for large screens (≥ 992px). Can be a number (span) or object.',
+      table: {
+        category: 'Col',
+        type: { summary: 'number | object' },
+      },
     },
     xl: {
-      control: 'object',
-      description: 'Settings for screen ≥ 1200px',
+      control: 'number',
+      description:
+        'Settings for extra-large screens (≥ 1200px). Can be a number (span) or object.',
+      table: {
+        category: 'Col',
+        type: { summary: 'number | object' },
+      },
     },
     xxl: {
-      control: 'object',
-      description: 'Settings for screen ≥ 1600px',
+      control: 'number',
+      description:
+        'Settings for extra-extra-large screens (≥ 1600px). Can be a number (span) or object.',
+      table: {
+        category: 'Col',
+        type: { summary: 'number | object' },
+      },
     },
   },
   parameters: {
     docs: {
       description: {
         component:
-          'Grid is a hook, but here we are testing the Row and Col components that use it.',
+          'The Grid system of Ant Design is based on a 24-grid layout. The `Row` and `Col` components are used to create flexible and responsive grid layouts.',
       },
     },
   },
@@ -115,20 +204,21 @@ export default {
 type Story = StoryObj<typeof Row>;
 
 export const GridStory: Story = {
-  render: () => {
+  render: ({ align, justify, wrap, ...rest }: RowProps & ColProps) => {
     const [gutter, setGutter] = useState(24);
     const [vgutter, setVgutter] = useState(24);
     const [colCount, setColCount] = useState(4);
+    const rowProps = { align, justify, wrap }; // Props for Row
+    const colProps = rest; // Props for Col
 
     const cols = Array.from({ length: colCount }, (_, i) => (
       <Col
         key={i}
-        span={24 / colCount}
         style={{
           background: '#ddd',
           padding: '8px',
-          textAlign: 'center',
         }}
+        {...colProps}
       >
         Column {i + 1}
       </Col>
@@ -166,14 +256,7 @@ export const GridStory: Story = {
             onChange={setColCount}
           />
         </div>
-        <Row
-          gutter={[gutter, vgutter]}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(auto-fill, minmax(calc(100% / 4 - ${gutter}px), 1fr))`,
-            gap: `${vgutter}px ${gutter}px`,
-          }}
-        >
+        <Row gutter={[gutter, vgutter]} {...rowProps}>
           {cols}
         </Row>
       </div>

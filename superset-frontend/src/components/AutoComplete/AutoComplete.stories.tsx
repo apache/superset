@@ -34,55 +34,53 @@ export default {
       control: 'text',
       description: 'Placeholder text for AutoComplete',
     },
+    value: {
+      control: 'text',
+      description: 'Selected option',
+      table: {
+        type: { summary: 'string' },
+      },
+    },
     disabled: {
       control: 'boolean',
       description: 'Disable the AutoComplete',
       defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
     },
     popupMatchSelectWidth: {
       control: 'number',
       description: 'Width of the dropdown',
       defaultValue: 252,
     },
-    children: {
-      control: 'text',
-      description: 'Custom input inside AutoComplete',
-    },
     allowClear: {
       control: 'boolean',
       description: 'Show clear button',
       defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
     },
     autoFocus: {
       control: 'boolean',
       description: 'If get focus when component mounted',
       defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
     },
     backfill: {
       control: 'boolean',
       description: 'If backfill selected item the input when using keyboard',
       defaultValue: false,
-    },
-    childrenInput: {
-      control: 'text',
-      description: 'Customize input element',
-    },
-    defaultActiveFirstOption: {
-      control: 'boolean',
-      description: 'Whether active first option by default',
-      defaultValue: true,
-    },
-    defaultOpen: {
-      control: 'boolean',
-      description: 'Initial open state of dropdown',
-    },
-    defaultValue: {
-      control: 'text',
-      description: 'Initial selected option',
-    },
-    dropdownRender: {
-      control: false,
-      description: 'Customize dropdown content',
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
     },
     popupClassName: {
       control: 'text',
@@ -90,39 +88,42 @@ export default {
     },
     filterOption: {
       control: 'boolean',
-      description: 'If true, filter options by input',
+      description:
+        'If true, filters options by input. If a function, filters options using `inputValue` and `option`. Returns true to include the option, false to exclude it.',
       defaultValue: true,
-    },
-    getPopupContainer: {
-      control: false,
-      description: 'Parent node of the dropdown.',
-      defaultValue: () => document.body,
+      table: {
+        type: { summary: 'boolean | function(inputValue, option)' },
+        defaultValue: { summary: 'true' },
+      },
     },
     notFoundContent: {
       control: 'text',
-      description: 'Specify content to show when no result matches',
+      description: 'Specify content to show when no result matches.',
+      defaultValue: undefined,
+      table: {
+        type: { summary: 'ReactNode' },
+        defaultValue: { summary: '-' },
+      },
     },
     open: {
       control: 'boolean',
       description: 'Controlled open state of dropdown',
-    },
-    options: {
-      control: 'object',
-      description: 'Select options. Will get better perf than JSX definition',
+      defaultValue: undefined,
+      table: {
+        type: { summary: 'boolean' },
+      },
     },
     status: {
       control: 'select',
-      options: ['error', 'warning'],
+      options: [undefined, 'error', 'warning'],
       description: 'Set validation status',
+      defaultValue: undefined,
     },
     size: {
       control: 'select',
-      options: ['large', 'middle', 'small'],
+      options: [undefined, 'large', 'middle', 'small'],
       description: 'The size of the input box',
-    },
-    value: {
-      control: 'text',
-      description: 'Selected option',
+      defaultValue: undefined,
     },
     variant: {
       control: 'select',
@@ -134,6 +135,78 @@ export default {
       control: 'boolean',
       description: 'Disable virtual scroll when set to false',
       defaultValue: true,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'true' },
+      },
+    },
+    // reference of additional props
+    defaultValue: {
+      control: false,
+      description: 'Initial selected option from the `options` array.',
+      table: {
+        type: { summary: 'string' },
+      },
+    },
+    defaultOpen: {
+      control: false,
+      description: 'Initial open state of dropdown',
+      defaultValue: undefined,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    defaultActiveFirstOption: {
+      control: false,
+      description: 'Whether active first option by default',
+      defaultValue: undefined,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    dropdownRender: {
+      control: false,
+      description:
+        'Custom render function for dropdown content. `(menus: ReactNode) => ReactNode`',
+      table: {
+        type: { summary: '(menus: ReactNode) => ReactNode' },
+        defaultValue: { summary: '-' },
+      },
+    },
+    options: {
+      control: false,
+      description:
+        'Select options. Will get better performance than using JSX elements.',
+      table: {
+        type: { summary: '{ label: string, value: string }[]' },
+        defaultValue: { summary: '-' },
+      },
+    },
+    children: {
+      control: false,
+      description:
+        'Can be used in two ways:\n' +
+        '1. Customize input element (e.g., `<Input />`, `<TextArea />`).\n' +
+        '2. Provide data source for auto-complete (`React.ReactElement<OptionProps>` or an array of such elements).',
+      table: {
+        type: {
+          summary:
+            'React.ReactElement<InputProps> | React.ReactElement<OptionProps> | React.ReactElement<OptionProps>[]',
+        },
+        defaultValue: { summary: '-' },
+      },
+    },
+    getPopupContainer: {
+      control: false,
+      description:
+        'Parent node of the dropdown. Defaults to `body`. If you encounter positioning issues during scrolling, try setting it to the scrollable area and positioning it relative to that.',
+      defaultValue: () => document.body,
+      table: {
+        type: { summary: '(triggerNode) => HTMLElement' },
+        defaultValue: { summary: '() => document.body' },
+      },
     },
   },
   parameters: {
@@ -186,19 +259,6 @@ export const AutoCompleteStory: Story = {
   args: {
     style: { width: 300 },
     placeholder: 'Type to search...',
-    disabled: false,
-    allowClear: true,
-    autoFocus: true,
-    backfill: false,
-    defaultActiveFirstOption: true,
-    defaultOpen: false,
-    defaultValue: '',
-    filterOption: true,
-    notFoundContent: 'No results found',
-    open: false,
-    size: 'middle',
-    variant: 'outlined',
-    virtual: true,
   },
   render: (args: AntAutoCompleteProps) => (
     <div style={{ margin: '20px' }}>
