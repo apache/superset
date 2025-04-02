@@ -17,14 +17,14 @@
 """add_llm_columns_to_database_model
 
 Revision ID: e4b7bcfbb52c
-Revises: 74ad1125881c
+Revises: 32bf93dfe2a4
 Create Date: 2025-03-03 11:31:06.973818
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'e4b7bcfbb52c'
-down_revision = '74ad1125881c'
+down_revision = '32bf93dfe2a4'
 
 from alembic import op
 import sqlalchemy as sa
