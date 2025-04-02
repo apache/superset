@@ -178,8 +178,8 @@ const SelectorLabel = styled.button`
     }
 
     &.selected {
-      background-color: ${theme.colorPrimaryText};
-      color: ${theme.colorPrimaryText};
+      background-color: ${theme.colorPrimaryBgHover};
+      color: ${theme.colorPrimaryTextActive};
 
       svg {
         color: ${theme.colorIcon};
