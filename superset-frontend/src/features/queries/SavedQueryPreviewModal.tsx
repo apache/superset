@@ -30,7 +30,6 @@ const QueryTitle = styled.div`
   color: ${({ theme }) => theme.colors.secondary.light2};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   margin-bottom: 0;
-  text-transform: uppercase;
 `;
 
 const QueryLabel = styled.div`
@@ -40,10 +39,7 @@ const QueryLabel = styled.div`
 `;
 
 const StyledModal = styled(Modal)`
-  .ant-modal-content {
-  }
-
-  .ant-modal-body {
+  .antd5-modal-body {
     padding: 24px;
   }
 

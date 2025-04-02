@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ArcLayer } from 'deck.gl/typed';
+import { ArcLayer } from '@deck.gl/layers';
 import {
   HandlerFunction,
   JsonObject,
@@ -72,9 +72,9 @@ export function getLayer(
 
   return new ArcLayer({
     data,
-    getSourceColor: d =>
+    getSourceColor: (d: any) =>
       d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a],
-    getTargetColor: d =>
+    getTargetColor: (d: any) =>
       d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
     id: `path-layer-${fd.slice_id}` as const,
     strokeWidth: fd.stroke_width ? fd.stroke_width : 3,

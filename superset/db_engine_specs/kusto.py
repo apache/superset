@@ -46,7 +46,7 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         TimeGrain.SECOND: "DATEADD(second, \
             'DATEDIFF(second, 2000-01-01', {col}), '2000-01-01')",
         TimeGrain.MINUTE: "DATEADD(minute, DATEDIFF(minute, 0, {col}), 0)",
-        TimeGrain.FIVE_MINUTES: "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 5 * 5, 0)",
+        TimeGrain.FIVE_MINUTES: "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 5 * 5, 0)",  # noqa: E501
         TimeGrain.TEN_MINUTES: "DATEADD(minute, \
             DATEDIFF(minute, 0, {col}) / 10 * 10, 0)",
         TimeGrain.FIFTEEN_MINUTES: "DATEADD(minute, \
@@ -104,11 +104,6 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             return f"""CONVERT(DATETIME, '{datetime_formatted}', 126)"""
         return None
 
-    @classmethod
-    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
-        """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return parsed_query.sql.lower().startswith("select")
-
 
 class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     limit_method = LimitMethod.WRAP_SQL
@@ -122,14 +117,16 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "{col}/ time(1s)",
-        TimeGrain.MINUTE: "{col}/ time(1min)",
-        TimeGrain.HOUR: "{col}/ time(1h)",
-        TimeGrain.DAY: "{col}/ time(1d)",
-        TimeGrain.MONTH: "datetime_diff('month', CreateDate, \
-            datetime(0001-01-01 00:00:00))+1",
-        TimeGrain.YEAR: "datetime_diff('year', CreateDate, \
-            datetime(0001-01-01 00:00:00))+1",
+        TimeGrain.SECOND: "bin({col},1s)",
+        TimeGrain.THIRTY_SECONDS: "bin({col},30s)",
+        TimeGrain.MINUTE: "bin({col},1m)",
+        TimeGrain.FIVE_MINUTES: "bin({col},5m)",
+        TimeGrain.THIRTY_MINUTES: "bin({col},30m)",
+        TimeGrain.HOUR: "bin({col},1h)",
+        TimeGrain.DAY: "startofday({col})",
+        TimeGrain.WEEK: "startofweek({col})",
+        TimeGrain.MONTH: "startofmonth({col})",
+        TimeGrain.YEAR: "startofyear({col})",
     }
 
     type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed
@@ -157,15 +154,6 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             return f"""datetime({dttm.isoformat(timespec="microseconds")})"""
 
         return None
-
-    @classmethod
-    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
-        """
-        Pessimistic readonly, 100% sure statement won't mutate anything.
-        """
-        return KustoKqlEngineSpec.is_select_query(
-            parsed_query
-        ) or parsed_query.sql.startswith(".show")
 
     @classmethod
     def is_select_query(cls, parsed_query: ParsedQuery) -> bool:

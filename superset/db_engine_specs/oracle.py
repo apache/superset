@@ -51,8 +51,9 @@ class OracleEngineSpec(BaseEngineSpec):
         if isinstance(sqla_type, types.Date):
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
         if isinstance(sqla_type, types.TIMESTAMP):
-            return f"""TO_TIMESTAMP('{dttm
-                .isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
+            return f"""TO_TIMESTAMP('{
+                dttm.isoformat(timespec="microseconds")
+            }', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         if isinstance(sqla_type, types.DateTime):
             datetime_formatted = dttm.isoformat(timespec="seconds")
             return f"""TO_DATE('{datetime_formatted}', 'YYYY-MM-DD"T"HH24:MI:SS')"""

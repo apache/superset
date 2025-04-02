@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect } from 'react';
+import { ClientErrorObject } from '@superset-ui/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { api, JsonResponse } from './queryApi';
 
@@ -31,7 +32,7 @@ export type FetchSchemasQueryParams = {
   catalog?: string;
   forceRefresh: boolean;
   onSuccess?: (data: SchemaOption[], isRefetched: boolean) => void;
-  onError?: () => void;
+  onError?: (error: ClientErrorObject) => void;
 };
 
 type Params = Omit<FetchSchemasQueryParams, 'forceRefresh'>;
@@ -81,6 +82,12 @@ export function useSchemas(options: Params) {
     },
   );
 
+  useEffect(() => {
+    if (result.isError) {
+      onError?.(result.error as ClientErrorObject);
+    }
+  }, [result.isError, result.error, onError]);
+
   const fetchData = useEffectEvent(
     (
       dbId: FetchSchemasQueryParams['dbId'],
@@ -94,7 +101,7 @@ export function useSchemas(options: Params) {
               onSuccess?.(data || EMPTY_SCHEMAS, forceRefresh);
             }
             if (isError) {
-              onError?.();
+              onError?.(result.error as ClientErrorObject);
             }
           },
         );

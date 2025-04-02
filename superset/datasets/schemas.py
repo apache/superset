@@ -29,7 +29,6 @@ get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 openapi_spec_methods_override = {
-    "get": {"get": {"summary": "Get a dataset detail information"}},
     "get_list": {
         "get": {
             "summary": "Get a list of datasets",
@@ -249,6 +248,7 @@ class ImportV1DatasetSchema(Schema):
     offset = fields.Integer()
     cache_timeout = fields.Integer(allow_none=True)
     schema = fields.String(allow_none=True)
+    catalog = fields.String(allow_none=True)
     sql = fields.String(allow_none=True)
     params = fields.Dict(allow_none=True)
     template_params = fields.Dict(allow_none=True)
@@ -300,7 +300,7 @@ class DatasetCacheWarmUpRequestSchema(Schema):
     )
     dashboard_id = fields.Integer(
         metadata={
-            "description": "The ID of the dashboard to get filters for when warming cache"
+            "description": "The ID of the dashboard to get filters for when warming cache"  # noqa: E501
         }
     )
     extra_filters = fields.String(

@@ -17,18 +17,18 @@
  * under the License.
  */
 
-import { act } from 'react-dom/test-utils';
 import fetchMock from 'fetch-mock';
 import {
+  act,
+  defaultStore as store,
   render,
   screen,
+  userEvent,
   waitFor,
-  defaultStore as store,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import { api } from 'src/hooks/apiResources/queryApi';
 import DatabaseSelector, { DatabaseSelectorProps } from '.';
-import { EmptyStateSmall } from '../EmptyState';
+import { EmptyState } from '../EmptyState';
 
 const createProps = (): DatabaseSelectorProps => ({
   db: {
@@ -56,7 +56,7 @@ const fakeDatabaseApiResult = {
     allow_file_upload: 'Allow Csv Upload',
     allow_ctas: 'Allow Ctas',
     allow_cvas: 'Allow Cvas',
-    allow_dml: 'Allow Dml',
+    allow_dml: 'Allow DDL and DML',
     allow_run_async: 'Allow Run Async',
     allows_cost_estimate: 'Allows Cost Estimate',
     allows_subquery: 'Allows Subquery',
@@ -219,20 +219,20 @@ test('Refresh should work', async () => {
   await waitFor(() => {
     expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
     expect(fetchMock.calls(schemaApiRoute).length).toBe(1);
-    expect(props.handleError).toBeCalledTimes(0);
-    expect(props.onDbChange).toBeCalledTimes(0);
-    expect(props.onSchemaChange).toBeCalledTimes(0);
+    expect(props.handleError).toHaveBeenCalledTimes(0);
+    expect(props.onDbChange).toHaveBeenCalledTimes(0);
+    expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
   });
 
   // click schema reload
-  userEvent.click(screen.getByRole('button', { name: 'refresh' }));
+  userEvent.click(screen.getByRole('button', { name: 'sync' }));
 
   await waitFor(() => {
     expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
     expect(fetchMock.calls(schemaApiRoute).length).toBe(2);
-    expect(props.handleError).toBeCalledTimes(0);
-    expect(props.onDbChange).toBeCalledTimes(0);
-    expect(props.onSchemaChange).toBeCalledTimes(0);
+    expect(props.handleError).toHaveBeenCalledTimes(0);
+    expect(props.onDbChange).toHaveBeenCalledTimes(0);
+    expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
   });
 });
 
@@ -272,7 +272,6 @@ test('should display options in order of the api response', async () => {
 });
 
 test('Should fetch the search keyword when total count exceeds initial options', async () => {
-  fetchMock.reset();
   fetchMock.get(
     databaseApiRoute,
     {
@@ -308,7 +307,7 @@ test('should show empty state if there are no options', async () => {
     <DatabaseSelector
       {...props}
       db={undefined}
-      emptyState={<EmptyStateSmall title="empty" image="" />}
+      emptyState={<EmptyState size="small" title="empty" />}
     />,
     { useRedux: true, store },
   );
@@ -365,7 +364,7 @@ test('Sends the correct schema when changing the schema', async () => {
   });
   await waitFor(() => expect(fetchMock.calls(databaseApiRoute).length).toBe(1));
   rerender(<DatabaseSelector {...props} />);
-  expect(props.onSchemaChange).toBeCalledTimes(0);
+  expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type to search schemas',
   });
@@ -376,5 +375,5 @@ test('Sends the correct schema when changing the schema', async () => {
   await waitFor(() =>
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );
-  expect(props.onSchemaChange).toBeCalledTimes(1);
+  expect(props.onSchemaChange).toHaveBeenCalledTimes(1);
 });

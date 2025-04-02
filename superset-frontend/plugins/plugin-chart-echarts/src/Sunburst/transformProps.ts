@@ -30,8 +30,8 @@ import {
   tooltipHtml,
   ValueFormatter,
 } from '@superset-ui/core';
-import { EChartsCoreOption } from 'echarts';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import { NULL_STRING, OpacityEnum } from '../constants';
 import { defaultGrid } from '../defaults';
 import { Refs } from '../types';
@@ -188,7 +188,11 @@ export default function transformProps(
     showTotal,
     sliceId,
   } = formData;
-  const { currencyFormats = {}, columnFormats = {} } = datasource;
+  const {
+    currencyFormats = {},
+    columnFormats = {},
+    verboseMap = {},
+  } = datasource;
   const refs: Refs = {};
   const primaryValueFormatter = getValueFormatter(
     metric,
@@ -334,8 +338,10 @@ export default function transformProps(
           secondaryValueFormatter,
           colorByCategory,
           totalValue,
-          metricLabel,
-          secondaryMetricLabel,
+          metricLabel: verboseMap[metricLabel] || metricLabel,
+          secondaryMetricLabel: secondaryMetricLabel
+            ? verboseMap[secondaryMetricLabel] || secondaryMetricLabel
+            : undefined,
         }),
     },
     series: [

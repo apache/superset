@@ -97,7 +97,7 @@ class CopyToClipboard extends Component<CopyToClipboardProps> {
             style={{ cursor }}
             title={this.props.tooltipText || ''}
             trigger={['hover']}
-            arrowPointAtCenter
+            arrow={{ pointAtCenter: true }}
           >
             {this.getDecoratedCopyNode()}
           </Tooltip>

@@ -41,10 +41,10 @@ const JustifyEnd = styled.div`
 
 const colorSchemeOptions = (theme: SupersetTheme) => [
   { value: theme.colors.success.light1, label: t('success') },
-  { value: theme.colors.alert.light1, label: t('alert') },
+  { value: theme.colors.warning.light1, label: t('alert') },
   { value: theme.colors.error.light1, label: t('error') },
   { value: theme.colors.success.dark1, label: t('success dark') },
-  { value: theme.colors.alert.dark1, label: t('alert dark') },
+  { value: theme.colors.warning.dark1, label: t('alert dark') },
   { value: theme.colors.error.dark1, label: t('error dark') },
 ];
 
@@ -124,7 +124,7 @@ const shouldFormItemUpdate = (
   isOperatorMultiValue(prevValues.operator) !==
     isOperatorMultiValue(currentValues.operator);
 
-const operatorField = (showOnlyNone?: boolean) => (
+const renderOperator = ({ showOnlyNone }: { showOnlyNone?: boolean } = {}) => (
   <FormItem
     name="operator"
     label={t('Operator')}
@@ -141,7 +141,7 @@ const operatorField = (showOnlyNone?: boolean) => (
 const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
   isOperatorNone(getFieldValue('operator')) ? (
     <Row gutter={12}>
-      <Col span={6}>{operatorField()}</Col>
+      <Col span={6}>{renderOperator()}</Col>
     </Row>
   ) : isOperatorMultiValue(getFieldValue('operator')) ? (
     <Row gutter={12}>
@@ -157,7 +157,7 @@ const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
           <FullWidthInputNumber />
         </FormItem>
       </Col>
-      <Col span={6}>{operatorField}</Col>
+      <Col span={6}>{renderOperator()}</Col>
       <Col span={9}>
         <FormItem
           name="targetValueRight"
@@ -173,7 +173,7 @@ const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
     </Row>
   ) : (
     <Row gutter={12}>
-      <Col span={6}>{operatorField}</Col>
+      <Col span={6}>{renderOperator()}</Col>
       <Col span={18}>
         <FormItem
           name="targetValue"
@@ -248,7 +248,7 @@ export const FormattingPopoverContent = ({
           renderOperatorFields
         ) : (
           <Row gutter={12}>
-            <Col span={6}>{operatorField(true)}</Col>
+            <Col span={6}>{renderOperator({ showOnlyNone: true })}</Col>
           </Row>
         )}
       </FormItem>

@@ -18,14 +18,13 @@
  */
 
 import {
-  css,
   logging,
   styled,
   SupersetClient,
   SupersetClientResponse,
-  SupersetTheme,
   getClientErrorObject,
   t,
+  lruCache,
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';
@@ -34,7 +33,7 @@ import { FetchDataConfig, FilterValue } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';
-import { WelcomeTable } from 'src/features/home/types';
+import { RecentActivity, WelcomeTable } from 'src/features/home/types';
 import { Dashboard, Filter, TableTab } from './types';
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
@@ -126,15 +125,17 @@ const createFetchResourceMethod =
   };
 
 export const PAGE_SIZE = 5;
-const getParams = (filters?: Filter[]) => {
+const getParams = (filters?: Filter[], selectColumns?: string[]) => {
   const params = {
     order_column: 'changed_on_delta_humanized',
     order_direction: 'desc',
     page: 0,
     page_size: PAGE_SIZE,
     filters,
+    select_columns: selectColumns,
   };
   if (!filters) delete params.filters;
+  if (!selectColumns) delete params.select_columns;
   return rison.encode(params);
 };
 
@@ -177,10 +178,41 @@ export const getUserOwnedObjects = (
       value: `${userId}`,
     },
   ],
+  selectColumns?: string[],
 ) =>
   SupersetClient.get({
-    endpoint: `/api/v1/${resource}/?q=${getParams(filters)}`,
+    endpoint: `/api/v1/${resource}/?q=${getParams(filters, selectColumns)}`,
   }).then(res => res.json?.result);
+
+export const getFilteredChartsandDashboards = (
+  addDangerToast: (arg1: string, arg2: any) => any,
+  filters: Filter[],
+  dashboardSelectColumns?: string[],
+  chartSelectColumns?: string[],
+) => {
+  const newBatch = [
+    SupersetClient.get({
+      endpoint: `/api/v1/chart/?q=${getParams(filters, chartSelectColumns)}`,
+    }),
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/?q=${getParams(
+        filters,
+        dashboardSelectColumns,
+      )}`,
+    }),
+  ];
+  return Promise.all(newBatch)
+    .then(([chartRes, dashboardRes]) => ({
+      other: [...chartRes.json.result, ...dashboardRes.json.result],
+    }))
+    .catch(errMsg => {
+      addDangerToast(
+        t('There was an error fetching the filtered charts and dashboards:'),
+        errMsg,
+      );
+      return { other: [] };
+    });
+};
 
 export const getRecentActivityObjs = (
   userId: string | number,
@@ -190,26 +222,17 @@ export const getRecentActivityObjs = (
 ) =>
   SupersetClient.get({ endpoint: recent }).then(recentsRes => {
     const res: any = {};
-    const newBatch = [
-      SupersetClient.get({
-        endpoint: `/api/v1/chart/?q=${getParams(filters)}`,
-      }),
-      SupersetClient.get({
-        endpoint: `/api/v1/dashboard/?q=${getParams(filters)}`,
-      }),
-    ];
-    return Promise.all(newBatch)
-      .then(([chartRes, dashboardRes]) => {
-        res.other = [...chartRes.json.result, ...dashboardRes.json.result];
-        res.viewed = recentsRes.json.result;
+    const distinctRes = lruCache<RecentActivity>(6);
+    recentsRes.json.result.reverse().forEach((record: RecentActivity) => {
+      distinctRes.set(record.item_url, record);
+    });
+    return getFilteredChartsandDashboards(addDangerToast, filters).then(
+      ({ other }) => {
+        res.other = other;
+        res.viewed = distinctRes.values().reverse();
         return res;
-      })
-      .catch(errMsg =>
-        addDangerToast(
-          t('There was an error fetching your recent activity:'),
-          errMsg,
-        ),
-      );
+      },
+    );
   });
 
 export const createFetchRelated = createFetchResourceMethod('related');
@@ -356,15 +379,10 @@ export const CardStyles = styled.div`
   a {
     text-decoration: none;
   }
-  .ant-card-cover > div {
+  .antd5-card-cover > div {
     /* Height is calculated based on 300px width, to keep the same aspect ratio as the 800*450 thumbnails */
     height: 168px;
   }
-`;
-
-export const StyledIcon = (theme: SupersetTheme) => css`
-  margin: auto ${theme.gridUnit * 2}px auto 0;
-  color: ${theme.colors.grayscale.base};
 `;
 
 export /* eslint-disable no-underscore-dangle */
@@ -487,14 +505,14 @@ export const uploadUserPerms = (
   allowedExt: Array<string>,
 ) => {
   const canUploadCSV =
-    findPermission('can_csv_upload', 'Database', roles) &&
+    findPermission('can_upload', 'Database', roles) &&
     checkUploadExtensions(csvExt, allowedExt);
   const canUploadColumnar =
     checkUploadExtensions(colExt, allowedExt) &&
-    findPermission('can_columnar_upload', 'Database', roles);
+    findPermission('can_upload', 'Database', roles);
   const canUploadExcel =
     checkUploadExtensions(excelExt, allowedExt) &&
-    findPermission('can_excel_upload', 'Database', roles);
+    findPermission('can_upload', 'Database', roles);
   return {
     canUploadCSV,
     canUploadColumnar,

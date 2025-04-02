@@ -35,7 +35,8 @@ import {
   t,
   usePrevious,
 } from '@superset-ui/core';
-import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+// eslint-disable-next-line no-restricted-imports
+import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
 import { debounce, isEqual, uniq } from 'lodash';
 import { FAST_DEBOUNCE } from 'src/constants';
 import {
@@ -182,8 +183,18 @@ const Select = forwardRef(
 
     // add selected values to options list if they are not in it
     const fullSelectOptions = useMemo(() => {
+      // check to see if selectOptions are grouped
+      let groupedOptions: SelectOptionsType;
+      if (selectOptions.some(opt => opt.options)) {
+        groupedOptions = selectOptions.reduce(
+          (acc, group) => [...acc, ...group.options],
+          [] as SelectOptionsType,
+        );
+      }
       const missingValues: SelectOptionsType = ensureIsArray(selectValue)
-        .filter(opt => !hasOption(getValue(opt), selectOptions))
+        .filter(
+          opt => !hasOption(getValue(opt), groupedOptions || selectOptions),
+        )
         .map(opt =>
           isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
         );
@@ -598,8 +609,9 @@ const Select = forwardRef(
           <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
         )}
         <StyledSelect
+          id={name}
           allowClear={!isLoading && allowClear}
-          aria-label={ariaLabel || name}
+          aria-label={ariaLabel}
           autoClearSearchValue={autoClearSearchValue}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}

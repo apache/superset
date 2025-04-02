@@ -17,9 +17,8 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import Button from 'src/components/Button';
-import { ButtonProps as AntdButtonProps } from 'antd/lib/button';
-import Icons from 'src/components/Icons';
+import Button, { ButtonProps as AntdButtonProps } from 'src/components/Button';
+import { Icons } from 'src/components/Icons';
 import LinesEllipsis from 'react-lines-ellipsis';
 
 export interface IconButtonProps extends AntdButtonProps {

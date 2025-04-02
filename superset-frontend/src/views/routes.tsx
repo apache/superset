@@ -18,6 +18,8 @@
  */
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { lazy, ComponentType, ComponentProps } from 'react';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 // not lazy loaded since this is the home page.
 import Home from 'src/pages/Home';
@@ -121,6 +123,10 @@ const RowLevelSecurityList = lazy(
     import(
       /* webpackChunkName: "RowLevelSecurityList" */ 'src/pages/RowLevelSecurityList'
     ),
+);
+
+const RolesList = lazy(
+  () => import(/* webpackChunkName: "RolesList" */ 'src/pages/RolesList'),
 );
 
 type Routes = {
@@ -238,7 +244,17 @@ if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   });
 }
 
-const frontEndRoutes = routes
+const user = getBootstrapData()?.user;
+const isAdmin = isUserAdmin(user);
+
+if (isAdmin) {
+  routes.push({
+    path: '/roles/',
+    Component: RolesList,
+  });
+}
+
+const frontEndRoutes: Record<string, boolean> = routes
   .map(r => r.path)
   .reduce(
     (acc, curr) => ({
@@ -248,10 +264,10 @@ const frontEndRoutes = routes
     {},
   );
 
-export function isFrontendRoute(path?: string) {
+export const isFrontendRoute = (path?: string): boolean => {
   if (path) {
     const basePath = path.split(/[?#]/)[0]; // strip out query params and link bookmarks
     return !!frontEndRoutes[basePath];
   }
   return false;
-}
+};

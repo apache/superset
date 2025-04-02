@@ -41,8 +41,10 @@ import Button from 'src/components/Button';
 import { Select } from 'src/components';
 
 import { Form, FormItem } from 'src/components/Form';
+import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
+import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import {
   POPOVER_INITIAL_HEIGHT,
@@ -63,7 +65,7 @@ const StyledSelect = styled(Select)`
   }
 `;
 
-interface ColumnSelectPopoverProps {
+export interface ColumnSelectPopoverProps {
   columns: ColumnMeta[];
   editedColumn?: ColumnMeta | AdhocColumn;
   onChange: (column: ColumnMeta | AdhocColumn) => void;
@@ -187,9 +189,9 @@ const ColumnSelectPopover = ({
 
   const defaultActiveTabKey = initialAdhocColumn
     ? 'sqlExpression'
-    : initialSimpleColumn || calculatedColumns.length === 0
-      ? 'simple'
-      : 'saved';
+    : selectedCalculatedColumn
+      ? 'saved'
+      : 'simple';
 
   useEffect(() => {
     getCurrentTab(defaultActiveTabKey);
@@ -287,6 +289,10 @@ const ColumnSelectPopover = ({
 
   const savedExpressionsLabel = t('Saved expressions');
   const simpleColumnsLabel = t('Column');
+  const keywords = useMemo(
+    () => sqlKeywords.concat(getColumnKeywords(columns)),
+    [columns],
+  );
 
   return (
     <Form layout="vertical" id="metrics-edit-popover">
@@ -328,8 +334,9 @@ const ColumnSelectPopover = ({
               />
             </FormItem>
           ) : datasourceType === DatasourceType.Table ? (
-            <EmptyStateSmall
+            <EmptyState
               image="empty.svg"
+              size="small"
               title={
                 isTemporal
                   ? t('No temporal columns found')
@@ -346,8 +353,9 @@ const ColumnSelectPopover = ({
               }
             />
           ) : (
-            <EmptyStateSmall
+            <EmptyState
               image="empty.svg"
+              size="small"
               title={
                 isTemporal
                   ? t('No temporal columns found')
@@ -387,8 +395,9 @@ const ColumnSelectPopover = ({
           disabled={disabledTabs.has('simple')}
         >
           {isTemporal && simpleColumns.length === 0 ? (
-            <EmptyStateSmall
+            <EmptyState
               image="empty.svg"
+              size="small"
               title={t('No temporal columns found')}
               description={
                 datasourceType === DatasourceType.Table ? (
@@ -451,6 +460,7 @@ const ColumnSelectPopover = ({
             className="filter-sql-editor"
             wrapEnabled
             ref={sqlEditorRef}
+            keywords={keywords}
           />
         </Tabs.TabPane>
       </Tabs>

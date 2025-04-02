@@ -29,7 +29,7 @@ export const STATE_TYPE_MAP: Record<string, Type> = {
   success: 'success',
 };
 
-export const STATE_TYPE_MAP_LOCALIZED = {
+export const STATE_TYPE_MAP_LOCALIZED: Record<string, string> = {
   offline: t('offline'),
   failed: t('failed'),
   pending: t('pending'),

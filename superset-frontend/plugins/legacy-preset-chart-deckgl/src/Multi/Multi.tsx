@@ -30,7 +30,7 @@ import {
   SupersetClient,
   usePrevious,
 } from '@superset-ui/core';
-import { Layer } from 'deck.gl/typed';
+import { Layer } from '@deck.gl/core';
 
 import {
   DeckGLContainerHandle,
@@ -97,6 +97,7 @@ const DeckMulti = (props: DeckMultiProps) => {
               endpoint: url,
             })
               .then(({ json }) => {
+                // @ts-ignore TODO(hainenber): define proper type for `form_data.viz_type` and call signature for functions in layerGenerators.
                 const layer = layerGenerators[subsliceCopy.form_data.viz_type](
                   subsliceCopy.form_data,
                   json,

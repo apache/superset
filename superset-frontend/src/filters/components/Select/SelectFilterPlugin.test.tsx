@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import { AppSection } from '@superset-ui/core';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { NULL_STRING } from 'src/utils/common';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';
@@ -238,5 +237,26 @@ describe('SelectFilterPlugin', () => {
     userEvent.tab();
     // One call for the search term and other for the empty search
     expect(setDataMask).toHaveBeenCalledTimes(2);
+  });
+
+  test('Select big int value', async () => {
+    const bigValue = 1100924931345932234n;
+    render(
+      // @ts-ignore
+      <SelectFilterPlugin
+        // @ts-ignore
+        {...transformProps({
+          ...selectMultipleProps,
+          formData: { ...selectMultipleProps.formData, groupby: 'bval' },
+        })}
+        coltypeMap={{ bval: 1 }}
+        data={[{ bval: bigValue }]}
+        setDataMask={jest.fn()}
+      />,
+    );
+    userEvent.click(screen.getByRole('combobox'));
+    expect(await screen.findByRole('combobox')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('combobox'), '1');
+    expect(screen.queryByLabelText(String(bigValue))).toBeInTheDocument();
   });
 });

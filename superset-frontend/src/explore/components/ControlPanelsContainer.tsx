@@ -48,6 +48,7 @@ import {
   CustomControlItem,
   Dataset,
   ExpandedControlItem,
+  isCustomControlItem,
   isTemporalColumn,
   sections,
 } from '@superset-ui/chart-controls';
@@ -65,7 +66,7 @@ import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -448,13 +449,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const renderControl = ({ name, config }: CustomControlItem) => {
     const { controls, chart, exploreState } = props;
-    const { visibility } = config;
+    const { visibility, hidden, disableStash, ...restConfig } = config;
 
     // If the control item is not an object, we have to look up the control data from
     // the centralized controls file.
     // When it is an object we read control data straight from `config` instead
     const controlData = {
-      ...config,
+      ...restConfig,
       ...controls[name],
       ...(shouldRecalculateControlState({ name, config })
         ? config?.mapStateToProps?.(exploreState, controls[name], chart)
@@ -475,6 +476,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     const isVisible = visibility
       ? visibility.call(config, props, controlData)
       : undefined;
+
+    const isHidden =
+      typeof hidden === 'function'
+        ? hidden.call(config, props, controlData)
+        : hidden;
 
     const label =
       typeof baseLabel === 'function'
@@ -524,7 +530,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     return (
       <StashFormDataContainer
-        shouldStash={isVisible === false}
+        shouldStash={isVisible === false && disableStash !== true}
         fieldNames={[name]}
         key={`control-container-${name}`}
       >
@@ -536,6 +542,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           validationErrors={validationErrors}
           actions={props.actions}
           isVisible={isVisible}
+          hidden={isHidden}
           {...restProps}
         />
       </StashFormDataContainer>
@@ -581,7 +588,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     const errorColor = sectionHasHadNoErrors.current[sectionId]
       ? colors.error.base
-      : colors.alert.base;
+      : colors.warning.base;
 
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
@@ -589,6 +596,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           css={(theme: SupersetTheme) => css`
             font-size: ${theme.typography.sizes.m}px;
             line-height: 1.3;
+            font-weight: ${theme.typography.weights.medium};
           `}
         >
           {label}
@@ -671,8 +679,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                     return controlItem;
                   }
                   if (
-                    controlItem.name &&
-                    controlItem.config &&
+                    isCustomControlItem(controlItem) &&
                     controlItem.name !== 'datasource'
                   ) {
                     return renderControl(controlItem);
@@ -740,7 +747,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     const errorColor = dataTabHasHadNoErrors.current
       ? colors.error.base
-      : colors.alert.base;
+      : colors.warning.base;
 
     return (
       <>
@@ -770,7 +777,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
   }, [
     colors.error.base,
-    colors.alert.base,
+    colors.warning.base,
     dataTabHasHadNoErrors,
     props.errorMessage,
   ]);

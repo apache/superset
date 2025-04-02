@@ -59,25 +59,28 @@ export interface Filter {
     pageSize: number,
   ) => Promise<{ data: SelectOption[]; totalCount: number }>;
   paginate?: boolean;
+  loading?: boolean;
 }
 
 export type Filters = Filter[];
 
 export type ViewModeType = 'card' | 'table';
 
+export type InnerFilterValue =
+  | string
+  | boolean
+  | number
+  | null
+  | undefined
+  | string[]
+  | number[]
+  | { label: string; value: string | number };
+
 export interface FilterValue {
   id: string;
   urlDisplay?: string;
   operator?: string;
-  value:
-    | string
-    | boolean
-    | number
-    | null
-    | undefined
-    | string[]
-    | number[]
-    | { label: string; value: string | number };
+  value: InnerFilterValue;
 }
 
 export interface FetchDataConfig {
@@ -117,7 +120,10 @@ export enum FilterOperator {
   DatasetIsCertified = 'dataset_is_certified',
   DashboardHasCreatedBy = 'dashboard_has_created_by',
   ChartHasCreatedBy = 'chart_has_created_by',
-  DashboardTags = 'dashboard_tags',
-  ChartTags = 'chart_tags',
-  SavedQueryTags = 'saved_query_tags',
+  DashboardTagByName = 'dashboard_tags',
+  DashboardTagById = 'dashboard_tag_id',
+  ChartTagByName = 'chart_tags',
+  ChartTagById = 'chart_tag_id',
+  SavedQueryTagByName = 'saved_query_tags',
+  SavedQueryTagById = 'saved_query_tag_id',
 }

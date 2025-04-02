@@ -21,7 +21,7 @@ import logging
 from flask_appbuilder.security.sqla.models import User
 
 from superset.daos.base import BaseDAO
-from superset.extensions import db
+from superset.extensions import db, security_manager
 from superset.models.user_attributes import UserAttribute
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 class UserDAO(BaseDAO[User]):
     @staticmethod
     def get_by_id(user_id: int) -> User:
-        return db.session.query(User).filter_by(id=user_id).one()
+        return db.session.query(security_manager.user_model).filter_by(id=user_id).one()
 
     @staticmethod
     def set_avatar_url(user: User, url: str) -> None:

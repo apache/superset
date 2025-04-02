@@ -44,8 +44,9 @@ or for the purposes of this walkthrough, you can click the link below all these 
 
 <img src={useBaseUrl("/img/tutorial/tutorial_03a_database_connection_string_link.png" )} width="600" />{" "} <br/><br/>
 
-Once you've clicked that link you only need to specify two things (the database name and SQLAlchemy URI):
+Please note, if you are trying to connect to another locally running database (whether on host or another container), and you get the message `The port is closed.`, then you need to adjust the HOST to `host.docker.internal`
 
+Once you've clicked that link you only need to specify two things (the database name and SQLAlchemy URI):
 
 <img src={useBaseUrl("/img/tutorial/tutorial_03b_connection_string_details.png" )} width="600" />{" "} <br/><br/>
 
@@ -102,9 +103,9 @@ Aggregate functions are allowed and encouraged for metrics.
 
 You can also certify metrics if you'd like for your team in this view.
 
-2. Virtual calculated columns: you can write SQL queries that
+1. Virtual calculated columns: you can write SQL queries that
 customize the appearance and behavior
-of a specific column (e.g. `CAST(recovery_rate) as float`).
+of a specific column (e.g. `CAST(recovery_rate as float)`).
 Aggregate functions aren't allowed in calculated columns.
 
 <img src={useBaseUrl("/img/tutorial/tutorial_calculated_column.png" )} />
@@ -177,8 +178,8 @@ of other table configuration and visualization options, so please start explorin
 slices and dashboards of your own
 
 ֿ
-### Manage access to Dashboards
 
+### Manage access to Dashboards
 
 Access to dashboards is managed via owners (users that have edit permissions to the dashboard)
 
@@ -194,6 +195,7 @@ Non-owner users access can be managed two different ways:
 ### Customizing dashboard
 
 The following URL parameters can be used to modify how the dashboard is rendered:
+
 - `standalone`:
   - `0` (default): dashboard is displayed normally
   - `1`: Top Navigation is hidden

@@ -36,12 +36,12 @@ import {
 import Button from 'src/components/Button';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import type { DatabaseObject } from 'src/components/DatabaseSelector';
-import { emptyStateComponent } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import {
   getItem,
   LocalStorageKeys,
@@ -101,7 +101,7 @@ const SqlEditorLeftBar = ({
   queryEditorId,
   height = 500,
 }: SqlEditorLeftBarProps) => {
-  const tables = useSelector<SqlLabRootState, Table[]>(
+  const allSelectedTables = useSelector<SqlLabRootState, Table[]>(
     ({ sqlLab }) =>
       sqlLab.tables.filter(table => table.queryEditorId === queryEditorId),
     shallowEqual,
@@ -113,11 +113,18 @@ const SqlEditorLeftBar = ({
     'schema',
   ]);
 
-  const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
+  const [_emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
   );
-  const { catalog, schema } = queryEditor;
+  const { dbId, catalog, schema } = queryEditor;
+  const tables = useMemo(
+    () =>
+      allSelectedTables.filter(
+        table => table.dbId === dbId && table.schema === schema,
+      ),
+    [allSelectedTables, dbId, schema],
+  );
 
   useEffect(() => {
     const bool = querystring.parse(window.location.search).db;
@@ -249,7 +256,7 @@ const SqlEditorLeftBar = ({
     <LeftBarStyles data-test="sql-editor-left-bar">
       <TableSelectorMultiple
         onEmptyResults={onEmptyResults}
-        emptyState={emptyStateComponent(emptyResultsWithSearch)}
+        emptyState={<EmptyState />}
         database={userSelectedDb}
         getDbList={handleDbList}
         handleError={handleError}
@@ -291,6 +298,8 @@ const SqlEditorLeftBar = ({
           buttonStyle="danger"
           onClick={handleResetState}
         >
+          {/* TODO: Remove fa-icon */}
+          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
           <i className="fa fa-bomb" /> {t('Reset state')}
         </Button>
       )}

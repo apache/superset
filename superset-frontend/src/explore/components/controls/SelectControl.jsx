@@ -87,6 +87,39 @@ const defaultProps = {
   valueKey: 'value',
 };
 
+export const innerGetOptions = props => {
+  const { choices, optionRenderer, valueKey } = props;
+  let options = [];
+  if (props.options) {
+    options = props.options.map(o => ({
+      ...o,
+      value: o[valueKey],
+      label: o.label || o[valueKey],
+      customLabel: optionRenderer ? optionRenderer(o) : undefined,
+    }));
+  } else if (choices) {
+    // Accepts different formats of input
+    options = choices.map(c => {
+      if (Array.isArray(c)) {
+        const [value, label] = c.length > 1 ? c : [c[0], c[0]];
+        return {
+          value,
+          label,
+        };
+      }
+      if (Object.is(c)) {
+        return {
+          ...c,
+          value: c[valueKey],
+          label: c.label || c[valueKey],
+        };
+      }
+      return { value: c, label: c };
+    });
+  }
+  return options;
+};
+
 export default class SelectControl extends PureComponent {
   constructor(props) {
     super(props);
@@ -127,36 +160,7 @@ export default class SelectControl extends PureComponent {
   }
 
   getOptions(props) {
-    const { choices, optionRenderer, valueKey } = props;
-    let options = [];
-    if (props.options) {
-      options = props.options.map(o => ({
-        ...o,
-        value: o[valueKey],
-        label: o.label || o[valueKey],
-        customLabel: optionRenderer ? optionRenderer(o) : undefined,
-      }));
-    } else if (choices) {
-      // Accepts different formats of input
-      options = choices.map(c => {
-        if (Array.isArray(c)) {
-          const [value, label] = c.length > 1 ? c : [c[0], c[0]];
-          return {
-            value,
-            label,
-          };
-        }
-        if (Object.is(c)) {
-          return {
-            ...c,
-            value: c[valueKey],
-            label: c.label || c[valueKey],
-          };
-        }
-        return { value: c, label: c };
-      });
-    }
-    return options;
+    return innerGetOptions(props);
   }
 
   handleFilterOptions(text, option) {

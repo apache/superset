@@ -25,7 +25,12 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t, SupersetTheme, getClientErrorObject } from '@superset-ui/core';
+import {
+  t,
+  SupersetTheme,
+  getClientErrorObject,
+  VizType,
+} from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   addReport,
@@ -34,9 +39,9 @@ import {
 import Alert from 'src/components/Alert';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { CronError } from 'src/components/CronPicker';
-import { RadioChangeEvent } from 'src/components';
+import { Radio, RadioChangeEvent } from 'src/components/Radio';
 import { Input } from 'src/components/Input';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
@@ -63,8 +68,6 @@ import {
   TimezoneHeaderStyle,
   SectionHeaderStyle,
   StyledMessageContentTitle,
-  StyledRadio,
-  StyledRadioGroup,
 } from './styles';
 
 interface ReportProps {
@@ -73,6 +76,8 @@ interface ReportProps {
   show: boolean;
   userId: number;
   userEmail: string;
+  ccEmail: string;
+  bccEmail: string;
   chart?: ChartState;
   chartName?: string;
   dashboardId?: number;
@@ -82,9 +87,9 @@ interface ReportProps {
 }
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
-  'pivot_table_v2',
+  VizType.PivotTable,
   'table',
-  'paired_ttest',
+  VizType.PairedTTest,
 ];
 
 const INITIAL_STATE = {
@@ -109,6 +114,8 @@ function ReportModal({
   chart,
   userId,
   userEmail,
+  ccEmail,
+  bccEmail,
   creationMethod,
   dashboardName,
   chartName,
@@ -184,7 +191,11 @@ function ReportModal({
       owners: [userId],
       recipients: [
         {
-          recipient_config_json: { target: userEmail },
+          recipient_config_json: {
+            target: userEmail,
+            ccTarget: ccEmail,
+            bccTarget: bccEmail,
+          },
           type: 'Email',
         },
       ],
@@ -214,7 +225,7 @@ function ReportModal({
 
   const wrappedTitle = (
     <StyledIconWrapper>
-      <Icons.Calendar />
+      <Icons.CalendarOutlined />
       <span className="text">
         {isEditMode ? t('Edit email report') : t('Schedule a new email report')}
       </span>
@@ -244,24 +255,32 @@ function ReportModal({
         <h4>{t('Message content')}</h4>
       </StyledMessageContentTitle>
       <div className="inline-container">
-        <StyledRadioGroup
+        <Radio.GroupWrapper
+          spaceConfig={{
+            direction: 'vertical',
+            size: 'middle',
+            align: 'start',
+            wrap: false,
+          }}
           onChange={(event: RadioChangeEvent) => {
             setCurrentReport({ report_format: event.target.value });
           }}
           value={currentReport.report_format || defaultNotificationFormat}
-        >
-          {isTextBasedChart && (
-            <StyledRadio value={NotificationFormats.Text}>
-              {t('Text embedded in email')}
-            </StyledRadio>
-          )}
-          <StyledRadio value={NotificationFormats.PNG}>
-            {t('Image (PNG) embedded in email')}
-          </StyledRadio>
-          <StyledRadio value={NotificationFormats.CSV}>
-            {t('Formatted CSV attached in email')}
-          </StyledRadio>
-        </StyledRadioGroup>
+          options={[
+            {
+              label: t('Text embedded in email'),
+              value: NotificationFormats.Text,
+            },
+            {
+              label: t('Image (PNG) embedded in email'),
+              value: NotificationFormats.PNG,
+            },
+            {
+              label: t('Formatted CSV attached in email'),
+              value: NotificationFormats.CSV,
+            },
+          ]}
+        />
       </div>
     </>
   );

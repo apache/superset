@@ -19,9 +19,10 @@ from functools import partial
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset import db
 from superset.commands.dashboard.permalink.base import BaseDashboardPermalinkCommand
-from superset.commands.key_value.upsert import UpsertKeyValueCommand
 from superset.daos.dashboard import DashboardDAO
+from superset.daos.key_value import KeyValueDAO
 from superset.dashboards.permalink.exceptions import DashboardPermalinkCreateFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.key_value.exceptions import (
@@ -70,14 +71,15 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
             "state": self.state,
         }
         user_id = get_user_id()
-        key = UpsertKeyValueCommand(
+        entry = KeyValueDAO.upsert_entry(
             resource=self.resource,
             key=get_deterministic_uuid(self.salt, (user_id, value)),
             value=value,
             codec=self.codec,
-        ).run()
-        assert key.id  # for type checks
-        return encode_permalink_key(key=key.id, salt=self.salt)
+        )
+        db.session.flush()
+        assert entry.id  # for type checks
+        return encode_permalink_key(key=entry.id, salt=self.salt)
 
     def validate(self) -> None:
         pass

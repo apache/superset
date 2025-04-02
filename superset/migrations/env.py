@@ -14,9 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 import logging
-import urllib.parse
+import time
 from logging.config import fileConfig
 
 from alembic import context
@@ -43,8 +42,9 @@ if "sqlite" in DATABASE_URI:
         "SQLite Database support for metadata databases will \
         be removed in a future version of Superset."
     )
-decoded_uri = urllib.parse.unquote(DATABASE_URI)
-config.set_main_option("sqlalchemy.url", decoded_uri)
+# Escape % chars in the database URI to avoid interpolation errors in ConfigParser
+escaped_uri = DATABASE_URI.replace("%", "%%")
+config.set_main_option("sqlalchemy.url", escaped_uri)
 target_metadata = Base.metadata  # pylint: disable=no-member
 
 
@@ -52,6 +52,13 @@ target_metadata = Base.metadata  # pylint: disable=no-member
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+
+def print_duration(start_time: float) -> None:
+    logger.info(
+        "Migration scripts completed. Duration: %s",
+        time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time)),
+    )
 
 
 def run_migrations_offline() -> None:
@@ -66,11 +73,15 @@ def run_migrations_offline() -> None:
     script output.
 
     """
+    start_time = time.time()
+    logger.info("Starting the migration scripts.")
+
     url = config.get_main_option("sqlalchemy.url")
     context.configure(url=url)
 
     with context.begin_transaction():
         context.run_migrations()
+    print_duration(start_time)
 
 
 def run_migrations_online() -> None:
@@ -80,6 +91,9 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+
+    start_time = time.time()
+    logger.info("Starting the migration scripts.")
 
     # this callback is used to prevent an auto-migration from being generated
     # when there are no changes to the schema
@@ -117,6 +131,7 @@ def run_migrations_online() -> None:
     try:
         with context.begin_transaction():
             context.run_migrations()
+        print_duration(start_time)
     finally:
         connection.close()
 

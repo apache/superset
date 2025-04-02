@@ -39,6 +39,7 @@ import {
   SORT_SERIES_CHOICES,
 } from '../constants';
 import { checkColumnType } from '../utils/checkColumnType';
+import { isSortable } from '../utils/isSortable';
 
 export const contributionModeControl = {
   name: 'contributionMode',
@@ -55,31 +56,36 @@ export const contributionModeControl = {
   },
 };
 
-function isForcedCategorical(controls: ControlStateMapping): boolean {
-  return (
-    checkColumnType(
-      getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
-      controls?.datasource?.datasource,
-      [GenericDataType.Numeric],
-    ) && !!controls?.xAxisForceCategorical?.value
-  );
-}
-
-function isSortable(controls: ControlStateMapping): boolean {
-  return (
-    isForcedCategorical(controls) ||
-    checkColumnType(
-      getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
-      controls?.datasource?.datasource,
-      [GenericDataType.String, GenericDataType.Boolean],
-    )
-  );
-}
-
 const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
   isSortable(controls) &&
   ensureIsArray(controls?.groupby?.value).length === 0 &&
   ensureIsArray(controls?.metrics?.value).length === 1;
+
+// TODO: Expand this aggregation options list to include all backend-supported aggregations.
+// TODO:  Migrate existing chart types (Pivot Table, etc.) to use this shared control.
+export const aggregationControl = {
+  name: 'aggregation',
+  config: {
+    type: 'SelectControl',
+    label: t('Aggregation Method'),
+    default: 'LAST_VALUE',
+    clearable: false,
+    renderTrigger: false,
+    choices: [
+      ['LAST_VALUE', t('Last Value')],
+      ['sum', t('Total (Sum)')],
+      ['mean', t('Average (Mean)')],
+      ['min', t('Minimum')],
+      ['max', t('Maximum')],
+      ['median', t('Median')],
+    ],
+    description: t('Select an aggregation method to apply to the metric.'),
+    provideFormDataToProps: true,
+    mapStateToProps: ({ form_data }: ControlPanelState) => ({
+      value: form_data.aggregation || 'LAST_VALUE',
+    }),
+  },
+};
 
 const xAxisMultiSortVisibility = ({
   controls,

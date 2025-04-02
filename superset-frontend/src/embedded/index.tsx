@@ -80,7 +80,9 @@ function showFailureMessage(message: string) {
 
 if (!window.parent || window.parent === window) {
   showFailureMessage(
-    'This page is intended to be embedded in an iframe, but it looks like that is not the case.',
+    t(
+      'This page is intended to be embedded in an iframe, but it looks like that is not the case.',
+    ),
   );
 }
 
@@ -141,7 +143,9 @@ function start() {
       // something is most likely wrong with the guest token
       logging.error(err);
       showFailureMessage(
-        'Something went wrong with embedded authentication. Check the dev console for details.',
+        t(
+          'Something went wrong with embedded authentication. Check the dev console for details.',
+        ),
       );
     },
   );

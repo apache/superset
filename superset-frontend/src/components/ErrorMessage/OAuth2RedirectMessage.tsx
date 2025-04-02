@@ -162,17 +162,16 @@ function OAuth2RedirectMessage({
       >
         provide authorization
       </a>{' '}
-      in order to run this query.
+      in order to run this operation.
     </>
   );
 
   return (
     <ErrorAlert
-      title={t('Authorization needed')}
-      subtitle={subtitle}
-      level={level}
-      source={source}
-      body={body}
+      errorType={t('Authorization needed')}
+      message={subtitle}
+      type={level}
+      description={body}
     />
   );
 }

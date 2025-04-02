@@ -21,22 +21,39 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen, cleanup } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { VizType, isFeatureEnabled } from '@superset-ui/core';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { QueryParamProvider } from 'use-query-params';
-import { act } from 'react-dom/test-utils';
 
 import ChartList from 'src/pages/ChartList';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import ListView from 'src/components/ListView';
-import PropertiesModal from 'src/explore/components/PropertiesModal';
-import ListViewCard from 'src/components/ListViewCard';
-import FaveStar from 'src/components/FaveStar';
-import TableCollection from 'src/components/TableCollection';
-import CardCollection from 'src/components/ListView/CardCollection';
+
+// Increase default timeout for all tests
+jest.setTimeout(30000);
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockCharts = [...new Array(3)].map((_, i) => ({
+  changed_on: new Date().toISOString(),
+  creator: 'super user',
+  id: i,
+  slice_name: `cool chart ${i}`,
+  url: 'url',
+  viz_type: VizType.Bar,
+  datasource_name: `ds${i}`,
+  thumbnail_url: '/thumbnail',
+}));
+
+const mockUser = {
+  userId: 1,
+};
 
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
 const chartsOwnersEndpoint = 'glob:*/api/v1/chart/related/owners*';
@@ -47,25 +64,9 @@ const chartsDatasourcesEndpoint = 'glob:*/api/v1/chart/datasources';
 const chartFavoriteStatusEndpoint = 'glob:*/api/v1/chart/favorite_status*';
 const datasetEndpoint = 'glob:*/api/v1/dataset/*';
 
-const mockCharts = [...new Array(3)].map((_, i) => ({
-  changed_on: new Date().toISOString(),
-  creator: 'super user',
-  id: i,
-  slice_name: `cool chart ${i}`,
-  url: 'url',
-  viz_type: 'bar',
-  datasource_name: `ds${i}`,
-  thumbnail_url: '/thumbnail',
-}));
-
-const mockUser = {
-  userId: 1,
-};
-
 fetchMock.get(chartsInfoEndpoint, {
   permissions: ['can_read', 'can_write'],
 });
-
 fetchMock.get(chartsOwnersEndpoint, {
   result: [],
 });
@@ -73,23 +74,20 @@ fetchMock.get(chartsCreatedByEndpoint, {
   result: [],
 });
 fetchMock.get(chartFavoriteStatusEndpoint, {
-  result: [],
+  result: mockCharts.map(chart => ({ id: chart.id, value: true })),
 });
 fetchMock.get(chartsEndpoint, {
   result: mockCharts,
   chart_count: 3,
 });
-
 fetchMock.get(chartsVizTypesEndpoint, {
   result: [],
   count: 0,
 });
-
 fetchMock.get(chartsDatasourcesEndpoint, {
   result: [],
   count: 0,
 });
-
 fetchMock.get(datasetEndpoint, {});
 
 global.URL.createObjectURL = jest.fn();
@@ -113,172 +111,233 @@ const user = {
   username: 'admin',
 };
 
-// store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
 const store = mockStore({ user });
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 
+const renderChartList = (props = {}) =>
+  render(
+    <MemoryRouter>
+      <QueryParamProvider>
+        <ChartList {...props} user={mockUser} />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    {
+      useRedux: true,
+      store,
+    },
+  );
+
 describe('ChartList', () => {
-  const isFeatureEnabledMock = jest
-    .spyOn(uiCore, 'isFeatureEnabled')
-    .mockImplementation(feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW');
-
-  afterAll(() => {
-    isFeatureEnabledMock.mockRestore();
-  });
-
   beforeEach(() => {
-    // setup a DOM element as a render target
+    isFeatureEnabled.mockImplementation(
+      feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW',
+    );
+    fetchMock.resetHistory();
     useSelectorMock.mockClear();
   });
 
-  const mockedProps = {};
-
-  let wrapper;
-
-  beforeAll(async () => {
-    wrapper = mount(
-      <MemoryRouter>
-        <reactRedux.Provider store={store}>
-          <ChartList {...mockedProps} user={mockUser} />
-        </reactRedux.Provider>
-      </MemoryRouter>,
-    );
-
-    await waitForComponentToPaint(wrapper);
+  afterAll(() => {
+    isFeatureEnabled.mockRestore();
   });
 
-  it('renders', () => {
-    expect(wrapper.find(ChartList)).toExist();
+  it('renders', async () => {
+    renderChartList();
+    expect(await screen.findByText('Charts')).toBeInTheDocument();
   });
 
-  it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+  it('renders a ListView', async () => {
+    renderChartList();
+    expect(await screen.findByTestId('chart-list-view')).toBeInTheDocument();
   });
 
-  it('fetches info', () => {
-    const callsI = fetchMock.calls(/chart\/_info/);
-    expect(callsI).toHaveLength(1);
+  it('fetches info', async () => {
+    renderChartList();
+    await waitFor(() => {
+      const calls = fetchMock.calls(/chart\/_info/);
+      expect(calls).toHaveLength(1);
+    });
   });
 
-  it('fetches data', () => {
-    wrapper.update();
-    const callsD = fetchMock.calls(/chart\/\?q/);
-    expect(callsD).toHaveLength(1);
-    expect(callsD[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/chart/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
-    );
-  });
-
-  it('renders a card view', () => {
-    expect(wrapper.find(ListViewCard)).toExist();
-  });
-
-  it('renders a table view', async () => {
-    wrapper.find('[aria-label="list-view"]').first().simulate('click');
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find('table')).toExist();
-  });
-
-  it('edits', async () => {
-    expect(wrapper.find(PropertiesModal)).not.toExist();
-    wrapper.find('[data-test="edit-alt"]').first().simulate('click');
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(PropertiesModal)).toExist();
-  });
-
-  it('delete', async () => {
-    wrapper.find('[data-test="trash"]').first().simulate('click');
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(ConfirmStatusChange)).toExist();
-  });
-
-  it('renders the Favorite Star column in list view for logged in user', async () => {
-    wrapper.find('[aria-label="list-view"]').first().simulate('click');
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(TableCollection).find(FaveStar)).toExist();
-  });
-
-  it('renders the Favorite Star in card view for logged in user', async () => {
-    wrapper.find('[aria-label="card-view"]').first().simulate('click');
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(CardCollection).find(FaveStar)).toExist();
-  });
-});
-
-describe('RTL', () => {
-  async function renderAndWait() {
-    const mounted = act(async () => {
-      const mockedProps = {};
-      render(
-        <QueryParamProvider>
-          <ChartList {...mockedProps} user={mockUser} />
-        </QueryParamProvider>,
-        { useRedux: true, useRouter: true },
+  it('fetches data', async () => {
+    renderChartList();
+    await waitFor(() => {
+      const calls = fetchMock.calls(/chart\/\?q/);
+      expect(calls).toHaveLength(1);
+      expect(calls[0][0]).toContain(
+        'order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25',
       );
     });
-
-    return mounted;
-  }
-
-  let isFeatureEnabledMock;
-  beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(() => true);
-    await renderAndWait();
   });
 
-  afterEach(() => {
-    cleanup();
-    isFeatureEnabledMock.mockRestore();
+  it('switches between card and table view', async () => {
+    renderChartList();
+
+    // Wait for list to load
+    await screen.findByTestId('chart-list-view');
+
+    // Find and click list view toggle
+    const listViewToggle = await screen.findByRole('img', {
+      name: 'unordered-list',
+    });
+    const listViewButton = listViewToggle.closest('[role="button"]');
+    fireEvent.click(listViewButton);
+
+    // Wait for list view to be active
+    await waitFor(() => {
+      const listViewToggle = screen.getByRole('img', {
+        name: 'unordered-list',
+      });
+      expect(listViewToggle.closest('[role="button"]')).toHaveClass('active');
+    });
+
+    // Find and click card view toggle
+    const cardViewToggle = screen.getByRole('img', {
+      name: 'appstore',
+    });
+    const cardViewButton = cardViewToggle.closest('[role="button"]');
+    fireEvent.click(cardViewButton);
+
+    // Wait for card view to be active
+    await waitFor(() => {
+      const cardViewToggle = screen.getByRole('img', {
+        name: 'appstore',
+      });
+      expect(cardViewToggle.closest('[role="button"]')).toHaveClass('active');
+    });
+  });
+
+  it('shows edit modal', async () => {
+    renderChartList();
+
+    // Wait for list to load
+    await screen.findByTestId('chart-list-view');
+
+    // Switch to list view
+    const listViewToggle = await screen.findByRole('img', {
+      name: 'unordered-list',
+    });
+    const listViewButton = listViewToggle.closest('[role="button"]');
+    fireEvent.click(listViewButton);
+
+    // Wait for list view to be active and data to load
+    await waitFor(() => {
+      expect(screen.getByText('cool chart 0')).toBeInTheDocument();
+    });
+
+    // Click edit button
+    const editButtons = await screen.findAllByTestId('edit-alt');
+    fireEvent.click(editButtons[0]);
+
+    // Verify modal appears
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('shows delete modal', async () => {
+    renderChartList();
+
+    // Wait for list to load
+    await screen.findByTestId('chart-list-view');
+
+    // Switch to list view
+    const listViewToggle = await screen.findByRole('img', {
+      name: 'unordered-list',
+    });
+    const listViewButton = listViewToggle.closest('[role="button"]');
+    fireEvent.click(listViewButton);
+
+    // Wait for list view to be active and data to load
+    await waitFor(() => {
+      expect(screen.getByText('cool chart 0')).toBeInTheDocument();
+    });
+
+    // Click delete button
+    const deleteButtons = await screen.findAllByRole('button', {
+      name: 'delete',
+    });
+    fireEvent.click(deleteButtons[0]);
+
+    // Verify modal appears
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('shows favorite stars for logged in user', async () => {
+    renderChartList();
+
+    // Wait for list to load
+    await screen.findByTestId('chart-list-view');
+
+    // Switch to list view
+    const listViewToggle = await screen.findByRole('img', {
+      name: 'unordered-list',
+    });
+    const listViewButton = listViewToggle.closest('[role="button"]');
+    fireEvent.click(listViewButton);
+
+    // Wait for list view to be active and data to load
+    await waitFor(() => {
+      expect(screen.getByText('cool chart 0')).toBeInTheDocument();
+    });
+
+    // Wait for favorite stars to appear
+    await waitFor(() => {
+      const favoriteStars = screen.getAllByRole('img', {
+        name: 'starred',
+      });
+      expect(favoriteStars.length).toBeGreaterThan(0);
+    });
   });
 
   it('renders an "Import Chart" tooltip under import button', async () => {
-    const importButton = await screen.findByTestId('import-button');
-    userEvent.hover(importButton);
+    renderChartList();
 
-    await screen.findByRole('tooltip');
-    const importTooltip = screen.getByRole('tooltip', {
+    const importButton = await screen.findByTestId('import-button');
+    fireEvent.mouseEnter(importButton);
+
+    const importTooltip = await screen.findByRole('tooltip', {
       name: 'Import charts',
     });
-
     expect(importTooltip).toBeInTheDocument();
   });
 });
 
 describe('ChartList - anonymous view', () => {
-  const mockedProps = {};
-  const mockUserLoggedOut = {};
-  let wrapper;
-
-  beforeAll(async () => {
+  beforeEach(() => {
     fetchMock.resetHistory();
-    wrapper = mount(
-      <MemoryRouter>
-        <reactRedux.Provider store={store}>
-          <ChartList {...mockedProps} user={mockUserLoggedOut} />
-        </reactRedux.Provider>
-      </MemoryRouter>,
+    // Reset favorite status for anonymous user
+    fetchMock.get(
+      chartFavoriteStatusEndpoint,
+      {
+        result: [],
+      },
+      { overwriteRoutes: true },
     );
-
-    await waitForComponentToPaint(wrapper);
   });
 
-  afterAll(() => {
-    cleanup();
-    fetchMock.reset();
-  });
+  it('does not show favorite stars for anonymous user', async () => {
+    renderChartList({ user: {} });
 
-  it('does not render the Favorite Star column in list view for anonymous user', async () => {
-    wrapper.find('[aria-label="list-view"]').first().simulate('click');
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(TableCollection).find(FaveStar)).not.toExist();
-  });
+    // Wait for list to load
+    await screen.findByTestId('chart-list-view');
 
-  it('does not render the Favorite Star in card view for anonymous user', async () => {
-    wrapper.find('[aria-label="card-view"]').first().simulate('click');
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(CardCollection).find(FaveStar)).not.toExist();
+    // Switch to list view
+    const listViewToggle = await screen.findByRole('img', {
+      name: 'unordered-list',
+    });
+    const listViewButton = listViewToggle.closest('[role="button"]');
+    fireEvent.click(listViewButton);
+
+    // Wait for list view to be active and data to load
+    await waitFor(() => {
+      expect(screen.getByText('cool chart 0')).toBeInTheDocument();
+    });
+
+    // Verify no selected favorite stars are present
+    await waitFor(() => {
+      const favoriteStars = screen.queryAllByRole('img', {
+        name: 'favorite-selected',
+      });
+      expect(favoriteStars).toHaveLength(0);
+    });
   });
 });
