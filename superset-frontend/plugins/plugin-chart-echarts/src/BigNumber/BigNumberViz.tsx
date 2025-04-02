@@ -129,6 +129,16 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     );
   }
 
+  renderTrendText() {
+    const { trendText, className } = this.props;
+
+    if (!trendText) {
+      return null;
+    }
+
+    return <div className={`trend-text ${className || ''}`}>{trendText}</div>;
+  }
+
   renderHeader(maxHeight: number) {
     const { bigNumber, headerFormatter, width, colorThresholdFormatters } =
       this.props;
@@ -306,6 +316,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
                 subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
               ),
             )}
+            {this.renderTrendText()}
           </div>
           {this.renderTrendline(chartHeight)}
         </div>
@@ -318,6 +329,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         {this.renderKicker((kickerFontSize || 0) * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}
         {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
+        {this.renderTrendText()}
       </div>
     );
   }
@@ -368,8 +380,14 @@ export default styled(BigNumberVis)`
 
     .subheader-line {
       line-height: 1em;
-      padding-bottom: 0;
+      padding-bottom: 0.3em;
     }
+
+
+      .trend-text {
+        font-size: 1.75rem;
+      }
+
 
     &.is-fallback-value {
       .kicker,

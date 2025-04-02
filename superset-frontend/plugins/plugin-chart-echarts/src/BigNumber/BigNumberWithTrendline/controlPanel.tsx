@@ -26,7 +26,11 @@ import {
   getStandardizedControls,
   temporalColumnMixin,
 } from '@superset-ui/chart-controls';
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  displaySettingsSection,
+} from '../sharedControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -41,6 +45,7 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
       ],
     },
+    displaySettingsSection,
     {
       label: t('Options'),
       tabOverride: 'data',

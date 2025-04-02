@@ -23,7 +23,11 @@ import {
   sharedControls,
   sections,
 } from '@superset-ui/chart-controls';
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  displaySettingsSection,
+} from '../sharedControls';
 import { ColorSchemeEnum } from './types';
 
 const config: ControlPanelConfig = {
@@ -42,6 +46,7 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
+    displaySettingsSection,
     {
       label: t('Chart Options'),
       expanded: true,

@@ -61,6 +61,7 @@ export type PopKPIProps = PopKPIStylesProps &
     metricName: string;
     bigNumber: string;
     prevNumber: string;
+    subheader?: string;
     valueDifference: string;
     percentDifferenceFormattedString: string;
     compType: string;

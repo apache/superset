@@ -24,7 +24,11 @@ import {
   Dataset,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  displaySettingsSection,
+} from '../sharedControls';
 
 export default {
   controlPanelSections: [
@@ -33,26 +37,7 @@ export default {
       expanded: true,
       controlSetRows: [['metric'], ['adhoc_filters']],
     },
-    {
-      label: t('Display settings'),
-      expanded: true,
-      tabOverride: 'data',
-      controlSetRows: [
-        [
-          {
-            name: 'subheader',
-            config: {
-              type: 'TextControl',
-              label: t('Subheader'),
-              renderTrigger: true,
-              description: t(
-                'Description text that shows up below your Big Number',
-              ),
-            },
-          },
-        ],
-      ],
-    },
+    displaySettingsSection,
     {
       label: t('Chart Options'),
       expanded: true,

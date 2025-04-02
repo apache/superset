@@ -19,7 +19,7 @@
 
 // These are control configurations that are shared ONLY within the BigNumberWithTrendline viz plugin repo.
 import { t } from '@superset-ui/core';
-import { CustomControlItem } from '@superset-ui/chart-controls';
+import { CustomControlItem, TabOverride } from '@superset-ui/chart-controls';
 
 export const headerFontSize: CustomControlItem = {
   name: 'header_font_size',
@@ -87,4 +87,25 @@ export const subheaderFontSize: CustomControlItem = {
       },
     ],
   },
+};
+
+export const displaySettingsSection = {
+  label: t('Display settings'),
+  expanded: true,
+  tabOverride: 'data' as TabOverride,
+  controlSetRows: [
+    [
+      {
+        name: 'subheader',
+        config: {
+          type: 'TextControl',
+          label: t('Subheader'),
+          renderTrigger: true,
+          description: t(
+            'Description text that shows up below your Big Number',
+          ),
+        },
+      },
+    ],
+  ],
 };

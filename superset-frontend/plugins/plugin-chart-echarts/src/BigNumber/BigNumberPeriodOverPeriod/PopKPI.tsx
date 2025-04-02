@@ -82,6 +82,7 @@ export default function PopKPI(props: PopKPIProps) {
     startDateOffset,
     shift,
     dashboardTimeRange,
+    subheader,
   } = props;
 
   const [comparisonRange, setComparisonRange] = useState<string>('');
@@ -140,6 +141,15 @@ export default function PopKPI(props: PopKPIProps) {
     margin-bottom: ${theme.gridUnit * 4}px;
   `;
 
+  const SubheaderText = styled.div`
+    ${({ theme }) => `
+    font-family: ${theme.typography.families.sansSerif};
+    font-weight: ${theme.typography.weights.medium};
+    text-align: center;
+    margin-top: -10px;
+    margin-bottom: ${theme.gridUnit * 4}px;
+  `}
+  `;
   const getArrowIndicatorColor = () => {
     if (!comparisonColorEnabled || percentDifferenceNumber === 0) {
       return theme.colors.grayscale.base;
@@ -251,53 +261,57 @@ export default function PopKPI(props: PopKPIProps) {
           )}
         </div>
 
-        {visibleSymbols.length > 0 && (
-          <div
-            css={[
-              css`
-                display: flex;
-                justify-content: space-around;
-                gap: ${flexGap}px;
-                min-width: 0;
-                flex-shrink: 1;
-              `,
-              isOverflowing
-                ? css`
-                    flex-direction: column;
-                    align-items: flex-start;
-                    width: fit-content;
-                  `
-                : css`
-                    align-items: center;
-                    width: 100%;
-                  `,
-            ]}
-            ref={symbolContainerRef}
-          >
-            {visibleSymbols.map((symbol_with_value, index) => (
-              <ComparisonValue
-                key={`comparison-symbol-${symbol_with_value.symbol}`}
-                subheaderFontSize={subheaderFontSize}
-              >
-                <Tooltip
-                  id="tooltip"
-                  placement="top"
-                  title={symbol_with_value.tooltipText}
-                >
-                  <SymbolWrapper
-                    backgroundColor={
-                      index > 0 ? backgroundColor : defaultBackgroundColor
-                    }
-                    textColor={index > 0 ? textColor : defaultTextColor}
-                  >
-                    {symbol_with_value.symbol}
-                  </SymbolWrapper>
-                  {symbol_with_value.value}
-                </Tooltip>
-              </ComparisonValue>
-            ))}
-          </div>
+        {subheader && (
+          <SubheaderText style={{ fontSize: `${subheaderFontSize}px` }}>
+            {subheader}
+          </SubheaderText>
         )}
+
+        <div
+          css={[
+            css`
+              display: flex;
+              justify-content: space-around;
+              gap: ${flexGap}px;
+              min-width: 0;
+              flex-shrink: 1;
+            `,
+            isOverflowing
+              ? css`
+                  flex-direction: column;
+                  align-items: flex-start;
+                  width: fit-content;
+                `
+              : css`
+                  align-items: center;
+                  width: 100%;
+                `,
+          ]}
+          ref={symbolContainerRef}
+        >
+          {SYMBOLS_WITH_VALUES.map((symbol_with_value, index) => (
+            <ComparisonValue
+              key={`comparison-symbol-${symbol_with_value.symbol}`}
+              subheaderFontSize={subheaderFontSize}
+            >
+              <Tooltip
+                id="tooltip"
+                placement="top"
+                title={symbol_with_value.tooltipText}
+              >
+                <SymbolWrapper
+                  backgroundColor={
+                    index > 0 ? backgroundColor : defaultBackgroundColor
+                  }
+                  textColor={index > 0 ? textColor : defaultTextColor}
+                >
+                  {symbol_with_value.symbol}
+                </SymbolWrapper>
+                {symbol_with_value.value}
+              </Tooltip>
+            </ComparisonValue>
+          ))}
+        </div>
       </NumbersContainer>
     </div>
   );

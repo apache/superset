@@ -95,7 +95,8 @@ export default function transformProps(
   const refs: Refs = {};
   const metricName = getMetricLabel(metric);
   const compareLag = Number(compareLag_) || 0;
-  let formattedSubheader = subheader;
+
+  let trendText = '';
 
   const { r, g, b } = colorPicker;
   const mainColor = `rgb(${r}, ${g}, ${b})`;
@@ -148,24 +149,20 @@ export default function transformProps(
     }
   }
 
-  if (compareLag > 0 && sortedData.length > 0) {
-    const compareIndex = compareLag;
-    if (compareIndex < sortedData.length) {
-      const compareValue = sortedData[compareIndex][1];
-      // compare values must both be non-nulls
-      if (bigNumber !== null && compareValue !== null) {
-        percentChange = compareValue
-          ? (Number(bigNumber) - compareValue) / Math.abs(compareValue)
-          : 0;
-        formattedSubheader = `${formatPercentChange(
-          percentChange,
-        )} ${compareSuffix}`;
+    if (compareLag > 0) {
+      const compareIndex = compareLag;
+      if (compareIndex < sortedData.length) {
+        const compareValue = sortedData[compareIndex][1];
+        // compare values must both be non-nulls
+        if (bigNumber !== null && compareValue !== null) {
+          percentChange = compareValue
+            ? (bigNumber - compareValue) / Math.abs(compareValue)
+            : 0;
+          trendText = `${formatPercentChange(percentChange)} ${compareSuffix}`;
+        }
       }
     }
-  }
-
-  if (data.length > 0) {
-    const reversedData = [...sortedData].reverse();
+    sortedData.reverse();
     // @ts-ignore
     trendLineData = showTrendLine ? reversedData : undefined;
   }
@@ -307,7 +304,8 @@ export default function transformProps(
     showTimestamp,
     showTrendLine,
     startYAxisAtZero,
-    subheader: formattedSubheader,
+    subheader,
+    trendText,
     timestamp,
     trendLineData,
     echartOptions,
