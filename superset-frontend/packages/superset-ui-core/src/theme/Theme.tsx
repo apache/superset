@@ -27,6 +27,7 @@ import {
   CacheProvider as EmotionCacheProvider,
 } from '@emotion/react';
 import createCache from '@emotion/cache';
+import { GlobalStyles } from './GlobalStyles';
 
 import {
   AntdThemeConfig,
@@ -290,6 +291,7 @@ export class Theme {
     return (
       <EmotionCacheProvider value={themeState.emotionCache}>
         <EmotionThemeProvider theme={themeState.theme}>
+          <GlobalStyles />
           <ConfigProvider theme={themeState.antdConfig} prefixCls="antd5">
             {children}
           </ConfigProvider>
