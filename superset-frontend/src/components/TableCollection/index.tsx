@@ -35,8 +35,14 @@ interface TableCollectionProps {
 }
 
 export default memo(
-  ({ columns, rows, loading, setSortBy }: TableCollectionProps) => {
-    const mappedColumns = mapColumns(columns);
+  ({
+    columns,
+    rows,
+    loading,
+    setSortBy,
+    headerGroups,
+  }: TableCollectionProps) => {
+    const mappedColumns = mapColumns(columns, headerGroups);
     const mappedRows = mapRows(rows);
     return (
       <Table
