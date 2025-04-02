@@ -249,6 +249,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "List Roles",
         "List Groups",
         "ResetPasswordView",
+        "RoleModelView",
         "UserGroupModelView",
         "Row Level Security",
         "Row Level Security Filters",
@@ -258,8 +259,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "User Registrations",
         "User's Statistics",
         # Guarding all AB_ADD_SECURITY_API = True REST APIs
-        "Role",
         "RoleRestAPI",
+        "Role",
         "Permission",
         "PermissionViewMenu",
         "ViewMenu",
@@ -1136,7 +1137,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
-        query = self.get_session.query(Role).filter(Role.id.in_(role_ids))
+        query = self.get_session.query(self.role_model).filter(
+            self.role_model.id.in_(role_ids)
+        )
         return query.all()
 
     def copy_role(

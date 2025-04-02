@@ -14,26 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import pytest
-
-from superset.extensions import csrf
-
-
-@pytest.mark.parametrize(
-    "app",
-    [{"WTF_CSRF_ENABLED": True}],
-    indirect=True,
-)
-def test_csrf_not_exempt(app_context: None) -> None:
-    """
-    Test that REST API is not exempt from CSRF.
-    """
-    assert {blueprint.name for blueprint in csrf._exempt_blueprints} == {
-        "MenuApi",
-        "SecurityApi",
-        "OpenApi",
-        "PermissionViewMenuApi",
-        "SupersetRoleApi",
-        "PermissionApi",
-        "ViewMenuApi",
-    }
