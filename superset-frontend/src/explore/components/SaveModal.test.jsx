@@ -27,6 +27,7 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import { Input } from 'src/components/Input';
 
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import SaveModal, { PureSaveModal } from 'src/explore/components/SaveModal';
@@ -34,7 +35,7 @@ import SaveModal, { PureSaveModal } from 'src/explore/components/SaveModal';
 jest.mock('src/components', () => ({
   ...jest.requireActual('src/components'),
   AsyncSelect: ({ onChange }) => (
-    <input
+    <Input
       data-test="mock-async-select"
       onChange={({ target: { value } }) => onChange({ label: value, value })}
     />

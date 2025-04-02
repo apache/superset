@@ -39,7 +39,7 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import { InputNumber } from 'src/components/Input';
+import { Input, InputNumber } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import Collapse from 'src/components/Collapse';
@@ -1496,7 +1496,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <span className="required">*</span>
               </div>
               <div className="input-container">
-                <input
+                <Input
                   type="text"
                   name="name"
                   value={currentAlert ? currentAlert.name : ''}
@@ -1533,7 +1533,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <StyledInputContainer>
               <div className="control-label">{t('Description')}</div>
               <div className="input-container">
-                <input
+                <Input
                   type="text"
                   name="description"
                   value={currentAlert ? currentAlert.description || '' : ''}
@@ -1641,7 +1641,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   {!conditionNotNull && <span className="required">*</span>}
                 </div>
                 <div className="input-container">
-                  <input
+                  <Input
                     type="number"
                     name="threshold"
                     disabled={conditionNotNull}

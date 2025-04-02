@@ -20,6 +20,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import cx from 'classnames';
 import { css, styled, SupersetTheme, t } from '@superset-ui/core';
+import { Input, TextArea } from 'src/components/Input';
 import { Tooltip } from 'src/components/Tooltip';
 import CertifiedBadge from '../CertifiedBadge';
 
@@ -174,7 +175,7 @@ export default function EditableTitle({
   // be text or a button).
   let titleComponent =
     multiLine && isEditing ? (
-      <textarea
+      <TextArea
         data-test="editable-title-input"
         ref={contentRef}
         value={value}
@@ -188,7 +189,7 @@ export default function EditableTitle({
         style={editStyle}
       />
     ) : (
-      <input
+      <Input
         data-test="editable-title-input"
         ref={contentRef}
         type={isEditing ? 'text' : 'button'}

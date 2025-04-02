@@ -20,6 +20,7 @@ import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
 
 // eslint-disable-next-line no-restricted-imports
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
+import { Input, TextArea } from 'src/components/Input';
 import { styled, t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
@@ -65,8 +66,8 @@ const StyledInputContainer = styled.div`
     }
   }
 
-  input,
-  textarea {
+  Input,
+  TextArea {
     flex: 1 1 auto;
   }
 
@@ -75,14 +76,13 @@ const StyledInputContainer = styled.div`
     resize: none;
   }
 
-  input::placeholder,
-  textarea::placeholder {
+  Input::placeholder,
+  TextArea::placeholder {
     color: ${({ theme }) => theme.colorTextPlaceholder};
   }
 
-  textarea,
-  input[type='text'],
-  input[type='number'] {
+  TextArea,
+  Input {
     padding: ${({ theme }) => theme.sizeUnit * 1.5}px
       ${({ theme }) => theme.sizeUnit * 2}px;
     border-style: none;
@@ -300,7 +300,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s PASSWORD', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <input
+                <Input
                   name={`password-${fileName}`}
                   autoComplete={`password-${fileName}`}
                   type="password"
@@ -320,7 +320,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s SSH TUNNEL PASSWORD', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <input
+                <Input
                   name={`ssh_tunnel_password-${fileName}`}
                   autoComplete={`ssh_tunnel_password-${fileName}`}
                   type="password"
@@ -343,7 +343,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s SSH TUNNEL PRIVATE KEY', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <textarea
+                <TextArea
                   name={`ssh_tunnel_private_key-${fileName}`}
                   autoComplete={`ssh_tunnel_private_key-${fileName}`}
                   value={sshTunnelPrivateKeys[fileName]}
@@ -365,7 +365,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s SSH TUNNEL PRIVATE KEY PASSWORD', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <input
+                <Input
                   name={`ssh_tunnel_private_key_password-${fileName}`}
                   autoComplete={`ssh_tunnel_private_key_password-${fileName}`}
                   type="password"
@@ -398,7 +398,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
           <div className="control-label">
             {t('Type "%s" to confirm', t('OVERWRITE'))}
           </div>
-          <input
+          <Input
             data-test="overwrite-modal-input"
             id="overwrite"
             type="text"

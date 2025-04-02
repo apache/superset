@@ -26,6 +26,7 @@ export const GlobalStyles = () => {
       styles={css`
         body {
           background-color: ${theme.colorBgBase};
+          color: ${theme.colorText};
         }
 
         a {

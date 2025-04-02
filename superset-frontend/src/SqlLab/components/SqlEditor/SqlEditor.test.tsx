@@ -43,6 +43,7 @@ import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
 import setupExtensions from 'src/setup/setupExtensions';
 import type { Action, Middleware, Store } from 'redux';
+import { TextArea } from 'src/components/Input';
 import SqlEditor, { Props } from '.';
 
 jest.mock('src/components/AsyncAceEditor', () => ({
@@ -56,7 +57,7 @@ jest.mock('src/components/AsyncAceEditor', () => ({
     onBlur: FocusEventHandler<HTMLTextAreaElement>;
     value: string;
   }) => (
-    <textarea
+    <TextArea
       data-test="react-ace"
       onChange={evt => onChange(evt.target.value)}
       onBlur={onBlur}
