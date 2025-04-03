@@ -521,3 +521,4 @@ class CacheScreenshotSchema(Schema):
     urlParams = fields.List(  # noqa: N815
         fields.List(fields.Str(), validate=lambda x: len(x) == 2), required=False
     )
+    permalinkKey = fields.Str(required=False)  # noqa: N815

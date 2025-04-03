@@ -18,51 +18,62 @@
  */
 
 import { FC } from 'react';
-import { startCase } from 'lodash';
-import AntdEnhancedIcons from './AntdEnhanced';
-import Icon from './Icon';
+import { antdEnhancedIcons } from './AntdEnhanced';
+import AsyncIcon from './AsyncIcon';
 import IconType from './types';
 
-const IconFileNames = [
-  // to keep custom
-  'ballot',
-  'big-number-chart-tile',
-  'binoculars',
-  'category',
-  'certified',
-  'checkbox-half',
-  'checkbox-off',
-  'checkbox-on',
-  'circle_solid',
-  'drag',
-  'error_solid_small_red',
-  'error',
-  'full',
-  'layers',
-  'queued',
-  'redo',
-  'running',
-  'slack',
-  'square',
-  'sort_asc',
-  'sort_desc',
-  'sort',
-  'transparent',
-  'triangle_down',
-  'undo',
-];
+export type { IconType };
+/**
+ * Filename is going to be inferred from the icon name.
+ * i.e. BigNumberChartTile => assets/images/icons/big_number_chart_tile
+ */
+const customIcons = [
+  'Ballot',
+  'BigNumberChartTile',
+  'Binoculars',
+  'Category',
+  'Certified',
+  'CheckboxHalf',
+  'CheckboxOff',
+  'CheckboxOn',
+  'CircleSolid',
+  'Drag',
+  'ErrorSolidSmallRed',
+  'Error',
+  'Full',
+  'Layers',
+  'Queued',
+  'Redo',
+  'Running',
+  'Slack',
+  'Square',
+  'SortAsc',
+  'SortDesc',
+  'Sort',
+  'Transparent',
+  'TriangleDown',
+  'Undo',
+] as const;
 
-const iconOverrides: Record<string, FC<IconType>> = {};
-IconFileNames.forEach(fileName => {
-  const keyName = startCase(fileName).replace(/ /g, '');
-  iconOverrides[keyName] = (props: IconType) => (
-    <Icon customIcons fileName={fileName} {...props} />
+type CustomIconType = Record<(typeof customIcons)[number], FC<IconType>>;
+
+const iconOverrides: CustomIconType = {} as CustomIconType;
+customIcons.forEach(customIcon => {
+  const fileName = customIcon
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toLowerCase();
+  iconOverrides[customIcon] = (props: IconType) => (
+    <AsyncIcon customIcons fileName={fileName} {...props} />
   );
 });
 
-export type { IconType };
+export type IconNameType =
+  | keyof typeof antdEnhancedIcons
+  | keyof typeof iconOverrides;
 
-export default {
-  ...AntdEnhancedIcons,
+type IconComponentType = Record<IconNameType, FC<IconType>>;
+
+export const Icons: IconComponentType = {
+  ...antdEnhancedIcons,
   ...iconOverrides,
 };

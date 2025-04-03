@@ -18,7 +18,7 @@
  */
 import { MouseEventHandler, FC } from 'react';
 
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import IconButton from './IconButton';
 
 type DeleteComponentButtonProps = {

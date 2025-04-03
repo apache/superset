@@ -26,7 +26,6 @@ from typing import cast, TYPE_CHECKING, TypedDict
 from flask import current_app
 
 from superset import app, feature_flag_manager, thumbnail_cache
-from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.extensions import event_logger
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
@@ -349,7 +348,7 @@ class DashboardScreenshot(BaseScreenshot):
         self,
         window_size: bool | WindowSize | None = None,
         thumb_size: bool | WindowSize | None = None,
-        dashboard_state: DashboardPermalinkState | None = None,
+        permalink_key: str | None = None,
     ) -> str:
         window_size = window_size or self.window_size
         thumb_size = thumb_size or self.thumb_size
@@ -359,6 +358,6 @@ class DashboardScreenshot(BaseScreenshot):
             "type": "thumb",
             "window_size": window_size,
             "thumb_size": thumb_size,
-            "dashboard_state": dashboard_state,
+            "permalink_key": permalink_key,
         }
         return md5_sha_from_dict(args)

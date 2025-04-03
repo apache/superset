@@ -66,7 +66,7 @@ import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';

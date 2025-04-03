@@ -27,7 +27,7 @@ import {
   useTheme,
   VizType,
 } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Button from 'src/components/Button';

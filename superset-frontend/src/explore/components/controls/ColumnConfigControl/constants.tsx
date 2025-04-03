@@ -24,7 +24,7 @@ import {
   D3_TIME_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
 } from '@superset-ui/chart-controls';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { ColumnConfigFormLayout } from './types';
 
 export type SharedColumnConfigProp =
@@ -38,7 +38,8 @@ export type SharedColumnConfigProp =
   | 'horizontalAlign'
   | 'truncateLongCells'
   | 'showCellBars'
-  | 'currencyFormat';
+  | 'currencyFormat'
+  | 'visible';
 
 const d3NumberFormat: ControlFormItemSpec<'Select'> = {
   allowNewOptions: true,
@@ -152,6 +153,14 @@ const currencyFormat: ControlFormItemSpec<'CurrencyControl'> = {
   ),
   debounceDelay: 200,
 };
+
+const visible: ControlFormItemSpec<'Checkbox'> = {
+  controlType: 'Checkbox',
+  label: t('Display in chart'),
+  description: t('Whether to display in the chart'),
+  defaultValue: true,
+  debounceDelay: 200,
+};
 /**
  * All configurable column formatting properties.
  */
@@ -174,6 +183,7 @@ export const SHARED_COLUMN_CONFIG_PROPS = {
   alignPositiveNegative,
   colorPositiveNegative,
   currencyFormat,
+  visible,
 };
 
 export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {

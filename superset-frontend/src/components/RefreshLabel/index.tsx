@@ -19,7 +19,7 @@
 import { MouseEventHandler, forwardRef } from 'react';
 import { SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons, { IconType } from 'src/components/Icons';
+import { Icons, IconType } from 'src/components/Icons';
 
 export interface RefreshLabelProps {
   onClick: MouseEventHandler<HTMLSpanElement>;

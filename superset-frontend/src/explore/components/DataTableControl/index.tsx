@@ -37,7 +37,7 @@ import {
   SLOW_DEBOUNCE,
 } from 'src/constants';
 import { Radio } from 'src/components/Radio';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Button from 'src/components/Button';
 import Popover from 'src/components/Popover';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';

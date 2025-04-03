@@ -37,7 +37,7 @@ import {
 } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Label from 'src/components/Label';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';

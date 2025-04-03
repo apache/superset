@@ -19,7 +19,7 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { supersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Tooltip } from '.';
 
 test('starts hidden with default props', () => {

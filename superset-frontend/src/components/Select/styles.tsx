@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 // eslint-disable-next-line no-restricted-imports
 import { Spin, Tag } from 'antd'; // TODO: Remove antd
 // eslint-disable-next-line no-restricted-imports

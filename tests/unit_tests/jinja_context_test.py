@@ -364,13 +364,14 @@ def test_user_macros(mocker: MockerFixture):
         - ``current_user_roles``
     """
     mock_g = mocker.patch("superset.utils.core.g")
+    mock_get_user_roles = mocker.patch("superset.security_manager.get_user_roles")
     mock_cache_key_wrapper = mocker.patch(
         "superset.jinja_context.ExtraCache.cache_key_wrapper"
     )
     mock_g.user.id = 1
     mock_g.user.username = "my_username"
     mock_g.user.email = "my_email@test.com"
-    mock_g.user.roles = [Role(name="my_role1"), Role(name="my_role2")]
+    mock_get_user_roles.return_value = [Role(name="my_role1"), Role(name="my_role2")]
     cache = ExtraCache()
     assert cache.current_user_id() == 1
     assert cache.current_username() == "my_username"
@@ -378,19 +379,23 @@ def test_user_macros(mocker: MockerFixture):
     assert cache.current_user_roles() == ["my_role1", "my_role2"]
     assert mock_cache_key_wrapper.call_count == 4
 
+    mock_get_user_roles.return_value = []
+    assert cache.current_user_roles() is None
+
 
 def test_user_macros_without_cache_key_inclusion(mocker: MockerFixture):
     """
     Test all user macros with ``add_to_cache_keys`` set to ``False``.
     """
     mock_g = mocker.patch("superset.utils.core.g")
+    mock_get_user_roles = mocker.patch("superset.security_manager.get_user_roles")
     mock_cache_key_wrapper = mocker.patch(
         "superset.jinja_context.ExtraCache.cache_key_wrapper"
     )
     mock_g.user.id = 1
     mock_g.user.username = "my_username"
     mock_g.user.email = "my_email@test.com"
-    mock_g.user.roles = [Role(name="my_role1"), Role(name="my_role2")]
+    mock_get_user_roles.return_value = [Role(name="my_role1"), Role(name="my_role2")]
     cache = ExtraCache()
     assert cache.current_user_id(False) == 1
     assert cache.current_username(False) == "my_username"

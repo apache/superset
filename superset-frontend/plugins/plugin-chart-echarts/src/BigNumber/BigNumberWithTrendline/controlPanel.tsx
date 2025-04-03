@@ -18,6 +18,7 @@
  */
 import { SMART_DATE_ID, t } from '@superset-ui/core';
 import {
+  aggregationControl,
   ControlPanelConfig,
   ControlSubSectionHeader,
   D3_FORMAT_DOCS,
@@ -35,6 +36,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['x_axis'],
         ['time_grain_sqla'],
+        [aggregationControl],
         ['metric'],
         ['adhoc_filters'],
       ],

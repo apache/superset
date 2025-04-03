@@ -23,7 +23,7 @@ import { QueryFormData, t } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import Label from 'src/components/Label';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { safeStringify } from 'src/utils/safeStringify';
 import { Tooltip } from 'src/components/Tooltip';
 import ModalTrigger from '../ModalTrigger';

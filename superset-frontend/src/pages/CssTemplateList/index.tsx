@@ -37,7 +37,7 @@ import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 const PAGE_SIZE = 25;
 

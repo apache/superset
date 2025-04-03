@@ -31,7 +31,7 @@ import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Modal from 'src/components/Modal';
 import { Divider } from 'src/components/Divider';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Select from 'src/components/Select/Select';
 import { Tooltip } from 'src/components/Tooltip';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';

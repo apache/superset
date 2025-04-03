@@ -18,7 +18,7 @@
  */
 import cx from 'classnames';
 import { styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 
 const ChartIcon = styled(Icons.BarChartOutlined)`

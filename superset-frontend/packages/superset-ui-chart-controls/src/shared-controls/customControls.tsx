@@ -61,6 +61,32 @@ const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
   ensureIsArray(controls?.groupby?.value).length === 0 &&
   ensureIsArray(controls?.metrics?.value).length === 1;
 
+// TODO: Expand this aggregation options list to include all backend-supported aggregations.
+// TODO:  Migrate existing chart types (Pivot Table, etc.) to use this shared control.
+export const aggregationControl = {
+  name: 'aggregation',
+  config: {
+    type: 'SelectControl',
+    label: t('Aggregation Method'),
+    default: 'LAST_VALUE',
+    clearable: false,
+    renderTrigger: false,
+    choices: [
+      ['LAST_VALUE', t('Last Value')],
+      ['sum', t('Total (Sum)')],
+      ['mean', t('Average (Mean)')],
+      ['min', t('Minimum')],
+      ['max', t('Maximum')],
+      ['median', t('Median')],
+    ],
+    description: t('Select an aggregation method to apply to the metric.'),
+    provideFormDataToProps: true,
+    mapStateToProps: ({ form_data }: ControlPanelState) => ({
+      value: form_data.aggregation || 'LAST_VALUE',
+    }),
+  },
+};
+
 const xAxisMultiSortVisibility = ({
   controls,
 }: {

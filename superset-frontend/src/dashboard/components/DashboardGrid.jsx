@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { addAlpha, css, styled, t } from '@superset-ui/core';
 import { EmptyState } from 'src/components/EmptyState';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
 import { Droppable } from './dnd/DragDroppable';

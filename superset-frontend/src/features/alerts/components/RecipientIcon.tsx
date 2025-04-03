@@ -19,7 +19,7 @@
 import { SupersetTheme, css } from '@superset-ui/core';
 import { ReactElement } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { NotificationMethodOption } from '../types';
 
 const notificationStyledIcon = (theme: SupersetTheme) => css`

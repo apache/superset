@@ -19,7 +19,7 @@
 import { ReactElement } from 'react';
 import { styled } from '@superset-ui/core';
 import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons, IconNameType } from 'src/components/Icons';
 
 export type ActionProps = {
   label: string;
@@ -56,7 +56,7 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
   return (
     <StyledActions className="actions">
       {actions.map((action, index) => {
-        const ActionIcon = Icons[action.icon];
+        const ActionIcon = Icons[action.icon as IconNameType];
         if (action.tooltip) {
           return (
             <Tooltip

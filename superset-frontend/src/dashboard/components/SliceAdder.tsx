@@ -27,7 +27,7 @@ import { Input } from 'src/components/Input';
 import { Select } from 'src/components';
 import Loading from 'src/components/Loading';
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import {
   LocalStorageKeys,
   getItem,

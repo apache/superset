@@ -19,7 +19,7 @@
 import { t, styled, SupersetClient, useTheme, css } from '@superset-ui/core';
 import { useMemo, useState } from 'react';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import ListView, {
   FetchDataConfig,
   FilterOperator,

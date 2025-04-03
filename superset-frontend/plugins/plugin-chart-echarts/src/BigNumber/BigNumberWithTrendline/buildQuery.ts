@@ -24,6 +24,7 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import {
+  aggregationOperator,
   flattenOperator,
   pivotOperator,
   resampleOperator,
@@ -45,6 +46,20 @@ export default function buildQuery(formData: QueryFormData) {
         rollingWindowOperator(formData, baseQueryObject),
         resampleOperator(formData, baseQueryObject),
         flattenOperator(formData, baseQueryObject),
+      ],
+    },
+
+    {
+      ...baseQueryObject,
+      columns: [
+        ...(isXAxisSet(formData)
+          ? ensureIsArray(getXAxisColumn(formData))
+          : []),
+      ],
+      ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
+      post_processing: [
+        pivotOperator(formData, baseQueryObject),
+        aggregationOperator(formData, baseQueryObject),
       ],
     },
   ]);

@@ -486,8 +486,9 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
-                const timeComparisonStatus =
-                  !!explore?.controls?.time_compare?.value;
+                const timeComparisonStatus = !isEmpty(
+                  explore?.controls?.time_compare?.value,
+                );
 
                 const { colnames: _colnames, coltypes: _coltypes } =
                   chart?.queriesResponse?.[0] ?? {};

@@ -49,7 +49,7 @@ import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import FacePile from 'src/components/FacePile';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import InfoTooltip from 'src/components/InfoTooltip';

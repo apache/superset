@@ -50,7 +50,7 @@ import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import DropdownContainer, {
   Ref as DropdownContainerRef,
 } from 'src/components/DropdownContainer';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';

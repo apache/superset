@@ -20,7 +20,7 @@ import { useDispatch } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import Button from 'src/components/Button';

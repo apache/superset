@@ -58,17 +58,6 @@ jest.mock('src/components/Menu', () => {
   return { Menu };
 });
 
-jest.mock('src/components/Icons', () => ({
-  DownloadOutlined: () => <div data-test="mock-DownloadOutlined" />,
-  CopyOutlined: () => <div data-test="mock-CopyOutlined" />,
-  UnlockOutlined: () => <div data-test="mock-UnlockOutlined" />,
-  VerticalRightOutlined: () => <div data-test="mock-VerticalRightOutlined" />,
-  VerticalLeftOutlined: () => <div data-test="mock-VerticalLeftOutlined" />,
-  EyeInvisibleOutlined: () => <div data-test="mock-EyeInvisibleOutlined" />,
-  EyeOutlined: () => <div data-test="mock-EyeOutlined" />,
-  ColumnWidthOutlined: () => <div data-test="mock-column-width" />,
-}));
-
 jest.mock('src/components/Dropdown', () => ({
   MenuDotsDropdown: ({ overlay }: { overlay: React.ReactChild }) => (
     <div data-test="mock-Dropdown">{overlay}</div>

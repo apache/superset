@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { css, useTheme } from '@superset-ui/core';
 import { IconTooltip, Props } from '.';
 

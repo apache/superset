@@ -19,7 +19,7 @@
 import { isFeatureEnabled, FeatureFlag, t, css } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Chart from 'src/types/Chart';
 
 import ListViewCard from 'src/components/ListViewCard';
