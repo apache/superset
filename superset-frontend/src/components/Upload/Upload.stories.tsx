@@ -25,52 +25,90 @@ const meta: Meta<typeof Upload> = {
   title: 'Upload',
   component: Upload,
   argTypes: {
-    accept: { control: 'text', description: 'File types that can be accepted' },
-    action: { control: 'text', description: 'Uploading URL' },
-    data: { control: 'object', description: 'Uploading extra params' },
-    defaultFileList: {
-      control: 'object',
-      description: 'Default list of uploaded files',
+    accept: {
+      control: false,
+      description: 'File types that can be accepted',
+      defaultValue: undefined,
+      type: 'string',
     },
-    directory: {
-      control: 'boolean',
-      description: 'Support whole directory upload',
-    },
-    disabled: { control: 'boolean', description: 'Disable upload button' },
-    fileList: {
-      control: 'object',
-      description: 'List of uploaded files (controlled)',
-    },
-    headers: { control: 'object', description: 'Set request headers' },
-    listType: {
+    action: {
       control: 'text',
-      description: 'Built-in stylesheets (text, picture, etc.)',
+      description: 'Uploading URL',
+      defaultValue: undefined,
+      type: 'string',
     },
-    maxCount: {
-      control: 'number',
-      description: 'Limit number of uploaded files',
-    },
-    method: {
-      control: 'text',
-      description: 'The HTTP method of upload request',
+    name: {
+      control: false,
+      description: 'The name of uploading file',
+      table: {
+        type: { summary: 'string' },
+        defaultValue: { summary: 'file' },
+      },
     },
     multiple: {
       control: 'boolean',
       description: 'Support multiple file selection',
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
     },
-    name: { control: 'text', description: 'The name of uploading file' },
+    disabled: {
+      control: 'boolean',
+      description: 'Disable upload button',
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    listType: {
+      control: 'select',
+      options: ['text', 'picture', 'picture-card', 'picture-circle'],
+      description: 'Built-in stylesheets for file list display',
+      table: {
+        type: { summary: 'string' },
+        defaultValue: { summary: 'text' },
+      },
+    },
+    showUploadList: {
+      control: 'boolean',
+      description:
+        'Whether to show default upload list, could be an object to specify extra, showPreviewIcon, showRemoveIcon, showDownloadIcon, removeIcon and downloadIcon individually upload list display',
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'true' },
+      },
+    },
+    method: {
+      control: false,
+      description: 'The HTTP method of upload request',
+      table: {
+        type: { summary: 'string' },
+        defaultValue: { summary: 'post' },
+      },
+    },
+    withCredentials: {
+      control: false,
+      description: 'Send cookies with ajax upload',
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
     openFileDialogOnClick: {
       control: 'boolean',
       description: 'Click open file dialog',
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'true' },
+      },
     },
-    progress: { control: 'object', description: 'Custom progress bar' },
-    showUploadList: {
-      control: 'boolean',
-      description: 'Customize upload list display',
-    },
-    withCredentials: {
-      control: 'boolean',
-      description: 'Send cookies with ajax upload',
+    progress: {
+      control: false,
+      description: 'Custom progress bar',
+      table: {
+        type: { summary: 'object' },
+      },
     },
   },
 };
@@ -81,21 +119,14 @@ type Story = StoryObj<typeof Upload>;
 export const Default: Story = {
   render: args => (
     <Upload {...args}>
-      <Button icon={<Icons.UploadOutlined iconColor="light" iconSize="l" />}>
-        Click to Upload
-      </Button>
+      {args.listType !== 'picture-card' &&
+      args.listType !== 'picture-circle' ? (
+        <Button icon={<Icons.UploadOutlined iconColor="light" iconSize="l" />}>
+          Click to Upload
+        </Button>
+      ) : (
+        'Click to Upload'
+      )}
     </Upload>
   ),
-  args: {
-    accept: 'image/*,.pdf',
-    name: 'file',
-    multiple: false,
-    action: '',
-    disabled: false,
-    listType: 'text',
-    showUploadList: true,
-    method: 'POST',
-    withCredentials: false,
-    directory: false,
-  },
 };
