@@ -140,10 +140,10 @@ function selectColorScheme(
   color: string,
   target = 'dashboard-edit-properties-form',
 ) {
+  cy.wait(1500);
   cy.get(`[data-test="${target}"] input[aria-label="Select color scheme"]`)
     .should('exist')
     .then($input => {
-      cy.wait(1500);
       cy.wrap($input).type(color.slice(0, 5), { force: true });
       cy.getBySel(color).click({ force: true });
     });
