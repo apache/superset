@@ -34,6 +34,7 @@ export declare interface Schema {
 }
 
 export declare interface Database {
+  id: number;
   name: string;
   catalogs: Catalog[];
   schemas: Schema[];

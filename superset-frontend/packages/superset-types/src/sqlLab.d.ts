@@ -26,9 +26,9 @@ export declare namespace sqlLab {
     content: string;
 
     /**
-     * The database name associated with the editor.
+     * The database associated with the editor.
      */
-    database: string;
+    database: Database;
 
     /**
      * The catalog name associated with the editor.

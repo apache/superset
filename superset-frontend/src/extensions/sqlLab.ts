@@ -24,6 +24,11 @@ import {
   querySuccess,
 } from 'src/SqlLab/actions/sqlLab';
 import { createActionListener } from './utils';
+import {
+  Editor,
+  Tab,
+} from 'packages/superset-primitives/src/extensions/sqllab';
+import { RootState } from 'src/views/store';
 
 // TODO: Refactor to return all needed parameters. Add them to the interface.
 export const onDidQueryRun: core.Event<string> = (
@@ -54,6 +59,29 @@ export const onDidQueryFail: core.Event<string> = (
     thisArgs,
   );
 
+// TODO: This will monitor multiple Redux actions.
+export const onDidChangeTabState: core.Event<Tab> = (
+  listener: (e: Tab) => void,
+  thisArgs?: any,
+): Disposable =>
+  createActionListener(
+    'QUERY_EDITOR_SETDB',
+    listener,
+    (action: { type: string; dbId: number }, state: RootState) => {
+      const { sqlLab } = state;
+      const { databases, queryEditors, lastUpdatedActiveTab } = sqlLab;
+      const activeEditor = queryEditors.find(
+        (editor: { id: string }) => editor.id === lastUpdatedActiveTab,
+      );
+      const database = databases[action.dbId];
+      const editor = new Editor(activeEditor.sql, {
+        ...database,
+        name: database.database_name,
+      });
+      return new Tab(lastUpdatedActiveTab, activeEditor.name, editor);
+    },
+  );
+
 export const sqlLab = {
   databases: [
     {
@@ -68,4 +96,5 @@ export const sqlLab = {
   ],
   onDidQueryRun,
   onDidQueryFail,
+  onDidChangeTabState,
 };
