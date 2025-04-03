@@ -113,6 +113,24 @@ export interface Dashboard {
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
+
+  .disabled {
+    svg,
+    i {
+      &:hover {
+        path {
+          fill: ${({ theme }) => theme.colors.grayscale.light1};
+        }
+      }
+    }
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    .antd5-menu-item:hover {
+      cursor: default;
+    }
+    &::after {
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+    }
+  }
 `;
 
 const DASHBOARD_COLUMNS_TO_FETCH = [

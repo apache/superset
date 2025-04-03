@@ -158,6 +158,24 @@ interface ChartListProps {
 
 const StyledActions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
+
+  .disabled {
+    svg,
+    i {
+      &:hover {
+        path {
+          fill: ${({ theme }) => theme.colors.grayscale.light1};
+        }
+      }
+    }
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    .antd5-menu-item:hover {
+      cursor: default;
+    }
+    &::after {
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+    }
+  }
 `;
 
 function ChartList(props: ChartListProps) {
