@@ -29,19 +29,27 @@ import {
 import { D3_FORMAT_OPTIONS, sharedControls } from '@superset-ui/chart-controls';
 import { columnChoices, PRIMARY_COLOR } from './controls';
 
+let deckgl_tiles;
 
 export const DEFAULT_DECKGL_TILES = [
-  ['mapbox://styles/mapbox/streets-v9', t('Streets')],
-  ['mapbox://styles/mapbox/dark-v9', t('Dark')],
-  ['mapbox://styles/mapbox/light-v9', t('Light')],
-  ['tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', t('OpenStreetMap')],
+  ['mapbox://styles/mapbox/streets-v9', 'Streets'],
+  ['mapbox://styles/mapbox/dark-v9', 'Dark'],
+  ['mapbox://styles/mapbox/light-v9', 'Light'],
+  ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
+  ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
+  ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
 ];
 
-const appContainer = document.getElementById('app');
-const { common } = JSON.parse(
-  appContainer?.getAttribute('data-bootstrap') || '{}',
-);
-const deckgl_tiles = common?.deckgl_tiles ?? DEFAULT_DECKGL_TILES;
+const getDeckGLTiles = () => {
+  if (!deckgl_tiles) {
+    const appContainer = document.getElementById('app');
+    const { common } = JSON.parse(
+      appContainer?.getAttribute('data-bootstrap') || '{}',
+    );
+    deckgl_tiles = common?.deckgl_tiles ?? DEFAULT_DECKGL_TILES;
+  }
+  return deckgl_tiles;
+};
 
 const DEFAULT_VIEWPORT = {
   longitude: 6.85236157047845,
@@ -386,8 +394,8 @@ export const mapboxStyle = {
     renderTrigger: true,
     freeForm: true,
     validators: [validateMapboxStylesUrl],
-    choices: deckgl_tiles,
-    default: deckgl_tiles[0][0],
+    choices: getDeckGLTiles(),
+    default: getDeckGLTiles()[0][0],
     description: t(
       'Mapbox base layer map style (see Mapbox documentation: %s) or tile server URL.',
       'https://docs.mapbox.com/help/glossary/style-url/',
