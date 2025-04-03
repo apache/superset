@@ -85,6 +85,7 @@ export function saveChartToDashboard(chartName: string, dashboardName: string) {
   cy.getBySel('save-modal-body')
     .should('be.visible')
     .then($modal => {
+      cy.wait(500);
       cy.wrap($modal)
         .find(
           '.antd5-select-selection-search-input[aria-label="Select a dashboard"]',

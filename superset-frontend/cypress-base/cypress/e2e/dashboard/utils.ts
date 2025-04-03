@@ -265,6 +265,7 @@ export function fillNativeFilterForm(
   dataset?: string,
   filterColumn?: string,
 ) {
+  cy.wait(500);
   cy.get(nativeFilters.filtersPanel.filterTypeInput)
     .find(nativeFilters.filtersPanel.filterTypeItem)
     .click({ multiple: true, force: true });
