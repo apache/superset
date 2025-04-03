@@ -348,4 +348,58 @@ describe('Rule modal', () => {
       screen.queryByText('birth_names', { selector: '.tag-content' }),
     ).not.toBeInTheDocument();
   });
+
+  it('Select all button selects all available roles', async () => {
+    await renderAndWait(addNewRuleDefaultProps);
+
+    const rolesSelect = screen.getByRole('combobox', { name: /roles/i });
+    userEvent.click(rolesSelect);
+
+    const selectAllButton = screen.getByRole('button', {
+      name: 'Select all',
+      exact: true,
+    });
+    userEvent.click(selectAllButton);
+
+    await waitFor(() => {
+      const calls = fetchMock.calls(getRelatedRolesEndpoint);
+      // Verify that one of the API calls has the expected query parameters for getting all tables
+      const hasExpectedCall = calls.some(call =>
+        call[0].includes('q=(page:0,page_size:-1)'),
+      );
+      expect(hasExpectedCall).toBe(true);
+    });
+
+    expect(
+      screen.queryByText('Admin', { selector: '.tag-content' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Public', { selector: '.tag-content' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Alpha', { selector: '.tag-content' }),
+    ).toBeInTheDocument();
+  });
+
+  it('Deselect all button clears all selected roles', async () => {
+    await renderAndWait(addNewRuleDefaultProps);
+
+    const rolesSelect = screen.getByRole('combobox', { name: /roles/i });
+    userEvent.click(rolesSelect);
+
+    await selectOption('Admin', 'Roles');
+    expect(
+      screen.getByText('Admin', { selector: '.tag-content' }),
+    ).toBeInTheDocument();
+
+    const deselectAllButton = screen.getByRole('button', {
+      name: 'Deselect all',
+      exact: true,
+    });
+    userEvent.click(deselectAllButton);
+
+    expect(
+      screen.queryByText('Admin', { selector: '.tag-content' }),
+    ).not.toBeInTheDocument();
+  });
 });

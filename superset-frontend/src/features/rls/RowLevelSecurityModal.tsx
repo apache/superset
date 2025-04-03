@@ -343,8 +343,8 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     [],
   );
 
-  const tableDropdownRender = useCallback(
-    menu => (
+  const createDropdownRender = useCallback(
+    (entityType: 'tables' | 'roles') => (menu: React.ReactNode) => (
       <>
         <StyledDropdownContainer>
           <StyledDropdownButton
@@ -355,16 +355,16 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 page_size: -1,
               });
               SupersetClient.get({
-                endpoint: `/api/v1/rowlevelsecurity/related/tables?q=${query}`,
+                endpoint: `/api/v1/rowlevelsecurity/related/${entityType}?q=${query}`,
               }).then(response => {
-                const allTables = response.json.result.map(
+                const allEntities = response.json.result.map(
                   (item: { value: number; text: string }) => ({
                     key: item.value,
                     label: item.text,
                     value: item.value,
                   }),
                 );
-                updateRuleState('tables', allTables || []);
+                updateRuleState(entityType, allEntities || []);
               });
             }}
           >
@@ -372,7 +372,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
           </StyledDropdownButton>
           <StyledDropdownButton
             type="button"
-            onClick={() => updateRuleState('tables', [])}
+            onClick={() => updateRuleState(entityType, [])}
           >
             {t('Deselect all')}
           </StyledDropdownButton>
@@ -380,7 +380,16 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
         {menu}
       </>
     ),
-    [],
+    [updateRuleState],
+  );
+
+  const tableDropdownRender = useMemo(
+    () => createDropdownRender('tables'),
+    [createDropdownRender],
+  );
+  const roleDropdownRender = useMemo(
+    () => createDropdownRender('roles'),
+    [createDropdownRender],
   );
 
   return (
@@ -472,7 +481,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 value={(currentRule?.tables as SelectValue[]) || []}
                 options={loadTableOptions}
                 dropdownRender={tableDropdownRender}
-                showSearch
               />
             </div>
           </StyledInputContainer>
@@ -495,6 +503,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 onChange={onRolesChange}
                 value={(currentRule?.roles as SelectValue[]) || []}
                 options={loadRoleOptions}
+                dropdownRender={roleDropdownRender}
               />
             </div>
           </StyledInputContainer>
