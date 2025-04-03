@@ -81,6 +81,7 @@ import {
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
+// @ts-ignore
 import Icons from 'src/components/Icons';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
@@ -469,6 +470,7 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
     <StyledNotificationAddButton className={status} onClick={checkStatus}>
       <Icons.PlusOutlined
         iconSize="m"
+        // @ts-ignore
         css={theme => ({
           margin: `auto ${theme.gridUnit * 2}px auto 0`,
           verticalAlign: 'middle',
@@ -696,6 +698,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       const dashboardId = currentAlert?.dashboard?.value;
       // eslint-disable-next-line consistent-return
       return fetchDashboardFilterValues(
+        // @ts-ignore
         dashboardId,
         columnName,
         datasetId,
