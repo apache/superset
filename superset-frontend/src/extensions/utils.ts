@@ -18,20 +18,24 @@
  */
 import { Disposable } from '@apache-superset/primitives';
 import { AnyAction } from 'redux';
-import { listenerMiddleware } from 'src/views/store';
+import { listenerMiddleware, RootState } from 'src/views/store';
 import { Contributions, Extension } from './useExtensions';
+import { store } from 'src/views/store';
 
 export function createActionListener<V>(
   actionType: string,
   listener: (v: V) => void,
-  valueParser: (action: AnyAction) => V,
+  valueParser: (action: AnyAction, state: RootState) => V,
   thisArgs?: any,
 ): Disposable {
   const boundListener = thisArgs ? listener.bind(thisArgs) : listener;
 
   const unsubscribe = listenerMiddleware.startListening({
     type: actionType,
-    effect: (action: AnyAction) => boundListener(valueParser(action)),
+    effect: (action: AnyAction) => {
+      const state = store.getState();
+      boundListener(valueParser(action, state));
+    },
   });
 
   return {
