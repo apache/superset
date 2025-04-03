@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,21 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
-urllib3>=1.26.19, <2.0.0
-werkzeug>=3.0.1
-numexpr>=2.9.0
+import logging
 
-# 5.0.0 has a sensitive deprecation used in other libs
-# -> https://github.com/aio-libs/async-timeout/blob/master/CHANGES.rst#500-2024-10-31
-async_timeout>=4.0.0,<5.0.0
+from flask import current_app
 
-# Known issue with 6.7.0 breaking a unit test, probably easy to fix, but will require
-# a bit of attention to bump.
-apispec>=6.0.0,<6.7.0
+from superset.extensions import celery_app
+from superset.utils.slack import get_channels
 
-# 1.4.1 appears to use much more memory, where the python test suite runs out of memory
-# causing CI to fail. 1.4.0 is the last version that works.
-# https://marshmallow-sqlalchemy.readthedocs.io/en/latest/changelog.html#id3
-# Opened this issue https://github.com/marshmallow-code/marshmallow-sqlalchemy/issues/665
-marshmallow-sqlalchemy>=1.3.0,<1.4.1
+logger = logging.getLogger(__name__)
+
+
+@celery_app.task(name="slack.cache_channels")
+def cache_channels() -> None:
+    try:
+        get_channels(
+            force=True, cache_timeout=current_app.config["SLACK_CACHE_TIMEOUT"]
+        )
+    except Exception as ex:
+        logger.exception("An error occurred while caching Slack channels: %s", ex)
+        raise
