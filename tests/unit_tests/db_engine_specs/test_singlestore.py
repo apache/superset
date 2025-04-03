@@ -100,7 +100,10 @@ def test_adjust_engine_params() -> None:
         {},
         schema="pro d",
     )
-    assert adjusted == (make_url("singlestoredb://user:password@host:5432/pro%20d"), {})
+    assert adjusted == (make_url("singlestoredb://user:password@host:5432/pro%20d"), {
+        'conn_attrs': {'_connector_name': 'SingleStore Superset Database Engine',
+                       '_connector_version': '0.0.0-dev',
+                       '_product_version': '0.0.0-dev'}})
 
 
 @pytest.mark.parametrize(
