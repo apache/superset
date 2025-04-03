@@ -33,6 +33,7 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { embeddedApi } from './api';
+import { getDataMaskChangeTrigger } from './utils';
 
 setupPlugins();
 
@@ -67,7 +68,10 @@ const EmbededLazyDashboardPage = () => {
 
       // Only emit if the dataMask has changed
       if (previousDataMask !== currentDataMask) {
-        Switchboard.emit('getDataMasks', currentDataMask);
+        Switchboard.emit('observeDataMask', {
+          ...currentDataMask,
+          ...getDataMaskChangeTrigger(currentDataMask, previousDataMask),
+        });
         previousDataMask = currentDataMask;
       }
     });
@@ -234,6 +238,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       embeddedApi.getDashboardPermalink,
     );
     Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
+    Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
     Switchboard.start();
   }
 });
