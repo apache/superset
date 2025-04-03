@@ -133,7 +133,7 @@ export const DeckGLContainer = memo(
                 mapboxApiAccessToken={props.mapboxApiAccessToken}
               />
             )}
-            {props.mapStyle?.indexOf('openstreetmap') !== -1 && (
+            {props.mapStyle?.startsWith(MAPBOX_LAYER_PREFIX) && (
               <div
                 style={{
                   position: 'absolute',

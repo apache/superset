@@ -29,7 +29,7 @@ import {
 import { D3_FORMAT_OPTIONS, sharedControls } from '@superset-ui/chart-controls';
 import { columnChoices, PRIMARY_COLOR } from './controls';
 
-let deckgl_tiles;
+let deckglTiles;
 
 export const DEFAULT_DECKGL_TILES = [
   ['mapbox://styles/mapbox/streets-v9', 'Streets'],
@@ -38,17 +38,18 @@ export const DEFAULT_DECKGL_TILES = [
   ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
   ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
   ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
+  ['tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap'],
 ];
 
 const getDeckGLTiles = () => {
-  if (!deckgl_tiles) {
+  if (!deckglTiles) {
     const appContainer = document.getElementById('app');
     const { common } = JSON.parse(
       appContainer?.getAttribute('data-bootstrap') || '{}',
     );
-    deckgl_tiles = common?.deckgl_tiles ?? DEFAULT_DECKGL_TILES;
+    deckglTiles = common?.deckgl_tiles ?? DEFAULT_DECKGL_TILES;
   }
-  return deckgl_tiles;
+  return deckglTiles;
 };
 
 const DEFAULT_VIEWPORT = {
