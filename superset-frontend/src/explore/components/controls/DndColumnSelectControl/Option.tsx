@@ -18,7 +18,7 @@
  */
 import { useCallback } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import {
   CaretContainer,
   CloseContainer,

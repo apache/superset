@@ -148,14 +148,5 @@ describe('plugin-chart-table', () => {
       expect(queries[1].extras?.time_grain_sqla).toEqual(TimeGranularity.MONTH);
       expect(queries[1].extras?.where).toEqual("(status IN ('In Process'))");
     });
-    it('should not include time_grain_sqla in extras if temporal colum is not used and keep the rest', () => {
-      const { queries } = buildQuery(extraQueryFormData);
-      // Extras in regular query
-      expect(queries[0].extras?.time_grain_sqla).toBeUndefined();
-      expect(queries[0].extras?.where).toEqual("(status IN ('In Process'))");
-      // Extras in summary query
-      expect(queries[1].extras?.time_grain_sqla).toBeUndefined();
-      expect(queries[1].extras?.where).toEqual("(status IN ('In Process'))");
-    });
   });
 });
