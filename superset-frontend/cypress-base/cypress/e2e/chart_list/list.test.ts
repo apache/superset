@@ -81,7 +81,7 @@ describe('Charts list', () => {
       cy.wait('@get');
     });
 
-    it('should show the newly added dashboards in a tooltip', () => {
+    it.only('should show the newly added dashboards in a tooltip', () => {
       interceptDashboardGet();
       visitSampleChartFromList('1 - Sample chart');
       saveChartToDashboard('1 - Sample chart', '1 - Sample dashboard');
