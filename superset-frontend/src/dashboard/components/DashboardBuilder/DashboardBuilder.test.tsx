@@ -33,6 +33,7 @@ import {
 import { storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import * as useNativeFiltersModule from './state';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
@@ -264,5 +265,46 @@ describe('DashboardBuilder', () => {
     });
     const filterbar = getByTestId('dashboard-filters-panel');
     expect(filterbar).toHaveStyleRule('width', `${expectedValue}px`);
+  });
+
+  it('should not render the filter bar when nativeFiltersEnabled is false', () => {
+    jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: false,
+    });
+    const { queryByTestId } = setup();
+
+    expect(queryByTestId('dashboard-filters-panel')).not.toBeInTheDocument();
+  });
+
+  it('should render the filter bar when nativeFiltersEnabled is true and not in edit mode', () => {
+    jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: true,
+    });
+    const { queryByTestId } = setup();
+
+    expect(queryByTestId('dashboard-filters-panel')).toBeInTheDocument();
+  });
+
+  it('should not render the filter bar when in edit mode even if nativeFiltersEnabled is true', () => {
+    jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: true,
+    });
+    const { queryByTestId } = setup({
+      dashboardState: { ...mockState.dashboardState, editMode: true },
+    });
+
+    expect(queryByTestId('dashboard-filters-panel')).not.toBeInTheDocument();
   });
 });
