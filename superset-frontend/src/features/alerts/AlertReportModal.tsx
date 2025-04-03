@@ -81,8 +81,7 @@ import {
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
-// @ts-ignore
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';

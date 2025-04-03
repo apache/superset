@@ -51,7 +51,7 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
@@ -715,7 +715,11 @@ class DatasourceEditor extends PureComponent {
         newCols,
         this.props.addSuccessToast,
       );
-      this.setColumns({ databaseColumns: columnChanges.finalColumns });
+      this.setColumns({
+        databaseColumns: columnChanges.finalColumns.filter(
+          col => !col.expression, // remove calculated columns
+        ),
+      });
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
     } catch (error) {

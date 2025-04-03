@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Alert from 'src/components/Alert';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
 // @ts-ignore
