@@ -20,6 +20,7 @@ import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
 
 // eslint-disable-next-line no-restricted-imports
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
+import { Input, TextArea } from 'src/components/Input';
 import { styled, t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
@@ -38,6 +39,20 @@ const HelperMessage = styled.div`
 const StyledInputContainer = styled.div`
   padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
+
+  // ---------------------------------------------------------------------
+  // custom style for antd-v4, section can be removed when we upgrade to antd-v5
+  .ant-upload-list-item:hover .ant-upload-list-item-info {
+    background-color: ${({ theme }) => theme.colorBgElevated};
+  }
+  .ant-upload-list {
+    color: ${({ theme }) => theme.colorText};
+  }
+  .ant-upload-list-item-card-actions .anticon,
+  .ant-upload-list-item-info .ant-upload-text-icon .anticon {
+    color: ${({ theme }) => theme.colorIcon};
+  }
+  // ---------------------------------------------------------------------
 
   & > div {
     margin: ${({ theme }) => theme.sizeUnit}px 0;
@@ -62,40 +77,6 @@ const StyledInputContainer = styled.div`
 
     i {
       margin: 0 ${({ theme }) => theme.sizeUnit}px;
-    }
-  }
-
-  input,
-  textarea {
-    flex: 1 1 auto;
-  }
-
-  textarea {
-    height: 160px;
-    resize: none;
-  }
-
-  input::placeholder,
-  textarea::placeholder {
-    color: ${({ theme }) => theme.colorTextPlaceholder};
-  }
-
-  textarea,
-  input[type='text'],
-  input[type='number'] {
-    padding: ${({ theme }) => theme.sizeUnit * 1.5}px
-      ${({ theme }) => theme.sizeUnit * 2}px;
-    border-style: none;
-    border: 1px solid ${({ theme }) => theme.colorBorder};
-    border-radius: ${({ theme }) => theme.sizeUnit}px;
-
-    &[name='name'] {
-      flex: 0 1 auto;
-      width: 40%;
-    }
-
-    &[name='sqlalchemy_uri'] {
-      margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
     }
   }
 `;
@@ -300,7 +281,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s PASSWORD', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <input
+                <Input
                   name={`password-${fileName}`}
                   autoComplete={`password-${fileName}`}
                   type="password"
@@ -320,7 +301,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s SSH TUNNEL PASSWORD', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <input
+                <Input
                   name={`ssh_tunnel_password-${fileName}`}
                   autoComplete={`ssh_tunnel_password-${fileName}`}
                   type="password"
@@ -343,7 +324,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s SSH TUNNEL PRIVATE KEY', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <textarea
+                <TextArea
                   name={`ssh_tunnel_private_key-${fileName}`}
                   autoComplete={`ssh_tunnel_private_key-${fileName}`}
                   value={sshTunnelPrivateKeys[fileName]}
@@ -365,7 +346,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s SSH TUNNEL PRIVATE KEY PASSWORD', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <input
+                <Input
                   name={`ssh_tunnel_private_key_password-${fileName}`}
                   autoComplete={`ssh_tunnel_private_key_password-${fileName}`}
                   type="password"
@@ -398,7 +379,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
           <div className="control-label">
             {t('Type "%s" to confirm', t('OVERWRITE'))}
           </div>
-          <input
+          <Input
             data-test="overwrite-modal-input"
             id="overwrite"
             type="text"

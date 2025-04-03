@@ -57,6 +57,7 @@ import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
 import Card from 'src/components/Card';
 import Label from 'src/components/Label';
+import { Input } from 'src/components/Input';
 import { Tooltip } from 'src/components/Tooltip';
 import FilterableTable from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
@@ -406,8 +407,7 @@ const ResultSet = ({
             )}
           </ResultSetButtons>
           {search && (
-            <input
-              type="text"
+            <Input
               onChange={changeSearch}
               value={searchText}
               className="form-control input-sm"

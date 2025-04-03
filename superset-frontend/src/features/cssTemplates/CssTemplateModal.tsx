@@ -24,6 +24,7 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { Icons } from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { Input } from 'src/components/Input';
 import { CssEditor } from 'src/components/AsyncAceEditor';
 
 import { OnlyKeyWithType } from 'src/utils/types';
@@ -262,7 +263,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
           {t('Name')}
           <span className="required">*</span>
         </div>
-        <input
+        <Input
           name="template_name"
           onChange={onTemplateNameChange}
           type="text"

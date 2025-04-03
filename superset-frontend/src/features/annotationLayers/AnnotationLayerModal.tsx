@@ -21,6 +21,7 @@ import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
+import { Input, TextArea } from 'src/components/Input';
 import { Icons } from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -266,7 +267,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
           {t('Annotation layer name')}
           <span className="required">*</span>
         </div>
-        <input
+        <Input
           name="name"
           onChange={onTextChange}
           type="text"
@@ -275,7 +276,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       </LayerContainer>
       <LayerContainer>
         <div className="control-label">{t('description')}</div>
-        <textarea
+        <TextArea
           name="descr"
           value={currentLayer?.descr}
           placeholder={t('Description (this can be seen in the list)')}
