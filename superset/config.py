@@ -418,6 +418,20 @@ class D3Format(TypedDict, total=False):
 D3_FORMAT: D3Format = {}
 
 
+# Override the default mapbox tiles
+# Default values are equivalent to
+# DECKGL_BASE_MAP = [
+#   ['mapbox://styles/mapbox/streets-v9', 'Streets'],
+#   ['mapbox://styles/mapbox/dark-v9', 'Dark'],
+#   ['mapbox://styles/mapbox/light-v9', 'Light'],
+#   ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
+#   ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
+#   ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
+# ]
+# 
+DECKGL_BASE_MAP: list[list[str, str]] = None
+
+
 # Override the default d3 locale for time format
 # Default values are equivalent to
 # D3_TIME_FORMAT = {
