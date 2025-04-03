@@ -63,21 +63,6 @@ const AnnotationContainer = styled.div`
     color: ${({ theme }) => theme.colorError};
   }
 
-  textarea {
-    flex: 1 1 auto;
-    height: ${({ theme }) => theme.sizeUnit * 17}px;
-    resize: none;
-    width: 100%;
-  }
-
-  textarea,
-  Input {
-    padding: ${({ theme }) => theme.sizeUnit * 1.5}px
-      ${({ theme }) => theme.sizeUnit * 2}px;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.sizeUnit}px;
-  }
-
   input[type='text'] {
     width: 65%;
   }

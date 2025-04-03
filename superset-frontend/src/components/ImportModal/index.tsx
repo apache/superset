@@ -40,6 +40,20 @@ const StyledInputContainer = styled.div`
   padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
 
+  // ---------------------------------------------------------------------
+  // custom style for antd-v4, section can be removed when we upgrade to antd-v5
+  .ant-upload-list-item:hover .ant-upload-list-item-info {
+    background-color: ${({ theme }) => theme.colorBgElevated};
+  }
+  .ant-upload-list {
+    color: ${({ theme }) => theme.colorText};
+  }
+  .ant-upload-list-item-card-actions .anticon,
+  .ant-upload-list-item-info .ant-upload-text-icon .anticon {
+    color: ${({ theme }) => theme.colorIcon};
+  }
+  // ---------------------------------------------------------------------
+
   & > div {
     margin: ${({ theme }) => theme.sizeUnit}px 0;
   }
@@ -63,39 +77,6 @@ const StyledInputContainer = styled.div`
 
     i {
       margin: 0 ${({ theme }) => theme.sizeUnit}px;
-    }
-  }
-
-  Input,
-  TextArea {
-    flex: 1 1 auto;
-  }
-
-  textarea {
-    height: 160px;
-    resize: none;
-  }
-
-  Input::placeholder,
-  TextArea::placeholder {
-    color: ${({ theme }) => theme.colorTextPlaceholder};
-  }
-
-  TextArea,
-  Input {
-    padding: ${({ theme }) => theme.sizeUnit * 1.5}px
-      ${({ theme }) => theme.sizeUnit * 2}px;
-    border-style: none;
-    border: 1px solid ${({ theme }) => theme.colorBorder};
-    border-radius: ${({ theme }) => theme.sizeUnit}px;
-
-    &[name='name'] {
-      flex: 0 1 auto;
-      width: 40%;
-    }
-
-    &[name='sqlalchemy_uri'] {
-      margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
     }
   }
 `;
