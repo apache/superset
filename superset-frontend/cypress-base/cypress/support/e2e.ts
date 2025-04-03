@@ -162,6 +162,14 @@ Cypress.on('uncaught:exception', err => {
 });
 /* eslint-enable consistent-return */
 
+Cypress.Commands.overwrite('log', (log, ...args) => {
+  if (Cypress.browser.isHeadless) {
+    return cy.task('log', args, { log: false }).then(() => log(...args));
+  }
+  console.log(...args);
+  return log(...args);
+});
+
 Cypress.Commands.add('login', () => {
   cy.request({
     method: 'POST',

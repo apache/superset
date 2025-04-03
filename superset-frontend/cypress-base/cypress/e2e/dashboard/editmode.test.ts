@@ -39,7 +39,6 @@ function openProperties() {
   cy.getBySel('header-actions-menu')
     .contains('Edit properties')
     .click({ force: true });
-  cy.wait(500);
   cy.get('.antd5-modal-body').should('be.visible');
 }
 
@@ -144,6 +143,7 @@ function selectColorScheme(
   cy.get(`[data-test="${target}"] input[aria-label="Select color scheme"]`)
     .should('exist')
     .then($input => {
+      cy.wait(1000);
       cy.wrap($input).type(color.slice(0, 5), { force: true });
       cy.getBySel(color).click({ force: true });
     });

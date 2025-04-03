@@ -75,6 +75,12 @@ export default eyesPlugin(
         // eslint-disable-next-line global-require
         require('@cypress/code-coverage/task')(on, config);
         on('task', verifyDownloadTasks);
+        on('task', {
+          log(args) {
+            console.log(args);
+            return null;
+          },
+        });
         // eslint-disable-next-line global-require,import/extensions
         return config;
       },
