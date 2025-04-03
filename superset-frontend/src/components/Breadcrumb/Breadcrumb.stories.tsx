@@ -30,13 +30,12 @@ const meta: Meta<typeof Breadcrumb> = {
       defaultValue: '/',
     },
     items: {
-      control: 'object',
+      control: false,
       description: 'List of breadcrumb items',
-      defaultValue: [
-        { title: 'Home', href: '/' },
-        { title: 'Library', href: '/library' },
-        { title: 'Data' },
-      ],
+      table: {
+        type: { summary: 'object' },
+        defaultValue: { summary: 'undefined' },
+      },
     },
   },
 };
