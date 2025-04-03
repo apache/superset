@@ -37,8 +37,11 @@ import { JsonObject, JsonValue, styled, usePrevious } from '@superset-ui/core';
 import Tooltip, { TooltipProps } from './components/Tooltip';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Viewport } from './utils/fitViewport';
-import { buildTileLayer, TILE_LAYER_PREFIX, MAPBOX_LAYER_PREFIX } from './utils';
-
+import {
+  buildTileLayer,
+  TILE_LAYER_PREFIX,
+  MAPBOX_LAYER_PREFIX,
+} from './utils';
 
 const TICK = 250; // milliseconds
 
