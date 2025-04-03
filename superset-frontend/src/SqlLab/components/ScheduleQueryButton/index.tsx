@@ -21,8 +21,8 @@ import { FunctionComponent, useState, useRef, ChangeEvent } from 'react';
 import SchemaForm, { FormProps } from '@rjsf/core';
 import { FormValidation } from '@rjsf/utils';
 import validator from '@rjsf/validator-ajv8';
-import { Row, Col } from 'src/components';
-import { Input, TextArea } from 'src/components/Input';
+import { Row, Col } from 'src/components/Grid';
+import { Input } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
 import { parseDate } from 'chrono-node';
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
@@ -182,7 +182,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
       <StyledRow>
         <Col xs={24}>
           <FormItem label={t('Description')}>
-            <TextArea
+            <Input.TextArea
               rows={4}
               placeholder={t('Write a description for your query')}
               value={description}

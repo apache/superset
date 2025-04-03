@@ -25,7 +25,7 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import Select from 'src/components/Select/Select';
+import { Select } from '.';
 import { SELECT_ALL_VALUE } from './utils';
 
 type Option = {

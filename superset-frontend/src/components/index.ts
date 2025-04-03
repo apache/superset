@@ -16,35 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/*
- * Re-exporting of components in src/components to facilitate
- * their imports by other components.
- * E.g. import { Select } from 'src/components'
- */
-export { default as Select } from './Select/Select';
-export { default as AsyncSelect } from './Select/AsyncSelect';
-export { default as Button } from './Button';
-export { default as Card } from './Card';
-
-// Vanilla Ant Design components from v5
-export {
-  AutoComplete,
-  Col,
-  Grid,
-  Layout,
-  Row,
-  Skeleton,
-  Tag,
-  Tree,
-  TreeSelect,
-  Typography,
-} from 'antd-v5';
-
-// Vanilla Ant Design components from v4 that require migration
-// eslint-disable-next-line no-restricted-imports
-export { Upload } from 'antd'; // TODO: Remove antd
-
 /*
  * Components that conflict with the ones in src/components.
  * We should try to avoid using Ant Design directly. The components
@@ -59,6 +30,13 @@ export {
   Collapse as AntdCollapse,
   Select as AntdSelect,
 } from 'antd';
+
+/*
+ * Re-exporting of components in src/components to facilitate
+ * their imports by other components.
+ * E.g. import { Select } from 'src/components', probably in the future from '@superset-ui/components'
+ */
+export { Select, AsyncSelect } from './Select';
 
 // eslint-disable-next-line no-restricted-imports
 export type { RadioChangeEvent } from 'antd/lib/radio'; // TODO: Remove antd

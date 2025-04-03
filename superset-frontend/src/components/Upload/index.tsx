@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Upload, type UploadFile } from 'antd-v5';
+import { type UploadChangeParam } from 'antd-v5/es/upload';
 
-export { default as TagsList } from './TagsList';
-export { default as Tag } from './Tag';
+export default Upload;
+export type { UploadChangeParam, UploadFile };

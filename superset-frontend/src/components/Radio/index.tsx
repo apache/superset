@@ -21,7 +21,7 @@ import type {
   RadioChangeEvent,
   RadioProps,
   RadioGroupProps,
-} from 'antd-v5/lib/radio';
+} from 'antd-v5/es/radio';
 
 import { Space, SpaceProps } from 'src/components/Space';
 
@@ -41,14 +41,14 @@ const RadioGroup = ({
   ...props
 }: RadioGroupWrapperProps) => {
   const content = options.map((option: CheckboxOptionType) => (
-    <Radio key={option.value} value={option.value}>
+    <Antd5Radio key={option.value} value={option.value}>
       {option.label}
-    </Radio>
+    </Antd5Radio>
   ));
   return (
-    <Radio.Group {...props}>
+    <Antd5Radio.Group {...props}>
       {spaceConfig ? <Space {...spaceConfig}>{content}</Space> : content}
-    </Radio.Group>
+    </Antd5Radio.Group>
   );
 };
 export type {

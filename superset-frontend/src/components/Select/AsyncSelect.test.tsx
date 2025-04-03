@@ -25,7 +25,7 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import { AsyncSelect } from 'src/components';
+import { AsyncSelect } from '.';
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';

@@ -18,11 +18,11 @@
  */
 import { t, customTimeRangeDecode } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { Col, Row } from 'src/components';
+import { Col, Row } from 'src/components/Grid';
 import { InputNumber } from 'src/components/Input';
 import { DatePicker } from 'src/components/DatePicker';
 import { Radio } from 'src/components/Radio';
-import Select from 'src/components/Select/Select';
+import { Select } from 'src/components';
 import {
   SINCE_GRAIN_OPTIONS,
   SINCE_MODE_OPTIONS,

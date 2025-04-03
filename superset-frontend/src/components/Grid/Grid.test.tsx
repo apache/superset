@@ -16,22 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { tagToSelectOption } from 'src/components/Tags/utils';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { Col, Row } from './index';
 
-describe('tagToSelectOption', () => {
-  test('converts a Tag object with table_name to a SelectTagsValue', () => {
-    const tag = {
-      id: 1,
-      name: 'TagName',
-      table_name: 'Table1',
-    };
-
-    const expectedSelectTagsValue = {
-      value: 1,
-      label: 'TagName',
-      key: 1,
-    };
-
-    expect(tagToSelectOption(tag)).toEqual(expectedSelectTagsValue);
+describe('Grid Component', () => {
+  it('should render the grid with rows and columns', async () => {
+    render(
+      <Row>
+        <Col span={8}>Column 1</Col>
+        <Col span={8}>Column 2</Col>
+        <Col span={8}>Column 3</Col>
+      </Row>,
+    );
+    expect(screen.getByText('Column 1')).toBeInTheDocument();
+    expect(screen.getByText('Column 2')).toBeInTheDocument();
+    expect(screen.getByText('Column 3')).toBeInTheDocument();
   });
 });
