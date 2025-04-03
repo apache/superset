@@ -6,6 +6,7 @@ import logging
 
 from celery.result import AsyncResult
 from celery.utils.log import get_task_logger
+from celery.signals import after_task_publish
 
 from superset import db
 from superset.daos.context_builder_task import ContextBuilderTaskDAO
@@ -18,6 +19,15 @@ from superset.utils.core import override_user
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
+
+
+@after_task_publish.connect
+def update_sent_state(sender=None, headers=None, **kwargs):
+    task = celery_app.tasks.get(sender)
+    backend = task.backend if task else celery_app.backend
+
+    if headers['task'] == "generate_llm_context":
+        backend.store_result(headers['id'], None, "PUBLISHED")
 
 
 @celery_app.task(name="check_for_expired_llm_context")
