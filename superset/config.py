@@ -428,7 +428,12 @@ D3_FORMAT: D3Format = {}
 #   ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
 #   ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
 # ]
-# 
+# for adding your own map tiles, you can use the following format:
+# - tile:// + your_personal_url or openstreetmap_url
+#   example: 
+#   DECKGL_BASE_MAP = [
+#       [tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png, 'OpenStreetMap']
+#    ]
 DECKGL_BASE_MAP: list[list[str, str]] = None
 
 
@@ -833,8 +838,12 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
 # `pip install .[cors]` or `pip install apache-superset[cors]`, depending
-ENABLE_CORS = False
-CORS_OPTIONS: dict[Any, Any] = {}
+ENABLE_CORS = True
+CORS_OPTIONS: dict[Any, Any] = {
+    "origins": [
+        "https://c.tile.openstreetmap.org",
+    ]
+}
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
 # Disabling this option is not recommended for security reasons. If you wish to allow
@@ -1649,6 +1658,7 @@ TALISMAN_CONFIG = {
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://c.tile.openstreetmap.org",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -1680,6 +1690,7 @@ TALISMAN_DEV_CONFIG = {
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://c.tile.openstreetmap.org",
         ],
         "object-src": "'none'",
         "style-src": [
