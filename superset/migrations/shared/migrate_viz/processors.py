@@ -236,6 +236,7 @@ class MigrateDistBarChart(TimeseriesChart):
         self.remove_keys.add("bar_stacked")
 
         self.data["stack"] = "Stack" if self.data.get("bar_stacked") else None
+        self.data["x_ticks_layout"] = 45
 
 
 class MigrateBubbleChart(MigrateViz):
