@@ -33,5 +33,8 @@ describe('Breadcrumb Component', () => {
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getByText('Library')).toBeInTheDocument();
     expect(screen.getByText('Data')).toBeInTheDocument();
+
+    const separators = screen.getAllByText('/');
+    expect(separators.length).toBe(2);
   });
 });
