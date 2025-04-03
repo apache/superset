@@ -33,7 +33,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import {
   ChangeDatasourceModal,
   DatasourceModal,

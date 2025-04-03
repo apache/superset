@@ -26,7 +26,7 @@ import { debounce } from 'lodash';
 import { Row } from 'src/components';
 import { Menu, MenuMode, MainNav } from 'src/components/Menu';
 import Button, { OnClickHandler } from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { MenuObjectProps } from 'src/types/bootstrapTypes';
 
 const StyledHeader = styled.div<{ backgroundColor?: string }>`

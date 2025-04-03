@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { styled, t, usePrevious, css } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
 import Modal from 'src/components/Modal';
 import { DROP_LEFT, DROP_RIGHT } from 'src/dashboard/util/getDropPosition';

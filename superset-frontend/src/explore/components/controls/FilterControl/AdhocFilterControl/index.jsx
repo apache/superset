@@ -42,7 +42,7 @@ import {
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilterOption from 'src/explore/components/controls/FilterControl/AdhocFilterOption';
