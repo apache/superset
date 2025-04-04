@@ -26,7 +26,12 @@ from sqlalchemy import types
 from sqlalchemy.engine import URL
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, ColumnTypeMapping, LimitMethod
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    ColumnTypeMapping,
+    LimitMethod,
+)
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.utils.core import GenericDataType
@@ -34,7 +39,7 @@ from superset.utils.core import GenericDataType
 logger = logging.getLogger(__name__)
 
 
-class SingleStoreSpec(BaseEngineSpec):
+class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
     engine_name = "SingleStore"
 
     engine = "singlestoredb"
@@ -156,7 +161,7 @@ class SingleStoreSpec(BaseEngineSpec):
         :return: A list of function names usable in the database
         """
 
-        functions = [
+        functions: set[str] = {
             "ABS",
             "ACOS",
             "ADDTIME",
@@ -174,7 +179,6 @@ class SingleStoreSpec(BaseEngineSpec):
             "ASIN",
             "ATAN",
             "ATAN2",
-            "ATAN",
             "AVG",
             "BETWEEN",
             "NOT",
@@ -208,8 +212,7 @@ class SingleStoreSpec(BaseEngineSpec):
             "BSON_NORMALIZE",
             "BSON_NORMALIZE_ASC",
             "BSON_NORMALIZE_DESC",
-            "BSON_NORMALIZE_DESC",
-            "BSON_SET_BSON",
+            "BSON_NORMALIZE_NO_ARRAYBSON_SET_BSON",
             "BSON_UNWIND",
             "CASE",
             "CEIL",
@@ -358,7 +361,6 @@ class SingleStoreSpec(BaseEngineSpec):
             "IFNULL",
             "PERCENT_RANK",
             "PERCENTILE_CONT",
-            "MEDIAN",
             "PERCENTILE_DISC",
             "PI",
             "POW",
@@ -449,27 +451,16 @@ class SingleStoreSpec(BaseEngineSpec):
             "WEEK",
             "WEEKDAY",
             "YEAR",
-        ]
+        }
 
         if (database_name := cls.get_default_schema(database, None)) is not None:
             df = database.get_df(
                 f"SHOW FUNCTIONS IN `{database_name.replace('`', '``')}`"
             )
 
-            function_name_col = f"Functions_in_{database_name}"
-            if function_name_col in df:
-                functions += df[function_name_col].tolist()
-            else:
-                columns = df.columns.values.tolist()
-                logger.error(
-                    "Payload from `SHOW FUNCTIONS` has the incorrect format. "
-                    "Expected column `%s`, found: %s.",
-                    function_name_col,
-                    ", ".join(columns),
-                    exc_info=True,
-                )
+            functions.update(df.iloc[:, 0].tolist())
 
-        return functions
+        return list(functions)
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

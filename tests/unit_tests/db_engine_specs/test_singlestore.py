@@ -175,7 +175,7 @@ def test_get_function_names_no_db() -> None:
     mock_database = MagicMock()
     mock_database.get_inspector.return_value = mock_inspector_ctx
 
-    assert len(SingleStoreSpec.get_function_names(mock_database)) == 292
+    assert len(SingleStoreSpec.get_function_names(mock_database)) == 289
 
 
 def test_get_function_names_with_db() -> None:
@@ -204,7 +204,7 @@ def test_get_function_names_with_db() -> None:
     mock_database.get_df.return_value = df
 
     functions = SingleStoreSpec.get_function_names(mock_database)
-    assert len(functions) == 293
-    assert functions[-1] == "is_prime"
+    assert len(functions) == 290
+    assert "is_prime" in functions
 
     mock_database.get_df.assert_called_once_with("SHOW FUNCTIONS IN `db``1`")
