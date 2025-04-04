@@ -453,15 +453,11 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           ('column_name' in column && column.column_name) ||
           ('optionName' in column && column.optionName) ||
           '',
-        label:
-          ('saved_metric_name' in column && column.saved_metric_name) ||
-          ('column_name' in column && column.column_name) ||
-          ('label' in column && column.label),
         key:
           ('id' in column && column.id) ||
           ('optionName' in column && column.optionName) ||
           undefined,
-        customLabel: renderSubjectOptionLabel(column),
+        label: renderSubjectOptionLabel(column),
       }))}
       {...subjectSelectProps}
     />

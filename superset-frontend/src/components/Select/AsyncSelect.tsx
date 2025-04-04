@@ -43,13 +43,12 @@ import {
 } from 'antd-v5/es/select';
 import { debounce, isEqual, uniq } from 'lodash';
 import { Icons } from 'src/components/Icons';
+import { Space } from 'src/components/Space';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
 import {
   getValue,
   hasOption,
   isLabeledValue,
-  renderSelectOptions,
-  hasCustomLabels,
   sortSelectedFirstHelper,
   sortComparatorWithSearchHelper,
   sortComparatorForNoSearchHelper,
@@ -592,11 +591,6 @@ const AsyncSelect = forwardRef(
       fireOnChange();
     };
 
-    const shouldRenderChildrenOptions = useMemo(
-      () => hasCustomLabels(fullSelectOptions),
-      [fullSelectOptions],
-    );
-
     return (
       <StyledContainer headerPosition={headerPosition}>
         {header && (
@@ -626,7 +620,8 @@ const AsyncSelect = forwardRef(
           onSearch={showSearch ? handleOnSearch : undefined}
           onSelect={handleOnSelect}
           onClear={handleClear}
-          options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
+          options={fullSelectOptions}
+          optionRender={option => <Space>{option.label || option.value}</Space>}
           placeholder={placeholder}
           showSearch={allowNewOptions ? true : showSearch}
           tokenSeparators={tokenSeparators}
@@ -643,10 +638,7 @@ const AsyncSelect = forwardRef(
           tagRender={customTagRender}
           {...props}
           ref={ref}
-        >
-          {hasCustomLabels(fullSelectOptions) &&
-            renderSelectOptions(fullSelectOptions)}
-        </StyledSelect>
+        />
       </StyledContainer>
     );
   },

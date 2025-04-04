@@ -37,7 +37,6 @@ import {
   t,
   usePrevious,
 } from '@superset-ui/core';
-import { Select as AntdSelect } from 'antd-v5';
 import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
@@ -51,10 +50,8 @@ import {
   selectAllOption,
   mapValues,
   mapOptions,
-  hasCustomLabels,
   isEqual as utilsIsEqual,
   handleFilterOptionHelper,
-  renderSelectOptions,
   dropDownRenderHelper,
   sortSelectedFirstHelper,
   getOption,
@@ -77,6 +74,7 @@ import {
   TOKEN_SEPARATORS,
 } from './constants';
 import { customTagRender } from './CustomTag';
+import { Space } from '../Space';
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -153,8 +151,6 @@ const Select = forwardRef(
     }, [isDropdownVisible, oneLine]);
 
     const mappedMode = isSingleMode ? undefined : 'multiple';
-
-    const { Option } = AntdSelect;
 
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
@@ -549,11 +545,6 @@ const Select = forwardRef(
       selectValue,
     ]);
 
-    const shouldRenderChildrenOptions = useMemo(
-      () => selectAllEnabled || hasCustomLabels(options),
-      [selectAllEnabled, options],
-    );
-
     const omittedCount = useMemo(() => {
       const num_selected = ensureIsArray(selectValue).length;
       const num_shown = maxTagCount as number;
@@ -671,31 +662,28 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
-          options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
+          options={
+            [
+              selectAllEnabled && {
+                label: selectAllLabel(),
+                value: SELECT_ALL_VALUE,
+                className: 'select-all',
+                id: 'select-all',
+              },
+              ...fullSelectOptions,
+            ].filter(Boolean) as SelectOptionsType
+          }
+          optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
           tagRender={customTagRender}
           css={props.css}
           {...props}
           showSearch={shouldShowSearch}
           ref={ref}
-        >
-          {selectAllEnabled && (
-            <Option
-              id="select-all"
-              className="select-all"
-              key={SELECT_ALL_VALUE}
-              value={SELECT_ALL_VALUE}
-            >
-              {selectAllLabel()}
-            </Option>
-          )}
-          {shouldRenderChildrenOptions &&
-            renderSelectOptions(fullSelectOptions)}
-        </StyledSelect>
+        />
       </StyledContainer>
     );
   },
 );
 
 export default Select;
-export const { Option, OptGroup } = AntdSelect;

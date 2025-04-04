@@ -217,11 +217,12 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       data
         ? data.options.map(table => ({
             value: table.value,
-            label: <TableOption table={table} />,
+            label: customTableOptionLabelRenderer ? (
+              customTableOptionLabelRenderer(table)
+            ) : (
+              <TableOption table={table} />
+            ),
             text: table.value,
-            ...(customTableOptionLabelRenderer && {
-              customLabel: customTableOptionLabelRenderer(table),
-            }),
           }))
         : [],
     [data, customTableOptionLabelRenderer],
