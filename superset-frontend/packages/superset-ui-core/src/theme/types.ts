@@ -116,6 +116,12 @@ export interface SupersetSpecificTokens {
   fontWeightNormal: string;
   fontWeightLight: string;
   fontWeightMedium: string;
+
+  brandLogoAlt: string;
+  brandLogoUrl: string;
+  brandLogoMargin: string;
+  brandLogoHref: string;
+  brandLogoHeight: string;
 }
 
 /**
