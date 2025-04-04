@@ -18,7 +18,7 @@
  */
 import { SAMPLE_DASHBOARD_1, TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { drag, resize, waitForChartLoad } from 'cypress/utils';
-import * as ace from 'brace';
+import { edit } from 'brace';
 import {
   interceptExploreUpdate,
   interceptGet,
@@ -60,7 +60,7 @@ function assertMetadata(text: string) {
 
       // cypress can read this locally, but not in ci
       // so we have to use the ace module directly to fetch the value
-      expect(ace.edit(metadata).getValue()).to.match(regex);
+      expect(edit(metadata).getValue()).to.match(regex);
     });
 }
 
@@ -219,12 +219,13 @@ function openExploreWithDashboardContext(chartName: string) {
   cy.get(
     `[data-test-chart-name='${chartName}'] [aria-label='More Options']`,
   ).click();
-  cy.get('.ant-dropdown')
-    .not('.ant-dropdown-hidden')
-    .find("[role='menu'] [role='menuitem']")
-    .eq(2)
-    .should('contain', 'Edit chart')
-    .click();
+  cy.get(`[data-test-edit-chart-name='${chartName}']`)
+    .should('be.visible')
+    .trigger('keydown', {
+      keyCode: 13,
+      which: 13,
+      force: true,
+    });
   cy.wait('@v1Data');
   cy.get('.chart-container').should('exist');
 }

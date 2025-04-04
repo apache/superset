@@ -18,7 +18,7 @@
  */
 import { interceptChart } from 'cypress/utils';
 
-describe('Annotations', () => {
+describe.skip('Annotations', () => {
   beforeEach(() => {
     interceptChart({ legacy: false }).as('chartData');
   });

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject } from 'react';
+import { ComponentProps, RefObject } from 'react';
 import copyTextToClipboard from 'src/utils/copy';
 import { t, logging } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
@@ -24,7 +24,7 @@ import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { shallowEqual, useSelector } from 'react-redux';
 
-interface ShareMenuItemProps {
+interface ShareMenuItemProps extends ComponentProps<typeof Menu.SubMenu> {
   url?: string;
   copyMenuItemTitle: string;
   emailMenuItemTitle: string;
@@ -37,6 +37,9 @@ interface ShareMenuItemProps {
   copyMenuItemRef?: RefObject<any>;
   shareByEmailMenuItemRef?: RefObject<any>;
   selectedKeys?: string[];
+  setOpenKeys?: Function;
+  title: string;
+  disabled?: boolean;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
@@ -49,9 +52,8 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     addSuccessToast,
     dashboardId,
     dashboardComponentId,
-    copyMenuItemRef,
-    shareByEmailMenuItemRef,
-    selectedKeys,
+    title,
+    disabled,
     ...rest
   } = props;
   const { dataMask, activeTabs } = useSelector(
@@ -95,28 +97,19 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   }
 
   return (
-    <Menu
-      selectable={false}
-      selectedKeys={selectedKeys}
-      onClick={e =>
-        e.key === MenuKeys.CopyLink ? onCopyLink() : onShareByEmail()
-      }
+    <Menu.SubMenu
+      title={title}
+      key={MenuKeys.Share}
+      disabled={disabled}
+      {...rest}
     >
-      <Menu.Item key={MenuKeys.CopyLink} ref={copyMenuItemRef} {...rest}>
-        <div role="button" tabIndex={0}>
-          {copyMenuItemTitle}
-        </div>
+      <Menu.Item key={MenuKeys.CopyLink} onClick={() => onCopyLink()}>
+        {copyMenuItemTitle}
       </Menu.Item>
-      <Menu.Item
-        key={MenuKeys.ShareByEmail}
-        ref={shareByEmailMenuItemRef}
-        {...rest}
-      >
-        <div role="button" tabIndex={0}>
-          {emailMenuItemTitle}
-        </div>
+      <Menu.Item key={MenuKeys.ShareByEmail} onClick={() => onShareByEmail()}>
+        {emailMenuItemTitle}
       </Menu.Item>
-    </Menu>
+    </Menu.SubMenu>
   );
 };
 export default ShareMenuItems;

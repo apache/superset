@@ -39,10 +39,21 @@ export const GlobalStyles = () => (
       .echarts-tooltip[style*='visibility: hidden'] {
         display: none !important;
       }
+
+      // Ant Design is applying inline z-index styles causing troubles
+      // TODO: Remove z-indexes when Ant Design is fully upgraded to v5
+      // Prefer vanilla Ant Design z-indexes that should work out of the box
       .antd5-dropdown,
-      .ant-dropdown {
-        z-index: ${theme.zIndex.max};
+      .ant-dropdown,
+      .ant-select-dropdown,
+      .antd5-modal-wrap,
+      .antd5-modal-mask,
+      .antd5-picker-dropdown,
+      .ant-popover,
+      .antd5-popover {
+        z-index: ${theme.zIndex.max} !important;
       }
+
       // TODO: Remove when buttons have been upgraded to Ant Design 5.
       // Check src/components/Modal for more info.
       .ant-modal-confirm {

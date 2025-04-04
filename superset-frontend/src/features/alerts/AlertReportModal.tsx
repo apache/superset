@@ -71,6 +71,7 @@ import {
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { Icons } from 'src/components/Icons';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -188,6 +189,8 @@ const FORMAT_OPTIONS = {
     value: 'TEXT',
   },
 };
+
+type FORMAT_OPTIONS_KEY = keyof typeof FORMAT_OPTIONS;
 
 // Apply to final text input components of each collapse panel
 const noMarginBottom = css`
@@ -405,7 +408,13 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
 
   return (
     <StyledNotificationAddButton className={status} onClick={checkStatus}>
-      <i className="fa fa-plus" />{' '}
+      <Icons.PlusOutlined
+        iconSize="m"
+        css={theme => ({
+          margin: `auto ${theme.gridUnit * 2}px auto 0`,
+          verticalAlign: 'middle',
+        })}
+      />
       {status === 'active'
         ? t('Add another notification method')
         : t('Add delivery method')}
@@ -824,11 +833,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       })
         .then(response => {
           const { tab_tree: tabTree, all_tabs: allTabs } = response.json.result;
-          tabTree.push({
-            title: 'All Tabs',
-            // select tree only works with string value
-            value: JSON.stringify(Object.keys(allTabs)),
-          });
+          const allTabsWithOrder = tabTree.map(
+            (tab: { value: string }) => tab.value,
+          );
+
+          // Only show all tabs when there are more than one tab
+          if (allTabsWithOrder.length > 1) {
+            tabTree.push({
+              title: 'All Tabs',
+              // select tree only works with string value
+              value: JSON.stringify(allTabsWithOrder),
+            });
+          }
+
           setTabOptions(tabTree);
 
           const anchor = currentAlert?.extra?.dashboard?.anchor;
@@ -1738,12 +1755,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   value={reportFormat}
                   options={
                     contentType === ContentType.Dashboard
-                      ? ['pdf', 'png'].map(key => FORMAT_OPTIONS[key])
+                      ? ['pdf', 'png'].map(
+                          key => FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
+                        )
                       : /* If chart is of text based viz type: show text
                   format option */
                         TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType)
                         ? Object.values(FORMAT_OPTIONS)
-                        : ['pdf', 'png', 'csv'].map(key => FORMAT_OPTIONS[key])
+                        : ['pdf', 'png', 'csv'].map(
+                            key => FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
+                          )
                   }
                   placeholder={t('Select format')}
                 />

@@ -20,7 +20,7 @@ import { Dispatch } from 'react';
 import { t } from '@superset-ui/core';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
 import { TooltipPlacement } from 'src/components/Tooltip';
 import {
@@ -48,7 +48,7 @@ const renderDisabledSaveButton = () => (
     disabled
     css={disabledSaveBtnStyles}
   >
-    <Icons.Save iconSize="m" />
+    <Icons.SaveOutlined iconSize="m" />
     {t('Save')}
   </Button>
 );

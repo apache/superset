@@ -16,10 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { TableTab } from 'src/views/CRUD/types';
-import userEvent from '@testing-library/user-event';
 import ActivityTable from './ActivityTable';
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
@@ -137,9 +141,5 @@ test('calls the getEdited batch call when edited tab is clicked', async () => {
 });
 test('show empty state if there is no data', () => {
   renderActivityTable(emptyActivityProps);
-  expect(
-    screen.getByText(
-      /recently created charts, dashboards, and saved queries will appear here/i,
-    ),
-  ).toBeInTheDocument();
+  expect(screen.getByText(/nothing here yet/i)).toBeInTheDocument();
 });

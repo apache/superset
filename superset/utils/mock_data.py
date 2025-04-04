@@ -221,8 +221,11 @@ def get_column_objects(columns: list[ColumnInfo]) -> list[Column]:
 def generate_data(columns: list[ColumnInfo], num_rows: int) -> list[dict[str, Any]]:
     keys = [column["name"] for column in columns]
     return [
-        dict(zip(keys, row))
-        for row in zip(*[generate_column_data(column, num_rows) for column in columns])
+        dict(zip(keys, row, strict=False))
+        for row in zip(
+            *[generate_column_data(column, num_rows) for column in columns],
+            strict=False,
+        )
     ]
 
 

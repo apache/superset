@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import * as echarts from 'echarts';
+import { util } from 'echarts';
 import { isZoomConfigsFixed, isZoomConfigsLinear } from './typeguards';
 import {
   CreateDragGraphicOption,
@@ -105,10 +105,10 @@ export const createDragGraphicOption = ({
     // Give a big z value, which makes the circle cover the symbol
     // in bar series.
     z: 100,
-    // Util method `echarts.util.curry` is used here to generate a
+    // Util method `util.curry` (from echarts) is used here to generate a
     // new function the same as `onDrag`, except that the
     // first parameter is fixed to be the `dataIndex` here.
-    ondrag: echarts.util.curry(onDrag, dataIndex),
+    ondrag: util.curry(onDrag, dataIndex),
   };
 };
 

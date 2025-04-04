@@ -18,8 +18,12 @@
  */
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import SaveQuery from 'src/SqlLab/components/SaveQuery';
 import { initialState, databases } from 'src/SqlLab/fixtures';
 
@@ -175,7 +179,7 @@ describe('SavedQuery', () => {
 
     await waitFor(() => {
       const saveBtn = screen.getByRole('button', { name: /save/i });
-      const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+      const caretBtn = screen.getByRole('button', { name: /down/i });
 
       expect(saveBtn).toBeVisible();
       expect(caretBtn).toBeVisible();
@@ -188,7 +192,9 @@ describe('SavedQuery', () => {
       store: mockStore(mockState),
     });
 
-    const caretBtn = await screen.findByRole('button', { name: /caret-down/i });
+    const caretBtn = await screen.findByRole('button', {
+      name: /down/i,
+    });
     userEvent.click(caretBtn);
 
     const saveDatasetMenuItem = await screen.findByText(/save dataset/i);
@@ -205,7 +211,9 @@ describe('SavedQuery', () => {
       store: mockStore(mockState),
     });
 
-    const caretBtn = await screen.findByRole('button', { name: /caret-down/i });
+    const caretBtn = await screen.findByRole('button', {
+      name: /down/i,
+    });
     userEvent.click(caretBtn);
 
     const saveDatasetMenuItem = await screen.findByText(/save dataset/i);

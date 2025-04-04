@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { supersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Tooltip } from '.';
 
 test('starts hidden with default props', () => {
@@ -57,7 +56,7 @@ test('renders with theme', () => {
 test('renders with icon child', async () => {
   render(
     <Tooltip title="Simple tooltip">
-      <Icons.Alert>Hover me</Icons.Alert>
+      <Icons.WarningOutlined>Hover me</Icons.WarningOutlined>
     </Tooltip>,
   );
   userEvent.hover(screen.getByRole('img'));

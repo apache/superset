@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import { render, screen, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import { VizType } from '@superset-ui/core';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
@@ -597,6 +601,7 @@ test('renders all notification fields', async () => {
   expect(recipients).toBeInTheDocument();
   expect(addNotificationMethod).toBeInTheDocument();
 });
+
 test('adds another notification method section after clicking add notification method', async () => {
   render(<AlertReportModal {...generateMockedProps(false, false, false)} />, {
     useRedux: true,

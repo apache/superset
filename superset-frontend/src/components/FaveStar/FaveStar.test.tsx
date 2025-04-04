@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import FaveStar from '.';
 
 jest.mock('src/components/Tooltip', () => ({
@@ -33,9 +32,7 @@ test('render right content', async () => {
 
   const { rerender, findByRole } = render(<FaveStar {...props} isStarred />);
   expect(screen.getByRole('button')).toBeInTheDocument();
-  expect(
-    screen.getByRole('img', { name: 'favorite-selected' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'starred' })).toBeInTheDocument();
 
   expect(props.saveFaveStar).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button'));
@@ -43,9 +40,7 @@ test('render right content', async () => {
   expect(props.saveFaveStar).toHaveBeenCalledWith(props.itemId, true);
 
   rerender(<FaveStar {...props} />);
-  expect(
-    await findByRole('img', { name: 'favorite-unselected' }),
-  ).toBeInTheDocument();
+  expect(await findByRole('img', { name: 'unstarred' })).toBeInTheDocument();
 
   expect(props.saveFaveStar).toHaveBeenCalledTimes(1);
   userEvent.click(screen.getByRole('button'));
@@ -84,9 +79,7 @@ test('Call fetchFaveStar on first render and on itemId change', async () => {
   };
 
   const { rerender, findByRole } = render(<FaveStar {...props} />);
-  expect(
-    await findByRole('img', { name: 'favorite-unselected' }),
-  ).toBeInTheDocument();
+  expect(await findByRole('img', { name: 'unstarred' })).toBeInTheDocument();
   expect(props.fetchFaveStar).toHaveBeenCalledTimes(1);
   expect(props.fetchFaveStar).toHaveBeenCalledWith(props.itemId);
 

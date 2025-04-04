@@ -36,6 +36,7 @@ from sqlglot.optimizer.pushdown_predicates import pushdown_predicates
 from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 
 from superset.exceptions import SupersetParseError
+from superset.sql.dialects.firebolt import Firebolt
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,7 @@ SQLGLOT_DIALECTS = {
     # "elasticsearch": ???
     # "exa": ???
     # "firebird": ???
-    # "firebolt": ???
+    "firebolt": Firebolt,
     "gsheets": Dialects.SQLITE,
     "hana": Dialects.POSTGRES,
     "hive": Dialects.HIVE,
@@ -81,7 +82,7 @@ SQLGLOT_DIALECTS = {
     "presto": Dialects.PRESTO,
     "pydoris": Dialects.DORIS,
     "redshift": Dialects.REDSHIFT,
-    # "risingwave": ???
+    "risingwave": Dialects.RISINGWAVE,
     # "rockset": ???
     "shillelagh": Dialects.SQLITE,
     "snowflake": Dialects.SNOWFLAKE,
@@ -409,7 +410,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return self._fallback_formatting()
 
-    @deprecated(deprecated_in="4.0", removed_in="5.0")
+    @deprecated(deprecated_in="4.0")
     def _fallback_formatting(self) -> str:
         """
         Format SQL without a specific dialect.

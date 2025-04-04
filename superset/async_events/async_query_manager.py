@@ -18,10 +18,9 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Optional
 
 import jwt
-import redis
 from flask import Flask, Request, request, Response, session
 from flask_caching.backends.base import BaseCache
 
@@ -40,6 +39,10 @@ class CacheBackendNotInitialized(Exception):  # noqa: N818
 
 
 class AsyncQueryTokenException(Exception):  # noqa: N818
+    pass
+
+
+class UnsupportedCacheBackendError(Exception):  # noqa: N818
     pass
 
 
@@ -77,7 +80,7 @@ def increment_id(entry_id: str) -> str:
 
 def get_cache_backend(
     config: dict[str, Any],
-) -> Union[RedisCacheBackend, RedisSentinelCacheBackend, redis.Redis]:  # type: ignore
+) -> RedisCacheBackend | RedisSentinelCacheBackend:
     cache_config = config.get("GLOBAL_ASYNC_QUERIES_CACHE_BACKEND", {})
     cache_type = cache_config.get("CACHE_TYPE")
 
@@ -87,11 +90,8 @@ def get_cache_backend(
     if cache_type == "RedisSentinelCache":
         return RedisSentinelCacheBackend.from_config(cache_config)
 
-    # TODO: Deprecate hardcoded plain Redis code and expand cache backend options.
-    # Maintain backward compatibility with 'GLOBAL_ASYNC_QUERIES_REDIS_CONFIG' until it is deprecated.  # noqa: E501
-    return redis.Redis(
-        **config["GLOBAL_ASYNC_QUERIES_REDIS_CONFIG"], decode_responses=True
-    )
+    # TODO: Expand cache backend options.
+    raise UnsupportedCacheBackendError("Unsupported cache backend configuration")
 
 
 class AsyncQueryManager:

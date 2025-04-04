@@ -23,15 +23,18 @@ import {
   ColorSchemeGroup,
   getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
-import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import ColorSchemeControl, { ColorSchemes } from '.';
 
 const defaultProps = () => ({
   hasCustomLabelsColor: false,
   sharedLabelsColors: [],
   label: 'Color scheme',
-  labelMargin: 0,
   name: 'color',
   value: 'supersetDefault',
   clearable: true,
@@ -63,7 +66,7 @@ test('should not display an alert icon if hasCustomLabelsColor=false', async () 
   setup();
   await waitFor(() => {
     expect(
-      screen.queryByRole('img', { name: 'alert-solid' }),
+      screen.queryByRole('img', { name: 'warning' }),
     ).not.toBeInTheDocument();
   });
 });
@@ -75,9 +78,7 @@ test('should display an alert icon if hasCustomLabelsColor=true', async () => {
   };
   setup(hasCustomLabelsColorProps);
   await waitFor(() => {
-    expect(
-      screen.getByRole('img', { name: 'alert-solid' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'warning' })).toBeInTheDocument();
   });
 });
 

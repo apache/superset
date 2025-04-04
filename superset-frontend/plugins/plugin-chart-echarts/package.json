@@ -24,16 +24,17 @@
     "lib"
   ],
   "dependencies": {
+    "@types/react-redux": "^7.1.34",
     "d3-array": "^1.2.0",
-    "lodash": "^4.17.21",
-    "dayjs": "^1.11.13"
+    "dayjs": "^1.11.13",
+    "lodash": "^4.17.21"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "echarts": "*",
     "memoize-one": "*",
-    "react": "^16.13.1"
+    "react": "^17.0.2"
   },
   "publishConfig": {
     "access": "public"

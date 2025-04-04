@@ -16,19 +16,26 @@
 # under the License.
 
 import json
+from datetime import datetime
 from unittest.mock import patch
+from uuid import UUID
 
 import pytest
 from pytest_mock import MockerFixture
 
+from superset.app import SupersetApp
+from superset.commands.exceptions import UpdateFailedError
 from superset.commands.report.execute import BaseReportState
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.reports.models import (
+    ReportRecipients,
     ReportRecipientType,
     ReportSchedule,
+    ReportScheduleType,
     ReportSourceFormat,
 )
 from superset.utils.core import HeaderDataType
+from superset.utils.screenshots import ChartScreenshot
 from tests.integration_tests.conftest import with_feature_flags
 
 
@@ -365,3 +372,188 @@ def test_get_tab_url(
     )
     result: str = class_instance._get_tab_url(dashboard_state)
     assert result == "http://0.0.0.0:8080/superset/dashboard/p/uri/"
+
+
+def create_report_schedule(
+    mocker: MockerFixture,
+    custom_width: int | None = None,
+    custom_height: int | None = None,
+) -> ReportSchedule:
+    """Helper function to create a ReportSchedule instance with specified dimensions."""
+    schedule = ReportSchedule()
+    schedule.type = ReportScheduleType.REPORT
+    schedule.name = "Test Report"
+    schedule.description = "Test Description"
+    schedule.chart = mocker.MagicMock()
+    schedule.chart.id = 1
+    schedule.dashboard = None
+    schedule.database = None
+    schedule.custom_width = custom_width
+    schedule.custom_height = custom_height
+    return schedule
+
+
+@pytest.mark.parametrize(
+    "test_id,custom_width,max_width,window_width,expected_width",
+    [
+        # Test when custom width exceeds max width
+        ("exceeds_max", 2000, 1600, 800, 1600),
+        # Test when custom width is less than max width
+        ("under_max", 1200, 1600, 800, 1200),
+        # Test when custom width is None (should use window width)
+        ("no_custom", None, 1600, 800, 800),
+        # Test when custom width equals max width
+        ("equals_max", 1600, 1600, 800, 1600),
+    ],
+)
+def test_screenshot_width_calculation(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    test_id: str,
+    custom_width: int | None,
+    max_width: int,
+    window_width: int,
+    expected_width: int,
+) -> None:
+    """
+    Test that screenshot width is correctly calculated.
+
+    The width should be:
+    - Limited by max_width when custom_width exceeds it
+    - Equal to custom_width when it's less than max_width
+    - Equal to window_width when custom_width is None
+    """
+    from superset.commands.report.execute import BaseReportState
+
+    # Mock configuration
+    app.config.update(
+        {
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": max_width,
+            "WEBDRIVER_WINDOW": {
+                "slice": (window_width, 600),
+                "dashboard": (window_width, 600),
+            },
+            "ALERT_REPORTS_EXECUTORS": {},
+        }
+    )
+
+    # Create report schedule with specified custom width
+    report_schedule = create_report_schedule(mocker, custom_width=custom_width)
+
+    # Initialize BaseReportState
+    report_state = BaseReportState(
+        report_schedule=report_schedule,
+        scheduled_dttm=datetime.now(),
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+    )
+
+    # Mock security manager and screenshot
+    with (
+        patch(
+            "superset.commands.report.execute.security_manager"
+        ) as mock_security_manager,
+        patch(
+            "superset.utils.screenshots.ChartScreenshot.get_screenshot"
+        ) as mock_get_screenshot,
+    ):
+        # Mock user
+        mock_user = mocker.MagicMock()
+        mock_security_manager.find_user.return_value = mock_user
+        mock_get_screenshot.return_value = b"screenshot bytes"
+
+        # Mock get_executor to avoid database lookups
+        with patch(
+            "superset.commands.report.execute.get_executor"
+        ) as mock_get_executor:
+            mock_get_executor.return_value = ("executor", "username")
+
+            # Capture the ChartScreenshot instantiation
+            with patch(
+                "superset.commands.report.execute.ChartScreenshot",
+                wraps=ChartScreenshot,
+            ) as mock_chart_screenshot:
+                # Call the method that triggers screenshot creation
+                report_state._get_screenshots()
+
+                # Verify ChartScreenshot was created with correct window_size
+                mock_chart_screenshot.assert_called_once()
+                _, kwargs = mock_chart_screenshot.call_args
+                assert kwargs["window_size"][0] == expected_width, (
+                    f"Test {test_id}: Expected width {expected_width}, "
+                    f"but got {kwargs['window_size'][0]}"
+                )
+
+
+def test_update_recipient_to_slack_v2(mocker: MockerFixture):
+    """
+    Test converting a Slack recipient to Slack v2 format.
+    """
+    mocker.patch(
+        "superset.commands.report.execute.get_channels_with_search",
+        return_value=[
+            {
+                "id": "abc124f",
+                "name": "channel-1",
+                "is_member": True,
+                "is_private": False,
+            },
+            {
+                "id": "blah_!channel_2",
+                "name": "Channel_2",
+                "is_member": True,
+                "is_private": False,
+            },
+        ],
+    )
+    mock_report_schedule = ReportSchedule(
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=json.dumps({"target": "Channel-1, Channel_2"}),
+            ),
+        ],
+    )
+
+    mock_cmmd: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    mock_cmmd.update_report_schedule_slack_v2()
+
+    assert (
+        mock_cmmd._report_schedule.recipients[0].recipient_config_json
+        == '{"target": "abc124f,blah_!channel_2"}'
+    )
+    assert mock_cmmd._report_schedule.recipients[0].type == ReportRecipientType.SLACKV2
+
+
+def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
+    """
+    Test converting a Slack recipient to Slack v2 format raises an error
+    in case it can't find all channels.
+    """
+    mocker.patch(
+        "superset.commands.report.execute.get_channels_with_search",
+        return_value=[
+            {
+                "id": "blah_!channel_2",
+                "name": "Channel 2",
+                "is_member": True,
+                "is_private": False,
+            },
+        ],
+    )
+    mock_report_schedule = ReportSchedule(
+        name="Test Report",
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=json.dumps({"target": "Channel 1, Channel 2"}),
+            ),
+        ],
+    )
+
+    mock_cmmd: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    with pytest.raises(UpdateFailedError):
+        mock_cmmd.update_report_schedule_slack_v2()

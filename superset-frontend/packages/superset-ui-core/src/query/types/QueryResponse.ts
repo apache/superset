@@ -33,7 +33,7 @@ export enum GenericDataType {
 /**
  * Primitive types for data field values.
  */
-export type DataRecordValue = number | string | boolean | Date | null;
+export type DataRecordValue = number | string | boolean | Date | null | bigint;
 
 export interface DataRecord {
   [key: string]: DataRecordValue;
@@ -79,6 +79,9 @@ export interface ChartDataResponseResult {
     | 'timed_out';
   from_dttm: number | null;
   to_dttm: number | null;
+  // TODO(hainenber): define proper type for below attributes
+  rejected_filters?: any[];
+  applied_filters?: any[];
 }
 
 export interface TimeseriesChartDataResponseResult

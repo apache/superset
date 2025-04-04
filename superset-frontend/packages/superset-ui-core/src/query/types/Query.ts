@@ -31,7 +31,7 @@ import { Maybe } from '../../types';
 import { PostProcessingRule } from './PostProcessing';
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
-import { GenericDataType } from './QueryResponse';
+import { GenericDataType, DataRecordValue } from './QueryResponse';
 
 export type BaseQueryObjectFilterClause = {
   col: QueryFormColumn;
@@ -41,13 +41,13 @@ export type BaseQueryObjectFilterClause = {
 
 export type BinaryQueryObjectFilterClause = BaseQueryObjectFilterClause & {
   op: BinaryOperator;
-  val: string | number | boolean;
+  val: DataRecordValue;
   formattedVal?: string;
 };
 
 export type SetQueryObjectFilterClause = BaseQueryObjectFilterClause & {
   op: SetOperator;
-  val: (string | number | boolean)[];
+  val: DataRecordValue[];
   formattedVal?: string[];
 };
 
@@ -349,15 +349,17 @@ export type Query = {
 };
 
 export type QueryResults = {
-  results: {
-    displayLimitReached: boolean;
-    columns: QueryColumn[];
-    data: Record<string, unknown>[];
-    expanded_columns: QueryColumn[];
-    selected_columns: QueryColumn[];
-    query: { limit: number };
-    query_id?: number;
-  };
+  results: InnerQueryResults;
+};
+
+export type InnerQueryResults = {
+  displayLimitReached: boolean;
+  columns: QueryColumn[];
+  data: Record<string, unknown>[];
+  expanded_columns: QueryColumn[];
+  selected_columns: QueryColumn[];
+  query: { limit: number };
+  query_id?: number;
 };
 
 export type QueryResponse = Query & QueryResults;

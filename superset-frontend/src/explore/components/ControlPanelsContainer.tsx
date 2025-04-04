@@ -48,6 +48,7 @@ import {
   CustomControlItem,
   Dataset,
   ExpandedControlItem,
+  isCustomControlItem,
   isTemporalColumn,
   sections,
 } from '@superset-ui/chart-controls';
@@ -65,7 +66,7 @@ import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -587,7 +588,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     const errorColor = sectionHasHadNoErrors.current[sectionId]
       ? colors.error.base
-      : colors.alert.base;
+      : colors.warning.base;
 
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
@@ -678,8 +679,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                     return controlItem;
                   }
                   if (
-                    controlItem.name &&
-                    controlItem.config &&
+                    isCustomControlItem(controlItem) &&
                     controlItem.name !== 'datasource'
                   ) {
                     return renderControl(controlItem);
@@ -747,7 +747,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     const errorColor = dataTabHasHadNoErrors.current
       ? colors.error.base
-      : colors.alert.base;
+      : colors.warning.base;
 
     return (
       <>
@@ -777,7 +777,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
   }, [
     colors.error.base,
-    colors.alert.base,
+    colors.warning.base,
     dataTabHasHadNoErrors,
     props.errorMessage,
   ]);

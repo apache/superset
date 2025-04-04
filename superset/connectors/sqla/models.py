@@ -359,12 +359,15 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
     @property
     def verbose_map(self) -> dict[str, str]:
         verb_map = {"__timestamp": "Time"}
-        verb_map.update(
-            {o.metric_name: o.verbose_name or o.metric_name for o in self.metrics}
-        )
-        verb_map.update(
-            {o.column_name: o.verbose_name or o.column_name for o in self.columns}
-        )
+
+        for o in self.metrics:
+            if o.metric_name not in verb_map:
+                verb_map[o.metric_name] = o.verbose_name or o.metric_name
+
+        for o in self.columns:
+            if o.column_name not in verb_map:
+                verb_map[o.column_name] = o.verbose_name or o.column_name
+
         return verb_map
 
     @property
@@ -421,7 +424,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             # pull out all required metrics from the form_data
             for metric_param in METRIC_FORM_DATA_PARAMS:
                 for metric in utils.as_list(form_data.get(metric_param) or []):
-                    metric_names.add(utils.get_metric_name(metric))
+                    metric_names.add(utils.get_metric_name(metric, self.verbose_map))
                     if utils.is_adhoc_metric(metric):
                         column_ = metric.get("column") or {}
                         if column_name := column_.get("column_name"):
@@ -473,6 +476,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             metric
             for metric in data["metrics"]
             if metric["metric_name"] in metric_names
+            or metric["verbose_name"] in metric_names
         ]
 
         filtered_columns: list[Column] = []
@@ -1364,7 +1368,7 @@ class SqlaTable(
         df.columns = ["field", "type"]
         return df.to_html(
             index=False,
-            classes=("dataframe table table-striped table-bordered " "table-condensed"),
+            classes=("dataframe table table-striped table-bordered table-condensed"),
         )
 
     @property
@@ -1493,7 +1497,7 @@ class SqlaTable(
         :rtype: sqlalchemy.sql.column
         """
         expression_type = metric.get("expressionType")
-        label = utils.get_metric_name(metric)
+        label = utils.get_metric_name(metric, self.verbose_map)
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             metric_column = metric.get("column") or {}
@@ -1907,6 +1911,7 @@ class SqlaTable(
             for method, perms in zip(
                 (SqlaTable.perm, SqlaTable.schema_perm, SqlaTable.catalog_perm),
                 (permissions, schema_perms, catalog_perms),
+                strict=False,
             )
             if perms
         ]

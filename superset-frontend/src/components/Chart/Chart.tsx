@@ -31,7 +31,7 @@ import {
 } from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Loading from 'src/components/Loading';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
@@ -172,12 +172,6 @@ const MessageSpan = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const MonospaceDiv = styled.div`
-  font-family: ${({ theme }) => theme.typography.families.monospace};
-  word-break: break-word;
-  overflow-x: auto;
-  white-space: pre-wrap;
-`;
 class Chart extends PureComponent<ChartProps, {}> {
   static defaultProps = defaultProps;
 
@@ -273,8 +267,7 @@ class Chart extends PureComponent<ChartProps, {}> {
         key={chartId}
         chartId={chartId}
         error={error}
-        subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
-        copyText={message}
+        subtitle={message}
         link={queryResponse ? queryResponse.link : undefined}
         source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
         stackTrace={chartStackTrace}
@@ -337,7 +330,8 @@ class Chart extends PureComponent<ChartProps, {}> {
 
     if (errorMessage && ensureIsArray(queriesResponse).length === 0) {
       return (
-        <EmptyStateBig
+        <EmptyState
+          size="large"
           title={t('Add required control values to preview chart')}
           description={getChartRequiredFieldsMissingMessage(true)}
           image="chart.svg"
@@ -352,7 +346,8 @@ class Chart extends PureComponent<ChartProps, {}> {
       ensureIsArray(queriesResponse).length === 0
     ) {
       return (
-        <EmptyStateBig
+        <EmptyState
+          size="large"
           title={t('Your chart is ready to go!')}
           description={
             <span>

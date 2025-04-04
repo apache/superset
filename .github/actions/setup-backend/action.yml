@@ -26,11 +26,12 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.python-version }}" = "current" ]; then
-          echo "PYTHON_VERSION=3.10" >> $GITHUB_ENV
-        elif [ "${{ inputs.python-version }}" = "next" ]; then
           echo "PYTHON_VERSION=3.11" >> $GITHUB_ENV
+        elif [ "${{ inputs.python-version }}" = "next" ]; then
+          # currently disabled in GHA matrixes because of library compatibility issues
+          echo "PYTHON_VERSION=3.12" >> $GITHUB_ENV
         elif [ "${{ inputs.python-version }}" = "previous" ]; then
-          echo "PYTHON_VERSION=3.9" >> $GITHUB_ENV
+          echo "PYTHON_VERSION=3.10" >> $GITHUB_ENV
         else
           echo "PYTHON_VERSION=${{ inputs.python-version }}" >> $GITHUB_ENV
         fi
@@ -43,6 +44,7 @@ runs:
       run: |
         if [ "${{ inputs.install-superset }}" = "true" ]; then
           sudo apt-get update && sudo apt-get -y install libldap2-dev libsasl2-dev
+
           pip install --upgrade pip setuptools wheel uv
 
           if [ "${{ inputs.requirements-type }}" = "dev" ]; then

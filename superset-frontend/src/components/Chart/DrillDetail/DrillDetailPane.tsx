@@ -41,7 +41,7 @@ import Loading from 'src/components/Loading';
 import BooleanCell from 'src/components/Table/cell-renderers/BooleanCell';
 import NullCell from 'src/components/Table/cell-renderers/NullCell';
 import TimeCell from 'src/components/Table/cell-renderers/TimeCell';
-import { EmptyStateMedium } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
 import HeaderWithRadioGroup from 'src/components/Table/header-renderers/HeaderWithRadioGroup';
@@ -90,7 +90,9 @@ export default function DrillDetailPane({
   const [resultsPages, setResultsPages] = useState<Map<number, ResultsPage>>(
     new Map(),
   );
-  const [timeFormatting, setTimeFormatting] = useState({});
+  const [timeFormatting, setTimeFormatting] = useState<
+    Record<string, TimeFormatting>
+  >({});
 
   const SAMPLES_ROW_LIMIT = useSelector(
     (state: { common: { conf: JsonObject } }) =>
@@ -140,7 +142,10 @@ export default function DrillDetailPane({
                   : TimeFormatting.Formatted
               }
               onChange={value =>
-                setTimeFormatting(state => ({ ...state, [column]: value }))
+                setTimeFormatting(state => ({
+                  ...state,
+                  [column]: parseInt(value, 10) as TimeFormatting,
+                }))
               }
             />
           ) : (
@@ -285,7 +290,7 @@ export default function DrillDetailPane({
   } else if (resultsPage?.total === 0) {
     // Render empty state if no results are returned for page
     const title = t('No rows were returned for this dataset');
-    tableContent = <EmptyStateMedium image="document.svg" title={title} />;
+    tableContent = <EmptyState image="document.svg" title={title} />;
   } else {
     // Render table if at least one page has successfully loaded
     tableContent = (

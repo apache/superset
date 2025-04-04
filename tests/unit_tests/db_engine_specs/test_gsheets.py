@@ -17,7 +17,7 @@
 
 # pylint: disable=import-outside-toplevel, invalid-name, line-too-long
 
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
@@ -42,16 +42,38 @@ class ProgrammingError(Exception):
     """
 
 
-def test_validate_parameters_simple() -> None:
+def test_validate_parameters_simple(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
         GSheetsPropertiesType,
     )
 
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
     properties: GSheetsPropertiesType = {
         "parameters": {
             "service_account_info": "",
-            "catalog": {},
+            "catalog": {"test": "https://docs.google.com/spreadsheets/d/1/edit"},
+        },
+        "catalog": {},
+    }
+    assert GSheetsEngineSpec.validate_parameters(properties)
+
+
+def test_validate_parameters_no_catalog(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {"": "https://docs.google.com/spreadsheets/d/1/edit"},
         },
         "catalog": {},
     }
@@ -66,18 +88,21 @@ def test_validate_parameters_simple() -> None:
     ]
 
 
-def test_validate_parameters_simple_with_in_root_catalog() -> None:
+def test_validate_parameters_simple_with_in_root_catalog(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
         GSheetsPropertiesType,
     )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
 
     properties: GSheetsPropertiesType = {
         "parameters": {
             "service_account_info": "",
             "catalog": {},
         },
-        "catalog": {},
+        "catalog": {"": "https://docs.google.com/spreadsheets/d/1/edit"},
     }
     errors = GSheetsEngineSpec.validate_parameters(properties)
     assert errors == [
@@ -120,61 +145,58 @@ def test_validate_parameters_catalog(
     }
     errors = GSheetsEngineSpec.validate_parameters(properties)  # ignore: type
 
-    assert (
-        errors
-        == [
-            SupersetError(
-                message=(
-                    "The URL could not be identified. Please check for typos "
-                    "and make sure that ‘Type of Google Sheets allowed’ "
-                    "selection matches the input."
-                ),
-                error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-                level=ErrorLevel.WARNING,
-                extra={
-                    "catalog": {
-                        "idx": 0,
-                        "url": True,
-                    },
-                    "issue_codes": [
-                        {
-                            "code": 1003,
-                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
-                        },
-                        {
-                            "code": 1005,
-                            "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
-                        },
-                    ],
-                },
+    assert errors == [
+        SupersetError(
+            message=(
+                "The URL could not be identified. Please check for typos "
+                "and make sure that ‘Type of Google Sheets allowed’ "
+                "selection matches the input."
             ),
-            SupersetError(
-                message=(
-                    "The URL could not be identified. Please check for typos "
-                    "and make sure that ‘Type of Google Sheets allowed’ "
-                    "selection matches the input."
-                ),
-                error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-                level=ErrorLevel.WARNING,
-                extra={
-                    "catalog": {
-                        "idx": 2,
-                        "url": True,
-                    },
-                    "issue_codes": [
-                        {
-                            "code": 1003,
-                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
-                        },
-                        {
-                            "code": 1005,
-                            "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
-                        },
-                    ],
+            error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={
+                "catalog": {
+                    "idx": 0,
+                    "url": True,
                 },
+                "issue_codes": [
+                    {
+                        "code": 1003,
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
+                    },
+                    {
+                        "code": 1005,
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
+                    },
+                ],
+            },
+        ),
+        SupersetError(
+            message=(
+                "The URL could not be identified. Please check for typos "
+                "and make sure that ‘Type of Google Sheets allowed’ "
+                "selection matches the input."
             ),
-        ]
-    )
+            error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={
+                "catalog": {
+                    "idx": 2,
+                    "url": True,
+                },
+                "issue_codes": [
+                    {
+                        "code": 1003,
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
+                    },
+                    {
+                        "code": 1005,
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
+                    },
+                ],
+            },
+        ),
+    ]
 
     create_engine.assert_called_with(
         "gsheets://",
@@ -474,9 +496,9 @@ def test_upload_existing(mocker: MockerFixture) -> None:
     )
 
 
-def test_get_url_for_impersonation_username(mocker: MockerFixture) -> None:
+def test_impersonate_user_username(mocker: MockerFixture) -> None:
     """
-    Test passing a username to `get_url_for_impersonation`.
+    Test passing a username to `impersonate_user`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
@@ -486,27 +508,32 @@ def test_get_url_for_impersonation_username(mocker: MockerFixture) -> None:
         "superset.db_engine_specs.gsheets.security_manager.find_user",
         return_value=user,
     )
+    database = mocker.MagicMock()
 
-    assert GSheetsEngineSpec.get_url_for_impersonation(
-        url=make_url("gsheets://"),
-        impersonate_user=True,
+    assert GSheetsEngineSpec.impersonate_user(
+        database,
         username="alice",
-        access_token=None,
-    ) == make_url("gsheets://?subject=alice%40example.org")
+        user_token=None,
+        url=make_url("gsheets://"),
+        engine_kwargs={},
+    ) == (make_url("gsheets://?subject=alice%40example.org"), {})
 
 
-def test_get_url_for_impersonation_access_token() -> None:
+def test_impersonate_user_access_token(mocker: MockerFixture) -> None:
     """
-    Test passing an access token to `get_url_for_impersonation`.
+    Test passing an access token to `impersonate_user`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    assert GSheetsEngineSpec.get_url_for_impersonation(
-        url=make_url("gsheets://"),
-        impersonate_user=True,
+    database = mocker.MagicMock()
+
+    assert GSheetsEngineSpec.impersonate_user(
+        database,
         username=None,
-        access_token="access-token",  # noqa: S106
-    ) == make_url("gsheets://?access_token=access-token")
+        user_token="access-token",  # noqa: S106
+        url=make_url("gsheets://"),
+        engine_kwargs={},
+    ) == (make_url("gsheets://?access_token=access-token"), {})
 
 
 def test_is_oauth2_enabled_no_config(mocker: MockerFixture) -> None:
@@ -670,3 +697,23 @@ def test_get_oauth2_fresh_token(
         },
         timeout=30.0,
     )
+
+
+def test_update_params_from_encrypted_extra(mocker: MockerFixture) -> None:
+    """
+    Test `update_params_from_encrypted_extra`.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    database = mocker.MagicMock(
+        encrypted_extra=json.dumps(
+            {
+                "oauth2_client_info": "SECRET",
+                "foo": "bar",
+            }
+        )
+    )
+    params: dict[str, Any] = {}
+
+    GSheetsEngineSpec.update_params_from_encrypted_extra(database, params)
+    assert params == {"foo": "bar"}

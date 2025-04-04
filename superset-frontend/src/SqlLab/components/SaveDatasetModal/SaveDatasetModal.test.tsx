@@ -18,13 +18,13 @@
  */
 import * as reactRedux from 'react-redux';
 import {
+  cleanup,
   fireEvent,
   render,
   screen,
-  cleanup,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';

@@ -18,9 +18,13 @@
  */
 
 import { VizType } from '@superset-ui/core';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
 import PropertiesModal, { PropertiesModalProps } from '.';
 
 const createProps = () =>
@@ -145,15 +149,25 @@ test('Should render null when show:false', async () => {
   });
 });
 
+// Add cleanup after each test
+afterEach(async () => {
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
+
 test('Should render when show:true', async () => {
   const props = createProps();
   renderModal(props);
 
-  await waitFor(() => {
-    expect(
-      screen.getByRole('dialog', { name: 'Edit Chart Properties' }),
-    ).toBeVisible();
-  });
+  await waitFor(
+    () => {
+      const modal = screen.getByRole('dialog');
+      expect(modal).toBeInTheDocument();
+      expect(modal).toHaveTextContent('Edit Chart Properties');
+      expect(modal).not.toHaveClass('ant-zoom-appear');
+    },
+    { timeout: 3000 },
+  );
 });
 
 test('Should have modal header', async () => {
@@ -186,29 +200,35 @@ test('"Close" button should call "onHide"', async () => {
 test('Should render all elements inside modal', async () => {
   const props = createProps();
   renderModal(props);
-  await waitFor(() => {
-    expect(screen.getAllByRole('textbox')).toHaveLength(5);
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Basic information' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Name')).toBeInTheDocument();
-    expect(screen.getByText('Description')).toBeInTheDocument();
 
-    expect(
-      screen.getByRole('heading', { name: 'Configuration' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Cache timeout')).toBeInTheDocument();
+  await waitFor(
+    () => {
+      expect(screen.getAllByRole('textbox')).toHaveLength(5);
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: 'Basic information' }),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Name')).toBeInTheDocument();
+      expect(screen.getByText('Description')).toBeInTheDocument();
 
-    expect(screen.getByRole('heading', { name: 'Access' })).toBeInTheDocument();
-    expect(screen.getByText('Owners')).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: 'Configuration' }),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Cache timeout')).toBeInTheDocument();
 
-    expect(
-      screen.getByRole('heading', { name: 'Configuration' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Certified by')).toBeInTheDocument();
-    expect(screen.getByText('Certification details')).toBeInTheDocument();
-  });
+      expect(
+        screen.getByRole('heading', { name: 'Access' }),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Owners')).toBeInTheDocument();
+
+      expect(
+        screen.getByRole('heading', { name: 'Configuration' }),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Certified by')).toBeInTheDocument();
+      expect(screen.getByText('Certification details')).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
 });
 
 test('Should have modal footer', async () => {

@@ -43,10 +43,11 @@ import {
   Select,
   Upload,
 } from 'src/components';
-import { UploadOutlined } from '@ant-design/icons';
+import { Icons } from 'src/components/Icons';
 import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
+// eslint-disable-next-line no-restricted-imports
+import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   antdCollapseStyles,
@@ -137,11 +138,6 @@ interface UploadInfo {
   column_data_types: string;
 }
 
-interface SheetColumnNames {
-  sheet_name: string;
-  column_names: string[];
-}
-
 const defaultUploadInfo: UploadInfo = {
   table_name: '',
   schema: '',
@@ -188,8 +184,11 @@ export const validateUploadFileExtension = (
     return false;
   }
 
-  const fileType = extensionMatch[1];
-  return allowedExtensions.includes(fileType);
+  const fileType = extensionMatch[1].toLowerCase();
+  const lowerCaseAllowedExtensions = allowedExtensions.map(ext =>
+    ext.toLowerCase(),
+  );
+  return lowerCaseAllowedExtensions.includes(fileType);
 };
 
 interface StyledSwitchContainerProps extends SwitchProps {
@@ -225,8 +224,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [columns, setColumns] = useState<string[]>([]);
   const [sheetNames, setSheetNames] = useState<string[]>([]);
   const [sheetsColumnNames, setSheetsColumnNames] = useState<
-    SheetColumnNames[]
-  >([]);
+    Record<string, string[]>
+  >({});
   const [delimiter, setDelimiter] = useState<string>(',');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentSchema, setCurrentSchema] = useState<string | undefined>();
@@ -235,19 +234,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [previewUploadedFile, setPreviewUploadedFile] = useState<boolean>(true);
   const [fileLoading, setFileLoading] = useState<boolean>(false);
 
-  const createTypeToEndpointMap = (
-    databaseId: number,
-  ): { [key: string]: string } => ({
-    csv: `/api/v1/database/${databaseId}/csv_upload/`,
-    excel: `/api/v1/database/${databaseId}/excel_upload/`,
-    columnar: `/api/v1/database/${databaseId}/columnar_upload/`,
-  });
-
-  const typeToFileMetadataEndpoint = {
-    csv: '/api/v1/database/csv_metadata/',
-    excel: '/api/v1/database/excel_metadata/',
-    columnar: '/api/v1/database/columnar_metadata/',
-  };
+  const createTypeToEndpointMap = (databaseId: number) =>
+    `/api/v1/database/${databaseId}/upload/`;
 
   const nullValuesOptions = [
     {
@@ -334,7 +322,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     setDelimiter(',');
     setPreviewUploadedFile(true);
     setFileLoading(false);
-    setSheetsColumnNames([]);
+    setSheetsColumnNames({});
     form.resetFields();
   };
 
@@ -374,7 +362,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
           return Promise.resolve({ data: [], totalCount: 0 });
         }
         return SupersetClient.get({
-          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/`,
+          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/?q=(upload_allowed:!t)`,
         }).then(response => {
           const list = response.json.result.map((item: string) => ({
             value: item,
@@ -394,9 +382,10 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     if (type === 'csv') {
       formData.append('delimiter', mergedValues.delimiter);
     }
+    formData.append('type', type);
     setFileLoading(true);
     return SupersetClient.post({
-      endpoint: typeToFileMetadataEndpoint[type],
+      endpoint: '/api/v1/database/upload_metadata/',
       body: formData,
       headers: { Accept: 'application/json' },
     })
@@ -408,10 +397,10 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
           const { allSheetNames, sheetColumnNamesMap } = items.reduce(
             (
               acc: {
-                allSheetNames: any[];
+                allSheetNames: string[];
                 sheetColumnNamesMap: Record<string, string[]>;
               },
-              item: { sheet_name: any; column_names: any },
+              item: { sheet_name: string; column_names: string[] },
             ) => {
               acc.allSheetNames.push(item.sheet_name);
               acc.sheetColumnNamesMap[item.sheet_name] = item.column_names;
@@ -477,7 +466,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
     appendFormData(formData, mergedValues);
     setIsLoading(true);
-    const endpoint = createTypeToEndpointMap(currentDatabaseId)[type];
+    const endpoint = createTypeToEndpointMap(currentDatabaseId);
+    formData.append('type', type);
     return SupersetClient.post({
       endpoint,
       body: formData,
@@ -644,7 +634,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                   >
                     <Button
                       aria-label={t('Select')}
-                      icon={<UploadOutlined />}
+                      icon={<Icons.UploadOutlined />}
                       loading={fileLoading}
                     >
                       {t('Select')}
@@ -803,7 +793,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                       allowClear
                       allowNewOptions
                       placeholder={t(
-                        'A comma separated list of columns that should be parsed as dates',
+                        'Select column names from a dropdown list that should be parsed as dates.',
                       )}
                     />
                   </StyledFormItem>

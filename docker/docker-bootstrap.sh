@@ -20,19 +20,22 @@ set -eo pipefail
 
 # Make python interactive
 if [ "$DEV_MODE" == "true" ]; then
-    if command -v uv > /dev/null 2>&1; then
+    if [ "$(whoami)" = "root" ] && command -v uv > /dev/null 2>&1; then
       echo "Reinstalling the app in editable mode"
       uv pip install -e .
     fi
 fi
 REQUIREMENTS_LOCAL="/app/docker/requirements-local.txt"
+PORT=${PORT:-8088}
 # If Cypress run – overwrite the password for admin and export env variables
 if [ "$CYPRESS_CONFIG" == "true" ]; then
-    export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
     export SUPERSET_TESTENV=true
-    export SUPERSET__SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://superset:superset@db:5432/superset
+    export POSTGRES_DB=superset_cypress
+    export SUPERSET__SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://superset:superset@db:5432/superset_cypress
+    PORT=8081
 fi
-if [[ "$DATABASE_DIALECT" == postgres* ]] ; then
+if [[ "$DATABASE_DIALECT" == postgres* ]] && [ "$(whoami)" = "root" ]; then
+    # older images may not have the postgres dev requirements installed
     echo "Installing postgres requirements"
     if command -v uv > /dev/null 2>&1; then
         # Use uv in newer images
@@ -65,7 +68,7 @@ case "${1}" in
     ;;
   app)
     echo "Starting web app (using development server)..."
-    flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+    flask run -p $PORT --with-threads --reload --debugger --host=0.0.0.0
     ;;
   app-gunicorn)
     echo "Starting web app..."

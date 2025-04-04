@@ -45,11 +45,13 @@ class KeyValueResource(StrEnum):
     EXPLORE_PERMALINK = "explore_permalink"
     METASTORE_CACHE = "superset_metastore_cache"
     LOCK = "lock"
+    SQLLAB_PERMALINK = "sqllab_permalink"
 
 
 class SharedKey(StrEnum):
     DASHBOARD_PERMALINK_SALT = "dashboard_permalink_salt"
     EXPLORE_PERMALINK_SALT = "explore_permalink_salt"
+    SQLLAB_PERMALINK_SALT = "sqllab_permalink_salt"
 
 
 class KeyValueCodec(ABC):

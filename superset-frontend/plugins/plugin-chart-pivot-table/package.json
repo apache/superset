@@ -27,16 +27,16 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@ant-design/icons": "^5.0.1",
+    "@ant-design/icons": "^5.2.6",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "lodash": "^4.17.11",
     "prop-types": "*",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   },
   "devDependencies": {
-    "@babel/types": "^7.26.3",
+    "@babel/types": "^7.26.9",
     "@types/jest": "^29.5.12",
     "jest": "^29.7.0"
   }

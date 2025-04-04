@@ -467,7 +467,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: true,
               description: t(
-                'Renders table cells as HTML when applicable. For example, HTML &lt;a&gt; tags will be rendered as hyperlinks.',
+                'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
               ),
             },
           },
@@ -486,8 +486,9 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
-                const timeComparisonStatus =
-                  !!explore?.controls?.time_compare?.value;
+                const timeComparisonStatus = !isEmpty(
+                  explore?.controls?.time_compare?.value,
+                );
 
                 const { colnames: _colnames, coltypes: _coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
@@ -649,9 +650,11 @@ const config: ControlPanelConfig = {
                           (colname: string, index: number) =>
                             coltypes[index] === GenericDataType.Numeric,
                         )
-                        .map(colname => ({
+                        .map((colname: string) => ({
                           value: colname,
-                          label: verboseMap[colname] ?? colname,
+                          label: Array.isArray(verboseMap)
+                            ? colname
+                            : (verboseMap[colname] ?? colname),
                         }))
                     : [];
                 const columnOptions = explore?.controls?.time_compare?.value

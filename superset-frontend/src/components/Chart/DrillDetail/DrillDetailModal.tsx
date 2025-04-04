@@ -98,7 +98,7 @@ export default function DrillDetailModal({
   const dashboardPageId = useContext(DashboardPageIdContext);
   const { slice_name: chartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
-      state.sliceEntities.slices[chartId],
+      state.sliceEntities?.slices?.[chartId] || {},
   );
   const canExplore = useSelector((state: RootState) =>
     findPermission('can_explore', 'Superset', state.user?.roles),

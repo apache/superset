@@ -17,10 +17,14 @@
 # pylint: disable=invalid-name, unused-argument
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 import pytest
+from flask_appbuilder.security.sqla.models import Role
 from freezegun import freeze_time
+from jinja2 import DebugUndefined
+from jinja2.sandbox import SandboxedEnvironment
 from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.postgresql import dialect
@@ -32,9 +36,11 @@ from superset.exceptions import SupersetTemplateException
 from superset.jinja_context import (
     dataset_macro,
     ExtraCache,
+    get_template_processor,
     metric_macro,
     safe_proxy,
     TimeFilter,
+    to_datetime,
     WhereInMacro,
 )
 from superset.models.core import Database
@@ -355,19 +361,26 @@ def test_user_macros(mocker: MockerFixture):
         - ``current_user_id``
         - ``current_username``
         - ``current_user_email``
+        - ``current_user_roles``
     """
     mock_g = mocker.patch("superset.utils.core.g")
+    mock_get_user_roles = mocker.patch("superset.security_manager.get_user_roles")
     mock_cache_key_wrapper = mocker.patch(
         "superset.jinja_context.ExtraCache.cache_key_wrapper"
     )
     mock_g.user.id = 1
     mock_g.user.username = "my_username"
     mock_g.user.email = "my_email@test.com"
+    mock_get_user_roles.return_value = [Role(name="my_role1"), Role(name="my_role2")]
     cache = ExtraCache()
     assert cache.current_user_id() == 1
     assert cache.current_username() == "my_username"
     assert cache.current_user_email() == "my_email@test.com"
-    assert mock_cache_key_wrapper.call_count == 3
+    assert cache.current_user_roles() == ["my_role1", "my_role2"]
+    assert mock_cache_key_wrapper.call_count == 4
+
+    mock_get_user_roles.return_value = []
+    assert cache.current_user_roles() is None
 
 
 def test_user_macros_without_cache_key_inclusion(mocker: MockerFixture):
@@ -375,16 +388,19 @@ def test_user_macros_without_cache_key_inclusion(mocker: MockerFixture):
     Test all user macros with ``add_to_cache_keys`` set to ``False``.
     """
     mock_g = mocker.patch("superset.utils.core.g")
+    mock_get_user_roles = mocker.patch("superset.security_manager.get_user_roles")
     mock_cache_key_wrapper = mocker.patch(
         "superset.jinja_context.ExtraCache.cache_key_wrapper"
     )
     mock_g.user.id = 1
     mock_g.user.username = "my_username"
     mock_g.user.email = "my_email@test.com"
+    mock_get_user_roles.return_value = [Role(name="my_role1"), Role(name="my_role2")]
     cache = ExtraCache()
     assert cache.current_user_id(False) == 1
     assert cache.current_username(False) == "my_username"
     assert cache.current_user_email(False) == "my_email@test.com"
+    assert cache.current_user_roles(False) == ["my_role1", "my_role2"]
     assert mock_cache_key_wrapper.call_count == 0
 
 
@@ -398,6 +414,7 @@ def test_user_macros_without_user_info(mocker: MockerFixture):
     assert cache.current_user_id() == None  # noqa: E711
     assert cache.current_username() == None  # noqa: E711
     assert cache.current_user_email() == None  # noqa: E711
+    assert cache.current_user_roles() == None  # noqa: E711
 
 
 def test_where_in() -> None:
@@ -411,6 +428,72 @@ def test_where_in() -> None:
         "`where_in` macro for security reasons\n"
     )
     assert where_in(["O'Malley's"]) == "('O''Malley''s')"
+
+
+def test_where_in_empty_list() -> None:
+    """
+    Test the ``where_in`` Jinja2 filter when it receives an
+    empty list.
+    """
+    where_in = WhereInMacro(mysql.dialect())
+
+    # By default, the filter should return empty parenthesis (as a string)
+    assert where_in([]) == "()"
+    # With the default_to_none parameter set to True, it should return None
+    assert where_in([], default_to_none=True) is None
+
+
+@pytest.mark.parametrize(
+    "value,format,output",
+    [
+        ("2025-03-20 15:55:00", None, datetime(2025, 3, 20, 15, 55)),
+        (None, None, None),
+        ("2025-03-20", "%Y-%m-%d", datetime(2025, 3, 20)),
+        ("'2025-03-20'", "%Y-%m-%d", datetime(2025, 3, 20)),
+    ],
+)
+def test_to_datetime(
+    value: str | None, format: str | None, output: datetime | None
+) -> None:
+    """
+    Test the ``to_datetime`` custom filter.
+    """
+
+    result = (
+        to_datetime(value, format=format) if format is not None else to_datetime(value)
+    )
+    assert result == output
+
+
+@pytest.mark.parametrize(
+    "value,format,match",
+    [
+        (
+            "2025-03-20",
+            None,
+            "time data '2025-03-20' does not match format '%Y-%m-%d %H:%M:%S'",
+        ),
+        (
+            "2025-03-20 15:55:00",
+            "%Y-%m-%d",
+            "unconverted data remains:  15:55:00",
+        ),
+    ],
+)
+def test_to_datetime_raises(value: str, format: str | None, match: str) -> None:
+    """
+    Test the ``to_datetime`` custom filter raises with an incorrect
+    format.
+    """
+    with pytest.raises(
+        ValueError,
+        match=match,
+    ):
+        (
+            to_datetime(value, format=format)
+            if format is not None
+            else to_datetime(value)
+        )
 
 
 def test_dataset_macro(mocker: MockerFixture) -> None:
@@ -540,8 +623,154 @@ def test_metric_macro_with_dataset_id(mocker: MockerFixture) -> None:
         schema="my_schema",
         sql=None,
     )
-    assert metric_macro("count", 1) == "COUNT(*)"
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
     mock_get_form_data.assert_not_called()
+
+
+def test_metric_macro_recursive(mocker: MockerFixture) -> None:
+    """
+    Test the ``metric_macro`` when the definition is recursive.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        id=1,
+        metrics=[
+            SqlMetric(metric_name="a", expression="COUNT(*)"),
+            SqlMetric(metric_name="b", expression="{{ metric('a') }}"),
+            SqlMetric(metric_name="c", expression="{{ metric('b') }}"),
+        ],
+        table_name="test_dataset",
+        database=database,
+        schema="my_schema",
+        sql=None,
+    )
+
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = dataset
+
+    processor = get_template_processor(database=database)
+    assert processor.process_template("{{ metric('c', 1) }}") == "COUNT(*)"
+
+
+def test_metric_macro_expansion(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` expands other macros.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        id=1,
+        metrics=[
+            SqlMetric(metric_name="a", expression="{{ current_user_id() }}"),
+            SqlMetric(metric_name="b", expression="{{ metric('a') }}"),
+            SqlMetric(metric_name="c", expression="{{ metric('b') }}"),
+        ],
+        table_name="test_dataset",
+        database=database,
+        schema="my_schema",
+        sql=None,
+    )
+
+    mocker.patch("superset.jinja_context.get_user_id", return_value=42)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = dataset
+
+    processor = get_template_processor(database=database)
+    assert processor.process_template("{{ metric('c') }}") == "42"
+
+
+def test_metric_macro_recursive_compound(mocker: MockerFixture) -> None:
+    """
+    Test the ``metric_macro`` when the definition is compound.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        id=1,
+        metrics=[
+            SqlMetric(metric_name="a", expression="SUM(*)"),
+            SqlMetric(metric_name="b", expression="COUNT(*)"),
+            SqlMetric(
+                metric_name="c",
+                expression="{{ metric('a') }} / {{ metric('b') }}",
+            ),
+        ],
+        table_name="test_dataset",
+        database=database,
+        schema="my_schema",
+        sql=None,
+    )
+
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = dataset
+
+    processor = get_template_processor(database=database)
+    assert processor.process_template("{{ metric('c') }}") == "SUM(*) / COUNT(*)"
+
+
+def test_metric_macro_recursive_cyclic(mocker: MockerFixture) -> None:
+    """
+    Test the ``metric_macro`` when the definition is cyclic.
+
+    In this case it should stop, and not go into an infinite loop.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        id=1,
+        metrics=[
+            SqlMetric(metric_name="a", expression="{{ metric('c') }}"),
+            SqlMetric(metric_name="b", expression="{{ metric('a') }}"),
+            SqlMetric(metric_name="c", expression="{{ metric('b') }}"),
+        ],
+        table_name="test_dataset",
+        database=database,
+        schema="my_schema",
+        sql=None,
+    )
+
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = dataset
+
+    processor = get_template_processor(database=database)
+    with pytest.raises(SupersetTemplateException) as excinfo:
+        processor.process_template("{{ metric('c') }}")
+    assert str(excinfo.value) == "Infinite recursion detected in template"
+
+
+def test_metric_macro_recursive_infinite(mocker: MockerFixture) -> None:
+    """
+    Test the ``metric_macro`` when the definition is cyclic.
+
+    In this case it should stop, and not go into an infinite loop.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        id=1,
+        metrics=[
+            SqlMetric(metric_name="a", expression="{{ metric('a') }}"),
+        ],
+        table_name="test_dataset",
+        database=database,
+        schema="my_schema",
+        sql=None,
+    )
+
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = dataset
+
+    processor = get_template_processor(database=database)
+    with pytest.raises(SupersetTemplateException) as excinfo:
+        processor.process_template("{{ metric('a') }}")
+    assert str(excinfo.value) == "Infinite recursion detected in template"
 
 
 def test_metric_macro_with_dataset_id_invalid_key(mocker: MockerFixture) -> None:
@@ -559,8 +788,9 @@ def test_metric_macro_with_dataset_id_invalid_key(mocker: MockerFixture) -> None
         schema="my_schema",
         sql=None,
     )
+    env = SandboxedEnvironment(undefined=DebugUndefined)
     with pytest.raises(SupersetTemplateException) as excinfo:
-        metric_macro("blah", 1)
+        metric_macro(env, {}, "blah", 1)
     assert str(excinfo.value) == "Metric ``blah`` not found in test_dataset."
     mock_get_form_data.assert_not_called()
 
@@ -572,8 +802,9 @@ def test_metric_macro_invalid_dataset_id(mocker: MockerFixture) -> None:
     mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id.return_value = None
+    env = SandboxedEnvironment(undefined=DebugUndefined)
     with pytest.raises(DatasetNotFoundError) as excinfo:
-        metric_macro("macro_key", 100)
+        metric_macro(env, {}, "macro_key", 100)
     assert str(excinfo.value) == "Dataset ID 100 not found."
     mock_get_form_data.assert_not_called()
 
@@ -586,9 +817,10 @@ def test_metric_macro_no_dataset_id_no_context(mocker: MockerFixture) -> None:
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     mock_g = mocker.patch("superset.jinja_context.g")
     mock_g.form_data = {}
+    env = SandboxedEnvironment(undefined=DebugUndefined)
     with app.test_request_context():
         with pytest.raises(SupersetTemplateException) as excinfo:
-            metric_macro("macro_key")
+            metric_macro(env, {}, "macro_key")
         assert str(excinfo.value) == (
             "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
         )
@@ -605,6 +837,8 @@ def test_metric_macro_no_dataset_id_with_context_missing_info(
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     mock_g = mocker.patch("superset.jinja_context.g")
     mock_g.form_data = {"queries": []}
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
     with app.test_request_context(
         data={
             "form_data": json.dumps(
@@ -623,7 +857,7 @@ def test_metric_macro_no_dataset_id_with_context_missing_info(
         }
     ):
         with pytest.raises(SupersetTemplateException) as excinfo:
-            metric_macro("macro_key")
+            metric_macro(env, {}, "macro_key")
         assert str(excinfo.value) == (
             "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
         )
@@ -651,6 +885,7 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id(
     mock_g.form_data = {}
 
     # Getting the data from the request context
+    env = SandboxedEnvironment(undefined=DebugUndefined)
     with app.test_request_context(
         data={
             "form_data": json.dumps(
@@ -666,7 +901,7 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id(
             )
         }
     ):
-        assert metric_macro("macro_key") == "COUNT(*)"
+        assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
     # Getting data from g's form_data
     mock_g.form_data = {
@@ -679,7 +914,7 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id(
         ],
     }
     with app.test_request_context():
-        assert metric_macro("macro_key") == "COUNT(*)"
+        assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
 
 def test_metric_macro_no_dataset_id_with_context_datasource_id_none(
@@ -693,6 +928,7 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id_none(
     mock_g.form_data = {}
 
     # Getting the data from the request context
+    env = SandboxedEnvironment(undefined=DebugUndefined)
     with app.test_request_context(
         data={
             "form_data": json.dumps(
@@ -709,7 +945,7 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id_none(
         }
     ):
         with pytest.raises(SupersetTemplateException) as excinfo:
-            metric_macro("macro_key")
+            metric_macro(env, {}, "macro_key")
         assert str(excinfo.value) == (
             "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
         )
@@ -726,7 +962,7 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id_none(
     }
     with app.test_request_context():
         with pytest.raises(SupersetTemplateException) as excinfo:
-            metric_macro("macro_key")
+            metric_macro(env, {}, "macro_key")
         assert str(excinfo.value) == (
             "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
         )
@@ -758,6 +994,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_id(
     mock_g.form_data = {}
 
     # Getting the data from the request context
+    env = SandboxedEnvironment(undefined=DebugUndefined)
     with app.test_request_context(
         data={
             "form_data": json.dumps(
@@ -773,7 +1010,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_id(
             )
         }
     ):
-        assert metric_macro("macro_key") == "COUNT(*)"
+        assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
     # Getting data from g's form_data
     mock_g.form_data = {
@@ -786,7 +1023,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_id(
         ],
     }
     with app.test_request_context():
-        assert metric_macro("macro_key") == "COUNT(*)"
+        assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
 
 def test_metric_macro_no_dataset_id_with_context_slice_id_none(
@@ -800,6 +1037,7 @@ def test_metric_macro_no_dataset_id_with_context_slice_id_none(
     mock_g.form_data = {}
 
     # Getting the data from the request context
+    env = SandboxedEnvironment(undefined=DebugUndefined)
     with app.test_request_context(
         data={
             "form_data": json.dumps(
@@ -816,7 +1054,7 @@ def test_metric_macro_no_dataset_id_with_context_slice_id_none(
         }
     ):
         with pytest.raises(SupersetTemplateException) as excinfo:
-            metric_macro("macro_key")
+            metric_macro(env, {}, "macro_key")
         assert str(excinfo.value) == (
             "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
         )
@@ -833,7 +1071,7 @@ def test_metric_macro_no_dataset_id_with_context_slice_id_none(
     }
     with app.test_request_context():
         with pytest.raises(SupersetTemplateException) as excinfo:
-            metric_macro("macro_key")
+            metric_macro(env, {}, "macro_key")
         assert str(excinfo.value) == (
             "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
         )
@@ -852,6 +1090,7 @@ def test_metric_macro_no_dataset_id_with_context_deleted_chart(
     mock_g.form_data = {}
 
     # Getting the data from the request context
+    env = SandboxedEnvironment(undefined=DebugUndefined)
     with app.test_request_context(
         data={
             "form_data": json.dumps(
@@ -868,7 +1107,7 @@ def test_metric_macro_no_dataset_id_with_context_deleted_chart(
         }
     ):
         with pytest.raises(SupersetTemplateException) as excinfo:
-            metric_macro("macro_key")
+            metric_macro(env, {}, "macro_key")
         assert str(excinfo.value) == (
             "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
         )
@@ -885,7 +1124,7 @@ def test_metric_macro_no_dataset_id_with_context_deleted_chart(
     }
     with app.test_request_context():
         with pytest.raises(SupersetTemplateException) as excinfo:
-            metric_macro("macro_key")
+            metric_macro(env, {}, "macro_key")
         assert str(excinfo.value) == (
             "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
         )
@@ -913,6 +1152,7 @@ def test_metric_macro_no_dataset_id_available_in_request_form_data(
     mock_g.form_data = {}
 
     # Getting the data from the request context
+    env = SandboxedEnvironment(undefined=DebugUndefined)
     with app.test_request_context(
         data={
             "form_data": json.dumps(
@@ -924,7 +1164,7 @@ def test_metric_macro_no_dataset_id_available_in_request_form_data(
             )
         }
     ):
-        assert metric_macro("macro_key") == "COUNT(*)"
+        assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
     # Getting data from g's form_data
     mock_g.form_data = {
@@ -932,7 +1172,7 @@ def test_metric_macro_no_dataset_id_available_in_request_form_data(
     }
 
     with app.test_request_context():
-        assert metric_macro("macro_key") == "COUNT(*)"
+        assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
 
 @pytest.mark.parametrize(

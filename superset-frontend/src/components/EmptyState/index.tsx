@@ -16,38 +16,57 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import {
-  ReactNode,
-  SyntheticEvent,
-  MouseEventHandler as ReactMouseEventHandler,
-} from 'react';
+import { ReactNode, SyntheticEvent } from 'react';
 import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import Button from 'src/components/Button';
+
+// Importing svg images
+import FilterResultsImage from 'src/assets/images/filter-results.svg';
+import ChartImage from 'src/assets/images/chart.svg';
+import FilterImage from 'src/assets/images/filter.svg';
+import EmptyChartsImage from 'src/assets/images/empty-charts.svg';
+import EmptyDashboardImage from 'src/assets/images/empty-dashboard.svg';
+import UnionImage from 'src/assets/images/union.svg';
+import EmptyQueriesImage from 'src/assets/images/empty-queries.svg';
+import StarCircleImage from 'src/assets/images/star-circle.svg';
+import VectorImage from 'src/assets/images/vector.svg';
+import DocumentImage from 'src/assets/images/document.svg';
+import DatasetImage from 'src/assets/images/empty-dataset.svg';
+import EmptySqlChartImage from 'src/assets/images/empty_sql_chart.svg';
+import EmptyQueryImage from 'src/assets/images/empty-query.svg';
+import EmptyTableImage from 'src/assets/images/empty-table.svg';
+import EmptyImage from 'src/assets/images/empty.svg';
 import { Empty } from './Empty';
 
-export enum EmptyStateSize {
-  Small,
-  Medium,
-  Big,
-}
+export const imageMap = {
+  'chart.svg': <ChartImage />,
+  'document.svg': <DocumentImage />,
+  'empty-charts.svg': <EmptyChartsImage />,
+  'empty-dashboard.svg': <EmptyDashboardImage />,
+  'empty-dataset.svg': <DatasetImage />,
+  'empty-queries.svg': <EmptyQueriesImage />,
+  'empty-query.svg': <EmptyQueryImage />,
+  'empty-table.svg': <EmptyTableImage />,
+  'empty.svg': <EmptyImage />,
+  'empty_sql_chart.svg': <EmptySqlChartImage />,
+  'filter-results.svg': <FilterResultsImage />,
+  'filter.svg': <FilterImage />,
+  'star-circle.svg': <StarCircleImage />,
+  'union.svg': <UnionImage />,
+  'vector.svg': <VectorImage />,
+};
 
-export interface EmptyStateSmallProps {
+type EmptyStateSize = 'small' | 'medium' | 'large';
+
+export type EmptyStateProps = {
   title?: ReactNode;
   description?: ReactNode;
-  image?: ReactNode;
-}
-
-export interface EmptyStateProps extends EmptyStateSmallProps {
+  image?: ReactNode | string;
   buttonText?: ReactNode;
-  buttonAction?: ReactMouseEventHandler<HTMLElement>;
-  className?: string;
-}
-
-export interface ImageContainerProps {
-  image: ReactNode;
-  size: EmptyStateSize;
-}
+  buttonAction?: (event: SyntheticEvent) => void;
+  size?: EmptyStateSize;
+  children?: ReactNode;
+};
 
 const EmptyStateContainer = styled.div`
   ${({ theme }) => css`
@@ -55,6 +74,7 @@ const EmptyStateContainer = styled.div`
     flex-direction: column;
     width: 100%;
     height: 100%;
+    color: ${theme.colors.grayscale.light2};
     align-items: center;
     justify-content: center;
     padding: ${theme.gridUnit * 4}px;
@@ -75,43 +95,24 @@ const EmptyStateContainer = styled.div`
   `}
 `;
 
-const TextContainer = styled.div``;
-
-const Title = styled.p`
-  ${({ theme }) => css`
-    font-size: ${theme.typography.sizes.m}px;
+const Title = styled.p<{ size: EmptyStateSize }>`
+  ${({ theme, size }) => css`
+    font-size: ${size === 'large'
+      ? theme.typography.sizes.l
+      : theme.typography.sizes.m}px;
     color: ${theme.colors.grayscale.light1};
-    margin: ${theme.gridUnit * 2}px 0 0 0;
+    margin-top: ${size === 'large' ? theme.gridUnit * 4 : theme.gridUnit * 2}px;
     font-weight: ${theme.typography.weights.bold};
   `}
 `;
 
-const BigTitle = styled(Title)`
-  ${({ theme }) => css`
-    font-size: ${theme.typography.sizes.l}px;
+const Description = styled.p<{ size: EmptyStateSize }>`
+  ${({ theme, size }) => css`
+    font-size: ${size === 'large'
+      ? theme.typography.sizes.m
+      : theme.typography.sizes.s}px;
     color: ${theme.colors.grayscale.light1};
-    margin-top: ${theme.gridUnit * 4}px;
-  `}
-`;
-
-const Description = styled.p`
-  ${({ theme }) => css`
-    font-size: ${theme.typography.sizes.s}px;
-    color: ${theme.colors.grayscale.light1};
-    margin: ${theme.gridUnit * 2}px 0 0 0;
-  `}
-`;
-
-const BigDescription = styled(Description)`
-  ${({ theme }) => css`
-    font-size: ${theme.typography.sizes.m}px;
-  `}
-`;
-
-const SmallDescription = styled(Description)`
-  ${({ theme }) => css`
-    margin-top: ${theme.gridUnit}px;
-    line-height: 1.2;
+    margin-top: ${theme.gridUnit * 2}px;
   `}
 `;
 
@@ -122,81 +123,71 @@ const ActionButton = styled(Button)`
   `}
 `;
 
-const getImage = (image: string | ReactNode) =>
-  typeof image === 'string' ? `/static/assets/images/${image}` : image;
-
 const getImageHeight = (size: EmptyStateSize) => {
   switch (size) {
-    case EmptyStateSize.Small:
+    case 'small':
       return { height: '50px' };
-    case EmptyStateSize.Medium:
+    case 'medium':
       return { height: '80px' };
-    case EmptyStateSize.Big:
+    case 'large':
       return { height: '150px' };
     default:
-      return { height: '50px' };
+      return { height: '80px' };
   }
 };
 
-const ImageContainer = ({ image, size }: ImageContainerProps) => (
-  <Empty
-    description={false}
-    image={getImage(image)}
-    imageStyle={getImageHeight(size)}
-  />
-);
+const ImageContainer = ({
+  image,
+  size,
+}: {
+  image?: ReactNode | string;
+  size: EmptyStateSize;
+}) => {
+  if (!image) return null;
+  const mappedImage =
+    typeof image === 'string'
+      ? imageMap[image as keyof typeof imageMap]
+      : image;
+  return (
+    <div role="img" aria-label="empty">
+      <Empty
+        description={false}
+        image={mappedImage}
+        imageStyle={getImageHeight(size)}
+      />
+    </div>
+  );
+};
 
 const handleMouseDown = (e: SyntheticEvent) => {
   e.preventDefault();
   e.stopPropagation();
 };
 
-export const EmptyStateBig = ({
-  title,
-  image,
-  description,
-  buttonAction,
+export const EmptyState: React.FC<EmptyStateProps> = ({
+  title = t('No results'),
+  description = t('There is currently no information to display.'),
+  image = 'empty.svg',
   buttonText,
-  className,
-}: EmptyStateProps) => (
-  <EmptyStateContainer className={className}>
-    {image && <ImageContainer image={image} size={EmptyStateSize.Big} />}
-    <TextContainer
-      css={(theme: SupersetTheme) => css`
-        max-width: ${theme.gridUnit * 150}px;
-      `}
-    >
-      <BigTitle>{title}</BigTitle>
-      {description && <BigDescription>{description}</BigDescription>}
-      {buttonAction && buttonText && (
-        <ActionButton
-          buttonStyle="primary"
-          onClick={buttonAction}
-          onMouseDown={handleMouseDown}
-        >
-          {buttonText}
-        </ActionButton>
-      )}
-    </TextContainer>
-  </EmptyStateContainer>
-);
-
-export const EmptyStateMedium = ({
-  title,
-  image,
-  description,
   buttonAction,
-  buttonText,
-}: EmptyStateProps) => (
+  size = 'medium',
+  children,
+}) => (
   <EmptyStateContainer>
-    {image && <ImageContainer image={image} size={EmptyStateSize.Medium} />}
-    <TextContainer
+    {image && <ImageContainer image={image} size={size} />}
+    <div
       css={(theme: SupersetTheme) => css`
-        max-width: ${theme.gridUnit * 100}px;
+        max-width: ${size === 'large'
+          ? theme.gridUnit * 150
+          : theme.gridUnit * 100}px;
       `}
     >
-      <Title>{title}</Title>
-      {description && <Description>{description}</Description>}
+      {title && <Title size={size}>{title}</Title>}
+      {description && (
+        <Description size={size} className="ant-empty-description">
+          {description}
+        </Description>
+      )}
       {buttonText && buttonAction && (
         <ActionButton
           buttonStyle="primary"
@@ -206,48 +197,7 @@ export const EmptyStateMedium = ({
           {buttonText}
         </ActionButton>
       )}
-    </TextContainer>
+      {children}
+    </div>
   </EmptyStateContainer>
-);
-
-export const EmptyStateSmall = ({
-  title,
-  image,
-  description,
-}: EmptyStateSmallProps) => (
-  <EmptyStateContainer>
-    {image && <ImageContainer image={image} size={EmptyStateSize.Small} />}
-    <TextContainer
-      css={(theme: SupersetTheme) => css`
-        max-width: ${theme.gridUnit * 75}px;
-      `}
-    >
-      <Title>{title}</Title>
-      {description && <SmallDescription>{description}</SmallDescription>}
-    </TextContainer>
-  </EmptyStateContainer>
-);
-
-const TRANSLATIONS = {
-  NO_DATABASES_MATCH_TITLE: t('No databases match your search'),
-  NO_DATABASES_AVAILABLE_TITLE: t('There are no databases available'),
-  MANAGE_YOUR_DATABASES_TEXT: t('Manage your databases'),
-  HERE_TEXT: t('here'),
-};
-
-export const emptyStateComponent = (emptyResultsWithSearch: boolean) => (
-  <EmptyStateSmall
-    image="empty.svg"
-    title={
-      emptyResultsWithSearch
-        ? TRANSLATIONS.NO_DATABASES_MATCH_TITLE
-        : TRANSLATIONS.NO_DATABASES_AVAILABLE_TITLE
-    }
-    description={
-      <p>
-        {TRANSLATIONS.MANAGE_YOUR_DATABASES_TEXT}{' '}
-        <a href="/databaseview/list">{TRANSLATIONS.HERE_TEXT}</a>
-      </p>
-    }
-  />
 );

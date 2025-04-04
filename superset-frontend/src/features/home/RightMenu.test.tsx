@@ -18,8 +18,12 @@
  */
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
 
@@ -156,7 +160,7 @@ beforeEach(async () => {
   );
 });
 
-afterEach(fetchMock.restore);
+afterEach(() => fetchMock.restore());
 
 const resetUseSelectorMock = () => {
   useSelectorMock.mockReturnValueOnce({
@@ -168,8 +172,7 @@ const resetUseSelectorMock = () => {
     permissions: {},
     roles: {
       Admin: [
-        ['can_csv_upload', 'Database'], // So we can upload CSV
-        ['can_excel_upload', 'Database'], // So we can upload CSV
+        ['can_upload', 'Database'], // So we can upload data (CSV, Excel, Columnar)
         ['can_write', 'Database'], // So we can write DBs
         ['can_write', 'Dataset'], // So we can write Datasets
         ['can_write', 'Chart'], // So we can write Datasets
@@ -236,6 +239,8 @@ test('If only examples DB exist we must show the Connect Database option', async
   // Initial Load
   resetUseSelectorMock();
   // setAllowUploads called
+  resetUseSelectorMock();
+  // setNonExamplesDBConnected called
   resetUseSelectorMock();
   render(<RightMenu {...mockedProps} />, {
     useRedux: true,

@@ -19,9 +19,14 @@
 
 import { Route } from 'react-router-dom';
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
 import { DatasourceType, JsonObject, SupersetClient } from '@superset-ui/core';
-import { render, screen, act, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  act,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import DatasourceControl from '.';
 
@@ -455,7 +460,7 @@ test('should show missing params state', () => {
   expect(screen.getByText(/missing url parameters/i)).toBeVisible();
   expect(
     screen.getByText(
-      /the url is missing the dataset_id or slice_id parameters\./i,
+      /the url is missing the dataset_id or slice_id parameters/i,
     ),
   ).toBeVisible();
 });

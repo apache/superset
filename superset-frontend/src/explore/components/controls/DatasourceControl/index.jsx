@@ -21,6 +21,7 @@
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import {
+  css,
   DatasourceType,
   SupersetClient,
   styled,
@@ -29,10 +30,10 @@ import {
 } from '@superset-ui/core';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import {
   ChangeDatasourceModal,
   DatasourceModal,
@@ -51,7 +52,6 @@ import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModal
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
-import { isString } from 'lodash';
 import { Link } from 'react-router-dom';
 
 const propTypes = {
@@ -83,12 +83,8 @@ const Styles = styled.div`
   .error-alert {
     margin: ${({ theme }) => 2 * theme.gridUnit}px;
   }
-  .ant-dropdown-trigger {
+  .antd5-dropdown-trigger {
     margin-left: ${({ theme }) => 2 * theme.gridUnit}px;
-    box-shadow: none;
-    &:active {
-      box-shadow: none;
-    }
   }
   .btn-group .open .dropdown-toggle {
     box-shadow: none;
@@ -121,7 +117,7 @@ const Styles = styled.div`
   span[aria-label='dataset-physical'] {
     color: ${({ theme }) => theme.colors.grayscale.base};
   }
-  span[aria-label='more-vert'] {
+  span[aria-label='more'] {
     color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
@@ -141,7 +137,7 @@ export const datasourceIconLookup = {
   [DatasourceType.Query]: (
     <Icons.ConsoleSqlOutlined className="datasource-svg" />
   ),
-  [DatasourceType.Table]: <Icons.DatasetPhysical className="datasource-svg" />,
+  [DatasourceType.Table]: <Icons.TableOutlined className="datasource-svg" />,
 };
 
 // Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
@@ -343,7 +339,7 @@ class DatasourceControl extends PureComponent {
         <Menu.Item key={QUERY_PREVIEW}>
           <ModalTrigger
             triggerNode={
-              <span data-test="view-query-menu-item">{t('Query preview')}</span>
+              <div data-test="view-query-menu-item">{t('Query preview')}</div>
             }
             modalTitle={t('Query preview')}
             modalBody={
@@ -383,7 +379,7 @@ class DatasourceControl extends PureComponent {
 
     let extra;
     if (datasource?.extra) {
-      if (isString(datasource.extra)) {
+      if (typeof datasource.extra === 'string') {
         try {
           extra = JSON.parse(datasource.extra);
         } catch {} // eslint-disable-line no-empty
@@ -405,14 +401,19 @@ class DatasourceControl extends PureComponent {
           {renderDatasourceTitle(titleText, tooltip)}
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
-              <Icons.AlertSolid iconColor={theme.colors.warning.base} />
+              <Icons.WarningOutlined
+                css={css`
+                  margin-left: ${theme.gridUnit * 2}px;
+                `}
+                iconColor={theme.colors.warning.base}
+              />
             </Tooltip>
           )}
           {extra?.warning_markdown && (
             <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
-          <AntdDropdown
-            overlay={
+          <Dropdown
+            dropdownRender={() =>
               datasource.type === DatasourceType.Query
                 ? queryDatasourceMenu
                 : defaultDatasourceMenu
@@ -420,28 +421,23 @@ class DatasourceControl extends PureComponent {
             trigger={['click']}
             data-test="datasource-menu"
           >
-            <Icons.MoreVert
+            <Icons.MoreOutlined
+              IconSize="xl"
+              iconColor={theme.colors.primary.base}
               className="datasource-modal-trigger"
               data-test="datasource-menu-trigger"
             />
-          </AntdDropdown>
+          </Dropdown>
         </div>
         {/* missing dataset */}
         {isMissingDatasource && isMissingParams && (
           <div className="error-alert">
             <ErrorAlert
               level="warning"
-              title={t('Missing URL parameters')}
-              source="explore"
-              subtitle={
-                <>
-                  <p>
-                    {t(
-                      'The URL is missing the dataset_id or slice_id parameters.',
-                    )}
-                  </p>
-                </>
-              }
+              errorType={t('Missing URL parameters')}
+              description={t(
+                'The URL is missing the dataset_id or slice_id parameters.',
+              )}
             />
           </div>
         )}
@@ -449,25 +445,18 @@ class DatasourceControl extends PureComponent {
           <div className="error-alert">
             <ErrorAlert
               level="warning"
-              title={t('Missing dataset')}
-              source="explore"
-              subtitle={
+              errorType={t('Missing dataset')}
+              description={
                 <>
-                  <p>
-                    {t(
-                      'The dataset linked to this chart may have been deleted.',
-                    )}
-                  </p>
-                  <p>
-                    <Button
-                      buttonStyle="primary"
-                      onClick={() =>
-                        this.handleMenuItemClick({ key: CHANGE_DATASET })
-                      }
-                    >
-                      {t('Swap dataset')}
-                    </Button>
-                  </p>
+                  {t('The dataset linked to this chart may have been deleted.')}
+                  <Button
+                    buttonStyle="primary"
+                    onClick={() =>
+                      this.handleMenuItemClick({ key: CHANGE_DATASET })
+                    }
+                  >
+                    {t('Swap dataset')}
+                  </Button>
                 </>
               }
             />
