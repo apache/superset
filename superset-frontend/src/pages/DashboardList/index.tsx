@@ -71,6 +71,7 @@ import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { ModifiedInfo } from 'src/components/AuditInfo';
+import BulkCertifyModal from 'src/features/bulkCertify/BulkCertifyModal';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -194,6 +195,10 @@ function DashboardList(props: DashboardListProps) {
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [showBulkCertifyModal, setShowBulkCertifyModal] = useState(false);
+  const [selectedDashboardsForCert, setSelectedDashboardsForCert] = useState<
+    Dashboard[]
+  >([]);
 
   const openDashboardImportModal = () => {
     showImportModal(true);
@@ -207,6 +212,16 @@ function DashboardList(props: DashboardListProps) {
     showImportModal(false);
     refreshData();
     addSuccessToast(t('Dashboard imported'));
+  };
+
+  const openBulkCertifyModal = (selected: Dashboard[]) => {
+    setSelectedDashboardsForCert(selected);
+    setShowBulkCertifyModal(true);
+  };
+
+  const closeBulkCertifyModal = () => {
+    setShowBulkCertifyModal(false);
+    setSelectedDashboardsForCert([]);
   };
 
   // TODO: Fix usage of localStorage keying on the user id
@@ -744,6 +759,14 @@ function DashboardList(props: DashboardListProps) {
               onSelect: handleBulkDashboardExport,
             });
           }
+          if (canEdit) {
+            bulkActions.push({
+              key: 'certify',
+              name: t('Certify'),
+              type: 'primary',
+              onSelect: openBulkCertifyModal,
+            });
+          }
           return (
             <>
               {dashboardToEdit && (
@@ -813,7 +836,16 @@ function DashboardList(props: DashboardListProps) {
           );
         }}
       </ConfirmStatusChange>
-
+      <BulkCertifyModal
+        show={showBulkCertifyModal}
+        onHide={closeBulkCertifyModal}
+        selected={selectedDashboardsForCert}
+        resourceName="dashboard"
+        resourceLabel={t('dashboard')}
+        refreshData={refreshData}
+        addSuccessToast={addSuccessToast}
+        addDangerToast={addDangerToast}
+      />
       <ImportModelsModal
         resourceName="dashboard"
         resourceLabel={t('dashboard')}
