@@ -21,7 +21,15 @@ import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'src/components/Tooltip';
-import { css, logging, SupersetClient, t, useTheme } from '@superset-ui/core';
+import {
+  css,
+  FeatureFlag,
+  isFeatureEnabled,
+  logging,
+  SupersetClient,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import Button from 'src/components/Button';
@@ -36,6 +44,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
+import ChartPublishedStatus from '../ExploreChartPublish';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -222,6 +231,13 @@ export const ExploreChartHeader = ({
                 currentFormData={{ ...formData, chartTitle: sliceName }}
               />
             ) : null}
+            {isFeatureEnabled(FeatureFlag.PublishCharts) && (
+              <ChartPublishedStatus
+                sliceId={slice?.slice_id}
+                userCanOverwrite={canOverwrite}
+                isPublished={slice?.published}
+              />
+            )}
             {metadataBar}
           </div>
         }

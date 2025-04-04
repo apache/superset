@@ -561,6 +561,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "SLACK_ENABLE_AVATARS": False,
     # Allow users to optionally specify date formats in email subjects, which will be parsed if enabled. # noqa: E501
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
+    # Allows users to publish charts
+    "PUBLISH_CHARTS": True,
 }
 
 # ------------------------------
@@ -1148,8 +1150,8 @@ SQLLAB_CTAS_NO_LIMIT = False
 #         else:
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
-SQLLAB_CTAS_SCHEMA_NAME_FUNC: (
-    None | (Callable[[Database, models.User, str, str], str])
+SQLLAB_CTAS_SCHEMA_NAME_FUNC: None | (
+    Callable[[Database, models.User, str, str], str]
 ) = None
 
 # If enabled, it can be used to store the results of long-running queries
