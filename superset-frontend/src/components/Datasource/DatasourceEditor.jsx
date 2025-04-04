@@ -161,6 +161,15 @@ const DATA_TYPES = [
   { value: 'BOOLEAN', label: t('BOOLEAN') },
 ];
 
+const TABS_KEYS = {
+  SOURCE: 'SOURCE',
+  METRICS: 'METRICS',
+  COLUMNS: 'COLUMNS',
+  CALCULATED_COLUMNS: 'CALCULATED_COLUMNS',
+  SETTINGS: 'SETTINGS',
+  SPATIAL: 'SPATIAL',
+};
+
 const DATASOURCE_TYPES_ARR = [
   { key: 'physical', label: t('Physical (table or view)') },
   { key: 'virtual', label: t('Virtual (SQL)') },
@@ -624,7 +633,7 @@ class DatasourceEditor extends PureComponent {
         col => !!col.expression,
       ),
       metadataLoading: false,
-      activeTabKey: 0,
+      activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
         ? DATASOURCE_TYPES.virtual.key
         : DATASOURCE_TYPES.physical.key,
@@ -946,7 +955,7 @@ class DatasourceEditor extends PureComponent {
     return (
       <Tabs.TabPane
         tab={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
-        key={4}
+        key={TABS_KEYS.SPATIAL}
       >
         <CollectionTable
           tableColumns={['name', 'config']}
@@ -1365,12 +1374,12 @@ class DatasourceEditor extends PureComponent {
           defaultActiveKey={activeTabKey}
           items={[
             {
-              key: '0',
+              key: TABS_KEYS.SOURCE,
               label: t('Source'),
               children: this.renderSourceFieldset(theme),
             },
             {
-              key: '1',
+              key: TABS_KEYS.METRICS,
               label: (
                 <CollectionTabTitle
                   collection={sortedMetrics}
@@ -1380,7 +1389,7 @@ class DatasourceEditor extends PureComponent {
               children: this.renderMetricCollection(),
             },
             {
-              key: '2',
+              key: TABS_KEYS.COLUMNS,
               label: (
                 <CollectionTabTitle
                   collection={this.state.databaseColumns}
@@ -1417,7 +1426,7 @@ class DatasourceEditor extends PureComponent {
               ),
             },
             {
-              key: '3',
+              key: TABS_KEYS.CALCULATED_COLUMNS,
               label: (
                 <CollectionTabTitle
                   collection={this.state.calculatedColumns}
@@ -1456,7 +1465,7 @@ class DatasourceEditor extends PureComponent {
               ),
             },
             {
-              key: '4',
+              key: TABS_KEYS.SETTINGS,
               label: t('Settings'),
               children: (
                 <Row gutter={16}>

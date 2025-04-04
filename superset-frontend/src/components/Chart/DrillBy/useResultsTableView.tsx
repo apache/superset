@@ -56,9 +56,9 @@ export const useResultsTableView = (
   }
   return (
     <Tabs
-      defaultActiveKey="0"
+      defaultActiveKey="result-tab-0"
       items={chartDataResult.map((res, index) => ({
-        key: index.toString(),
+        key: `result-tab-${index}`,
         label: t('Results %s', index + 1),
         children: (
           <PaginationContainer>

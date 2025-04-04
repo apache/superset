@@ -62,9 +62,9 @@ const StyledTabs = ({
           margin-left: ${theme.sizeUnit / 2}px;
           color: ${theme.colorError};
         }
-      }
-      .antd5-tabs-ink-bar {
-        background: ${theme.colorPrimary};
+        &:focus-visible {
+          box-shadow: none;
+        }
       }
     `}
   />

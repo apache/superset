@@ -32,6 +32,11 @@ import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
 
 const BUILDER_PANE_WIDTH = 374;
 
+const TABS_KEYS = {
+  CHARTS: 'CHARTS',
+  LAYOUT_ELEMENTS: 'LAYOUT_ELEMENTS',
+};
+
 const BuilderComponentPane = ({ topOffset = 0 }) => (
   <div
     data-test="dashboard-builder-sidepane"
@@ -69,7 +74,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
         `}
         items={[
           {
-            key: '1',
+            key: TABS_KEYS.CHARTS,
             label: t('Charts'),
             children: (
               <div
@@ -82,7 +87,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
             ),
           },
           {
-            key: '2',
+            key: TABS_KEYS.LAYOUT_ELEMENTS,
             label: t('Layout elements'),
             children: (
               <>

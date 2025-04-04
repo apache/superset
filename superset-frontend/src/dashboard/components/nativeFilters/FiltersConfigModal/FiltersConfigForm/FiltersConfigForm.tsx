@@ -204,7 +204,7 @@ const FilterTypeInfo = styled.div<{ expanded: boolean }>`
     font-size: ${theme.fontSizeSM}px;
     color: ${theme.colors.grayscale.light1};
     margin:
-      ${-theme.sizeUnit * 2}px
+      ${theme.sizeUnit * 2}px
       0px
       ${theme.sizeUnit * 4}px
       ${theme.sizeUnit * 4}px;

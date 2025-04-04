@@ -53,6 +53,12 @@ const TRANSLATIONS = {
   METRICS_TEXT: t('Metrics'),
 };
 
+const TABS_KEYS = {
+  COLUMNS: 'COLUMNS',
+  METRICS: 'METRICS',
+  USAGE: 'USAGE',
+};
+
 const EditPage = ({ id }: EditPageProps) => {
   const { usageCount } = useGetDatasetRelatedCounts(id);
 
@@ -65,17 +71,17 @@ const EditPage = ({ id }: EditPageProps) => {
 
   const items = [
     {
-      key: '1',
+      key: TABS_KEYS.COLUMNS,
       label: TRANSLATIONS.COLUMNS_TEXT,
       children: null,
     },
     {
-      key: '2',
+      key: TABS_KEYS.METRICS,
       label: TRANSLATIONS.METRICS_TEXT,
       children: null,
     },
     {
-      key: '3',
+      key: TABS_KEYS.USAGE,
       label: usageTab,
       children: <UsageTab datasetId={id} />,
     },
