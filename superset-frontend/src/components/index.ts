@@ -56,7 +56,6 @@ export { Upload } from 'antd'; // TODO: Remove antd
 export {
   Breadcrumb as AntdBreadcrumb,
   Checkbox as AntdCheckbox,
-  Collapse as AntdCollapse,
   Select as AntdSelect,
 } from 'antd';
 

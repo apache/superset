@@ -84,9 +84,6 @@ const DatasourceContainer = styled.div`
     display: flex;
     flex-direction: column;
     max-height: 100%;
-    .ant-collapse {
-      height: auto;
-    }
     .field-selections {
       padding: 0 0 ${theme.sizeUnit}px;
       overflow: auto;

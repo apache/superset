@@ -20,7 +20,6 @@ import { FormItem } from 'src/components/Form';
 import { css, styled, SupersetTheme } from '@superset-ui/core';
 
 const MODAL_BODY_HEIGHT = 180.5;
-const antIconHeight = 12;
 
 export const StyledFormItem = styled(FormItem)`
   ${({ theme }) => css`
@@ -35,29 +34,6 @@ export const StyledSwitchContainer = styled.div`
   display: flex;
   align-items: center;
   margin-top: 0;
-`;
-
-export const antdCollapseStyles = (theme: SupersetTheme) => css`
-  .ant-collapse-header {
-    padding-top: ${theme.sizeUnit * 3.5}px;
-    padding-bottom: ${theme.sizeUnit * 2.5}px;
-    .anticon.ant-collapse-arrow {
-      top: calc(50% - ${antIconHeight / 2}px);
-    }
-    .helper {
-      color: ${theme.colors.grayscale.base};
-      font-size: ${theme.fontSizeSM}px;
-    }
-  }
-  h4 {
-    font-size: ${theme.fontSizeLG}px;
-    margin-top: 0;
-    margin-bottom: ${theme.sizeUnit}px;
-  }
-  p.helper {
-    margin-bottom: 0;
-    padding: 0;
-  }
 `;
 
 export const antDModalNoPaddingStyles = css`

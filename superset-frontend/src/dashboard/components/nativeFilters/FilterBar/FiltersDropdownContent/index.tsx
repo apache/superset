@@ -65,7 +65,6 @@ export const FiltersDropdownContent = ({
         filtersOutOfScope={filtersOutOfScope}
         renderer={renderer}
         forceRender={forceRenderOutOfScope}
-        horizontalOverflow
       />
     )}
   </div>
