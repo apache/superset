@@ -52,7 +52,7 @@ import Owner from 'src/types/Owner';
 import Tag from 'src/types/TagType';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import FacePile from 'src/components/FacePile';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import DeleteModal from 'src/components/DeleteModal';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';

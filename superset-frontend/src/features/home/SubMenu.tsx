@@ -26,7 +26,7 @@ import { debounce } from 'lodash';
 import { Row } from 'src/components';
 import { Menu, MenuMode, MainNav } from 'src/components/Menu';
 import Button, { OnClickHandler } from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { MenuObjectProps } from 'src/types/bootstrapTypes';
 
 const StyledHeader = styled.div`
@@ -134,6 +134,7 @@ export interface ButtonProps {
     | 'warning'
     | 'success'
     | 'tertiary';
+  loading?: boolean;
 }
 
 export interface SubMenuProps {
@@ -282,6 +283,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
               buttonStyle={btn.buttonStyle}
               onClick={btn.onClick}
               data-test={btn['data-test']}
+              loading={btn.loading ?? false}
             >
               {btn.name}
             </Button>

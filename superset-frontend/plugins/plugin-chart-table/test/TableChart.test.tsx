@@ -175,6 +175,75 @@ describe('plugin-chart-table', () => {
         ?.formatter?.(0.123456);
       expect(formattedPercentMetric).toBe('0.123');
     });
+
+    it('should set originalLabel for comparison columns when time_compare and comparison_type are set', () => {
+      const transformedProps = transformProps(testData.comparison);
+
+      // Check if comparison columns are processed
+      const comparisonColumns = transformedProps.columns.filter(
+        col =>
+          col.label === 'Main' ||
+          col.label === '#' ||
+          col.label === '△' ||
+          col.label === '%',
+      );
+
+      expect(comparisonColumns.length).toBeGreaterThan(0);
+      expect(comparisonColumns.some(col => col.label === 'Main')).toBe(true);
+      expect(comparisonColumns.some(col => col.label === '#')).toBe(true);
+      expect(comparisonColumns.some(col => col.label === '△')).toBe(true);
+      expect(comparisonColumns.some(col => col.label === '%')).toBe(true);
+
+      // Verify originalLabel for metric_1 comparison columns
+      const mainMetric1 = transformedProps.columns.find(
+        col => col.key === 'Main metric_1',
+      );
+      expect(mainMetric1).toBeDefined();
+      expect(mainMetric1?.originalLabel).toBe('metric_1');
+
+      const hashMetric1 = transformedProps.columns.find(
+        col => col.key === '# metric_1',
+      );
+      expect(hashMetric1).toBeDefined();
+      expect(hashMetric1?.originalLabel).toBe('metric_1');
+
+      const deltaMetric1 = transformedProps.columns.find(
+        col => col.key === '△ metric_1',
+      );
+      expect(deltaMetric1).toBeDefined();
+      expect(deltaMetric1?.originalLabel).toBe('metric_1');
+
+      const percentMetric1 = transformedProps.columns.find(
+        col => col.key === '% metric_1',
+      );
+      expect(percentMetric1).toBeDefined();
+      expect(percentMetric1?.originalLabel).toBe('metric_1');
+
+      // Verify originalLabel for metric_2 comparison columns
+      const mainMetric2 = transformedProps.columns.find(
+        col => col.key === 'Main metric_2',
+      );
+      expect(mainMetric2).toBeDefined();
+      expect(mainMetric2?.originalLabel).toBe('metric_2');
+
+      const hashMetric2 = transformedProps.columns.find(
+        col => col.key === '# metric_2',
+      );
+      expect(hashMetric2).toBeDefined();
+      expect(hashMetric2?.originalLabel).toBe('metric_2');
+
+      const deltaMetric2 = transformedProps.columns.find(
+        col => col.key === '△ metric_2',
+      );
+      expect(deltaMetric2).toBeDefined();
+      expect(deltaMetric2?.originalLabel).toBe('metric_2');
+
+      const percentMetric2 = transformedProps.columns.find(
+        col => col.key === '% metric_2',
+      );
+      expect(percentMetric2).toBeDefined();
+      expect(percentMetric2?.originalLabel).toBe('metric_2');
+    });
   });
 
   describe('TableChart', () => {
@@ -399,6 +468,17 @@ describe('plugin-chart-table', () => {
         '',
       );
       expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+    });
+    it('should display originalLabel in grouped headers', () => {
+      render(
+        <ThemeProvider theme={supersetTheme}>
+          <TableChart {...transformProps(testData.comparison)} sticky={false} />
+        </ThemeProvider>,
+      );
+
+      const groupHeaders = screen.getAllByRole('columnheader');
+      expect(groupHeaders[0]).toHaveTextContent('metric_1');
+      expect(groupHeaders[1]).toHaveTextContent('metric_2');
     });
   });
 

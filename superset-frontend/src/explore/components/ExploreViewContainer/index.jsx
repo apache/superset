@@ -36,7 +36,7 @@ import { Resizable } from 're-resizable';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import {
   getItem,
   setItem,

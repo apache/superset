@@ -45,7 +45,7 @@ import handleResourceExport from 'src/utils/export';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
 import SubMenu from './SubMenu';

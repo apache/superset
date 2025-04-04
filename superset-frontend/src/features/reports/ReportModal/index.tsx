@@ -39,7 +39,7 @@ import {
 import Alert from 'src/components/Alert';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { CronError } from 'src/components/CronPicker';
 import { Radio, RadioChangeEvent } from 'src/components/Radio';
 import { Input } from 'src/components/Input';
