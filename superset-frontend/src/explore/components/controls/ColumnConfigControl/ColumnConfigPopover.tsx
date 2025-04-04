@@ -29,6 +29,7 @@ import {
   ColumnConfigInfo,
   ControlFormItemDefaultSpec,
   isTabLayoutItem,
+  TabLayoutItem,
 } from './types';
 import ControlForm, { ControlFormItem, ControlFormRow } from './ControlForm';
 
@@ -72,21 +73,28 @@ export default function ColumnConfigPopover({
     ];
 
   if (isTabLayoutItem(layout[0])) {
-    const items = layout.filter(isTabLayoutItem).map((item, i) => ({
-      key: i.toString(),
-      label: item.tab,
-      children: (
-        <ControlForm onChange={onChange} value={column.config}>
-          {item.children.map((row, i) => renderRow(row, i))}
-        </ControlForm>
-      ),
-    }));
+    const tabItems = (layout as TabLayoutItem[])
+      .filter(isTabLayoutItem)
+      .map((item: TabLayoutItem, i: number) => ({
+        key: i.toString(),
+        label: item.tab,
+        children: (
+          <ControlForm onChange={onChange} value={column.config}>
+            {item.children.map(
+              (row: ColumnConfigFormItem[], rowIndex: number) =>
+                renderRow(row, rowIndex),
+            )}
+          </ControlForm>
+        ),
+      }));
 
-    return <Tabs centered items={items} />;
+    return <Tabs centered items={tabItems} />;
   }
   return (
     <ControlForm onChange={onChange} value={column.config}>
-      {layout.map((row, i) => renderRow(row as ColumnConfigFormItem[], i))}
+      {(layout as ColumnConfigFormItem[][]).map(
+        (row: ColumnConfigFormItem[], i: number) => renderRow(row, i),
+      )}
     </ControlForm>
   );
 }
