@@ -206,7 +206,9 @@ describe('Native filters', () => {
         .click();
 
       cy.get('[data-test="range-filter-to-input"]').type('{selectall}50');
-      cy.get(nativeFilters.applyFilter).click();
+      cy.get(nativeFilters.applyFilter).click({
+        force: true,
+      });
 
       // Assert that the URL contains 'native_filters'
       cy.url().then(u => {

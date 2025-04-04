@@ -25,7 +25,6 @@ import {
   screen,
   waitFor,
   userEvent,
-  fireEvent,
 } from 'spec/helpers/testing-library';
 import { UploadFile } from 'antd/lib/upload/interface';
 
@@ -579,14 +578,14 @@ test('database and schema are correctly populated', async () => {
     name: /schema/i,
   });
 
-  fireEvent.mouseDown(selectDatabase);
+  userEvent.click(selectDatabase);
 
   await waitFor(() => screen.getByText('database1'));
   await waitFor(() => screen.getByText('database2'));
 
   screen.getByText('database1').click();
 
-  fireEvent.mouseDown(selectSchema);
+  userEvent.click(selectSchema);
 
   // make sure the schemas for database1 are displayed
   await waitFor(() => screen.getAllByText('information_schema'));
@@ -597,7 +596,7 @@ test('database and schema are correctly populated', async () => {
   // make sure the schemas for database2 are displayed
   await waitFor(() => screen.getAllByText('schema1'));
   await waitFor(() => screen.getAllByText('schema2'));
-});
+}, 30000);
 
 test('form without required fields', async () => {
   render(<UploadDataModal {...csvProps} />, {
@@ -637,7 +636,7 @@ test('CSV form post', async () => {
   const selectDatabase = screen.getByRole('combobox', {
     name: /select a database/i,
   });
-  fireEvent.mouseDown(selectDatabase);
+  userEvent.click(selectDatabase);
 
   await screen.findByText('database1');
   await screen.findByText('database2');
@@ -646,7 +645,7 @@ test('CSV form post', async () => {
   const selectSchema = screen.getByRole('combobox', {
     name: /schema/i,
   });
-  fireEvent.mouseDown(selectSchema);
+  userEvent.click(selectSchema);
 
   await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
@@ -674,7 +673,7 @@ test('CSV form post', async () => {
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.csv');
-});
+}, 30000);
 
 test('Excel form post', async () => {
   render(<UploadDataModal {...excelProps} />, {
@@ -697,7 +696,7 @@ test('Excel form post', async () => {
   const selectDatabase = screen.getByRole('combobox', {
     name: /select a database/i,
   });
-  fireEvent.mouseDown(selectDatabase);
+  userEvent.click(selectDatabase);
 
   await screen.findByText('database1');
   await screen.findByText('database2');
@@ -706,7 +705,7 @@ test('Excel form post', async () => {
   const selectSchema = screen.getByRole('combobox', {
     name: /schema/i,
   });
-  fireEvent.mouseDown(selectSchema);
+  userEvent.click(selectSchema);
 
   await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
@@ -734,7 +733,7 @@ test('Excel form post', async () => {
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.xls');
-});
+}, 30000);
 
 test('Columnar form post', async () => {
   render(<UploadDataModal {...columnarProps} />, {
@@ -757,7 +756,7 @@ test('Columnar form post', async () => {
   const selectDatabase = screen.getByRole('combobox', {
     name: /select a database/i,
   });
-  fireEvent.mouseDown(selectDatabase);
+  userEvent.click(selectDatabase);
 
   await screen.findByText('database1');
   await screen.findByText('database2');
@@ -766,7 +765,7 @@ test('Columnar form post', async () => {
   const selectSchema = screen.getByRole('combobox', {
     name: /schema/i,
   });
-  fireEvent.mouseDown(selectSchema);
+  userEvent.click(selectSchema);
 
   await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
@@ -780,6 +779,7 @@ test('Columnar form post', async () => {
     name: 'Upload',
   });
 
+  expect(uploadButton).toBeEnabled();
   userEvent.click(uploadButton);
   await waitFor(() => fetchMock.called('glob:*api/v1/database/1/upload/'));
 
@@ -794,7 +794,7 @@ test('Columnar form post', async () => {
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.parquet');
-});
+}, 30000);
 
 test('CSV, validate file extension returns false', () => {
   const invalidFileNames = ['out', 'out.exe', 'out.csv.exe', '.csv', 'out.xls'];

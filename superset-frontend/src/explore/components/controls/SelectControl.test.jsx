@@ -165,15 +165,9 @@ describe('SelectControl', () => {
         },
       });
       fireEvent(selectorInput, paste);
-      const yearOption = screen
-        .getByText('1 year ago', {
-          selector: '.ant-select-item-option-content',
-        })
-        .closest('[role="option"]');
+      const yearOption = screen.getByRole('option', { name: '1 year ago' });
       expect(yearOption).toHaveAttribute('aria-selected', 'true');
-      const weekOption = screen.getByText(/1 week ago/, {
-        selector: 'div',
-      }).parentNode;
+      const weekOption = screen.getByRole('option', { name: '1 week ago' });
       expect(weekOption?.getAttribute('aria-selected')).toEqual('true');
     });
 

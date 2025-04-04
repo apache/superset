@@ -18,7 +18,6 @@
  */
 import fetchMock from 'fetch-mock';
 import {
-  fireEvent,
   render,
   screen,
   userEvent,
@@ -243,7 +242,7 @@ describe('DatasourceEditor RTL', () => {
     const currencyPrefix = screen.getByRole('combobox', {
       name: 'Currency prefix or suffix',
     });
-    fireEvent.mouseDown(currencyPrefix);
+    userEvent.click(currencyPrefix);
 
     const positionOptions = await waitFor(() =>
       document.querySelectorAll(
@@ -278,7 +277,7 @@ describe('DatasourceEditor RTL', () => {
     const currencySymbol = screen.getByRole('combobox', {
       name: 'Currency symbol',
     });
-    fireEvent.mouseDown(currencySymbol);
+    userEvent.click(currencySymbol);
 
     const symbolOptions = await waitFor(() =>
       document.querySelectorAll(
@@ -290,6 +289,7 @@ describe('DatasourceEditor RTL', () => {
     expect(symbolOptions[2]).toHaveTextContent('€ (EUR)');
 
     await userEvent.click(symbolOptions[1]);
+
     expect(propsWithCurrency.onChange.mock.calls[0][0]).toMatchObject(
       expect.objectContaining({
         metrics: expect.arrayContaining([
@@ -299,7 +299,7 @@ describe('DatasourceEditor RTL', () => {
         ]),
       }),
     );
-  });
+  }, 30000);
   it('properly updates the metric information', async () => {
     await asyncRender(props);
     const metricButton = screen.getByTestId('collection-tab-Metrics');

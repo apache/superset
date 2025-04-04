@@ -649,7 +649,6 @@ const Select = forwardRef(
           placeholder={placeholder}
           tokenSeparators={tokenSeparators}
           value={selectValue}
-          virtual={false}
           suffixIcon={getSuffixIcon(
             isLoading,
             shouldShowSearch,
