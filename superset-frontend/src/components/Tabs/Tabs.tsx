@@ -19,9 +19,8 @@
 import { css, styled } from '@superset-ui/core';
 
 // eslint-disable-next-line no-restricted-imports
-import AntdTabs, { TabsProps as AntdTabsProps } from 'antd-v5'; // TODO: Remove antd
+import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd-v5';
 import { Icons } from 'src/components/Icons';
-
 
 export interface TabsProps extends AntdTabsProps {
   allowOverflow?: boolean;
