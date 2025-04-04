@@ -18,6 +18,7 @@
  */
 import { memo } from 'react';
 import { SortingRule, TableInstance } from 'react-table';
+import { styled } from '@superset-ui/core';
 import { Table, TableSize } from 'src/components/Table';
 import { mapColumns, mapRows } from './utils';
 
@@ -34,6 +35,32 @@ interface TableCollectionProps {
   setSortBy: (updater: SortingRule<any>[]) => void;
 }
 
+const StyledTable = styled(Table)`
+  ${({ theme }) => `
+    .actions {
+      opacity: 0;
+      font-size: ${theme.fontSizeXL}px;
+      display: flex;
+      white-space: nowrap;
+      min-width: 100px;
+      svg,
+      i {
+        margin-right: 8px;
+        &:hover {
+          path {
+            fill: ${theme.colorPrimary};
+          }
+        }
+      }
+    }
+    .antd5-table-row:hover {
+      .actions {
+        opacity: 1;
+        transition: opacity ease-in ${theme.motionDurationMid};
+      }
+    }
+  `}
+`;
 export default memo(
   ({
     columns,
@@ -45,7 +72,7 @@ export default memo(
     const mappedColumns = mapColumns(columns, headerGroups);
     const mappedRows = mapRows(rows);
     return (
-      <Table
+      <StyledTable
         loading={loading}
         columns={mappedColumns}
         data={mappedRows}
