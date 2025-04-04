@@ -86,7 +86,7 @@ def append_charts(position: dict[str, Any], charts: set[Slice]) -> dict[str, Any
             "parents": ["ROOT_ID", "GRID_ID"],
         }
 
-    for chart_hash, chart in zip(chart_hashes, charts, strict=False):
+    for chart_hash, chart in zip(chart_hashes, charts):
         position[chart_hash] = {
             "children": [],
             "id": chart_hash,
@@ -184,9 +184,10 @@ class ExportDashboardsCommand(ExportModelsCommand):
         if export_related:
             chart_ids = [chart.id for chart in model.slices]
             dashboard_ids = model.id
-            ExportChartsCommand.disable_tag_export()
-            yield from ExportChartsCommand(chart_ids).run()
-            ExportChartsCommand.enable_tag_export()
+            command = ExportChartsCommand(chart_ids)
+            command.disable_tag_export()
+            yield from command.run()
+            command.enable_tag_export()
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
                 yield from ExportTagsCommand.export(
                     dashboard_ids=dashboard_ids, chart_ids=chart_ids

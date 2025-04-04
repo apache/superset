@@ -29,6 +29,7 @@ from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import feature_flag_manager
 from superset.models.core import Database
+from superset.utils.decorators import transaction
 from superset.tags.models import Tag, TaggedObject
 from superset.utils.core import check_is_safe_zip
 
@@ -223,6 +224,7 @@ def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
 
 # pylint: disable=consider-using-transaction
 # ruff: noqa: C901
+@transaction()
 def import_tag(
     target_tag_names: list[str],
     contents: dict[str, Any],
@@ -237,6 +239,7 @@ def import_tag(
 
     tag_descriptions = {}
     new_tag_ids = []
+
     if "tags.yaml" in contents:
         try:
             tags_config = yaml.safe_load(contents["tags.yaml"])
@@ -249,6 +252,7 @@ def import_tag(
             description = tag_info.get("description", None)
             if tag_name:
                 tag_descriptions[tag_name] = description
+
     existing_assocs = (
         db_session.query(TaggedObject)
         .filter_by(object_id=object_id, object_type=object_type)
@@ -259,6 +263,7 @@ def import_tag(
         tag.name: tag
         for tag in db_session.query(Tag).filter(Tag.name.in_(target_tag_names))
     }
+
     for tag_name in target_tag_names:
         try:
             tag = existing_tags.get(tag_name)
@@ -268,7 +273,6 @@ def import_tag(
                 description = tag_descriptions.get(tag_name, None)
                 tag = Tag(name=tag_name, description=description, type="custom")
                 db_session.add(tag)
-                db_session.commit()
                 existing_tags[tag_name] = tag  # Update the existing_tags dictionary
 
             # Ensure the association with the object
@@ -293,15 +297,12 @@ def import_tag(
                 object_id,
                 err,
             )
-            db_session.rollback()  # Roll back the transaction in case of an error
-            continue
+            continue  # No need for manual rollback, handled by transaction decorator
 
     # Remove old tags not in the new config
     for tag in existing_assocs:
         if tag.tag_id not in new_tag_ids:
             db_session.delete(tag)
-
-    db_session.commit()
 
     return new_tag_ids
 
@@ -319,4 +320,3 @@ def get_resource_mappings_batched(
         mapping.update({str(x.uuid): value_func(x) for x in batch})
         offset += batch_size
     return mapping
-
