@@ -72,6 +72,9 @@ const StyledTable = styled(Table)`
       padding-left: ${theme.sizeUnit * 4}px;
       white-space: nowrap;
     }
+    .antd5-table-placeholder .antd5-table-cell {
+      border-bottom: 0;
+    }
   `}
 `;
 export default memo(
@@ -90,8 +93,10 @@ export default memo(
         columns={mappedColumns}
         data={mappedRows}
         size={TableSize.Middle}
+        data-test="listview-table"
         pagination={false}
         tableLayout="auto"
+        locale={{ emptyText: null }}
         sortDirections={['ascend', 'descend', 'ascend']} // HACK: To disable default sorting
         onChange={(pagination, filters, sorter: any) => {
           setSortBy?.([
