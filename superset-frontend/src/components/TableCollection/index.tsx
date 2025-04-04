@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HTMLAttributes, memo, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { SortingRule, TableInstance } from 'react-table';
 import { styled } from '@superset-ui/core';
 import { Table, TableSize } from 'src/components/Table';
