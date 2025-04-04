@@ -37,6 +37,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { noOp } from 'src/utils/common';
+// import DateRangePicker from 'src/components/DateRangePicker/DateRangePicker';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
@@ -47,13 +48,13 @@ import {
   useDefaultTimeFilter,
 } from './utils';
 import {
-  CommonFrame,
-  CalendarFrame,
-  CustomFrame,
+  // CommonFrame,
+  // CalendarFrame,
+  // CustomFrame,
   AdvancedFrame,
   DateLabel,
 } from './components';
-import { CurrentCalendarFrame } from './components/CurrentCalendarFrame';
+// import { CurrentCalendarFrame } from './components/CurrentCalendarFrame';
 
 const StyledRangeType = styled(Select)`
   width: 272px;
@@ -105,6 +106,15 @@ const ContentStyleWrapper = styled.div`
 
     .footer {
       text-align: right;
+    }
+
+    .time-ranger {
+      align-items: center;
+      justify-content: space-evenly;
+    }
+
+    .time-section {
+      min-width: 240px;
     }
   `}
 `;
@@ -278,14 +288,16 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const overlayContent = (
     <ContentStyleWrapper>
-      <div className="control-label">{t('RANGE TYPE')}</div>
-      <StyledRangeType
-        ariaLabel={t('RANGE TYPE')}
-        options={FRAME_OPTIONS}
-        value={frame}
-        onChange={onChangeFrame}
-      />
-      {frame !== 'No filter' && <Divider />}
+      {/* <div className="control-label">{t('RANGE TYPE')}</div> */}
+      {false ? (
+        <StyledRangeType
+          ariaLabel={t('RANGE TYPE')}
+          options={FRAME_OPTIONS}
+          value={frame}
+          onChange={onChangeFrame}
+        />
+      ) : null}
+      {/* {frame !== 'No filter' && <Divider />}
       {frame === 'Common' && (
         <CommonFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
@@ -309,14 +321,16 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         />
       )}
       {frame === 'No filter' && <div data-test={DateFilterTestKey.NoFilter} />}
-      <Divider />
+      <Divider /> */}
+      <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+
       <div>
-        <div className="section-title">{t('Actual time range')}</div>
+        {/* <div className="section-title">{t('Actual time range')}</div>
         {validTimeRange && (
           <div>
             {evalResponse === 'No filter' ? t('No filter') : evalResponse}
           </div>
-        )}
+        )} */}
         {!validTimeRange && (
           <IconWrapper className="warning">
             <Icons.ExclamationCircleOutlined
@@ -351,10 +365,18 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     </ContentStyleWrapper>
   );
 
+  // const dateTimePicker = (
+  //   <DateRangePicker
+  //     startDate={timeRangeValue || null}
+  //     endDate={timeRangeValue || null}
+  //     onChange={(startDate, endDate) => () => {}}
+  //   />
+  // );
+
   const title = (
     <IconWrapper>
-      <Icons.EditOutlined />
-      <span className="text">{t('Edit time range')}</span>
+      {/* <Icons.EditAlt iconColor={theme.colors.grayscale.base} /> */}
+      <span className="text">{t('Date Range')}</span>
     </IconWrapper>
   );
   const popoverContent = (
