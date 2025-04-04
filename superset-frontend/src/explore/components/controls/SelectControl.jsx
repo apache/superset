@@ -94,8 +94,7 @@ export const innerGetOptions = props => {
     options = props.options.map(o => ({
       ...o,
       value: o[valueKey],
-      label: o.label || o[valueKey],
-      customLabel: optionRenderer ? optionRenderer(o) : undefined,
+      label: optionRenderer ? optionRenderer(o) : o.label || o[valueKey],
     }));
   } else if (choices) {
     // Accepts different formats of input

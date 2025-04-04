@@ -17,11 +17,9 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
+import { Spin } from 'src/components/Spin';
+import { Select } from 'antd-v5';
 import { Icons } from 'src/components/Icons';
-// eslint-disable-next-line no-restricted-imports
-import { Spin, Tag } from 'antd'; // TODO: Remove antd
-// eslint-disable-next-line no-restricted-imports
-import AntdSelect from 'antd/lib/select'; // TODO: Remove antd
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `
@@ -41,35 +39,41 @@ export const StyledContainer = styled.div<{ headerPosition: string }>`
   `}
 `;
 
-export const StyledSelect = styled(AntdSelect, {
+export const StyledSelect = styled(Select, {
   shouldForwardProp: prop => prop !== 'headerPosition' && prop !== 'oneLine',
 })<{ headerPosition?: string; oneLine?: boolean }>`
   ${({ theme, headerPosition, oneLine }) => `
     flex: ${headerPosition === 'left' ? 1 : 0};
-    && .ant-select-selector {
-      border-radius: ${theme.sizeUnit}px;
+    line-height: ${theme.sizeXL}px;
+
+    && .antd5-select-selection-search {
+      left: 0px;
     }
-    // Open the dropdown when clicking on the suffix
-    // This is fixed in version 4.16
-    .ant-select-arrow .anticon:not(.ant-select-suffix) {
-      pointer-events: none;
+
+    && .antd5-select-selection-item, .antd5-select-selection-placeholder {
+      max-height: ${theme.sizeXL}px;
+    }
+    .antd5-select-selection-item::after {
+      height: 0;
+      display: block !important;
     }
     .select-all {
+      border-radius: 0;
       border-bottom: 1px solid ${theme.colors.grayscale.light3};
     }
     ${
       oneLine &&
       `
-        .ant-select-selection-overflow {
+        .antd5-select-selection-overflow {
           flex-wrap: nowrap;
         }
 
-        .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
+        .antd5-select-selection-overflow-item:not(.antd5-select-selection-overflow-item-rest):not(.antd5-select-selection-overflow-item-suffix) {
           flex-shrink: 1;
           min-width: ${theme.sizeUnit * 13}px;
         }
 
-        .ant-select-selection-overflow-item-suffix {
+        .antd5-select-selection-overflow-item-suffix {
           flex: unset;
           min-width: 0px;
         }
@@ -80,14 +84,6 @@ export const StyledSelect = styled(AntdSelect, {
 
 export const NoElement = styled.span`
   display: none;
-`;
-
-export const StyledTag = styled(Tag)`
-  ${({ theme }) => `
-    background: ${theme.colors.grayscale.light3};
-    font-size: ${theme.fontSize}px;
-    border: none;
-  `}
 `;
 
 export const StyledStopOutlined = styled(Icons.StopOutlined)`

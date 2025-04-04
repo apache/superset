@@ -323,10 +323,7 @@ const ColumnSelectPopover = ({
                 placeholder={t('%s column(s)', calculatedColumns.length)}
                 options={calculatedColumns.map(calculatedColumn => ({
                   value: calculatedColumn.column_name,
-                  label:
-                    calculatedColumn.verbose_name ||
-                    calculatedColumn.column_name,
-                  customLabel: (
+                  label: (
                     <StyledColumnOption column={calculatedColumn} showType />
                   ),
                   key: calculatedColumn.column_name,
@@ -427,10 +424,7 @@ const ColumnSelectPopover = ({
                 placeholder={t('%s column(s)', simpleColumns.length)}
                 options={simpleColumns.map(simpleColumn => ({
                   value: simpleColumn.column_name,
-                  label: simpleColumn.verbose_name || simpleColumn.column_name,
-                  customLabel: (
-                    <StyledColumnOption column={simpleColumn} showType />
-                  ),
+                  label: <StyledColumnOption column={simpleColumn} showType />,
                   key: simpleColumn.column_name,
                 }))}
               />

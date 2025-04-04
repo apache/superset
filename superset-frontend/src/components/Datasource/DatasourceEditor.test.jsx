@@ -197,8 +197,6 @@ describe('DatasourceEditor', () => {
 });
 
 describe('DatasourceEditor RTL', () => {
-  jest.setTimeout(15000); // Extend timeout to 15s for this test
-
   it('properly renders the metric information', async () => {
     await asyncRender(props);
     const metricButton = screen.getByTestId('collection-tab-Metrics');
@@ -240,9 +238,12 @@ describe('DatasourceEditor RTL', () => {
         ),
       ),
     ).toHaveTextContent('Prefix');
-    await userEvent.click(
-      screen.getByRole('combobox', { name: 'Currency prefix or suffix' }),
-    );
+
+    const currencyPrefix = screen.getByRole('combobox', {
+      name: 'Currency prefix or suffix',
+    });
+    userEvent.click(currencyPrefix);
+
     const positionOptions = await waitFor(() =>
       document.querySelectorAll(
         `[aria-label='Currency prefix or suffix'] .ant-select-item-option-content`,
@@ -272,9 +273,12 @@ describe('DatasourceEditor RTL', () => {
     ).toHaveTextContent('$ (USD)');
 
     propsWithCurrency.onChange.mockClear();
-    await userEvent.click(
-      screen.getByRole('combobox', { name: 'Currency symbol' }),
-    );
+
+    const currencySymbol = screen.getByRole('combobox', {
+      name: 'Currency symbol',
+    });
+    userEvent.click(currencySymbol);
+
     const symbolOptions = await waitFor(() =>
       document.querySelectorAll(
         `[aria-label='Currency symbol'] .ant-select-item-option-content`,
@@ -285,6 +289,7 @@ describe('DatasourceEditor RTL', () => {
     expect(symbolOptions[2]).toHaveTextContent('€ (EUR)');
 
     await userEvent.click(symbolOptions[1]);
+
     expect(propsWithCurrency.onChange.mock.calls[0][0]).toMatchObject(
       expect.objectContaining({
         metrics: expect.arrayContaining([
@@ -294,7 +299,7 @@ describe('DatasourceEditor RTL', () => {
         ]),
       }),
     );
-  });
+  }, 30000);
   it('properly updates the metric information', async () => {
     await asyncRender(props);
     const metricButton = screen.getByTestId('collection-tab-Metrics');

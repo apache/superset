@@ -84,9 +84,9 @@ describe('Charts list', () => {
     it.only('should show the newly added dashboards in a tooltip', () => {
       interceptDashboardGet();
       visitSampleChartFromList('1 - Sample chart');
-      saveChartToDashboard('1 - Sample dashboard');
-      saveChartToDashboard('2 - Sample dashboard');
-      saveChartToDashboard('3 - Sample dashboard');
+      saveChartToDashboard('1 - Sample chart', '1 - Sample dashboard');
+      saveChartToDashboard('1 - Sample chart', '2 - Sample dashboard');
+      saveChartToDashboard('1 - Sample chart', '3 - Sample dashboard');
       visitChartList();
 
       cy.getBySel('count-crosslinks').should('be.visible');
@@ -122,7 +122,7 @@ describe('Charts list', () => {
 
     it('should bulk select in list mode', () => {
       toggleBulkSelect();
-      cy.get('#header-toggle-all').click();
+      cy.get('#checkbox-header-toggle-all').click();
       cy.get('[aria-label="checkbox-on"]').should('have.length', 26);
       cy.getBySel('bulk-select-copy').contains('25 Selected');
       cy.getBySel('bulk-select-action')

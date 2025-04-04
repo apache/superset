@@ -23,8 +23,7 @@ import {
   useMemo,
   useEffect,
 } from 'react';
-// eslint-disable-next-line no-restricted-imports
-import { SelectValue } from 'antd/lib/select'; // TODO: Remove antd
+import { SelectValue } from 'src/components/Select';
 
 import {
   styled,
@@ -218,11 +217,12 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       data
         ? data.options.map(table => ({
             value: table.value,
-            label: <TableOption table={table} />,
+            label: customTableOptionLabelRenderer ? (
+              customTableOptionLabelRenderer(table)
+            ) : (
+              <TableOption table={table} />
+            ),
             text: table.value,
-            ...(customTableOptionLabelRenderer && {
-              customLabel: customTableOptionLabelRenderer(table),
-            }),
           }))
         : [],
     [data, customTableOptionLabelRenderer],
