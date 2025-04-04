@@ -1630,6 +1630,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: SqlAlchemy query with additional where clause referencing the latest
         partition
         """
+        # TODO: Fix circular import caused by importing Database, TableColumn
         return None
 
     @classmethod

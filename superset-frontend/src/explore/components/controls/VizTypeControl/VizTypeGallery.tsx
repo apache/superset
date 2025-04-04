@@ -44,7 +44,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { Input } from 'src/components/Input';
 import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import scrollIntoView from 'scroll-into-view-if-needed';
 
@@ -113,13 +113,13 @@ const LeftPane = styled.div`
   grid-area: sidebar;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-right: 1px solid ${({ theme }) => theme.colorBorder};
   overflow: auto;
 
   .ant-collapse .ant-collapse-item {
     .ant-collapse-header {
       font-size: ${({ theme }) => theme.fontSizeSM}px;
-      color: ${({ theme }) => theme.colors.grayscale.base};
+      color: ${({ theme }) => theme.colorText};
       padding-left: ${({ theme }) => theme.sizeUnit * 2}px;
       padding-bottom: ${({ theme }) => theme.sizeUnit}px;
     }
@@ -154,7 +154,7 @@ const InputIconAlignment = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorIcon};
 `;
 
 const SelectorLabel = styled.button`
@@ -171,17 +171,18 @@ const SelectorLabel = styled.button`
     text-overflow: ellipsis;
     white-space: nowrap;
     position: relative;
+    color: ${theme.colorText};
 
     &:focus {
       outline: initial;
     }
 
     &.selected {
-      background-color: ${theme.colorPrimary};
-      color: ${theme.colors.primary.light5};
+      background-color: ${theme.colorPrimaryBgHover};
+      color: ${theme.colorPrimaryTextActive};
 
       svg {
-        color: ${theme.colors.primary.light5};
+        color: ${theme.colorIcon};
       }
 
       &:hover {

@@ -20,7 +20,7 @@ import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { Input } from 'src/components/Input';
 import InfoTooltip from 'src/components/InfoTooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Button from 'src/components/Button';
 import errorIcon from 'src/assets/images/icons/error.svg';
 import FormItem from './FormItem';
@@ -51,11 +51,11 @@ const StyledInputPassword = styled(Input.Password)`
 `;
 
 const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
-  .ant-form-item-children-icon {
+  .antd5-form-item-children-icon {
     display: none;
   }
   ${hasError &&
-  `.ant-form-item-control-input-content {
+  `.antd5-form-item-control-input-content {
       position: relative;
       &:after {
         content: ' ';
@@ -79,7 +79,7 @@ const StyledFormGroup = styled('div')`
     margin: 0;
   }
   margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
-  .ant-form-item {
+  .antd5-form-item {
     margin-bottom: 0;
   }
 `;

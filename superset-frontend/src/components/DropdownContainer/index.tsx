@@ -35,7 +35,7 @@ import { Global } from '@emotion/react';
 import { css, t, useTheme, usePrevious } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import Badge from '../Badge';
-import Icons from '../Icons';
+import { Icons } from '../Icons';
 import Button from '../Button';
 import Popover from '../Popover';
 import { Tooltip } from '../Tooltip';
@@ -364,9 +364,11 @@ const DropdownContainer = forwardRef(
             />
 
             <Popover
-              overlayInnerStyle={{
-                maxHeight: `${MAX_HEIGHT}px`,
-                overflow: showOverflow ? 'auto' : 'visible',
+              styles={{
+                body: {
+                  maxHeight: `${MAX_HEIGHT}px`,
+                  overflow: showOverflow ? 'auto' : 'visible',
+                },
               }}
               content={popoverContent}
               trigger="click"

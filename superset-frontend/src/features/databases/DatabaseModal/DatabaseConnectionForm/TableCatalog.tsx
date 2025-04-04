@@ -18,8 +18,8 @@
  */
 import { css, SupersetTheme, t } from '@superset-ui/core';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
-import FormLabel from 'src/components/Form/FormLabel';
-import Icons from 'src/components/Icons';
+import { FormLabel } from 'src/components/Form';
+import { Icons } from 'src/components/Icons';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
 import { CatalogObject, FieldPropTypes } from '../../types';
 

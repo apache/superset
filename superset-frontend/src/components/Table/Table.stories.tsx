@@ -27,6 +27,7 @@ import {
   SUPERSET_TABLE_COLUMN,
   Table,
   TableSize,
+  TableProps,
 } from './index';
 import { alphabeticalSort, numericalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
@@ -331,7 +332,7 @@ for (let i = 0; i < recordCount; i += 1) {
   });
 }
 
-export const Basic: StoryFn<typeof Table> = args => <Table {...args} />;
+export const Basic = (args: TableProps<object>) => <Table {...args} />;
 
 function handlers(record: object, rowIndex: number) {
   return {
@@ -357,7 +358,7 @@ Basic.args = {
   usePagination: false,
 };
 
-export const Pagination: StoryFn<typeof Table> = args => <Table {...args} />;
+export const Pagination = (args: TableProps<object>) => <Table {...args} />;
 
 Pagination.args = {
   data: basicData,
@@ -429,7 +430,7 @@ const paginationColumns: ColumnsType<BasicData> = [
   },
 ];
 
-export const ServerPagination: StoryFn<typeof Table> = args => {
+export const ServerPagination = (args: TableProps<any>) => {
   const [data, setData] = useState(generateData(0, 5));
   const [loading, setLoading] = useState(false);
 
@@ -484,9 +485,7 @@ ServerPagination.args = {
   defaultPageSize: 5,
 };
 
-export const VirtualizedPerformance: StoryFn<typeof Table> = args => (
-  <Table {...args} />
-);
+export const VirtualizedPerformance = (args: any) => <Table {...args} />;
 
 VirtualizedPerformance.args = {
   data: bigdata,
@@ -499,7 +498,7 @@ VirtualizedPerformance.args = {
   usePagination: false,
 };
 
-export const Loading: StoryFn<typeof Table> = args => <Table {...args} />;
+export const Loading = (args: TableProps<object>) => <Table {...args} />;
 
 Loading.args = {
   data: basicData,
@@ -508,7 +507,7 @@ Loading.args = {
   loading: true,
 };
 
-export const ResizableColumns: StoryFn<typeof Table> = args => (
+export const ResizableColumns = (args: TableProps<object>) => (
   <Table {...args} />
 );
 
@@ -519,7 +518,7 @@ ResizableColumns.args = {
   resizable: true,
 };
 
-export const ReorderableColumns: StoryFn<typeof Table> = args => {
+export const ReorderableColumns = (args: any) => {
   const [droppedItem, setDroppedItem] = useState<string | undefined>();
   const dragOver = (ev: DragEvent<HTMLDivElement>) => {
     ev.preventDefault();
@@ -598,7 +597,9 @@ const rendererData: RendererData[] = [
   },
 ];
 
-export const CellRenderers: StoryFn<typeof Table> = args => <Table {...args} />;
+export const CellRenderers: StoryFn = (args: TableProps<object>) => (
+  <Table {...args} />
+);
 
 CellRenderers.args = {
   data: rendererData,

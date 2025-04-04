@@ -211,12 +211,12 @@ export default function AsyncAceEditor(
 
                 /* Adjust selection color */
                 .ace_editor .ace_selection {
-                  background-color: ${token.colorPrimaryBg} !important;
+                  background-color: ${token.colorPrimaryBgHover} !important;
                 }
 
                 /* Improve active line highlighting */
                 .ace_editor .ace_active-line {
-                  background-color: ${token.colorPrimaryBgHover} !important;
+                  background-color: ${token.colorPrimaryBg} !important;
                 }
 
                 /* Fix indent guides and print margin (80 chars line) */
