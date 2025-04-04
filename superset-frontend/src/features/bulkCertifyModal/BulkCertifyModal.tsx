@@ -49,11 +49,10 @@ const BulkCertifyModal: FC<BulkCertifyModalProps> = ({
   addSuccessToast,
   addDangerToast,
 }) => {
-  useEffect(() => {}, []);
   const [certifiedBy, setCertifiedBy] = useState<string>('');
   const [certificationDetails, setCertificationDetails] = useState<string>('');
 
-  const resourceLabelPlural = resourceLabel + (selected.length > 1 ? 's' : '');
+  const resourceLabelPlural = t('%s|%s', resourceLabel, selected.length > 1 ? resourceLabel + 's' : resourceLabel);  
 
   const onSave = async () => {
     if (!certifiedBy) {
