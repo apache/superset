@@ -28,7 +28,7 @@ const StyledTabs = styled(Tabs)`
   padding-left: ${theme.sizeUnit * 4}px;
   padding-right: ${theme.sizeUnit * 4}px;
 
-  .ant-tabs-top > .ant-tabs-nav::before {
+  .antd5-tabs-top > .antd5-tabs-nav::before {
     width: ${theme.sizeUnit * 50}px;
   }
   `}
@@ -53,6 +53,12 @@ const TRANSLATIONS = {
   METRICS_TEXT: t('Metrics'),
 };
 
+const TABS_KEYS = {
+  COLUMNS: 'COLUMNS',
+  METRICS: 'METRICS',
+  USAGE: 'USAGE',
+};
+
 const EditPage = ({ id }: EditPageProps) => {
   const { usageCount } = useGetDatasetRelatedCounts(id);
 
@@ -63,15 +69,25 @@ const EditPage = ({ id }: EditPageProps) => {
     </TabStyles>
   );
 
-  return (
-    <StyledTabs moreIcon={null} fullWidth={false}>
-      <Tabs.TabPane tab={TRANSLATIONS.COLUMNS_TEXT} key="1" />
-      <Tabs.TabPane tab={TRANSLATIONS.METRICS_TEXT} key="2" />
-      <Tabs.TabPane tab={usageTab} key="3">
-        <UsageTab datasetId={id} />
-      </Tabs.TabPane>
-    </StyledTabs>
-  );
+  const items = [
+    {
+      key: TABS_KEYS.COLUMNS,
+      label: TRANSLATIONS.COLUMNS_TEXT,
+      children: null,
+    },
+    {
+      key: TABS_KEYS.METRICS,
+      label: TRANSLATIONS.METRICS_TEXT,
+      children: null,
+    },
+    {
+      key: TABS_KEYS.USAGE,
+      label: usageTab,
+      children: <UsageTab datasetId={id} />,
+    },
+  ];
+
+  return <StyledTabs moreIcon={null} items={items} />;
 };
 
 export default EditPage;

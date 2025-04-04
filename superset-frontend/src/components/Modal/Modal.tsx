@@ -184,13 +184,6 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   }
 
-  // styling for Tabs component
-  // Aaron note 20-11-19: this seems to be exclusively here for the Edit Database modal.
-  // TODO: remove this as it is a special case.
-  .ant-tabs-top {
-    margin-top: -${({ theme }) => theme.sizeUnit * 4}px;
-  }
-
   &.no-content-padding .antd5-modal-body {
     padding: 0;
   }

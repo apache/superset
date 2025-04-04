@@ -126,7 +126,7 @@ test('Should render editMode:true', () => {
   render(<Tabs {...props} />, { useRedux: true, useDnd: true });
   expect(screen.getAllByRole('tab')).toHaveLength(3);
   expect(screen.getAllByRole('button', { name: 'remove' })).toHaveLength(3);
-  expect(screen.getAllByRole('button', { name: 'Add tab' })).toHaveLength(2);
+  expect(screen.getAllByRole('button', { name: 'Add tab' })).toHaveLength(1);
   expect(DashboardComponent).toHaveBeenCalledTimes(4);
   expect(DeleteComponentButton).toHaveBeenCalledTimes(1);
 });

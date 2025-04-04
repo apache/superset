@@ -65,12 +65,6 @@ const FilterTitlePane: FC<Props> = ({
   const handleOnAdd = (type: NativeFilterType) => {
     onAdd(type);
     setTimeout(() => {
-      const element = document.getElementById('native-filters-tabs');
-      if (element) {
-        const navList = element.getElementsByClassName('ant-tabs-nav-list')[0];
-        navList.scrollTop = navList.scrollHeight;
-      }
-
       filtersContainerRef?.current?.scroll?.({
         top: filtersContainerRef.current.scrollHeight,
         behavior: 'smooth',

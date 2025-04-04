@@ -105,15 +105,15 @@ const Styles = styled.div`
   }
 
   .ant-collapse {
-    .ant-tabs {
+    .antd5-tabs {
       height: 100%;
-      .ant-tabs-nav {
+      .antd5-tabs-nav {
         padding-left: ${({ theme }) => theme.sizeUnit * 5}px;
         margin: 0;
       }
-      .ant-tabs-content-holder {
+      .antd5-tabs-content-holder {
         overflow: hidden;
-        .ant-tabs-content {
+        .antd5-tabs-content {
           height: 100%;
         }
       }

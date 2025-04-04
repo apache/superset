@@ -32,6 +32,11 @@ import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
 
 const BUILDER_PANE_WIDTH = 374;
 
+const TABS_KEYS = {
+  CHARTS: 'CHARTS',
+  LAYOUT_ELEMENTS: 'LAYOUT_ELEMENTS',
+};
+
 const BuilderComponentPane = ({ topOffset = 0 }) => (
   <div
     data-test="dashboard-builder-sidepane"
@@ -60,40 +65,51 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
           margin-top: ${theme.sizeUnit * 2}px;
           height: 100%;
 
-          & .ant-tabs-content-holder {
+          & .antd5-tabs-content-holder {
             height: 100%;
-            & .ant-tabs-content {
+            & .antd5-tabs-content {
               height: 100%;
             }
           }
         `}
-      >
-        <Tabs.TabPane
-          key={1}
-          tab={t('Charts')}
-          css={css`
-            height: 100%;
-          `}
-        >
-          <SliceAdder />
-        </Tabs.TabPane>
-        <Tabs.TabPane key={2} tab={t('Layout elements')}>
-          <NewTabs />
-          <NewRow />
-          <NewColumn />
-          <NewHeader />
-          <NewMarkdown />
-          <NewDivider />
-          {dashboardComponents
-            .getAll()
-            .map(({ key: componentKey, metadata }) => (
-              <NewDynamicComponent
-                metadata={metadata}
-                componentKey={componentKey}
-              />
-            ))}
-        </Tabs.TabPane>
-      </Tabs>
+        items={[
+          {
+            key: TABS_KEYS.CHARTS,
+            label: t('Charts'),
+            children: (
+              <div
+                css={css`
+                  height: 100%;
+                `}
+              >
+                <SliceAdder />
+              </div>
+            ),
+          },
+          {
+            key: TABS_KEYS.LAYOUT_ELEMENTS,
+            label: t('Layout elements'),
+            children: (
+              <>
+                <NewTabs />
+                <NewRow />
+                <NewColumn />
+                <NewHeader />
+                <NewMarkdown />
+                <NewDivider />
+                {dashboardComponents
+                  .getAll()
+                  .map(({ key: componentKey, metadata }) => (
+                    <NewDynamicComponent
+                      metadata={metadata}
+                      componentKey={componentKey}
+                    />
+                  ))}
+              </>
+            ),
+          },
+        ]}
+      />
     </div>
   </div>
 );

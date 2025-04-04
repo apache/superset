@@ -57,7 +57,7 @@ type StyledPaneProps = {
 const StyledPane = styled.div<StyledPaneProps>`
   width: 100%;
   height: ${props => props.height}px;
-  .ant-tabs .ant-tabs-content-holder {
+  .antd5-tabs .antd5-tabs-content-holder {
     overflow: visible;
   }
   .SouthPaneTabs {
@@ -68,7 +68,7 @@ const StyledPane = styled.div<StyledPaneProps>`
       overflow-y: auto;
     }
   }
-  .ant-tabs-tabpane {
+  .antd5-tabs-tabpane {
     .scrollable {
       overflow-y: auto;
     }
@@ -140,11 +140,66 @@ const SouthPane = ({
     [dispatch, pinnedTables],
   );
 
-  return offline ? (
-    <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
-      {STATUS_OPTIONS_LOCALIZED.offline}
-    </Label>
-  ) : (
+  if (offline) {
+    return (
+      <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
+        {STATUS_OPTIONS_LOCALIZED.offline}
+      </Label>
+    );
+  }
+
+  const tabItems = [
+    {
+      key: 'Results',
+      label: t('Results'),
+      children: (
+        <Results
+          height={innerTabContentHeight}
+          latestQueryId={latestQueryId}
+          displayLimit={displayLimit}
+          defaultQueryLimit={defaultQueryLimit}
+        />
+      ),
+      closable: false,
+    },
+    {
+      key: 'History',
+      label: t('Query history'),
+      children: (
+        <QueryHistory
+          queryEditorId={queryEditorId}
+          displayLimit={displayLimit}
+          latestQueryId={latestQueryId}
+        />
+      ),
+      closable: false,
+    },
+    ...pinnedTables.map(({ id, dbId, catalog, schema, name }) => ({
+      key: pinnedTableKeys[id],
+      label: (
+        <>
+          <Icons.InsertRowAboveOutlined
+            iconSize="l"
+            css={css`
+              margin-bottom: ${theme.sizeUnit * 0.5}px;
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          />
+          {`${schema}.${decodeURIComponent(name)}`}
+        </>
+      ),
+      children: (
+        <TablePreview
+          dbId={dbId}
+          catalog={catalog}
+          schema={schema}
+          tableName={name}
+        />
+      ),
+    })),
+  ];
+
+  return (
     <StyledPane
       data-test="south-pane"
       className="SouthPane"
@@ -157,51 +212,11 @@ const SouthPane = ({
         className="SouthPaneTabs"
         onChange={switchTab}
         id={nanoid(11)}
-        fullWidth={false}
         animated={false}
         onEdit={removeTable}
         hideAdd
-      >
-        <Tabs.TabPane tab={t('Results')} key="Results" closable={false}>
-          <Results
-            height={innerTabContentHeight}
-            latestQueryId={latestQueryId}
-            displayLimit={displayLimit}
-            defaultQueryLimit={defaultQueryLimit}
-          />
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={t('Query history')} key="History" closable={false}>
-          <QueryHistory
-            queryEditorId={queryEditorId}
-            displayLimit={displayLimit}
-            latestQueryId={latestQueryId}
-          />
-        </Tabs.TabPane>
-        {pinnedTables.map(({ id, dbId, catalog, schema, name }) => (
-          <Tabs.TabPane
-            tab={
-              <>
-                <Icons.InsertRowAboveOutlined
-                  iconSize="l"
-                  css={css`
-                    margin-bottom: ${theme.sizeUnit * 0.5}px;
-                    margin-right: ${theme.sizeUnit}px;
-                  `}
-                />
-                {`${schema}.${decodeURIComponent(name)}`}
-              </>
-            }
-            key={pinnedTableKeys[id]}
-          >
-            <TablePreview
-              dbId={dbId}
-              catalog={catalog}
-              schema={schema}
-              tableName={name}
-            />
-          </Tabs.TabPane>
-        ))}
-      </Tabs>
+        items={tabItems}
+      />
     </StyledPane>
   );
 };

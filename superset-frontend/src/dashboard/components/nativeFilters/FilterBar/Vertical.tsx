@@ -43,7 +43,7 @@ import CrossFiltersVertical from './CrossFilters/Vertical';
 const BarWrapper = styled.div<{ width: number }>`
   width: ${({ theme }) => theme.sizeUnit * 8}px;
 
-  & .ant-tabs-top > .ant-tabs-nav {
+  & .antd5-tabs-top > .antd5-tabs-nav {
     margin: 0;
   }
   &.open {

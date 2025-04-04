@@ -108,13 +108,13 @@ export const antdCollapseStyles = (theme: SupersetTheme) => css`
 `;
 
 export const antDTabsStyles = css`
-  .ant-tabs-top {
+  .antd5-tabs-top {
     margin-top: 0;
   }
-  .ant-tabs-top > .ant-tabs-nav {
+  .antd5-tabs-top > .antd5-tabs-nav {
     margin-bottom: 0;
   }
-  .ant-tabs-tab {
+  .antd5-tabs-tab {
     margin-right: 0;
   }
 `;
@@ -235,7 +235,7 @@ export const formStyles = (theme: SupersetTheme) => css`
     font-size: ${theme.fontSizeSM}px;
     margin-top: ${theme.sizeUnit * 1.5}px;
   }
-  .ant-tabs-content-holder {
+  .antd5-tabs-content-holder {
     overflow: auto;
     max-height: 480px;
   }
