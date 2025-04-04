@@ -26,8 +26,8 @@ import {
 } from '@superset-ui/chart-controls';
 import {
   headerFontSize,
-  subheaderFontSize,
-  displaySettingsSection,
+  subtitleFontSize,
+  subtitleControl,
 } from '../sharedControls';
 
 export default {
@@ -37,13 +37,13 @@ export default {
       expanded: true,
       controlSetRows: [['metric'], ['adhoc_filters']],
     },
-    displaySettingsSection,
     {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
         [headerFontSize],
-        [subheaderFontSize],
+        [subtitleControl],
+        [subtitleFontSize],
         ['y_axis_format'],
         ['currency_format'],
         [

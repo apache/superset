@@ -19,7 +19,7 @@
 
 // These are control configurations that are shared ONLY within the BigNumberWithTrendline viz plugin repo.
 import { t } from '@superset-ui/core';
-import { CustomControlItem, TabOverride } from '@superset-ui/chart-controls';
+import { CustomControlItem } from '@superset-ui/chart-controls';
 
 export const headerFontSize: CustomControlItem = {
   name: 'header_font_size',
@@ -55,6 +55,39 @@ export const headerFontSize: CustomControlItem = {
   },
 };
 
+export const subtitleFontSize: CustomControlItem = {
+  name: 'subtitle_font_size',
+  config: {
+    type: 'SelectControl',
+    label: t('Subtitle Font Size'),
+    renderTrigger: true,
+    clearable: false,
+    default: 0.15,
+    // Values represent the percentage of space a subheader should take
+    options: [
+      {
+        label: t('Tiny'),
+        value: 0.125,
+      },
+      {
+        label: t('Small'),
+        value: 0.15,
+      },
+      {
+        label: t('Normal'),
+        value: 0.2,
+      },
+      {
+        label: t('Large'),
+        value: 0.3,
+      },
+      {
+        label: t('Huge'),
+        value: 0.4,
+      },
+    ],
+  },
+};
 export const subheaderFontSize: CustomControlItem = {
   name: 'subheader_font_size',
   config: {
@@ -89,23 +122,12 @@ export const subheaderFontSize: CustomControlItem = {
   },
 };
 
-export const displaySettingsSection = {
-  label: t('Display settings'),
-  expanded: true,
-  tabOverride: 'data' as TabOverride,
-  controlSetRows: [
-    [
-      {
-        name: 'subheader',
-        config: {
-          type: 'TextControl',
-          label: t('Subheader'),
-          renderTrigger: true,
-          description: t(
-            'Description text that shows up below your Big Number',
-          ),
-        },
-      },
-    ],
-  ],
+export const subtitleControl: CustomControlItem = {
+  name: 'subtitle',
+  config: {
+    type: 'TextControl',
+    label: t('Subtitle'),
+    renderTrigger: true,
+    description: t('Description text that shows up below your Big Number'),
+  },
 };

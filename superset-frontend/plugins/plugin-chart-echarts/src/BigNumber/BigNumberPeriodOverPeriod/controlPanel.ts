@@ -26,7 +26,8 @@ import {
 import {
   headerFontSize,
   subheaderFontSize,
-  displaySettingsSection,
+  subtitleControl,
+  subtitleFontSize,
 } from '../sharedControls';
 import { ColorSchemeEnum } from './types';
 
@@ -46,7 +47,6 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
-    displaySettingsSection,
     {
       label: t('Chart Options'),
       expanded: true,
@@ -68,6 +68,8 @@ const config: ControlPanelConfig = {
             config: { ...headerFontSize.config, default: 0.2 },
           },
         ],
+        [subtitleControl],
+        [subtitleFontSize],
         [
           {
             ...subheaderFontSize,

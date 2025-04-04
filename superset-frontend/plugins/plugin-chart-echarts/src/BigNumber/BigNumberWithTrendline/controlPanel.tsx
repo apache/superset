@@ -29,7 +29,8 @@ import {
 import {
   headerFontSize,
   subheaderFontSize,
-  displaySettingsSection,
+  subtitleFontSize,
+  subtitleControl,
 } from '../sharedControls';
 
 const config: ControlPanelConfig = {
@@ -45,7 +46,6 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
       ],
     },
-    displaySettingsSection,
     {
       label: t('Options'),
       tabOverride: 'data',
@@ -139,6 +139,8 @@ const config: ControlPanelConfig = {
         ['color_picker', null],
         [headerFontSize],
         [subheaderFontSize],
+        [subtitleControl],
+        [subtitleFontSize],
         ['y_axis_format'],
         ['currency_format'],
         [

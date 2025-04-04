@@ -129,16 +129,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     );
   }
 
-  renderTrendText() {
-    const { trendText, className } = this.props;
-
-    if (!trendText) {
-      return null;
-    }
-
-    return <div className={`trend-text ${className || ''}`}>{trendText}</div>;
-  }
-
   renderHeader(maxHeight: number) {
     const { bigNumber, headerFormatter, width, colorThresholdFormatters } =
       this.props;
@@ -239,6 +229,37 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     return null;
   }
 
+  renderSubtitle(maxHeight: number) {
+    const { subtitle, width } = this.props;
+    let fontSize = 0;
+
+    if (subtitle) {
+      const container = this.createTemporaryContainer();
+      document.body.append(container);
+      fontSize = computeMaxFontSize({
+        text: subtitle,
+        maxWidth: width * 0.9,
+        maxHeight,
+        className: 'subtitle-line',
+        container,
+      });
+      container.remove();
+
+      return (
+        <div
+          className="subtitle-line"
+          style={{
+            fontSize,
+            height: maxHeight,
+          }}
+        >
+          {subtitle}
+        </div>
+      );
+    }
+    return null;
+  }
+
   renderTrendline(maxHeight: number) {
     const { width, trendLineData, echartOptions, refs } = this.props;
 
@@ -292,6 +313,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       kickerFontSize,
       headerFontSize,
       subheaderFontSize,
+      subtitleFontSize,
     } = this.props;
     const className = this.getClassName();
 
@@ -316,7 +338,9 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
                 subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
               ),
             )}
-            {this.renderTrendText()}
+            {this.renderSubtitle(
+              Math.ceil(subtitleFontSize * (1 - PROPORTION.TRENDLINE) * height),
+            )}
           </div>
           {this.renderTrendline(chartHeight)}
         </div>
@@ -329,7 +353,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         {this.renderKicker((kickerFontSize || 0) * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}
         {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
-        {this.renderTrendText()}
+        {this.renderSubtitle(Math.ceil(subtitleFontSize * height))}
       </div>
     );
   }
@@ -383,11 +407,10 @@ export default styled(BigNumberVis)`
       padding-bottom: 0.3em;
     }
 
-
-      .trend-text {
-        font-size: 1.75rem;
-      }
-
+    .subtitle-line {
+    line-height: 1em;
+    padding-top: 0.3em;
+    }
 
     &.is-fallback-value {
       .kicker,

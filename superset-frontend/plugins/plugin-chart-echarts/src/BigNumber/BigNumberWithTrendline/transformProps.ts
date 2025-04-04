@@ -66,6 +66,8 @@ export default function transformProps(
     metric = 'value',
     showTimestamp,
     showTrendLine,
+    subtitle = '',
+    subtitleFontSize,
     aggregation,
     startYAxisAtZero,
     subheader = '',
@@ -95,8 +97,7 @@ export default function transformProps(
   const refs: Refs = {};
   const metricName = getMetricLabel(metric);
   const compareLag = Number(compareLag_) || 0;
-
-  let trendText = '';
+  let formattedSubheader = subheader;
 
   const { r, g, b } = colorPicker;
   const mainColor = `rgb(${r}, ${g}, ${b})`;
@@ -158,7 +159,9 @@ export default function transformProps(
         percentChange = compareValue
           ? (Number(bigNumber) - compareValue) / Math.abs(compareValue)
           : 0;
-        trendText = `${formatPercentChange(percentChange)} ${compareSuffix}`;
+        formattedSubheader = `${formatPercentChange(
+          percentChange,
+        )} ${compareSuffix}`;
       }
     }
   }
@@ -301,13 +304,14 @@ export default function transformProps(
     formatTime,
     formData,
     headerFontSize,
+    subtitleFontSize,
+    subtitle,
     subheaderFontSize,
     mainColor,
     showTimestamp,
     showTrendLine,
     startYAxisAtZero,
-    subheader,
-    trendText,
+    subheader: formattedSubheader,
     timestamp,
     trendLineData,
     echartOptions,

@@ -76,9 +76,6 @@ export default memo(function ColumnConfigItem({
         }}
       >
         <ColumnTypeLabel type={column.type} />
-        {column.name}
-        {/* TODO: Remove fa-icon */}
-        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         <span
           css={{
             paddingLeft: column.isChildColumn ? gridUnit * 7 : gridUnit,
@@ -108,7 +105,13 @@ export default memo(function ColumnConfigItem({
               }}
             />
           )}
-          <Icons.CaretRightOutlined />
+          <Icons.CaretRightOutlined
+            css={{
+              fontSize: '14px',
+              fontWeight: 'normal',
+              color: colors.grayscale.light1,
+            }}
+          />
         </div>
       </div>
     </Popover>

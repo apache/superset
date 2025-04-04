@@ -81,8 +81,9 @@ export default function PopKPI(props: PopKPIProps) {
     currentTimeRangeFilter,
     startDateOffset,
     shift,
+    subtitle,
+    subtitleFontSize,
     dashboardTimeRange,
-    subheader,
   } = props;
 
   const [comparisonRange, setComparisonRange] = useState<string>('');
@@ -141,7 +142,7 @@ export default function PopKPI(props: PopKPIProps) {
     margin-bottom: ${theme.gridUnit * 4}px;
   `;
 
-  const SubheaderText = styled.div`
+  const SubtitleText = styled.div`
     ${({ theme }) => `
     font-family: ${theme.typography.families.sansSerif};
     font-weight: ${theme.typography.weights.medium};
@@ -150,6 +151,7 @@ export default function PopKPI(props: PopKPIProps) {
     margin-bottom: ${theme.gridUnit * 4}px;
   `}
   `;
+
   const getArrowIndicatorColor = () => {
     if (!comparisonColorEnabled || percentDifferenceNumber === 0) {
       return theme.colors.grayscale.base;
@@ -260,11 +262,14 @@ export default function PopKPI(props: PopKPIProps) {
             </span>
           )}
         </div>
-
-        {subheader && (
-          <SubheaderText style={{ fontSize: `${subheaderFontSize}px` }}>
-            {subheader}
-          </SubheaderText>
+        {subtitle && (
+          <SubtitleText
+            style={{
+              fontSize: `${subtitleFontSize * height * 0.4}px`,
+            }}
+          >
+            {subtitle}
+          </SubtitleText>
         )}
 
         {visibleSymbols.length > 0 && (
