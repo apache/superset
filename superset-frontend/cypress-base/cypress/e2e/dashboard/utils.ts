@@ -234,6 +234,7 @@ export function enterNativeFilterEditModal(waitForDataset = true) {
   cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click({
     force: true,
   });
+  cy.wait(500);
   cy.get(nativeFilters.modal.container).should('be.visible');
   if (waitForDataset) {
     cy.wait('@getDataset');
@@ -264,7 +265,7 @@ export function fillNativeFilterForm(
   dataset?: string,
   filterColumn?: string,
 ) {
-  cy.wait(500); // chromium will crash without this in headless mode
+  cy.wait(500);
   cy.get(nativeFilters.filtersPanel.filterTypeInput)
     .find(nativeFilters.filtersPanel.filterTypeItem)
     .click({ multiple: true, force: true });

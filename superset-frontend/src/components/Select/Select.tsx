@@ -656,7 +656,6 @@ const Select = forwardRef(
           onSelect={handleOnSelect}
           onClear={handleClear}
           placeholder={placeholder}
-          showSearch={shouldShowSearch}
           tokenSeparators={tokenSeparators}
           value={selectValue}
           virtual={false}
@@ -677,6 +676,7 @@ const Select = forwardRef(
           tagRender={customTagRender}
           css={props.css}
           {...props}
+          showSearch={shouldShowSearch}
           ref={ref}
         >
           {selectAllEnabled && (

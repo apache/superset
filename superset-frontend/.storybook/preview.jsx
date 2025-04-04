@@ -71,7 +71,6 @@ const themeDecorator = (Story, context) => {
   return (
     <themeObject.SupersetThemeProvider>
       <App>
-        <GlobalStyles />
         <GlobalStylesOverrides />
         <Layout
           style={{
