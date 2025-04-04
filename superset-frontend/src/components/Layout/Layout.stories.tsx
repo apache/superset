@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
 import { Meta, StoryObj } from '@storybook/react';
-import Layout from 'src/components/Layout';
+import Layout, { LayoutProps, SiderProps } from 'src/components/Layout';
 import { Menu } from 'src/components/Menu';
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 
@@ -29,9 +28,85 @@ export default {
   component: Layout,
   subcomponents: { Header, Footer, Sider, Content },
   argTypes: {
+    // Layout properties
+    className: {
+      control: false,
+      table: {
+        category: 'Layout',
+        type: { summary: 'string' },
+        defaultValue: { summary: 'undefined' },
+      },
+    },
     hasSider: {
       control: 'boolean',
       description: 'Include a sider',
+      table: {
+        category: 'Layout',
+        type: { summary: 'boolean' },
+      },
+    },
+    // Layout.Sider properties
+    breakpoint: {
+      control: 'select',
+      options: ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'],
+      description: 'Responsive breakpoint for the Sider',
+      table: {
+        category: 'Sider',
+        type: { summary: 'text' },
+      },
+    },
+    collapsible: {
+      control: 'boolean',
+      description: 'Whether the Sider can be collapsed',
+      table: {
+        category: 'Sider',
+        type: { summary: 'boolean' },
+      },
+    },
+    collapsed: {
+      control: 'boolean',
+      description: 'To set the current status of the Sider',
+      table: {
+        category: 'Sider',
+        type: { summary: 'boolean' },
+      },
+    },
+    collapsedWith: {
+      control: false,
+      description:
+        'Width of the collapsed sidebar, by setting to 0 a special trigger will appear',
+      table: {
+        category: 'Sider',
+        type: { summary: 'number' },
+        defaultValue: 80,
+      },
+    },
+    reverseArrow: {
+      control: 'boolean',
+      description: 'Whether the arrow icon is reversed',
+      table: {
+        category: 'Sider',
+        type: { summary: 'boolean' },
+      },
+    },
+    theme: {
+      control: 'select',
+      options: ['light', 'dark'],
+      description: 'Theme for the Sider',
+      table: {
+        category: 'Sider',
+        type: { summary: 'string' },
+        defaultValue: { summary: 'dark' },
+      },
+    },
+    width: {
+      control: 'number',
+      description: 'Width of the Sider',
+      table: {
+        category: 'Sider',
+        type: { summary: 'number' },
+        defaultValue: { summary: '200' },
+      },
     },
   },
   parameters: {
@@ -42,73 +117,65 @@ export default {
       },
     },
   },
-} satisfies Meta<typeof Layout>;
+} as Meta<typeof Layout & typeof Sider>;
 
 type Story = StoryObj<typeof Layout>;
 
 export const LayoutStory: Story = {
-  args: {
-    hasSider: true,
-  },
-  render: args => {
-    const [collapsed, setCollapsed] = useState(false);
-
-    return (
-      <Layout style={{ minHeight: '100vh' }}>
-        {args.hasSider && (
-          <Sider
-            collapsible
-            collapsed={collapsed}
-            onCollapse={setCollapsed}
-            theme="dark"
-            width="200"
-            collapsedWidth="80"
-            reverseArrow={false}
-            breakpoint="md"
-          >
-            <div
-              className="logo"
-              style={{
-                height: '32px',
-                margin: '16px',
-                background: '#ffffff30',
-              }}
-            />
-            <Menu defaultSelectedKeys={['1']} mode="inline">
-              <Menu.Item key="1" icon={<MenuUnfoldOutlined />}>
-                Option 1
-              </Menu.Item>
-              <Menu.Item key="2" icon={<MenuFoldOutlined />}>
-                Option 2
-              </Menu.Item>
-            </Menu>
-          </Sider>
-        )}
-        <Layout>
-          <Header
+  render: ({
+    className,
+    hasSider,
+    ...siderProps
+  }: LayoutProps & SiderProps) => (
+    <Layout
+      className={className}
+      hasSider={hasSider}
+      style={{ minHeight: '100vh' }}
+    >
+      {hasSider && (
+        <Sider {...siderProps}>
+          <div
+            className="logo"
             style={{
-              background: '#fff',
-              padding: '0 16px',
-              textAlign: 'center',
-            }}
-          >
-            Header
-          </Header>
-          <Content
-            style={{
+              height: '32px',
               margin: '16px',
-              padding: '24px',
-              background: '#fff',
-              textAlign: 'center',
+              background: '#ffffff30',
             }}
-          >
-            Content Area
-          </Content>
-          <Footer style={{ textAlign: 'center' }}>
-            Ant Design Layout Footer
-          </Footer>
-        </Layout>
+          />
+          <Menu defaultSelectedKeys={['1']} mode="inline">
+            <Menu.Item key="1" icon={<MenuUnfoldOutlined />}>
+              Option 1
+            </Menu.Item>
+            <Menu.Item key="2" icon={<MenuFoldOutlined />}>
+              Option 2
+            </Menu.Item>
+          </Menu>
+        </Sider>
+      )}
+      <Layout>
+        <Header
+          style={{
+            background: '#fff',
+            padding: '0 16px',
+            textAlign: 'center',
+          }}
+        >
+          Header
+        </Header>
+        <Content
+          style={{
+            margin: '16px',
+            padding: '24px',
+            background: '#fff',
+            textAlign: 'center',
+          }}
+        >
+          Content Area
+        </Content>
+        <Footer style={{ textAlign: 'center' }}>
+          Ant Design Layout Footer
+        </Footer>
       </Layout>
-    );
-  },
+    </Layout>
+  ),
 };
