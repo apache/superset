@@ -139,9 +139,7 @@ export const Table = styled.table`
         margin-right: 8px;
 
         &:hover {
-          path {
-            fill: ${theme.colors.primary.base};
-          }
+          color: ${theme.colors.primary.base};
         }
       }
     }

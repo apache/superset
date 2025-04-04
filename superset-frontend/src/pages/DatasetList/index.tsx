@@ -86,24 +86,6 @@ const FlexRowContainer = styled.div`
 const Actions = styled.div`
   ${({ theme }) => css`
     color: ${theme.colors.grayscale.base};
-
-    .disabled {
-      svg,
-      i {
-        &:hover {
-          path {
-            fill: ${theme.colors.grayscale.light1};
-          }
-        }
-      }
-      color: ${theme.colors.grayscale.light1};
-      .antd5-menu-item:hover {
-        cursor: default;
-      }
-      &::after {
-        color: ${theme.colors.grayscale.light1};
-      }
-    }
   `}
 `;
 
@@ -429,10 +411,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   <span
                     role="button"
                     tabIndex={0}
-                    className={allowEdit ? 'action-button' : 'disabled'}
+                    className="action-button"
                     onClick={allowEdit ? handleDelete : undefined}
                   >
-                    <Icons.DeleteOutlined iconSize="l" />
+                    <Icons.DeleteOutlined iconSize="l" disabled={!allowEdit} />
                   </span>
                 </Tooltip>
               )}
@@ -467,10 +449,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   <span
                     role="button"
                     tabIndex={0}
-                    className={allowEdit ? 'action-button' : 'disabled'}
+                    className="action-button"
                     onClick={allowEdit ? handleEdit : undefined}
                   >
-                    <Icons.EditOutlined iconSize="l" />
+                    <Icons.EditOutlined iconSize="l" disabled={!allowEdit} />
                   </span>
                 </Tooltip>
               )}

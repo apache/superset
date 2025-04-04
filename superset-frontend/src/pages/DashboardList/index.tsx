@@ -113,24 +113,6 @@ export interface Dashboard {
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
-
-  .disabled {
-    svg,
-    i {
-      &:hover {
-        path {
-          fill: ${({ theme }) => theme.colors.grayscale.light1};
-        }
-      }
-    }
-    color: ${({ theme }) => theme.colors.grayscale.light1};
-    .antd5-menu-item:hover {
-      cursor: default;
-    }
-    &::after {
-      color: ${({ theme }) => theme.colors.grayscale.light1};
-    }
-  }
 `;
 
 const DASHBOARD_COLUMNS_TO_FETCH = [
@@ -469,11 +451,12 @@ function DashboardList(props: DashboardListProps) {
                       <span
                         role="button"
                         tabIndex={0}
-                        className={allowEdit ? 'action-button' : 'disabled'}
+                        className="action-button"
                         onClick={allowEdit ? confirmDelete : undefined}
                       >
                         <Icons.DeleteOutlined
                           iconSize="l"
+                          disabled={!allowEdit}
                           data-test="dashboard-list-trash-icon"
                         />
                       </span>
@@ -512,10 +495,14 @@ function DashboardList(props: DashboardListProps) {
                   <span
                     role="button"
                     tabIndex={0}
-                    className={allowEdit ? 'action-button' : 'disabled'}
+                    className="action-button"
                     onClick={allowEdit ? handleEdit : undefined}
                   >
-                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                    <Icons.EditOutlined
+                      iconSize="l"
+                      disabled={!allowEdit}
+                      data-test="edit-alt"
+                    />
                   </span>
                 </Tooltip>
               )}

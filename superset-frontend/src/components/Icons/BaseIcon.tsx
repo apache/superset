@@ -43,14 +43,27 @@ export const BaseIconComponent: React.FC<
   iconSize,
   viewBox,
   customIcons,
+  disabled,
   ...rest
 }) => {
   const theme = useTheme();
+  // Some custom icons have a hardcoded fill color. Setting the color prop
+  // will not override it. In those cases, the fill color needs to be set
+  // directly on the path element inside the SVG.
+  // Examples: VizTitle.tsx (big_number_chart_tile.svg) and DragHandle.tsx (drag.svg).
   const iconCss = css`
     color: ${iconColor || theme.colors.grayscale.base};
     font-size: ${iconSize
       ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
       : '24px'};
+  `;
+  const disabledIconCss = css`
+    opacity: 0.5;
+    cursor: default;
+    svg:hover,
+    i:hover {
+      color: ${iconColor || theme.colors.grayscale.base} !important;
+    }
   `;
   const whatRole = rest?.onClick ? 'button' : 'img';
   const ariaLabel = genAriaLabel(rest.fileName || '');
@@ -68,6 +81,7 @@ export const BaseIconComponent: React.FC<
           vertical-align: middle;
         `,
         iconCss,
+        disabled && disabledIconCss,
       ]}
     >
       <Component
@@ -87,7 +101,7 @@ export const BaseIconComponent: React.FC<
     </span>
   ) : (
     <Component
-      css={iconCss}
+      css={[iconCss, disabled && disabledIconCss]}
       role={whatRole}
       aria-label={ariaLabel}
       data-test={ariaLabel}
