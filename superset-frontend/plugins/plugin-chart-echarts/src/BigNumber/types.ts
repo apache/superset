@@ -84,7 +84,6 @@ export type BigNumberVizProps = {
   showTimestamp?: boolean;
   showTrendLine?: boolean;
   startYAxisAtZero?: boolean;
-  trendText?: string;
   timeRangeFixed?: boolean;
   timestamp?: DataRecordValue;
   trendLineData?: TimeSeriesDatum[];

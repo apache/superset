@@ -63,7 +63,7 @@ export const subtitleFontSize: CustomControlItem = {
     renderTrigger: true,
     clearable: false,
     default: 0.15,
-    // Values represent the percentage of space a subheader should take
+    // Values represent the percentage of space a subtitle should take
     options: [
       {
         label: t('Tiny'),
