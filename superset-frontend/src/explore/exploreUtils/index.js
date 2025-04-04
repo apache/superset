@@ -244,6 +244,7 @@ export const exportChart = ({
   resultType = 'full',
   force = false,
   ownState = {},
+  resultLocation = 'superset',
 }) => {
   let url;
   let payload;
@@ -266,6 +267,7 @@ export const exportChart = ({
       ownState,
       parseMethod,
     });
+    payload.result_location = resultLocation === 's3' ? 's3' : 'superset';
   }
 
   SupersetClient.postForm(url, { form_data: safeStringify(payload) });
