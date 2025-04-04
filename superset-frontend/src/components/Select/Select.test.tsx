@@ -398,9 +398,9 @@ test('removes duplicated values', async () => {
 
 test('renders a custom label', async () => {
   const options = [
-    { label: 'John', value: 1, customLabel: <h1>John</h1> },
-    { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
-    { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+    { value: 'John', label: <h1>John</h1> },
+    { value: 'Liam', label: <h1>Liam</h1> },
+    { value: 'Olivia', label: <h1>Olivia</h1> },
   ];
   render(<Select {...defaultProps} options={options} />);
   await open();
@@ -411,9 +411,9 @@ test('renders a custom label', async () => {
 
 test('searches for a word with a custom label', async () => {
   const options = [
-    { label: 'John', value: 1, customLabel: <h1>John</h1> },
-    { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
-    { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+    { value: 'John', label: <h1>John</h1> },
+    { value: 'Liam', label: <h1>Liam</h1> },
+    { value: 'Olivia', label: <h1>Olivia</h1> },
   ];
   render(<Select {...defaultProps} options={options} />);
   await type('Liam');

@@ -20,7 +20,6 @@ import { ensureIsArray, t } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'src/components/Select';
 import { ReactElement, RefObject } from 'react';
 import { Icons } from 'src/components/Icons';
-import { Option } from './Select';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
 import { CustomLabeledValue, RawValue, SelectOptionsType, V } from './types';
 
@@ -29,27 +28,6 @@ export const selectAllOption = {
   value: SELECT_ALL_VALUE,
   label: String(SELECT_ALL_VALUE),
 };
-
-export const renderSelectOptions = (
-  options: SelectOptionsType,
-): JSX.Element[] =>
-  options.map(opt => {
-    const isOptObject = typeof opt === 'object';
-    const label = isOptObject ? opt?.label || opt.value : opt;
-    const value = isOptObject ? opt.value : opt;
-    const { customLabel, id, ...optProps } = opt;
-    return (
-      <Option
-        {...optProps}
-        key={value}
-        label={label}
-        value={value}
-        aria-label={label}
-      >
-        {isOptObject && customLabel ? customLabel : label}
-      </Option>
-    );
-  });
 
 export function isObject(value: unknown): value is Record<string, unknown> {
   return (
@@ -233,9 +211,6 @@ export const handleFilterOptionHelper = (
 
   return false;
 };
-
-export const hasCustomLabels = (options: SelectOptionsType) =>
-  options?.some(opt => !!opt?.customLabel);
 
 export const mapValues = (
   values: SelectOptionsType,

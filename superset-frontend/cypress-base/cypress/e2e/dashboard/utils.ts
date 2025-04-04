@@ -289,7 +289,7 @@ export function fillNativeFilterForm(
   if (dataset) {
     cy.get('div[aria-label="Dataset"]').within(() => {
       cy.get('input').then($input => {
-        setSelectSearchInput($input, dataset);
+        setSelectSearchInput($input, dataset, true);
       });
     });
     cy.get(nativeFilters.silentLoading).should('not.exist');
@@ -298,7 +298,7 @@ export function fillNativeFilterForm(
   if (filterColumn) {
     cy.get('div[aria-label="Column select"]').within(() => {
       cy.get('input').then($input => {
-        setSelectSearchInput($input, filterColumn);
+        setSelectSearchInput($input, filterColumn, true);
       });
     });
   }
