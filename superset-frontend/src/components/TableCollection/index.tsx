@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { SortingRule, TableInstance } from 'react-table';
 import { styled } from '@superset-ui/core';
 import { Table, TableSize } from 'src/components/Table';
+import { TableRowSelection } from 'antd-v5/es/table/interface';
 import { mapColumns, mapRows } from './utils';
 
 interface TableCollectionProps {
@@ -33,6 +34,10 @@ interface TableCollectionProps {
   highlightRowId?: number;
   columnsForWrapText?: string[];
   setSortBy?: (updater: SortingRule<any>[]) => void;
+  bulkSelectEnabled?: boolean;
+  selectedFlatRows?: any[];
+  toggleRowSelected?: (rowId: string, value: boolean) => void;
+  toggleAllRowsSelected?: (value?: boolean) => void;
 }
 
 const StyledTable = styled(Table)`
@@ -84,9 +89,38 @@ export default memo(
     loading,
     setSortBy,
     headerGroups,
+    columnsForWrapText,
+    bulkSelectEnabled = false,
+    selectedFlatRows = [],
+    toggleRowSelected,
+    toggleAllRowsSelected,
   }: TableCollectionProps) => {
-    const mappedColumns = mapColumns(columns, headerGroups);
+    const mappedColumns = mapColumns(columns, headerGroups, columnsForWrapText);
     const mappedRows = mapRows(rows);
+
+    const selectedRowKeys = useMemo(
+      () => selectedFlatRows?.map(row => row.id) || [],
+      [selectedFlatRows],
+    );
+
+    const rowSelection: TableRowSelection | undefined = useMemo(() => {
+      if (!bulkSelectEnabled) return undefined;
+
+      return {
+        selectedRowKeys,
+        onSelect: (record, selected) => {
+          toggleRowSelected?.(record.rowId, selected);
+        },
+        onSelectAll: (selected: boolean) => {
+          toggleAllRowsSelected?.(selected);
+        },
+      };
+    }, [
+      bulkSelectEnabled,
+      selectedRowKeys,
+      toggleRowSelected,
+      toggleAllRowsSelected,
+    ]);
     return (
       <StyledTable
         loading={loading}
@@ -96,6 +130,8 @@ export default memo(
         data-test="listview-table"
         pagination={false}
         tableLayout="auto"
+        rowKey="rowId"
+        rowSelection={rowSelection}
         locale={{ emptyText: null }}
         sortDirections={['ascend', 'descend', 'ascend']} // HACK: To disable default sorting
         onChange={(pagination, filters, sorter: any) => {

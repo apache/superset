@@ -444,6 +444,16 @@ function ListView<T extends object = any>({
               loading={loading}
               highlightRowId={highlightRowId}
               columnsForWrapText={columnsForWrapText}
+              bulkSelectEnabled={bulkSelectEnabled}
+              selectedFlatRows={selectedFlatRows}
+              toggleRowSelected={(rowId, value) => {
+                const row = rows.find(r => r.id === rowId);
+                if (row) {
+                  prepareRow(row);
+                  row.toggleRowSelected(value);
+                }
+              }}
+              toggleAllRowsSelected={toggleAllRowsSelected}
             />
           )}
           {!loading && rows.length === 0 && (

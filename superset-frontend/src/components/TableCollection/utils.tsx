@@ -57,6 +57,7 @@ function getSortingInfo(
 export const mapColumns = (
   columns: ColumnInstance[],
   headerGroups: any[],
+  columnsForWrapText?: string[],
 ): ColumnsType =>
   columns.map(column => {
     const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, column.id);
@@ -65,7 +66,8 @@ export const mapColumns = (
       dataIndex: column.id,
       key: column.id,
       hidden: column.hidden,
-      minWidth: column.size ? COLUMN_SIZE_MAP[column.size] : undefined,
+      minWidth: column.size ? COLUMN_SIZE_MAP[column.size] : COLUMN_SIZE_MAP.md,
+      ellipsis: !columnsForWrapText?.includes(column.id),
       defaultSortOrder: isSorted
         ? isSortedDesc
           ? 'descend'
@@ -95,4 +97,5 @@ export const mapColumns = (
     };
   });
 
-export const mapRows = (rows: any[]): any[] => rows.map(row => row.original);
+export const mapRows = (rows: any[]): any[] =>
+  rows.map(row => ({ rowId: row.id, ...row.original }));
