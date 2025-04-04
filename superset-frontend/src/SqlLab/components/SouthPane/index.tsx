@@ -57,6 +57,22 @@ type StyledPaneProps = {
 const StyledPane = styled.div<StyledPaneProps>`
   width: 100%;
   height: ${props => props.height}px;
+  .antd5-tabs .antd5-tabs-content-holder {
+    overflow: visible;
+  }
+  .SouthPaneTabs {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    .scrollable {
+      overflow-y: auto;
+    }
+  }
+  .antd5-tabs-tabpane {
+    .scrollable {
+      overflow-y: auto;
+    }
+  }
   .tab-content {
     .alert {
       margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
@@ -112,85 +128,78 @@ const SouthPane = ({
     dispatch(setActiveSouthPaneTab(id));
   };
   const removeTable = useCallback(
-    (targetKey: string) => {
-      const table = pinnedTables.find(
-        ({ dbId, catalog, schema, name }) =>
-          [dbId, catalog, schema, name].join(':') === targetKey,
-      );
-      if (table) {
+    (key, action) => {
+      if (action === 'remove') {
+        const table = pinnedTables.find(
+          ({ dbId, catalog, schema, name }) =>
+            [dbId, catalog, schema, name].join(':') === key,
+        );
         dispatch(removeTables([table]));
       }
     },
     [dispatch, pinnedTables],
   );
 
-  const tabItems = useMemo(() => {
-    const items = [
-      {
-        key: 'Results',
-        label: t('Results'),
-        closable: false,
-        children: (
-          <Results
-            height={innerTabContentHeight}
-            latestQueryId={latestQueryId}
-            displayLimit={displayLimit}
-            defaultQueryLimit={defaultQueryLimit}
-          />
-        ),
-      },
-      {
-        key: 'History',
-        label: t('Query history'),
-        closable: false,
-        children: (
-          <QueryHistory
-            queryEditorId={queryEditorId}
-            displayLimit={displayLimit}
-            latestQueryId={latestQueryId}
-          />
-        ),
-      },
-      ...pinnedTables.map(({ id, dbId, catalog, schema, name }) => ({
-        key: pinnedTableKeys[id],
-        label: (
-          <>
-            <Icons.InsertRowAboveOutlined
-              iconSize="l"
-              css={css`
-                margin-bottom: ${theme.sizeUnit * 0.5}px;
-                margin-right: ${theme.sizeUnit}px;
-              `}
-            />
-            {`${schema}.${decodeURIComponent(name)}`}
-          </>
-        ),
-        children: (
-          <TablePreview
-            dbId={dbId}
-            catalog={catalog}
-            schema={schema}
-            tableName={name}
-          />
-        ),
-      })),
-    ];
-    return items;
-  }, [
-    innerTabContentHeight,
-    latestQueryId,
-    displayLimit,
-    defaultQueryLimit,
-    queryEditorId,
-    pinnedTables,
-    pinnedTableKeys,
-  ]);
+  if (offline) {
+    return (
+      <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
+        {STATUS_OPTIONS_LOCALIZED.offline}
+      </Label>
+    );
+  }
 
-  return offline ? (
-    <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
-      {STATUS_OPTIONS_LOCALIZED.offline}
-    </Label>
-  ) : (
+  const tabItems = [
+    {
+      key: 'Results',
+      label: t('Results'),
+      children: (
+        <Results
+          height={innerTabContentHeight}
+          latestQueryId={latestQueryId}
+          displayLimit={displayLimit}
+          defaultQueryLimit={defaultQueryLimit}
+        />
+      ),
+      closable: false,
+    },
+    {
+      key: 'History',
+      label: t('Query history'),
+      children: (
+        <QueryHistory
+          queryEditorId={queryEditorId}
+          displayLimit={displayLimit}
+          latestQueryId={latestQueryId}
+        />
+      ),
+      closable: false,
+    },
+    ...pinnedTables.map(({ id, dbId, catalog, schema, name }) => ({
+      key: pinnedTableKeys[id],
+      label: (
+        <>
+          <Icons.InsertRowAboveOutlined
+            iconSize="l"
+            css={css`
+              margin-bottom: ${theme.sizeUnit * 0.5}px;
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          />
+          {`${schema}.${decodeURIComponent(name)}`}
+        </>
+      ),
+      children: (
+        <TablePreview
+          dbId={dbId}
+          catalog={catalog}
+          schema={schema}
+          tableName={name}
+        />
+      ),
+    })),
+  ];
+
+  return (
     <StyledPane
       data-test="south-pane"
       className="SouthPane"
@@ -198,15 +207,13 @@ const SouthPane = ({
       ref={southPaneRef}
     >
       <Tabs
+        type="editable-card"
         activeKey={pinnedTableKeys[activeSouthPaneTab] || activeSouthPaneTab}
+        className="SouthPaneTabs"
         onChange={switchTab}
         id={nanoid(11)}
         animated={false}
-        onEdit={(targetKey, action) => {
-          if (action === 'remove') {
-            removeTable(targetKey as string);
-          }
-        }}
+        onEdit={removeTable}
         hideAdd
         items={tabItems}
       />
