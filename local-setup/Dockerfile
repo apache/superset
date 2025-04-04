@@ -1,6 +1,6 @@
-FROM shipmnts/superset:4.0.2 as dev
+FROM shipmnts/superset:production as dev
 
-COPY ./docker/pythonpath_dev/superset_config.py  /app/pythonpath/superset_config.py
+COPY ./superset_config.py  /app/pythonpath/superset_config.py
 COPY ./docker/.env /app/docker/.env
 COPY ./superset/utils /app/superset/utils
 USER root
