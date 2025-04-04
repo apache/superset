@@ -248,15 +248,19 @@ class BaseReportState:
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
+            native_filter_params = self._report_schedule.get_native_filters_params()
             if anchor := dashboard_state.get("anchor"):
                 try:
                     anchor_list: list[str] = json.loads(anchor)
-                    urls = self._get_tabs_urls(anchor_list, user_friendly=user_friendly)
+                    urls = self._get_tabs_urls(
+                        anchor_list,
+                        native_filter_params=native_filter_params,
+                        user_friendly=user_friendly,
+                    )
                     return urls
                 except json.JSONDecodeError:
                     logger.debug("Anchor value is not a list, Fall back to single tab")
 
-            native_filter_params = self._report_schedule.get_native_filters_params()
             return [
                 self._get_tab_url(
                     {
@@ -302,7 +306,10 @@ class BaseReportState:
         )
 
     def _get_tabs_urls(
-        self, tab_anchors: list[str], user_friendly: bool = False
+        self,
+        tab_anchors: list[str],
+        native_filter_params: str,
+        user_friendly: bool = False,
     ) -> list[str]:
         """
         Get multple tabs urls
@@ -313,7 +320,9 @@ class BaseReportState:
                     "anchor": tab_anchor,
                     "dataMask": None,
                     "activeTabs": None,
-                    "urlParams": None,
+                    "urlParams": [
+                        ["native_filters", native_filter_params]  # type: ignore
+                    ],
                 },
                 user_friendly=user_friendly,
             )
