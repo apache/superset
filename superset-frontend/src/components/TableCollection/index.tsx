@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, useMemo } from 'react';
+import { HTMLAttributes, memo, useMemo } from 'react';
 import { SortingRule, TableInstance } from 'react-table';
 import { styled } from '@superset-ui/core';
 import { Table, TableSize } from 'src/components/Table';
@@ -134,6 +134,15 @@ export default memo(
         rowSelection={rowSelection}
         locale={{ emptyText: null }}
         sortDirections={['ascend', 'descend', 'ascend']} // HACK: To disable default sorting
+        components={{
+          header: {
+            cell: (props: any) => <th {...props} data-test="sort-header" />,
+          },
+          body: {
+            row: (props: any) => <tr {...props} data-test="table-row" />,
+            cell: (props: any) => <td {...props} data-test="table-row-cell" />,
+          },
+        }}
         onChange={(pagination, filters, sorter: any) => {
           setSortBy?.([
             {
