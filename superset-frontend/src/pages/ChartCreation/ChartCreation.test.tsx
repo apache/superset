@@ -23,18 +23,11 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { ReactElement } from 'react';
 import fetchMock from 'fetch-mock';
 import { createMemoryHistory } from 'history';
 import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-
-const renderWithTheme = (component: ReactElement, renderOptions = {}) =>
-  render(
-    <ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>,
-    renderOptions,
-  );
+import { supersetTheme } from '@superset-ui/core';
 
 jest.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
@@ -95,21 +88,21 @@ const routeProps = {
   match: {} as any,
 };
 
-const renderOptions = {
-  useRouter: true,
-};
-
 async function renderComponent(user = mockUser) {
-  renderWithTheme(
+  const rendered = render(
     <ChartCreation
       user={user}
       addSuccessToast={() => null}
       theme={supersetTheme}
       {...routeProps}
     />,
-    renderOptions,
+    {
+      useRedux: true,
+      useRouter: true,
+    },
   );
   await waitFor(() => new Promise(resolve => setTimeout(resolve, 0)));
+  return rendered;
 }
 
 test('renders a select and a VizTypeGallery', async () => {
@@ -183,6 +176,7 @@ test('double-click viz type submits with formatted URL if datasource is selected
   await renderComponent();
 
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
+
   userEvent.click(datasourceSelect);
   userEvent.click(await screen.findByText(/test_db/i));
 
