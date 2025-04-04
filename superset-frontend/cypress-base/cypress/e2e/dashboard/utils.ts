@@ -18,7 +18,11 @@
  */
 
 import { dashboardView, nativeFilters } from 'cypress/support/directories';
-import { ChartSpec, waitForChartLoad } from 'cypress/utils';
+import {
+  ChartSpec,
+  setSelectSearchInput,
+  waitForChartLoad,
+} from 'cypress/utils';
 
 export const WORLD_HEALTH_CHARTS = [
   { name: '% Rural', viz: 'world_map' },
@@ -234,7 +238,6 @@ export function enterNativeFilterEditModal(waitForDataset = true) {
   cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click({
     force: true,
   });
-  cy.wait(500);
   cy.get(nativeFilters.modal.container).should('be.visible');
   if (waitForDataset) {
     cy.wait('@getDataset');
@@ -265,11 +268,11 @@ export function fillNativeFilterForm(
   dataset?: string,
   filterColumn?: string,
 ) {
-  cy.wait(500);
-  cy.get(nativeFilters.filtersPanel.filterTypeInput)
-    .find(nativeFilters.filtersPanel.filterTypeItem)
-    .click({ multiple: true, force: true });
-  cy.get(`[title="${type}"]`).click({ multiple: true, force: true });
+  cy.get(nativeFilters.filtersPanel.filterTypeInput).within(() => {
+    cy.get('input').then($input => {
+      setSelectSearchInput($input, type);
+    });
+  });
   cy.get(nativeFilters.modal.container)
     .find(nativeFilters.filtersPanel.filterName)
     .last()
@@ -282,31 +285,23 @@ export function fillNativeFilterForm(
     .find(nativeFilters.filtersPanel.filterName)
     .last()
     .type(name, { scrollBehavior: false, force: true });
+
   if (dataset) {
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.datasetName)
-      .last()
-      .click({ force: true, scrollBehavior: false });
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.datasetName)
-      .type(`${dataset}`, { scrollBehavior: false });
+    cy.get('div[aria-label="Dataset"]').within(() => {
+      cy.get('input').then($input => {
+        setSelectSearchInput($input, dataset);
+      });
+    });
     cy.get(nativeFilters.silentLoading).should('not.exist');
-    cy.get(`[label="${dataset}"]`).click({ multiple: true, force: true });
   }
-  cy.get(nativeFilters.silentLoading).should('not.exist');
+
   if (filterColumn) {
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .click({ force: true });
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .type(filterColumn);
-    cy.get(nativeFilters.filtersPanel.inputDropdown)
-      .should('be.visible', { timeout: 20000 })
-      .last()
-      .click();
+    cy.get('div[aria-label="Column select"]').within(() => {
+      cy.get('input').then($input => {
+        setSelectSearchInput($input, filterColumn);
+      });
+    });
   }
-  cy.get(nativeFilters.silentLoading).should('not.exist');
 }
 
 /** ************************************************************************

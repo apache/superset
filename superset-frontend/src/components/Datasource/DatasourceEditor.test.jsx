@@ -18,6 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -197,8 +198,6 @@ describe('DatasourceEditor', () => {
 });
 
 describe('DatasourceEditor RTL', () => {
-  jest.setTimeout(15000); // Extend timeout to 15s for this test
-
   it('properly renders the metric information', async () => {
     await asyncRender(props);
     const metricButton = screen.getByTestId('collection-tab-Metrics');
@@ -240,9 +239,12 @@ describe('DatasourceEditor RTL', () => {
         ),
       ),
     ).toHaveTextContent('Prefix');
-    await userEvent.click(
-      screen.getByRole('combobox', { name: 'Currency prefix or suffix' }),
-    );
+
+    const currencyPrefix = screen.getByRole('combobox', {
+      name: 'Currency prefix or suffix',
+    });
+    fireEvent.mouseDown(currencyPrefix);
+
     const positionOptions = await waitFor(() =>
       document.querySelectorAll(
         `[aria-label='Currency prefix or suffix'] .ant-select-item-option-content`,
@@ -272,9 +274,12 @@ describe('DatasourceEditor RTL', () => {
     ).toHaveTextContent('$ (USD)');
 
     propsWithCurrency.onChange.mockClear();
-    await userEvent.click(
-      screen.getByRole('combobox', { name: 'Currency symbol' }),
-    );
+
+    const currencySymbol = screen.getByRole('combobox', {
+      name: 'Currency symbol',
+    });
+    fireEvent.mouseDown(currencySymbol);
+
     const symbolOptions = await waitFor(() =>
       document.querySelectorAll(
         `[aria-label='Currency symbol'] .ant-select-item-option-content`,

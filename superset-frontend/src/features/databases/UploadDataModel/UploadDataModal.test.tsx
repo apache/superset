@@ -25,6 +25,7 @@ import {
   screen,
   waitFor,
   userEvent,
+  fireEvent,
 } from 'spec/helpers/testing-library';
 import { UploadFile } from 'antd/lib/upload/interface';
 
@@ -567,7 +568,6 @@ test('Columnar, does not render the rows', () => {
 });
 
 test('database and schema are correctly populated', async () => {
-  jest.setTimeout(10000);
   render(<UploadDataModal {...csvProps} />, {
     useRedux: true,
   });
@@ -579,13 +579,15 @@ test('database and schema are correctly populated', async () => {
     name: /schema/i,
   });
 
-  userEvent.click(selectDatabase);
+  fireEvent.mouseDown(selectDatabase);
 
   await waitFor(() => screen.getByText('database1'));
   await waitFor(() => screen.getByText('database2'));
 
   screen.getByText('database1').click();
-  userEvent.click(selectSchema);
+
+  fireEvent.mouseDown(selectSchema);
+
   // make sure the schemas for database1 are displayed
   await waitFor(() => screen.getAllByText('information_schema'));
   await waitFor(() => screen.getAllByText('public'));
@@ -635,7 +637,8 @@ test('CSV form post', async () => {
   const selectDatabase = screen.getByRole('combobox', {
     name: /select a database/i,
   });
-  userEvent.click(selectDatabase);
+  fireEvent.mouseDown(selectDatabase);
+
   await screen.findByText('database1');
   await screen.findByText('database2');
 
@@ -643,7 +646,8 @@ test('CSV form post', async () => {
   const selectSchema = screen.getByRole('combobox', {
     name: /schema/i,
   });
-  userEvent.click(selectSchema);
+  fireEvent.mouseDown(selectSchema);
+
   await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
 
@@ -693,7 +697,8 @@ test('Excel form post', async () => {
   const selectDatabase = screen.getByRole('combobox', {
     name: /select a database/i,
   });
-  userEvent.click(selectDatabase);
+  fireEvent.mouseDown(selectDatabase);
+
   await screen.findByText('database1');
   await screen.findByText('database2');
 
@@ -701,7 +706,8 @@ test('Excel form post', async () => {
   const selectSchema = screen.getByRole('combobox', {
     name: /schema/i,
   });
-  userEvent.click(selectSchema);
+  fireEvent.mouseDown(selectSchema);
+
   await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
 
@@ -751,7 +757,8 @@ test('Columnar form post', async () => {
   const selectDatabase = screen.getByRole('combobox', {
     name: /select a database/i,
   });
-  userEvent.click(selectDatabase);
+  fireEvent.mouseDown(selectDatabase);
+
   await screen.findByText('database1');
   await screen.findByText('database2');
 
@@ -759,7 +766,8 @@ test('Columnar form post', async () => {
   const selectSchema = screen.getByRole('combobox', {
     name: /schema/i,
   });
-  userEvent.click(selectSchema);
+  fireEvent.mouseDown(selectSchema);
+
   await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
 

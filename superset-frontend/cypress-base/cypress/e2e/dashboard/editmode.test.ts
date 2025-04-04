@@ -17,7 +17,12 @@
  * under the License.
  */
 import { SAMPLE_DASHBOARD_1, TABBED_DASHBOARD } from 'cypress/utils/urls';
-import { drag, resize, waitForChartLoad } from 'cypress/utils';
+import {
+  drag,
+  resize,
+  setSelectSearchInput,
+  waitForChartLoad,
+} from 'cypress/utils';
 import { edit } from 'brace';
 import {
   interceptExploreUpdate,
@@ -140,12 +145,10 @@ function selectColorScheme(
   color: string,
   target = 'dashboard-edit-properties-form',
 ) {
-  cy.wait(500);
   cy.get(`[data-test="${target}"] input[aria-label="Select color scheme"]`)
     .should('exist')
     .then($input => {
-      cy.wrap($input).type(color.slice(0, 5), { force: true });
-      cy.getBySel(color).click({ force: true });
+      setSelectSearchInput($input, color.slice(0, 5));
     });
 }
 

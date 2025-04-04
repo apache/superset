@@ -19,7 +19,7 @@
 // ***********************************************
 // Tests for setting controls in the UI
 // ***********************************************
-import { interceptChart } from 'cypress/utils';
+import { interceptChart, setSelectSearchInput } from 'cypress/utils';
 
 describe('Datasource control', () => {
   const newMetricName = `abc${Date.now()}`;
@@ -61,10 +61,12 @@ describe('Datasource control', () => {
       .contains('Drop columns/metrics here or click')
       .click();
 
-    cy.wait(500); // TODO: @msyavuz chrome renderer crashes without this
-    cy.get('input[aria-label="Select saved metrics"]').type(
-      `${newMetricName}{enter}`,
-    );
+    cy.get('input[aria-label="Select saved metrics"]')
+      .should('exist')
+      .then($input => {
+        setSelectSearchInput($input, newMetricName);
+      });
+
     // delete metric
     cy.get('[data-test="datasource-menu-trigger"]').click();
     cy.get('[data-test="edit-dataset"]').click();
