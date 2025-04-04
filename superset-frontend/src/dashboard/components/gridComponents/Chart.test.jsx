@@ -32,7 +32,7 @@ const props = {
   id: queryId,
   width: 100,
   height: 100,
-  updateSliceName() { },
+  updateSliceName() {},
   // from redux
   maxRows: 666,
   formData: chartQueries[queryId].form_data,
@@ -40,20 +40,20 @@ const props = {
   sliceName: sliceEntities.slices[queryId].slice_name,
   timeout: 60,
   filters: {},
-  refreshChart() { },
-  toggleExpandSlice() { },
-  addFilter() { },
-  logEvent() { },
-  handleToggleFullSize() { },
-  changeFilter() { },
-  setFocusedFilterField() { },
-  unsetFocusedFilterField() { },
-  addSuccessToast() { },
-  addDangerToast() { },
-  exportCSV() { },
-  exportFullCSV() { },
-  exportXLSX() { },
-  exportFullXLSX() { },
+  refreshChart() {},
+  toggleExpandSlice() {},
+  addFilter() {},
+  logEvent() {},
+  handleToggleFullSize() {},
+  changeFilter() {},
+  setFocusedFilterField() {},
+  unsetFocusedFilterField() {},
+  addSuccessToast() {},
+  addDangerToast() {},
+  exportCSV() {},
+  exportFullCSV() {},
+  exportXLSX() {},
+  exportFullXLSX() {},
   componentId: 'test',
   dashboardId: 111,
 };
@@ -132,7 +132,7 @@ describe('no description set', () => {
             dashboardState: {
               ...defaultState.dashboardState,
               expandedSlices: { [props.id]: sliceExpanded },
-              expandAllSlices: allExpanded
+              expandAllSlices: allExpanded,
             },
             sliceEntities: {
               ...sliceEntities,
@@ -147,7 +147,9 @@ describe('no description set', () => {
             },
           },
         );
-        expect(container.querySelector('.slice_description')).not.toBeInTheDocument();
+        expect(
+          container.querySelector('.slice_description'),
+        ).not.toBeInTheDocument();
       });
     }
   }
@@ -164,9 +166,13 @@ describe('description set', () => {
     { expandSlice: true, expandAllSlices: undefined, result: true },
     { expandSlice: true, expandAllSlices: false, result: true },
     { expandSlice: true, expandAllSlices: true, result: true },
-  ]
+  ];
 
-  for (const { expandSlice, expandAllSlices, result } of chartDescriptionRenderInputs) {
+  for (const {
+    expandSlice,
+    expandAllSlices,
+    result,
+  } of chartDescriptionRenderInputs) {
     test(`should ${result ? '' : 'not '}render a description if it has one, expandedSlices=${expandSlice} and expandAllSlices=${expandAllSlices}`, () => {
       const { container } = setup(
         {},
@@ -180,12 +186,16 @@ describe('description set', () => {
       );
 
       if (result) {
-        expect(container.querySelector('.slice_description')).toBeInTheDocument();
+        expect(
+          container.querySelector('.slice_description'),
+        ).toBeInTheDocument();
       } else {
-        expect(container.querySelector('.slice_description')).not.toBeInTheDocument();
+        expect(
+          container.querySelector('.slice_description'),
+        ).not.toBeInTheDocument();
       }
-    })
-  };
+    });
+  }
 });
 
 test('should call refreshChart when SliceHeader calls forceRefresh', () => {
@@ -205,7 +215,7 @@ test.skip('should call changeFilter when ChartContainer calls changeFilter', () 
 test('should call exportChart when exportCSV is clicked', async () => {
   const stubbedExportCSV = jest
     .spyOn(exploreUtils, 'exportChart')
-    .mockImplementation(() => { });
+    .mockImplementation(() => {});
   const { findByText, getByRole } = setup(
     {},
     {
@@ -235,7 +245,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
   };
   const stubbedExportCSV = jest
     .spyOn(exploreUtils, 'exportChart')
-    .mockImplementation(() => { });
+    .mockImplementation(() => {});
   const { findByText, getByRole } = setup(
     {},
     {
@@ -263,7 +273,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
 test('should call exportChart when exportXLSX is clicked', async () => {
   const stubbedExportXLSX = jest
     .spyOn(exploreUtils, 'exportChart')
-    .mockImplementation(() => { });
+    .mockImplementation(() => {});
   const { findByText, getByRole } = setup(
     {},
     {
@@ -290,7 +300,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
   };
   const stubbedExportXLSX = jest
     .spyOn(exploreUtils, 'exportChart')
-    .mockImplementation(() => { });
+    .mockImplementation(() => {});
   const { findByText, getByRole } = setup(
     {},
     {
