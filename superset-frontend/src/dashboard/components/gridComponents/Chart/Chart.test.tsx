@@ -42,7 +42,7 @@ const props = {
   id: queryId,
   width: 100,
   height: 100,
-  updateSliceName() {},
+  updateSliceName() { },
   // from redux
   maxRows: 500, // will be overwritten with SQL_MAX_ROW from conf
   formData: chartQueries[queryId].form_data,
@@ -52,20 +52,20 @@ const props = {
   sliceName: sliceEntities.slices[queryId].slice_name,
   timeout: 60,
   filters: {},
-  refreshChart() {},
-  toggleExpandSlice() {},
-  addFilter() {},
-  logEvent() {},
-  handleToggleFullSize() {},
-  changeFilter() {},
-  setFocusedFilterField() {},
-  unsetFocusedFilterField() {},
-  addSuccessToast() {},
-  addDangerToast() {},
-  exportCSV() {},
-  exportFullCSV() {},
-  exportXLSX() {},
-  exportFullXLSX() {},
+  refreshChart() { },
+  toggleExpandSlice() { },
+  addFilter() { },
+  logEvent() { },
+  handleToggleFullSize() { },
+  changeFilter() { },
+  setFocusedFilterField() { },
+  unsetFocusedFilterField() { },
+  addSuccessToast() { },
+  addDangerToast() { },
+  exportCSV() { },
+  exportFullCSV() { },
+  exportXLSX() { },
+  exportFullXLSX() { },
   componentId: 'test',
   dashboardId: 111,
 };
@@ -146,17 +146,70 @@ test('should render a ChartContainer', () => {
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
 
-test('should render a description if it has one and isExpanded=true', () => {
-  const { container } = setup(
-    {},
-    {
-      dashboardState: {
-        ...defaultState.dashboardState,
-        expandedSlices: { [props.id]: true },
-      },
-    },
-  );
-  expect(container.querySelector('.slice_description')).toBeInTheDocument();
+describe('no description set', () => {
+  for (const sliceExpanded of [undefined, false, true]) {
+    for (const allExpanded of [undefined, false, true]) {
+      test(`should not render a description, expandedSlices=${sliceExpanded} and expandAllSlices=${allExpanded}`, () => {
+        const { container } = setup(
+          {},
+          {
+            dashboardState: {
+              ...defaultState.dashboardState,
+              expandedSlices: { [props.id]: sliceExpanded },
+              expandAllSlices: allExpanded
+            },
+            sliceEntities: {
+              ...sliceEntities,
+              slices: {
+                [queryId]: {
+                  ...sliceEntities.slices[queryId],
+                  description_markeddown: undefined,
+                  owners: [],
+                  viz_type: VizType.Table,
+                },
+              },
+            },
+          },
+        );
+        expect(container.querySelector('.slice_description')).not.toBeInTheDocument();
+      });
+    }
+  }
+});
+
+describe('description set', () => {
+  const chartDescriptionRenderInputs = [
+    { expandSlice: undefined, expandAllSlices: undefined, result: false },
+    { expandSlice: undefined, expandAllSlices: false, result: false },
+    { expandSlice: undefined, expandAllSlices: true, result: true },
+    { expandSlice: false, expandAllSlices: undefined, result: false },
+    { expandSlice: false, expandAllSlices: false, result: false },
+    { expandSlice: false, expandAllSlices: true, result: false },
+    { expandSlice: true, expandAllSlices: undefined, result: true },
+    { expandSlice: true, expandAllSlices: false, result: true },
+    { expandSlice: true, expandAllSlices: true, result: true },
+  ]
+
+  for (const { expandSlice, expandAllSlices, result } of chartDescriptionRenderInputs) {
+    test(`should ${result ? '' : 'not '}render a description if it has one, expandedSlices=${expandSlice} and expandAllSlices=${expandAllSlices}`, () => {
+      const { container } = setup(
+        {},
+        {
+          dashboardState: {
+            ...defaultState.dashboardState,
+            expandedSlices: { [props.id]: expandSlice },
+            expandAllSlices,
+          },
+        },
+      );
+
+      if (result) {
+        expect(container.querySelector('.slice_description')).toBeInTheDocument();
+      } else {
+        expect(container.querySelector('.slice_description')).not.toBeInTheDocument();
+      }
+    })
+  };
 });
 
 test('should call refreshChart when SliceHeader calls forceRefresh', () => {
