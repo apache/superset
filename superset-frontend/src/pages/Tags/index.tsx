@@ -189,6 +189,7 @@ function TagList(props: TagListProps) {
         ),
         Header: t('Name'),
         accessor: 'name',
+        id: 'name',
       },
       {
         Cell: ({
@@ -202,6 +203,7 @@ function TagList(props: TagListProps) {
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -267,6 +269,7 @@ function TagList(props: TagListProps) {
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [userId, canDelete, refreshData, addSuccessToast, addDangerToast],

@@ -163,10 +163,12 @@ function AnnotationList({
       {
         accessor: 'short_descr',
         Header: t('Name'),
+        id: 'short_descr',
       },
       {
         accessor: 'long_descr',
         Header: t('Description'),
+        id: 'long_descr',
       },
       {
         Cell: ({
@@ -178,6 +180,7 @@ function AnnotationList({
         }) => dayjs(new Date(startDttm)).format('ll'),
         Header: t('Start'),
         accessor: 'start_dttm',
+        id: 'start_dttm',
       },
       {
         Cell: ({
@@ -189,6 +192,7 @@ function AnnotationList({
         }) => dayjs(new Date(endDttm)).format('ll'),
         Header: t('End'),
         accessor: 'end_dttm',
+        id: 'end_dttm',
       },
       {
         Cell: ({

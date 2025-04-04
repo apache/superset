@@ -59,11 +59,7 @@ export const mapColumns = (
   headerGroups: any[],
 ): ColumnsType =>
   columns.map(column => {
-    const { isSorted, isSortedDesc } = getSortingInfo(
-      headerGroups,
-      // @ts-ignore
-      column.accessor,
-    );
+    const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, column.id);
     return {
       title: column.Header,
       dataIndex: column.id,

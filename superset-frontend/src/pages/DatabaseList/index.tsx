@@ -392,12 +392,14 @@ function DatabaseList({
       {
         accessor: 'database_name',
         Header: t('Name'),
+        id: 'database_name',
       },
       {
         accessor: 'backend',
         Header: t('Backend'),
         size: 'lg',
         disableSortBy: true, // TODO: api support for sorting by 'backend'
+        id: 'backend',
       },
       {
         accessor: 'allow_run_async',
@@ -418,6 +420,7 @@ function DatabaseList({
           row: { original: { allow_run_async: boolean } };
         }) => <BooleanDisplay value={allowRunAsync} />,
         size: 'sm',
+        id: 'allow_run_async',
       },
       {
         accessor: 'allow_dml',
@@ -436,6 +439,7 @@ function DatabaseList({
           },
         }: any) => <BooleanDisplay value={allowDML} />,
         size: 'sm',
+        id: 'allow_dml',
       },
       {
         accessor: 'allow_file_upload',
@@ -446,6 +450,7 @@ function DatabaseList({
           },
         }: any) => <BooleanDisplay value={allowFileUpload} />,
         size: 'md',
+        id: 'allow_file_upload',
       },
       {
         accessor: 'expose_in_sqllab',
@@ -456,6 +461,7 @@ function DatabaseList({
           },
         }: any) => <BooleanDisplay value={exposeInSqllab} />,
         size: 'md',
+        id: 'expose_in_sqllab',
       },
       {
         Cell: ({
@@ -469,6 +475,7 @@ function DatabaseList({
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -560,6 +567,7 @@ function DatabaseList({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canDelete, canEdit, canExport],
