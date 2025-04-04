@@ -60,8 +60,7 @@ export const BaseIconComponent: React.FC<
   const disabledIconCss = css`
     opacity: 0.5;
     cursor: default;
-    svg:hover,
-    i:hover {
+    &:hover {
       color: ${iconColor || theme.colors.grayscale.base} !important;
     }
   `;
