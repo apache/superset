@@ -32,11 +32,14 @@ interface TableCollectionProps {
   loading: boolean;
   highlightRowId?: number;
   columnsForWrapText?: string[];
-  setSortBy: (updater: SortingRule<any>[]) => void;
+  setSortBy?: (updater: SortingRule<any>[]) => void;
 }
 
 const StyledTable = styled(Table)`
   ${({ theme }) => `
+    th.antd5-column-cell {
+      min-width: fit-content;
+    }
     .actions {
       opacity: 0;
       font-size: ${theme.fontSizeXL}px;
@@ -58,6 +61,16 @@ const StyledTable = styled(Table)`
         opacity: 1;
         transition: opacity ease-in ${theme.motionDurationMid};
       }
+    }
+    .antd5-table-cell {
+      font-feature-settings: 'tnum' 1;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      max-width: 320px;
+      line-height: 1;
+      vertical-align: middle;
+      padding-left: ${theme.sizeUnit * 4}px;
+      white-space: nowrap;
     }
   `}
 `;
@@ -81,7 +94,7 @@ export default memo(
         tableLayout="auto"
         sortDirections={['ascend', 'descend', 'ascend']} // HACK: To disable default sorting
         onChange={(pagination, filters, sorter: any) => {
-          setSortBy([
+          setSortBy?.([
             {
               id: sorter.field,
               desc: sorter.order === 'descend',
