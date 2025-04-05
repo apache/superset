@@ -131,6 +131,7 @@ function CssTemplatesList({
       {
         accessor: 'template_name',
         Header: t('Name'),
+        id: 'template_name',
       },
       {
         Cell: ({
@@ -145,6 +146,7 @@ function CssTemplatesList({
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
         disableSortBy: true,
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -183,6 +185,7 @@ function CssTemplatesList({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canDelete, canCreate],

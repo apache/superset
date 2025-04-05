@@ -342,6 +342,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
+        id: 'table_name',
       },
       {
         Cell: ({
@@ -353,21 +354,25 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         accessor: 'kind',
         disableSortBy: true,
         size: 'md',
+        id: 'kind',
       },
       {
         Header: t('Database'),
         accessor: 'database.database_name',
         size: 'lg',
+        id: 'database.database_name',
       },
       {
         Header: t('Schema'),
         accessor: 'schema',
         size: 'lg',
+        id: 'schema',
       },
       {
         accessor: 'database',
         disableSortBy: true,
         hidden: true,
+        id: 'database',
       },
       {
         Cell: ({
@@ -392,11 +397,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         accessor: 'sql',
         hidden: true,
         disableSortBy: true,
+        id: 'sql',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -495,6 +502,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canEdit, canDelete, canExport, openDatasetEditModal, canDuplicate, user],

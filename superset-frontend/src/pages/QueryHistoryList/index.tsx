@@ -60,7 +60,7 @@ const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;
 
 const TopAlignedListView = styled(ListView)<ListViewProps<QueryObject>>`
-  table .table-cell {
+  table .antd5-table-cell {
     vertical-align: top;
   }
 `;
@@ -210,6 +210,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         accessor: QueryObjectColumns.Status,
         size: 'xs',
         disableSortBy: true,
+        id: QueryObjectColumns.Status,
       },
       {
         accessor: QueryObjectColumns.StartTime,
@@ -233,6 +234,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           );
           return formattedStartTime;
         },
+        id: QueryObjectColumns.StartTime,
       },
       {
         Header: t('Duration'),
@@ -254,25 +256,30 @@ function QueryList({ addDangerToast }: QueryListProps) {
             </TimerLabel>
           );
         },
+        id: 'duration',
       },
       {
         accessor: QueryObjectColumns.TabName,
         Header: t('Tab name'),
         size: 'xl',
+        id: QueryObjectColumns.TabName,
       },
       {
         accessor: QueryObjectColumns.DatabaseName,
         Header: t('Database'),
         size: 'xl',
+        id: QueryObjectColumns.DatabaseName,
       },
       {
         accessor: QueryObjectColumns.Database,
         hidden: true,
+        id: QueryObjectColumns.Database,
       },
       {
         accessor: QueryObjectColumns.Schema,
         Header: t('Schema'),
         size: 'xl',
+        id: QueryObjectColumns.Schema,
       },
       {
         Cell: ({
@@ -311,6 +318,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         Header: t('Tables'),
         size: 'xl',
         disableSortBy: true,
+        id: QueryObjectColumns.SqlTables,
       },
       {
         accessor: QueryObjectColumns.UserFirstName,
@@ -321,15 +329,18 @@ function QueryList({ addDangerToast }: QueryListProps) {
             original: { user },
           },
         }: any) => getOwnerName(user),
+        id: QueryObjectColumns.UserFirstName,
       },
       {
         accessor: QueryObjectColumns.User,
         hidden: true,
+        id: QueryObjectColumns.User,
       },
       {
         accessor: QueryObjectColumns.Rows,
         Header: t('Rows'),
         size: 'md',
+        id: QueryObjectColumns.Rows,
       },
       {
         accessor: QueryObjectColumns.Sql,
@@ -346,6 +357,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             </StyledSyntaxHighlighter>
           </div>
         ),
+        id: QueryObjectColumns.Sql,
       },
       {
         Header: t('Actions'),

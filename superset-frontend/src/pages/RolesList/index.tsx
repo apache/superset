@@ -252,12 +252,14 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
             original: { name },
           },
         }: any) => <span>{name}</span>,
+        id: 'name',
       },
       {
         accessor: 'user_ids',
         Header: t('Users'),
         hidden: true,
         Cell: ({ row: { original } }: any) => original.user_ids.join(', '),
+        id: 'user_ids',
       },
       {
         accessor: 'permission_ids',
@@ -265,6 +267,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         hidden: true,
         Cell: ({ row: { original } }: any) =>
           original.permission_ids.join(', '),
+        id: 'permission_ids',
       },
       {
         Cell: ({ row: { original } }: any) => {

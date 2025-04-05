@@ -362,6 +362,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
+        id: 'slice_name',
       },
       {
         Cell: ({
@@ -372,6 +373,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Type'),
         accessor: 'viz_type',
         size: 'xxl',
+        id: 'viz_type',
       },
       {
         Cell: ({
@@ -390,6 +392,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'datasource_id',
         disableSortBy: true,
         size: 'xl',
+        id: 'datasource_id',
       },
       {
         Cell: ({
@@ -401,6 +404,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'dashboards',
         disableSortBy: true,
         size: 'xxl',
+        id: 'dashboards',
       },
       {
         Cell: ({
@@ -422,6 +426,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        id: 'tags',
       },
       {
         Cell: ({
@@ -433,6 +438,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'owners',
         disableSortBy: true,
         size: 'xl',
+        id: 'owners',
       },
       {
         Cell: ({
@@ -446,6 +452,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Last modified'),
         accessor: 'last_saved_at',
         size: 'xl',
+        id: 'last_saved_at',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -536,6 +543,7 @@ function ChartList(props: ChartListProps) {
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [

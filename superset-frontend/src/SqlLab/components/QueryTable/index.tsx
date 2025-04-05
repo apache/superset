@@ -107,6 +107,7 @@ const QueryTable = ({
             column as keyof typeof QUERY_HISTORY_TABLE_HEADERS_LOCALIZED
           ] || setHeaders(column),
         disableSortBy: true,
+        id: column,
       })),
     [columns],
   );
