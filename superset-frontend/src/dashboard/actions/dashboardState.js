@@ -98,23 +98,25 @@ export function toggleFaveStar(isStarred) {
   return { type: TOGGLE_FAVE_STAR, isStarred };
 }
 
-export function fetchFaveStar(id) {
-  return function fetchFaveStarThunk(dispatch) {
+export function fetchFavoriteStatus(dashboardId) {
+  return dispatch => {
     return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/favorite_status/?q=${rison.encode([id])}`,
+      endpoint: `/api/v1/dashboard/${dashboardId}/favorite_status`,
     })
       .then(({ json }) => {
-        dispatch(toggleFaveStar(!!json?.result?.[0]?.value));
+        dispatch({ type: FETCH_FAVORITE_STATUS_SUCCESS, isStarred: json.is_starred });
       })
-      .catch(() =>
+      .catch(error => {
+        if (error.status === 404) {
+          return; // Silently ignore if dashboard is deleted
+        }
         dispatch(
-          addDangerToast(
             t(
               'There was an issue fetching the favorite status of this dashboard.',
             ),
           ),
-        ),
-      );
+        );
+      });
   };
 }
 
