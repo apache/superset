@@ -1117,7 +1117,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onFormatChange = (value: string) => {
     setReportFormat(value);
   };
-
   const onForceScreenshotChange = (checked: boolean) => {
     setForceScreenshot(checked);
   };
@@ -1806,7 +1805,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <Checkbox
                 data-test="bypass-cache"
                 checked={forceScreenshot}
-                onChange={onForceScreenshotChange}
+                onChange={e => onForceScreenshotChange(e.target.checked)}
               >
                 {t('Ignore cache when generating report')}
               </Checkbox>

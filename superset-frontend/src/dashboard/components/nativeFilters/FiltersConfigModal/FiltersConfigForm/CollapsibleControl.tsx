@@ -18,7 +18,7 @@
  */
 import { ReactNode, useEffect, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import { Checkbox } from 'src/components';
+import Checkbox from 'src/components/Checkbox';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 interface CollapsibleControlProps {
@@ -71,10 +71,9 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
       <Checkbox
         checked={isChecked}
         disabled={disabled}
-        onChange={(value: boolean) => {
-          // external `checked` value has more priority then local state
+        onChange={e => {
+          const value = e.target.checked;
           if (checked === undefined) {
-            // uncontrolled mode
             setIsChecked(value);
           }
           onChange(value);

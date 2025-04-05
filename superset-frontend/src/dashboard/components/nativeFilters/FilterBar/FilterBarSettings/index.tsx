@@ -43,21 +43,6 @@ const StyledMenuLabel = styled.span`
   display: flex;
   align-items: center;
   justify-content: space-between;
-
-  .enable-cross-filters-text {
-    padding-left: ${({ theme }) => `${theme.gridUnit * 2}px`};
-  }
-`;
-
-const StyledCheckbox = styled(Checkbox)`
-  ${({ theme }) => `
-  &,
-  svg {
-    display: inline-block;
-    width: ${theme.gridUnit * 4}px;
-    height: ${theme.gridUnit * 4}px;
-  }
-`}
 `;
 
 const CROSS_FILTERS_MENU_KEY = 'cross-filters-menu-key';
@@ -160,14 +145,12 @@ const FilterBarSettings = () => {
   const crossFiltersMenuItem = useMemo(
     () => (
       <StyledMenuLabel>
-        <StyledCheckbox
-          className="enable-cross-filters"
+        <Checkbox
           checked={crossFiltersEnabled}
-          onChange={checked => setCrossFiltersEnabled(checked || false)}
-        />{' '}
-        <span className="enable-cross-filters-text">
+          onChange={e => setCrossFiltersEnabled(e.target.checked)}
+        >
           {t('Enable cross-filtering')}
-        </span>
+        </Checkbox>
       </StyledMenuLabel>
     ),
     [crossFiltersEnabled],

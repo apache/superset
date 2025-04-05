@@ -34,7 +34,7 @@ import { QueryParamProvider } from 'use-query-params';
 import DatasetList from 'src/pages/DatasetList';
 import ListView from 'src/components/ListView';
 import Button from 'src/components/Button';
-import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+import Checkbox from 'src/components/Checkbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import SubMenu from 'src/features/home/SubMenu';
 import * as reactRedux from 'react-redux';
@@ -153,7 +153,7 @@ describe('DatasetList', () => {
       button.props().onClick();
     });
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
+    expect(wrapper.find(Checkbox)).toHaveLength(
       mockdatasets.length + 1, // 1 for each row and 1 for select all
     );
   });
@@ -168,7 +168,7 @@ describe('DatasetList', () => {
 
     // Virtual Selected
     act(() => {
-      wrapper.find(IndeterminateCheckbox).at(1).props().onChange(checkedEvent);
+      wrapper.find(Checkbox).at(1).props().onChange(checkedEvent);
     });
     await waitForComponentToPaint(wrapper);
     expect(
@@ -177,12 +177,8 @@ describe('DatasetList', () => {
 
     // Physical Selected
     act(() => {
-      wrapper
-        .find(IndeterminateCheckbox)
-        .at(1)
-        .props()
-        .onChange(uncheckedEvent);
-      wrapper.find(IndeterminateCheckbox).at(2).props().onChange(checkedEvent);
+      wrapper.find(Checkbox).at(1).props().onChange(uncheckedEvent);
+      wrapper.find(Checkbox).at(2).props().onChange(checkedEvent);
     });
     await waitForComponentToPaint(wrapper);
     expect(
@@ -191,7 +187,7 @@ describe('DatasetList', () => {
 
     // All Selected
     act(() => {
-      wrapper.find(IndeterminateCheckbox).at(0).props().onChange(checkedEvent);
+      wrapper.find(Checkbox).at(0).props().onChange(checkedEvent);
     });
     await waitForComponentToPaint(wrapper);
     expect(
