@@ -37,7 +37,8 @@ export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
   const xAxisLabel = getXAxisLabel(formData);
   const columns = queryObject.series_columns || queryObject.columns;
 
-  if (xAxisLabel && metricLabels.length) {
+  // Only pivot if we have an x-axis and at least one metric and column
+  if (xAxisLabel && metricLabels.length && columns?.length) {
     return {
       operation: 'pivot',
       options: {
