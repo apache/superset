@@ -127,7 +127,7 @@ export default memo(
     return (
       <StyledTable
         loading={loading}
-        sticky={sticky}
+        sticky={sticky ?? false}
         columns={mappedColumns}
         data={mappedRows}
         size={TableSize.Middle}
