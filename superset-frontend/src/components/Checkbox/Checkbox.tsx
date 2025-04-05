@@ -17,28 +17,7 @@
  * under the License.
  */
 import { Checkbox as AntCheckbox } from 'antd-v5';
-import { ReactNode } from 'react';
+import type { CheckboxProps as AntCheckboxProps } from 'antd-v5/lib/checkbox';
 
-export interface CheckboxProps {
-  checked: boolean;
-  onChange: (val?: boolean) => void;
-  disabled?: boolean;
-  children?: ReactNode;
-}
-
-export default function Checkbox({
-  checked,
-  onChange,
-  disabled,
-  children,
-}: CheckboxProps) {
-  return (
-    <AntCheckbox
-      checked={checked}
-      onChange={e => onChange(e.target.checked)}
-      disabled={disabled}
-    >
-      {children}
-    </AntCheckbox>
-  );
-}
+export type CheckboxProps = AntCheckboxProps;
+export default AntCheckbox;

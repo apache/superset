@@ -16,39 +16,122 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render } from 'spec/helpers/testing-library';
-import Checkbox from 'src/components/Checkbox';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  fireEvent,
+} from 'spec/helpers/testing-library';
+import Checkbox, { CheckboxProps } from '.';
 
-describe('when unchecked', () => {
-  test('renders the unchecked component', () => {
-    const { getByRole } = render(<Checkbox checked={false} onChange={() => true} />);
+const mockedProps: CheckboxProps = {
+  checked: false,
+  id: 'checkbox-id',
+  onChange: jest.fn(),
+  disabled: false,
+  title: 'Checkbox title',
+  indeterminate: false,
+  children: 'Checkbox Label',
+};
 
-    const checkboxInput = getByRole('checkbox');
+describe('Checkbox Component', () => {
+  const asyncRender = (props = mockedProps) =>
+    waitFor(() => render(<Checkbox {...props} />));
 
-    expect(checkboxInput).toBeInTheDocument();
-    expect(checkboxInput).not.toBeChecked();
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
-});
 
-describe('when checked', () => {
-  test('renders the checked component', () => {
-    const { getByRole } = render(<Checkbox checked={true} onChange={() => true} />);
+  describe('Rendering', () => {
+    test('should render correctly', async () => {
+      const { container } = await asyncRender();
+      expect(container).toBeInTheDocument();
+    });
 
-    const checkboxInput = getByRole('checkbox');
+    test('should render the label', async () => {
+      await asyncRender();
+      expect(screen.getByText('Checkbox Label')).toBeInTheDocument();
+    });
 
-    expect(checkboxInput).toBeInTheDocument();
-    expect(checkboxInput).toBeChecked();
+    test('should render the checkbox', async () => {
+      await asyncRender();
+      expect(screen.getByRole('checkbox')).toBeInTheDocument();
+    });
   });
-});
 
-describe('interaction', () => {
-  test('calls onChange handler when clicked', () => {
-    const mockAction = jest.fn();
-    const { getByRole } = render(<Checkbox checked={false} onChange={mockAction} />);
+  describe('States', () => {
+    test('should render as unchecked when checked is false', async () => {
+      await asyncRender();
+      const checkbox = screen.getByRole('checkbox');
+      expect(checkbox).not.toBeChecked();
+    });
 
-    const checkboxInput = getByRole('checkbox');
-    fireEvent.click(checkboxInput);
+    test('should render as checked when checked is true', async () => {
+      const checkedProps = { ...mockedProps, checked: true };
+      await asyncRender(checkedProps);
+      const checkbox = screen.getByRole('checkbox');
+      expect(checkbox).toBeChecked();
+    });
 
-    expect(mockAction).toHaveBeenCalled();
+    test('should render as indeterminate when indeterminate is true', async () => {
+      const indeterminateProps = { ...mockedProps, indeterminate: true };
+      await asyncRender(indeterminateProps);
+      const checkbox = screen.getByRole('checkbox');
+      expect(checkbox).toBeInTheDocument();
+      expect((checkbox as HTMLInputElement).indeterminate).toBe(true);
+    });
+
+    test('should render as disabled when disabled prop is true', async () => {
+      const disabledProps = { ...mockedProps, disabled: true };
+      await asyncRender(disabledProps);
+      const checkboxWrapper = screen
+        .getByRole('checkbox')
+        .closest('.ant-checkbox-wrapper');
+      expect(checkboxWrapper).toHaveClass('ant-checkbox-wrapper-disabled');
+    });
+  });
+
+  describe('Interactions', () => {
+    test('should call the onChange handler when clicked', async () => {
+      await asyncRender();
+      const checkbox = screen.getByRole('checkbox');
+      await userEvent.click(checkbox);
+      expect(mockedProps.onChange).toHaveBeenCalledTimes(1);
+    });
+
+    test('should not call the onChange handler when disabled and clicked', async () => {
+      const mockOnChange = jest.fn();
+      const disabledProps = {
+        ...mockedProps,
+        disabled: true,
+        onChange: mockOnChange,
+      };
+
+      const { getByRole } = render(<Checkbox {...disabledProps} />);
+      const checkbox = getByRole('checkbox');
+
+      fireEvent.click(checkbox);
+
+      expect(mockOnChange).not.toHaveBeenCalled();
+    });
+
+    test('calls onChange handler with fireEvent API', () => {
+      const mockAction = jest.fn();
+      const { getByRole } = render(
+        <Checkbox checked={false} onChange={mockAction} />,
+      );
+      const checkboxInput = getByRole('checkbox');
+      fireEvent.click(checkboxInput);
+      expect(mockAction).toHaveBeenCalled();
+    });
+  });
+
+  describe('Accessibility', () => {
+    test('should have the correct id attribute', async () => {
+      await asyncRender();
+      const checkbox = screen.getByRole('checkbox');
+      expect(checkbox).toHaveAttribute('id', 'checkbox-id');
+    });
   });
 });
