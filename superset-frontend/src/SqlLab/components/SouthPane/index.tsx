@@ -75,11 +75,11 @@ const StyledPane = styled.div<StyledPaneProps>`
   }
   .tab-content {
     .alert {
-      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
     }
 
     button.fetch {
-      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
 `;
@@ -184,8 +184,8 @@ const SouthPane = ({
                 <Icons.InsertRowAboveOutlined
                   iconSize="l"
                   css={css`
-                    margin-bottom: ${theme.gridUnit * 0.5}px;
-                    margin-right: ${theme.gridUnit}px;
+                    margin-bottom: ${theme.sizeUnit * 0.5}px;
+                    margin-right: ${theme.sizeUnit}px;
                   `}
                 />
                 {`${schema}.${decodeURIComponent(name)}`}

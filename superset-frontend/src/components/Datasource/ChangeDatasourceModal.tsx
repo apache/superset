@@ -96,7 +96,7 @@ const ConfirmModalStyled = styled.div`
 
 const StyledSpan = styled.span`
   cursor: pointer;
-  color: ${({ theme }) => theme.colors.primary.dark1};
+  color: ${({ theme }) => theme.colorPrimaryText};
   &: hover {
     color: ${({ theme }) => theme.colors.primary.dark2};
   }
@@ -288,7 +288,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             <Alert
               roomBelow
               type="warning"
-              css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+              css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
               message={
                 <>
                   <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}

@@ -59,11 +59,11 @@ import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/
 import { useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { Input, TextArea } from 'src/components/Input';
-import { Select, FormInstance } from 'src/components';
+import { Select } from 'src/components';
 import Collapse from 'src/components/Collapse';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import { FormItem } from 'src/components/Form';
+import { FormItem, FormInstance } from 'src/components/Form';
 import { Icons } from 'src/components/Icons';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -86,6 +86,7 @@ import {
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
+import { Flex } from 'src/components/Flex';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -111,7 +112,7 @@ import DependencyList from './DependencyList';
 const FORM_ITEM_WIDTH = 260;
 
 const TabPane = styled(Tabs.TabPane)`
-  padding: ${({ theme }) => theme.gridUnit * 4}px 0px;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px 0px;
 `;
 
 const StyledContainer = styled.div`
@@ -119,16 +120,12 @@ const StyledContainer = styled.div`
     display: flex;
     flex-direction: row-reverse;
     justify-content: space-between;
-    padding: 0px ${theme.gridUnit * 4}px;
+    padding: 0px ${theme.sizeUnit * 4}px;
   `}
 `;
 
-const StyledRowContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0px ${({ theme }) => theme.gridUnit * 4}px;
+const StyledRowContainer = styled(Flex)`
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 type ControlKey = keyof PluginFilterSelectCustomizeProps;
@@ -143,66 +140,21 @@ const controlsOrder: ControlKey[] = [
 
 export const StyledFormItem = styled(FormItem)<{ expanded: boolean }>`
   width: ${({ expanded }) => (expanded ? '49%' : `${FORM_ITEM_WIDTH}px`)};
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-
-  & .ant-form-item-label {
-    padding-bottom: 0;
-  }
-
-  & .ant-form-item-control-input {
-    min-height: ${({ theme }) => theme.gridUnit * 10}px;
-  }
 `;
 
 export const StyledRowFormItem = styled(FormItem)<{ expanded: boolean }>`
-  margin-bottom: 0;
-  padding-bottom: 0;
   min-width: ${({ expanded }) => (expanded ? '50%' : `${FORM_ITEM_WIDTH}px`)};
-
-  & .ant-form-item-label {
-    padding-bottom: 0;
-  }
-
-  .ant-form-item-control-input-content > div > div {
-    height: auto;
-  }
-
-  & .ant-form-item-control-input {
-    min-height: ${({ theme }) => theme.gridUnit * 10}px;
-  }
 `;
 
 export const StyledRowSubFormItem = styled(FormItem)<{ expanded: boolean }>`
   min-width: ${({ expanded }) => (expanded ? '50%' : `${FORM_ITEM_WIDTH}px`)};
-
-  & .ant-form-item-label {
-    padding-bottom: 0;
-  }
-
-  .ant-form-item {
-    margin-bottom: 0;
-  }
-
-  .ant-form-item-control-input-content > div > div {
-    height: auto;
-  }
-
-  .ant-form-item-extra {
-    display: none;
-  }
-
-  & .ant-form-item-control-input {
-    height: auto;
-  }
 `;
 
 export const StyledLabel = styled.span`
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-`;
-
-const CleanFormItem = styled(FormItem)`
-  margin-bottom: 0;
+  ${({ theme }) => `
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorTextSecondary};
+  `}
 `;
 
 const DefaultValueContainer = styled.div`
@@ -213,12 +165,12 @@ const DefaultValueContainer = styled.div`
 
 const StyledCollapse = styled(Collapse)`
   border-left: 0;
-  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-top: 1px solid ${({ theme }) => theme.colorSplit};
   border-radius: 0;
 
   .ant-collapse-header {
-    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-bottom: 1px solid ${({ theme }) => theme.colorSplit};
+    border-top: 1px solid ${({ theme }) => theme.colorSplit};
     margin-top: -1px;
     border-radius: 0;
   }
@@ -228,7 +180,7 @@ const StyledCollapse = styled(Collapse)`
   }
 
   .ant-collapse-content-box {
-    padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+    padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   &.ant-collapse > .ant-collapse-item {
@@ -249,15 +201,15 @@ const StyledTabs = styled(Tabs)`
     padding: 0;
   }
 
-  .ant-form-item-label {
+  .ant-5-form-item-label {
     padding-bottom: 0;
   }
 `;
 
 const StyledAsterisk = styled.span`
-  color: ${({ theme }) => theme.colors.error.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  margin-left: ${({ theme }) => theme.gridUnit - 1}px;
+  color: ${({ theme }) => theme.colorError};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  margin-left: ${({ theme }) => theme.sizeUnit - 1}px;
   &:before {
     content: '*';
   }
@@ -266,13 +218,13 @@ const StyledAsterisk = styled.span`
 const FilterTypeInfo = styled.div<{ expanded: boolean }>`
   ${({ theme, expanded }) => `
     width: ${expanded ? '49%' : `${FORM_ITEM_WIDTH}px`};
-    font-size: ${theme.typography.sizes.s}px;
+    font-size: ${theme.fontSizeSM}px;
     color: ${theme.colors.grayscale.light1};
     margin:
-      ${-theme.gridUnit * 2}px
+      ${-theme.sizeUnit * 2}px
       0px
-      ${theme.gridUnit * 4}px
-      ${theme.gridUnit * 4}px;
+      ${theme.sizeUnit * 4}px
+      ${theme.sizeUnit * 4}px;
   `}
 `;
 
@@ -901,7 +853,7 @@ const FiltersConfigForm = (
           </FilterTypeInfo>
         )}
         {hasDataset && (
-          <StyledRowContainer>
+          <StyledRowContainer justify="space-between">
             {showDataset ? (
               <StyledFormItem
                 expanded={expanded}
@@ -997,7 +949,7 @@ const FiltersConfigForm = (
                 </StyledRowFormItem>
               )}
               {hasDataset && hasAdditionalFilters && (
-                <CleanFormItem name={['filters', filterId, 'preFilter']}>
+                <FormItem name={['filters', filterId, 'preFilter']}>
                   <CollapsibleControl
                     initialValue={hasPreFilter}
                     title={t('Pre-filter available values')}
@@ -1081,10 +1033,10 @@ const FiltersConfigForm = (
                       ? timeColumn
                       : undefined}
                   </CollapsibleControl>
-                </CleanFormItem>
+                </FormItem>
               )}
               {formFilter?.filterType !== 'filter_range' ? (
-                <CleanFormItem name={['filters', filterId, 'sortFilter']}>
+                <FormItem name={['filters', filterId, 'sortFilter']}>
                   <CollapsibleControl
                     initialValue={hasSorting}
                     title={t('Sort filter values')}
@@ -1154,9 +1106,9 @@ const FiltersConfigForm = (
                       </StyledRowSubFormItem>
                     )}
                   </CollapsibleControl>
-                </CleanFormItem>
+                </FormItem>
               ) : (
-                <CleanFormItem name={['filters', filterId, 'rangeFilter']}>
+                <FormItem name={['filters', filterId, 'rangeFilter']}>
                   <CollapsibleControl
                     initialValue={hasEnableSingleValue}
                     title={t('Single Value')}
@@ -1199,7 +1151,7 @@ const FiltersConfigForm = (
                       />
                     </StyledRowFormItem>
                   </CollapsibleControl>
-                </CleanFormItem>
+                </FormItem>
               )}
             </Collapse.Panel>
           )}
@@ -1216,12 +1168,12 @@ const FiltersConfigForm = (
             >
               <TextArea onChange={debouncedFormChanged} />
             </StyledFormItem>
-            <CleanFormItem
+            <FormItem
               name={['filters', filterId, 'defaultValueQueriesData']}
               hidden
               initialValue={null}
             />
-            <CleanFormItem name={['filters', filterId, 'defaultValue']}>
+            <FormItem name={['filters', filterId, 'defaultValue']}>
               <CollapsibleControl
                 checked={hasDefaultValue}
                 disabled={isRequired || defaultToFirstItem}
@@ -1325,7 +1277,7 @@ const FiltersConfigForm = (
                               iconSize="xl"
                               iconColor={theme.colors.primary.base}
                               css={css`
-                                margin-left: ${theme.gridUnit * 2}px;
+                                margin-left: ${theme.sizeUnit * 2}px;
                               `}
                               onClick={() => refreshHandler(true)}
                             />
@@ -1338,7 +1290,7 @@ const FiltersConfigForm = (
                   </StyledRowSubFormItem>
                 )}
               </CollapsibleControl>
-            </CleanFormItem>
+            </FormItem>
             {Object.keys(controlItems)
               .sort(
                 (a, b) =>

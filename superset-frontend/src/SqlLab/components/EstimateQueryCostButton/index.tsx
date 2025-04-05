@@ -38,7 +38,7 @@ export interface EstimateQueryCostButtonProps {
 
 const CostEstimateModalStyles = styled.div`
   ${({ theme }) => css`
-    font-size: ${theme.typography.sizes.s};
+    font-size: ${theme.fontSizeSM};
   `}
 `;
 

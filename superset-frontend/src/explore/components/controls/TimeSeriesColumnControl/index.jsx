@@ -75,7 +75,7 @@ const colTypeOptions = [
 ];
 
 const StyledRow = styled(Row)`
-  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
   display: flex;
   align-items: center;
 `;
@@ -86,12 +86,12 @@ const StyledCol = styled(Col)`
 `;
 
 const StyledTooltip = styled(InfoTooltipWithTrigger)`
-  margin-left: ${({ theme }) => theme.gridUnit}px;
+  margin-left: ${({ theme }) => theme.sizeUnit}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
 const ButtonBar = styled.div`
-  margin-top: ${({ theme }) => theme.gridUnit * 5}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 5}px;
   display: flex;
   justify-content: center;
 `;

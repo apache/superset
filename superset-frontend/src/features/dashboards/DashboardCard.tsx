@@ -177,7 +177,7 @@ function DashboardCard({
               />
             )}
             <Dropdown dropdownRender={() => menu} trigger={['hover', 'click']}>
-              <Button buttonSize="xsmall" type="link">
+              <Button buttonSize="xsmall" buttonStyle="link">
                 <Icons.MoreOutlined iconSize="xl" />
               </Button>
             </Dropdown>

@@ -35,8 +35,8 @@ const LABELS = {
 
 const collapseStyle = (theme: SupersetTheme) => css`
   .ant-collapse-header {
-    padding-bottom: ${theme.gridUnit * 1.5}px !important;
-    padding-top: ${theme.gridUnit * 1.5}px !important;
+    padding-bottom: ${theme.sizeUnit * 1.5}px !important;
+    padding-top: ${theme.sizeUnit * 1.5}px !important;
   }
   .anticon.ant-collapse-arrow {
     top: 0 !important;

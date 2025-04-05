@@ -35,6 +35,7 @@ const ExploreResultsButton = ({
   return (
     <Button
       buttonSize="small"
+      buttonStyle="secondary"
       onClick={onClick}
       disabled={!allowsSubquery}
       tooltip={t('Explore the result set in the data exploration view')}

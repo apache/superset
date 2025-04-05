@@ -48,8 +48,8 @@ export const FiltersDropdownContent = ({
 }: FiltersDropdownContentProps) => (
   <div
     css={(theme: SupersetTheme) => css`
-      width: ${theme.gridUnit * 56}px;
-      padding: ${theme.gridUnit}px 0;
+      width: ${theme.sizeUnit * 56}px;
+      padding: ${theme.sizeUnit}px 0;
     `}
   >
     {overflowedCrossFilters.map(crossFilter =>

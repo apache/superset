@@ -44,7 +44,7 @@ const CheckboxLabel = styled.label`
 `;
 
 const CheckboxHalf = styled(Icons.CheckboxHalf)`
-  color: ${({ theme }) => theme.colors.primary.base};
+  color: ${({ theme }) => theme.colorPrimary};
   cursor: pointer;
 `;
 
@@ -54,7 +54,7 @@ const CheckboxOff = styled(Icons.CheckboxOff)`
 `;
 
 const CheckboxOn = styled(Icons.CheckboxOn)`
-  color: ${({ theme }) => theme.colors.primary.base};
+  color: ${({ theme }) => theme.colorPrimary};
   cursor: pointer;
 `;
 
