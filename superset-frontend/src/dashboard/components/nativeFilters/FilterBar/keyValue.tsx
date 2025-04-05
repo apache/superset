@@ -24,7 +24,7 @@ const assembleEndpoint = (
   key?: string | null,
   tabId?: string,
 ) => {
-  let endpoint = `api/v1/dashboard/${dashId}/filter_state`;
+  let endpoint = `/api/v1/dashboard/${dashId}/filter_state`;
   if (key) {
     endpoint = endpoint.concat(`/${key}`);
   }
