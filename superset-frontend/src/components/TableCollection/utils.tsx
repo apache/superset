@@ -63,7 +63,7 @@ export const mapColumns = (
     const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, column.id);
     return {
       title: column.Header,
-      dataIndex: column.id,
+      dataIndex: column.id.includes('.') ? column.id.split('.') : column.id,
       hidden: column.hidden,
       key: column.id,
       minWidth: column.size ? COLUMN_SIZE_MAP[column.size] : COLUMN_SIZE_MAP.md,
