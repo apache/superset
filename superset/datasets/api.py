@@ -113,8 +113,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     }
     list_columns = [
         "id",
+        "uuid",
         "database.id",
         "database.database_name",
+        "database.uuid",
         "changed_by_name",
         "changed_by.first_name",
         "changed_by.last_name",
@@ -149,6 +151,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "id",
         "database.database_name",
         "database.id",
+        "database.uuid",
         "table_name",
         "sql",
         "filter_select_enabled",
@@ -216,6 +219,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "columns.advanced_data_type",
         "is_managed_externally",
         "uid",
+        "uuid",
         "datasource_name",
         "name",
         "column_formats",
@@ -268,6 +272,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     }
     search_columns = [
         "id",
+        "uuid",
         "database",
         "owners",
         "catalog",
