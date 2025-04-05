@@ -102,6 +102,28 @@ const StyledTextArea = styled(TextArea)`
   margin-top: ${({ theme }) => theme.gridUnit}px;
 `;
 
+const StyledDropdownContainer = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    gap: ${theme.gridUnit}px;
+    padding: ${theme.gridUnit}px;
+    border-bottom: 1px solid ${theme.colors.grayscale.light2};
+  `}
+`;
+
+const StyledDropdownButton = styled.button`
+  ${({ theme }) => css`
+    padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+    border: 1px solid ${theme.colors.grayscale.light2};
+    border-radius: ${theme.gridUnit}px;
+    background: ${theme.colors.grayscale.light5};
+    cursor: pointer;
+    &:hover {
+      background: ${theme.colors.grayscale.light4};
+    }
+  `}
+`;
+
 export interface RowLevelSecurityModalProps {
   rule: RLSObject | null;
   addSuccessToast: (msg: string) => void;
@@ -321,6 +343,55 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     [],
   );
 
+  const createDropdownRender = useCallback(
+    (entityType: 'tables' | 'roles') => (menu: React.ReactNode) => (
+      <>
+        <StyledDropdownContainer>
+          <StyledDropdownButton
+            type="button"
+            onClick={() => {
+              const query = rison.encode({
+                page: 0,
+                page_size: -1,
+              });
+              SupersetClient.get({
+                endpoint: `/api/v1/rowlevelsecurity/related/${entityType}?q=${query}`,
+              }).then(response => {
+                const allEntities = response.json.result.map(
+                  (item: { value: number; text: string }) => ({
+                    key: item.value,
+                    label: item.text,
+                    value: item.value,
+                  }),
+                );
+                updateRuleState(entityType, allEntities || []);
+              });
+            }}
+          >
+            {t('Select all')}
+          </StyledDropdownButton>
+          <StyledDropdownButton
+            type="button"
+            onClick={() => updateRuleState(entityType, [])}
+          >
+            {t('Deselect all')}
+          </StyledDropdownButton>
+        </StyledDropdownContainer>
+        {menu}
+      </>
+    ),
+    [updateRuleState],
+  );
+
+  const tableDropdownRender = useMemo(
+    () => createDropdownRender('tables'),
+    [createDropdownRender],
+  );
+  const roleDropdownRender = useMemo(
+    () => createDropdownRender('roles'),
+    [createDropdownRender],
+  );
+
   return (
     <StyledModal
       className="no-content-padding"
@@ -409,6 +480,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 onChange={onTablesChange}
                 value={(currentRule?.tables as SelectValue[]) || []}
                 options={loadTableOptions}
+                dropdownRender={tableDropdownRender}
               />
             </div>
           </StyledInputContainer>
@@ -431,6 +503,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 onChange={onRolesChange}
                 value={(currentRule?.roles as SelectValue[]) || []}
                 options={loadRoleOptions}
+                dropdownRender={roleDropdownRender}
               />
             </div>
           </StyledInputContainer>
