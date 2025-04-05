@@ -29,9 +29,9 @@ from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import feature_flag_manager
 from superset.models.core import Database
-from superset.utils.decorators import transaction
 from superset.tags.models import Tag, TaggedObject
 from superset.utils.core import check_is_safe_zip
+from superset.utils.decorators import transaction
 
 METADATA_FILE_NAME = "metadata.yaml"
 IMPORT_VERSION = "1.0.0"
@@ -305,6 +305,7 @@ def import_tag(
             db_session.delete(tag)
 
     return new_tag_ids
+
 
 def get_resource_mappings_batched(
     model_class: Type[Any],
