@@ -38,6 +38,7 @@ interface TableCollectionProps {
   selectedFlatRows?: any[];
   toggleRowSelected?: (rowId: string, value: boolean) => void;
   toggleAllRowsSelected?: (value?: boolean) => void;
+  sticky?: boolean;
 }
 
 const StyledTable = styled(Table)`
@@ -95,6 +96,7 @@ export default memo(
     toggleRowSelected,
     toggleAllRowsSelected,
     prepareRow,
+    sticky,
   }: TableCollectionProps) => {
     const mappedColumns = mapColumns(columns, headerGroups, columnsForWrapText);
     const mappedRows = mapRows(rows, prepareRow);
@@ -125,6 +127,7 @@ export default memo(
     return (
       <StyledTable
         loading={loading}
+        sticky={sticky}
         columns={mappedColumns}
         data={mappedRows}
         size={TableSize.Middle}
