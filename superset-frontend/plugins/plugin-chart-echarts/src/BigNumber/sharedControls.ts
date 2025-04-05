@@ -55,6 +55,39 @@ export const headerFontSize: CustomControlItem = {
   },
 };
 
+export const subtitleFontSize: CustomControlItem = {
+  name: 'subtitle_font_size',
+  config: {
+    type: 'SelectControl',
+    label: t('Subtitle Font Size'),
+    renderTrigger: true,
+    clearable: false,
+    default: 0.15,
+    // Values represent the percentage of space a subtitle should take
+    options: [
+      {
+        label: t('Tiny'),
+        value: 0.125,
+      },
+      {
+        label: t('Small'),
+        value: 0.15,
+      },
+      {
+        label: t('Normal'),
+        value: 0.2,
+      },
+      {
+        label: t('Large'),
+        value: 0.3,
+      },
+      {
+        label: t('Huge'),
+        value: 0.4,
+      },
+    ],
+  },
+};
 export const subheaderFontSize: CustomControlItem = {
   name: 'subheader_font_size',
   config: {
@@ -86,5 +119,15 @@ export const subheaderFontSize: CustomControlItem = {
         value: 0.4,
       },
     ],
+  },
+};
+
+export const subtitleControl: CustomControlItem = {
+  name: 'subtitle',
+  config: {
+    type: 'TextControl',
+    label: t('Subtitle'),
+    renderTrigger: true,
+    description: t('Description text that shows up below your Big Number'),
   },
 };

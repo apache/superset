@@ -357,7 +357,6 @@ const processComparisonColumns = (
           {
             ...col,
             originalLabel,
-            label: t('Main'),
             key: `${t('Main')} ${col.key}`,
             config: getComparisonColConfig(t('Main'), col.key, columnConfig),
             formatter: getComparisonColFormatter(

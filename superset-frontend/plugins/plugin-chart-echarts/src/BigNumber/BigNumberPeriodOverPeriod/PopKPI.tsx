@@ -81,6 +81,8 @@ export default function PopKPI(props: PopKPIProps) {
     currentTimeRangeFilter,
     startDateOffset,
     shift,
+    subtitle,
+    subtitleFontSize,
     dashboardTimeRange,
   } = props;
 
@@ -138,6 +140,16 @@ export default function PopKPI(props: PopKPIProps) {
     font-weight: ${theme.typography.weights.normal};
     text-align: center;
     margin-bottom: ${theme.gridUnit * 4}px;
+  `;
+
+  const SubtitleText = styled.div`
+    ${({ theme }) => `
+    font-family: ${theme.typography.families.sansSerif};
+    font-weight: ${theme.typography.weights.medium};
+    text-align: center;
+    margin-top: -10px;
+    margin-bottom: ${theme.gridUnit * 4}px;
+  `}
   `;
 
   const getArrowIndicatorColor = () => {
@@ -250,6 +262,15 @@ export default function PopKPI(props: PopKPIProps) {
             </span>
           )}
         </div>
+        {subtitle && (
+          <SubtitleText
+            style={{
+              fontSize: `${subtitleFontSize * height * 0.4}px`,
+            }}
+          >
+            {subtitle}
+          </SubtitleText>
+        )}
 
         {visibleSymbols.length > 0 && (
           <div

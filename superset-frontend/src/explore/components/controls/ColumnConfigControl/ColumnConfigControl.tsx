@@ -82,6 +82,9 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
         name: COLUMN_NAME_ALIASES[col] || col,
         type: coltypes?.[idx],
         config: value?.[col] || {},
+        isChildColumn: ['#', '△', '%'].some(
+          prefix => col.startsWith(`${prefix} `) || col.includes(` ${prefix}`),
+        ),
       };
     });
     return configs;
@@ -113,6 +116,13 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
       ? colnames.slice(0, MAX_NUM_COLS)
       : colnames;
 
+  const columnsWithChildInfo = cols.map(col => ({
+    ...getColumnInfo(col),
+    isChildColumn: ['#', '△', '%'].some(prefix =>
+      getColumnInfo(col).name.startsWith(prefix),
+    ),
+  }));
+
   return (
     <>
       <ControlHeader {...props} />
@@ -122,11 +132,11 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
           borderRadius: theme.gridUnit,
         }}
       >
-        {cols.map(col => (
+        {columnsWithChildInfo.map(col => (
           <ColumnConfigItem
-            key={col}
-            column={getColumnInfo(col)}
-            onChange={config => setColumnConfig(col, config as T)}
+            key={col.name}
+            column={col}
+            onChange={config => setColumnConfig(col.name, config as T)}
             configFormLayout={configFormLayout}
             width={width}
             height={height}
