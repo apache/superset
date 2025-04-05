@@ -47,7 +47,7 @@ import TimezoneSelector from 'src/components/TimezoneSelector';
 import { propertyComparator } from 'src/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { AntdCheckbox, AsyncSelect, Select, TreeSelect } from 'src/components';
+import { Checkbox, AsyncSelect, Select, TreeSelect } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -323,10 +323,6 @@ export const StyledInputContainer = styled.div`
       margin-left: 10px;
     }
   `}
-`;
-
-const StyledCheckbox = styled(AntdCheckbox)`
-  margin-top: ${({ theme }) => theme.gridUnit * 0}px;
 `;
 
 const StyledTooltip = styled(InfoTooltipWithTrigger)`
@@ -1122,8 +1118,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setReportFormat(value);
   };
 
-  const onForceScreenshotChange = (event: any) => {
-    setForceScreenshot(event.target.checked);
+  const onForceScreenshotChange = (checked: boolean) => {
+    setForceScreenshot(checked);
   };
 
   // Make sure notification settings has the required info
@@ -1807,14 +1803,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           )}
           {(isReport || contentType === ContentType.Dashboard) && (
             <div className="inline-container">
-              <StyledCheckbox
+              <Checkbox
                 data-test="bypass-cache"
-                className="checkbox"
                 checked={forceScreenshot}
                 onChange={onForceScreenshotChange}
               >
                 {t('Ignore cache when generating report')}
-              </StyledCheckbox>
+              </Checkbox>
             </div>
           )}
         </StyledPanel>

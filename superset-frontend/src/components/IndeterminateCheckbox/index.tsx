@@ -24,9 +24,7 @@ import {
   useRef,
   useEffect,
 } from 'react';
-
-import { styled } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Checkbox } from 'antd-v5';
 
 export interface IndeterminateCheckboxProps {
   indeterminate: boolean;
@@ -35,45 +33,8 @@ export interface IndeterminateCheckboxProps {
   onChange: EventHandler<SyntheticEvent<HTMLInputElement>>;
   title?: string;
   labelText?: string;
+  disabled?: boolean;
 }
-
-const CheckboxLabel = styled.label`
-  cursor: pointer;
-  display: inline-block;
-  margin-bottom: 0;
-`;
-
-const CheckboxHalf = styled(Icons.CheckboxHalf)`
-  color: ${({ theme }) => theme.colors.primary.base};
-  cursor: pointer;
-`;
-
-const CheckboxOff = styled(Icons.CheckboxOff)`
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  cursor: pointer;
-`;
-
-const CheckboxOn = styled(Icons.CheckboxOn)`
-  color: ${({ theme }) => theme.colors.primary.base};
-  cursor: pointer;
-`;
-
-const HiddenInput = styled.input`
-  &[type='checkbox'] {
-    cursor: pointer;
-    opacity: 0;
-    position: absolute;
-    left: 3px;
-    margin: 0;
-    top: 4px;
-  }
-`;
-
-const InputContainer = styled.div`
-  cursor: pointer;
-  display: inline-block;
-  position: relative;
-`;
 
 const IndeterminateCheckbox = forwardRef(
   (
@@ -84,6 +45,7 @@ const IndeterminateCheckbox = forwardRef(
       onChange,
       title = '',
       labelText = '',
+      disabled = false,
       ...rest
     }: IndeterminateCheckboxProps,
     ref: MutableRefObject<any>,
@@ -96,25 +58,17 @@ const IndeterminateCheckbox = forwardRef(
     }, [resolvedRef, indeterminate]);
 
     return (
-      <>
-        <InputContainer>
-          {indeterminate && <CheckboxHalf />}
-          {!indeterminate && checked && <CheckboxOn />}
-          {!indeterminate && !checked && <CheckboxOff />}
-          <HiddenInput
-            name={id}
-            id={id}
-            type="checkbox"
-            ref={resolvedRef}
-            checked={checked}
-            onChange={onChange}
-            {...rest}
-          />
-        </InputContainer>
-        <CheckboxLabel title={title} htmlFor={id}>
-          {labelText}
-        </CheckboxLabel>
-      </>
+      <Checkbox
+        id={id}
+        checked={checked}
+        indeterminate={indeterminate}
+        onChange={onChange}
+        disabled={disabled}
+        ref={resolvedRef}
+        {...rest}
+      >
+        {labelText}
+      </Checkbox>
     );
   },
 );
