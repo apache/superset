@@ -370,7 +370,7 @@ const processComparisonColumns = (
           {
             ...col,
             originalLabel,
-            // label: `#`,
+            label: `#`,
             key: `# ${col.key}`,
             config: getComparisonColConfig(`#`, col.key, columnConfig),
             formatter: getComparisonColFormatter(
@@ -384,7 +384,7 @@ const processComparisonColumns = (
           {
             ...col,
             originalLabel,
-            // label: `△`,
+            label: `△`,
             key: `△ ${col.key}`,
             config: getComparisonColConfig(`△`, col.key, columnConfig),
             formatter: getComparisonColFormatter(
@@ -398,7 +398,7 @@ const processComparisonColumns = (
           {
             ...col,
             originalLabel,
-            // label: `%`,
+            label: `%`,
             key: `% ${col.key}`,
             config: getComparisonColConfig(`%`, col.key, columnConfig),
             formatter: getComparisonColFormatter(
@@ -660,31 +660,7 @@ const transformProps = (
       : undefined;
 
   const passedData = isUsingTimeComparison ? comparisonData || [] : data;
-  const passedColumns = (
-    isUsingTimeComparison ? comparisonColumns : columns
-  ).map(col => {
-    const displayTypeIcon = col.config?.displayTypeIcon !== false;
-    const customName = col.config?.customColumnName || col.label;
-
-    const prefixMatch = ['#', '△', '%'].find(prefix =>
-      col.key.startsWith(`${prefix} `),
-    );
-    const isChildColumn = !!prefixMatch;
-
-    const label = isChildColumn
-      ? displayTypeIcon
-        ? `${prefixMatch} ${customName}`
-        : customName
-      : customName;
-
-    return {
-      ...col,
-      label,
-      isVisible: col.config?.visible !== false,
-      displayTypeIcon,
-      isChildColumn,
-    };
-  });
+  const passedColumns = isUsingTimeComparison ? comparisonColumns : columns;
 
   const basicColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);

@@ -690,6 +690,29 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         config = {},
       } = column;
       const label = config.customColumnName || originalLabel;
+      let displayLabel = label;
+
+      const isComparisonColumn = ['#', '△', '%', t('Main')].includes(
+        column.label,
+      );
+
+      if (isComparisonColumn) {
+        if (config.customColumnName) {
+          if (config.displayTypeIcon !== false) {
+            displayLabel = `${column.label} ${config.customColumnName}`;
+          } else {
+            displayLabel = config.customColumnName;
+          }
+        } else if (config.displayTypeIcon === false) {
+          if (column.label === t('Main')) {
+            displayLabel = label;
+          } else {
+            const rawColumnKey = key.substring(column.label.length).trim();
+            displayLabel = rawColumnKey;
+          }
+        }
+      }
+
       const columnWidth = Number.isNaN(Number(config.columnWidth))
         ? config.columnWidth
         : Number(config.columnWidth);
@@ -970,7 +993,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   alignItems: 'flex-end',
                 }}
               >
-                <span data-column-name={col.id}>{label}</span>
+                <span data-column-name={col.id}>{displayLabel}</span>
                 <SortIcon column={col} />
               </div>
             </th>
