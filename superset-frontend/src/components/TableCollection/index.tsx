@@ -94,9 +94,10 @@ export default memo(
     selectedFlatRows = [],
     toggleRowSelected,
     toggleAllRowsSelected,
+    prepareRow,
   }: TableCollectionProps) => {
     const mappedColumns = mapColumns(columns, headerGroups, columnsForWrapText);
-    const mappedRows = mapRows(rows);
+    const mappedRows = mapRows(rows, prepareRow);
 
     const selectedRowKeys = useMemo(
       () => selectedFlatRows?.map(row => row.id) || [],
@@ -136,7 +137,9 @@ export default memo(
         sortDirections={['ascend', 'descend', 'ascend']} // HACK: To disable default sorting
         components={{
           header: {
-            cell: (props: any) => <th {...props} data-test="sort-header" />,
+            cell: (props: any) => (
+              <th {...props} data-test="sort-header" role="columnheader" />
+            ),
           },
           body: {
             row: (props: any) => <tr {...props} data-test="table-row" />,

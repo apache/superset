@@ -23,7 +23,7 @@
  */
 
 import { ReactNode } from 'react';
-import { ColumnInstance, HeaderGroup } from 'react-table';
+import { ColumnInstance, HeaderGroup, Row } from 'react-table';
 import { ColumnsType } from 'src/components/Table';
 
 const COLUMN_SIZE_MAP: Record<string, number> = {
@@ -56,7 +56,7 @@ function getSortingInfo(
 
 export const mapColumns = (
   columns: ColumnInstance[],
-  headerGroups: any[],
+  headerGroups: HeaderGroup[],
   columnsForWrapText?: string[],
 ): ColumnsType =>
   columns.map(column => {
@@ -64,8 +64,8 @@ export const mapColumns = (
     return {
       title: column.Header,
       dataIndex: column.id,
-      key: column.id,
       hidden: column.hidden,
+      key: column.id,
       minWidth: column.size ? COLUMN_SIZE_MAP[column.size] : COLUMN_SIZE_MAP.md,
       ellipsis: !columnsForWrapText?.includes(column.id),
       defaultSortOrder: isSorted
@@ -97,5 +97,8 @@ export const mapColumns = (
     };
   });
 
-export const mapRows = (rows: any[]): any[] =>
-  rows.map(row => ({ rowId: row.id, ...row.original }));
+export const mapRows = (rows: Row[], prepareRow: (row: Row) => void): any[] =>
+  rows.map(row => {
+    prepareRow(row);
+    return { rowId: row.id, ...row.original, ...row.getRowProps() };
+  });
