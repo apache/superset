@@ -191,14 +191,17 @@ const AlteredSliceTag: FC<AlteredSliceTagProps> = props => {
       {
         accessor: 'control',
         Header: t('Control'),
+        id: 'control',
       },
       {
         accessor: 'before',
         Header: t('Before'),
+        id: 'before',
       },
       {
         accessor: 'after',
         Header: t('After'),
+        id: 'after',
       },
     ];
     // set the wrap text in the specific columns.
