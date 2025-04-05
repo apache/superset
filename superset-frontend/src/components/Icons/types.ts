@@ -27,6 +27,7 @@ export type IconType = AntdIconProps & {
   iconSize?: 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl';
   fileName?: string;
   customIcons?: boolean;
+  disabled?: boolean;
 };
 
 export type CustomIconType = ComponentType<SVGProps<SVGSVGElement>>;

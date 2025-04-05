@@ -86,24 +86,6 @@ const FlexRowContainer = styled.div`
 const Actions = styled.div`
   ${({ theme }) => css`
     color: ${theme.colors.grayscale.base};
-
-    .disabled {
-      svg,
-      i {
-        &:hover {
-          path {
-            fill: ${theme.colors.grayscale.light1};
-          }
-        }
-      }
-      color: ${theme.colors.grayscale.light1};
-      .antd5-menu-item:hover {
-        cursor: default;
-      }
-      &::after {
-        color: ${theme.colors.grayscale.light1};
-      }
-    }
   `}
 `;
 
@@ -417,16 +399,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {canDelete && (
                 <Tooltip
                   id="delete-action-tooltip"
-                  title={t('Delete')}
+                  title={
+                    allowEdit
+                      ? t('Delete')
+                      : t(
+                          'You must be a dataset owner in order to delete. Please reach out to a dataset owner to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
                 >
                   <span
                     role="button"
                     tabIndex={0}
                     className="action-button"
-                    onClick={handleDelete}
+                    onClick={allowEdit ? handleDelete : undefined}
                   >
-                    <Icons.DeleteOutlined iconSize="l" />
+                    <Icons.DeleteOutlined iconSize="l" disabled={!allowEdit} />
                   </span>
                 </Tooltip>
               )}
@@ -461,10 +449,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   <span
                     role="button"
                     tabIndex={0}
-                    className={allowEdit ? 'action-button' : 'disabled'}
+                    className="action-button"
                     onClick={allowEdit ? handleEdit : undefined}
                   >
-                    <Icons.EditOutlined iconSize="l" />
+                    <Icons.EditOutlined iconSize="l" disabled={!allowEdit} />
                   </span>
                 </Tooltip>
               )}
