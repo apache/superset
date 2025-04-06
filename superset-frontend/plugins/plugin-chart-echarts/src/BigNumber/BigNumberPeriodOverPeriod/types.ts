@@ -62,7 +62,7 @@ export type PopKPIProps = PopKPIStylesProps &
     metrics: Metric[];
     metricName: string;
     metricNameFontSize?: number;
-    showMetricName: Boolean;
+    showMetricName: boolean;
     bigNumber: string;
     prevNumber: string;
     subtitle?: string;
