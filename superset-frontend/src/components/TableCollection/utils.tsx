@@ -82,13 +82,13 @@ export const mapColumns = (
             column,
           }: {
             value: any;
-            row: { original: any };
+            row: { original: any; id: string };
             column: ColumnInstance;
           }) => ReactNode;
 
           return cellRenderer({
             value: val,
-            row: { original: record },
+            row: { original: record, id: record.rowId },
             column,
           });
         }
