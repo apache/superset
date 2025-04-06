@@ -77,16 +77,24 @@ const DeckMulti = (props: DeckMultiProps) => {
           // Filters applied to multi_deck are passed down to underlying charts
           // note that dashboard contextual information (filter_immune_slices and such) aren't
           // taken into consideration here
-          const filters = [
-            ...(subslice.form_data.filters || []),
-            ...(formData.filters || []),
+          const extra_filters = [
+            ...(subslice.form_data.extra_filters || []),
             ...(formData.extra_filters || []),
+            ...(formData.extra_form_data?.filters || []),
           ];
+
+          const adhoc_filters = [
+            ...(formData.adhoc_filters || []),
+            ...(subslice.formData?.adhoc_filters || []),
+            ...(formData.extra_form_data?.adhoc_filters || []),
+          ];
+
           const subsliceCopy = {
             ...subslice,
             form_data: {
               ...subslice.form_data,
-              filters,
+              extra_filters,
+              adhoc_filters,
             },
           };
 
