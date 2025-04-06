@@ -41,6 +41,7 @@ export default {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        [metricNameFontSize],
         [headerFontSize],
         [subtitleControl],
         [subtitleFontSize],

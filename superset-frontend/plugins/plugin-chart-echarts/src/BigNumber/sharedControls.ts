@@ -131,3 +131,37 @@ export const subtitleControl: CustomControlItem = {
     description: t('Description text that shows up below your Big Number'),
   },
 };
+
+export const metricNameFontSize: CustomControlItem = {
+  name: 'metric_name_font_size',
+  config: {
+    type: 'SelectControl',
+    label: t('Metric Name Font Size'),
+    renderTrigger: true,
+    clearable: false,
+    default: 0.2,
+    // Values represent the percentage of space the metric name should take
+    options: [
+      {
+        label: t('Tiny'),
+        value: 0.125,
+      },
+      {
+        label: t('Small'),
+        value: 0.15,
+      },
+      {
+        label: t('Normal'),
+        value: 0.2,
+      },
+      {
+        label: t('Large'),
+        value: 0.3,
+      },
+      {
+        label: t('Huge'),
+        value: 0.4,
+      },
+    ],
+  },
+};
