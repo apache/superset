@@ -72,6 +72,28 @@ const config: ControlPanelConfig = {
         [subtitleFontSize],
         [
           {
+            name: 'show_metric_name',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Metric Name'),
+              renderTrigger: true,
+              default: true,
+              description: t('Whether to display the metric name'),
+            },
+          },
+        ],
+        [
+          {
+            ...metricNameFontSize,
+            config: {
+              ...metricNameFontSize.config,
+              visibility: ({ controls }) =>
+                controls?.show_metric_name?.value === true,
+            },
+          },
+        ],
+        [
+          {
             ...subheaderFontSize,
             config: {
               ...subheaderFontSize.config,
