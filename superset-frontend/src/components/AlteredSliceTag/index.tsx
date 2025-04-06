@@ -205,7 +205,7 @@ const AlteredSliceTag: FC<AlteredSliceTagProps> = props => {
       },
     ];
     // set the wrap text in the specific columns.
-    const columnsForWrapText = ['Control', 'Before', 'After'];
+    const columnsForWrapText = ['control', 'before', 'after'];
 
     return (
       <TableView
