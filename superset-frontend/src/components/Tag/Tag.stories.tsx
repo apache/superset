@@ -23,24 +23,122 @@ import type { CheckableTagProps } from 'src/components/Tag';
 import TagType from 'src/types/TagType';
 
 export default {
-  title: 'Tag',
+  title: 'components/Tag',
   component: Tag,
   argTypes: {
     name: {
       control: 'text',
       description: 'The name of the tag displayed inside',
+      table: {
+        category: 'Tag custom properties',
+        type: { summary: 'number | object' },
+      },
     },
     editable: {
       control: 'boolean',
       description: 'Whether the tag is editable or not',
+      table: {
+        category: 'Tag custom properties',
+        type: { summary: 'number | object' },
+      },
     },
     toolTipTitle: {
       control: 'text',
       description: 'Tooltip text for the tag',
+      table: {
+        category: 'Tag custom properties',
+        type: { summary: 'number | object' },
+      },
     },
-    children: {
+    color: {
       control: 'text',
-      description: 'Children elements or text inside the tag',
+      description: 'Color of the Tag',
+      table: {
+        category: 'Tag',
+        type: { summary: 'text' },
+      },
+    },
+    icon: {
+      control: false,
+      description: 'Set the icon of tag',
+      table: {
+        category: 'Tag',
+        type: { summary: 'ReactNode' },
+      },
+    },
+    bordered: {
+      control: 'boolean',
+      description: 'Whether the tag has a border or not',
+      table: {
+        category: 'Tag',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    checked: {
+      confirm: 'boolean',
+      control: 'boolean',
+      description: 'Whether the tag is checked or not',
+      table: {
+        category: 'CheckableTag',
+        type: { summary: 'number | object' },
+      },
+    },
+    // Exclude unwanted properties
+    children: {
+      table: {
+        disable: true,
+      },
+    },
+    closable: {
+      table: {
+        disable: true,
+      },
+    },
+    css: {
+      table: {
+        disable: true,
+      },
+    },
+    id: {
+      table: {
+        disable: true,
+      },
+    },
+    index: {
+      table: {
+        disable: true,
+      },
+    },
+    onClick: {
+      table: {
+        disable: true,
+      },
+    },
+    onClose: {
+      table: {
+        disable: true,
+      },
+    },
+    onDelete: {
+      table: {
+        disable: true,
+      },
+    },
+    role: {
+      table: {
+        disable: true,
+      },
+    },
+    style: {
+      table: {
+        disable: true,
+      },
+    },
+    type: {
+      table: {
+        disable: true,
+      },
     },
   },
 } as Meta<typeof Tag>;
@@ -50,13 +148,12 @@ type Story = StoryObj<TagType>;
 export const TagStory: Story = {
   args: {
     name: 'Tag',
-    onDelete: undefined,
-    editable: false,
-    onClick: undefined,
-    toolTipTitle: 'tooltip',
-    children: undefined,
   },
-  render: args => <Tag {...args} />,
+  render: args => (
+    <div>
+      <Tag {...args} />
+    </div>
+  ),
 };
 
 type CheckableTagStoryType = StoryObj<CheckableTagProps>;
@@ -68,13 +165,15 @@ export const CheckableTagStory: CheckableTagStoryType = {
   render: args => {
     const [checked, setChecked] = useState(args?.checked || false);
     return (
-      <Tag.CheckableTag
-        {...args}
-        checked={checked}
-        onClick={() => setChecked((prev: boolean) => !prev)}
-      >
-        Click me
-      </Tag.CheckableTag>
+      <div>
+        <Tag.CheckableTag
+          {...args}
+          checked={checked}
+          onClick={() => setChecked((prev: boolean) => !prev)}
+        >
+          Click me
+        </Tag.CheckableTag>
+      </div>
     );
   },
 };

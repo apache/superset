@@ -19,7 +19,7 @@
 import { Meta, StoryObj } from '@storybook/react';
 import Layout, { LayoutProps, SiderProps } from 'src/components/Layout';
 import { Menu } from 'src/components/Menu';
-import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import { Icons } from 'src/components/Icons';
 
 const { Header, Footer, Sider, Content } = Layout;
 
@@ -143,10 +143,10 @@ export const LayoutStory: Story = {
             }}
           />
           <Menu defaultSelectedKeys={['1']} mode="inline">
-            <Menu.Item key="1" icon={<MenuUnfoldOutlined />}>
+            <Menu.Item key="1" icon={<Icons.MenuUnfoldOutlined />}>
               Option 1
             </Menu.Item>
-            <Menu.Item key="2" icon={<MenuFoldOutlined />}>
+            <Menu.Item key="2" icon={<Icons.MenuFoldOutlined />}>
               Option 2
             </Menu.Item>
           </Menu>
