@@ -127,7 +127,11 @@ const config: ControlPanelConfig = {
                 [GenericDataType.Numeric]: [
                   {
                     tab: t('General'),
-                    children: [['visible']],
+                    children: [
+                      ['customColumnName'],
+                      ['displayTypeIcon'],
+                      ['visible'],
+                    ],
                   },
                 ],
               },

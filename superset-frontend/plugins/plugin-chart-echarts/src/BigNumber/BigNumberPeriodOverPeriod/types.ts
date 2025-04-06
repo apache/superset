@@ -35,6 +35,8 @@ export interface PopKPIStylesProps {
 
 export type TableColumnConfig = {
   visible?: boolean;
+  customColumnName?: string;
+  displayTypeIcon?: boolean;
 };
 
 interface PopKPICustomizeProps {

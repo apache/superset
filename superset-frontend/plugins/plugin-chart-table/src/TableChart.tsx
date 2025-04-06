@@ -898,6 +898,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               className,
               value == null ? 'dt-is-null' : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
+              'test-c7w8t3',
             ].join(' '),
             tabIndex: 0,
           };
@@ -951,54 +952,55 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             </StyledCell>
           );
         },
-        Header: ({ column: col, onClick, style, onDragStart, onDrop }) => {
-          const { isChildColumn } = column;
-          return (
-            <th
-              id={`header-${column.key}`}
-              title={t('Shift + Click to sort by multiple columns')}
-              className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
-              style={{
-                ...sharedStyle,
-                ...style,
-                paddingLeft: isChildColumn ? 20 : 8,
-              }}
-              onKeyDown={(e: ReactKeyboardEvent<HTMLElement>) => {
-                // programatically sort column on keypress
-                if (Object.values(ACTION_KEYS).includes(e.key)) {
-                  col.toggleSortBy();
-                }
-              }}
-              role="columnheader button"
-              onClick={onClick}
-              data-column-name={col.id}
-              {...(allowRearrangeColumns && {
-                draggable: 'true',
-                onDragStart,
-                onDragOver: e => e.preventDefault(),
-                onDragEnter: e => e.preventDefault(),
-                onDrop,
-              })}
-              tabIndex={0}
-            >
-              {/* can't use `columnWidth &&` because it may also be zero */}
-              {config.columnWidth ? (
-                // column width hint
-                <div style={{ width: columnWidth, height: 0.01 }} />
-              ) : null}
+        Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
+          <th
+            id={`header-${column.key}`}
+            title={t('Shift + Click to sort by multiple columns')}
+            className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
+            style={{
+              ...sharedStyle,
+              ...style,
+            }}
+            onKeyDown={(e: ReactKeyboardEvent<HTMLElement>) => {
+              // programatically sort column on keypress
+              if (Object.values(ACTION_KEYS).includes(e.key)) {
+                col.toggleSortBy();
+              }
+            }}
+            role="columnheader button"
+            onClick={onClick}
+            data-column-name={col.id}
+            {...(allowRearrangeColumns && {
+              draggable: 'true',
+              onDragStart,
+              onDragOver: e => e.preventDefault(),
+              onDragEnter: e => e.preventDefault(),
+              onDrop,
+            })}
+            tabIndex={0}
+          >
+            {/* can't use `columnWidth &&` because it may also be zero */}
+            {config.columnWidth ? (
+              // column width hint
               <div
-                data-column-name={col.id}
-                css={{
-                  display: 'inline-flex',
-                  alignItems: 'flex-end',
+                style={{
+                  width: columnWidth,
+                  height: 0.01,
                 }}
-              >
-                <span data-column-name={col.id}>{displayLabel}</span>
-                <SortIcon column={col} />
-              </div>
-            </th>
-          );
-        },
+              />
+            ) : null}
+            <div
+              data-column-name={col.id}
+              css={{
+                display: 'inline-flex',
+                alignItems: 'flex-end',
+              }}
+            >
+              <span data-column-name={col.id}>{displayLabel}</span>
+              <SortIcon column={col} />
+            </div>
+          </th>
+        ),
 
         Footer: totals ? (
           i === 0 ? (
