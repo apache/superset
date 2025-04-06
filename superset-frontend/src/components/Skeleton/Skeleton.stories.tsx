@@ -17,31 +17,148 @@
  * under the License.
  */
 import type { Meta, StoryObj } from '@storybook/react';
+import { Space } from 'src/components/Space';
 import Skeleton from './index';
 
-const meta: Meta<typeof Skeleton> = {
+const { Avatar, Button, Input, Image } = Skeleton;
+
+export default {
   title: 'Components/Skeleton',
   component: Skeleton,
+  subcomponents: { Avatar, Button, Input, Image },
   argTypes: {
-    active: { control: 'boolean', description: 'Display animation effect' },
-    avatar: { control: 'boolean', description: 'Display avatar skeleton' },
-    loading: { control: 'boolean', description: 'Whether skeleton is loading' },
-    title: { control: 'boolean', description: 'Show skeleton title' },
-    paragraph: { control: 'object', description: 'Show skeleton paragraphs' },
-    round: { control: 'boolean', description: 'Make avatar and image round' },
+    // Skeleton props
+    active: {
+      control: 'boolean',
+      description: 'Show animation effect',
+      table: {
+        category: 'Skeleton',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    avatar: {
+      control: 'boolean',
+      description: 'Show avatar placeholder',
+      table: {
+        category: 'Skeleton',
+        type: { summary: 'boolean | object' },
+        defaultValue: { summary: false },
+      },
+    },
+    loading: {
+      control: 'boolean',
+      description: 'Display the skeleton when true',
+      table: {
+        category: 'Skeleton',
+        type: { summary: 'boolean' },
+      },
+    },
+    paragraph: {
+      control: 'false',
+      description: 'Paragraph skeleton',
+      table: {
+        category: 'Skeleton',
+        type: { summary: 'boolean | object' },
+        defaultValue: { summary: 'true' },
+      },
+    },
+    round: {
+      control: false,
+      description: 'Show paragraph and title radius when true	',
+      table: {
+        category: 'Skeleton',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: false },
+      },
+    },
+    title: {
+      control: 'boolean',
+      description: 'Show title placeholder',
+      table: {
+        category: 'Skeleton',
+        type: { summary: 'boolean | object' },
+        defaultValue: { summary: true },
+      },
+    },
+
+    // Skeleton.Avatar props
+    shape: {
+      control: 'select',
+      description: 'Shape of the avatar',
+      options: ['circle', 'square'],
+      table: {
+        name: 'shape',
+        category: 'Avatar | Button',
+        type: { summary: 'string' },
+      },
+    },
+    size: {
+      control: 'select',
+      options: ['large', 'small', 'default'],
+      description: 'Set the size of avatar in the skeleton',
+      table: {
+        category: 'Avatar | Button',
+        type: { summary: 'number | string' },
+      },
+    },
+
+    // Skeleton.Title props
+    width: {
+      control: false,
+      description: 'Set the width of title in the skeleton',
+      table: {
+        category: 'Title',
+        type: { summary: 'number | string' },
+      },
+    },
+
+    // Skeleton.Button props
+    block: {
+      control: 'boolean',
+      description: 'Option to fit button width to its parent width',
+      table: {
+        category: 'Button',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: false },
+      },
+    },
   },
-};
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Skeleton loading component with support for avatar, title, paragraph, button, and input placeholders.',
+      },
+    },
+  },
+} as Meta<
+  typeof Skeleton & typeof Avatar & typeof Button & typeof Input & typeof Image
+>;
 
-export default meta;
-type Story = StoryObj<typeof Skeleton>;
+type Story = StoryObj<typeof Skeleton & typeof Button & typeof Avatar>;
 
-export const Default: Story = {
-  args: {
-    active: false,
-    avatar: false,
-    loading: false,
-    title: true,
-    paragraph: { rows: 3 },
-    round: false,
+export const SkeletonStory: Story = {
+  render: args => {
+    const avatar = {
+      shape: args.shape,
+      size: args.size,
+    };
+    const button = {
+      block: (args as any).block,
+      shape: args.shape,
+      size: typeof args.size === 'string' ? args.size : undefined,
+    };
+
+    return (
+      <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
+        Skeleton
+        <Skeleton {...args} />
+        Avatar
+        <Skeleton.Avatar {...avatar} />
+        Button
+        <Skeleton.Button {...button} />
+      </Space>
+    );
   },
 };
