@@ -27,7 +27,6 @@ import {
   RoleForm,
   UserObject,
 } from 'src/features/roles/types';
-import { CellProps } from 'react-table';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import FormModal from 'src/components/Modal/FormModal';
 import { PermissionsField, RoleNameField, UsersField } from './RoleFormItems';
