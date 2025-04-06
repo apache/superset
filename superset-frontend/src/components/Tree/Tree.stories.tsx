@@ -18,94 +18,146 @@
  */
 import { Meta, StoryObj } from '@storybook/react';
 import { Icons } from 'src/components/Icons';
-import Tree, { TreeProps } from './index';
-import type { TreeDataNode } from './index';
+import Tree, { TreeProps, type TreeDataNode } from './index';
 
 const meta = {
   title: 'Components/Tree',
   component: Tree,
   argTypes: {
     autoExpandParent: {
-      control: { type: 'boolean' },
-      description: 'Whether to automatically expand a parent treeNode',
-    },
-    defaultExpandAll: {
-      control: { type: 'boolean' },
-      description: 'Whether to expand all treeNodes by default',
-    },
-    multiple: {
-      control: { type: 'boolean' },
-      description: 'Allows selecting multiple treeNodes',
+      control: 'boolean',
+      description: 'Whether to automatically expand a parent treeNode	',
+      table: {
+        category: 'Tree',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
     },
     checkable: {
-      control: { type: 'boolean' },
-      desciption: 'Add a Checkbox before the treeNodes',
-    },
-    selectable: {
-      control: { type: 'boolean' },
-      descrtiption: 'Whether can be selected',
-    },
-    draggable: {
-      control: { type: 'boolean' },
-      description:
-        'Specifies whether this Tree or the node is draggable. Use icon: false to disable drag handler icon',
-    },
-    showLine: {
-      control: { type: 'boolean' },
-      description: 'Shows a connecting line',
-    },
-    blockNode: {
-      control: { type: 'boolean' },
-      description: 'Whether treeNode fill remaining horizontal space',
+      control: 'boolean',
+      description: 'Add a Checkbox before the treeNodes',
+      table: {
+        category: 'Tree',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
     },
     checkStrictly: {
-      control: { type: 'boolean' },
+      control: 'boolean',
       description:
         'Check treeNode precisely; parent treeNode and children treeNodes are not associated',
+      table: {
+        category: 'Tree',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    defaultExpandAll: {
+      control: 'boolean',
+      description: 'Whether to expand all treeNodes by default',
+      table: {
+        category: 'Tree',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
     },
     defaultExpandParent: {
-      control: { type: 'boolean' },
-      description: 'If auto expand parent treeNodes when init',
+      control: 'boolean',
+      description: 'If auto expand parent treeNodes when init	',
+      table: {
+        category: 'Tree',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    disabled: {
+      control: 'boolean',
+      description: 'Whether disabled the tree',
+      table: {
+        category: 'Tree',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    draggable: {
+      control: 'boolean',
+      description:
+        'Specifies whether this Tree or the node is draggable. Use icon: false to disable drag handler icon',
+      table: {
+        category: 'Tree',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    height: {
+      control: 'number',
+      description:
+        'Config virtual scroll height. Will not support horizontal scroll when enable this',
+      table: {
+        category: 'Tree',
+        type: { summary: 'number' },
+      },
+    },
+    multiple: {
+      control: 'boolean',
+      description: 'Allows selecting multiple treeNodes	',
+      table: {
+        category: 'Tree',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    selectable: {
+      control: 'boolean',
+      description: 'Whether can be selected',
+      table: {
+        category: 'Tree',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'true' },
+      },
     },
     showIcon: {
-      control: { type: 'boolean' },
+      control: 'boolean',
       description:
         'Controls whether to display the icon node, no default style',
+      table: {
+        category: 'Tree',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    showLine: {
+      control: 'boolean',
+      description: 'Shows a connecting line',
+      table: {
+        category: 'Tree',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
     },
     virtual: {
-      control: { type: 'boolean' },
+      control: 'boolean',
       description: 'Disable virtual scroll when set to false',
+      table: {
+        category: 'Tree',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'true' },
+      },
     },
-    titleRender: {
-      control: { type: 'text' },
-      description: 'Customize the title of the treeNode',
-    },
-    switcherLoadingIcon: {
-      control: { type: 'text' },
-      description: 'Customize the loading icon',
-    },
-    switcherIcon: {
-      control: { type: 'boolean' },
-      description: 'Customize the switcher icon',
-    },
-    treeData: { control: { type: 'object' }, description: 'TreeNodes data' },
-    loadData: {
-      control: { type: 'object' },
-      description: 'Load data asynchronously',
-    },
+    // Exclude unwanted properties
     defaultExpandedKeys: {
-      control: { type: 'object' },
-      description: 'Default expanded treeNodes',
+      table: {
+        disable: true,
+      },
     },
     defaultSelectedKeys: {
-      control: { type: 'object' },
-      description: 'Default selected treeNodes',
+      table: {
+        disable: true,
+      },
     },
-    parameters: {
-      docs: {
-        description: {
-          component: 'Tree component for Multiple-level structure list.',
-        },
+    treeData: {
+      table: {
+        disable: true,
       },
     },
   },
@@ -171,17 +223,6 @@ type Story = StoryObj<typeof Tree>;
 
 export const TreeStory: Story = {
   args: {
-    multiple: false,
-    checkable: false,
-    selectable: true,
-    draggable: false,
-    showLine: false,
-    blockNode: true,
-    defaultExpandAll: false,
-    checkStrictly: false,
-    defaultExpandParent: false,
-    showIcon: false,
-    autoExpandParent: true,
     defaultExpandedKeys: ['0-0-0', '0-0-1'],
     defaultSelectedKeys: ['0-0-1'],
     treeData,
