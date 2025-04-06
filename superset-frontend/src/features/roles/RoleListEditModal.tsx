@@ -58,24 +58,28 @@ const userColumns = [
   {
     accessor: 'first_name',
     Header: 'First Name',
+    id: 'first_name',
   },
   {
     accessor: 'last_name',
     Header: 'Last Name',
+    id: 'last_name',
   },
   {
     accessor: 'username',
     Header: 'User Name',
+    id: 'username',
   },
   {
     accessor: 'email',
     Header: 'Email',
+    id: 'email',
   },
   {
     accessor: 'active',
     Header: 'Is Active?',
-    Cell: ({ cell }: CellProps<{ active: boolean }>) =>
-      cell.value ? 'Yes' : 'No',
+    Cell: ({ value }: { value: boolean }) => (value ? 'Yes' : 'No'),
+    id: 'active',
   },
 ];
 
