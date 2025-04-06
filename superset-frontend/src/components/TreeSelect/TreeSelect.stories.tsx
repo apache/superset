@@ -17,75 +17,189 @@
  * under the License.
  */
 import { Meta, StoryObj } from '@storybook/react';
-import TreeSelect from '.';
+import TreeSelect, { type TreeSelectProps } from 'src/components/TreeSelect';
 
-const meta: Meta<typeof TreeSelect> = {
+export default {
   title: 'Components/TreeSelect',
   component: TreeSelect,
-  tags: ['autodocs'],
   argTypes: {
-    value: { control: 'text' },
-    treeData: { control: 'object' },
-    treeCheckable: { control: 'boolean' },
-    showCheckedStrategy: {
-      control: 'select',
-      options: ['SHOW_CHILD', 'SHOW_PARENT', 'SHOW_ALL'],
+    allowClear: {
+      control: { type: 'boolean' },
+      description: 'Whether to allow clearing the selected value.',
+      defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
     },
-    placeholder: { control: 'text' },
-    allowClear: { control: 'boolean' },
-    autoClearSearchValue: { control: 'boolean' },
-    defaultValue: { control: 'text' },
-    disabled: { control: 'boolean' },
-    popupClassName: { control: 'text' },
-    popupMatchSelectWidth: { control: 'boolean' },
-    dropdownRender: { control: 'text' },
-    dropdownStyle: { control: 'object' },
-    fieldNames: { control: 'object' },
-    filterTreeNode: { control: 'boolean' },
-    labelInValue: { control: 'boolean' },
-    listHeight: { control: 'number' },
-    maxTagCount: { control: 'number' },
-    maxCount: { control: 'number' },
-    maxTagPlaceholder: { control: 'text' },
-    maxTagTextLength: { control: 'number' },
-    multiple: { control: 'boolean' },
-    notFoundContent: { control: 'text' },
+    autoClearSearchValue: {
+      control: { type: 'boolean' },
+      description: 'Whether to clear the search value automatically.',
+      defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'true' },
+      },
+    },
+    disabled: {
+      control: { type: 'boolean' },
+      description: 'Whether the component is disabled.',
+      defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    labelInValue: {
+      control: { type: 'boolean' },
+      description: 'Whether to use label in value.',
+      defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+      },
+    },
+    listHeight: {
+      control: { type: 'number' },
+      description: 'Height of the dropdown list.',
+      defaultValue: 256,
+      table: {
+        type: { summary: 'number' },
+        defaultValue: { summary: '256' },
+      },
+    },
+    maxTagCount: {
+      control: { type: 'number' },
+      description: 'Maximum number of tags to display.',
+      table: {
+        type: { summary: 'number' },
+      },
+    },
+    maxTagTextLength: {
+      control: { type: 'number' },
+      description: 'Maximum length of tag text.',
+      defaultValue: 20,
+      table: {
+        type: { summary: 'number' },
+      },
+    },
+    multiple: {
+      control: { type: 'boolean' },
+      description: 'Whether to allow multiple selections.',
+      defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    placeholder: {
+      control: { type: 'text' },
+      description: 'Placeholder text for the input field.',
+      defaultValue: 'Please select',
+      table: {
+        type: { summary: 'string' },
+      },
+    },
     placement: {
-      control: 'select',
-      options: ['bottomLeft', 'bottomRight', 'topLeft', 'topRight'],
+      control: { type: 'select' },
+      options: ['topLeft', 'topRight', 'bottomLeft', 'bottomRight'],
+      description: 'Placement of the dropdown menu.',
+      defaultValue: 'bottomLeft',
+      table: {
+        type: { summary: 'string' },
+        defaultValue: { summary: 'bottomLeft' },
+      },
     },
-    prefix: { control: 'text' },
-    searchValue: { control: 'text' },
-    size: { control: 'select', options: ['large', 'middle', 'small'] },
-    status: { control: 'select', options: ['error', 'warning'] },
-    suffixIcon: { control: 'text' },
-    switcherIcon: { control: 'text' },
-    treeCheckStrictly: { control: 'boolean' },
-    treeDataSimpleMode: { control: 'boolean' },
-    treeDefaultExpandAll: { control: 'boolean' },
-    treeExpandAction: {
-      control: 'select',
-      options: [false, 'click', 'doubleClick'],
+    showSearch: {
+      control: { type: 'boolean' },
+      description: 'Whether to show the search input.',
+      defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+      },
     },
-    treeIcon: { control: 'boolean' },
-    treeLine: { control: 'boolean' },
-    treeNodeFilterProp: { control: 'text' },
-    treeNodeLabelProp: { control: 'text' },
+    size: {
+      control: { type: 'select' },
+      options: ['large', 'middle', 'small'],
+      description: 'Size of the component.',
+      defaultValue: 'middle',
+      table: {
+        type: { summary: 'string' },
+      },
+    },
+    status: {
+      control: { type: 'select' },
+      options: ['error', 'warning'],
+      description: 'Status of the component.',
+      defaultValue: 'error',
+      table: {
+        type: { summary: 'string' },
+      },
+    },
+    treeCheckable: {
+      control: { type: 'boolean' },
+      description: 'Whether to show checkable tree nodes.',
+      defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    treeDefaultExpandAll: {
+      control: { type: 'boolean' },
+      description: 'Whether to expand all tree nodes by default.',
+      defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    treeIcon: {
+      control: { type: 'boolean' },
+      description: 'Whether to show tree icons.',
+      defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    treeLine: {
+      control: { type: 'boolean' },
+      description: 'Whether to show tree lines.',
+      defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
     variant: {
-      control: 'select',
+      control: { type: 'select' },
       options: ['outlined', 'borderless', 'filled', 'underlined'],
+      description: 'Variant of the component.',
+      defaultValue: 'outlined',
+      table: {
+        type: { summary: 'string' },
+        defaultValue: { summary: 'outlined' },
+      },
     },
-    virtual: { control: 'boolean' },
-    onChange: { action: 'onChange' },
-    onDropdownVisibleChange: { action: 'onDropdownVisibleChange' },
-    onSearch: { action: 'onSearch' },
-    onSelect: { action: 'onSelect' },
-    onTreeExpand: { action: 'onTreeExpand' },
-    onPopupScroll: { action: 'onPopupScroll' },
+    virtual: {
+      control: { type: 'boolean' },
+      description: 'Whether to use virtual scrolling.',
+      defaultValue: false,
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'true' },
+      },
+    },
   },
-};
-
-export default meta;
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'TreeSelect is a select component that allows users to select from a tree structure.',
+      },
+    },
+  },
+} as Meta<typeof TreeSelect>;
 
 type Story = StoryObj<typeof TreeSelect>;
 
@@ -120,15 +234,5 @@ export const Default: Story = {
   args: {
     treeData,
   },
-};
-
-export const PreselectedValues: Story = {
-  args: {
-    value: ['0-0'],
-    treeData,
-    treeCheckable: true,
-    showCheckedStrategy: TreeSelect.SHOW_PARENT,
-    placeholder: 'Please select',
-    disabled: false,
-  },
+  render: (args: TreeSelectProps) => <TreeSelect {...args} />,
 };

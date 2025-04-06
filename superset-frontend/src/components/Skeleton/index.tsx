@@ -17,8 +17,8 @@
  * under the License.
  */
 import { Skeleton, type SkeletonProps } from 'antd-v5';
-import { SkeletonButtonProps } from 'antd-v5/es/skeleton/Button';
-import { AvatarProps } from 'antd-v5/es/skeleton/Avatar';
+import SkeletonButtonProps from 'antd-v5/es/skeleton/Button';
+import AvatarProps from 'antd-v5/es/skeleton/Avatar';
 
 export type { SkeletonProps };
 export { SkeletonButtonProps, AvatarProps };
