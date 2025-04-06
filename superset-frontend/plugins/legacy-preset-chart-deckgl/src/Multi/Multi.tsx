@@ -80,13 +80,19 @@ const DeckMulti = (props: DeckMultiProps) => {
           const filters = [
             ...(subslice.form_data.filters || []),
             ...(formData.filters || []),
+          ];
+
+          const extra_filters = [
+            ...(subslice.form_data.extra_filters || []),
             ...(formData.extra_filters || []),
           ];
+
           const subsliceCopy = {
             ...subslice,
             form_data: {
               ...subslice.form_data,
               filters,
+              extra_filters,
             },
           };
 
