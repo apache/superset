@@ -120,6 +120,7 @@ describe('SavedQueryList', () => {
     await waitFor(() => {
       mockQueries.forEach(query => {
         expect(screen.getByText(query.label)).toBeInTheDocument();
+        screen.debug();
         expect(
           screen.getByText(query.database.database_name),
         ).toBeInTheDocument();

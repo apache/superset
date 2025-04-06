@@ -345,13 +345,13 @@ function SavedQueryList({
         accessor: 'database.database_name',
         Header: t('Database'),
         size: 'xl',
-        id: 'database',
+        id: 'database.database_name',
       },
       {
         accessor: 'database',
         hidden: true,
         disableSortBy: true,
-        id: 'database_id',
+        id: 'database',
       },
       {
         accessor: 'schema',
