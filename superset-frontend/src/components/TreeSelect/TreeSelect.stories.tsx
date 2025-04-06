@@ -17,35 +17,7 @@
  * under the License.
  */
 import { Meta, StoryObj } from '@storybook/react';
-import { Icons } from 'src/components/Icons';
 import TreeSelect from '.';
-
-const treeData = [
-  {
-    title: 'Node1',
-    value: '0-0',
-    children: [
-      {
-        title: 'Child Node1',
-        value: '0-0-0',
-      },
-      {
-        title: 'Child Node2',
-        value: '0-0-1',
-      },
-    ],
-  },
-  {
-    title: 'Node2',
-    value: '0-1',
-    children: [
-      {
-        title: 'Child Node3',
-        value: '0-1-0',
-      },
-    ],
-  },
-];
 
 const meta: Meta<typeof TreeSelect> = {
   title: 'Components/TreeSelect',
@@ -117,61 +89,36 @@ export default meta;
 
 type Story = StoryObj<typeof TreeSelect>;
 
+const treeData = [
+  {
+    title: 'Node1',
+    value: '0-0',
+    children: [
+      {
+        title: 'Child Node1',
+        value: '0-0-0',
+      },
+      {
+        title: 'Child Node2',
+        value: '0-0-1',
+      },
+    ],
+  },
+  {
+    title: 'Node2',
+    value: '0-1',
+    children: [
+      {
+        title: 'Child Node3',
+        value: '0-1-0',
+      },
+    ],
+  },
+];
+
 export const Default: Story = {
   args: {
-    value: undefined,
     treeData,
-    treeCheckable: false,
-    showCheckedStrategy: TreeSelect.SHOW_CHILD,
-    placeholder: 'Please select',
-    allowClear: false,
-    autoClearSearchValue: false,
-    defaultValue: undefined,
-    disabled: false,
-    popupClassName: '',
-    popupMatchSelectWidth: true,
-    dropdownRender: undefined,
-    dropdownStyle: {},
-    fieldNames: { label: 'title', value: 'value', children: 'children' },
-    filterTreeNode: true,
-    getPopupContainer: () => document.body,
-    labelInValue: false,
-    listHeight: 600,
-    loadData: undefined,
-    maxTagCount: 'responsive',
-    maxCount: undefined,
-    maxTagPlaceholder: undefined,
-    maxTagTextLength: 20,
-    multiple: false,
-    notFoundContent: 'Not Found',
-    placement: 'bottomLeft',
-    prefix: undefined,
-    searchValue: '',
-    size: 'middle',
-    status: undefined,
-    suffixIcon: <Icons.DownOutlined iconSize="xs" />,
-    switcherIcon: undefined,
-    tagRender: undefined,
-    treeCheckStrictly: false,
-    treeDataSimpleMode: false,
-    treeTitleRender: undefined,
-    treeDefaultExpandAll: false,
-    treeDefaultExpandedKeys: [],
-    treeExpandAction: false,
-    treeExpandedKeys: [],
-    treeIcon: false,
-    treeLoadedKeys: [],
-    treeLine: false,
-    treeNodeFilterProp: 'value',
-    treeNodeLabelProp: 'title',
-    variant: 'outlined',
-    virtual: true,
-    onChange: undefined,
-    onDropdownVisibleChange: undefined,
-    onSearch: undefined,
-    onSelect: undefined,
-    onTreeExpand: undefined,
-    onPopupScroll: undefined,
   },
 };
 

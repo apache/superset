@@ -155,7 +155,7 @@ export const SkeletonStory: Story = {
     };
 
     return (
-      <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
+      <Space direction="vertical" size="middle">
         Skeleton
         <Skeleton {...args} />
         Avatar

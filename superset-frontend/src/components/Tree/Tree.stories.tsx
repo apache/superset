@@ -161,6 +161,14 @@ const meta = {
       },
     },
   },
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'The Tree component is used to display hierarchical data in a tree structure. It allows for features such as selection, expansion, and drag-and-drop functionality.',
+      },
+    },
+  },
 } as Meta<typeof Tree>;
 
 export default meta;

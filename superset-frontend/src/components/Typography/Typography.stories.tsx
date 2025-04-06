@@ -19,100 +19,186 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import Typography from 'src/components/Typography';
 
-const meta: Meta<typeof Typography.Text> = {
+export default {
   title: 'Components/Typography',
   component: Typography,
-  tags: ['autodocs'],
+  subcomponents: {
+    Text: Typography.Text,
+    Title: Typography.Title,
+    Paragraph: Typography.Paragraph,
+    Link: Typography.Link,
+  },
   argTypes: {
+    code: {
+      control: 'boolean',
+      description: 'Code style',
+      table: {
+        category: 'Typography.Text',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    copyable: {
+      control: 'boolean',
+      description: 'Whether to be copyable, customize it via setting an object',
+      table: {
+        category: 'Typography.Text',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    delete: {
+      control: 'boolean',
+      description: 'Deleted line style',
+      table: {
+        category: 'Typography.Text',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    disabled: {
+      control: 'boolean',
+      description: 'Disabled content',
+      table: {
+        category: 'Typography.Text',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    editable: {
+      control: 'boolean',
+      description: 'Whether to be editable, customize it via setting an object',
+      table: {
+        category: 'Typography.Text',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    ellipsis: {
+      control: 'boolean',
+      description:
+        'Display ellipsis when text overflows, can not configure expandable、rows and onExpand by using object. Diff with Typography.Paragraph, Text do not have 100% width style which means it will fix width on the first ellipsis. If you want to have responsive ellipsis, please set width manually',
+      table: {
+        category: 'Typography.Text',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    keyboard: {
+      control: 'boolean',
+      description: 'Keyboard style',
+      table: {
+        category: 'Typography.Text',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    mark: {
+      control: 'boolean',
+      description: 'Marked style',
+      table: {
+        category: 'Typography.Text',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    italic: {
+      control: 'boolean',
+      description: 'Italic style',
+      table: {
+        category: 'Typography.Text',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
     type: {
       control: 'select',
+      description: 'Text type',
       options: ['secondary', 'success', 'warning', 'danger'],
+      table: {
+        category: 'Typography.Text',
+        type: { summary: 'string' },
+      },
     },
-    strong: { control: 'boolean' },
-    underline: { control: 'boolean' },
-    delete: { control: 'boolean' },
-    mark: { control: 'boolean' },
-    code: { control: 'boolean' },
-    italic: { control: 'boolean' },
-    disabled: { control: 'boolean' },
-    editable: { control: 'boolean' },
-    ellipsis: { control: 'boolean' },
-    keyboard: { control: 'boolean' },
+    underline: {
+      control: 'boolean',
+      description: 'Underlined style	',
+      table: {
+        category: 'Typography.Text',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    level: {
+      control: {
+        type: 'number',
+        min: 1,
+        max: 5,
+      },
+      description: 'Set content importance. Match with h1, h2, h3, h4, h5',
+      table: {
+        category: 'Typography.Title',
+        type: { summary: 'number' },
+      },
+    },
+    strong: {
+      control: 'boolean',
+      description: 'Bold style',
+      table: {
+        category: 'Typography.Paragraph',
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
   },
-};
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Typography is a component for displaying text with various styles and formats. It includes subcomponents like Title, Paragraph, and Link.',
+      },
+    },
+  },
+} as Meta<
+  typeof Typography.Text &
+    typeof Typography.Paragraph &
+    typeof Typography.Link &
+    typeof Typography.Title
+>;
 
-export default meta;
-type Story = StoryObj<typeof Typography.Text>;
+type TextStory = StoryObj<typeof Typography.Text>;
 
-export const Default: Story = {
+export const TextStory: TextStory = {
   args: {
     children: 'Default Text',
-    strong: true,
-    underline: false,
-    type: 'secondary',
-    code: true,
-    disabled: false,
-    delete: false,
-    copyable: false,
-    editable: false,
-    ellipsis: false,
-    keyboard: false,
-    mark: false,
-    italic: false,
   },
+  render: args => <Typography.Text {...args} />,
 };
 
-export const Title: StoryObj<typeof Typography.Title> = {
+type TitleStory = StoryObj<typeof Typography.Title>;
+
+export const TitleStory: TitleStory = {
+  args: {
+    children: 'Default Title',
+  },
   render: args => <Typography.Title {...args} />,
-  args: {
-    children: 'Title Example',
-    level: 2,
-    underline: false,
-    type: 'secondary',
-    code: false,
-    disabled: true,
-    delete: true,
-    copyable: true,
-    editable: false,
-    ellipsis: false,
-    keyboard: false,
-    mark: false,
-    italic: false,
-  },
 };
+type ParagraphStory = StoryObj<typeof Typography.Paragraph>;
 
-export const Paragraph: StoryObj<typeof Typography.Paragraph> = {
+export const ParagraphStory: ParagraphStory = {
+  args: {
+    children: 'Default Paragraph',
+  },
   render: args => <Typography.Paragraph {...args} />,
-  args: {
-    children:
-      'This is a paragraph with multiple lines. It can have different styles.',
-    strong: true,
-    underline: false,
-    type: 'secondary',
-    code: true,
-    disabled: false,
-    delete: false,
-    copyable: false,
-    editable: false,
-    ellipsis: false,
-    keyboard: false,
-    mark: false,
-    italic: false,
-  },
 };
 
-export const copyable: StoryObj<typeof Typography.Link> = {
-  render: args => <Typography.Link {...args} />,
-  args: {
-    children: 'Click me',
-    href: 'https://example.com',
-  },
-};
+type LinkStory = StoryObj<typeof Typography.Link>;
 
-export const Link: StoryObj<typeof Typography.Link> = {
-  render: args => <Typography.Link {...args} />,
+export const LinkStory: LinkStory = {
   args: {
-    children: 'Click me',
+    children: 'Default Link',
     href: 'https://example.com',
+    target: '_blank',
   },
+  render: args => <Typography.Link {...args} />,
 };

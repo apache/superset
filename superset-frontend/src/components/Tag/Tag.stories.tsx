@@ -141,6 +141,14 @@ export default {
       },
     },
   },
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'The Tag component is used to display a tag with various properties such as color, closable, and editable. It can also be used as a CheckableTag which allows for selection.',
+      },
+    },
+  },
 } as Meta<typeof Tag>;
 
 type Story = StoryObj<TagType>;
