@@ -18,7 +18,11 @@
  */
 import type { Meta, StoryObj } from '@storybook/react';
 import { Space } from 'src/components/Space';
-import Skeleton from './index';
+import Skeleton, {
+  type SkeletonProps,
+  SkeletonButtonProps,
+  AvatarProps,
+} from './index';
 
 const { Avatar, Button, Input, Image } = Skeleton;
 
@@ -139,15 +143,15 @@ export default {
 type Story = StoryObj<typeof Skeleton & typeof Button & typeof Avatar>;
 
 export const SkeletonStory: Story = {
-  render: args => {
+  render: (args: SkeletonProps & AvatarProps & SkeletonButtonProps) => {
     const avatar = {
       shape: args.shape,
       size: args.size,
     };
     const button = {
-      block: (args as any).block,
+      block: args.block,
       shape: args.shape,
-      size: typeof args.size === 'string' ? args.size : undefined,
+      size: args.size,
     };
 
     return (

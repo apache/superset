@@ -17,28 +17,53 @@
  * under the License.
  */
 import { Meta, StoryObj } from '@storybook/react';
-import TagsList, { TagsListProps } from '.';
+import TagsList, { type TagsListProps } from 'src/components/TagsList';
 
 export default {
-  title: 'TagsList',
+  title: 'components/TagsList',
   component: TagsList,
-  argsTypes: {
+  argTypes: {
     tags: {
-      control: 'array',
+      control: false,
       description: 'List of tags to display',
+      table: {
+        category: 'Tag List',
+        type: { summary: 'number | object' },
+      },
     },
     editable: {
       control: 'boolean',
-      description: 'Whether tags are editable or not',
+      description: 'Whether the tags are editable',
+      table: {
+        category: 'Tag List',
+        type: { summary: 'boolean' },
+      },
     },
     maxTags: {
       control: 'number',
       description: 'Maximum number of tags to display',
+      table: {
+        category: 'Tag List',
+        type: { summary: 'number | undefined' },
+      },
+    },
+    onDelete: {
+      table: {
+        disable: true,
+      },
     },
   },
-} as Meta<typeof TagsList>;
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'The TagsList component displays a list of tags. It can be configured to be editable, allowing users to delete tags. The maxTags prop limits the number of tags displayed before truncating.',
+      },
+    },
+  },
+} as Meta<TagsListProps>;
 
-type Story = StoryObj<typeof TagsList>;
+type Story = StoryObj<TagsListProps>;
 
 export const TagsListStory: Story = {
   args: {
@@ -50,8 +75,6 @@ export const TagsListStory: Story = {
       { name: 'tag5' },
       { name: 'tag6' },
     ],
-    editable: true,
-    maxTags: 3,
   },
   render: (args: TagsListProps) => <TagsList {...args} />,
 };
