@@ -86,6 +86,7 @@ export default function AllEntitiesTable({
           {
             accessor: type,
             Header: 'Title',
+            id: type,
           },
           {
             Cell: ({
@@ -113,6 +114,7 @@ export default function AllEntitiesTable({
             Header: t('Tags'),
             accessor: 'tags',
             disableSortBy: true,
+            id: 'tags',
           },
           {
             Cell: ({
@@ -124,6 +126,7 @@ export default function AllEntitiesTable({
             accessor: 'owners',
             disableSortBy: true,
             size: 'xl',
+            id: 'owners',
           },
         ]}
       />
