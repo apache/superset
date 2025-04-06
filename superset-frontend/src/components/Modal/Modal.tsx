@@ -399,9 +399,6 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
-// TODO: in another PR, rename this to CompatabilityModal
-// and demote it as the default export.
-// We should start using AntD component interfaces going forward.
 const Modal = Object.assign(CustomModal, {
   error: AntdModal.error,
   warning: AntdModal.warning,

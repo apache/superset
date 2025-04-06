@@ -16,10 +16,51 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import './assets/stylesheets/superset.less';
+export type PermissionView = {
+  name: string;
+};
 
-// Importing Antd under its own stylesheet to prevent unintentional theming
-import './assets/stylesheets/antd/index.less';
+export type PermissionResource = {
+  id: number;
+  permission: PermissionView;
+  view_menu: PermissionView;
+};
 
-// Styles for the crontab-related lib
-import 'react-js-cron/dist/styles.css';
+export type FormattedPermission = {
+  label: string;
+  value: string;
+  id: number;
+};
+
+export type RolePermissions = {
+  id: number;
+  permission_name: string;
+  view_menu_name: string;
+};
+
+export type UserObject = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  isActive: boolean;
+  roles: Array<RoleInfo>;
+};
+
+export type RoleInfo = {
+  id: number;
+  name: string;
+};
+
+export type RoleForm = {
+  roleName: string;
+  rolePermissions: number[];
+  roleUsers: number[];
+};
+
+export interface BaseModalProps {
+  show: boolean;
+  onHide: () => void;
+  onSave: () => void;
+}
