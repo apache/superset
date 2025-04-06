@@ -36,6 +36,15 @@ import {
 } from './types';
 import { useOverflowDetection } from './useOverflowDetection';
 
+const MetricNameContainer = styled.div<{ metricNameFontSize?: number }>`
+  ${({ theme, metricNameFontSize }) => `
+    font-weight: ${theme.typography.weights.normal};
+    font-size: ${metricNameFontSize || 24}px;
+    text-align: center;
+    margin-bottom: ${theme.gridUnit * 3}px;
+  `}
+`;
+
 const NumbersContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -73,6 +82,8 @@ export default function PopKPI(props: PopKPIProps) {
     prevNumber,
     valueDifference,
     percentDifferenceFormattedString,
+    metricName,
+    metricNameFontSize,
     headerFontSize,
     subheaderFontSize,
     comparisonColorEnabled,
@@ -84,8 +95,8 @@ export default function PopKPI(props: PopKPIProps) {
     subtitle,
     subtitleFontSize,
     dashboardTimeRange,
+    showMetricName,
   } = props;
-
   const [comparisonRange, setComparisonRange] = useState<string>('');
 
   useEffect(() => {
@@ -263,6 +274,12 @@ export default function PopKPI(props: PopKPIProps) {
           `
         }
       >
+        {showMetricName && metricName && (
+          <MetricNameContainer metricNameFontSize={metricNameFontSize}>
+            {metricName}
+          </MetricNameContainer>
+        )}
+
         <div css={bigValueContainerStyles}>
           {bigNumber}
           {percentDifferenceNumber !== 0 && (

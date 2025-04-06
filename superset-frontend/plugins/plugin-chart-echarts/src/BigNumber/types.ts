@@ -75,6 +75,9 @@ export type BigNumberVizProps = {
   bigNumberFallback?: TimeSeriesDatum;
   headerFormatter: ValueFormatter | TimeFormatter;
   formatTime?: TimeFormatter;
+  metricName?: string;
+  metricNameFontSize?: number;
+  showMetricName?: boolean;
   headerFontSize: number;
   kickerFontSize?: number;
   subheader?: string;
