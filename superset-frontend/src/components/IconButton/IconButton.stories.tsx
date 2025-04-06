@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Meta, StoryObj } from '@storybook/react';
-import IconButton from 'src/components/IconButton';
+import { IconButton } from 'src/components/IconButton';
 
 const meta: Meta<typeof IconButton> = {
   title: 'Components/IconButton',
@@ -47,6 +47,6 @@ export const CustomIcon: Story = {
   args: {
     buttonText: 'Custom icon IconButton',
     altText: 'Custom icon button alt text',
-    icon: '/images/sqlite.png'
+    icon: '/images/sqlite.png',
   },
 };

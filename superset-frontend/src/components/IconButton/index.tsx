@@ -21,8 +21,8 @@
 import { Typography } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import Card, { CardProps } from 'src/components/Card';
-import Icons from 'src/components/Icons';
-import { SupersetTheme } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
+import { SupersetTheme, css } from '@superset-ui/core';
 
 export interface IconButtonProps extends CardProps {
   buttonText: string;
@@ -39,7 +39,7 @@ const IconButton: React.FC<IconButtonProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
       if (cardProps.onClick) {
-        cardProps.onClick(e as any);
+        (cardProps.onClick as React.EventHandler<React.SyntheticEvent>)(e);
       }
       if (e.key === ' ') {
         e.preventDefault();
@@ -53,25 +53,25 @@ const IconButton: React.FC<IconButtonProps> = ({
       <img
         src={icon}
         alt={altText || buttonText}
-        css={(theme: SupersetTheme) => ({
-          width: '100%',
-          height: '120px',
-          objectFit: 'contain',
-        })}
+        css={css`
+          width: 100%;
+          height: 120px;
+          object-fit: contain;
+        `}
       />
     ) : (
       <div
-        css={(theme: SupersetTheme) => ({
-          display: 'flex',
-          alignContent: 'center',
-          alignItems: 'center',
-          height: '120px',
-        })}
+        css={css`
+          display: flex;
+          align-content: center;
+          align-items: center;
+          height: 120px;
+        `}
       >
         <Icons.DatabaseOutlined
-          css={(theme: SupersetTheme) => ({
-            fontSize: '48px',
-          })}
+          css={css`
+            font-size: 48px;
+          `}
           aria-label="default-icon"
         />
       </div>
