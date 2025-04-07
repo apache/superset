@@ -188,7 +188,7 @@ describe('DashboardBuilder', () => {
     const parentSize = await findByTestId('grid-container');
     const expectedCount =
       undoableDashboardLayoutWithTabs.present.TABS_ID.children.length;
-    const tabPanels = within(parentSize).getAllByRole('tab', {
+    const tabPanels = within(parentSize).getAllByRole('tabpanel', {
       // to include invisible tab panels
       hidden: true,
     });

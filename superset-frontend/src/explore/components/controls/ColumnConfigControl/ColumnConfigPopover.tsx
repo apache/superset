@@ -88,7 +88,7 @@ export default function ColumnConfigPopover({
         ),
       }));
 
-    return <Tabs centered items={tabItems} />;
+    return <Tabs items={tabItems} />;
   }
   return (
     <ControlForm onChange={onChange} value={column.config}>
