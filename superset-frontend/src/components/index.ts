@@ -25,7 +25,6 @@
 // TODO: Remove these imports
 // eslint-disable-next-line no-restricted-imports
 export {
-  Breadcrumb as AntdBreadcrumb,
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
   Select as AntdSelect,

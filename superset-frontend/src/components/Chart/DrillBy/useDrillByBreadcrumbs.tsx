@@ -26,7 +26,7 @@ import {
   styled,
   SupersetTheme,
 } from '@superset-ui/core';
-import { AntdBreadcrumb } from 'src/components/index';
+import { Breadcrumb } from 'src/components/Breadcrumb';
 import { noOp } from 'src/utils/common';
 
 export interface DrillByBreadcrumb {
@@ -34,7 +34,7 @@ export interface DrillByBreadcrumb {
   filters?: BinaryQueryObjectFilterClause[];
 }
 
-const BreadcrumbItem = styled(AntdBreadcrumb.Item)<{
+const BreadcrumbItem = styled(Breadcrumb.Item)<{
   isClickable: boolean;
   isHidden: boolean;
 }>`
@@ -42,7 +42,7 @@ const BreadcrumbItem = styled(AntdBreadcrumb.Item)<{
     cursor: ${isClickable ? 'pointer' : 'auto'};
     color: ${theme.colors.grayscale.light1};
     transition: color ease-in ${theme.motionDurationMid};
-    .ant-breadcrumb > span:last-child > & {
+    .antd5-breadcrumb > span:last-child > & {
       color: ${theme.colorText};
     }
     &:hover {
@@ -76,7 +76,7 @@ export const useDrillByBreadcrumbs = (
           : ''
       }`;
     return (
-      <AntdBreadcrumb
+      <Breadcrumb
         css={(theme: SupersetTheme) => css`
           margin: ${theme.sizeUnit * 2}px 0 ${theme.sizeUnit * 4}px;
         `}
@@ -98,6 +98,6 @@ export const useDrillByBreadcrumbs = (
             </BreadcrumbItem>
           ))
           .filter(item => item.props.isHidden === false)}
-      </AntdBreadcrumb>
+      </Breadcrumb>
     );
   }, [breadcrumbsData, onBreadcrumbClick]);
