@@ -16,14 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { core as coreType } from '@apache-superset/types';
-import { getExtensionsContextValue } from './ExtensionsContextUtils';
+import { RootState } from 'src/views/store';
+import { Contributions, Extension } from './types';
 
-const registerView: typeof coreType.registerView = (id, view) => {
-  const { registerView: register } = getExtensionsContextValue();
-  register(id, view);
-};
-
-export const core = {
-  registerView,
+export const selectContribution = (
+  state: RootState,
+  type: keyof Contributions,
+  key: string,
+): any[] => {
+  const results: any[] = [];
+  state.extensions.extensions.forEach((extension: Extension) => {
+    const { contributions } = extension;
+    if (contributions[type] && contributions[type][key]) {
+      results.push(...contributions[type][key]);
+    }
+  });
+  return results;
 };

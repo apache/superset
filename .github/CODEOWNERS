@@ -30,3 +30,8 @@
 
 **/*.geojson @villebro @rusackas
 /superset-frontend/plugins/legacy-plugin-chart-country-map/ @villebro @rusackas
+
+# Notify some committers of changes in extensions
+
+/superset-frontend/src/extensions/ @michael-s-molina @rusackas @villebro
+/superset/extensions/ @michael-s-molina @rusackas @villebro

@@ -16,14 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { core as coreType } from '@apache-superset/types';
-import { getExtensionsContextValue } from './ExtensionsContextUtils';
+export interface Contributions {
+  views: {
+    [key: string]: {
+      id: string;
+      name: string;
+    }[];
+  };
+}
 
-const registerView: typeof coreType.registerView = (id, view) => {
-  const { registerView: register } = getExtensionsContextValue();
-  register(id, view);
-};
+export interface Extension {
+  name: string;
+  description: string;
+  contributions: Contributions;
+  exposedModules: string[];
+  remoteEntry: string;
+  scope: string;
+  activate: Function;
+  deactivate: Function;
+  extensionDependencies: string[];
+}
 
-export const core = {
-  registerView,
-};
+export interface ExtensionsState {
+  extensions: Extension[];
+  loading: boolean;
+  error: string | null;
+}
+
+export type Module = 'dashboards' | 'explore' | 'sqllab';

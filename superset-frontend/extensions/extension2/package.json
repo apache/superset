@@ -18,6 +18,7 @@
   "devDependencies": {
     "@apache-superset/superset-extensions-sdk": "file:../../packages/superset-extensions-sdk",
     "@apache-superset/types": "file:../../packages/superset-types",
+    "extension1": "file:../extension1",
     "@types/react": "^19.0.10",
     "ts-loader": "^9.5.2",
     "typescript": "^5.8.2",
@@ -25,6 +26,9 @@
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.0"
   },
+  "extensionDependencies": [
+    "extension1"
+  ],
   "contributions": {
     "views": {
       "sqllab.panels": [

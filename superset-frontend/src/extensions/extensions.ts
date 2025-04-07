@@ -16,4 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const extensions = {};
+import { extensions as extensionsType } from '@apache-superset/types';
+
+const getExtension: typeof extensionsType.getExtension = id => {
+  return undefined;
+};
+
+export const extensions = {
+  getExtension,
+};

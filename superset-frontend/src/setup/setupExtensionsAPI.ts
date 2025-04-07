@@ -16,13 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { core, commands, sqlLab } from 'src/extensions';
+import {
+  core,
+  commands,
+  environment,
+  extensions,
+  sqlLab,
+} from 'src/extensions';
 
 declare global {
   interface Window {
     superset: {
       core: typeof core;
       commands: typeof commands;
+      environment: typeof environment;
+      extensions: typeof extensions;
       sqlLab: typeof sqlLab;
     };
   }
@@ -32,6 +40,8 @@ export default function setupExtensionsAPI() {
   window.superset = {
     core,
     commands,
+    environment,
+    extensions,
     sqlLab,
   };
 }

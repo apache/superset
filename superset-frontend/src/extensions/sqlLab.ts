@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Disposable } from '@apache-superset/primitives';
-import { core } from '@apache-superset/types';
+import { sqlLab as sqlLabType } from '@apache-superset/types';
 import {
   QUERY_FAILED,
   QUERY_SUCCESS,
@@ -31,7 +31,7 @@ import {
 import { RootState } from 'src/views/store';
 
 // TODO: Refactor to return all needed parameters. Add them to the interface.
-export const onDidQueryRun: core.Event<string> = (
+export const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
   listener: (e: string) => void,
   thisArgs?: any,
 ): Disposable =>
@@ -42,7 +42,7 @@ export const onDidQueryRun: core.Event<string> = (
     thisArgs,
   );
 
-export const onDidQueryFail: core.Event<string> = (
+export const onDidQueryFail: typeof sqlLabType.onDidQueryFail = (
   listener: (e: string) => void,
   thisArgs?: any,
 ): Disposable =>
@@ -60,7 +60,7 @@ export const onDidQueryFail: core.Event<string> = (
   );
 
 // TODO: This will monitor multiple Redux actions.
-export const onDidChangeTabState: core.Event<Tab> = (
+export const onDidChangeTabState: typeof sqlLabType.onDidChangeTabState = (
   listener: (e: Tab) => void,
   thisArgs?: any,
 ): Disposable =>
@@ -82,6 +82,7 @@ export const onDidChangeTabState: core.Event<Tab> = (
     },
   );
 
+// TODO: Make it typeof sqlLabType
 export const sqlLab = {
   databases: [
     {

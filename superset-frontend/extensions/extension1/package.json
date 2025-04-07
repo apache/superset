@@ -1,7 +1,8 @@
 {
   "name": "extension1",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/main.js",
+  "types": "dist/publicAPI.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "webpack serve --mode development",

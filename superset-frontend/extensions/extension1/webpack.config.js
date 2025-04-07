@@ -1,5 +1,6 @@
 const path = require('path');
 const { ModuleFederationPlugin } = require('webpack').container;
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const packageConfig = require('./package');
 
 module.exports = {
@@ -56,6 +57,9 @@ module.exports = {
           import: false,
         },
       },
+    }),
+    new CopyWebpackPlugin({
+      patterns: [{ from: './src/publicAPI.d.ts', to: './publicAPI.d.ts' }],
     }),
   ],
 };

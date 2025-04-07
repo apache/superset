@@ -42,7 +42,7 @@ class ExtensionsRestApi(BaseSupersetApi):
     @safe
     @expose("/", methods=("GET",))
     @permission_name("read")
-    def get(self, **kwargs: Any) -> Response:
+    def get(self, **kwargs: Any) -> Response:  # TODO: The module comes as a parameter
         # TODO: Move code to command
         result = []
         extensions = ExtensionDAO.find_all()
@@ -52,17 +52,17 @@ class ExtensionsRestApi(BaseSupersetApi):
             remote_entry_url = f"http://localhost:9000/api/v1/extensions/{extension.name}/remoteEntry.js"
             exposed_modules = [
                 exposed_module
-                for module in manifest["moduleFederation"]
-                for exposed_module in module["exposes"]
+                for module in manifest.get("moduleFederation", {})
+                for exposed_module in module.get("exposes", [])
             ]
             extension_data = {
                 "name": extension.name,
-                "manifest": manifest,
                 "remoteEntry": remote_entry_url,
                 "files": files,
                 "scope": extension.name,
                 "exposedModules": exposed_modules,
                 "contributions": manifest.get("contributions", {}),
+                "extensionDependencies": manifest.get("extensionDependencies", []),
             }
 
             result.append(extension_data)
