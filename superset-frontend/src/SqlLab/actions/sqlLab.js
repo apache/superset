@@ -260,14 +260,16 @@ export function logFailedQuery(query, errors) {
       ts: new Date().getTime(),
     };
     errors?.forEach(({ error_type: errorType, message, extra }) => {
-      const issueCodes = extra?.issue_codes?.map(({ code }) => code) || [-1];
-      issueCodes.forEach(issueCode => {
+      const messages = extra?.issue_codes?.map(({ message }) => message) || [
+        errorType,
+      ];
+      messages.forEach(msg => {
         dispatch(
           logEvent(LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY, {
             ...eventData,
             error_type: errorType,
-            issue_code: issueCode,
-            error_details: message,
+            error_message: message,
+            error_details: msg,
           }),
         );
       });

@@ -284,8 +284,8 @@ describe('QueryAutoRefresh', () => {
               eventName: LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY,
               eventData: expect.objectContaining({
                 error_type: 'TEST_ERROR',
-                issue_code: 102,
-                error_details: 'Syntax invalid',
+                error_message: 'Syntax invalid',
+                error_details: 'DB failed',
               }),
             }),
           }),
