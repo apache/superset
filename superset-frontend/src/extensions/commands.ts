@@ -16,19 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { commands as commandsType } from '@apache-superset/types';
 import { Disposable } from '@apache-superset/primitives';
 
-// Export an object what contains a commands key and a registerCommand function
-// TODO: Make it typeof types.commands
+const registerCommand: typeof commandsType.registerCommand = (
+  command,
+  callback,
+  thisArg,
+) => {
+  console.log('registering command', command);
+  return new Disposable(() => {
+    console.log('disposing command', command);
+  });
+};
+
+// TODO: Make it typeof commandsType
 export const commands = {
-  registerCommand(
-    command: string,
-    callback: (...args: any[]) => any,
-    thisArg?: any,
-  ): Disposable {
-    console.log('registering command', command);
-    return new Disposable(() => {
-      console.log('disposing command', command);
-    });
-  },
+  registerCommand,
 };

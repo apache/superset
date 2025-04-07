@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
-import { core, sqlLab } from '@apache-superset/types';
+import { core, sqlLab, extensions } from '@apache-superset/types';
+import { Extension1API } from 'extension1';
 
 const Example: React.FC = () => {
   const [database, setDatabase] = React.useState<core.Database | null>(null);
   const [logs, setLogs] = React.useState<string[]>([]);
+  const extension1API = extensions.getExtension<Extension1API>('extension1');
 
   const containerStyle: React.CSSProperties = {
     minHeight: '300px',
@@ -37,7 +39,7 @@ const Example: React.FC = () => {
       <br />
       <div>
         {database
-          ? `Database: ${database.id} - ${database.name}`
+          ? extension1API?.exports.formatDatabase(database)
           : 'No database selected'}
       </div>
       <br />

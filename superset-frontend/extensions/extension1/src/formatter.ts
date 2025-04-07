@@ -1,6 +1,4 @@
-export const formatter = (value: string | number): string => {
-  if (typeof value === 'number') {
-    return value.toFixed(2);
-  }
-  return value;
-};
+import { core } from '@apache-superset/types';
+
+export const formatDatabase = (database: core.Database): string =>
+  `Database: ${database.id} - ${database.name}`;

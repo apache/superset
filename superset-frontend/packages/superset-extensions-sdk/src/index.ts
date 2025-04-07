@@ -10,6 +10,7 @@ interface Manifest {
   description: string;
   moduleFederation: any;
   contributions: any; // TODO: Import type from @apache-superset/types?
+  extensionDependencies: string[];
 }
 
 function createManifest(): Manifest {
@@ -36,6 +37,7 @@ function createManifest(): Manifest {
     version: packageJson.version,
     description: packageJson.description,
     contributions: packageJson.contributions,
+    extensionDependencies: packageJson.extensionDependencies || [],
     moduleFederation: {},
   };
 
