@@ -97,7 +97,9 @@ describe('BulkCertifyModal', () => {
           content.startsWith('You are certifying 2 chart'),
         ),
       ).toBeInTheDocument();
-      expect(screen.getByText(/bulk certify chart\|charts/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/bulk certify chart\|charts/i),
+      ).toBeInTheDocument();
     });
   });
 
@@ -116,7 +118,9 @@ describe('BulkCertifyModal', () => {
           content.startsWith('You are certifying 2 dashboard'),
         ),
       ).toBeInTheDocument();
-      expect(screen.getByText(/bulk certify dashboard\|dashboards/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/bulk certify dashboard\|dashboards/i),
+      ).toBeInTheDocument();
     });
   });
 
@@ -143,7 +147,9 @@ describe('BulkCertifyModal', () => {
             content.startsWith('You are certifying 2 chart'),
           ),
         ).toBeInTheDocument();
-        expect(screen.getByText(/bulk certify chart\|charts/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/bulk certify chart\|charts/i),
+        ).toBeInTheDocument();
       });
     });
 
