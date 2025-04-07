@@ -19,33 +19,39 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Breadcrumb } from '.';
 
-const meta: Meta<typeof Breadcrumb> = {
+export default {
   title: 'Components/Breadcrumb',
   component: Breadcrumb,
-  tags: ['autodocs'],
   argTypes: {
     separator: {
       control: 'text',
       description: 'Custom separator between items',
-      defaultValue: '/',
+      table: {
+        type: { summary: 'string' },
+        defaultValue: { summary: '/' },
+      },
     },
     items: {
       control: false,
       description: 'List of breadcrumb items',
       table: {
         type: { summary: 'object' },
-        defaultValue: { summary: 'undefined' },
       },
     },
   },
-};
+  parameters: {
+    docs: {
+      description: {
+        component: 'Breadcrumb component for displaying navigation paths',
+      },
+    },
+  },
+} as Meta<typeof Breadcrumb>;
 
-export default meta;
 type Story = StoryObj<typeof Breadcrumb>;
 
 export const Default: Story = {
   args: {
-    separator: '/',
     items: [
       { title: 'Home', href: '/' },
       { title: 'Library', href: '/library' },
