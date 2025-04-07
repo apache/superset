@@ -20,41 +20,41 @@
 import { interceptGet as interceptDashboardGet } from '../dashboard/utils';
 
 export function interceptFiltering() {
-  cy.intercept('GET', `/api/v1/chart/?q=*`).as('filtering');
+  cy.intercept('GET', `**/api/v1/chart/?q=*`).as('filtering');
 }
 
 export function interceptBulkDelete() {
-  cy.intercept('DELETE', `/api/v1/chart/?q=*`).as('bulkDelete');
+  cy.intercept('DELETE', `**/api/v1/chart/?q=*`).as('bulkDelete');
 }
 
 export function interceptDelete() {
-  cy.intercept('DELETE', `/api/v1/chart/*`).as('delete');
+  cy.intercept('DELETE', `**/api/v1/chart/*`).as('delete');
 }
 
 export function interceptFavoriteStatus() {
-  cy.intercept('GET', '/api/v1/chart/favorite_status/*').as('favoriteStatus');
+  cy.intercept('GET', '**/api/v1/chart/favorite_status/*').as('favoriteStatus');
 }
 
 export function interceptUpdate() {
-  cy.intercept('PUT', `/api/v1/chart/*`).as('update');
+  cy.intercept('PUT', `**/api/v1/chart/*`).as('update');
 }
 
 export const interceptV1ChartData = (alias = 'v1Data') => {
-  cy.intercept('/api/v1/chart/data*').as(alias);
+  cy.intercept('**/api/v1/chart/data*').as(alias);
 };
 
 export function interceptExploreJson(alias = 'getJson') {
-  cy.intercept('POST', `/superset/explore_json/**`).as(alias);
+  cy.intercept('POST', `**/superset/explore_json/**`).as(alias);
 }
 
 export const interceptFormDataKey = () => {
-  cy.intercept('POST', '/api/v1/explore/form_data').as('formDataKey');
+  cy.intercept('POST', '**/api/v1/explore/form_data').as('formDataKey');
 };
 
 export function interceptExploreGet() {
   cy.intercept({
     method: 'GET',
-    url: /api\/v1\/explore\/\?(form_data_key|dashboard_page_id|slice_id)=.*/,
+    url: /.*\/api\/v1\/explore\/\?(form_data_key|dashboard_page_id|slice_id)=.*/,
   }).as('getExplore');
 }
 
@@ -96,5 +96,5 @@ export function saveChartToDashboard(dashboardName: string) {
 
 export function visitSampleChartFromList(chartName: string) {
   cy.getBySel('table-row').contains(chartName).click();
-  cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  cy.intercept('POST', '**/superset/explore_json/**').as('getJson');
 }
