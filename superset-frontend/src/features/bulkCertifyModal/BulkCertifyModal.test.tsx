@@ -93,7 +93,9 @@ describe('BulkCertifyModal', () => {
     test('renders the correct title and message for charts', () => {
       render(<BulkCertifyModal {...mockedChartProps} />);
       expect(
-        screen.getByText(/you are certifying 2 charts/i),
+        screen.getByText((content) =>
+          content.startsWith('You are certifying 2 chart')
+        ),
       ).toBeInTheDocument();
       expect(screen.getByText(/bulk certify charts/i)).toBeInTheDocument();
     });
@@ -110,7 +112,9 @@ describe('BulkCertifyModal', () => {
     test('renders the correct title and message for dashboards', () => {
       render(<BulkCertifyModal {...mockedDashboardProps} />);
       expect(
-        screen.getByText(/you are certifying 2 dashboards/i),
+        screen.getByText((content) =>
+          content.startsWith('You are certifying 2 dashboard')
+        ),
       ).toBeInTheDocument();
       expect(screen.getByText(/bulk certify dashboards/i)).toBeInTheDocument();
     });
@@ -135,7 +139,9 @@ describe('BulkCertifyModal', () => {
       test('renders the correct title and message for charts', () => {
         render(<BulkCertifyModal {...mockedChartProps} />);
         expect(
-          screen.getByText(/you are certifying 2 charts/i),
+          screen.getByText((content) =>
+            content.startsWith('You are certifying 2 chart')
+          ),
         ).toBeInTheDocument();
         expect(screen.getByText(/bulk certify charts/i)).toBeInTheDocument();
       });
@@ -152,11 +158,11 @@ describe('BulkCertifyModal', () => {
       test('renders the correct title and message for dashboards', () => {
         render(<BulkCertifyModal {...mockedDashboardProps} />);
         expect(
-          screen.getByText(/you are certifying 2 dashboards/i),
+          screen.getByText((content) =>
+            content.startsWith('You are certifying 2 dashboard')
+          ),
         ).toBeInTheDocument();
-        expect(
-          screen.getByText(/bulk certify dashboards/i),
-        ).toBeInTheDocument();
+        expect(screen.getByText(/bulk certify dashboards/i)).toBeInTheDocument();
       });
     });
   });
