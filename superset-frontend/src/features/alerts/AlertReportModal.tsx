@@ -534,7 +534,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ],
   );
 
-  console.log(nativeFilterData);
+  console.log('nativeFilterData', nativeFilterData);
 
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
@@ -695,6 +695,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       const { datasetId } = filter.targets[0];
       const columnName = filter.targets[0].column.name;
       const dashboardId = currentAlert?.dashboard?.value;
+      const filterName = filter.name;
       // eslint-disable-next-line consistent-return
       return fetchDashboardFilterValues(
         // @ts-ignore
@@ -705,13 +706,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         setNativeFilterData(prev =>
           prev.map(filter =>
             filter.nativeFilterId === nativeFilter.nativeFilterId
-              ? { ...filter, optionFilterValues: options }
+              ? { ...filter, filterName, optionFilterValues: options }
               : filter,
           ),
         );
       });
     });
   };
+
+  const filterNativeFilterOptions = () =>
+    nativeFilterOptions.filter(
+      option =>
+        !nativeFilterData.some(
+          filter => filter.nativeFilterId === option.value,
+        ),
+    );
 
   const updateNotificationSetting = (
     index: number,
@@ -1326,6 +1335,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     // find specific filter tied to the selected filter
     const filters = Object.values(tabNativeFilters).flat();
     const filter = filters.filter((f: any) => f.id === nativeFilterId)[0];
+    const filterName = filter.name;
+
+    console.log('onChangeDashboardFilter', filter);
+
+    const filterAlreadyExist = nativeFilterData.some(
+      filter => filter.nativeFilterId === nativeFilterId,
+    );
+
+    if (filterAlreadyExist) {
+      addDangerToast(t('This filter already exist on the report'));
+      return;
+    }
+
     const { datasetId } = filter.targets[0];
     const columnName = filter.targets[0].column.name;
 
@@ -1363,6 +1385,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           index === idx
             ? {
                 ...filter,
+                filterName,
                 nativeFilterId,
                 columnLabel,
                 columnName,
@@ -1385,7 +1408,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         index === idx ? { ...filter, filterValues } : filter,
       ),
     );
-    // setSelectedNativeFilter({ ...nativeFilter, filterValues });
   };
 
   // Make sure notification settings has the required info
@@ -2044,7 +2066,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </>
             )}
           </StyledInputContainer>
-
           {tabsEnabled && contentType === ContentType.Dashboard && (
             <StyledInputContainer>
               <div>
@@ -2081,9 +2102,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               ariaLabel={t('Select Filter')}
                               placeholder={t('Select Filter')}
                               // @ts-ignore
-                              value={nativeFilterData[key]?.nativeFilterId}
+                              value={nativeFilterData[key]?.filterName}
                               // @ts-ignore
-                              options={nativeFilterOptions}
+                              options={filterNativeFilterOptions()}
                               onChange={value =>
                                 // @ts-ignore
                                 onChangeDashboardFilter(key, value)
@@ -2125,16 +2146,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         </div>
                       ))}
                       <div className="filters-add-container">
-                        <Button
-                          className="filters-add-btn"
-                          type="link"
-                          onClick={() => {
-                            handleAddFilterField();
-                            add();
-                          }}
-                        >
-                          + {t('Apply another dashboard filter')}
-                        </Button>
+                        {filterNativeFilterOptions().length > 0 && (
+                          <Button
+                            className="filters-add-btn"
+                            type="link"
+                            onClick={() => {
+                              handleAddFilterField();
+                              add();
+                            }}
+                          >
+                            + {t('Apply another dashboard filter')}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )}
@@ -2162,7 +2185,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </div>
             </StyledInputContainer>
           )}
-
           {(isReport || contentType === ContentType.Dashboard) && (
             <div className="inline-container">
               <StyledCheckbox
