@@ -93,11 +93,11 @@ describe('BulkCertifyModal', () => {
     test('renders the correct title and message for charts', () => {
       render(<BulkCertifyModal {...mockedChartProps} />);
       expect(
-        screen.getByText((content) =>
+        screen.getByText(content =>
           content.startsWith('You are certifying 2 chart'),
         ),
       ).toBeInTheDocument();
-      expect(screen.getByText(/bulk certify charts/i)).toBeInTheDocument();
+      expect(screen.getByText(/bulk certify chart\|charts/i)).toBeInTheDocument();
     });
   });
 
@@ -112,11 +112,11 @@ describe('BulkCertifyModal', () => {
     test('renders the correct title and message for dashboards', () => {
       render(<BulkCertifyModal {...mockedDashboardProps} />);
       expect(
-        screen.getByText((content) =>
+        screen.getByText(content =>
           content.startsWith('You are certifying 2 dashboard'),
         ),
       ).toBeInTheDocument();
-      expect(screen.getByText(/bulk certify dashboards/i)).toBeInTheDocument();
+      expect(screen.getByText(/bulk certify dashboard\|dashboards/i)).toBeInTheDocument();
     });
   });
 
@@ -139,11 +139,11 @@ describe('BulkCertifyModal', () => {
       test('renders the correct title and message for charts', () => {
         render(<BulkCertifyModal {...mockedChartProps} />);
         expect(
-          screen.getByText((content) =>
+          screen.getByText(content =>
             content.startsWith('You are certifying 2 chart'),
           ),
         ).toBeInTheDocument();
-        expect(screen.getByText(/bulk certify charts/i)).toBeInTheDocument();
+        expect(screen.getByText(/bulk certify chart\|charts/i)).toBeInTheDocument();
       });
     });
 
@@ -158,12 +158,12 @@ describe('BulkCertifyModal', () => {
       test('renders the correct title and message for dashboards', () => {
         render(<BulkCertifyModal {...mockedDashboardProps} />);
         expect(
-          screen.getByText((content) =>
+          screen.getByText(content =>
             content.startsWith('You are certifying 2 dashboard'),
           ),
         ).toBeInTheDocument();
         expect(
-          screen.getByText(/bulk certify dashboards/i),
+          screen.getByText(/bulk certify dashboard\|dashboards/i),
         ).toBeInTheDocument();
       });
     });

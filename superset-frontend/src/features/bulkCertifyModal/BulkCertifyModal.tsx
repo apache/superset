@@ -49,7 +49,11 @@ const BulkCertifyModal: FC<BulkCertifyModalProps> = ({
   const [certifiedBy, setCertifiedBy] = useState<string>('');
   const [certificationDetails, setCertificationDetails] = useState<string>('');
 
-  const resourceLabelPlural = t('%s|%s', resourceLabel, selected.length > 1 ? `${resourceLabel}s` : resourceLabel);
+  const resourceLabelPlural = t(
+    '%s|%s',
+    resourceLabel,
+    selected.length > 1 ? `${resourceLabel}s` : resourceLabel,
+  );
 
   const onSave = async () => {
     if (!certifiedBy) {
