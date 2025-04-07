@@ -19,7 +19,7 @@
 import TableView, { TableViewProps, EmptyWrapperType } from '.';
 
 export default {
-  title: 'TableView',
+  title: 'Components/TableView',
   component: TableView,
 };
 

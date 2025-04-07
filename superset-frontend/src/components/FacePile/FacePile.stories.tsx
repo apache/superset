@@ -19,7 +19,7 @@
 import FacePile from '.';
 
 export default {
-  title: 'FacePile',
+  title: 'Components/FacePile',
   component: FacePile,
   argTypes: {
     maxCount: { control: 'number', defaultValue: 4 },

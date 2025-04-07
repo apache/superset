@@ -21,7 +21,7 @@ import { Flex, FlexProps } from 'src/components/Flex';
 import { css } from '@superset-ui/core';
 
 export default {
-  title: 'Flex',
+  title: 'Design System/Components/Flex',
   component: Flex,
 };
 

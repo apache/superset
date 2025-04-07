@@ -35,7 +35,7 @@ const detailsExample = `Additional details about the issue are provided here.
 This content is shown when the user clicks "Show more".`;
 
 export default {
-  title: 'Components/ErrorAlert',
+  title: 'Components/ErrorMessage/ErrorAlert',
   component: ErrorAlert,
 } as Meta;
 

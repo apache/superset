@@ -24,7 +24,7 @@ import { Icons } from 'src/components/Icons';
 const { Header, Footer, Sider, Content } = Layout;
 
 export default {
-  title: 'Components/Layout',
+  title: 'Design System/Components/Layout',
   component: Layout,
   subcomponents: { Header, Footer, Sider, Content },
   argTypes: {

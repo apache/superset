@@ -20,7 +20,7 @@ import Button from 'src/components/Button';
 import { Tooltip, TooltipPlacement, TooltipProps } from './index';
 
 export default {
-  title: 'Tooltip',
+  title: 'Components/Tooltip',
   component: Tooltip,
 };
 

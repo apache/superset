@@ -19,7 +19,7 @@
 import EditableTitle, { EditableTitleProps } from '.';
 
 export default {
-  title: 'EditableTitle',
+  title: 'Components/EditableTitle',
   component: EditableTitle,
 };
 

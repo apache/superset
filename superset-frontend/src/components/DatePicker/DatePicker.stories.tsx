@@ -21,7 +21,7 @@ import { RangePickerProps } from 'antd-v5/es/date-picker';
 import { DatePicker, RangePicker } from '.';
 
 export default {
-  title: 'DatePicker',
+  title: 'Components/DatePicker',
   component: DatePicker,
 };
 

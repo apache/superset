@@ -21,7 +21,7 @@ import Tabs, { TabsProps } from '.';
 const { TabPane } = Tabs;
 
 export default {
-  title: 'Tabs',
+  title: 'Components/Tabs',
   component: Tabs,
 };
 

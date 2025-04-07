@@ -20,7 +20,7 @@ import { useTheme } from '@superset-ui/core';
 import Collapse, { CollapseProps } from '.';
 
 export default {
-  title: 'Collapse',
+  title: 'Components/Collapse',
   component: Collapse,
 };
 

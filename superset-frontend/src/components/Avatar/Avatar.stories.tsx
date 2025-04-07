@@ -19,7 +19,7 @@
 import { Avatar, AvatarProps } from '.';
 
 export default {
-  title: 'Avatar',
+  title: 'Components/Avatar',
   component: Avatar,
 };
 

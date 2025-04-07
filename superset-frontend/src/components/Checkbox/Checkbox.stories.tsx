@@ -20,7 +20,7 @@ import { useArgs } from '@storybook/preview-api';
 import Checkbox, { CheckboxProps } from '.';
 
 export default {
-  title: 'Checkbox',
+  title: 'Components/Checkbox',
   component: Checkbox,
 };
 

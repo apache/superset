@@ -22,7 +22,7 @@ import { css } from '@superset-ui/core';
 import { Radio, RadioProps, RadioGroupWrapperProps } from './index';
 
 export default {
-  title: 'Radio',
+  title: 'Components/Radio',
   component: Radio,
   tags: ['autodocs'],
 };

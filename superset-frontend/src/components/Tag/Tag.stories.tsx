@@ -23,7 +23,7 @@ import type { CheckableTagProps } from 'src/components/Tag';
 import TagType from 'src/types/TagType';
 
 export default {
-  title: 'components/Tag',
+  title: 'Components/Tag',
   component: Tag,
   argTypes: {
     name: {

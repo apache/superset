@@ -22,7 +22,7 @@ import { InputNumberProps } from 'antd-v5/es/input-number';
 import { Input, InputNumber } from '.';
 
 export default {
-  title: 'Input',
+  title: 'Components/Input',
   component: Input,
 };
 

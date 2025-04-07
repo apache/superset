@@ -19,7 +19,7 @@
 import IconButton, { IconButtonProps } from '.';
 
 export default {
-  title: 'IconButton',
+  title: 'Components/IconButton',
   component: IconButton,
 };
 

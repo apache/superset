@@ -21,7 +21,7 @@ import { css, useTheme } from '@superset-ui/core';
 import { IconTooltip, Props } from '.';
 
 export default {
-  title: 'IconTooltip',
+  title: 'Components/IconTooltip',
 };
 
 const PLACEMENTS = [

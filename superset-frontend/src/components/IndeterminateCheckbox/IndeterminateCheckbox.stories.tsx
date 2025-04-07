@@ -19,7 +19,7 @@
 import IndeterminateCheckbox, { IndeterminateCheckboxProps } from '.';
 
 export default {
-  title: 'IndeterminateCheckbox',
+  title: 'Components/IndeterminateCheckbox',
   component: IndeterminateCheckbox,
 };
 

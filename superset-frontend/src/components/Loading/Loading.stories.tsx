@@ -19,7 +19,7 @@
 import Loading, { Props, PositionOption } from './index';
 
 export default {
-  title: 'Loading',
+  title: 'Components/Loading',
   component: Loading,
   includeStories: ['LoadingGallery', 'InteractiveLoading'],
 };

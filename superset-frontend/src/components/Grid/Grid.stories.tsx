@@ -22,7 +22,7 @@ import { useState } from 'react';
 import { Row, Col, ColProps, RowProps } from './index';
 
 export default {
-  title: 'Components/Grid',
+  title: 'Design System/Components/Grid',
   component: Row,
   subcomponents: { Col },
   argTypes: {

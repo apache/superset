@@ -19,7 +19,7 @@
 import InfoTooltip, { InfoTooltipProps } from 'src/components/InfoTooltip';
 
 export default {
-  title: 'InfoTooltip',
+  title: 'Components/InfoTooltip',
   component: InfoTooltip,
 };
 
