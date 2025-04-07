@@ -241,13 +241,17 @@ test('searches for a table name', async () => {
 
   // Click 'public' schema to access tables
   userEvent.click(schemaSelect);
-  userEvent.click(screen.getByText('public'));
+  userEvent.click(screen.getAllByText('public')[1]);
   await waitFor(() => expect(fetchMock.calls(tablesEndpoint).length).toBe(1));
   userEvent.click(tableSelect);
 
   await waitFor(() => {
-    expect(screen.queryByText(/Sheet1/i)).toBeInTheDocument();
-    expect(screen.queryByText(/Sheet2/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: /Sheet1/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: /Sheet2/i }),
+    ).toBeInTheDocument();
   });
 
   userEvent.type(tableSelect, 'Sheet3');
@@ -255,7 +259,9 @@ test('searches for a table name', async () => {
   await waitFor(() => {
     expect(screen.queryByText(/Sheet1/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Sheet2/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Sheet3/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: /Sheet3/i }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -294,11 +300,13 @@ test('renders a warning icon when a table name has a preexisting dataset', async
 
   // Click 'public' schema to access tables
   userEvent.click(schemaSelect);
-  userEvent.click(screen.getByText('public'));
+  userEvent.click(screen.getAllByText('public')[1]);
   userEvent.click(tableSelect);
 
   await waitFor(() => {
-    expect(screen.queryByText(/Sheet2/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: /Sheet2/i }),
+    ).toBeInTheDocument();
   });
 
   userEvent.type(tableSelect, 'Sheet2');
