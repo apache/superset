@@ -75,14 +75,23 @@ export default memo(function ColumnConfigItem({
           },
         }}
       >
-        <ColumnTypeLabel type={column.type} />
-        <span
+        <div
           css={{
+            display: 'flex',
+            alignItems: 'center',
             paddingLeft: column.isChildColumn ? gridUnit * 7 : gridUnit,
+            flex: 1,
           }}
         >
-          {column.name}
-        </span>
+          <ColumnTypeLabel type={column.type} />
+          <span
+            css={{
+              paddingLeft: gridUnit,
+            }}
+          >
+            {column.name}
+          </span>
+        </div>
 
         <div
           css={{
