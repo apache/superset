@@ -21,10 +21,10 @@ import { Dashboard } from 'src/pages/DashboardList';
 import BulkCertifyModal from './BulkCertifyModal';
 
 const mockedChartProps = {
-  onHide: jest.fn() as jest.Mock<any, any>,
-  refreshData: jest.fn() as jest.Mock<any, any>,
-  addSuccessToast: jest.fn() as jest.Mock<any, any>,
-  addDangerToast: jest.fn() as jest.Mock<any, any>,
+  onHide: jest.fn(),
+  refreshData: jest.fn(),
+  addSuccessToast: jest.fn(),
+  addDangerToast: jest.fn(),
   show: true,
   selected: [
     {
@@ -49,10 +49,10 @@ const mockedChartProps = {
 };
 
 const mockedDashboardProps = {
-  onHide: jest.fn() as jest.Mock<any, any, any>,
-  refreshData: jest.fn() as jest.Mock<any, any, any>,
-  addSuccessToast: jest.fn() as jest.Mock<any, any, any>,
-  addDangerToast: jest.fn() as jest.Mock<any, any, any>,
+  onHide: jest.fn(),
+  refreshData: jest.fn(),
+  addSuccessToast: jest.fn(),
+  addDangerToast: jest.fn(),
   show: true,
   selected: [
     {
@@ -94,7 +94,7 @@ describe('BulkCertifyModal', () => {
       render(<BulkCertifyModal {...mockedChartProps} />);
       expect(
         screen.getByText((content) =>
-          content.startsWith('You are certifying 2 chart')
+          content.startsWith('You are certifying 2 chart'),
         ),
       ).toBeInTheDocument();
       expect(screen.getByText(/bulk certify charts/i)).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('BulkCertifyModal', () => {
       render(<BulkCertifyModal {...mockedDashboardProps} />);
       expect(
         screen.getByText((content) =>
-          content.startsWith('You are certifying 2 dashboard')
+          content.startsWith('You are certifying 2 dashboard'),
         ),
       ).toBeInTheDocument();
       expect(screen.getByText(/bulk certify dashboards/i)).toBeInTheDocument();
@@ -140,7 +140,7 @@ describe('BulkCertifyModal', () => {
         render(<BulkCertifyModal {...mockedChartProps} />);
         expect(
           screen.getByText((content) =>
-            content.startsWith('You are certifying 2 chart')
+            content.startsWith('You are certifying 2 chart'),
           ),
         ).toBeInTheDocument();
         expect(screen.getByText(/bulk certify charts/i)).toBeInTheDocument();
@@ -159,10 +159,12 @@ describe('BulkCertifyModal', () => {
         render(<BulkCertifyModal {...mockedDashboardProps} />);
         expect(
           screen.getByText((content) =>
-            content.startsWith('You are certifying 2 dashboard')
+            content.startsWith('You are certifying 2 dashboard'),
           ),
         ).toBeInTheDocument();
-        expect(screen.getByText(/bulk certify dashboards/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/bulk certify dashboards/i),
+        ).toBeInTheDocument();
       });
     });
   });
