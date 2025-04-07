@@ -193,6 +193,10 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
+beforeEach(() => {
+  window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
+});
+
 test('should render', () => {
   const { container } = setup();
   expect(container).toBeInTheDocument();
@@ -436,6 +440,36 @@ test('should NOT render MetadataBar when embedded', () => {
   expect(
     screen.queryByText(state.dashboardInfo.changed_on_delta_humanized),
   ).not.toBeInTheDocument();
+});
+
+test('should hide edit button and navbar, and show Exit fullscreen when in fullscreen mode', () => {
+  const fullscreenState = {
+    ...initialState,
+    dashboardState: {
+      ...initialState.dashboardState,
+      isFullscreenMode: true,
+    },
+  };
+
+  setup(fullscreenState);
+  expect(screen.queryByTestId('edit-dashboard-button')).not.toBeInTheDocument();
+  expect(screen.getByTestId('actions-trigger')).toBeInTheDocument();
+  expect(screen.queryByTestId('main-navigation')).not.toBeInTheDocument();
+});
+
+test('should show Exit fullscreen when in fullscreen mode', async () => {
+  setup();
+
+  fireEvent.click(screen.getByTestId('actions-trigger'));
+
+  expect(await screen.findByText('Exit fullscreen')).toBeInTheDocument();
+});
+
+test('should have fullscreen option in dropdown', async () => {
+  setup();
+  await openActionsDropdown();
+  expect(screen.getByText('Exit fullscreen')).toBeInTheDocument();
+  expect(screen.queryByText('Enter fullscreen')).not.toBeInTheDocument();
 });
 
 test('should render MetadataBar when not in edit mode and not embedded', () => {
