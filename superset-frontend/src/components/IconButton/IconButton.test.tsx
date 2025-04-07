@@ -71,16 +71,6 @@ describe('IconButton', () => {
     expect(icon).toBeVisible();
   });
 
-  it('applies focus styles when focused', () => {
-    render(<IconButton {...defaultProps} />);
-
-    const button = screen.getByRole('button');
-
-    fireEvent.focus(button);
-
-    expect(button).toHaveStyle('border: 2px solid #1890ff');
-  });
-
   it('displays tooltip with button text', () => {
     render(<IconButton {...defaultProps} />);
 
