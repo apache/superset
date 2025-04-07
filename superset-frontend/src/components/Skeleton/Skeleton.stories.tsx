@@ -18,11 +18,9 @@
  */
 import type { Meta, StoryObj } from '@storybook/react';
 import { Space } from 'src/components/Space';
-import Skeleton, {
-  type SkeletonProps,
-  SkeletonButtonProps,
-  AvatarProps,
-} from './index';
+import { AvatarProps } from 'antd-v5/es/avatar';
+import { SkeletonButtonProps } from 'antd-v5/es/skeleton/Button';
+import Skeleton, { type SkeletonProps } from './index';
 
 const { Avatar, Button, Input, Image } = Skeleton;
 

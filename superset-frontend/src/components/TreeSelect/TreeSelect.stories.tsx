@@ -28,6 +28,7 @@ export default {
       description: 'Whether to allow clearing the selected value.',
       defaultValue: false,
       table: {
+        category: 'TreeSelect',
         type: { summary: 'boolean' },
         defaultValue: { summary: 'false' },
       },
@@ -37,6 +38,7 @@ export default {
       description: 'Whether to clear the search value automatically.',
       defaultValue: false,
       table: {
+        category: 'TreeSelect',
         type: { summary: 'boolean' },
         defaultValue: { summary: 'true' },
       },
@@ -46,6 +48,7 @@ export default {
       description: 'Whether the component is disabled.',
       defaultValue: false,
       table: {
+        category: 'TreeSelect',
         type: { summary: 'boolean' },
         defaultValue: { summary: 'false' },
       },
@@ -55,6 +58,7 @@ export default {
       description: 'Whether to use label in value.',
       defaultValue: false,
       table: {
+        category: 'TreeSelect',
         type: { summary: 'boolean' },
       },
     },
@@ -63,6 +67,7 @@ export default {
       description: 'Height of the dropdown list.',
       defaultValue: 256,
       table: {
+        category: 'TreeSelect',
         type: { summary: 'number' },
         defaultValue: { summary: '256' },
       },
@@ -71,6 +76,7 @@ export default {
       control: { type: 'number' },
       description: 'Maximum number of tags to display.',
       table: {
+        category: 'TreeSelect',
         type: { summary: 'number' },
       },
     },
@@ -79,6 +85,7 @@ export default {
       description: 'Maximum length of tag text.',
       defaultValue: 20,
       table: {
+        category: 'TreeSelect',
         type: { summary: 'number' },
       },
     },
@@ -87,6 +94,7 @@ export default {
       description: 'Whether to allow multiple selections.',
       defaultValue: false,
       table: {
+        category: 'TreeSelect',
         type: { summary: 'boolean' },
         defaultValue: { summary: 'false' },
       },
@@ -96,6 +104,7 @@ export default {
       description: 'Placeholder text for the input field.',
       defaultValue: 'Please select',
       table: {
+        category: 'TreeSelect',
         type: { summary: 'string' },
       },
     },
@@ -105,6 +114,7 @@ export default {
       description: 'Placement of the dropdown menu.',
       defaultValue: 'bottomLeft',
       table: {
+        category: 'TreeSelect',
         type: { summary: 'string' },
         defaultValue: { summary: 'bottomLeft' },
       },
@@ -114,6 +124,7 @@ export default {
       description: 'Whether to show the search input.',
       defaultValue: false,
       table: {
+        category: 'TreeSelect',
         type: { summary: 'boolean' },
       },
     },
@@ -123,6 +134,7 @@ export default {
       description: 'Size of the component.',
       defaultValue: 'middle',
       table: {
+        category: 'TreeSelect',
         type: { summary: 'string' },
       },
     },
@@ -132,6 +144,7 @@ export default {
       description: 'Status of the component.',
       defaultValue: 'error',
       table: {
+        category: 'TreeSelect',
         type: { summary: 'string' },
       },
     },
@@ -140,6 +153,7 @@ export default {
       description: 'Whether to show checkable tree nodes.',
       defaultValue: false,
       table: {
+        category: 'TreeSelect',
         type: { summary: 'boolean' },
         defaultValue: { summary: 'false' },
       },
@@ -149,6 +163,7 @@ export default {
       description: 'Whether to expand all tree nodes by default.',
       defaultValue: false,
       table: {
+        category: 'TreeSelect',
         type: { summary: 'boolean' },
         defaultValue: { summary: 'false' },
       },
@@ -158,6 +173,7 @@ export default {
       description: 'Whether to show tree icons.',
       defaultValue: false,
       table: {
+        category: 'TreeSelect',
         type: { summary: 'boolean' },
         defaultValue: { summary: 'false' },
       },
@@ -167,6 +183,7 @@ export default {
       description: 'Whether to show tree lines.',
       defaultValue: false,
       table: {
+        category: 'TreeSelect',
         type: { summary: 'boolean' },
         defaultValue: { summary: 'false' },
       },
@@ -177,6 +194,7 @@ export default {
       description: 'Variant of the component.',
       defaultValue: 'outlined',
       table: {
+        category: 'TreeSelect',
         type: { summary: 'string' },
         defaultValue: { summary: 'outlined' },
       },
@@ -186,8 +204,14 @@ export default {
       description: 'Whether to use virtual scrolling.',
       defaultValue: false,
       table: {
+        category: 'TreeSelect',
         type: { summary: 'boolean' },
         defaultValue: { summary: 'true' },
+      },
+    },
+    treeData: {
+      table: {
+        disable: true,
       },
     },
   },
