@@ -236,14 +236,17 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     if (subtitle) {
       const container = this.createTemporaryContainer();
       document.body.append(container);
-      fontSize = computeMaxFontSize({
-        text: subtitle,
-        maxWidth: width * 0.9,
-        maxHeight,
-        className: 'subtitle-line',
-        container,
-      });
-      container.remove();
+      try {
+        fontSize = computeMaxFontSize({
+          text: subtitle,
+          maxWidth: width * 0.9,
+          maxHeight,
+          className: 'subtitle-line',
+          container,
+        });
+      } finally {
+        container.remove();
+      }
 
       return (
         <div
