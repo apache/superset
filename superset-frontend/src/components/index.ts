@@ -27,7 +27,6 @@
 export {
   Breadcrumb as AntdBreadcrumb,
   Checkbox as AntdCheckbox,
-  Collapse as AntdCollapse,
   Select as AntdSelect,
 } from 'antd';
 

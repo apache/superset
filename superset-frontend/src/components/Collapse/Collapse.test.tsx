@@ -18,19 +18,25 @@
  */
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { supersetTheme } from '@superset-ui/core';
 import Collapse, { CollapseProps } from '.';
 
 function renderCollapse(props?: CollapseProps) {
   return render(
-    <Collapse {...props}>
-      <Collapse.Panel header="Header 1" key="1">
-        Content 1
-      </Collapse.Panel>
-      <Collapse.Panel header="Header 2" key="2">
-        Content 2
-      </Collapse.Panel>
-    </Collapse>,
+    <Collapse
+      {...props}
+      items={[
+        {
+          key: '1',
+          label: 'Header 1',
+          children: 'Content 1',
+        },
+        {
+          key: '2',
+          label: 'Header 2',
+          children: 'Content 2',
+        },
+      ]}
+    />,
   );
 }
 
@@ -80,26 +86,4 @@ test('collapses on click', () => {
     'ant-collapse-content-hidden',
   );
   expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
-});
-
-test('renders with custom properties', () => {
-  renderCollapse({
-    light: true,
-    bigger: true,
-    bold: true,
-    animateArrows: true,
-  });
-
-  const header = document.getElementsByClassName('ant-collapse-header')[0];
-  const arrow =
-    document.getElementsByClassName('ant-collapse-arrow')[0].children[0];
-
-  const headerStyle = window.getComputedStyle(header);
-  const arrowStyle = window.getComputedStyle(arrow);
-
-  expect(headerStyle.fontWeight).toBe(
-    supersetTheme.fontWeightStrong.toString(),
-  );
-  expect(headerStyle.fontSize).toBe(`${supersetTheme.sizeUnit * 4}px`);
-  expect(arrowStyle.transition).toBe('transform 0.24s');
 });

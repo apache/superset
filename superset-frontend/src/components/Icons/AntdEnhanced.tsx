@@ -113,6 +113,7 @@ import {
   FilterOutlined,
   UnorderedListOutlined,
   WarningOutlined,
+  SortAscendingOutlined,
   KeyOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
@@ -216,6 +217,7 @@ const AntdIcons = {
   FilterOutlined,
   UnorderedListOutlined,
   WarningOutlined,
+  SortAscendingOutlined,
   KeyOutlined,
 } as const;
 
