@@ -137,7 +137,7 @@ export default memo(
         rowKey="rowId"
         rowSelection={rowSelection}
         locale={{ emptyText: null }}
-        sortDirections={['ascend', 'descend', 'ascend']} // HACK: To disable default sorting
+        sortDirections={['ascend', 'descend', 'ascend']}
         components={{
           header: {
             cell: (props: any) => (
