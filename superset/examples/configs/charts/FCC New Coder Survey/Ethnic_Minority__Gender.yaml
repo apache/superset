@@ -15,33 +15,32 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Ethnic Minority & Gender
-viz_type: sankey
+viz_type: sankey_v2
 params:
   adhoc_filters:
-  - clause: WHERE
-    comparator: 'NULL'
-    expressionType: SIMPLE
-    filterOptionName: filter_of9xf5uks2_5pisp1se9r5
-    isExtra: false
-    isNew: false
-    operator: '!='
-    sqlExpression: null
-    subject: ethnic_minority
-  - clause: WHERE
-    comparator: 'NULL'
-    expressionType: SIMPLE
-    filterOptionName: filter_9ikn7htywfm_2579he7pk5x
-    isExtra: false
-    isNew: false
-    operator: '!='
-    sqlExpression: null
-    subject: gender
+    - clause: WHERE
+      comparator: "NULL"
+      expressionType: SIMPLE
+      filterOptionName: filter_of9xf5uks2_5pisp1se9r5
+      isExtra: false
+      isNew: false
+      operator: "!="
+      sqlExpression: null
+      subject: ethnic_minority
+    - clause: WHERE
+      comparator: "NULL"
+      expressionType: SIMPLE
+      filterOptionName: filter_9ikn7htywfm_2579he7pk5x
+      isExtra: false
+      isNew: false
+      operator: "!="
+      sqlExpression: null
+      subject: gender
   color_scheme: supersetColors
   datasource: 42__table
   granularity_sqla: time_start
-  groupby:
-  - ethnic_minority
-  - gender
+  source: ethnic_minority
+  target: gender
   label_colors: {}
   metric: count
   queryFields:
@@ -50,7 +49,7 @@ params:
   row_limit: null
   time_range: No filter
   url_params: {}
-  viz_type: sankey
+  viz_type: sankey_v2
 cache_timeout: null
 uuid: 4880e4f4-b701-4be0-86f3-e7e89432e83b
 version: 1.0.0

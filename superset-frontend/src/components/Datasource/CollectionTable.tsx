@@ -29,16 +29,16 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { t, styled } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
 
 interface CRUDCollectionProps {
   allowAddItem?: boolean;
   allowDeletes?: boolean;
-  collection: Array<object>;
-  columnLabels?: object;
-  columnLabelTooltips?: object;
+  collection: Record<PropertyKey, any>[];
+  columnLabels?: Record<PropertyKey, any>;
+  columnLabelTooltips?: Record<PropertyKey, any>;
   emptyMessage?: ReactNode;
   expandFieldset?: ReactNode;
   extraButtons?: ReactNode;
@@ -58,8 +58,8 @@ interface CRUDCollectionProps {
     record: any,
   ) => ReactNode)[];
   onChange?: (arg0: any) => void;
-  tableColumns: Array<any>;
-  sortColumns: Array<string>;
+  tableColumns: any[];
+  sortColumns: string[];
   stickyHeader?: boolean;
 }
 
@@ -72,14 +72,14 @@ enum SortOrder {
 }
 
 interface CRUDCollectionState {
-  collection: object;
-  collectionArray: Array<object>;
-  expandedColumns: object;
+  collection: Record<PropertyKey, any>;
+  collectionArray: Record<PropertyKey, any>[];
+  expandedColumns: Record<PropertyKey, any>;
   sortColumn: string;
   sort: SortOrder;
 }
 
-function createCollectionArray(collection: object) {
+function createCollectionArray(collection: Record<PropertyKey, any>) {
   return Object.keys(collection).map(k => collection[k]);
 }
 
@@ -89,7 +89,7 @@ function createKeyedCollection(arr: Array<object>) {
     id: o.id || nanoid(),
   }));
 
-  const collection = {};
+  const collection: Record<PropertyKey, any> = {};
   collectionArray.forEach((o: any) => {
     collection[o.id] = o;
   });
@@ -152,6 +152,9 @@ const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
     margin-top: ${theme.gridUnit * 3}px;
     margin-left: ${theme.gridUnit * 3}px;
+    button>span>:first-of-type {
+      margin-right: 0;
+    }
   `}
 `;
 
@@ -301,7 +304,8 @@ export default class CRUDCollection extends PureComponent<
 
         // newly ordered collection
         const sorted = [...this.state.collectionArray].sort(
-          (a: object, b: object) => compareSort(a[col], b[col]),
+          (a: Record<PropertyKey, any>, b: Record<PropertyKey, any>) =>
+            compareSort(a[col], b[col]),
         );
         const newCollection =
           sort === SortOrder.Asc ? sorted : sorted.reverse();
@@ -399,6 +403,8 @@ export default class CRUDCollection extends PureComponent<
             role="button"
             aria-label="Toggle expand"
             tabIndex={0}
+            // TODO: Remove fa-icon
+            // eslint-disable-next-line icons/no-fa-icons-usage
             className={`fa fa-caret-${
               isExpanded ? 'down' : 'right'
             } text-primary pointer`}
@@ -415,7 +421,7 @@ export default class CRUDCollection extends PureComponent<
       )),
     );
     if (allowAddItem) {
-      tds.push(<td key="add" />);
+      tds.push(<td key="add" aria-label="Add" />);
     }
     if (allowDeletes) {
       tds.push(
@@ -424,13 +430,14 @@ export default class CRUDCollection extends PureComponent<
           data-test="crud-delete-option"
           className="text-primary"
         >
-          <Icons.Trash
+          <Icons.DeleteOutlined
             aria-label="Delete item"
             className="pointer"
             data-test="crud-delete-icon"
             role="button"
             tabIndex={0}
             onClick={this.deleteItem.bind(this, record.id)}
+            iconSize="l"
           />
         </td>,
       );
@@ -483,7 +490,10 @@ export default class CRUDCollection extends PureComponent<
                 onClick={this.onAddItem}
                 data-test="add-item-button"
               >
-                <i data-test="crud-add-table-item" className="fa fa-plus" />{' '}
+                <Icons.PlusOutlined
+                  iconSize="m"
+                  data-test="crud-add-table-item"
+                />
                 {t('Add item')}
               </Button>
             </StyledButtonWrapper>

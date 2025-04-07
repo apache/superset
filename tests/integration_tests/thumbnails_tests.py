@@ -18,7 +18,6 @@
 # from superset.models.dashboard import Dashboard
 
 import urllib.request
-from io import BytesIO
 from unittest import skipUnless
 from unittest.mock import ANY, call, MagicMock, patch
 
@@ -30,9 +29,13 @@ from superset import db, is_feature_enabled, security_manager
 from superset.extensions import machine_auth_provider_factory
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.tasks.types import ExecutorType
+from superset.tasks.types import ExecutorType, FixedExecutor
 from superset.utils import json
-from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.screenshots import (
+    ChartScreenshot,
+    DashboardScreenshot,
+    ScreenshotCachePayload,
+)
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import WebDriverSelenium
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -53,8 +56,8 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
         return app
 
     def url_open_auth(self, username: str, url: str):
-        admin_user = security_manager.find_user(username=username)
-        cookies = machine_auth_provider_factory.instance.get_auth_cookies(admin_user)
+        user = security_manager.find_user(username=username)
+        cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
         opener = urllib.request.build_opener()
         opener.addheaders.append(("Cookie", f"session={cookies['session']}"))
         return opener.open(f"{self.get_server_url()}/{url}")
@@ -70,7 +73,7 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
             thumbnail_url = resp["result"][0]["thumbnail_url"]
 
             response = self.url_open_auth(
-                "admin",
+                ADMIN_USERNAME,
                 thumbnail_url,
             )
             assert response.getcode() == 202
@@ -84,9 +87,7 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
         self, mock_find_unexpected_errors, mock_firefox, mock_webdriver_wait
     ):
         webdriver_proxy = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
+        user = security_manager.get_user_by_username(ADMIN_USERNAME)
         url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
         webdriver_proxy.get_screenshot(url, "grid-container", user=user)
 
@@ -100,9 +101,7 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
     ):
         app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"] = True
         webdriver_proxy = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
+        user = security_manager.get_user_by_username(ADMIN_USERNAME)
         url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
         webdriver_proxy.get_screenshot(url, "grid-container", user=user)
 
@@ -149,9 +148,7 @@ class TestWebDriverSelenium(SupersetTestCase):
         self, mock_sleep, mock_webdriver, mock_webdriver_wait
     ):
         webdriver = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
+        user = security_manager.get_user_by_username(ADMIN_USERNAME)
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         app.config["SCREENSHOT_SELENIUM_HEADSTART"] = 5
         webdriver.get_screenshot(url, "chart-container", user=user)
@@ -162,9 +159,7 @@ class TestWebDriverSelenium(SupersetTestCase):
     def test_screenshot_selenium_locate_wait(self, mock_webdriver, mock_webdriver_wait):
         app.config["SCREENSHOT_LOCATE_WAIT"] = 15
         webdriver = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
+        user = security_manager.get_user_by_username(ADMIN_USERNAME)
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         webdriver.get_screenshot(url, "chart-container", user=user)
         assert mock_webdriver_wait.call_args_list[0] == call(ANY, 15)
@@ -174,9 +169,7 @@ class TestWebDriverSelenium(SupersetTestCase):
     def test_screenshot_selenium_load_wait(self, mock_webdriver, mock_webdriver_wait):
         app.config["SCREENSHOT_LOAD_WAIT"] = 15
         webdriver = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
+        user = security_manager.get_user_by_username(ADMIN_USERNAME)
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         webdriver.get_screenshot(url, "chart-container", user=user)
         assert mock_webdriver_wait.call_args_list[2] == call(ANY, 15)
@@ -188,9 +181,7 @@ class TestWebDriverSelenium(SupersetTestCase):
         self, mock_sleep, mock_webdriver, mock_webdriver_wait
     ):
         webdriver = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
+        user = security_manager.get_user_by_username(ADMIN_USERNAME)
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"] = 4
         webdriver.get_screenshot(url, "chart-container", user=user)
@@ -232,7 +223,7 @@ class TestThumbnails(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
-    def test_get_async_dashboard_screenshot_as_selenium(self):
+    def test_get_async_dashboard_screenshot_as_fixed_user(self):
         """
         Thumbnails: Simple get async dashboard screenshot as selenium user
         """
@@ -241,7 +232,7 @@ class TestThumbnails(SupersetTestCase):
             patch.dict(
                 "superset.thumbnails.digest.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.SELENIUM],
+                    "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
                 },
             ),
             patch(
@@ -251,8 +242,8 @@ class TestThumbnails(SupersetTestCase):
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             assert self.digest_hash in thumbnail_url
-            assert mock_adjust_string.call_args[0][1] == ExecutorType.SELENIUM
-            assert mock_adjust_string.call_args[0][2] == "admin"
+            assert mock_adjust_string.call_args[0][1] == ExecutorType.FIXED_USER
+            assert mock_adjust_string.call_args[0][2] == ADMIN_USERNAME
 
             rv = self.client.get(thumbnail_url)
             assert rv.status_code == 202
@@ -269,7 +260,7 @@ class TestThumbnails(SupersetTestCase):
             patch.dict(
                 "superset.thumbnails.digest.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.CURRENT_USER],
+                    "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
                 },
             ),
             patch(
@@ -299,18 +290,18 @@ class TestThumbnails(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
-    def test_get_async_dashboard_not_allowed(self):
+    def test_get_async_dashboard_created(self):
         """
         Thumbnails: Simple get async dashboard not allowed
         """
         self.login(ADMIN_USERNAME)
         _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
         rv = self.client.get(thumbnail_url)
-        assert rv.status_code == 404
+        assert rv.status_code == 202
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
-    def test_get_async_chart_screenshot_as_selenium(self):
+    def test_get_async_chart_screenshot_as_fixed_user(self):
         """
         Thumbnails: Simple get async chart screenshot as selenium user
         """
@@ -319,7 +310,7 @@ class TestThumbnails(SupersetTestCase):
             patch.dict(
                 "superset.thumbnails.digest.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.SELENIUM],
+                    "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
                 },
             ),
             patch(
@@ -329,8 +320,8 @@ class TestThumbnails(SupersetTestCase):
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             assert self.digest_hash in thumbnail_url
-            assert mock_adjust_string.call_args[0][1] == ExecutorType.SELENIUM
-            assert mock_adjust_string.call_args[0][2] == "admin"
+            assert mock_adjust_string.call_args[0][1] == ExecutorType.FIXED_USER
+            assert mock_adjust_string.call_args[0][2] == ADMIN_USERNAME
 
             rv = self.client.get(thumbnail_url)
             assert rv.status_code == 202
@@ -347,7 +338,7 @@ class TestThumbnails(SupersetTestCase):
             patch.dict(
                 "superset.thumbnails.digest.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.CURRENT_USER],
+                    "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
                 },
             ),
             patch(
@@ -382,7 +373,9 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get chart with wrong digest
         """
         with patch.object(
-            ChartScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+            ChartScreenshot,
+            "get_from_cache",
+            return_value=ScreenshotCachePayload(self.mock_image),
         ):
             self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
@@ -397,7 +390,9 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get cached dashboard screenshot
         """
         with patch.object(
-            DashboardScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+            DashboardScreenshot,
+            "get_from_cache_key",
+            return_value=ScreenshotCachePayload(self.mock_image),
         ):
             self.login(ADMIN_USERNAME)
             _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
@@ -412,7 +407,9 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get cached chart screenshot
         """
         with patch.object(
-            ChartScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+            ChartScreenshot,
+            "get_from_cache_key",
+            return_value=ScreenshotCachePayload(self.mock_image),
         ):
             self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
@@ -427,7 +424,9 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get dashboard with wrong digest
         """
         with patch.object(
-            DashboardScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+            DashboardScreenshot,
+            "get_from_cache",
+            return_value=ScreenshotCachePayload(self.mock_image),
         ):
             self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)

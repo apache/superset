@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import { screen, render } from 'spec/helpers/testing-library';
+import { screen, render, userEvent } from 'spec/helpers/testing-library';
 import Button from '../Button';
-import Icons from '../Icons';
+import { Icons } from '../Icons';
 import DropdownContainer from '.';
 
 const generateItems = (n: number) =>
@@ -62,7 +61,10 @@ test('renders a dropdown trigger when overflowing', async () => {
 test('renders a dropdown trigger with custom icon', async () => {
   await mockOverflowingIndex(3, async () => {
     render(
-      <DropdownContainer items={ITEMS} dropdownTriggerIcon={<Icons.Link />} />,
+      <DropdownContainer
+        items={ITEMS}
+        dropdownTriggerIcon={<Icons.LinkOutlined />}
+      />,
     );
     expect(
       await screen.findByRole('img', { name: 'link' }),

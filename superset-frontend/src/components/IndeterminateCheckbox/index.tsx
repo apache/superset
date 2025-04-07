@@ -26,7 +26,7 @@ import {
 } from 'react';
 
 import { styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 export interface IndeterminateCheckboxProps {
   indeterminate: boolean;
@@ -84,6 +84,7 @@ const IndeterminateCheckbox = forwardRef(
       onChange,
       title = '',
       labelText = '',
+      ...rest
     }: IndeterminateCheckboxProps,
     ref: MutableRefObject<any>,
   ) => {
@@ -107,6 +108,7 @@ const IndeterminateCheckbox = forwardRef(
             ref={resolvedRef}
             checked={checked}
             onChange={onChange}
+            {...rest}
           />
         </InputContainer>
         <CheckboxLabel title={title} htmlFor={id}>

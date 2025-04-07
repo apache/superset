@@ -25,9 +25,12 @@ from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
+from flask_appbuilder.security.sqla.apis import RoleApi
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
+    assoc_group_role,
     assoc_permissionview_role,
+    assoc_user_group,
     assoc_user_role,
     Permission,
     PermissionView,
@@ -38,7 +41,6 @@ from flask_appbuilder.security.sqla.models import (
 from flask_appbuilder.security.views import (
     PermissionModelView,
     PermissionViewModelView,
-    RoleModelView,
     UserModelView,
     ViewMenuModelView,
 )
@@ -51,6 +53,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
+from sqlalchemy.sql import exists
 
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -123,8 +126,19 @@ class SupersetRoleListWidget(ListWidget):  # pylint: disable=too-few-public-meth
         super().__init__(**kwargs)
 
 
+class SupersetRoleApi(RoleApi):
+    """
+    Overriding the RoleApi to be able to delete roles with permissions
+    """
+
+    def pre_delete(self, item: Model) -> None:
+        """
+        Overriding this method to be able to delete items when they have constraints
+        """
+        item.permissions = []
+
+
 UserModelView.list_widget = SupersetSecurityListWidget
-RoleModelView.list_widget = SupersetRoleListWidget
 PermissionViewModelView.list_widget = SupersetSecurityListWidget
 PermissionModelView.list_widget = SupersetSecurityListWidget
 
@@ -135,14 +149,9 @@ UserModelView.include_route_methods = RouteMethod.CRUD_SET | {
     RouteMethod.ACTION_POST,
     "userinfo",
 }
-RoleModelView.include_route_methods = RouteMethod.CRUD_SET
 PermissionViewModelView.include_route_methods = {RouteMethod.LIST}
 PermissionModelView.include_route_methods = {RouteMethod.LIST}
 ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
-
-RoleModelView.list_columns = ["name"]
-RoleModelView.edit_columns = ["name", "permissions", "user"]
-RoleModelView.related_views = []
 
 
 def freeze_value(value: Any) -> str:
@@ -181,6 +190,7 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         ("metrics", ["metrics"]),
         ("columns", ["columns", "groupby"]),
         ("groupby", ["columns", "groupby"]),
+        ("orderby", ["orderby"]),
     ]:
         requested_values = {freeze_value(value) for value in form_data.get(key) or []}
         stored_values = {
@@ -214,6 +224,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     userstatschartview = None
     READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
 
+    role_api = SupersetRoleApi
+
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
         "UserDBModelView",
@@ -235,8 +247,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Log",
         "List Users",
         "List Roles",
+        "List Groups",
         "ResetPasswordView",
         "RoleModelView",
+        "UserGroupModelView",
         "Row Level Security",
         "Row Level Security Filters",
         "RowLevelSecurityFiltersModelView",
@@ -245,6 +259,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "User Registrations",
         "User's Statistics",
         # Guarding all AB_ADD_SECURITY_API = True REST APIs
+        "RoleRestAPI",
         "Role",
         "Permission",
         "PermissionViewMenu",
@@ -269,11 +284,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ALPHA_ONLY_PMVS = {
-        ("can_csv_upload", "Database"),
-        ("can_excel_upload", "Database"),
+        ("can_upload", "Database"),
     }
 
     ADMIN_ONLY_PERMISSIONS = {
+        "update_roles_users",
+        "list_roles",
         "can_update_role",
         "all_query_access",
         "can_grant_guest_token",
@@ -330,6 +346,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("menu_access", "SQL Editor"),
         ("menu_access", "Saved Queries"),
         ("menu_access", "Query Search"),
+        ("can_read", "SqlLabPermalinkRestApi"),
+        ("can_write", "SqlLabPermalinkRestApi"),
     }
 
     SQLLAB_EXTRA_PERMISSION_VIEWS = {
@@ -477,7 +495,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return (
             self.can_access_all_datasources()
             or self.can_access_all_databases()
-            or self.can_access("database_access", database.perm)  # type: ignore
+            or self.can_access("database_access", database.perm)
         )
 
     def can_access_catalog(self, database: "Database", catalog: str) -> bool:
@@ -731,13 +749,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
         if not g.user.is_anonymous:
-            # filter by user id
-            view_menu_names = (
-                base_query.join(assoc_user_role)
-                .join(self.user_model)
-                .filter(self.user_model.id == get_user_id())
-                .filter(self.permission_model.name == permission_name)
-            ).all()
+            user_id = get_user_id()
+
+            user_roles_filter = or_(
+                exists().where(
+                    (assoc_user_role.c.user_id == user_id)
+                    & (assoc_user_role.c.role_id == self.role_model.id)
+                    & (self.permission_model.name == permission_name)
+                ),
+                exists().where(
+                    (assoc_user_group.c.user_id == user_id)
+                    & (assoc_user_group.c.group_id == self.group_model.id)
+                    & (assoc_group_role.c.group_id == self.group_model.id)
+                    & (assoc_group_role.c.role_id == self.role_model.id)
+                    & (self.permission_model.name == permission_name)
+                ),
+            )
+
+            view_menu_names = base_query.filter(user_roles_filter).all()
             return {s.name for s in view_menu_names}
 
         # Properly treat anonymous user
@@ -1108,7 +1137,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
-        query = self.get_session.query(Role).filter(Role.id.in_(role_ids))
+        query = self.get_session.query(self.role_model).filter(
+            self.role_model.id.in_(role_ids)
+        )
         return query.all()
 
     def copy_role(
@@ -1409,7 +1440,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param old_database_name: the old database name
         :param target: The database object
         :return: A list of changed view menus (permission resource names)
-        """
+        """  # noqa: E501
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         new_database_name = target.database_name
         old_view_menu_name = self.get_database_perm(target.id, old_database_name)
@@ -1465,7 +1496,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param old_database_name: the old database name
         :param target: The database object
         :return: A list of changed view menus (permission resource names)
-        """
+        """  # noqa: E501
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
         )
@@ -2143,7 +2174,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         return []
 
-    def raise_for_access(
+    def raise_for_access(  # noqa: C901
         # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
         self,
         dashboard: Optional["Dashboard"] = None,
@@ -2172,7 +2203,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param schema: Optional schema name
         :raises SupersetSecurityException: If the user cannot access the resource
         """
-
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable
@@ -2353,7 +2383,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if dashboard:
             if self.is_guest_user():
-                # Guest user is currently used for embedded dashboards only. If the guest
+                # Guest user is currently used for embedded dashboards only. If the guest  # noqa: E501
                 # user doesn't have access to the dashboard, ignore all other checks.
                 if self.has_guest_access(dashboard):
                     return
@@ -2423,7 +2453,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if user.is_anonymous:
             public_role = current_app.config.get("AUTH_ROLE_PUBLIC")
             return [self.get_public_role()] if public_role else []
-        return user.roles
+        return super().get_user_roles(user)
 
     def get_guest_rls_filters(
         self, dataset: "BaseDatasource"
@@ -2730,3 +2760,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return current_app.config["AUTH_ROLE_ADMIN"] in [
             role.name for role in self.get_user_roles()
         ]
+
+    # temporal change to remove the roles view from the security menu,
+    # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
+    def register_views(self) -> None:
+        super().register_views()
+
+        for view in list(self.appbuilder.baseviews):
+            if (
+                isinstance(view, self.rolemodelview.__class__)
+                and getattr(view, "route_base", None) == "/roles"
+            ):
+                self.appbuilder.baseviews.remove(view)
+
+        security_menu = next(
+            (m for m in self.appbuilder.menu.get_list() if m.name == "Security"), None
+        )
+        if security_menu:
+            for item in list(security_menu.childs):
+                if item.name == "List Roles":
+                    security_menu.childs.remove(item)

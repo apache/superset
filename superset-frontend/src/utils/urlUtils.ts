@@ -123,8 +123,13 @@ function getChartUrlParams(excludedUrlParams?: string[]): UrlParamEntries {
   return getUrlParamEntries(urlParams);
 }
 
-function getDashboardUrlParams(): UrlParamEntries {
-  const urlParams = getUrlParams(RESERVED_DASHBOARD_URL_PARAMS);
+export function getDashboardUrlParams(
+  extraExcludedParams: string[] = [],
+): UrlParamEntries {
+  const urlParams = getUrlParams([
+    ...RESERVED_DASHBOARD_URL_PARAMS,
+    ...extraExcludedParams,
+  ]);
   const filterBoxFilters = getActiveFilters();
   if (!isEmpty(filterBoxFilters))
     urlParams.append(

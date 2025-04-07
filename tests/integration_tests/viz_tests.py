@@ -17,7 +17,6 @@
 # isort:skip_file
 from datetime import datetime
 import logging
-from math import nan
 from unittest.mock import Mock, patch
 
 import numpy as np
@@ -27,7 +26,6 @@ import pytest
 import tests.integration_tests.test_app  # noqa: F401
 import superset.viz as viz
 from superset import app
-from superset.constants import NULL_STRING
 from superset.exceptions import QueryObjectValidationError, SpatialException
 from superset.utils.core import DTTM_ALIAS
 
@@ -41,7 +39,7 @@ class TestBaseViz(SupersetTestCase):
     def test_constructor_exception_no_datasource(self):
         form_data = {}
         datasource = None
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             viz.BaseViz(datasource, form_data)
 
     def test_process_metrics(self):
@@ -91,7 +89,7 @@ class TestBaseViz(SupersetTestCase):
         datasource = self.get_datasource_mock()
         test_viz = viz.BaseViz(datasource, form_data)
         result = test_viz.get_df(query_obj)
-        assert type(result) == pd.DataFrame
+        assert isinstance(result, pd.DataFrame)
         assert result.empty
 
     def test_get_df_handles_dttm_col(self):
@@ -177,174 +175,6 @@ class TestBaseViz(SupersetTestCase):
         app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"] = data_cache_timeout
 
 
-class TestDistBarViz(SupersetTestCase):
-    def test_groupby_nulls(self):
-        form_data = {
-            "metrics": ["votes"],
-            "adhoc_filters": [],
-            "groupby": ["toppings"],
-            "columns": [],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            {
-                "toppings": ["cheese", "pepperoni", "anchovies", None],
-                "votes": [3, 5, 1, 2],
-            }
-        )
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)[0]
-        assert "votes" == data["key"]
-        expected_values = [
-            {"x": "pepperoni", "y": 5},
-            {"x": "cheese", "y": 3},
-            {"x": NULL_STRING, "y": 2},
-            {"x": "anchovies", "y": 1},
-        ]
-        assert expected_values == data["values"]
-
-    def test_groupby_nans(self):
-        form_data = {
-            "metrics": ["count"],
-            "adhoc_filters": [],
-            "groupby": ["beds"],
-            "columns": [],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame({"beds": [0, 1, nan, 2], "count": [30, 42, 3, 29]})
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)[0]
-        assert "count" == data["key"]
-        expected_values = [
-            {"x": "1.0", "y": 42},
-            {"x": "0.0", "y": 30},
-            {"x": "2.0", "y": 29},
-            {"x": NULL_STRING, "y": 3},
-        ]
-
-        assert expected_values == data["values"]
-
-    def test_column_nulls(self):
-        form_data = {
-            "metrics": ["votes"],
-            "adhoc_filters": [],
-            "groupby": ["toppings"],
-            "columns": ["role"],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            {
-                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
-                "role": ["engineer", "engineer", None, None],
-                "votes": [3, 5, 1, 2],
-            }
-        )
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)
-        expected = [
-            {
-                "key": NULL_STRING,
-                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
-            },
-            {
-                "key": "engineer",
-                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
-            },
-        ]
-        assert expected == data
-
-    def test_column_metrics_in_order(self):
-        form_data = {
-            "metrics": ["z_column", "votes", "a_column"],
-            "adhoc_filters": [],
-            "groupby": ["toppings"],
-            "columns": [],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            {
-                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
-                "role": ["engineer", "engineer", None, None],
-                "votes": [3, 5, 1, 2],
-                "a_column": [3, 5, 1, 2],
-                "z_column": [3, 5, 1, 2],
-            }
-        )
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)
-
-        expected = [
-            {
-                "key": "z_column",
-                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
-            },
-            {
-                "key": "votes",
-                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
-            },
-            {
-                "key": "a_column",
-                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
-            },
-        ]
-
-        assert expected == data
-
-    def test_column_metrics_in_order_with_breakdowns(self):
-        form_data = {
-            "metrics": ["z_column", "votes", "a_column"],
-            "adhoc_filters": [],
-            "groupby": ["toppings"],
-            "columns": ["role"],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            {
-                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
-                "role": ["engineer", "engineer", None, None],
-                "votes": [3, 5, 1, 2],
-                "a_column": [3, 5, 1, 2],
-                "z_column": [3, 5, 1, 2],
-            }
-        )
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)
-
-        expected = [
-            {
-                "key": f"z_column, {NULL_STRING}",
-                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
-            },
-            {
-                "key": "z_column, engineer",
-                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
-            },
-            {
-                "key": f"votes, {NULL_STRING}",
-                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
-            },
-            {
-                "key": "votes, engineer",
-                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
-            },
-            {
-                "key": f"a_column, {NULL_STRING}",
-                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
-            },
-            {
-                "key": "a_column, engineer",
-                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
-            },
-        ]
-
-        assert expected == data
-
-
 class TestPairedTTest(SupersetTestCase):
     def test_get_data_transforms_dataframe(self):
         form_data = {
@@ -362,7 +192,7 @@ class TestPairedTTest(SupersetTestCase):
         raw["metric2"] = [10, 20, 30, 40, 50, 60, 70, 80, 90]
         raw["metric3"] = [100, 200, 300, 400, 500, 600, 700, 800, 900]
         df = pd.DataFrame(raw)
-        pairedTTestViz = viz.viz_types["paired_ttest"](datasource, form_data)
+        pairedTTestViz = viz.viz_types["paired_ttest"](datasource, form_data)  # noqa: N806
         data = pairedTTestViz.get_data(df)
         # Check method correctly transforms data
         expected = {
@@ -457,7 +287,7 @@ class TestPairedTTest(SupersetTestCase):
         raw[None] = [10, 20, 30]
 
         df = pd.DataFrame(raw)
-        pairedTTestViz = viz.viz_types["paired_ttest"](datasource, form_data)
+        pairedTTestViz = viz.viz_types["paired_ttest"](datasource, form_data)  # noqa: N806
         data = pairedTTestViz.get_data(df)
         # Check method correctly transforms data
         expected = {
@@ -475,7 +305,7 @@ class TestPairedTTest(SupersetTestCase):
         assert data == expected
 
         form_data = {"groupby": [], "metrics": [None]}
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError):  # noqa: PT027
             viz.viz_types["paired_ttest"](datasource, form_data)
 
 
@@ -612,6 +442,27 @@ class TestPartitionViz(SupersetTestCase):
         assert 1 == len(nest[0]["children"][0]["children"])
         assert 1 == len(nest[0]["children"][0]["children"][0]["children"])
 
+    def test_nest_values_returns_hierarchy_when_more_dimensions(self):
+        raw = {}
+        raw["category"] = ["a", "a", "a"]
+        raw["subcategory"] = ["a.2", "a.1", "a.2"]
+        raw["sub_subcategory"] = ["a.2.1", "a.1.1", "a.2.2"]
+        raw["metric1"] = [5, 10, 15]
+        raw["metric2"] = [50, 100, 150]
+        raw["metric3"] = [500, 1000, 1500]
+        df = pd.DataFrame(raw)
+        test_viz = viz.PartitionViz(Mock(), {})
+        groups = ["category", "subcategory", "sub_subcategory"]
+        levels = test_viz.levels_for("agg_sum", groups, df)
+        nest = test_viz.nest_values(levels)
+        assert 3 == len(nest)
+        for i in range(0, 3):
+            assert "metric" + str(i + 1) == nest[i]["name"]
+        assert 1 == len(nest[0]["children"])
+        assert 2 == len(nest[0]["children"][0]["children"])
+        assert 1 == len(nest[0]["children"][0]["children"][0]["children"])
+        assert 2 == len(nest[0]["children"][0]["children"][1]["children"])
+
     def test_nest_procs_returns_hierarchy(self):
         raw = {}
         raw[DTTM_ALIAS] = [100, 200, 300, 100, 200, 300, 100, 200, 300]
@@ -655,7 +506,7 @@ class TestPartitionViz(SupersetTestCase):
         raw["metric3"] = [100, 200, 300, 400, 500, 600, 700, 800, 900]
         df = pd.DataFrame(raw)
         test_viz = viz.PartitionViz(Mock(), {})
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError):  # noqa: PT027
             test_viz.get_data(df)
         test_viz.levels_for = Mock(return_value=1)
         test_viz.nest_values = Mock(return_value=1)
@@ -776,11 +627,11 @@ class TestTimeSeriesTableViz(SupersetTestCase):
         form_data = {"groupby": ["a"]}
         super_query_obj.return_value = {}
         test_viz = viz.TimeTableViz(datasource, form_data)
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             test_viz.query_obj()
         form_data["metrics"] = ["x", "y"]
         test_viz = viz.TimeTableViz(datasource, form_data)
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             test_viz.query_obj()
 
     def test_query_obj_order_by(self):
@@ -835,7 +686,7 @@ class TestBaseDeckGLViz(SupersetTestCase):
         datasource = self.get_datasource_mock()
         test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
 
-        with self.assertRaises(NotImplementedError) as context:
+        with self.assertRaises(NotImplementedError) as context:  # noqa: PT027
             test_viz_deckgl.get_properties(mock_d)
 
         assert "" in str(context.exception)
@@ -847,7 +698,7 @@ class TestBaseDeckGLViz(SupersetTestCase):
         mock_gb = []
         test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValueError) as context:  # noqa: PT027
             test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
 
         assert "Bad spatial key" in str(context.exception)
@@ -900,10 +751,10 @@ class TestBaseDeckGLViz(SupersetTestCase):
         datasource = self.get_datasource_mock()
         test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
 
-        with self.assertRaises(SpatialException):
+        with self.assertRaises(SpatialException):  # noqa: PT027
             test_viz_deckgl.parse_coordinates("NULL")
 
-        with self.assertRaises(SpatialException):
+        with self.assertRaises(SpatialException):  # noqa: PT027
             test_viz_deckgl.parse_coordinates("fldkjsalkj,fdlaskjfjadlksj")
 
     def test_filter_nulls(self):

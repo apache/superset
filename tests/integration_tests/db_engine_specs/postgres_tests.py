@@ -151,12 +151,13 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         DB Eng Specs (postgres): Test estimate_statement_cost select star
         """
 
+        database = mock.Mock()
         cursor = mock.Mock()
         cursor.fetchone.return_value = (
             "Seq Scan on birth_names (cost=0.00..1537.91 rows=75691 width=46)",
         )
         sql = "SELECT * FROM birth_names"
-        results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)
+        results = PostgresEngineSpec.estimate_statement_cost(database, sql, cursor)
         assert results == {"Start-up cost": 0.0, "Total cost": 1537.91}
 
     def test_estimate_statement_invalid_syntax(self):
@@ -165,6 +166,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         """
         from psycopg2 import errors
 
+        database = mock.Mock()
         cursor = mock.Mock()
         cursor.execute.side_effect = errors.SyntaxError(
             """
@@ -174,8 +176,8 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
             """
         )
         sql = "DROP TABLE birth_names"
-        with self.assertRaises(errors.SyntaxError):
-            PostgresEngineSpec.estimate_statement_cost(sql, cursor)
+        with self.assertRaises(errors.SyntaxError):  # noqa: PT027
+            PostgresEngineSpec.estimate_statement_cost(database, sql, cursor)
 
     def test_query_cost_formatter_example_costs(self):
         """
@@ -394,11 +396,11 @@ psql: error: could not connect to server: Operation timed out
                     "issue_codes": [
                         {
                             "code": 1014,
-                            "message": "Issue 1014 - Either the username or the password is wrong.",
+                            "message": "Issue 1014 - Either the username or the password is wrong.",  # noqa: E501
                         },
                         {
                             "code": 1015,
-                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
+                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",  # noqa: E501
                         },
                     ],
                 },
@@ -409,7 +411,7 @@ psql: error: could not connect to server: Operation timed out
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message='Please check your query for syntax errors at or near "from_". Then, try running your query again.',
+                message='Please check your query for syntax errors at or near "from_". Then, try running your query again.',  # noqa: E501
                 error_type=SupersetErrorType.SYNTAX_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={

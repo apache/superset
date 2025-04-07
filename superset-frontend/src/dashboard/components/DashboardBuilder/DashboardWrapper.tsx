@@ -106,7 +106,7 @@ const StyledDiv = styled.div`
     }
 
     i.warning {
-      color: ${theme.colors.alert.base};
+      color: ${theme.colors.warning.base};
     }
   `}
 `;

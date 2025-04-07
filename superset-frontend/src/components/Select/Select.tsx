@@ -35,7 +35,8 @@ import {
   t,
   usePrevious,
 } from '@superset-ui/core';
-import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+// eslint-disable-next-line no-restricted-imports
+import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
 import { debounce, isEqual, uniq } from 'lodash';
 import { FAST_DEBOUNCE } from 'src/constants';
 import {
@@ -608,8 +609,9 @@ const Select = forwardRef(
           <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
         )}
         <StyledSelect
+          id={name}
           allowClear={!isLoading && allowClear}
-          aria-label={ariaLabel || name}
+          aria-label={ariaLabel}
           autoClearSearchValue={autoClearSearchValue}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}

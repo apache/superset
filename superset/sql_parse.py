@@ -26,7 +26,7 @@ from typing import Any, cast, TYPE_CHECKING
 
 import sqlparse
 from flask_babel import gettext as __
-from jinja2 import nodes
+from jinja2 import nodes, Template
 from sqlalchemy import and_
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
@@ -64,6 +64,7 @@ from superset.sql.parse import (
     extract_tables_from_statement,
     SQLGLOT_DIALECTS,
     SQLScript,
+    SQLStatement,
     Table,
 )
 from superset.utils.backports import StrEnum
@@ -317,7 +318,7 @@ class ParsedQuery:
                     return False
         return True
 
-    def is_select(self) -> bool:
+    def is_select(self) -> bool:  # noqa: C901
         # make sure we strip comments; prevents a bug with comments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
         seen_select = False
@@ -332,7 +333,7 @@ class ParsedQuery:
                         ):
                             return False
                     except ValueError:
-                        # sqloxide was not able to parse the query, so let's continue with
+                        # sqloxide was not able to parse the query, so let's continue with  # noqa: E501
                         # sqlparse
                         pass
                 inner_cte = self.get_inner_cte_expression(statement.tokens) or []
@@ -570,46 +571,31 @@ class InsertRLSState(StrEnum):
     FOUND_TABLE = "FOUND_TABLE"
 
 
-def has_table_query(token_list: TokenList) -> bool:
+def has_table_query(expression: str, engine: str) -> bool:
     """
     Return if a statement has a query reading from a table.
 
-        >>> has_table_query(sqlparse.parse("COUNT(*)")[0])
+        >>> has_table_query("COUNT(*)", "postgresql")
         False
-        >>> has_table_query(sqlparse.parse("SELECT * FROM table")[0])
+        >>> has_table_query("SELECT * FROM table", "postgresql")
         True
 
     Note that queries reading from constant values return false:
 
-        >>> has_table_query(sqlparse.parse("SELECT * FROM (SELECT 1)")[0])
+        >>> has_table_query("SELECT * FROM (SELECT 1)", "postgresql")
         False
 
     """
-    state = InsertRLSState.SCANNING
-    for token in token_list.tokens:
-        # Ignore comments
-        if isinstance(token, sqlparse.sql.Comment):
-            continue
+    # Remove trailing semicolon.
+    expression = expression.strip().rstrip(";")
 
-        # Recurse into child token list
-        if isinstance(token, TokenList) and has_table_query(token):
-            return True
+    # Wrap the expression in parentheses if it's not already.
+    if not expression.startswith("("):
+        expression = f"({expression})"
 
-        # Found a source keyword (FROM/JOIN)
-        if imt(token, m=[(Keyword, "FROM"), (Keyword, "JOIN")]):
-            state = InsertRLSState.SEEN_SOURCE
-
-        # Found identifier/keyword after FROM/JOIN
-        elif state == InsertRLSState.SEEN_SOURCE and (
-            isinstance(token, sqlparse.sql.Identifier) or token.ttype == Keyword
-        ):
-            return True
-
-        # Found nothing, leaving source
-        elif state == InsertRLSState.SEEN_SOURCE and token.ttype != Whitespace:
-            state = InsertRLSState.SCANNING
-
-    return False
+    sql = f"SELECT {expression}"
+    statement = SQLStatement(sql, engine)
+    return any(statement.tables)
 
 
 def add_table_name(rls: TokenList, table: str) -> None:
@@ -767,7 +753,7 @@ def insert_rls_as_subquery(
     return token_list
 
 
-def insert_rls_in_predicate(
+def insert_rls_in_predicate(  # noqa: C901
     token_list: TokenList,
     database_id: int,
     default_schema: str | None,
@@ -821,7 +807,7 @@ def insert_rls_in_predicate(
             )
             state = InsertRLSState.SCANNING
 
-        # Found ON clause, insert RLS. The logic for ON is more complicated than the logic
+        # Found ON clause, insert RLS. The logic for ON is more complicated than the logic  # noqa: E501
         # for WHERE because in the former the comparisons are siblings, while on the
         # latter they are children.
         elif (
@@ -913,7 +899,7 @@ RE_JINJA_VAR = re.compile(r"\{\{[^\{\}]+\}\}")
 RE_JINJA_BLOCK = re.compile(r"\{[%#][^\{\}%#]+[%#]\}")
 
 
-def extract_table_references(
+def extract_table_references(  # noqa: C901
     sql_text: str, sqla_dialect: str, show_warning: bool = True
 ) -> set[Table]:
     """
@@ -923,7 +909,7 @@ def extract_table_references(
     tree = None
 
     if sqloxide_parse:
-        for dialect, sqla_dialects in SQLOXIDE_DIALECTS.items():
+        for dialect, sqla_dialects in SQLOXIDE_DIALECTS.items():  # noqa: B007
             if sqla_dialect in sqla_dialects:
                 break
         sql_text = RE_JINJA_BLOCK.sub(" ", sql_text)
@@ -1013,10 +999,13 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
             node.fields = nodes.TemplateData.fields
             node.data = "NULL"
 
+    # re-render template back into a string
+    rendered_template = Template(template).render()
+
     return (
         tables
         | ParsedQuery(
-            sql_statement=processor.process_template(template),
+            sql_statement=processor.process_template(rendered_template),
             engine=database.db_engine_spec.engine,
         ).tables
     )

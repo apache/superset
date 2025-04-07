@@ -21,9 +21,9 @@ import {
   fireEvent,
   render,
   screen,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 
 import {
   FeatureFlag,
@@ -51,6 +51,16 @@ const mockSetting: NotificationSetting = {
 
 const mockEmailSubject = 'Test Subject';
 const mockDefaultSubject = 'Default Subject';
+
+const mockSettingSlackV2: NotificationSetting = {
+  method: NotificationMethodOption.SlackV2,
+  recipients: 'slack-channel',
+  options: [
+    NotificationMethodOption.Email,
+    NotificationMethodOption.Slack,
+    NotificationMethodOption.SlackV2,
+  ],
+};
 
 describe('NotificationMethod', () => {
   beforeEach(() => {
@@ -479,5 +489,70 @@ describe('NotificationMethod', () => {
     expect(
       screen.getByText('Recipients are separated by "," or ";"'),
     ).toBeInTheDocument();
+  });
+
+  it('shows the textarea when ff is true, slackChannels fail and slack is selected', async () => {
+    window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+    jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
+      throw new Error('Error fetching Slack channels');
+    });
+
+    render(
+      <NotificationMethod
+        setting={{
+          ...mockSettingSlackV2,
+          method: NotificationMethodOption.Slack,
+        }}
+        index={0}
+        onUpdate={mockOnUpdate}
+        onRemove={mockOnRemove}
+        onInputChange={mockOnInputChange}
+        email_subject={mockEmailSubject}
+        defaultSubject={mockDefaultSubject}
+        setErrorSubject={mockSetErrorSubject}
+      />,
+    );
+
+    expect(
+      screen.getByText('Recipients are separated by "," or ";"'),
+    ).toBeInTheDocument();
+  });
+
+  describe('RefreshLabel functionality', () => {
+    it('should call updateSlackOptions with force true when RefreshLabel is clicked', async () => {
+      // Set feature flag so that SlackV2 branch renders RefreshLabel
+      window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+      // Spy on SupersetClient.get which is called by updateSlackOptions
+      const supersetClientSpy = jest
+        .spyOn(SupersetClient, 'get')
+        .mockImplementation(
+          () =>
+            Promise.resolve({ json: { result: [] } }) as unknown as Promise<
+              Response | JsonResponse | TextResponse
+            >,
+        );
+
+      render(
+        <NotificationMethod
+          setting={mockSettingSlackV2}
+          index={0}
+          onUpdate={mockOnUpdate}
+          onRemove={mockOnRemove}
+          onInputChange={mockOnInputChange}
+          email_subject={mockEmailSubject}
+          defaultSubject={mockDefaultSubject}
+          setErrorSubject={mockSetErrorSubject}
+        />,
+      );
+
+      // Wait for RefreshLabel to be rendered (it may have a tooltip with the provided content)
+      const refreshLabel = await waitFor(() => screen.getByLabelText('sync'));
+      // Simulate a click on the RefreshLabel
+      userEvent.click(refreshLabel);
+      // Verify that the SupersetClient.get was called indicating that updateSlackOptions executed
+      await waitFor(() => {
+        expect(supersetClientSpy).toHaveBeenCalled();
+      });
+    });
   });
 });

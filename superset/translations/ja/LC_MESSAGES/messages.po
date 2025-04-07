@@ -616,8 +616,8 @@ msgstr ">= (大きいか等しい)"
 msgid "A Big Number"
 msgstr "大きな数字"
 
-msgid "A comma separated list of columns that should be parsed as dates"
-msgstr "日付として解析する必要がある列のカンマ区切りのリスト"
+msgid "Select column names from a dropdown list that should be parsed as dates."
+msgstr "日付として解析する列の名前をドロップダウン・リストから選択する。"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "ファイルのアップロードを許可するスキーマのカンマ区切りのリスト"
@@ -11590,7 +11590,7 @@ msgstr "X 軸の切り詰め"
 
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
-" applicable for numercal X axis."
+" applicable for numerical X axis."
 msgstr "X 軸を切り詰めます。最小値または最大値の境界を指定することでオーバーライドできます。数値 X 軸にのみ適用されます。"
 
 msgid "Truncate Y Axis"

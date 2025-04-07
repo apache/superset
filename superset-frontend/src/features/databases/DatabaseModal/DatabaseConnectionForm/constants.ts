@@ -30,6 +30,7 @@ import {
   passwordField,
   portField,
   queryField,
+  projectIdfield,
   usernameField,
 } from './CommonParameters';
 import { OAuth2ClientField } from './OAuth2ClientField';
@@ -50,16 +51,17 @@ export const FormFieldOrder = [
   'http_path',
   'http_path_field',
   'database_name',
+  'project_id',
+  'catalog',
   'credentials_info',
   'service_account_info',
-  'catalog',
   'query',
   'encryption',
   'account',
   'warehouse',
   'role',
   'ssh',
-  'oauth2_client',
+  'oauth2_client_info',
 ];
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -77,7 +79,7 @@ export const FORM_FIELD_MAP = {
   default_schema: defaultSchemaField,
   username: usernameField,
   password: passwordField,
-  oauth2_client: OAuth2ClientField,
+  oauth2_client_info: OAuth2ClientField,
   access_token: accessTokenField,
   database_name: displayField,
   query: queryField,
@@ -89,4 +91,5 @@ export const FORM_FIELD_MAP = {
   role: validatedInputField,
   account: validatedInputField,
   ssh: SSHTunnelSwitchComponent,
+  project_id: projectIdfield,
 };

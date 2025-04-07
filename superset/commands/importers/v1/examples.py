@@ -87,7 +87,7 @@ class ImportExamplesCommand(ImportModelsCommand):
         )
 
     @staticmethod
-    def _import(  # pylint: disable=too-many-locals, too-many-branches
+    def _import(  # pylint: disable=too-many-locals, too-many-branches  # noqa: C901
         configs: dict[str, Any],
         overwrite: bool = False,
         force_data: bool = False,

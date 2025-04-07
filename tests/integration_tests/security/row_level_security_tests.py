@@ -33,7 +33,6 @@ from superset.utils import json
 from flask_babel import lazy_gettext as _  # noqa: F401
 from flask_appbuilder.models.sqla import filters
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_config  # noqa: F401
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -56,7 +55,7 @@ class TestRowLevelSecurity(SupersetTestCase):
     """
 
     rls_entry = None
-    query_obj: dict[str, Any] = dict(
+    query_obj: dict[str, Any] = dict(  # noqa: C408
         groupby=[],
         metrics=None,
         filter=[],
@@ -153,7 +152,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         db.session.delete(self.get_user("NoRlsRoleUser"))
         db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_dataset(self):
         with self.create_app().app_context():
             dataset = SqlaTable(database_id=1, schema=None, table_name="table1")
@@ -268,7 +267,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         # establish that the filters are grouped together correctly with
         # ANDs, ORs and parens in the correct place
         assert (
-            "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy');"
+            "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy');"  # noqa: E501
             in sql
         )
 
@@ -622,7 +621,7 @@ RLS_GENDER_REGEX = re.compile(r"AND \([\s\n]*gender = 'girl'[\s\n]*\)")
     EMBEDDED_SUPERSET=True,
 )
 class GuestTokenRowLevelSecurityTests(SupersetTestCase):
-    query_obj: dict[str, Any] = dict(
+    query_obj: dict[str, Any] = dict(  # noqa: C408
         groupby=[],
         metrics=None,
         filter=[],

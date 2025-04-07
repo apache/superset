@@ -62,6 +62,7 @@ import {
   extractDataTotalValues,
   extractSeries,
   extractShowValueIndexes,
+  extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
   getLegendProps,
@@ -77,6 +78,7 @@ import {
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
   rebaseForecastDatum,
+  reorderForecastSeries,
 } from '../utils/forecast';
 import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultYAxis } from '../defaults';
@@ -516,7 +518,9 @@ export default function transformProps(
       minorTick: { show: minorTicks },
       minInterval:
         xAxisType === AxisType.Time && timeGrainSqla
-          ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
+          ? TIMEGRAIN_TO_TIMESTAMP[
+              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+            ]
           : 0,
       ...getMinAndMaxFromBounds(
         xAxisType,
@@ -584,9 +588,13 @@ export default function transformProps(
           : params.value[0];
         const forecastValue: any[] = richTooltip ? params : [params];
 
-        if (richTooltip && tooltipSortByMetric) {
-          forecastValue.sort((a, b) => b.data[1] - a.data[1]);
-        }
+        const sortedKeys = extractTooltipKeys(
+          forecastValue,
+          // horizontal mode is not supported in mixed series chart
+          1,
+          richTooltip,
+          tooltipSortByMetric,
+        );
 
         const rows: string[][] = [];
         const forecastValues =
@@ -594,44 +602,46 @@ export default function transformProps(
 
         const keys = Object.keys(forecastValues);
         let focusedRow;
-        keys.forEach(key => {
-          const value = forecastValues[key];
-          // if there are no dimensions, key is a verbose name of a metric,
-          // otherwise it is a comma separated string where the first part is metric name
-          let formatterKey;
-          if (primarySeries.has(key)) {
-            formatterKey =
-              groupby.length === 0 ? inverted[key] : labelMap[key]?.[0];
-          } else {
-            formatterKey =
-              groupbyB.length === 0 ? inverted[key] : labelMapB[key]?.[0];
-          }
-          const tooltipFormatter = getFormatter(
-            customFormatters,
-            formatter,
-            metrics,
-            formatterKey,
-            !!contributionMode,
-          );
-          const tooltipFormatterSecondary = getFormatter(
-            customFormattersSecondary,
-            formatterSecondary,
-            metricsB,
-            formatterKey,
-            !!contributionMode,
-          );
-          const row = formatForecastTooltipSeries({
-            ...value,
-            seriesName: key,
-            formatter: primarySeries.has(key)
-              ? tooltipFormatter
-              : tooltipFormatterSecondary,
+        sortedKeys
+          .filter(key => keys.includes(key))
+          .forEach(key => {
+            const value = forecastValues[key];
+            // if there are no dimensions, key is a verbose name of a metric,
+            // otherwise it is a comma separated string where the first part is metric name
+            let formatterKey;
+            if (primarySeries.has(key)) {
+              formatterKey =
+                groupby.length === 0 ? inverted[key] : labelMap[key]?.[0];
+            } else {
+              formatterKey =
+                groupbyB.length === 0 ? inverted[key] : labelMapB[key]?.[0];
+            }
+            const tooltipFormatter = getFormatter(
+              customFormatters,
+              formatter,
+              metrics,
+              formatterKey,
+              !!contributionMode,
+            );
+            const tooltipFormatterSecondary = getFormatter(
+              customFormattersSecondary,
+              formatterSecondary,
+              metricsB,
+              formatterKey,
+              !!contributionMode,
+            );
+            const row = formatForecastTooltipSeries({
+              ...value,
+              seriesName: key,
+              formatter: primarySeries.has(key)
+                ? tooltipFormatter
+                : tooltipFormatterSecondary,
+            });
+            rows.push(row);
+            if (key === focusedSeries) {
+              focusedRow = rows.length - 1;
+            }
           });
-          rows.push(row);
-          if (key === focusedSeries) {
-            focusedRow = rows.length - 1;
-          }
-        });
         return tooltipHtml(rows, tooltipFormatter(xValue), focusedRow);
       },
     },
@@ -654,7 +664,7 @@ export default function transformProps(
         .map(entry => entry.name || '')
         .concat(extractAnnotationLabels(annotationLayers, annotationData)),
     },
-    series: dedupSeries(series),
+    series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {
       show: zoomable,
       top: TIMESERIES_CONSTANTS.toolboxTop,

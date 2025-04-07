@@ -56,7 +56,7 @@ class TestEventLogger(unittest.TestCase):
     def test_raises_typeerror_if_not_abc(self):
         # test that assignment of non AbstractEventLogger derived type raises
         # TypeError
-        with self.assertRaises(TypeError):
+        with self.assertRaises(TypeError):  # noqa: PT027
             get_event_logger_from_cfg_value(logging.getLogger())
 
     @patch.object(DBEventLogger, "log")

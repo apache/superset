@@ -69,7 +69,7 @@ def upgrade():
         op.create_unique_constraint(
             "uq_report_schedule_name", "report_schedule", ["name"]
         )
-    except Exception:
+    except Exception:  # noqa: S110
         # Expected to fail on SQLite
         pass
     op.create_index(

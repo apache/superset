@@ -15,7 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Revenue by Deal Size
-viz_type: bar
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
 params:
   adhoc_filters: []
   annotation_layers: []
@@ -63,13 +66,14 @@ params:
   time_grain_sqla: P1M
   time_range: '2003-01-01T00:00:00 : 2005-06-01T00:00:00'
   url_params: {}
-  viz_type: bar
+  viz_type: echarts_timeseries_bar
   x_axis_format: smart_date
   x_ticks_layout: auto
   y_axis_bounds:
   - null
   - null
   y_axis_format: SMART_NUMBER
+query_context: null
 cache_timeout: null
 uuid: f065a533-2e13-42b9-bd19-801a21700dff
 version: 1.0.0

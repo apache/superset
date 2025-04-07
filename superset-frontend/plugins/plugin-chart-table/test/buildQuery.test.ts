@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryMode, TimeGranularity } from '@superset-ui/core';
+import { QueryMode, TimeGranularity, VizType } from '@superset-ui/core';
 import buildQuery from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
-  viz_type: 'table',
+  viz_type: VizType.Table,
   datasource: '11__table',
 };
 
@@ -146,15 +146,6 @@ describe('plugin-chart-table', () => {
       expect(queries[0].extras?.where).toEqual("(status IN ('In Process'))");
       // Extras in summary query
       expect(queries[1].extras?.time_grain_sqla).toEqual(TimeGranularity.MONTH);
-      expect(queries[1].extras?.where).toEqual("(status IN ('In Process'))");
-    });
-    it('should not include time_grain_sqla in extras if temporal colum is not used and keep the rest', () => {
-      const { queries } = buildQuery(extraQueryFormData);
-      // Extras in regular query
-      expect(queries[0].extras?.time_grain_sqla).toBeUndefined();
-      expect(queries[0].extras?.where).toEqual("(status IN ('In Process'))");
-      // Extras in summary query
-      expect(queries[1].extras?.time_grain_sqla).toBeUndefined();
       expect(queries[1].extras?.where).toEqual("(status IN ('In Process'))");
     });
   });

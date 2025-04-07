@@ -20,10 +20,10 @@ import { AriaAttributes } from 'react';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
-import 'jest-enzyme';
+import 'enzyme-matchers';
 import jQuery from 'jquery';
-import { configure } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
+import Enzyme from 'enzyme';
+import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
 import { configure as configureTranslation } from '../../packages/superset-ui-core/src/translation';
@@ -33,16 +33,17 @@ import { ResizeObserver } from './ResizeObserver';
 import setupSupersetClient from './setupSupersetClient';
 import CacheStorage from './CacheStorage';
 
-configure({ adapter: new Adapter() });
+Enzyme.configure({ adapter: new Adapter() });
 
 const exposedProperties = ['window', 'navigator', 'document'];
 
 const { defaultView } = document;
 if (defaultView != null) {
   Object.keys(defaultView).forEach(property => {
-    if (typeof global[property] === 'undefined') {
+    if (typeof global[property as keyof typeof global] === 'undefined') {
       exposedProperties.push(property);
-      global[property] = defaultView[property];
+      // @ts-ignore due to string-type index signature doesn't apply for `typeof globalThis`.
+      global[property] = defaultView[property as keyof typeof defaultView];
     }
   });
 }
@@ -91,7 +92,7 @@ jest.mock('rehype-raw', () => () => jest.fn());
 
 // Mocks the Icon component due to its async nature
 // Tests should override this when needed
-jest.mock('src/components/Icons/Icon', () => ({
+jest.mock('src/components/Icons/AsyncIcon', () => ({
   __esModule: true,
   default: ({
     fileName,
@@ -110,13 +111,22 @@ jest.mock('src/components/Icons/Icon', () => ({
     />
   ),
   StyledIcon: ({
+    component: Component,
     role,
     'aria-label': ariaLabel,
     ...rest
   }: {
+    component: React.ComponentType<any>;
     role: string;
     'aria-label': AriaAttributes['aria-label'];
-  }) => <span role={role ?? 'img'} aria-label={ariaLabel} {...rest} />,
+  }) => (
+    <Component
+      role={role ?? 'img'}
+      alt={ariaLabel}
+      aria-label={ariaLabel}
+      {...rest}
+    />
+  ),
 }));
 
 process.env.WEBPACK_MODE = 'test';

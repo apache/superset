@@ -34,14 +34,14 @@ logging.getLogger("flask_appbuilder.api").setLevel(logging.WARNING)
 logging.getLogger("flask_appbuilder.security.sqla.manager").setLevel(logging.WARNING)
 logging.getLogger("sqlalchemy.engine.Engine").setLevel(logging.WARNING)
 
-SECRET_KEY = "dummy_secret_key_for_test_to_silence_warnings"
+SECRET_KEY = "dummy_secret_key_for_test_to_silence_warnings"  # noqa: S105
 AUTH_USER_REGISTRATION_ROLE = "alpha"
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(  # noqa: F405
     DATA_DIR,
     "unittests.integration_tests.db",  # noqa: F405
 )
 SILENCE_FAB = False
-# Allowing SQLALCHEMY_DATABASE_URI and SQLALCHEMY_EXAMPLES_URI to be defined as an env vars for
+# Allowing SQLALCHEMY_DATABASE_URI and SQLALCHEMY_EXAMPLES_URI to be defined as an env vars for  # noqa: E501
 # continuous integration
 if "SUPERSET__SQLALCHEMY_DATABASE_URI" in os.environ:  # noqa: F405
     SQLALCHEMY_DATABASE_URI = os.environ["SUPERSET__SQLALCHEMY_DATABASE_URI"]  # noqa: F405
@@ -68,20 +68,17 @@ SQLLAB_CTAS_NO_LIMIT = True  # SQL_MAX_ROW will not take effect for the CTA quer
 FEATURE_FLAGS = {
     **FEATURE_FLAGS,  # noqa: F405
     "foo": "bar",
-    "KV_STORE": True,
-    "SHARE_QUERIES_VIA_KV_STORE": True,
     "ENABLE_TEMPLATE_PROCESSING": True,
     "ALERT_REPORTS": True,
     "AVOID_COLORS_COLLISION": True,
     "DRILL_TO_DETAIL": True,
     "DRILL_BY": True,
-    "HORIZONTAL_FILTER_BAR": True,
 }
 
 WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
 
 
-def GET_FEATURE_FLAGS_FUNC(ff):
+def GET_FEATURE_FLAGS_FUNC(ff):  # noqa: N802
     ff_copy = copy(ff)
     ff_copy["super"] = "set"
     return ff_copy
@@ -128,7 +125,7 @@ EXPLORE_FORM_DATA_CACHE_CONFIG = {
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
 }
 
-GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me-test-secret-change-me"
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me-test-secret-change-me"  # noqa: S105
 
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 
@@ -151,3 +148,4 @@ CUSTOM_TEMPLATE_PROCESSORS = {
 }
 
 PRESERVE_CONTEXT_ON_EXCEPTION = False
+print("Loaded TEST config for INTEGRATION tests")

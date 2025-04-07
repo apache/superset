@@ -25,8 +25,7 @@ Create Date: 2024-08-13 15:27:11.589886
 import sqlalchemy as sa
 from alembic import op
 
-from superset.migrations.shared.constraints import drop_fks_for_table
-from superset.migrations.shared.utils import has_table
+from superset.migrations.shared.utils import drop_fks_for_table, has_table
 
 # revision identifiers, used by Alembic.
 revision = "e53fd48cc078"

@@ -27,12 +27,13 @@ from marshmallow.validate import Range
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
-from superset.constants import TimeGrain, USER_AGENT
+from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils import json
+from superset.utils.core import get_user_agent, QuerySource
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
@@ -198,17 +199,20 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
     }
 
     @staticmethod
-    def get_extra_params(database: Database) -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         Add a user agent to be used in the requests.
         Trim whitespace from connect_args to avoid databricks driver errors
         """
-        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database, source)
         engine_params: dict[str, Any] = extra.setdefault("engine_params", {})
         connect_args: dict[str, Any] = engine_params.setdefault("connect_args", {})
 
-        connect_args.setdefault("http_headers", [("User-Agent", USER_AGENT)])
-        connect_args.setdefault("_user_agent_entry", USER_AGENT)
+        user_agent = get_user_agent(database, source)
+        connect_args.setdefault("http_headers", [("User-Agent", user_agent)])
+        connect_args.setdefault("_user_agent_entry", user_agent)
 
         # trim whitespace from http_path to avoid databricks errors on connecting
         if http_path := connect_args.get("http_path"):
@@ -288,7 +292,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         if missing := sorted(cls.required_parameters - present):
             errors.append(
                 SupersetError(
-                    message=f'One or more parameters are missing: {", ".join(missing)}',
+                    message=f"One or more parameters are missing: {', '.join(missing)}",
                     error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                     level=ErrorLevel.WARNING,
                     extra={"missing": missing},
@@ -328,8 +332,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
             errors.append(
                 SupersetError(
                     message=(
-                        "The port must be an integer between 0 and 65535 "
-                        "(inclusive)."
+                        "The port must be an integer between 0 and 65535 (inclusive)."
                     ),
                     error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
                     level=ErrorLevel.ERROR,
@@ -350,7 +353,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
 
 class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine = "databricks"
-    engine_name = "Databricks"
+    engine_name = "Databricks (legacy)"
     drivers = {"connector": "Native all-purpose driver"}
     default_driver = "connector"
 
@@ -464,8 +467,10 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     ) -> list[str]:
         prequeries = []
         if catalog:
+            catalog = f"`{catalog}`" if not catalog.startswith("`") else catalog
             prequeries.append(f"USE CATALOG {catalog}")
         if schema:
+            schema = f"`{schema}`" if not schema.startswith("`") else schema
             prequeries.append(f"USE SCHEMA {schema}")
         return prequeries
 
@@ -480,7 +485,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
 
 class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine = "databricks"
-    engine_name = "Databricks Python Connector"
+    engine_name = "Databricks"
     default_driver = "databricks-sql-python"
     drivers = {"databricks-sql-python": "Databricks SQL Python"}
 

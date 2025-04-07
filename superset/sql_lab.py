@@ -17,6 +17,7 @@
 # pylint: disable=consider-using-transaction
 import dataclasses
 import logging
+import sys
 import uuid
 from contextlib import closing
 from datetime import datetime
@@ -78,9 +79,10 @@ SQL_MAX_ROW = config["SQL_MAX_ROW"]
 SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
+BYTES_IN_MB = 1024 * 1024
 
 
-class SqlLabException(Exception):
+class SqlLabException(Exception):  # noqa: N818
     pass
 
 
@@ -104,7 +106,7 @@ def handle_query_error(
     query.error_message = msg
     query.tmp_table_name = None
     query.status = QueryStatus.FAILED
-    # TODO: re-enable this after updating the frontend to properly display timeout status
+    # TODO: re-enable this after updating the frontend to properly display timeout status  # noqa: E501
     # if query.status != QueryStatus.TIMED_OUT:
     #   query.status = QueryStatus.FAILED
     if not query.end_time:
@@ -191,11 +193,11 @@ def get_sql_results(  # pylint: disable=too-many-arguments
             except Exception as ex:  # pylint: disable=broad-except
                 logger.debug("Query %d: %s", query_id, ex)
                 stats_logger.incr("error_sqllab_unhandled")
-                query = get_query(query_id)
+                query = get_query(query_id=query_id)
                 return handle_query_error(ex, query)
 
 
-def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-locals
+def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-locals  # noqa: C901
     sql_statement: str,
     query: Query,
     cursor: Any,
@@ -252,7 +254,7 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
                 SupersetError(
                     message=__(
                         "This database does not allow for DDL/DML, and the query "
-                        "could not be parsed to confirm it is a read-only query. Please "
+                        "could not be parsed to confirm it is a read-only query. Please "  # noqa: E501
                         "contact your administrator for more assistance."
                     ),
                     error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
@@ -265,7 +267,7 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)
             query.tmp_table_name = (
-                f'tmp_{query.user_id}_table_{start_dttm.strftime("%Y_%m_%d_%H_%M_%S")}'
+                f"tmp_{query.user_id}_table_{start_dttm.strftime('%Y_%m_%d_%H_%M_%S')}"
             )
         sql = parsed_query.as_create_table(
             query.tmp_table_name,
@@ -406,7 +408,7 @@ def _serialize_and_expand_data(
     return (data, selected_columns, all_columns, expanded_columns)
 
 
-def execute_sql_statements(
+def execute_sql_statements(  # noqa: C901
     # pylint: disable=too-many-arguments, too-many-locals, too-many-statements, too-many-branches
     query_id: int,
     rendered_query: str,
@@ -421,7 +423,7 @@ def execute_sql_statements(
         # only asynchronous queries
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
 
-    query = get_query(query_id)
+    query = get_query(query_id=query_id)
     payload: dict[str, Any] = {"query_id": query_id}
     database = query.database
     db_engine_spec = database.db_engine_spec
@@ -531,6 +533,7 @@ def execute_sql_statements(
                     log_params,
                     apply_ctas,
                 )
+
             except SqlLabQueryStoppedException:
                 payload.update({"status": QueryStatus.STOPPED})
                 return payload
@@ -601,6 +604,22 @@ def execute_sql_statements(
                 serialized_payload = _serialize_payload(
                     payload, cast(bool, results_backend_use_msgpack)
                 )
+
+                # Check the size of the serialized payload
+                if sql_lab_payload_max_mb := config.get("SQLLAB_PAYLOAD_MAX_MB"):
+                    serialized_payload_size = sys.getsizeof(serialized_payload)
+                    max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
+
+                    if serialized_payload_size > max_bytes:
+                        logger.info("Result size exceeds the allowed limit.")
+                        raise SupersetErrorException(
+                            SupersetError(
+                                message=f"Result size ({serialized_payload_size / BYTES_IN_MB:.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",  # noqa: E501
+                                error_type=SupersetErrorType.RESULT_TOO_LARGE_ERROR,
+                                level=ErrorLevel.ERROR,
+                            )
+                        )
+
             cache_timeout = database.cache_timeout
             if cache_timeout is None:
                 cache_timeout = config["CACHE_DEFAULT_TIMEOUT"]
@@ -635,6 +654,23 @@ def execute_sql_statements(
                     "expanded_columns": expanded_columns,
                 }
             )
+        # Check the size of the serialized payload (opt-in logic for return_results)
+        if sql_lab_payload_max_mb := config.get("SQLLAB_PAYLOAD_MAX_MB"):
+            serialized_payload = _serialize_payload(
+                payload, cast(bool, results_backend_use_msgpack)
+            )
+            serialized_payload_size = sys.getsizeof(serialized_payload)
+            max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
+
+            if serialized_payload_size > max_bytes:
+                logger.info("Result size exceeds the allowed limit.")
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=f"Result size ({serialized_payload_size / BYTES_IN_MB:.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",  # noqa: E501
+                        error_type=SupersetErrorType.RESULT_TOO_LARGE_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
+                )
         return payload
 
     return None

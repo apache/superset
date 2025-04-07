@@ -92,7 +92,7 @@ class TestSavedQueryApi(SupersetTestCase):
             description="cool description",
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_saved_queries(self):
         with self.create_app().app_context():
             saved_queries = []
@@ -480,9 +480,9 @@ class TestSavedQueryApi(SupersetTestCase):
             assert data_by_id["count"] == data_by_name["count"], len(
                 expected_saved_queries
             )
-            assert set(query["id"] for query in data_by_id["result"]) == set(
+            assert set(query["id"] for query in data_by_id["result"]) == set(  # noqa: C401
                 query["id"] for query in data_by_name["result"]
-            ), set(query.id for query in expected_saved_queries)
+            ), set(query.id for query in expected_saved_queries)  # noqa: C401
 
     @pytest.mark.usefixtures("create_saved_queries")
     def test_get_saved_query_favorite_filter(self):

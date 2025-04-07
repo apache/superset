@@ -30,10 +30,10 @@ import {
   FC,
 } from 'react';
 import cx from 'classnames';
-import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { styled, t, useTheme } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
 import Loading from 'src/components/Loading';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { getFilterBarTestId } from './utils';
 import { VerticalBarProps } from './types';
 import Header from './Header';
@@ -97,17 +97,6 @@ const CollapsedBar = styled.div<{ offset: number }>`
   `}
 `;
 
-const StyledCollapseIcon = styled(Icons.Collapse)`
-  ${({ theme }) => `
-    color: ${theme.colors.primary.base};
-    margin-bottom: ${theme.gridUnit * 3}px;
-  `}
-`;
-
-const StyledFilterIcon = styled(Icons.Filter)`
-  color: ${({ theme }) => theme.colors.grayscale.base};
-`;
-
 const FilterBarEmptyStateContainer = styled.div`
   margin-top: ${({ theme }) => theme.gridUnit * 8}px;
 `;
@@ -132,6 +121,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   toggleFiltersBar,
   width,
 }) => {
+  const theme = useTheme();
   const [isScrolling, setIsScrolling] = useState(false);
   const timeout = useRef<any>();
 
@@ -168,13 +158,14 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     () =>
       filterValues.length === 0 ? (
         <FilterBarEmptyStateContainer>
-          <EmptyStateSmall
+          <EmptyState
+            size="small"
             title={t('No global filters are currently added')}
             image="filter.svg"
             description={
               canEdit &&
               t(
-                'Click on "+Add/Edit Filters" button to create new dashboard filters',
+                'Click on "Add or Edit Filters" option in Settings to create new dashboard filters',
               )
             }
           />
@@ -188,14 +179,6 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         </FilterControlsWrapper>
       ),
     [canEdit, dataMaskSelected, filterValues.length, onSelectionChange],
-  );
-
-  const crossFilters = useMemo(
-    () =>
-      isFeatureEnabled(FeatureFlag.DashboardCrossFilters) ? (
-        <CrossFiltersVertical />
-      ) : null,
-    [],
   );
 
   return (
@@ -212,11 +195,17 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           role="button"
           offset={offset}
         >
-          <StyledCollapseIcon
-            {...getFilterBarTestId('expand-button')}
+          <Icons.VerticalAlignTopOutlined
             iconSize="l"
+            css={{
+              transform: 'rotate(90deg)',
+              marginBottom: `${theme.gridUnit * 3}px`,
+            }}
+            className="collapse-icon"
+            iconColor={theme.colors.primary.base}
+            {...getFilterBarTestId('expand-button')}
           />
-          <StyledFilterIcon
+          <Icons.FilterOutlined
             {...getFilterBarTestId('filter-icon')}
             iconSize="l"
           />
@@ -230,7 +219,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
-                {crossFilters}
+                <CrossFiltersVertical />
                 {filterControls}
               </>
             </div>

@@ -42,7 +42,11 @@ from superset.utils.core import (
 )
 from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import only_postgresql, only_sqlite
+from tests.integration_tests.conftest import (
+    only_postgresql,
+    only_sqlite,
+    with_feature_flags,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -204,7 +208,7 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
         del payload["queries"][0]["granularity"]
 
-        # construct baseline query_cache_key from query_context with post processing operation
+        # construct baseline query_cache_key from query_context with post processing operation  # noqa: E501
         query_context: QueryContext = ChartDataQueryContextSchema().load(payload)
         query_object: QueryObject = query_context.queries[0]
         cache_key_original = query_context.query_cache_key(query_object)
@@ -218,7 +222,7 @@ class TestQueryContext(SupersetTestCase):
     def test_query_cache_key_changes_when_post_processing_is_updated(self):
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
 
-        # construct baseline query_cache_key from query_context with post processing operation
+        # construct baseline query_cache_key from query_context with post processing operation  # noqa: E501
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key_original = query_context.query_cache_key(query_object)
@@ -782,6 +786,8 @@ def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):
         "count, col2, row1": ["count", "col2, row1"],
         "count, col2, row2": ["count", "col2, row2"],
         "count, col2, row3": ["count", "col2, row3"],
+        "col2": ["col2"],
+        "count": ["count"],
     }
 
 
@@ -858,6 +864,7 @@ def test_non_time_column_with_time_grain(app_context, physical_dataset):
     assert df["COL2 ALIAS"][0] == "a"
 
 
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 def test_special_chars_in_column_name(app_context, physical_dataset):
     qc = QueryContextFactory().create(
         datasource={

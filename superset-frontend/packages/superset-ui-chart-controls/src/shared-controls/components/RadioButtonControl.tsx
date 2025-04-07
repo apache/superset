@@ -18,7 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { JsonValue, useTheme } from '@superset-ui/core';
-import ControlHeader from '../../components/ControlHeader';
+import { ControlHeader } from '../../components/ControlHeader';
 
 // [value, label]
 export type RadioButtonOption = [
