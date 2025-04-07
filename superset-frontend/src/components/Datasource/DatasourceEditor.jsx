@@ -1367,7 +1367,6 @@ class DatasourceEditor extends PureComponent {
           }
         />
         <StyledTableTabs
-          fullWidth={false}
           id="table-tabs"
           data-test="edit-dataset-tabs"
           onChange={this.handleTabSelect}

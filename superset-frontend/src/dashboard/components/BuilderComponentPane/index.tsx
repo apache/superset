@@ -19,7 +19,7 @@
 /* eslint-env browser */
 import { rgba } from 'emotion-rgba';
 import Tabs from 'src/components/Tabs';
-import { t, css, SupersetTheme } from '@superset-ui/core';
+import { t, css, SupersetTheme, theme } from '@superset-ui/core';
 import SliceAdder from 'src/dashboard/containers/SliceAdder';
 import dashboardComponents from 'src/visualizations/presets/dashboardComponents';
 import NewColumn from '../gridComponents/new/NewColumn';
@@ -60,6 +60,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
       <Tabs
         data-test="dashboard-builder-component-pane-tabs-navigation"
         id="tabs"
+        tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
         css={(theme: SupersetTheme) => css`
           line-height: inherit;
           margin-top: ${theme.sizeUnit * 2}px;
