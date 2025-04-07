@@ -370,8 +370,8 @@ test('Sends the correct schema when changing the schema', async () => {
   });
   expect(select).toBeInTheDocument();
   userEvent.click(select);
-  const schemaOption = await screen.findByText('information_schema');
-  userEvent.click(schemaOption);
+  const schemaOption = await screen.findAllByText('information_schema');
+  userEvent.click(schemaOption[1]);
   await waitFor(() =>
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );
