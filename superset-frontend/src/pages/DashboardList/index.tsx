@@ -37,7 +37,7 @@ import {
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import { PublishedLabel } from 'src/components/Label';
-import { TagsList } from 'src/components/Tags';
+import TagsList from 'src/components/TagsList';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
@@ -65,7 +65,7 @@ import {
   QueryObjectColumns,
 } from 'src/views/CRUD/types';
 import CertifiedBadge from 'src/components/CertifiedBadge';
-import { loadTags } from 'src/components/Tags/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';

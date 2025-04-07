@@ -25,7 +25,7 @@ jest.mock('@superset-ui/chart-controls', () => ({
   ...jest.requireActual('@superset-ui/chart-controls'),
   InfoTooltipWithTrigger: () => <div data-test="mock-info-tooltip" />,
 }));
-jest.mock('src/components', () => ({
+jest.mock('src/components/Grid', () => ({
   ...jest.requireActual('src/components'),
   Row: ({ children }) => <div data-test="mock-row">{children}</div>,
   Col: ({ children }) => <div data-test="mock-col">{children}</div>,

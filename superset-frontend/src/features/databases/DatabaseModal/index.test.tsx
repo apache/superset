@@ -433,7 +433,7 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // <TabHeader> - AntD header
-      const closeButton = screen.getByRole('button', { name: 'close' });
+      const closeButton = screen.getByRole('img', { name: 'close' });
 
       const basicHeader = screen.getByRole('heading', {
         name: /connect a database/i,

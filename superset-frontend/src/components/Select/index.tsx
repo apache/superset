@@ -16,16 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import TagType from 'src/types/TagType';
-import { Tag } from '.';
+import Select from './Select';
+import AsyncSelect from './AsyncSelect';
 
-export default {
-  title: 'Tags',
-  component: Tag,
-};
-export const InteractiveTag = (args: TagType) => <Tag {...args} />;
-
-InteractiveTag.args = {
-  editable: false,
-  name: 'Tag',
-};
+export { Select, AsyncSelect };

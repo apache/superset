@@ -35,12 +35,12 @@ import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { Switch, SwitchProps } from 'src/components/Switch';
 import Collapse from 'src/components/Collapse';
-import { AsyncSelect, Col, Row, Select, Upload } from 'src/components';
+import { Select, AsyncSelect } from 'src/components';
+import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
+import { Row, Col } from 'src/components/Grid';
 import { Icons } from 'src/components/Icons';
 import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
-// eslint-disable-next-line no-restricted-imports
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Form } from 'src/components/Form';
 import {

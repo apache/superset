@@ -18,7 +18,7 @@
  */
 import { styled } from '@superset-ui/core';
 import { Progress as AntdProgress } from 'antd-v5';
-import { ProgressProps } from 'antd-v5/lib/progress/progress';
+import { ProgressProps } from 'antd-v5/es/progress/progress';
 
 export interface ProgressBarProps extends ProgressProps {
   striped?: boolean;
