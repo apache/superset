@@ -54,6 +54,11 @@ type StyledPaneProps = {
   height: number;
 };
 
+const TABS_KEYS = {
+  RESULTS: 'Results',
+  HISTORY: 'History',
+};
+
 const StyledPane = styled.div<StyledPaneProps>`
   width: 100%;
   height: ${props => props.height}px;
@@ -150,7 +155,7 @@ const SouthPane = ({
 
   const tabItems = [
     {
-      key: 'Results',
+      key: TABS_KEYS.RESULTS,
       label: t('Results'),
       children: (
         <Results
@@ -163,7 +168,7 @@ const SouthPane = ({
       closable: false,
     },
     {
-      key: 'History',
+      key: TABS_KEYS.HISTORY,
       label: t('Query history'),
       children: (
         <QueryHistory
