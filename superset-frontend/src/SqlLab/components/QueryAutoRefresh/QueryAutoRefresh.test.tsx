@@ -33,24 +33,12 @@ import QueryAutoRefresh, {
 } from 'src/SqlLab/components/QueryAutoRefresh';
 import { successfulQuery, runningQuery } from 'src/SqlLab/fixtures';
 import { QueryDictionary } from 'src/SqlLab/types';
+import mockDatabases from 'spec/fixtures/mockDatabases';
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 const mockState = {
-  databases: {
-    1: {
-      allow_ctas: false,
-      allow_cvas: false,
-      allow_dml: false,
-      allow_file_upload: false,
-      allow_run_async: true,
-      backend: 'postgresql',
-      database_name: 'examples',
-      expose_in_sqllab: true,
-      force_ctas_schema: null,
-      id: 1,
-    },
-  },
+  databases: mockDatabases,
 };
 
 // NOTE: The uses of @ts-ignore in this file is to enable testing of bad inputs to verify the
