@@ -16,129 +16,90 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import Button, { ButtonProps as AntdButtonProps } from 'src/components/Button';
-import { Icons } from 'src/components/Icons';
-import LinesEllipsis from 'react-lines-ellipsis';
 
-export interface IconButtonProps extends AntdButtonProps {
+// eslint-disable-next-line
+import Typography from 'src/components/Typography';
+import { Tooltip } from 'src/components/Tooltip';
+import Card, { CardProps } from 'src/components/Card';
+import { Icons } from 'src/components/Icons';
+import { SupersetTheme, css } from '@superset-ui/core';
+
+export interface IconButtonProps extends CardProps {
   buttonText: string;
   icon: string;
   altText?: string;
 }
 
-const StyledButton = styled(Button)`
-  height: auto;
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-`;
-
-const StyledImage = styled.div`
-  padding: ${({ theme }) => theme.sizeUnit * 4}px;
-  height: ${({ theme }) => theme.sizeUnit * 18}px;
-  margin: ${({ theme }) => theme.sizeUnit * 3}px 0;
-
-  .default-db-icon {
-    font-size: 36px;
-    color: ${({ theme }) => theme.colorIcon};
-    margin-right: 0;
-    span:first-of-type {
-      margin-right: 0;
+const IconButton: React.FC<IconButtonProps> = ({
+  buttonText,
+  icon,
+  altText,
+  ...cardProps
+}) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (cardProps.onClick) {
+        (cardProps.onClick as React.EventHandler<React.SyntheticEvent>)(e);
+      }
+      if (e.key === ' ') {
+        e.preventDefault();
+      }
     }
-  }
+    cardProps.onKeyDown?.(e);
+  };
 
-  &:first-of-type {
-    margin-right: 0;
-  }
+  const renderIcon = () => {
+    const iconContent = icon ? (
+      <img
+        src={icon}
+        alt={altText || buttonText}
+        css={css`
+          width: 100%;
+          height: 120px;
+          object-fit: contain;
+        `}
+      />
+    ) : (
+      <div
+        css={css`
+          display: flex;
+          align-content: center;
+          align-items: center;
+          height: 120px;
+        `}
+      >
+        <Icons.DatabaseOutlined
+          css={css`
+            font-size: 48px;
+          `}
+          aria-label="default-icon"
+        />
+      </div>
+    );
 
-  img {
-    width: ${({ theme }) => theme.sizeUnit * 10}px;
-    height: ${({ theme }) => theme.sizeUnit * 10}px;
-    margin: 0;
-    &:first-of-type {
-      margin-right: 0;
-    }
-  }
-  svg {
-    &:first-of-type {
-      margin-right: 0;
-    }
-  }
-`;
+    return iconContent;
+  };
 
-const StyledInner = styled.div`
-  max-height: calc(1.5em * 2);
-  white-space: break-spaces;
+  return (
+    <Card
+      hoverable
+      role="button"
+      tabIndex={0}
+      aria-label={buttonText}
+      onKeyDown={handleKeyDown}
+      cover={renderIcon()}
+      css={(theme: SupersetTheme) => ({
+        padding: theme.sizeUnit * 3,
+        textAlign: 'center',
+        ...cardProps.style,
+      })}
+      {...cardProps}
+    >
+      <Tooltip title={buttonText}>
+        <Typography.Text ellipsis>{buttonText}</Typography.Text>
+      </Tooltip>
+    </Card>
+  );
+};
 
-  &:first-of-type {
-    margin-right: 0;
-  }
-
-  .LinesEllipsis {
-    &:first-of-type {
-      margin-right: 0;
-    }
-  }
-`;
-
-const StyledBottom = styled.div`
-  padding: ${({ theme }) => theme.sizeUnit * 4}px 0;
-  border-radius: 0 0 ${({ theme }) => theme.borderRadius}px
-    ${({ theme }) => theme.borderRadius}px;
-  background-color: ${({ theme }) => theme.colorBgContainer};
-  width: 100%;
-  line-height: 1.5em;
-  overflow: hidden;
-  white-space: no-wrap;
-  text-overflow: ellipsis;
-
-  &:first-of-type {
-    margin-right: 0;
-  }
-`;
-
-const IconButton = styled(
-  ({ icon, altText, buttonText, ...props }: IconButtonProps) => (
-    <StyledButton buttonStyle="tertiary" {...props}>
-      <StyledImage>
-        {icon && <img src={icon} alt={altText} />}
-        {!icon && (
-          <Icons.DatabaseOutlined
-            className="default-db-icon"
-            aria-label="default-icon"
-          />
-        )}
-      </StyledImage>
-
-      <StyledBottom>
-        <StyledInner>
-          <LinesEllipsis
-            text={buttonText}
-            maxLine="2"
-            basedOn="words"
-            trimRight
-          />
-        </StyledInner>
-      </StyledBottom>
-    </StyledButton>
-  ),
-)`
-  text-transform: none;
-  background-color: ${({ theme }) => theme.colorBgContainer};
-  font-weight: ${({ theme }) => theme.fontWeightNormal};
-  color: ${({ theme }) => theme.colorText};
-  border: 1px solid ${({ theme }) => theme.colorBorder};
-  margin: 0;
-  width: 100%;
-
-  &:hover,
-  &:focus {
-    background-color: ${({ theme }) => theme.colorBgTextHover};
-    color: ${({ theme }) => theme.colorText};
-    border: 1px solid ${({ theme }) => theme.colorBorder};
-    box-shadow: ${({ theme }) => theme.boxShadowSecondary};
-  }
-`;
-
-export default IconButton;
+export { IconButton };

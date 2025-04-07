@@ -114,6 +114,7 @@ import {
   UnorderedListOutlined,
   WarningOutlined,
   SortAscendingOutlined,
+  KeyOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
 import { IconType } from './types';
@@ -217,6 +218,7 @@ const AntdIcons = {
   UnorderedListOutlined,
   WarningOutlined,
   SortAscendingOutlined,
+  KeyOutlined,
 } as const;
 
 type AntdIconNames = keyof typeof AntdIcons;
