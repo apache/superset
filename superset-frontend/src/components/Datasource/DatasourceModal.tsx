@@ -68,6 +68,10 @@ const StyledDatasourceModal = styled(Modal)`
   .modal-footer {
     flex: 0 1 auto;
   }
+
+  .antd5-tabs-top {
+    margin-top: -${({ theme }) => theme.sizeUnit * 4}px;
+  }
 `;
 
 interface DatasourceModalProps {

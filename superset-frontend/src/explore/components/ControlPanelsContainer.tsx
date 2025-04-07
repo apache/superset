@@ -77,6 +77,11 @@ import StashFormDataContainer from './StashFormDataContainer';
 
 const { confirm } = Modal;
 
+const TABS_KEYS = {
+  DATA: 'DATA',
+  CUSTOMIZE: 'CUSTOMIZE',
+};
+
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
   actions: ExploreActions;
@@ -139,9 +144,6 @@ const Styles = styled.div`
     height: 100%;
     overflow: visible;
   }
-  .nav-tabs {
-    flex: 0 0 1;
-  }
   .tab-content {
     overflow: auto;
     flex: 1 1 100%;
@@ -156,40 +158,6 @@ const Styles = styled.div`
     text-align: center;
     font-weight: ${({ theme }) => theme.fontWeightStrong};
   }
-`;
-
-const ControlPanelsTabs = styled(Tabs)`
-  ${({ theme, fullWidth }) => css`
-    height: 100%;
-    overflow: visible;
-    .ant-tabs-nav {
-      margin-bottom: 0;
-    }
-    .ant-tabs-nav-list {
-      width: ${fullWidth ? '100%' : '50%'};
-    }
-    .ant-tabs-tabpane {
-      height: 100%;
-    }
-    .ant-tabs-content-holder {
-      padding-top: ${theme.sizeUnit * 4}px;
-    }
-
-    .ant-collapse-ghost > .ant-collapse-item {
-      &:not(:last-child) {
-        border-bottom: 1px solid ${theme.colorSplit};
-      }
-
-      & > .ant-collapse-header {
-        font-size: ${theme.fontSizeSM}px;
-      }
-
-      & > .ant-collapse-content > .ant-collapse-content-box {
-        padding-bottom: 0;
-        font-size: ${theme.fontSizeSM}px;
-      }
-    }
-  `}
 `;
 
 const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
@@ -791,34 +759,45 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   return (
     <Styles ref={containerRef}>
-      <ControlPanelsTabs
+      <Tabs
         id="controlSections"
         data-test="control-tabs"
-        fullWidth={showCustomizeTab}
+        tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
         allowOverflow={false}
-      >
-        <Tabs.TabPane key="query" tab={dataTabTitle}>
-          <Collapse
-            defaultActiveKey={expandedQuerySections}
-            expandIconPosition="right"
-            ghost
-          >
-            {showDatasourceAlert && <DatasourceAlert />}
-            {querySections.map(renderControlPanelSection)}
-          </Collapse>
-        </Tabs.TabPane>
-        {showCustomizeTab && (
-          <Tabs.TabPane key="display" tab={t('Customize')}>
-            <Collapse
-              defaultActiveKey={expandedCustomizeSections}
-              expandIconPosition="right"
-              ghost
-            >
-              {customizeSections.map(renderControlPanelSection)}
-            </Collapse>
-          </Tabs.TabPane>
-        )}
-      </ControlPanelsTabs>
+        items={[
+          {
+            key: TABS_KEYS.DATA,
+            label: dataTabTitle,
+            children: (
+              <Collapse
+                defaultActiveKey={expandedQuerySections}
+                expandIconPosition="right"
+                ghost
+              >
+                {showDatasourceAlert && <DatasourceAlert />}
+                {querySections.map(renderControlPanelSection)}
+              </Collapse>
+            ),
+          },
+          ...(showCustomizeTab
+            ? [
+                {
+                  key: TABS_KEYS.CUSTOMIZE,
+                  label: t('Customize'),
+                  children: (
+                    <Collapse
+                      defaultActiveKey={expandedCustomizeSections}
+                      expandIconPosition="right"
+                      ghost
+                    >
+                      {customizeSections.map(renderControlPanelSection)}
+                    </Collapse>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
       <div css={actionButtonsContainerStyles}>
         <RunQueryButton
           onQuery={props.onQuery}

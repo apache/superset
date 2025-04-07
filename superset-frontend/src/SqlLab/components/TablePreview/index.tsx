@@ -352,7 +352,6 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
             <AutoSizer disableWidth>
               {({ height }) => (
                 <Tabs
-                  fullWidth={false}
                   onTabClick={onTabSwitch}
                   css={css`
                     height: ${height}px;

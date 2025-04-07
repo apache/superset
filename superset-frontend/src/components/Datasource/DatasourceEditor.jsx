@@ -89,7 +89,7 @@ const FlexRowContainer = styled.div`
 
 const StyledTableTabs = styled(Tabs)`
   overflow: visible;
-  .ant-tabs-content-holder {
+  .antd5-tabs-content-holder {
     overflow: visible;
   }
 `;
@@ -161,6 +161,15 @@ const DATA_TYPES = [
   { value: 'DATETIME', label: t('DATETIME') },
   { value: 'BOOLEAN', label: t('BOOLEAN') },
 ];
+
+const TABS_KEYS = {
+  SOURCE: 'SOURCE',
+  METRICS: 'METRICS',
+  COLUMNS: 'COLUMNS',
+  CALCULATED_COLUMNS: 'CALCULATED_COLUMNS',
+  SETTINGS: 'SETTINGS',
+  SPATIAL: 'SPATIAL',
+};
 
 const DATASOURCE_TYPES_ARR = [
   { key: 'physical', label: t('Physical (table or view)') },
@@ -625,7 +634,7 @@ class DatasourceEditor extends PureComponent {
         col => !!col.expression,
       ),
       metadataLoading: false,
-      activeTabKey: 0,
+      activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
         ? DATASOURCE_TYPES.virtual.key
         : DATASOURCE_TYPES.physical.key,
@@ -947,7 +956,7 @@ class DatasourceEditor extends PureComponent {
     return (
       <Tabs.TabPane
         tab={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
-        key={4}
+        key={TABS_KEYS.SPATIAL}
       >
         <CollectionTable
           tableColumns={['name', 'config']}
@@ -1359,110 +1368,122 @@ class DatasourceEditor extends PureComponent {
           }
         />
         <StyledTableTabs
-          fullWidth={false}
           id="table-tabs"
           data-test="edit-dataset-tabs"
           onChange={this.handleTabSelect}
           defaultActiveKey={activeTabKey}
-        >
-          <Tabs.TabPane key={0} tab={t('Source')}>
-            {this.renderSourceFieldset(theme)}
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            tab={
-              <CollectionTabTitle
-                collection={sortedMetrics}
-                title={t('Metrics')}
-              />
-            }
-            key={1}
-          >
-            {this.renderMetricCollection()}
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            tab={
-              <CollectionTabTitle
-                collection={this.state.databaseColumns}
-                title={t('Columns')}
-              />
-            }
-            key={2}
-          >
-            <StyledColumnsTabWrapper>
-              <ColumnButtonWrapper>
-                <StyledButtonWrapper>
-                  <Button
-                    buttonSize="small"
-                    onClick={this.syncMetadata}
-                    className="sync-from-source"
-                    disabled={this.state.isEditMode}
-                  >
-                    <Icons.DatabaseOutlined iconSize="m" />
-                    {t('Sync columns from source')}
-                  </Button>
-                </StyledButtonWrapper>
-              </ColumnButtonWrapper>
-              <ColumnCollectionTable
-                className="columns-table"
-                columns={this.state.databaseColumns}
-                datasource={datasource}
-                onColumnsChange={databaseColumns =>
-                  this.setColumns({ databaseColumns })
-                }
-                onDatasourceChange={this.onDatasourceChange}
-              />
-              {this.state.metadataLoading && <Loading />}
-            </StyledColumnsTabWrapper>
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            tab={
-              <CollectionTabTitle
-                collection={this.state.calculatedColumns}
-                title={t('Calculated columns')}
-              />
-            }
-            key={3}
-          >
-            <StyledColumnsTabWrapper>
-              <ColumnCollectionTable
-                columns={this.state.calculatedColumns}
-                onColumnsChange={calculatedColumns =>
-                  this.setColumns({ calculatedColumns })
-                }
-                columnLabelTooltips={{
-                  column_name: t(
-                    'This field is used as a unique identifier to attach ' +
-                      'the calculated dimension to charts. It is also used ' +
-                      'as the alias in the SQL query.',
-                  ),
-                }}
-                onDatasourceChange={this.onDatasourceChange}
-                datasource={datasource}
-                editableColumnName
-                showExpression
-                allowAddItem
-                allowEditDataType
-                itemGenerator={() => ({
-                  column_name: t('<new column>'),
-                  filterable: true,
-                  groupby: true,
-                  expression: t('<enter SQL expression here>'),
-                  __expanded: true,
-                })}
-              />
-            </StyledColumnsTabWrapper>
-          </Tabs.TabPane>
-          <Tabs.TabPane key={4} tab={t('Settings')}>
-            <Row gutter={16}>
-              <Col xs={24} md={12}>
-                <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
-              </Col>
-              <Col xs={24} md={12}>
-                <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
-              </Col>
-            </Row>
-          </Tabs.TabPane>
-        </StyledTableTabs>
+          items={[
+            {
+              key: TABS_KEYS.SOURCE,
+              label: t('Source'),
+              children: this.renderSourceFieldset(theme),
+            },
+            {
+              key: TABS_KEYS.METRICS,
+              label: (
+                <CollectionTabTitle
+                  collection={sortedMetrics}
+                  title={t('Metrics')}
+                />
+              ),
+              children: this.renderMetricCollection(),
+            },
+            {
+              key: TABS_KEYS.COLUMNS,
+              label: (
+                <CollectionTabTitle
+                  collection={this.state.databaseColumns}
+                  title={t('Columns')}
+                />
+              ),
+              children: (
+                <StyledColumnsTabWrapper>
+                  <ColumnButtonWrapper>
+                    <StyledButtonWrapper>
+                      <Button
+                        buttonSize="small"
+                        buttonStyle="tertiary"
+                        onClick={this.syncMetadata}
+                        className="sync-from-source"
+                        disabled={this.state.isEditMode}
+                      >
+                        <Icons.DatabaseOutlined iconSize="m" />
+                        {t('Sync columns from source')}
+                      </Button>
+                    </StyledButtonWrapper>
+                  </ColumnButtonWrapper>
+                  <ColumnCollectionTable
+                    className="columns-table"
+                    columns={this.state.databaseColumns}
+                    datasource={datasource}
+                    onColumnsChange={databaseColumns =>
+                      this.setColumns({ databaseColumns })
+                    }
+                    onDatasourceChange={this.onDatasourceChange}
+                  />
+                  {this.state.metadataLoading && <Loading />}
+                </StyledColumnsTabWrapper>
+              ),
+            },
+            {
+              key: TABS_KEYS.CALCULATED_COLUMNS,
+              label: (
+                <CollectionTabTitle
+                  collection={this.state.calculatedColumns}
+                  title={t('Calculated columns')}
+                />
+              ),
+              children: (
+                <StyledColumnsTabWrapper>
+                  <ColumnCollectionTable
+                    columns={this.state.calculatedColumns}
+                    onColumnsChange={calculatedColumns =>
+                      this.setColumns({ calculatedColumns })
+                    }
+                    columnLabelTooltips={{
+                      column_name: t(
+                        'This field is used as a unique identifier to attach ' +
+                          'the calculated dimension to charts. It is also used ' +
+                          'as the alias in the SQL query.',
+                      ),
+                    }}
+                    onDatasourceChange={this.onDatasourceChange}
+                    datasource={datasource}
+                    editableColumnName
+                    showExpression
+                    allowAddItem
+                    allowEditDataType
+                    itemGenerator={() => ({
+                      column_name: t('<new column>'),
+                      filterable: true,
+                      groupby: true,
+                      expression: t('<enter SQL expression here>'),
+                      __expanded: true,
+                    })}
+                  />
+                </StyledColumnsTabWrapper>
+              ),
+            },
+            {
+              key: TABS_KEYS.SETTINGS,
+              label: t('Settings'),
+              children: (
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <FormContainer>
+                      {this.renderSettingsFieldset()}
+                    </FormContainer>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <FormContainer>
+                      {this.renderAdvancedFieldset()}
+                    </FormContainer>
+                  </Col>
+                </Row>
+              ),
+            },
+          ]}
+        />
       </DatasourceContainer>
     );
   }
