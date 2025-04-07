@@ -275,7 +275,7 @@ test('When changing database the schema and table list must be updated', async (
     await screen.findByRole('option', { name: 'new_schema' }),
   ).toBeInTheDocument();
 
-  userEvent.click(screen.getByText('new_schema'));
+  userEvent.click(screen.getAllByText('new_schema')[1]);
 
   const updatedTableSelector = await screen.findAllByText(/new_table/i);
   expect(updatedTableSelector[0]).toBeInTheDocument();
