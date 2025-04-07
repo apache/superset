@@ -75,7 +75,7 @@ import { findPermission } from 'src/utils/findPermission';
 import { DashboardCrossLinks } from 'src/components/ListView/DashboardCrossLinks';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import BulkCertifyModal from 'src/features/bulkCertify/BulkCertifyModal';
+import BulkCertifyModal from 'src/features/bulkCertifyModal/BulkCertifyModal';
 
 const FlexRowContainer = styled.div`
   align-items: center;

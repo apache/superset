@@ -71,7 +71,7 @@ import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { ModifiedInfo } from 'src/components/AuditInfo';
-import BulkCertifyModal from 'src/features/bulkCertify/BulkCertifyModal';
+import BulkCertifyModal from 'src/features/bulkCertifyModal/BulkCertifyModal';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
