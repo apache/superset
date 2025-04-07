@@ -94,7 +94,7 @@ describe('Color scheme control', () => {
   });
 
   it('should show color options with and without tooltips', () => {
-    cy.get('#controlSections-tab-display').click();
+    cy.get('#controlSections-tab-CUSTOMIZE').click();
     cy.get('.antd5-select-selection-item .color-scheme-label').contains(
       'Superset Colors',
     );
@@ -162,7 +162,7 @@ describe('Test datatable', () => {
     ).as('Samples');
     cy.contains('Samples').click();
     cy.wait('@Samples');
-    cy.get('.ant-tabs-tab-active').contains('Samples');
+    cy.get('.antd5-tabs-tab-active').contains('Samples');
     cy.get('[data-test="row-count-label"]').contains('1k rows');
     cy.get('.ant-empty-description').should('not.exist');
   });

@@ -38,10 +38,9 @@ import {
 
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-// eslint-disable-next-line no-restricted-imports
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import Tabs from 'src/components/Tabs';
-import { Select, Upload } from 'src/components';
+import { Select } from 'src/components';
+import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -120,12 +119,12 @@ const engineSpecificAlertMapping = {
 };
 
 const TabsStyled = styled(Tabs)`
-  .ant-tabs-content {
+  .antd5-tabs-content {
     display: flex;
     width: 100%;
     overflow: inherit;
 
-    & > .ant-tabs-tabpane {
+    & > .antd5-tabs-tabpane {
       position: relative;
     }
   }

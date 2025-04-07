@@ -58,7 +58,7 @@ import rison from 'rison';
 import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/types';
 import { useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import { Input, TextArea } from 'src/components/Input';
+import { Input } from 'src/components/Input';
 import { Select } from 'src/components';
 import Collapse from 'src/components/Collapse';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
@@ -189,23 +189,6 @@ const StyledCollapse = styled(Collapse)`
   }
 `;
 
-const StyledTabs = styled(Tabs)`
-  .ant-tabs-nav {
-    position: sticky;
-    top: 0;
-    background: ${({ theme }) => theme.colors.grayscale.light5};
-    z-index: 1;
-  }
-
-  .ant-tabs-nav-list {
-    padding: 0;
-  }
-
-  .ant-5-form-item-label {
-    padding-bottom: 0;
-  }
-`;
-
 const StyledAsterisk = styled.span`
   color: ${({ theme }) => theme.colorError};
   font-size: ${({ theme }) => theme.fontSizeSM}px;
@@ -221,7 +204,7 @@ const FilterTypeInfo = styled.div<{ expanded: boolean }>`
     font-size: ${theme.fontSizeSM}px;
     color: ${theme.colors.grayscale.light1};
     margin:
-      ${-theme.sizeUnit * 2}px
+      ${theme.sizeUnit * 2}px
       0px
       ${theme.sizeUnit * 4}px
       ${theme.sizeUnit * 4}px;
@@ -765,12 +748,11 @@ const FiltersConfigForm = (
       />
     </StyledRowFormItem>
   );
-
   return (
-    <StyledTabs
+    <Tabs
       activeKey={activeTabKey}
       onChange={activeKey => setActiveTabKey(activeKey)}
-      centered
+      tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
     >
       <TabPane
         tab={FilterTabs.configuration.name}
@@ -1167,7 +1149,7 @@ const FiltersConfigForm = (
               initialValue={filterToEdit?.description}
               label={<StyledLabel>{t('Description')}</StyledLabel>}
             >
-              <TextArea onChange={debouncedFormChanged} />
+              <Input.TextArea onChange={debouncedFormChanged} />
             </StyledFormItem>
             <FormItem
               name={['filters', filterId, 'defaultValueQueriesData']}
@@ -1316,7 +1298,7 @@ const FiltersConfigForm = (
           initiallyExcludedCharts={initiallyExcludedCharts}
         />
       </TabPane>
-    </StyledTabs>
+    </Tabs>
   );
 };
 

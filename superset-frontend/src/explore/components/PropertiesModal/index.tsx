@@ -19,10 +19,11 @@
 import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
 
 import Modal from 'src/components/Modal';
-import { Input, TextArea } from 'src/components/Input';
+import { Input } from 'src/components/Input';
 import Button from 'src/components/Button';
-import { AsyncSelect, Row, Col } from 'src/components';
+import { AsyncSelect } from 'src/components';
 import { SelectValue } from 'src/components/Select';
+import { Row, Col } from 'src/components/Grid';
 import rison from 'rison';
 import {
   t,
@@ -38,7 +39,7 @@ import {
 import { Icons } from 'src/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { loadTags } from 'src/components/Tags/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import TagType from 'src/types/TagType';
 import { Form } from 'src/components/Form';
@@ -326,7 +327,7 @@ function PropertiesModal({
             </FormItem>
             <FormItem>
               <StyledFormItem label={t('Description')} name="description">
-                <TextArea rows={3} style={{ maxWidth: '100%' }} />
+                <Input.TextArea rows={3} style={{ maxWidth: '100%' }} />
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t(

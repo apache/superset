@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { css, styled, t } from '@superset-ui/core';
-import { Input, TextArea } from 'src/components/Input';
+import { Input } from 'src/components/Input';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { URL_PARAMS } from 'src/constants';
 import { getChartPermalink } from 'src/utils/urlUtils';
@@ -99,7 +99,7 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
             </CopyButtonEmbedCode>
           }
         />
-        <TextArea
+        <Input.TextArea
           data-test="embed-code-textarea"
           name="embedCode"
           disabled={!html}

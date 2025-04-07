@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import Select from './Select';
+import AsyncSelect from './AsyncSelect';
 
+export { Select, AsyncSelect };
 export * from './types';
-export * from './Select';
 export * from './styles';
 export * from './CustomTag';
-export * from './AsyncSelect';
 export * from './constants';

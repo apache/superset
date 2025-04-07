@@ -16,16 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import TagType from 'src/types/TagType';
-import { Tag } from '.';
+import { Upload, type UploadFile } from 'antd-v5';
+import { type UploadChangeParam } from 'antd-v5/es/upload';
 
-export default {
-  title: 'Tags',
-  component: Tag,
-};
-export const InteractiveTag = (args: TagType) => <Tag {...args} />;
-
-InteractiveTag.args = {
-  editable: false,
-  name: 'Tag',
-};
+export default Upload;
+export type { UploadChangeParam, UploadFile };

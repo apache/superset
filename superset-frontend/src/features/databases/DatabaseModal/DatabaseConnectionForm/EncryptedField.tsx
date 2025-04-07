@@ -18,7 +18,8 @@
  */
 import { useRef, useState } from 'react';
 import { SupersetTheme, css, t } from '@superset-ui/core';
-import { Button, Select } from 'src/components';
+import { Select } from 'src/components';
+import Button from 'src/components/Button';
 import { FormLabel } from 'src/components/Form';
 import { Icons } from 'src/components/Icons';
 import { DatabaseParameters, FieldPropTypes } from '../../types';

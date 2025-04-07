@@ -25,8 +25,9 @@ import {
   screen,
   waitFor,
   userEvent,
+  fireEvent,
 } from 'spec/helpers/testing-library';
-import { UploadFile } from 'antd/lib/upload/interface';
+import { UploadFile } from 'src/components/Upload';
 
 const csvProps = {
   show: true,
@@ -626,12 +627,11 @@ test('CSV form post', async () => {
   userEvent.click(selectButton);
 
   // Select a file from the file dialog
-  const file = new File(['test'], 'test.csv', { type: 'text' });
+  const file = new File(['test'], 'test.csv', { type: 'text/csv' });
   const inputElement = screen.getByTestId('model-file-input');
 
-  if (inputElement) {
-    userEvent.upload(inputElement as HTMLElement, file);
-  }
+  expect(inputElement).toBeInTheDocument();
+  fireEvent.change(inputElement, { target: { files: [file] } });
 
   const selectDatabase = screen.getByRole('combobox', {
     name: /select a database/i,
@@ -689,9 +689,8 @@ test('Excel form post', async () => {
   const file = new File(['test'], 'test.xls', { type: 'text' });
   const inputElement = screen.getByTestId('model-file-input');
 
-  if (inputElement) {
-    userEvent.upload(inputElement as HTMLElement, file);
-  }
+  expect(inputElement).toBeInTheDocument();
+  fireEvent.change(inputElement, { target: { files: [file] } });
 
   const selectDatabase = screen.getByRole('combobox', {
     name: /select a database/i,
@@ -749,9 +748,8 @@ test('Columnar form post', async () => {
   const file = new File(['test'], 'test.parquet', { type: 'text' });
   const inputElement = screen.getByTestId('model-file-input');
 
-  if (inputElement) {
-    userEvent.upload(inputElement as HTMLElement, file);
-  }
+  expect(inputElement).toBeInTheDocument();
+  fireEvent.change(inputElement, { target: { files: [file] } });
 
   const selectDatabase = screen.getByRole('combobox', {
     name: /select a database/i,

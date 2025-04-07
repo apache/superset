@@ -18,7 +18,7 @@
  */
 import { MouseEvent } from 'react';
 import { css } from '@superset-ui/core';
-import Tag from '../Tags/Tag';
+import { Tag } from '../Tag';
 import { CustomTagProps } from './types';
 import { SELECT_ALL_VALUE } from './utils';
 import { NoElement } from './styles';

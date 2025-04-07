@@ -16,22 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { tagToSelectOption } from 'src/components/Tags/utils';
+import { Skeleton, type SkeletonProps } from 'antd-v5';
 
-describe('tagToSelectOption', () => {
-  test('converts a Tag object with table_name to a SelectTagsValue', () => {
-    const tag = {
-      id: 1,
-      name: 'TagName',
-      table_name: 'Table1',
-    };
-
-    const expectedSelectTagsValue = {
-      value: 1,
-      label: 'TagName',
-      key: 1,
-    };
-
-    expect(tagToSelectOption(tag)).toEqual(expectedSelectTagsValue);
-  });
-});
+export type { SkeletonProps };
+export default Skeleton;
