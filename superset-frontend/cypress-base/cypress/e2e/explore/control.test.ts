@@ -91,7 +91,7 @@ describe('Color scheme control', () => {
   });
 
   it('should show color options with and without tooltips', () => {
-    cy.get('#controlSections-tab-display').click();
+    cy.get('#controlSections-tab-CUSTOMIZE').click();
     cy.get('.ant-select-selection-item .color-scheme-label').contains(
       'Superset Colors',
     );

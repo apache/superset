@@ -79,7 +79,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
             children: (
               <div
                 css={css`
-                  height: 100%;
+                  height: calc(100vh - ${topOffset * 2}px);
                 `}
               >
                 <SliceAdder />
