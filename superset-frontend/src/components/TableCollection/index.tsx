@@ -149,7 +149,7 @@ export default memo(
             cell: (props: any) => <td {...props} data-test="table-row-cell" />,
           },
         }}
-        onChange={(pagination, filters, sorter: any) => {
+        onChange={(_pagination, _filters, sorter: any) => {
           setSortBy?.([
             {
               id: sorter.field,
