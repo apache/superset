@@ -199,9 +199,9 @@ class SyncPermissionsCommand(BaseCommand):
         try:
             # Adding permissions to all catalogs (and all their schemas) can take a long
             # time (minutes, while importing a chart, eg). If the database does not
-            # support cross-catalog queries (like RDS or Postgres), and the
-            # multi-catalog feature is not enabled, then we only need to add permissions
-            # to the default catalog.
+            # support cross-catalog queries (like Postgres), and the multi-catalog
+            # feature is not enabled, then we only need to add permissions to the default
+            # catalog.
             if (
                 self.db_connection.db_engine_spec.supports_cross_catalog_queries
                 or self.db_connection.allow_multi_catalog

@@ -243,8 +243,8 @@ def test_sync_permissions_command_get_default_catalog(database_with_catalog: Mag
     """
     Test ``_get_catalog_names`` when only the default one should be returned.
 
-    When the database doesn't not support cross-catalog queries (like RDS), we should
-    only return all catalogs if multi-catalog is enabled.
+    When the database doesn't not support cross-catalog queries (like Postgres), we
+    should only return all catalogs if multi-catalog is enabled.
     """
     database_with_catalog.db_engine_spec.supports_cross_catalog_queries = False
     database_with_catalog.allow_multi_catalog = False
