@@ -95,6 +95,7 @@ describe('Dashboards list', () => {
         .then($btns => {
           expect($btns).to.contain('Delete');
           expect($btns).to.contain('Export');
+          expect($btns).to.contain('Certify');
         });
       cy.getBySel('bulk-select-deselect-all').click();
       cy.get('[aria-label="checkbox-on"]').should('have.length', 0);
@@ -123,6 +124,7 @@ describe('Dashboards list', () => {
         .then($btns => {
           expect($btns).to.contain('Delete');
           expect($btns).to.contain('Export');
+          expect($btns).to.contain('Certify');
         });
       cy.getBySel('bulk-select-deselect-all').click();
       cy.getBySel('bulk-select-copy').contains('0 Selected');
