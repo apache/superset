@@ -45,7 +45,7 @@ import { AntdSelect, Upload } from 'src/components';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
-import IconButton from 'src/components/IconButton';
+import { IconButton } from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
