@@ -53,11 +53,11 @@ import {
 import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilterValues';
 import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import { ensureAppRoot } from 'src/utils/pathUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
 import { isEqual } from 'lodash';
+import { navigateWithState } from 'src/utils/navigationUtils';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
   saveChartConfiguration,
@@ -403,11 +403,9 @@ export function saveDashboardRequest(data, id, saveType) {
       }
       dispatch(saveDashboardFinished());
       // redirect to the new slug or id
-      window.history.pushState(
-        { event: 'dashboard_properties_changed' },
-        '',
-        ensureAppRoot(`/superset/dashboard/${slug || id}/`),
-      );
+      navigateWithState(`/superset/dashboard/${slug || id}/`, {
+        event: 'dashboard_properties_changed',
+      });
 
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
       dispatch(setOverrideConfirm(undefined));

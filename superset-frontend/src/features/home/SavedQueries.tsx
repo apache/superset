@@ -41,6 +41,7 @@ import {
 } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
 import { ensureAppRoot } from 'src/utils/pathUtils';
+import { navigateTo } from 'src/utils/navigationUtils';
 import { Button } from 'src/components';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
@@ -292,7 +293,7 @@ const SavedQueries = ({
             name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = ensureAppRoot('/savedqueryview/list');
+              navigateTo('/savedqueryview/list');
             },
           },
         ]}

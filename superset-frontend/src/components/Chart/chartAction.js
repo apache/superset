@@ -539,7 +539,7 @@ export function redirectSQLLab(formData, history) {
   return dispatch => {
     getChartDataRequest({ formData, resultFormat: 'json', resultType: 'query' })
       .then(({ json }) => {
-        const redirectUrl = ensureAppRoot('/sqllab/');
+        const redirectUrl = '/sqllab/';
         const payload = {
           datasourceKey: formData.datasource,
           sql: json.result[0].query,
@@ -552,7 +552,7 @@ export function redirectSQLLab(formData, history) {
             },
           });
         } else {
-          SupersetClient.postForm(redirectUrl, {
+          SupersetClient.postForm(ensureAppRoot(redirectUrl), {
             form_data: safeStringify(payload),
           });
         }
