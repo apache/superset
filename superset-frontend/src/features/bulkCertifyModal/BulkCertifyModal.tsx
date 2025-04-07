@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, FC } from 'react';
+import { useState, FC } from 'react';
 
 import { t, SupersetClient } from '@superset-ui/core';
 import { FormLabel } from 'src/components/Form';
