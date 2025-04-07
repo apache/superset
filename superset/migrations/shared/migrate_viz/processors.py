@@ -35,6 +35,9 @@ class MigrateTreeMap(MigrateViz):
         ):
             self.data["metric"] = self.data["metrics"][0]
 
+    def build_query():
+        pass
+
 
 class MigratePivotTable(MigrateViz):
     source_viz_type = "pivot_table"
@@ -70,6 +73,9 @@ class MigratePivotTable(MigrateViz):
 
         self.data["rowOrder"] = "value_z_to_a"
 
+    def build_query():
+        pass
+
 
 class MigrateDualLine(MigrateViz):
     has_x_axis_control = True
@@ -94,11 +100,17 @@ class MigrateDualLine(MigrateViz):
         super()._migrate_temporal_filter(rv_data)
         rv_data["adhoc_filters_b"] = rv_data.get("adhoc_filters") or []
 
+    def build_query():
+        pass
+
 
 class MigrateSunburst(MigrateViz):
     source_viz_type = "sunburst"
     target_viz_type = "sunburst_v2"
     rename_keys = {"groupby": "columns"}
+
+    def build_query():
+        pass
 
 
 class TimeseriesChart(MigrateViz):
@@ -154,6 +166,9 @@ class TimeseriesChart(MigrateViz):
 
         if x_ticks_layout := self.data.get("x_ticks_layout"):
             self.data["x_ticks_layout"] = 45 if x_ticks_layout == "45°" else 0
+
+    def build_query():
+        pass
 
 
 class MigrateLineChart(TimeseriesChart):
@@ -267,6 +282,9 @@ class MigrateBubbleChart(MigrateViz):
         # Truncate y-axis by default to preserve layout
         self.data["y_axis_showminmax"] = True
 
+    def build_query():
+        pass
+
 
 class MigrateHeatmapChart(MigrateViz):
     source_viz_type = "heatmap"
@@ -281,6 +299,9 @@ class MigrateHeatmapChart(MigrateViz):
 
     def _pre_action(self) -> None:
         self.data["legend_type"] = "continuous"
+
+    def build_query():
+        pass
 
 
 class MigrateHistogramChart(MigrateViz):
@@ -305,6 +326,9 @@ class MigrateHistogramChart(MigrateViz):
         if not groupby:
             self.data["groupby"] = []
 
+    def build_query():
+        pass
+
 
 class MigrateSankey(MigrateViz):
     source_viz_type = "sankey"
@@ -316,3 +340,6 @@ class MigrateSankey(MigrateViz):
         if groupby and len(groupby) > 1:
             self.data["source"] = groupby[0]
             self.data["target"] = groupby[1]
+
+    def build_query():
+        pass
