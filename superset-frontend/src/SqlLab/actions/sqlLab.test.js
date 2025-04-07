@@ -320,12 +320,8 @@ describe('async actions', () => {
       return request(dispatch, () => initialState).then(() => {
         const actions = store.getActions();
         expect(actions.map(a => a.type)).toEqual(expectedActionTypes);
-        expect(actions[1].payload.eventData.error_details).toContain(
-          'Issue 1000',
-        );
-        expect(actions[2].payload.eventData.error_details).toContain(
-          'Issue 1001',
-        );
+        expect(actions[1].payload.eventData.issue_code).toEqual(1000);
+        expect(actions[2].payload.eventData.issue_code).toEqual(1001);
       });
     });
   });
