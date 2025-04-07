@@ -59,7 +59,7 @@ export const BaseIconComponent: React.FC<
   `;
   const disabledIconCss = css`
     opacity: 0.5;
-    cursor: default;
+    cursor: not-allowed;
     &:hover {
       color: ${iconColor || theme.colors.grayscale.base} !important;
     }
