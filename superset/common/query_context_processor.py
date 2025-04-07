@@ -228,6 +228,7 @@ class QueryContextProcessor:
             "from_dttm": query_obj.from_dttm,
             "to_dttm": query_obj.to_dttm,
             "label_map": label_map,
+            "output_location": cache.output_location,
         }
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
@@ -262,7 +263,7 @@ class QueryContextProcessor:
             # todo(hugh): add logic to manage all sip68 models here
             result = query_context.datasource.exc_query(query_object.to_dict())
         else:
-            result = query_context.datasource.query(query_object.to_dict())
+            result = query_context.datasource.query(query_object.to_dict(), query_context.result_location)
             query = result.query + ";\n\n"
 
         df = result.df

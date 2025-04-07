@@ -39,6 +39,7 @@ export interface SliceHeaderControlsProps {
   isDescriptionExpanded?: boolean;
   formData: QueryFormData;
   exploreUrl: string;
+  databaseBackend: string;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
   logExploreChart?: (sliceId: number) => void;
@@ -49,6 +50,7 @@ export interface SliceHeaderControlsProps {
   exportFullCSV?: (sliceId: number) => void;
   exportXLSX?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
+  downloadCSVFromS3?: (sliceId: number) => void;
   handleToggleFullSize: () => void;
 
   addDangerToast: (message: string) => void;

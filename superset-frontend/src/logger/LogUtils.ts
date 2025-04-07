@@ -36,6 +36,7 @@ export const LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART =
   'export_csv_dashboard_chart';
 export const LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART =
   'export_xlsx_dashboard_chart';
+export const LOG_ACTIONS_EXPORT_CSV_FROM_S3 = 'export_csv_from_s3';
 export const LOG_ACTIONS_CHANGE_DASHBOARD_FILTER = 'change_dashboard_filter';
 export const LOG_ACTIONS_DATASET_CREATION_EMPTY_CANCELLATION =
   'dataset_creation_empty_cancellation';

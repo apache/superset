@@ -39,7 +39,7 @@ from superset.commands.chart.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
 )
-from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType, ChartDataResultLocation
 from superset.connectors.sqla.models import BaseDatasource
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
@@ -425,6 +425,13 @@ class ChartDataRestApi(ChartRestApi):
             return self.response_422(message=exc.message)
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
+
+        # Avoid post-processing and simply return presigned URL to query location csv
+        if result["query_context"].result_location == ChartDataResultLocation.S3:
+            if result['queries'][0]['output_location']:
+                resp = make_response('', 302)
+                resp.headers["Location"] = result['queries'][0]['output_location']
+                return resp
 
         return self._send_chart_response(result, form_data, datasource)
 

@@ -88,6 +88,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
       viz_type: VizType.Sunburst,
     },
     exploreUrl: '/explore',
+    databaseBackend: 'sqlite',
     defaultOpen: true,
   }) as SliceHeaderControlsProps;
 
