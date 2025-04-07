@@ -49,10 +49,10 @@ const mockedChartProps = {
 };
 
 const mockedDashboardProps = {
-  onHide: jest.fn() as Mock<any, any, any>,
-  refreshData: jest.fn() as Mock<any, any, any>,
-  addSuccessToast: jest.fn() as Mock<any, any, any>,
-  addDangerToast: jest.fn() as Mock<any, any, any>,
+  onHide: jest.fn() as jest.Mock<any, any, any>,
+  refreshData: jest.fn() as jest.Mock<any, any, any>,
+  addSuccessToast: jest.fn() as jest.Mock<any, any, any>,
+  addDangerToast: jest.fn() as jest.Mock<any, any, any>,
   show: true,
   selected: [
     {
