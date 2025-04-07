@@ -202,11 +202,11 @@ class AbstractEventLogger(ABC):
             except Exception as ex:
                 logging.warning("Failed to add user to db session: %s", ex)
                 user_id = None
-                payload = collect_request_payload()
-                if object_ref:
-                    payload["object_ref"] = object_ref
-                if payload_override:
-                    payload.update(payload_override)
+        payload = collect_request_payload()
+        if object_ref:
+            payload["object_ref"] = object_ref
+        if payload_override:
+            payload.update(payload_override)
 
         dashboard_id = to_int(payload.get("dashboard_id"))
 
