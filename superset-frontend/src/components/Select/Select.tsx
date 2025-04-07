@@ -648,6 +648,7 @@ const Select = forwardRef(
           onClear={handleClear}
           placeholder={placeholder}
           tokenSeparators={tokenSeparators}
+          virtual={fullSelectOptions.length > 20}
           value={selectValue}
           suffixIcon={getSuffixIcon(
             isLoading,
