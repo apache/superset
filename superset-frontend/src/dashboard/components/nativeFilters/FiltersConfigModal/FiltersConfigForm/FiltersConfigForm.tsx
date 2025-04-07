@@ -58,7 +58,7 @@ import rison from 'rison';
 import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/types';
 import { useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import { Input, TextArea } from 'src/components/Input';
+import { Input } from 'src/components/Input';
 import { Select } from 'src/components';
 import Collapse from 'src/components/Collapse';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
@@ -1166,7 +1166,7 @@ const FiltersConfigForm = (
               initialValue={filterToEdit?.description}
               label={<StyledLabel>{t('Description')}</StyledLabel>}
             >
-              <TextArea onChange={debouncedFormChanged} />
+              <Input.TextArea onChange={debouncedFormChanged} />
             </StyledFormItem>
             <FormItem
               name={['filters', filterId, 'defaultValueQueriesData']}

@@ -33,7 +33,7 @@ import {
   ButtonType,
   ButtonVariantType,
   ButtonColorType,
-} from 'antd-v5/lib/button';
+} from 'antd-v5/es/button';
 
 export type OnClickHandler = MouseEventHandler<HTMLElement>;
 

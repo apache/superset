@@ -22,7 +22,8 @@ import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { AsyncSelect, Col, Row } from 'src/components';
+import { AsyncSelect } from 'src/components';
+import { Row, Col } from 'src/components/Grid';
 import rison from 'rison';
 import {
   ensureIsArray,
@@ -44,7 +45,7 @@ import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeMo
 import withToasts from 'src/components/MessageToasts/withToasts';
 import TagType from 'src/types/TagType';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
-import { loadTags } from 'src/components/Tags/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import {
   applyColors,
   getColorNamespace,
@@ -382,8 +383,10 @@ const PropertiesModal = ({
     currentJsonMetadata = jsonStringify(metadata);
 
     const moreOnSubmitProps: { roles?: Roles } = {};
-    const morePutProps: { roles?: number[]; tags?: (number | undefined)[] } =
-      {};
+    const morePutProps: {
+      roles?: number[];
+      tags?: (string | number | undefined)[];
+    } = {};
     if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);

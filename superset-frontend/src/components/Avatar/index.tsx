@@ -18,7 +18,7 @@
  */
 
 import { Avatar as AntdAvatar } from 'antd-v5';
-import { AvatarProps, GroupProps } from 'antd-v5/lib/avatar';
+import { AvatarProps, GroupProps } from 'antd-v5/es/avatar';
 
 export function Avatar(props: AvatarProps) {
   return <AntdAvatar {...props} />;
