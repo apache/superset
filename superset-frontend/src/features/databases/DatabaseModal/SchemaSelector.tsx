@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import { css, styled } from '@superset-ui/core';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+import { set } from 'lodash';
 
 const Container = styled.div`
   ${({ theme }) => css`  
@@ -95,6 +96,30 @@ const StatusBar = styled.div`
   `}
 `;
 
+const Header = styled.div`
+  ${({ theme }) => css`
+    margin-bottom: ${theme.gridUnit * 2}px;
+    font-size: ${theme.typography.sizes.m}px;
+    font-weight: 600;
+    color: ${theme.colors.grayscale.dark1};
+    display: flex;
+
+    div {
+      border-right: 1px solid ${theme.colors.grayscale.light2};
+      padding-right: ${theme.gridUnit * 2}px;
+      padding-left: ${theme.gridUnit * 2}px;
+
+      &:first-child {
+        padding-left: 0;
+      }
+
+      &:last-child {
+        border-right: none;
+      }
+    }
+  `}
+`;
+
 const LoadingContainer = styled.div`
   ${({ theme }) => css`
     display: flex;
@@ -169,6 +194,22 @@ const SchemaSelector = ({
     onSchemasChange(selectedItemsToValue(newSelectedItems));
   };
 
+  const handleSelectAll = () => {
+    setAll(true);
+  };
+  const handleUnselectAll = () => {
+    setAll(false);
+  };
+  const setAll = (selected: boolean) => {
+    const newSelectedItems = { ...selectedItems };
+    Object.keys(newSelectedItems).forEach(key => {
+      newSelectedItems[key] = selected;
+    }
+    );
+    setSelectedItems(newSelectedItems);
+    onSchemasChange(selectedItemsToValue(newSelectedItems));
+  };
+
   const selectedItemsToValue = (selected: {[key: string]: boolean}) => {
     const value = []
     for (const key in selected) {
@@ -181,65 +222,74 @@ const SchemaSelector = ({
   
   return (
     <Container>
-      { loading && (
+      { loading ? (
         <LoadingContainer>
           <LoadingOutlined/>
           <span>{t('Loading schemas and tables...')}</span>
         </LoadingContainer>
-      )}
-      { error && <p>{t('An error occurred while retrieving schemas for this connection')}</p> }
-      <SchemaList>
-        {Object.keys(options).map(schema => (
-          <SchemaItem key={schema}>
-            <SchemaHeader>
-              <CaretButton 
-                onClick={() => toggleExpanded(schema)}
-                aria-label={expandedSchema === schema ? "Collapse" : "Expand"}
-              >
-                {expandedSchema === schema ? 
-                  <CaretDownFilled size={18} /> : 
-                  <CaretRightFilled size={18} />
-                }
-              </CaretButton>
-              
-              <CheckboxContainer>
-                <IndeterminateCheckbox
-                  id={`schema-${schema}`}
-                  checked={areAllChildrenSelected(schema)}
-                  indeterminate={areSomeChildrenSelected(schema)}
-                  onChange={() => handleSchemaCheckboxChange(schema)}
-                />
-                <SchemaLabel 
-                  htmlFor={`schema-${schema}`} 
-                  onClick={() => toggleExpanded(schema)}
-                >
-                  {schema}
-                </SchemaLabel>
-              </CheckboxContainer>
-            </SchemaHeader>
-            
-            {expandedSchema === schema && (
-              <TablesList>
-                {options[schema].map(table => (
-                  <TableItem key={table}>
+      ) : error ? (
+        <p>{t('An error occurred while retrieving schemas for this connection')}</p>
+      ) : (
+        <>
+          <Header>
+            <div><a onClick={handleSelectAll}>Select all</a></div>
+            <div><a onClick={handleUnselectAll}>Select none</a></div>
+          </Header>
+          
+          <SchemaList>
+            {Object.keys(options).map(schema => (
+              <SchemaItem key={schema}>
+                <SchemaHeader>
+                  <CaretButton 
+                    onClick={() => toggleExpanded(schema)}
+                    aria-label={expandedSchema === schema ? "Collapse" : "Expand"}
+                  >
+                    {expandedSchema === schema ? 
+                      <CaretDownFilled size={18} /> : 
+                      <CaretRightFilled size={18} />
+                    }
+                  </CaretButton>
+                  
+                  <CheckboxContainer>
                     <IndeterminateCheckbox
-                      id="`${schema}-${table}`"
-                      indeterminate={false}
-                      checked={selectedItems[`${schema}.${table}`] || false}
-                      onChange={() => handleChildCheckboxChange(schema, table)}
-                      labelText={table}
+                      id={`schema-${schema}`}
+                      checked={areAllChildrenSelected(schema)}
+                      indeterminate={areSomeChildrenSelected(schema)}
+                      onChange={() => handleSchemaCheckboxChange(schema)}
                     />
-                  </TableItem>
-                ))}
-              </TablesList>
-            )}
-          </SchemaItem>
-        ))}
-      </SchemaList>
-      
-      <StatusBar>
-        {Object.values(selectedItems).filter(Boolean).length} items selected
-      </StatusBar>
+                    <SchemaLabel 
+                      htmlFor={`schema-${schema}`} 
+                      onClick={() => toggleExpanded(schema)}
+                    >
+                      {schema}
+                    </SchemaLabel>
+                  </CheckboxContainer>
+                </SchemaHeader>
+                
+                {expandedSchema === schema && (
+                  <TablesList>
+                    {options[schema].map(table => (
+                      <TableItem key={table}>
+                        <IndeterminateCheckbox
+                          id="`${schema}-${table}`"
+                          indeterminate={false}
+                          checked={selectedItems[`${schema}.${table}`] || false}
+                          onChange={() => handleChildCheckboxChange(schema, table)}
+                          labelText={table}
+                        />
+                      </TableItem>
+                    ))}
+                  </TablesList>
+                )}
+              </SchemaItem>
+            ))}
+          </SchemaList>
+          
+          <StatusBar>
+            {Object.values(selectedItems).filter(Boolean).length} items selected
+          </StatusBar>
+        </>
+      )}
     </Container>
   )
 };

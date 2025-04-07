@@ -321,7 +321,9 @@ const AIAssistantOptions = ({
                   body: JSON.stringify({ database_id: db?.id || 0 }),
                   headers: { 'Content-Type': 'application/json' },
                 }).finally(() => {
-                  setTimeout(() => setRegenerating(false), 10000);
+                  setTimeout(() => {
+                    setRegenerating(savedContext?.status === 'building');
+                  }, 10000);
                 });
               }}
               loading={regenerating}
@@ -329,7 +331,7 @@ const AIAssistantOptions = ({
               buttonStyle="link"
               css={(theme: SupersetTheme) => wideButton(theme)}
               >
-              {t('Regenerate context')}
+              {regenerating ? t('Regenerating...') : t('Regenerate context')}
             </Button>
         </Collapse.Panel>
       </Collapse>
