@@ -89,13 +89,8 @@ const IconButton: React.FC<IconButtonProps> = ({
       onKeyDown={handleKeyDown}
       cover={renderIcon()}
       css={(theme: SupersetTheme) => ({
-        padding: '12px',
+        padding: theme.gridUnit * 3,
         textAlign: 'center',
-        outline: 'none',
-        ':focus': {
-          border: `2px solid ${theme.colors.primary.base}`,
-          boxShadow: `0 0 0 3px ${theme.colors.primary.light4}`,
-        },
         ...cardProps.style,
       })}
       {...cardProps}
