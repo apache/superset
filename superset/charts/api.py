@@ -157,6 +157,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "tags.id",
         "tags.name",
         "tags.type",
+        "published",
     ]
 
     show_select_columns = show_columns + ["table.id"]
@@ -196,6 +197,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "dashboards.id",
         "dashboards.dashboard_title",
         "params",
+        "published",
         "slice_name",
         "slice_url",
         "table.default_endpoint",
@@ -218,6 +220,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "last_saved_by.id",
         "last_saved_by.first_name",
         "last_saved_by.last_name",
+        "published",
         "slice_name",
         "viz_type",
     ]
@@ -236,6 +239,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slice_name",
         "viz_type",
         "tags",
+        "published",
     ]
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]

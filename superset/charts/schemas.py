@@ -122,6 +122,7 @@ owners_name_description = "Name of an owner of the chart."
 certified_by_description = "Person or group that has certified this chart"
 certification_details_description = "Details of the certification"
 tags_description = "Tags to be associated with the chart"
+published_description = "Indicator whether a chart is in a state where it is complete and ready for sharing"
 
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get a chart detail information"}},
@@ -162,6 +163,7 @@ class ChartEntityResponseSchema(Schema):
     certification_details = fields.String(
         metadata={"description": certification_details_description}
     )
+    published = fields.Boolean()
 
 
 class ChartPostSchema(Schema):
@@ -223,6 +225,7 @@ class ChartPostSchema(Schema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    published = fields.Boolean(metadata={"description": published_description})
 
 
 class ChartPutSchema(Schema):
@@ -279,6 +282,7 @@ class ChartPutSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     tags = fields.List(fields.Integer(metadata={"description": tags_description}))
+    published = fields.Boolean(metadata={"description": published_description})
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
@@ -1564,6 +1568,7 @@ class ImportV1ChartSchema(Schema):
     dataset_uuid = fields.UUID(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    published = fields.Boolean()
 
 
 class ChartCacheWarmUpRequestSchema(Schema):
