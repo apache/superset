@@ -32,26 +32,31 @@ import { MenuObjectProps } from 'src/types/bootstrapTypes';
 const StyledHeader = styled.div<{ backgroundColor?: string }>`
   background-color: ${({ theme, backgroundColor }) =>
     backgroundColor || theme.colorBgContainer};
+  align-items: center;
+  position: relative;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px
+    ${({ theme }) => theme.sizeUnit * 5}px;
   margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
   .header {
     font-weight: ${({ theme }) => theme.fontWeightStrong};
     margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
     text-align: left;
     font-size: 18px;
-    padding: ${({ theme }) => theme.sizeUnit * 3}px;
     display: inline-block;
-    litne-height: ${({ theme }) => theme.sizeUnit * 9}px;
+    line-height: ${({ theme }) => theme.sizeUnit * 9}px;
   }
   .nav-right {
     display: flex;
     align-items: center;
-    padding: ${({ theme }) => theme.sizeUnit * 3.5}px 0;
     margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
     float: right;
     position: absolute;
     right: 0;
     ul.antd5-menu-root {
       padding: 0px;
+    }
+    .antd5-row {
+      align-items: center;
     }
     li[role='menuitem'] {
       border: 0;
@@ -70,12 +75,11 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     padding-left: 10px;
   }
   .menu {
-    //background-color: ${({ theme }) => theme.colorBgBase};
+    align-items: center;
   }
 
   .menu > .antd5-menu {
-    padding: ${({ theme }) => theme.sizeUnit * 5}px
-      ${({ theme }) => theme.sizeUnit * 8}px;
+    padding-left: ${({ theme }) => theme.sizeUnit * 5}px;
     line-height: ${({ theme }) => theme.sizeUnit * 5}px;
 
     .antd5-menu-item {
