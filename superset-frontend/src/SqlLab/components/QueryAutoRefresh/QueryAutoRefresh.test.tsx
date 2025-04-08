@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryState } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render, waitFor } from 'spec/helpers/testing-library';
+import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
 import {
   CLEAR_INACTIVE_QUERIES,
   REFRESH_QUERIES,
@@ -31,9 +33,13 @@ import QueryAutoRefresh, {
 } from 'src/SqlLab/components/QueryAutoRefresh';
 import { successfulQuery, runningQuery } from 'src/SqlLab/fixtures';
 import { QueryDictionary } from 'src/SqlLab/types';
+import mockDatabases from 'spec/fixtures/mockDatabases';
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
+const mockState = {
+  databases: mockDatabases,
+};
 
 // NOTE: The uses of @ts-ignore in this file is to enable testing of bad inputs to verify the
 // function / component handles bad data elegantly
@@ -106,7 +112,9 @@ describe('QueryAutoRefresh', () => {
   });
 
   it('Attempts to refresh when given pending query', async () => {
-    const store = mockStore();
+    const store = mockStore({
+      sqlLab: { ...mockState },
+    });
     fetchMock.get(refreshApi, {
       result: [
         {
@@ -135,7 +143,7 @@ describe('QueryAutoRefresh', () => {
   });
 
   it('Attempts to clear inactive queries when updated queries are empty', async () => {
-    const store = mockStore();
+    const store = mockStore({ sqlLab: { ...mockState } });
     fetchMock.get(refreshApi, {
       result: [],
     });
@@ -163,7 +171,7 @@ describe('QueryAutoRefresh', () => {
   });
 
   it('Does not fail and attempts to refresh when given pending query and invalid query', async () => {
-    const store = mockStore();
+    const store = mockStore({ sqlLab: { ...mockState } });
     fetchMock.get(refreshApi, {
       result: [
         {
@@ -193,7 +201,7 @@ describe('QueryAutoRefresh', () => {
   });
 
   it('Does NOT Attempt to refresh when given only completed queries', async () => {
-    const store = mockStore();
+    const store = mockStore({ sqlLab: { ...mockState } });
     fetchMock.get(refreshApi, {
       result: [
         {
@@ -219,5 +227,58 @@ describe('QueryAutoRefresh', () => {
       { timeout: QUERY_UPDATE_FREQ + 100 },
     );
     expect(fetchMock.calls(refreshApi)).toHaveLength(0);
+  });
+
+  it('logs the failed error for async queries', async () => {
+    const store = mockStore({ sqlLab: { ...mockState } });
+    fetchMock.get(refreshApi, {
+      result: [
+        {
+          id: runningQuery.id,
+          dbId: 1,
+          state: QueryState.Failed,
+          extra: {
+            errors: [
+              {
+                error_type: 'TEST_ERROR',
+                level: 'error',
+                message: 'Syntax invalid',
+                extra: {
+                  issue_codes: [
+                    {
+                      code: 102,
+                      message: 'DB failed',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+    render(
+      <QueryAutoRefresh
+        queries={runningQueries}
+        queriesLastUpdate={queriesLastUpdate}
+      />,
+      { useRedux: true, store },
+    );
+    await waitFor(
+      () =>
+        expect(store.getActions()).toContainEqual(
+          expect.objectContaining({
+            payload: expect.objectContaining({
+              eventName: LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY,
+              eventData: expect.objectContaining({
+                error_type: 'TEST_ERROR',
+                error_details: 'Syntax invalid',
+                issue_codes: [102],
+              }),
+            }),
+          }),
+        ),
+      { timeout: QUERY_UPDATE_FREQ + 100 },
+    );
   });
 });
