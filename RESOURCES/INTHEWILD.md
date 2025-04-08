@@ -137,6 +137,7 @@ Join our growing community!
 - [Virtuoso QA](https://www.virtuosoqa.com)
 - [Whale](https://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
+- [WinWin Network马上赢](https://brandct.cn/) [@wenbinye]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
 
 ### Media & Entertainment
