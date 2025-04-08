@@ -430,10 +430,12 @@ D3_FORMAT: D3Format = {}
 # ]
 # for adding your own map tiles, you can use the following format:
 # - tile:// + your_personal_url or openstreetmap_url
-#   example: 
+#   example:
 #   DECKGL_BASE_MAP = [
 #       [tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png, 'OpenStreetMap']
 #    ]
+# Enable CORS and set map url in origins option.
+# Add also map url in connect-src of TALISMAN_CONFIG variable
 DECKGL_BASE_MAP: list[list[str, str]] = None
 
 
@@ -838,12 +840,8 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
 # `pip install .[cors]` or `pip install apache-superset[cors]`, depending
-ENABLE_CORS = True
-CORS_OPTIONS: dict[Any, Any] = {
-    "origins": [
-        "https://c.tile.openstreetmap.org",
-    ]
-}
+ENABLE_CORS = False
+CORS_OPTIONS: dict[Any, Any] = {}
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
 # Disabling this option is not recommended for security reasons. If you wish to allow
@@ -1666,7 +1664,6 @@ TALISMAN_CONFIG = {
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
-            "https://c.tile.openstreetmap.org",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -1698,7 +1695,6 @@ TALISMAN_DEV_CONFIG = {
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
-            "https://c.tile.openstreetmap.org",
         ],
         "object-src": "'none'",
         "style-src": [

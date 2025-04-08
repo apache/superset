@@ -38,7 +38,6 @@ export const DEFAULT_DECKGL_TILES = [
   ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
   ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
   ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
-  ['tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap'],
 ];
 
 const getDeckGLTiles = () => {
