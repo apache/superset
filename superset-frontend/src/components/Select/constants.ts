@@ -18,6 +18,8 @@
  */
 import { LabeledValue as AntdLabeledValue } from 'antd-v5/es/select';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
+import { t } from '@superset-ui/core';
+import { RawValue } from './types';
 
 export const MAX_TAG_COUNT = 4;
 
@@ -26,6 +28,15 @@ export const TOKEN_SEPARATORS = [',', '\r\n', '\n', '\t', ';'];
 export const EMPTY_OPTIONS = [];
 
 export const DEFAULT_PAGE_SIZE = 100;
+
+export const SELECT_ALL_VALUE: RawValue = t('Select All');
+
+export const VIRTUAL_THRESHOLD = 20;
+
+export const SELECT_ALL_OPTION = {
+  value: SELECT_ALL_VALUE,
+  label: String(SELECT_ALL_VALUE),
+};
 
 export const DEFAULT_SORT_COMPARATOR = (
   a: AntdLabeledValue,

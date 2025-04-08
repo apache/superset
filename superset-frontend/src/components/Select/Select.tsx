@@ -46,8 +46,6 @@ import {
   getValue,
   hasOption,
   isLabeledValue,
-  SELECT_ALL_VALUE,
-  selectAllOption,
   mapValues,
   mapOptions,
   isEqual as utilsIsEqual,
@@ -58,7 +56,6 @@ import {
   isObject,
   getSuffixIcon,
   sortComparatorWithSearchHelper,
-  VIRTUAL_THRESHOLD,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -73,6 +70,9 @@ import {
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
   TOKEN_SEPARATORS,
+  SELECT_ALL_VALUE,
+  SELECT_ALL_OPTION,
+  VIRTUAL_THRESHOLD,
 } from './constants';
 import { customTagRender } from './CustomTag';
 import { Space } from '../Space';
@@ -125,7 +125,6 @@ const Select = forwardRef(
       oneLine,
       maxTagCount: propsMaxTagCount,
       virtual = undefined,
-      virtualThreshold = VIRTUAL_THRESHOLD,
       ...props
     }: SelectProps,
     ref: Ref<RefSelectProps>,
@@ -269,7 +268,7 @@ const Select = forwardRef(
             if (isLabeledValue(selectedItem)) {
               return [
                 ...selectAllEligible,
-                selectAllOption,
+                SELECT_ALL_OPTION,
               ] as AntdLabeledValue[];
             }
             return [
@@ -286,7 +285,7 @@ const Select = forwardRef(
               selectAllEnabled
             ) {
               return isLabeledValue(selectedItem)
-                ? ([...result, selectAllOption] as AntdLabeledValue[])
+                ? ([...result, SELECT_ALL_OPTION] as AntdLabeledValue[])
                 : ([...result, SELECT_ALL_VALUE] as (string | number)[]);
             }
             return result as AntdLabeledValue[];
@@ -436,7 +435,10 @@ const Select = forwardRef(
       ) {
         setSelectValue(
           labelInValue
-            ? ([...ensureIsArray(value), selectAllOption] as AntdLabeledValue[])
+            ? ([
+                ...ensureIsArray(value),
+                SELECT_ALL_OPTION,
+              ] as AntdLabeledValue[])
             : ([...ensureIsArray(value), SELECT_ALL_VALUE] as RawValue[]),
         );
       }
@@ -450,7 +452,9 @@ const Select = forwardRef(
         const optionsToSelect = selectAllEligible.map(option =>
           labelInValue ? option : option.value,
         );
-        optionsToSelect.push(labelInValue ? selectAllOption : SELECT_ALL_VALUE);
+        optionsToSelect.push(
+          labelInValue ? SELECT_ALL_OPTION : SELECT_ALL_VALUE,
+        );
         setSelectValue(
           optionsToSelect.filter(
             (val): val is RawValue => val !== null && val !== undefined,
@@ -655,7 +659,7 @@ const Select = forwardRef(
           virtual={
             virtual !== undefined
               ? virtual
-              : fullSelectOptions.length > virtualThreshold
+              : fullSelectOptions.length > VIRTUAL_THRESHOLD
           }
           suffixIcon={getSuffixIcon(
             isLoading,

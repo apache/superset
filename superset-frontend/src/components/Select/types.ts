@@ -36,7 +36,7 @@ export type CustomLabeledValue = { label?: ReactNode; value?: V };
 
 export type AntdProps = AntdSelectProps<AntdSelectValue>;
 
-export type SelectValue = AntdSelectValue;
+export type SelectValue = AntdSelectValue | null;
 
 export type { RefSelectProps };
 
@@ -69,7 +69,6 @@ export type AntdExposedProps = Pick<
   | 'showArrow'
   | 'showSearch'
   | 'tokenSeparators'
-  | 'value'
   | 'virtual'
   | 'getPopupContainer'
   | 'menuItemSelectedIcon'
@@ -160,6 +159,8 @@ export interface BaseSelectProps extends AntdExposedProps {
 
   suffixIcon?: ReactNode;
 
+  value?: SelectValue | null;
+
   ref: Ref<RefSelectProps>;
 }
 
@@ -175,14 +176,6 @@ export interface SelectProps extends BaseSelectProps {
    * The options can be static, an array of options.
    */
   options: SelectOptionsType;
-
-  /**
-   * It defines the threshold for select options to be virtual
-   * The threshold default is 20, meaning that if the number of options is greater than 20,
-   * the options will be virtualized.
-   * If the virtual prop is set this will be ignored.
-   */
-  virtualThreshold?: number;
 }
 
 export type AsyncSelectRef = RefSelectProps & {

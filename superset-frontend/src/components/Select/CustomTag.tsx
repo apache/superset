@@ -20,7 +20,7 @@ import { MouseEvent } from 'react';
 import { css } from '@superset-ui/core';
 import { Tag } from '../Tag';
 import { CustomTagProps } from './types';
-import { SELECT_ALL_VALUE } from './utils';
+import { SELECT_ALL_VALUE } from './constants';
 import { NoElement } from './styles';
 
 /**

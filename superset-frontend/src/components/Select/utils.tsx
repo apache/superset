@@ -17,18 +17,14 @@
  * under the License.
  */
 import { ensureIsArray, t } from '@superset-ui/core';
-import { LabeledValue as AntdLabeledValue } from 'src/components/Select';
+import {
+  LabeledValue as AntdLabeledValue,
+  SELECT_ALL_VALUE,
+} from 'src/components/Select';
 import { ReactElement, RefObject } from 'react';
 import { Icons } from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
 import { CustomLabeledValue, RawValue, SelectOptionsType, V } from './types';
-
-export const SELECT_ALL_VALUE: RawValue = t('Select All');
-export const VIRTUAL_THRESHOLD = 20;
-export const selectAllOption = {
-  value: SELECT_ALL_VALUE,
-  label: String(SELECT_ALL_VALUE),
-};
 
 export function isObject(value: unknown): value is Record<string, unknown> {
   return (

@@ -100,12 +100,10 @@ const SelectAsyncControl = ({
         endpoint: dataEndpoint,
       })
         .then(response => {
-          if (value) {
-            const data = mutator
-              ? mutator(response.json, value)
-              : response.json.result;
-            setOptions(data);
-          }
+          const data = mutator
+            ? mutator(response.json, value)
+            : response.json.result;
+          setOptions(data);
         })
         .catch(onError)
         .finally(() => {
