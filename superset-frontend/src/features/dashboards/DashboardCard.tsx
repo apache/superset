@@ -28,12 +28,12 @@ import { CardStyles } from 'src/views/CRUD/utils';
 import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import ListViewCard from 'src/components/ListViewCard';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { PublishedLabel } from 'src/components/Label';
 import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
 import { Dashboard } from 'src/views/CRUD/types';
-import { Button } from 'src/components';
+import Button from 'src/components/Button';
 
 interface DashboardCardProps {
   isChart?: boolean;

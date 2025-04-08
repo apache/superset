@@ -19,9 +19,10 @@
 import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
 
 import Modal from 'src/components/Modal';
-import { Input, TextArea } from 'src/components/Input';
+import { Input } from 'src/components/Input';
 import Button from 'src/components/Button';
-import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
+import { AsyncSelect } from 'src/components';
+import { Row, Col } from 'src/components/Grid';
 // eslint-disable-next-line no-restricted-imports
 import { SelectValue } from 'antd/lib/select'; // TODO: Remove antd
 import rison from 'rison';
@@ -36,12 +37,13 @@ import {
   useTheme,
   css,
 } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { loadTags } from 'src/components/Tags/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import TagType from 'src/types/TagType';
+import { Form } from 'src/components/Form';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -53,9 +55,9 @@ export type PropertiesModalProps = {
   addSuccessToast: (msg: string) => void;
 };
 
-const FormItem = AntdForm.Item;
+const FormItem = Form.Item;
 
-const StyledFormItem = styled(AntdForm.Item)`
+const StyledFormItem = styled(Form.Item)`
   margin-bottom: 0;
 `;
 
@@ -72,7 +74,7 @@ function PropertiesModal({
 }: PropertiesModalProps) {
   const theme = useTheme();
   const [submitting, setSubmitting] = useState(false);
-  const [form] = AntdForm.useForm();
+  const [form] = Form.useForm();
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
   const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
@@ -294,7 +296,7 @@ function PropertiesModal({
       responsive
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
-      <AntdForm
+      <Form
         form={form}
         onFinish={onSubmit}
         layout="vertical"
@@ -326,7 +328,7 @@ function PropertiesModal({
             </FormItem>
             <FormItem>
               <StyledFormItem label={t('Description')} name="description">
-                <TextArea rows={3} style={{ maxWidth: '100%' }} />
+                <Input.TextArea rows={3} style={{ maxWidth: '100%' }} />
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t(
@@ -408,7 +410,7 @@ function PropertiesModal({
             )}
           </Col>
         </Row>
-      </AntdForm>
+      </Form>
     </Modal>
   );
 }

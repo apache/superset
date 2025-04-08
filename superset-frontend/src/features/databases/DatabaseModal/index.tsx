@@ -38,20 +38,19 @@ import {
 
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-// eslint-disable-next-line no-restricted-imports
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import Tabs from 'src/components/Tabs';
-import { AntdSelect, Upload } from 'src/components';
+import { AntdSelect } from 'src/components';
+import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
-import IconButton from 'src/components/IconButton';
+import { IconButton } from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import ErrorAlert from 'src/components/ImportModal/ErrorAlert';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -120,12 +119,12 @@ const engineSpecificAlertMapping = {
 };
 
 const TabsStyled = styled(Tabs)`
-  .ant-tabs-content {
+  .antd5-tabs-content {
     display: flex;
     width: 100%;
     overflow: inherit;
 
-    & > .ant-tabs-tabpane {
+    & > .antd5-tabs-tabpane {
       position: relative;
     }
   }

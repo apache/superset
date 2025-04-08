@@ -17,18 +17,17 @@
  * under the License.
  */
 import { css, styled } from '@superset-ui/core';
+
 // eslint-disable-next-line no-restricted-imports
-import AntdTabs, { TabsProps as AntdTabsProps } from 'antd/lib/tabs'; // TODO: Remove antd
-import Icons from 'src/components/Icons';
+import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd-v5';
+import { Icons } from 'src/components/Icons';
 
 export interface TabsProps extends AntdTabsProps {
-  fullWidth?: boolean;
   allowOverflow?: boolean;
 }
 
 const StyledTabs = ({
   animated = false,
-  fullWidth = true,
   allowOverflow = true,
   ...props
 }: TabsProps) => (
@@ -38,22 +37,12 @@ const StyledTabs = ({
     css={theme => css`
       overflow: ${allowOverflow ? 'visible' : 'hidden'};
 
-      .ant-tabs-content-holder {
+      .antd5-tabs-content-holder {
         overflow: ${allowOverflow ? 'visible' : 'auto'};
       }
-      .ant-tabs-tab {
+      .antd5-tabs-tab {
         flex: 1 1 auto;
-        &.ant-tabs-tab-active .ant-tabs-tab-btn {
-          color: inherit;
-        }
-        &:hover {
-          .anchor-link-container {
-            cursor: pointer;
-            .fa.fa-link {
-              visibility: visible;
-            }
-          }
-        }
+
         .short-link-trigger.btn {
           padding: 0 ${theme.sizeUnit}px;
           & > .fa.fa-link {
@@ -61,14 +50,7 @@ const StyledTabs = ({
           }
         }
       }
-      ${fullWidth &&
-      css`
-        .ant-tabs-nav-list {
-          width: 100%;
-        }
-      `};
-
-      .ant-tabs-tab-btn {
+      .antd5-tabs-tab-btn {
         display: flex;
         flex: 1 1 auto;
         align-items: center;
@@ -80,9 +62,9 @@ const StyledTabs = ({
           margin-left: ${theme.sizeUnit / 2}px;
           color: ${theme.colorError};
         }
-      }
-      .ant-tabs-ink-bar {
-        background: ${theme.colorPrimary};
+        &:focus-visible {
+          box-shadow: none;
+        }
       }
     `}
   />
@@ -95,29 +77,19 @@ const Tabs = Object.assign(StyledTabs, {
 });
 
 const StyledEditableTabs = styled(StyledTabs)`
-  ${({ theme, fullWidth }) => `
-    .ant-tabs-content-holder {
+  ${({ theme }) => `
+    .antd5-tabs-content-holder {
       background: ${theme.colors.grayscale.light5};
     }
 
-    & > .ant-tabs-nav {
+    & > .antd5-tabs-nav {
       margin-bottom: 0;
     }
 
-    .ant-tabs-tab-remove {
+    .antd5-tabs-tab-remove {
       padding-top: 0;
       padding-bottom: 0;
       height: ${theme.sizeUnit * 6}px;
-    }
-
-    ${
-      fullWidth
-        ? css`
-            .ant-tabs-nav-list {
-              width: 100%;
-            }
-          `
-        : ''
     }
   `}
 `;
@@ -131,7 +103,6 @@ export const EditableTabs = Object.assign(StyledEditableTabs, {
 
 EditableTabs.defaultProps = {
   type: 'editable-card',
-  fullWidth: false,
   animated: { inkBar: true, tabPane: false },
 };
 
@@ -140,27 +111,27 @@ EditableTabs.TabPane.defaultProps = {
 };
 
 export const StyledLineEditableTabs = styled(EditableTabs)`
-  &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+  &.antd5-tabs-card > .antd5-tabs-nav .antd5-tabs-tab {
     margin: 0 ${({ theme }) => theme.sizeUnit * 4}px;
     padding: ${({ theme }) => `${theme.sizeUnit * 3}px ${theme.sizeUnit}px`};
     background: transparent;
     border: none;
   }
 
-  &.ant-tabs-card > .ant-tabs-nav .ant-tabs-ink-bar {
+  &.antd5-tabs-card > .antd5-tabs-nav .antd5-tabs-ink-bar {
     visibility: visible;
   }
 
-  .ant-tabs-tab-btn {
+  .antd5-tabs-tab-btn {
     font-size: ${({ theme }) => theme.fontSize}px;
   }
 
-  .ant-tabs-tab-remove {
+  .antd5-tabs-tab-remove {
     margin-left: 0;
     padding-right: 0;
   }
 
-  .ant-tabs-nav-add {
+  .antd5-tabs-nav-add {
     min-width: unset !important;
     background: transparent !important;
     border: none !important;

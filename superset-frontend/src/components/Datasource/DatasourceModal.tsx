@@ -31,7 +31,7 @@ import {
   css,
 } from '@superset-ui/core';
 
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
@@ -67,6 +67,10 @@ const StyledDatasourceModal = styled(Modal)`
 
   .modal-footer {
     flex: 0 1 auto;
+  }
+
+  .antd5-tabs-top {
+    margin-top: -${({ theme }) => theme.sizeUnit * 4}px;
   }
 `;
 

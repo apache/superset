@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import { InputProps, TextAreaProps } from 'antd-v5/lib/input';
-import { InputNumberProps } from 'antd-v5/lib/input-number';
-import { Input, TextArea, InputNumber } from '.';
+import { InputProps, TextAreaProps } from 'antd-v5/es/input';
+import { InputNumberProps } from 'antd-v5/es/input-number';
+import { Input, InputNumber } from '.';
 
 export default {
   title: 'Input',
@@ -33,7 +33,7 @@ export const InteractiveInputNumber = (args: InputNumberProps) => (
 );
 
 export const InteractiveTextArea = (args: TextAreaProps) => (
-  <TextArea {...args} />
+  <Input.TextArea {...args} />
 );
 
 InteractiveInput.args = {

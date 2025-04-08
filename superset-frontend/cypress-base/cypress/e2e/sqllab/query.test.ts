@@ -165,7 +165,7 @@ describe('SqlLab query panel', () => {
     cy.wait('@queryFinished');
 
     cy.get(
-      '.SouthPane .ant-tabs-content > .ant-tabs-tabpane-active > div button:first',
+      '.SouthPane .antd5-tabs-content > .antd5-tabs-tabpane-active > div button:first',
       { timeout: 10000 },
     ).click();
 

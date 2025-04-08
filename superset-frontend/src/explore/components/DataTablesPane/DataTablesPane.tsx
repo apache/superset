@@ -24,7 +24,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Tabs from 'src/components/Tabs';
 import {
   getItem,
@@ -45,19 +45,19 @@ const SouthPane = styled.div`
     z-index: 5;
     overflow: hidden;
 
-    .ant-tabs {
+    .antd5-tabs {
       height: 100%;
     }
 
-    .ant-tabs-content-holder {
+    .antd5-tabs-content-holder {
       height: 100%;
     }
 
-    .ant-tabs-content {
+    .antd5-tabs-content {
       height: 100%;
     }
 
-    .ant-tabs-tabpane {
+    .antd5-tabs-tabpane {
       display: flex;
       flex-direction: column;
       height: 100%;
@@ -221,7 +221,6 @@ export const DataTablesPane = ({
   return (
     <SouthPane data-test="some-purposeful-instance">
       <Tabs
-        fullWidth={false}
         tabBarExtraContent={CollapseButton}
         activeKey={panelOpen ? activeTabKey : ''}
         onTabClick={handleTabClick}

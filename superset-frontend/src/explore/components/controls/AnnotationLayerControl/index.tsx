@@ -37,7 +37,7 @@ import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import ControlPopover, {
   getSectionContainerElement,
 } from '../ControlPopover/ControlPopover';

@@ -39,14 +39,14 @@ import {
   chartLabelWeight,
   chartLabelExplanations,
 } from '@superset-ui/core';
-import { AntdCollapse } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import { Input } from 'src/components/Input';
 import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import scrollIntoView from 'scroll-into-view-if-needed';
+import Collapse from 'src/components/Collapse';
 
 interface VizTypeGalleryProps {
   onChange: (vizType: string | null) => void;
@@ -113,17 +113,18 @@ const LeftPane = styled.div`
   grid-area: sidebar;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-right: 1px solid ${({ theme }) => theme.colorBorder};
   overflow: auto;
 
-  .ant-collapse .ant-collapse-item {
-    .ant-collapse-header {
+  .antd5-collapse .antd5-collapse-item {
+    .antd5-collapse-header {
       font-size: ${({ theme }) => theme.fontSizeSM}px;
-      color: ${({ theme }) => theme.colors.grayscale.base};
+      color: ${({ theme }) => theme.colorText};
       padding-left: ${({ theme }) => theme.sizeUnit * 2}px;
       padding-bottom: ${({ theme }) => theme.sizeUnit}px;
     }
-    .ant-collapse-content .ant-collapse-content-box {
+
+    .antd5-collapse-content .antd5-collapse-content-box {
       display: flex;
       flex-direction: column;
       padding: 0 ${({ theme }) => theme.sizeUnit * 2}px;
@@ -154,7 +155,7 @@ const InputIconAlignment = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorIcon};
 `;
 
 const SelectorLabel = styled.button`
@@ -171,17 +172,18 @@ const SelectorLabel = styled.button`
     text-overflow: ellipsis;
     white-space: nowrap;
     position: relative;
+    color: ${theme.colorText};
 
     &:focus {
       outline: initial;
     }
 
     &.selected {
-      background-color: ${theme.colorPrimary};
-      color: ${theme.colors.primary.light5};
+      background-color: ${theme.colorPrimaryBgHover};
+      color: ${theme.colorPrimaryTextActive};
 
       svg {
-        color: ${theme.colors.primary.light5};
+        color: ${theme.colorIcon};
       }
 
       &:hover {
@@ -693,37 +695,37 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           }
           onClick={clickSelector}
         />
-        <AntdCollapse
+        <Collapse
           expandIconPosition="right"
           ghost
           defaultActiveKey={Sections.Category}
-        >
-          {Object.keys(sectionMap).map(sectionId => {
+          items={Object.keys(sectionMap).map(sectionId => {
             const section = sectionMap[sectionId as keyof typeof sectionMap];
 
-            return (
-              <AntdCollapse.Panel
-                header={<span className="header">{section.title}</span>}
-                key={sectionId}
-              >
-                {section.selectors.map((selector: string) => (
-                  <Selector
-                    key={selector}
-                    selector={selector}
-                    sectionId={sectionId}
-                    icon={section.icon}
-                    isSelected={
-                      !isActivelySearching &&
-                      selector === activeSelector &&
-                      sectionId === activeSection
-                    }
-                    onClick={clickSelector}
-                  />
-                ))}
-              </AntdCollapse.Panel>
-            );
+            return {
+              key: sectionId,
+              label: <span className="header">{section.title}</span>,
+              children: (
+                <>
+                  {section.selectors.map((selector: string) => (
+                    <Selector
+                      key={selector}
+                      selector={selector}
+                      sectionId={sectionId}
+                      icon={section.icon}
+                      isSelected={
+                        !isActivelySearching &&
+                        selector === activeSelector &&
+                        sectionId === activeSection
+                      }
+                      onClick={clickSelector}
+                    />
+                  ))}
+                </>
+              ),
+            };
           })}
-        </AntdCollapse>
+        />
       </LeftPane>
 
       <SearchWrapper>

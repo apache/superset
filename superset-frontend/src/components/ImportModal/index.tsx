@@ -17,21 +17,17 @@
  * under the License.
  */
 import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
-
-// eslint-disable-next-line no-restricted-imports
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import { styled, t } from '@superset-ui/core';
-
 import Button from 'src/components/Button';
 import Modal from 'src/components/Modal';
-import { Upload } from 'src/components';
+import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
 import ImportErrorAlert from './ImportErrorAlert';
 
 const HelperMessage = styled.div`
   display: block;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorTextSecondary};
   font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
 
@@ -77,7 +73,7 @@ const StyledInputContainer = styled.div`
 
   input::placeholder,
   textarea::placeholder {
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colorTextPlaceholder};
   }
 
   textarea,
@@ -86,7 +82,7 @@ const StyledInputContainer = styled.div`
     padding: ${({ theme }) => theme.sizeUnit * 1.5}px
       ${({ theme }) => theme.sizeUnit * 2}px;
     border-style: none;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border: 1px solid ${({ theme }) => theme.colorBorder};
     border-radius: ${({ theme }) => theme.sizeUnit}px;
 
     &[name='name'] {

@@ -20,12 +20,12 @@ import { ReactNode, ReactElement } from 'react';
 import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { Dropdown, DropdownProps } from 'src/components/Dropdown';
 import { TooltipPlacement } from 'src/components/Tooltip';
+import { Icons } from 'src/components/Icons';
 import DynamicEditableTitle, {
   DynamicEditableTitleProps,
 } from '../DynamicEditableTitle';
 import CertifiedBadge, { CertifiedBadgeProps } from '../CertifiedBadge';
 import FaveStar, { FaveStarProps } from '../FaveStar';
-import Icons from '../Icons';
 import Button from '../Button';
 
 export const menuTriggerStyles = (theme: SupersetTheme) => css`
@@ -37,13 +37,6 @@ export const menuTriggerStyles = (theme: SupersetTheme) => css`
   &.antd5-btn > span.anticon {
     line-height: 0;
     transition: inherit;
-  }
-
-  &:hover:not(:focus) > span.anticon {
-    color: ${theme.colors.primary.light1};
-  }
-  &:focus-visible {
-    outline: 2px solid ${theme.colors.primary.dark2};
   }
 `;
 
@@ -161,7 +154,7 @@ export const PageHeaderWithActions = ({
             >
               <Button
                 css={menuTriggerStyles}
-                buttonStyle="secondary"
+                buttonStyle="tertiary"
                 aria-label={t('Menu actions trigger')}
                 tooltip={tooltipProps?.text}
                 placement={tooltipProps?.placement}

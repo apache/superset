@@ -30,7 +30,7 @@ import { Menu } from 'src/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
 import DeleteModal from 'src/components/DeleteModal';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { User } from 'src/types/bootstrapTypes';
 import {
   CardContainer,
@@ -39,7 +39,7 @@ import {
   PAGE_SIZE,
   shortenSQL,
 } from 'src/views/CRUD/utils';
-import { Button } from 'src/components';
+import Button from 'src/components/Button';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
@@ -115,7 +115,7 @@ const QueryContainer = styled.div`
   }
 `;
 
-const SavedQueries = ({
+export const SavedQueries = ({
   user,
   addDangerToast,
   addSuccessToast,
@@ -347,7 +347,7 @@ const SavedQueries = ({
                         trigger={['click', 'hover']}
                       >
                         <Button buttonSize="xsmall" buttonStyle="link">
-                          <Icons.MoreVert iconColor={theme.colorText} />
+                          <Icons.MoreOutlined iconColor={theme.colorText} />
                         </Button>
                       </Dropdown>
                     </ListViewCard.Actions>

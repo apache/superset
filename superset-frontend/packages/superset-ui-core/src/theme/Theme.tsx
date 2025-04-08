@@ -27,6 +27,7 @@ import {
   CacheProvider as EmotionCacheProvider,
 } from '@emotion/react';
 import createCache from '@emotion/cache';
+import { GlobalStyles } from './GlobalStyles';
 
 import {
   AntdThemeConfig,
@@ -53,6 +54,13 @@ export class Theme {
   theme: SupersetTheme;
 
   private static readonly defaultTokens = {
+    // Brand
+    brandLogoAlt: 'Apache Superset',
+    brandLogoUrl: '/static/assets/images/superset-logo-horiz.png',
+    brandLogoMargin: '18px',
+    brandLogoHref: 'https:/supserset.apache.org',
+    brandLogoHeight: '24px',
+
     // Default colors
     colorPrimary: '#2893B3', // NOTE: previous lighter primary color was #20a7c9
     colorError: '#e04355',
@@ -220,6 +228,10 @@ export class Theme {
     this.setConfig(newConfig);
   }
 
+  json(): string {
+    return JSON.stringify(serializeThemeConfig(this.antdConfig), null, 2);
+  }
+
   getColorVariants(color: string): ColorVariants {
     const firstLetterCapped = color.charAt(0).toUpperCase() + color.slice(1);
     if (color === 'default' || color === 'grayscale') {
@@ -286,6 +298,7 @@ export class Theme {
     return (
       <EmotionCacheProvider value={themeState.emotionCache}>
         <EmotionThemeProvider theme={themeState.theme}>
+          <GlobalStyles />
           <ConfigProvider theme={themeState.antdConfig} prefixCls="antd5">
             {children}
           </ConfigProvider>

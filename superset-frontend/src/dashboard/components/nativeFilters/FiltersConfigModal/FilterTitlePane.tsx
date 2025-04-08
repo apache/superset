@@ -19,8 +19,8 @@
 import { useRef, FC } from 'react';
 
 import { NativeFilterType, styled, t, useTheme } from '@superset-ui/core';
-import { Button } from 'src/components';
-import Icons from 'src/components/Icons';
+import Button from 'src/components/Button';
+import { Icons } from 'src/components/Icons';
 
 import FilterTitleContainer from './FilterTitleContainer';
 import { FilterRemoval } from './types';
@@ -65,12 +65,6 @@ const FilterTitlePane: FC<Props> = ({
   const handleOnAdd = (type: NativeFilterType) => {
     onAdd(type);
     setTimeout(() => {
-      const element = document.getElementById('native-filters-tabs');
-      if (element) {
-        const navList = element.getElementsByClassName('ant-tabs-nav-list')[0];
-        navList.scrollTop = navList.scrollHeight;
-      }
-
       filtersContainerRef?.current?.scroll?.({
         top: filtersContainerRef.current.scrollHeight,
         behavior: 'smooth',

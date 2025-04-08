@@ -17,7 +17,7 @@
  * under the License.
  */
 import PropTypes from 'prop-types';
-import { Row, Col } from 'src/components';
+import { Row, Col } from 'src/components/Grid';
 
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 

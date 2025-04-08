@@ -31,7 +31,7 @@ import {
 } from 'react';
 import cx from 'classnames';
 import { styled, t, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Loading from 'src/components/Loading';
 import { EmptyState } from 'src/components/EmptyState';
 import { getFilterBarTestId } from './utils';
@@ -43,7 +43,7 @@ import CrossFiltersVertical from './CrossFilters/Vertical';
 const BarWrapper = styled.div<{ width: number }>`
   width: ${({ theme }) => theme.sizeUnit * 8}px;
 
-  & .ant-tabs-top > .ant-tabs-nav {
+  & .antd5-tabs-top > .antd5-tabs-nav {
     margin: 0;
   }
   &.open {
@@ -103,9 +103,14 @@ const FilterBarEmptyStateContainer = styled.div`
 `;
 
 const FilterControlsWrapper = styled.div`
-  padding: ${({ theme }) => theme.sizeUnit * 4}px;
-  // 108px padding to make room for buttons with position: absolute
-  padding-bottom: ${({ theme }) => theme.sizeUnit * 27}px;
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit * 4}px;
+    // 108px padding to make room for buttons with position: absolute
+    padding-bottom: ${theme.sizeUnit * 27}px;
+  `}
 `;
 
 export const FilterBarScrollContext = createContext(false);

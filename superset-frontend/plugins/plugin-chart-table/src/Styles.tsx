@@ -38,6 +38,8 @@ export default styled.div`
       position: relative;
       background: ${theme.colorBgLayout};
       text-align: left;
+      border-bottom: 2px solid ${theme.colorSplit};
+      color: ${theme.colorText};
     }
     th svg {
       color: ${theme.colorIcon};
@@ -53,6 +55,7 @@ export default styled.div`
 
     .table > tbody tr td {
       font-feature-settings: 'tnum' 1;
+      border-top: 1px solid ${theme.colorSplit};
     }
 
     .dt-controls {

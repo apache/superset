@@ -21,10 +21,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import type { Table } from 'src/SqlLab/types';
-import Collapse from 'src/components/Collapse';
+import Collapse, { CollapseProps } from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
-import { css, t, styled, useTheme } from '@superset-ui/core';
+import { t, styled, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
 import {
@@ -45,7 +45,9 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import Loading from 'src/components/Loading';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { ActionType } from 'src/types/Action';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
+import { Flex } from 'src/components/Flex';
+import { Space } from 'src/components/Space';
 import ColumnElement, { ColumnKeyTypeType } from '../ColumnElement';
 import ShowSQL from '../ShowSQL';
 
@@ -55,15 +57,11 @@ export interface Column {
   type: string;
 }
 
-export interface TableElementProps {
+export interface TableElementProps extends CollapseProps {
   table: Table;
 }
 
 const StyledSpan = styled.span`
-  color: ${({ theme }) => theme.colorPrimaryText};
-  &:hover {
-    color: ${({ theme }) => theme.colorPrimaryTextHover};
-  }
   cursor: pointer;
 `;
 
@@ -72,41 +70,8 @@ const Fade = styled.div`
   opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
 `;
 
-const StyledCollapsePanel = styled(Collapse.Panel)`
-  ${({ theme }) => css`
-    & {
-      .ws-el-controls {
-        margin-right: ${-theme.sizeUnit}px;
-        display: flex;
-      }
-
-      .header-container {
-        display: flex;
-        flex: 1;
-        align-items: center;
-        width: 100%;
-
-        .table-name {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          font-size: ${theme.fontSizeLG}px;
-          flex: 1;
-        }
-
-        .header-right-side {
-          margin-left: auto;
-          display: flex;
-          align-items: center;
-          margin-right: ${theme.sizeUnit * 8}px;
-        }
-      }
-    }
-  `}
-`;
-
 const TableElement = ({ table, ...props }: TableElementProps) => {
-  const { dbId, catalog, schema, name, expanded } = table;
+  const { dbId, catalog, schema, name, expanded, id } = table;
   const theme = useTheme();
   const dispatch = useDispatch();
   const {
@@ -263,84 +228,95 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
               className="pull-left m-l-2"
               tooltip={t('View keys & indexes (%s)', tableData.indexes.length)}
             >
-              <Icons.KeyOutlined iconSize="s" />
+              <Icons.TableOutlined
+                iconSize="m"
+                iconColor={theme.colors.primary.dark2}
+              />
             </IconTooltip>
           }
         />
       );
     }
     return (
-      <ButtonGroup
-        css={css`
-          column-gap: ${theme.sizeUnit * 1.5}px;
-          margin-right: ${theme.sizeUnit}px;
-          & span {
-            display: flex;
-            justify-content: center;
-            width: ${theme.sizeUnit * 4}px;
-          }
-        `}
-      >
-        <IconTooltip
-          className="pull-left m-l-2 pointer"
-          onClick={refreshTableMetadata}
-          tooltip={t('Refresh table schema')}
-        >
-          <Icons.SyncOutlined
-            iconSize="m"
-            iconColor={theme.colors.primary.dark2}
-          />
-        </IconTooltip>
-        {keyLink}
-        <IconTooltip
-          className={
-            `fa fa-sort-${sortColumns ? 'numeric' : 'alpha'}-asc ` +
-            'pull-left sort-cols m-l-2 pointer'
-          }
-          onClick={toggleSortColumns}
-          tooltip={
-            sortColumns
-              ? t('Original table column order')
-              : t('Sort columns alphabetically')
-          }
-        />
-        {tableData.selectStar && (
-          <CopyToClipboard
-            copyNode={
-              <IconTooltip
-                aria-label="Copy"
-                tooltip={t('Copy SELECT statement to the clipboard')}
-              >
-                <Icons.CopyOutlined
-                  iconSize="m"
-                  iconColor={theme.colors.primary.dark2}
-                  aria-hidden
-                />
-              </IconTooltip>
-            }
-            text={tableData.selectStar}
-            shouldShowText={false}
-          />
+      <Flex style={{ height: 22 }} align="center">
+        {isMetadataFetching || isExtraMetadataLoading ? (
+          <Loading position="inline" />
+        ) : (
+          <Fade
+            data-test="fade"
+            hovered={hovered}
+            onClick={e => e.stopPropagation()}
+          >
+            <ButtonGroup>
+              <Space size="small">
+                <IconTooltip
+                  className="pull-left m-l-2 pointer"
+                  onClick={refreshTableMetadata}
+                  tooltip={t('Refresh table schema')}
+                >
+                  <Icons.SyncOutlined
+                    iconSize="m"
+                    iconColor={theme.colorIcon}
+                  />
+                </IconTooltip>
+                {keyLink}
+                <IconTooltip
+                  onClick={toggleSortColumns}
+                  tooltip={
+                    sortColumns
+                      ? t('Original table column order')
+                      : t('Sort columns alphabetically')
+                  }
+                >
+                  <Icons.SortAscendingOutlined
+                    iconSize="m"
+                    aria-hidden
+                    iconColor={
+                      sortColumns ? theme.colorIcon : theme.colorTextDisabled
+                    }
+                  />
+                </IconTooltip>
+                {tableData.selectStar && (
+                  <CopyToClipboard
+                    copyNode={
+                      <IconTooltip
+                        aria-label={t('Copy')}
+                        tooltip={t('Copy SELECT statement to the clipboard')}
+                      >
+                        <Icons.CopyOutlined
+                          iconSize="m"
+                          aria-hidden
+                          iconColor={theme.colorIcon}
+                        />
+                      </IconTooltip>
+                    }
+                    text={tableData.selectStar}
+                    shouldShowText={false}
+                  />
+                )}
+                {tableData.view && (
+                  <ShowSQL
+                    sql={tableData.view}
+                    tooltipText={t('Show CREATE VIEW statement')}
+                    title={t('CREATE VIEW statement')}
+                  />
+                )}
+                <IconTooltip
+                  className=" table-remove pull-left m-l-2 pointer"
+                  onClick={removeTable}
+                  tooltip={t('Remove table preview')}
+                >
+                  <Icons.CloseOutlined
+                    iconSize="m"
+                    aria-hidden
+                    iconColor={theme.colorIcon}
+                  />
+                </IconTooltip>
+              </Space>
+            </ButtonGroup>
+          </Fade>
         )}
-        {tableData.view && (
-          <ShowSQL
-            sql={tableData.view}
-            tooltipText={t('Show CREATE VIEW statement')}
-            title={t('CREATE VIEW statement')}
-          />
-        )}
-        <IconTooltip
-          className=" table-remove pull-left m-l-2 pointer"
-          onClick={removeTable}
-          tooltip={t('Remove table preview')}
-        >
-          <Icons.CloseOutlined
-            iconSize="m"
-            iconColor={theme.colors.primary.dark2}
-            aria-hidden
-          />
-        </IconTooltip>
-      </ButtonGroup>
+      </Flex>
     );
   };
 
@@ -355,8 +331,6 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       <div
         data-test="table-element-header-container"
         className="clearfix header-container"
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
       >
         <Tooltip
           id="copy-to-clipboard-tooltip"
@@ -372,20 +346,6 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
             <strong>{name}</strong>
           </StyledSpan>
         </Tooltip>
-
-        <div className="pull-right header-right-side">
-          {isMetadataFetching || isExtraMetadataLoading ? (
-            <Loading position="inline" />
-          ) : (
-            <Fade
-              data-test="fade"
-              hovered={hovered}
-              onClick={e => e.stopPropagation()}
-            >
-              {renderControls()}
-            </Fade>
-          )}
-        </div>
       </div>
     );
   };
@@ -404,12 +364,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     }
 
     const metadata = (
-      <div
-        data-test="table-element"
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        css={{ paddingTop: 6 }}
-      >
+      <div data-test="table-element" css={{ paddingTop: 6 }}>
         {renderWell()}
         <div>
           {cols?.map(col => <ColumnElement column={col} key={col.name} />)}
@@ -420,15 +375,22 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
   };
 
   return (
-    <StyledCollapsePanel
-      {...props}
-      key={table.id}
-      header={renderHeader()}
-      className="TableElement"
-      forceRender
-    >
-      {renderBody()}
-    </StyledCollapsePanel>
+    <Collapse
+      activeKey={props.activeKey}
+      expandIconPosition="right"
+      onChange={props.onChange}
+      ghost
+      items={[
+        {
+          key: id,
+          label: renderHeader(),
+          children: renderBody(),
+          extra: renderControls(),
+          onMouseEnter: () => setHover(true),
+          onMouseLeave: () => setHover(false),
+        },
+      ]}
+    />
   );
 };
 

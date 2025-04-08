@@ -188,22 +188,34 @@ function GridTable<RecordType extends object>({
       <Global
         styles={() => css`
           #grid-table.ag-theme-quartz {
-            --ag-icon-font-family: agGridMaterial;
             --ag-grid-size: ${theme.sizeUnit}px;
+            --ag-font-family: ${theme.fontFamily};
+            --ag-font-size: ${theme.fontSize}px;
+            --ag-row-height: ${rowHeight}px;
+            --ag-background-color: ${theme.colorBgBase};
+            --ag-foreground-color: ${theme.colorText};
+            --ag-header-background-color: ${theme.colorBgElevated};
+            --ag-header-foreground-color: ${theme.colorTextHeading};
+            --ag-border-color: ${theme.colorBorder};
+            --ag-row-border-color: ${theme.colorSplit};
+            --ag-row-hover-color: ${theme.colorFillSecondary};
+            --ag-selected-row-background-color: ${theme.colorPrimaryBg};
+            --ag-selected-row-foreground-color: ${theme.colorPrimaryText};
+            --ag-range-selection-border-color: ${theme.colorPrimary};
+            --ag-range-selection-background-color: ${theme.colorPrimaryBg};
+            --ag-checkbox-checked-color: ${theme.colorPrimary};
+            --ag-disabled-foreground-color: ${theme.colorTextDisabled};
+            ${!striped &&
+            `--ag-odd-row-background-color: ${theme.colorBgElevated};`}
             --ag-font-size: ${GridSize.Middle === size
               ? theme.fontSize
               : theme.fontSizeSM}px;
-            --ag-font-family: ${theme.fontFamily};
-            --ag-row-height: ${rowHeight}px;
-            ${!striped &&
-            `--ag-odd-row-background-color: ${theme.colors.grayscale.light5};`}
-            --ag-border-color: ${theme.colors.grayscale.light2};
-            --ag-row-border-color: ${theme.colors.grayscale.light2};
-            --ag-header-background-color: ${theme.colors.grayscale.light4};
           }
+
           #grid-table .ag-cell {
             -webkit-font-smoothing: antialiased;
           }
+
           .locked-col {
             background: var(--ag-row-border-color);
             padding: 0;
@@ -211,12 +223,15 @@ function GridTable<RecordType extends object>({
             font-size: calc(var(--ag-font-size) * 0.9);
             color: var(--ag-disabled-foreground-color);
           }
+
           .ag-row-hover .locked-col {
             background: var(--ag-row-hover-color);
           }
+
           .ag-header-cell {
             overflow: hidden;
           }
+
           & [role='columnheader']:hover .customHeaderAction {
             display: flex;
           }
@@ -231,7 +246,6 @@ function GridTable<RecordType extends object>({
         `}
       >
         <AgGridReact
-          // TODO: migrate to Theme API - https://www.ag-grid.com/react-data-grid/theming-migration/
           rowData={data}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}

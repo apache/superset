@@ -53,17 +53,17 @@ describe('Timer', () => {
     screen.rerender(<Timer {...mockProps} isRunning={false} />);
     // the same node should still be in DOM and the content should not change
     expect(screen.getByRole('timer')).toBe(node);
-    expect(node).toHaveTextContent(text);
+    expect(node).toHaveTextContent(text.trim());
 
     // the timestamp should not change even after while
     await sleep(100);
     expect(screen.getByRole('timer')).toBe(node);
-    expect(node).toHaveTextContent(text);
+    expect(node).toHaveTextContent(text.trim());
 
     // should continue and start from stopped time
     screen.rerender(<Timer {...mockProps} isRunning />);
     expect(screen.getByRole('timer')).toBe(node);
-    expect(node).toHaveTextContent(text);
+    expect(node).toHaveTextContent(text.trim());
 
     await waitFor(() => {
       expect(screen.getByRole('timer')).toBe(node);

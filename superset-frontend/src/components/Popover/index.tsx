@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Popover as AntdPopover } from 'antd-v5';
-import { PopoverProps as AntdPopoverProps } from 'antd-v5/lib/popover';
+import { PopoverProps as AntdPopoverProps } from 'antd-v5/es/popover';
 
 export interface PopoverProps extends AntdPopoverProps {
   forceRender?: boolean;

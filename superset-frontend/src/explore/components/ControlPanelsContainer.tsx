@@ -66,7 +66,7 @@ import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -76,6 +76,11 @@ import { Clauses } from './controls/FilterControl/types';
 import StashFormDataContainer from './StashFormDataContainer';
 
 const { confirm } = Modal;
+
+const TABS_KEYS = {
+  DATA: 'DATA',
+  CUSTOMIZE: 'CUSTOMIZE',
+};
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
@@ -139,9 +144,6 @@ const Styles = styled.div`
     height: 100%;
     overflow: visible;
   }
-  .nav-tabs {
-    flex: 0 0 1;
-  }
   .tab-content {
     overflow: auto;
     flex: 1 1 100%;
@@ -156,40 +158,6 @@ const Styles = styled.div`
     text-align: center;
     font-weight: ${({ theme }) => theme.fontWeightStrong};
   }
-`;
-
-const ControlPanelsTabs = styled(Tabs)`
-  ${({ theme, fullWidth }) => css`
-    height: 100%;
-    overflow: visible;
-    .ant-tabs-nav {
-      margin-bottom: 0;
-    }
-    .ant-tabs-nav-list {
-      width: ${fullWidth ? '100%' : '50%'};
-    }
-    .ant-tabs-tabpane {
-      height: 100%;
-    }
-    .ant-tabs-content-holder {
-      padding-top: ${theme.sizeUnit * 4}px;
-    }
-
-    .ant-collapse-ghost > .ant-collapse-item {
-      &:not(:last-child) {
-        border-bottom: 1px solid ${theme.colorSplit};
-      }
-
-      & > .ant-collapse-header {
-        font-size: ${theme.fontSizeSM}px;
-      }
-
-      & > .ant-collapse-content > .ant-collapse-content-box {
-        padding-bottom: 0;
-        font-size: ${theme.fontSizeSM}px;
-      }
-    }
-  `}
 `;
 
 const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
@@ -622,7 +590,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </span>
     );
 
-    return (
+    const PanelChildren = (
       <>
         <StashFormDataContainer
           key={`sectionId-${sectionId}`}
@@ -639,34 +607,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             .filter(Boolean)}
         />
         {isVisible && (
-          <Collapse.Panel
-            css={theme => css`
-              margin-bottom: 0;
-              box-shadow: none;
-
-              &:last-child {
-                padding-bottom: ${theme.sizeUnit * 16}px;
-                border-bottom: 0;
-              }
-
-              .panel-body {
-                margin-left: ${theme.sizeUnit * 4}px;
-                padding-bottom: 0;
-              }
-
-              span.label {
-                display: inline-block;
-              }
-              ${!section.label &&
-              `
-          .ant-collapse-header {
-            display: none;
-          }
-        `}
-            `}
-            header={<PanelHeader />}
-            key={sectionId}
-          >
+          <>
             {section.controlSetRows.map((controlSets, i) => {
               const renderedControls = controlSets
                 .map(controlItem => {
@@ -698,10 +639,18 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                 />
               );
             })}
-          </Collapse.Panel>
+          </>
         )}
       </>
     );
+
+    return {
+      key: String(section.label),
+      label: <PanelHeader />,
+      children: PanelChildren,
+      className: section.label ? '' : 'hidden-collapse-header',
+      style: { visibility: isVisible ? 'visible' : 'hidden' },
+    };
   };
 
   const hasControlsTransferred =
@@ -791,34 +740,49 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   return (
     <Styles ref={containerRef}>
-      <ControlPanelsTabs
+      <Tabs
         id="controlSections"
         data-test="control-tabs"
-        fullWidth={showCustomizeTab}
+        tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
         allowOverflow={false}
-      >
-        <Tabs.TabPane key="query" tab={dataTabTitle}>
-          <Collapse
-            defaultActiveKey={expandedQuerySections}
-            expandIconPosition="right"
-            ghost
-          >
-            {showDatasourceAlert && <DatasourceAlert />}
-            {querySections.map(renderControlPanelSection)}
-          </Collapse>
-        </Tabs.TabPane>
-        {showCustomizeTab && (
-          <Tabs.TabPane key="display" tab={t('Customize')}>
-            <Collapse
-              defaultActiveKey={expandedCustomizeSections}
-              expandIconPosition="right"
-              ghost
-            >
-              {customizeSections.map(renderControlPanelSection)}
-            </Collapse>
-          </Tabs.TabPane>
-        )}
-      </ControlPanelsTabs>
+        items={[
+          {
+            key: TABS_KEYS.DATA,
+            label: dataTabTitle,
+            children: (
+              <>
+                {showDatasourceAlert && <DatasourceAlert />}
+                <Collapse
+                  defaultActiveKey={expandedQuerySections}
+                  expandIconPosition="right"
+                  ghost
+                  bordered
+                  items={[...querySections.map(renderControlPanelSection)]}
+                />
+              </>
+            ),
+          },
+          ...(showCustomizeTab
+            ? [
+                {
+                  key: TABS_KEYS.CUSTOMIZE,
+                  label: t('Customize'),
+                  children: (
+                    <Collapse
+                      defaultActiveKey={expandedCustomizeSections}
+                      expandIconPosition="right"
+                      ghost
+                      bordered
+                      items={[
+                        ...customizeSections.map(renderControlPanelSection),
+                      ]}
+                    />
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
       <div css={actionButtonsContainerStyles}>
         <RunQueryButton
           onQuery={props.onQuery}

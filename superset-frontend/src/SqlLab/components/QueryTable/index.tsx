@@ -32,7 +32,7 @@ import {
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import { fDuration, extendedDayjs } from 'src/utils/dates';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
 import { SqlLabRootState } from 'src/SqlLab/types';

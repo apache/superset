@@ -20,7 +20,7 @@ import { memo } from 'react';
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
 import { styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 interface TableCollectionProps {
   getTableProps: (userProps?: any) => any;
@@ -47,6 +47,9 @@ export const Table = styled.table`
     tbody {
       tr:first-of-type > td {
         border-top: 0;
+      }
+      tr > td {
+        border-top: 1px solid ${theme.colorSplit};
       }
     }
     th {

@@ -146,7 +146,7 @@ describe('Drill to detail modal', () => {
       it('refreshes the data', () => {
         openModalFromMenu('big_number_total');
         // move to the last page
-        cy.get('.ant-pagination-item').eq(5).click();
+        cy.get('.antd5-pagination-item').eq(5).click();
         // skips error on pagination
         cy.on('uncaught:exception', () => false);
         cy.wait('@samples');
@@ -154,7 +154,7 @@ describe('Drill to detail modal', () => {
         cy.get("[aria-label='Reload']").click();
         cy.wait('@samples');
         // make sure it started back from first page
-        cy.get('.ant-pagination-item-active').should('contain', '1');
+        cy.get('.antd5-pagination-item-active').should('contain', '1');
       });
 
       it('paginates', () => {
@@ -165,13 +165,13 @@ describe('Drill to detail modal', () => {
           expect($rows).to.contain('Amy');
         });
         // checking the paginated data
-        cy.get('.ant-pagination-item')
+        cy.get('.antd5-pagination-item')
           .should('have.length', 6)
           .should($pages => {
             expect($pages).to.contain('1');
             expect($pages).to.contain('1514');
           });
-        cy.get('.ant-pagination-item').eq(4).click();
+        cy.get('.antd5-pagination-item').eq(4).click();
         // skips error on pagination
         cy.on('uncaught:exception', () => false);
         cy.wait('@samples');
@@ -184,7 +184,7 @@ describe('Drill to detail modal', () => {
 
         cy.get('.virtual-grid').contains('Juan').should('not.be.visible');
 
-        cy.get('.ant-pagination-item').eq(0).click();
+        cy.get('.antd5-pagination-item').eq(0).click();
 
         cy.get('.virtual-grid').contains('Aaron').should('be.visible');
       });
@@ -434,7 +434,7 @@ describe('Drill to detail modal', () => {
       SUPPORTED_TIER2_CHARTS.forEach(waitForChartLoad);
     });
 
-    describe.only('Modal actions', () => {
+    describe('Modal actions', () => {
       it('clears filters', () => {
         interceptSamples();
 
@@ -455,7 +455,7 @@ describe('Drill to detail modal', () => {
           // checking the filter
           cy.getBySel('filter-val').should('contain', 'boy');
           cy.getBySel('row-count-label').should('contain', '39.2k rows');
-          cy.get('.ant-pagination-item')
+          cy.get('.antd5-pagination-item')
             .should('have.length', 6)
             .then($pages => {
               expect($pages).to.contain('1');
@@ -466,8 +466,8 @@ describe('Drill to detail modal', () => {
           cy.getBySel('filter-col').find("[aria-label='close']").click();
           cy.wait('@samples');
           cy.getBySel('row-count-label').should('contain', '75.7k rows');
-          cy.get('.ant-pagination-item-active').should('contain', '1');
-          cy.get('.ant-pagination-item')
+          cy.get('.antd5-pagination-item-active').should('contain', '1');
+          cy.get('.antd5-pagination-item')
             .should('have.length', 6)
             .then($pages => {
               expect($pages).to.contain('1');

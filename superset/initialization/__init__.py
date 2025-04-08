@@ -153,7 +153,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.row_level_security.api import RLSRestApi
-        from superset.security.api import SecurityRestApi
+        from superset.security.api import RoleRestAPI, SecurityRestApi
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
@@ -175,6 +175,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.explore import ExplorePermalinkView, ExploreView
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
+        from superset.views.roles import RolesListView
         from superset.views.sql_lab.views import (
             SavedQueryView,
             TableSchemaView,
@@ -266,6 +267,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
 
         appbuilder.add_view(
+            RolesListView,
+            "List Roles",
+            label=__("List Roles"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-lock",
+        )
+
+        appbuilder.add_view(
             DynamicPluginsView,
             "Plugins",
             label=__("Plugins"),
@@ -305,6 +315,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
+        appbuilder.add_view_no_menu(RoleRestAPI)
 
         #
         # Add links

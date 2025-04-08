@@ -17,11 +17,11 @@
  * under the License.
  */
 
-// eslint-disable-next-line no-restricted-imports
-import AntTable, {
+import { Table as AntTable } from 'antd-v5';
+import {
   TablePaginationConfig,
   TableProps as AntTableProps,
-} from 'antd/lib/table'; // TODO: Remove antd
+} from 'antd-v5/es/table';
 import classNames from 'classnames';
 import { useResizeDetector } from 'react-resize-detector';
 import { useEffect, useRef, useState, useCallback, CSSProperties } from 'react';
@@ -30,7 +30,8 @@ import { useTheme, styled, safeHtmlSpan } from '@superset-ui/core';
 
 import { TableSize, ETableAction } from './index';
 
-interface VirtualTableProps<RecordType> extends AntTableProps<RecordType> {
+export interface VirtualTableProps<RecordType>
+  extends AntTableProps<RecordType> {
   height?: number;
   allowHTML?: boolean;
 }
@@ -42,35 +43,28 @@ const StyledCell = styled('div')<{ height?: number }>(
   text-overflow: ellipsis;
   padding-left: ${theme.sizeUnit * 2}px;
   padding-right: ${theme.sizeUnit}px;
-  border-bottom: 1px solid ${theme.colors.grayscale.light3};
+  border-bottom: 1px solid ${theme.colorSplit};
   transition: background 0.3s;
   line-height: ${height}px;
   box-sizing: border-box;
 `,
 );
 
-const StyledTable = styled(AntTable)<{ height?: number }>(
+const StyledTable = styled(AntTable)(
   ({ theme }) => `
-    color: ${theme.colorText};
-    background-color: ${theme.colorBgContainer};
-    th.ant-table-cell {
+    th.antd5-table-cell {
       font-weight: ${theme.fontWeightStrong};
-      color: ${theme.colorText};
-      user-select: none;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    .ant-pagination-item-active {
-      border-color: ${theme.colorPrimary};
-      }
-    }
-    .ant-table.ant-table-small {
-      font-size: ${theme.fontSizeSM}px;
+    .ant-spin-nested-loading .ant-spin .ant-spin-dot {
+      width: ${theme.sizeUnit * 12}px;
+      height: unset;
     }
 `,
-);
+) as unknown as typeof AntTable;
 
 const SMALL = 39;
 const MIDDLE = 47;
@@ -187,7 +181,10 @@ const VirtualTable = <RecordType extends object>(
     );
   };
 
-  const renderVirtualList = (rawData: object[], { ref, onScroll }: any) => {
+  const renderVirtualList = (
+    rawData: readonly object[],
+    { ref, onScroll }: any,
+  ) => {
     // eslint-disable-next-line no-param-reassign
     ref.current = connectObject;
     const cellSize = size === TableSize.Middle ? MIDDLE : SMALL;
@@ -262,11 +259,12 @@ const VirtualTable = <RecordType extends object>(
         {...props}
         sticky={false}
         className="virtual-table"
-        columns={mergedColumns}
         components={{
           body: renderVirtualList,
         }}
         pagination={pagination ? modifiedPagination : false}
+        scroll={scroll}
+        columns={mergedColumns}
       />
     </div>
   );

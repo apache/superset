@@ -23,7 +23,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { FormItem, FormLabel } from 'src/components/Form';
 
 const formItemInlineCss = css`
-  .ant-form-item-control-input-content {
+  .antd5-form-item-control-input-content {
     display: flex;
     flex-direction: row;
   }

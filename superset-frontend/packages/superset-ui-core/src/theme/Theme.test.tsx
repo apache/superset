@@ -31,12 +31,29 @@ describe('Theme', () => {
     jest.clearAllMocks();
   });
 
+  describe('json', () => {
+    it('serializes the theme configuration to a JSON string', () => {
+      const theme = Theme.fromConfig({
+        token: {
+          colorPrimary: '#ff0000',
+        },
+        algorithm: antdThemeImport.darkAlgorithm,
+      });
+
+      const jsonString = theme.json();
+      const parsedJson = JSON.parse(jsonString);
+
+      expect(parsedJson.token?.colorPrimary).toBe('#ff0000');
+      expect(parsedJson.algorithm).toBe('dark');
+    });
+  });
+
   describe('fromConfig', () => {
     it('creates a theme with default tokens when no config is provided', () => {
       const theme = Theme.fromConfig();
 
       // Verify default primary color is set
-      expect(theme.theme.colorPrimary).toBe('#20a7c9');
+      expect(theme.theme.colorPrimary).toBe('#2893b3');
 
       // Verify default font family is set
       expect(theme.theme.fontFamily).toContain('Inter');

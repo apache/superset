@@ -155,7 +155,7 @@ export default function AsyncAceEditor(
         },
         ref,
       ) {
-        const supersetTheme = useTheme();
+        const token = useTheme();
         const langTools = acequire('ace/ext/language_tools');
         const setCompleters = useEffectEvent(
           (keywords: AceCompleterKeyword[]) => {
@@ -192,52 +192,147 @@ export default function AsyncAceEditor(
             <Global
               styles={css`
                 .ace_editor {
-                  border: 1px solid ${supersetTheme.colorBorder} !important;
+                  border: 1px solid ${token.colorBorder} !important;
+                  background-color: ${token.colorBgContainer} !important;
                 }
+
+                /* Basic editor styles with dark mode support */
+                .ace_editor.ace-github,
+                .ace_editor.ace-textmate {
+                  background-color: ${token.colorBgContainer} !important;
+                  color: ${token.colorText} !important;
+                }
+
+                /* Adjust gutter colors */
+                .ace_editor .ace_gutter {
+                  background-color: ${token.colorBgElevated} !important;
+                  color: ${token.colorTextSecondary} !important;
+                }
+
+                /* Adjust selection color */
+                .ace_editor .ace_selection {
+                  background-color: ${token.colorPrimaryBgHover} !important;
+                }
+
+                /* Improve active line highlighting */
+                .ace_editor .ace_active-line {
+                  background-color: ${token.colorPrimaryBg} !important;
+                }
+
+                /* Fix indent guides and print margin (80 chars line) */
+                .ace_editor .ace_indent-guide,
+                .ace_editor .ace_print-margin {
+                  background-color: ${token.colorSplit} !important;
+                  opacity: 0.5;
+                }
+
+                /* Adjust cursor color */
+                .ace_editor .ace_cursor {
+                  color: ${token.colorPrimaryText} !important;
+                }
+
+                /* Syntax highlighting using semantic color tokens */
+                .ace_editor .ace_keyword {
+                  color: ${token.colorPrimaryText} !important;
+                }
+
+                .ace_editor .ace_string {
+                  color: ${token.colorSuccessText} !important;
+                }
+
+                .ace_editor .ace_constant {
+                  color: ${token.colorWarningActive} !important;
+                }
+
+                .ace_editor .ace_function {
+                  color: ${token.colorInfoText} !important;
+                }
+
+                .ace_editor .ace_comment {
+                  color: ${token.colorTextTertiary} !important;
+                }
+
+                .ace_editor .ace_variable {
+                  color: ${token.colorTextSecondary} !important;
+                }
+
+                /* Adjust tooltip styles */
                 .ace_tooltip {
-                  margin-left: ${supersetTheme.sizeUnit * 2}px;
+                  margin-left: ${token.margin}px;
                   padding: 0px;
-                  border: 1px solid ${supersetTheme.colorBorderSecondary};
+                  background-color: ${token.colorBgElevated} !important;
+                  color: ${token.colorText} !important;
+                  border: 1px solid ${token.colorBorderSecondary};
+                  box-shadow: ${token.boxShadow};
+                  border-radius: ${token.borderRadius}px;
                 }
 
                 & .tooltip-detail {
-                  background-color: ${supersetTheme.colors.grayscale.light5};
+                  background-color: ${token.colorBgContainer};
                   white-space: pre-wrap;
                   word-break: break-all;
-                  min-width: ${supersetTheme.sizeUnit * 50}px;
-                  max-width: ${supersetTheme.sizeUnit * 100}px;
+                  min-width: ${token.sizeXXL * 5}px;
+                  max-width: ${token.sizeXXL * 10}px;
+
                   & .tooltip-detail-head {
-                    background-color: ${supersetTheme.colors.grayscale.light4};
-                    color: ${supersetTheme.colors.grayscale.dark1};
+                    background-color: ${token.colorBgElevated};
+                    color: ${token.colorText};
                     display: flex;
-                    column-gap: ${supersetTheme.sizeUnit}px;
+                    column-gap: ${token.padding}px;
                     align-items: baseline;
                     justify-content: space-between;
                   }
+
                   & .tooltip-detail-title {
                     display: flex;
-                    column-gap: ${supersetTheme.sizeUnit}px;
+                    column-gap: ${token.padding}px;
                   }
+
                   & .tooltip-detail-body {
                     word-break: break-word;
+                    color: ${token.colorTextSecondary};
                   }
+
                   & .tooltip-detail-head,
                   & .tooltip-detail-body {
-                    padding: ${supersetTheme.sizeUnit}px
-                      ${supersetTheme.sizeUnit * 2}px;
+                    padding: ${token.padding}px ${token.paddingLG}px;
                   }
+
                   & .tooltip-detail-footer {
-                    border-top: 1px ${supersetTheme.colors.grayscale.light2}
-                      solid;
-                    padding: 0 ${supersetTheme.sizeUnit * 2}px;
-                    color: ${supersetTheme.colors.grayscale.dark1};
-                    font-size: ${supersetTheme.fontSizeXS}px;
+                    border-top: 1px ${token.colorSplit} solid;
+                    padding: 0 ${token.paddingLG}px;
+                    color: ${token.colorTextTertiary};
+                    font-size: ${token.fontSizeSM}px;
                   }
+
                   & .tooltip-detail-meta {
                     & > .ant-tag {
                       margin-right: 0px;
                     }
                   }
+                }
+
+                /* Adjust the searchbox to match theme */
+                .ace_search {
+                  background-color: ${token.colorBgContainer} !important;
+                  color: ${token.colorText} !important;
+                  border: 1px solid ${token.colorBorder} !important;
+                }
+
+                .ace_search_field {
+                  background-color: ${token.colorBgContainer} !important;
+                  color: ${token.colorText} !important;
+                  border: 1px solid ${token.colorBorder} !important;
+                }
+
+                .ace_button {
+                  background-color: ${token.colorBgElevated} !important;
+                  color: ${token.colorText} !important;
+                  border: 1px solid ${token.colorBorder} !important;
+                }
+
+                .ace_button:hover {
+                  background-color: ${token.colorPrimaryBg} !important;
                 }
               `}
             />
