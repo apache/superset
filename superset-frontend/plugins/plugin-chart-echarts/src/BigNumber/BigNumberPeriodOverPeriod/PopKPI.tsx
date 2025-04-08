@@ -200,16 +200,19 @@ export default function PopKPI(props: PopKPIProps) {
         symbol: '#',
         value: prevNumber,
         tooltipText: t('Data for %s', comparisonRange || 'previous range'),
+        columnKey: 'Previous value',
       },
       {
         symbol: '△',
         value: valueDifference,
         tooltipText: t('Value difference between the time periods'),
+        columnKey: 'Delta',
       },
       {
         symbol: '%',
         value: percentDifferenceFormattedString,
         tooltipText: t('Percentage difference between the time periods'),
+        columnKey: 'Percent change',
       },
     ],
     [
@@ -218,6 +221,10 @@ export default function PopKPI(props: PopKPIProps) {
       valueDifference,
       percentDifferenceFormattedString,
     ],
+  );
+
+  const visibleSymbols = SYMBOLS_WITH_VALUES.filter(
+    symbol => props.columnConfig?.[symbol.columnKey]?.visible !== false,
   );
 
   const { isOverflowing, symbolContainerRef, wrapperRef } =
@@ -244,51 +251,53 @@ export default function PopKPI(props: PopKPIProps) {
           )}
         </div>
 
-        <div
-          css={[
-            css`
-              display: flex;
-              justify-content: space-around;
-              gap: ${flexGap}px;
-              min-width: 0;
-              flex-shrink: 1;
-            `,
-            isOverflowing
-              ? css`
-                  flex-direction: column;
-                  align-items: flex-start;
-                  width: fit-content;
-                `
-              : css`
-                  align-items: center;
-                  width: 100%;
-                `,
-          ]}
-          ref={symbolContainerRef}
-        >
-          {SYMBOLS_WITH_VALUES.map((symbol_with_value, index) => (
-            <ComparisonValue
-              key={`comparison-symbol-${symbol_with_value.symbol}`}
-              subheaderFontSize={subheaderFontSize}
-            >
-              <Tooltip
-                id="tooltip"
-                placement="top"
-                title={symbol_with_value.tooltipText}
+        {visibleSymbols.length > 0 && (
+          <div
+            css={[
+              css`
+                display: flex;
+                justify-content: space-around;
+                gap: ${flexGap}px;
+                min-width: 0;
+                flex-shrink: 1;
+              `,
+              isOverflowing
+                ? css`
+                    flex-direction: column;
+                    align-items: flex-start;
+                    width: fit-content;
+                  `
+                : css`
+                    align-items: center;
+                    width: 100%;
+                  `,
+            ]}
+            ref={symbolContainerRef}
+          >
+            {visibleSymbols.map((symbol_with_value, index) => (
+              <ComparisonValue
+                key={`comparison-symbol-${symbol_with_value.symbol}`}
+                subheaderFontSize={subheaderFontSize}
               >
-                <SymbolWrapper
-                  backgroundColor={
-                    index > 0 ? backgroundColor : defaultBackgroundColor
-                  }
-                  textColor={index > 0 ? textColor : defaultTextColor}
+                <Tooltip
+                  id="tooltip"
+                  placement="top"
+                  title={symbol_with_value.tooltipText}
                 >
-                  {symbol_with_value.symbol}
-                </SymbolWrapper>
-                {symbol_with_value.value}
-              </Tooltip>
-            </ComparisonValue>
-          ))}
-        </div>
+                  <SymbolWrapper
+                    backgroundColor={
+                      index > 0 ? backgroundColor : defaultBackgroundColor
+                    }
+                    textColor={index > 0 ? textColor : defaultTextColor}
+                  >
+                    {symbol_with_value.symbol}
+                  </SymbolWrapper>
+                  {symbol_with_value.value}
+                </Tooltip>
+              </ComparisonValue>
+            ))}
+          </div>
+        )}
       </NumbersContainer>
     </div>
   );

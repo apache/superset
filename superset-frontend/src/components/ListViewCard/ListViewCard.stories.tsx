@@ -19,7 +19,7 @@
 import { action } from '@storybook/addon-actions';
 import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import FaveStar from 'src/components/FaveStar';
 import ListViewCard from '.';
 
@@ -74,15 +74,15 @@ export const SupersetListViewCard = ({
           dropdownRender={() => (
             <Menu>
               <Menu.Item role="button" tabIndex={0} onClick={action('Delete')}>
-                <Icons.Trash /> Delete
+                <Icons.DeleteOutlined /> Delete
               </Menu.Item>
               <Menu.Item role="button" tabIndex={0} onClick={action('Edit')}>
-                <Icons.EditAlt /> Edit
+                <Icons.EditOutlined /> Edit
               </Menu.Item>
             </Menu>
           )}
         >
-          <Icons.MoreHoriz />
+          <Icons.EllipsisOutlined />
         </Dropdown>
       </ListViewCard.Actions>
     }

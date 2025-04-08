@@ -114,6 +114,7 @@ Join our growing community!
 - [Ona](https://ona.io) [@pld]
 - [Orange](https://www.orange.com) [@icsu]
 - [Oslandia](https://oslandia.com)
+- [Oxylabs](https://oxylabs.io/) [@rytis-ulys]
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
 - [PlaidCloud](https://www.plaidcloud.com)
@@ -136,6 +137,7 @@ Join our growing community!
 - [Virtuoso QA](https://www.virtuosoqa.com)
 - [Whale](https://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
+- [WinWin Network马上赢](https://brandct.cn/) [@wenbinye]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
 
 ### Media & Entertainment

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import Button from 'src/components/Button';
 
@@ -41,9 +41,9 @@ const SaveDatasetActionButton = ({
       onClick={() => setShowSave(true)}
       dropdownRender={() => overlayMenu}
       icon={
-        <Icons.CaretDown
-          iconColor={theme.colors.grayscale.light5}
-          name="caret-down"
+        <Icons.DownOutlined
+          iconSize="xs"
+          iconColor={theme.colors.primary.dark2}
         />
       }
       trigger={['click']}

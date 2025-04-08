@@ -61,7 +61,7 @@ import { Skeleton } from 'src/components';
 import { Switch } from 'src/components/Switch';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { detectOS } from 'src/utils/common';
 import {
   addNewQueryEditor,
@@ -874,7 +874,7 @@ const SqlEditor: FC<Props> = ({
                 trigger={['click']}
               >
                 <Button buttonSize="xsmall" type="link" showMarginRight={false}>
-                  <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
+                  <Icons.EllipsisOutlined />
                 </Button>
               </Dropdown>
             </div>

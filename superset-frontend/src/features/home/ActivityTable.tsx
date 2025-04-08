@@ -30,7 +30,7 @@ import {
   getEditedObjects,
 } from 'src/views/CRUD/utils';
 import { Chart } from 'src/types/Chart';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable, RecentActivity } from './types';
@@ -81,13 +81,13 @@ const getEntityTitle = (entity: ActivityObject) => {
 };
 
 const getEntityIcon = (entity: ActivityObject) => {
-  if ('sql' in entity) return <Icons.Sql />;
+  if ('sql' in entity) return <Icons.ConsoleSqlOutlined />;
   const url = 'item_url' in entity ? entity.item_url : entity.url;
   if (url?.includes('dashboard')) {
-    return <Icons.NavDashboard />;
+    return <Icons.DashboardOutlined />;
   }
   if (url?.includes('explore')) {
-    return <Icons.NavCharts />;
+    return <Icons.BarChartOutlined />;
   }
   return null;
 };
