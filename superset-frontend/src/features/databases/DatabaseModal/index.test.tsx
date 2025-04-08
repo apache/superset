@@ -677,9 +677,10 @@ describe('DatabaseModal', () => {
         name: /right sql lab adjust how this database will interact with sql lab\./i,
       });
       // These are the checkbox SVGs that cover the actual checkboxes
-      const checkboxOffSVGs = screen.getAllByRole('img', {
-        name: /checkbox-off/i,
-      });
+      const allCheckboxes = screen.getAllByRole(
+        'checkbox',
+      ) as HTMLInputElement[];
+      const checkboxOff = allCheckboxes.filter(checkbox => !checkbox.checked);
       const tooltipIcons = within(advancedTabPanel).getAllByRole('img', {
         name: /info-tooltip/i,
       });
@@ -752,12 +753,12 @@ describe('DatabaseModal', () => {
         basicTab,
         advancedTab,
         sqlLabTab,
-        checkboxOffSVGs[0],
-        checkboxOffSVGs[1],
-        checkboxOffSVGs[2],
-        checkboxOffSVGs[3],
-        checkboxOffSVGs[4],
-        checkboxOffSVGs[5],
+        checkboxOff[0],
+        checkboxOff[1],
+        checkboxOff[2],
+        checkboxOff[3],
+        checkboxOff[4],
+        checkboxOff[5],
         tooltipIcons[0],
         tooltipIcons[1],
         tooltipIcons[2],
@@ -795,7 +796,7 @@ describe('DatabaseModal', () => {
       invisibleComponents.forEach(component => {
         expect(component).not.toBeVisible();
       });
-      expect(checkboxOffSVGs).toHaveLength(6);
+      expect(checkboxOff).toHaveLength(6);
       expect(tooltipIcons).toHaveLength(8);
     });
 

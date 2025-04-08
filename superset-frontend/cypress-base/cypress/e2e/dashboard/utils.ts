@@ -442,6 +442,9 @@ export function checkNativeFilterTooltip(index: number, value: string) {
     .eq(index)
     .trigger('mouseover');
   cy.contains(`${value}`);
+  cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
+    .eq(index)
+    .trigger('mouseout');
 }
 
 /** ************************************************************************

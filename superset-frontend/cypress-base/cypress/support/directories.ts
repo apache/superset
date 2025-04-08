@@ -294,8 +294,8 @@ export const chartListView = {
   },
   table: {
     bulkSelect: {
-      checkboxOff: '[aria-label="checkbox-off"]',
-      checkboxOn: '[aria-label="checkbox-on"]',
+      checkboxOff: 'input[type="checkbox"]:checked',
+      checkboxOn: 'input[type="checkbox"]:not(:checked)',
       action: dataTestLocator('bulk-select-action'),
     },
     tableList: dataTestLocator('listview-table'),
@@ -331,7 +331,7 @@ export const nativeFilters = {
       removeTab: '[aria-label="delete"]',
     },
     addFilter: dataTestLocator('add-filter-button'),
-    defaultValueCheck: '.ant-checkbox-checked',
+    defaultValueCheck: '.antd5-checkbox-checked',
     addNewFilterButton: dataTestLocator('add-new-filter-button'),
     addNewDividerButton: dataTestLocator('add-new-divider-button'),
   },
@@ -362,7 +362,7 @@ export const nativeFilters = {
     sectionHeader: '.ant-collapse-header',
     displayedSection: 'div[style="height: 100%; overflow-y: auto;"]',
     collapseExpandButton: '.ant-collapse-arrow',
-    checkedCheckbox: '.ant-checkbox-wrapper-checked',
+    checkedCheckbox: '.antd5-checkbox-wrapper-checked',
     infoTooltip: '[aria-label="Show info tooltip"]',
     parentFilterInput: dataTestLocator('parent-filter-input'),
     filterPlaceholder: '.ant-select-selection-placeholder',
