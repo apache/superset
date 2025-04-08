@@ -16,26 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// eslint-disable-next-line no-restricted-imports
-import Form from 'antd/lib/form'; // TODO: Remove antd
+import { Form } from 'antd-v5';
 import { styled } from '@superset-ui/core';
 
 const StyledItem = styled(Form.Item)`
   ${({ theme }) => `
-    .ant-form-item-label {
-      padding-bottom: ${theme.gridUnit}px;
+    margin-bottom: 0;
+    .antd5-form-item-label {
       & > label {
-        font-size: ${theme.typography.sizes.s}px;
-        color: ${theme.colors.grayscale.base};
-
-        &.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+        &.antd5-form-item-required:not(.antd5-form-item-required-mark-optional) {
           &::before {
             display: none;
           }
           &::after {
             display: inline-block;
-            color: ${theme.colors.error.base};
-            font-size: ${theme.typography.sizes.s}px;
+            visibility: visible;
+            color: ${theme.colorError};
+            font-size: ${theme.fontSizeSM}px;
             content: '*';
           }
         }

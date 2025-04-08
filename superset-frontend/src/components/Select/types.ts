@@ -28,8 +28,10 @@ import {
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select'; // TODO: Remove antd
+
 // eslint-disable-next-line no-restricted-imports
 import { TagProps } from 'antd/lib/tag'; // TODO: Remove antd
+import { Interpolation, Theme } from '@emotion/react';
 
 export type RawValue = string | number;
 
@@ -158,6 +160,7 @@ export interface BaseSelectProps extends AntdExposedProps {
 }
 
 export interface SelectProps extends BaseSelectProps {
+  css?: Interpolation<Theme>;
   /**
    * It enables the user to select all options.
    * True by default.

@@ -58,7 +58,7 @@ const StyledTab = styled.span`
 `;
 
 const TabTitle = styled.span`
-  margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
   text-transform: none;
 `;
 
@@ -287,7 +287,6 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
         className="SqlEditorTabs"
         data-test="sql-editor-tabs"
         onChange={this.handleSelect}
-        fullWidth={false}
         hideAdd={this.props.offline}
         onTabClick={this.onTabClicked}
         onEdit={this.handleEdit}

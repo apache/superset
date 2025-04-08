@@ -53,11 +53,12 @@ import { NULL_STRING } from '../../src/constants';
 
 const expectedThemeProps = {
   selector: ['all', 'inverse'],
+  selected: undefined,
   selectorLabel: {
-    fontFamily: theme.typography.families.sansSerif,
-    fontSize: theme.typography.sizes.s,
-    color: theme.colors.grayscale.base,
-    borderColor: theme.colors.grayscale.base,
+    fontFamily: theme.fontFamily,
+    fontSize: theme.fontSizeSM,
+    color: theme.colorText,
+    borderColor: theme.colorBorder,
   },
 };
 

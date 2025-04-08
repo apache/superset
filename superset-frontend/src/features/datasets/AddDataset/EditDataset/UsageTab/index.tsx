@@ -124,11 +124,11 @@ const columns: ColumnsType<Chart> = [
 ];
 
 const emptyStateTableCSS = (theme: SupersetTheme) => css`
-  && th.ant-table-cell {
+  && th.antd5-table-cell {
     color: ${theme.colors.grayscale.light1};
   }
 
-  .ant-table-placeholder {
+  .antd5-table-placeholder {
     display: none;
   }
 `;
@@ -148,7 +148,7 @@ const emptyStateButtonText = (
 );
 
 const StyledEmptyState = styled(EmptyState)`
-  margin: ${({ theme }) => 13 * theme.gridUnit}px 0;
+  margin: ${({ theme }) => 13 * theme.sizeUnit}px 0;
 `;
 
 /**

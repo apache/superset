@@ -29,7 +29,7 @@ import {
 import { Icons } from 'src/components/Icons';
 import Checkbox from 'src/components/Checkbox';
 import { Dropdown } from 'src/components/Dropdown';
-import { Button } from 'src/components';
+import Button from 'src/components/Button';
 import { Space } from 'src/components/Space';
 import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
@@ -43,6 +43,10 @@ const StyledMenuLabel = styled.span`
   display: flex;
   align-items: center;
   justify-content: space-between;
+
+  .enable-cross-filters-text {
+    padding-left: ${({ theme }) => `${theme.sizeUnit * 2}px`};
+  }
 `;
 
 const CROSS_FILTERS_MENU_KEY = 'cross-filters-menu-key';
@@ -146,6 +150,7 @@ const FilterBarSettings = () => {
     () => (
       <StyledMenuLabel>
         <Checkbox
+          name="enable_cross-filters"
           checked={crossFiltersEnabled}
           onChange={e => setCrossFiltersEnabled(e.target.checked)}
         >
@@ -198,7 +203,7 @@ const FilterBarSettings = () => {
                   <Icons.CheckOutlined
                     iconColor={theme.colors.primary.base}
                     css={css`
-                      vertical-align: -${theme.gridUnit * 0.03125}em;
+                      vertical-align: -${theme.sizeUnit * 0.03125}em;
                     `}
                     iconSize="m"
                   />
@@ -251,7 +256,7 @@ const FilterBarSettings = () => {
         trigger={['click']}
       >
         <Button
-          type="link"
+          buttonStyle="link"
           css={css`
             padding: 0;
           `}

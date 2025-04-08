@@ -19,7 +19,7 @@
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { css, isEqualArray, t } from '@superset-ui/core';
-import Select from 'src/components/Select/Select';
+import { Select } from 'src/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
@@ -263,7 +263,7 @@ export default class SelectControl extends PureComponent {
       <div
         css={theme => css`
           .type-label {
-            margin-right: ${theme.gridUnit * 2}px;
+            margin-right: ${theme.sizeUnit * 2}px;
           }
           .Select__multi-value__label > span,
           .Select__option > span,

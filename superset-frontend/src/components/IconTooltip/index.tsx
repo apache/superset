@@ -18,7 +18,6 @@
  */
 import { ReactNode } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
-import { styled } from '@superset-ui/core';
 
 export interface Props {
   children?: ReactNode;
@@ -41,13 +40,6 @@ export interface Props {
   tooltip?: string | null;
 }
 
-const StyledSpan = styled.span`
-  color: ${({ theme }) => theme.colors.primary.dark1};
-  &: hover {
-    color: ${({ theme }) => theme.colors.primary.dark2};
-  }
-`;
-
 const IconTooltip = ({
   children = null,
   className = '',
@@ -57,13 +49,19 @@ const IconTooltip = ({
   tooltip = null,
 }: Props) => {
   const iconTooltip = (
-    <StyledSpan
+    <button
+      type="button"
       onClick={onClick}
-      style={style}
+      style={{
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        ...style,
+      }}
       className={`IconTooltip ${className}`}
     >
       {children}
-    </StyledSpan>
+    </button>
   );
   if (tooltip) {
     return (

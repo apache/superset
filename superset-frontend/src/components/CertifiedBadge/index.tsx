@@ -47,7 +47,7 @@ function CertifiedBadge({
         </>
       }
     >
-      <Icons.Certified iconColor={theme.colors.primary.base} iconSize={size} />
+      <Icons.Certified iconColor={theme.colorPrimary} iconSize={size} />
     </Tooltip>
   );
 }

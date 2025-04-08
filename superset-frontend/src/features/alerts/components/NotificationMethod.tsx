@@ -34,8 +34,8 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Select } from 'src/components';
 import { Icons } from 'src/components/Icons';
+import { Select } from 'src/components';
 import RefreshLabel from 'src/components/RefreshLabel';
 import {
   NotificationMethodOption,
@@ -46,7 +46,7 @@ import { StyledInputContainer } from '../AlertReportModal';
 
 const StyledNotificationMethod = styled.div`
   ${({ theme }) => `
-    margin-bottom: ${theme.gridUnit * 3}px;
+    margin-bottom: ${theme.sizeUnit * 3}px;
 
     .input-container {
       textarea {
@@ -55,50 +55,50 @@ const StyledNotificationMethod = styled.div`
 
       &.error {
         input {
-          border-color: ${theme.colors.error.base};
+          border-color: ${theme.colorError};
         }
       }
 
       .helper {
-        margin-top: ${theme.gridUnit * 2}px;
-        font-size: ${theme.typography.sizes.s}px;
+        margin-top: ${theme.sizeUnit * 2}px;
+        font-size: ${theme.fontSizeSM}px;
         color: ${theme.colors.grayscale.base};
       }
     }
 
     .inline-container {
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
 
       > div {
         margin: 0px;
       }
 
       .delete-button {
-        margin-left: ${theme.gridUnit * 2}px;
-        padding-top: ${theme.gridUnit}px;
+        margin-left: ${theme.sizeUnit * 2}px;
+        padding-top: ${theme.sizeUnit}px;
       }
       .anticon {
-        margin-left: ${theme.gridUnit}px;
+        margin-left: ${theme.sizeUnit}px;
       }
     }
 
     .ghost-button {
-      color: ${theme.colors.primary.dark1};
+      color: ${theme.colorPrimaryText};
       display: inline-flex;
       align-items: center;
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
       cursor: pointer;
 
       .icon {
-        width: ${theme.gridUnit * 3}px;
-        height: ${theme.gridUnit * 3}px;
-        font-size: ${theme.typography.sizes.s}px;
-        margin-right: ${theme.gridUnit}px;
+        width: ${theme.sizeUnit * 3}px;
+        height: ${theme.sizeUnit * 3}px;
+        font-size: ${theme.fontSizeSM}px;
+        margin-right: ${theme.sizeUnit}px;
       }
     }
 
     .ghost-button + .ghost-button {
-      margin-left: ${theme.gridUnit * 4}px;
+      margin-left: ${theme.sizeUnit * 4}px;
     }
 
     .ghost-button:first-child[style*='none'] + .ghost-button {
@@ -496,8 +496,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   {error && (
                     <div
                       style={{
-                        color: theme.colors.error.base,
-                        fontSize: theme.gridUnit * 3,
+                        color: theme.colorError,
+                        fontSize: theme.sizeUnit * 3,
                       }}
                     >
                       {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}

@@ -28,6 +28,7 @@ import {
   AreaChartOutlined,
   ArrowRightOutlined,
   BarChartOutlined,
+  BgColorsOutlined,
   BellOutlined,
   BookOutlined,
   CaretUpOutlined,
@@ -76,6 +77,8 @@ import {
   LineChartOutlined,
   LinkOutlined,
   MailOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   MinusCircleOutlined,
   LoadingOutlined,
   MonitorOutlined,
@@ -110,6 +113,7 @@ import {
   FilterOutlined,
   UnorderedListOutlined,
   WarningOutlined,
+  SortAscendingOutlined,
   KeyOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
@@ -128,6 +132,7 @@ const AntdIcons = {
   AreaChartOutlined,
   ArrowRightOutlined,
   BarChartOutlined,
+  BgColorsOutlined,
   BellOutlined,
   BookOutlined,
   CaretUpOutlined,
@@ -177,6 +182,8 @@ const AntdIcons = {
   LinkOutlined,
   LoadingOutlined,
   MailOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   MinusCircleOutlined,
   MonitorOutlined,
   MoreOutlined,
@@ -210,6 +217,7 @@ const AntdIcons = {
   FilterOutlined,
   UnorderedListOutlined,
   WarningOutlined,
+  SortAscendingOutlined,
   KeyOutlined,
 } as const;
 

@@ -19,10 +19,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { omit } from 'lodash';
 import { Input } from 'src/components/Input';
-import { FormItem } from 'src/components/Form';
+import { Form, FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
+import { AsyncSelect } from 'src/components';
+import { Row, Col } from 'src/components/Grid';
 import rison from 'rison';
 import {
   ensureIsArray,
@@ -44,7 +45,7 @@ import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeMo
 import withToasts from 'src/components/MessageToasts/withToasts';
 import TagType from 'src/types/TagType';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
-import { loadTags } from 'src/components/Tags/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import {
   applyColors,
   getColorNamespace,
@@ -65,7 +66,7 @@ const StyledFormItem = styled(FormItem)`
 
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
+  border: 1px solid ${({ theme }) => theme.colorPrimaryBorder};
 `;
 
 type PropertiesModalProps = {
@@ -111,7 +112,7 @@ const PropertiesModal = ({
   show = false,
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
-  const [form] = AntdForm.useForm();
+  const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
@@ -382,8 +383,10 @@ const PropertiesModal = ({
     currentJsonMetadata = jsonStringify(metadata);
 
     const moreOnSubmitProps: { roles?: Roles } = {};
-    const morePutProps: { roles?: number[]; tags?: (number | undefined)[] } =
-      {};
+    const morePutProps: {
+      roles?: number[];
+      tags?: (string | number | undefined)[];
+    } = {};
     if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);
@@ -602,6 +605,7 @@ const PropertiesModal = ({
           <Button
             htmlType="button"
             buttonSize="small"
+            buttonStyle="secondary"
             onClick={handleOnCancel}
             data-test="properties-modal-cancel-button"
             cta
@@ -630,7 +634,7 @@ const PropertiesModal = ({
       }
       responsive
     >
-      <AntdForm
+      <Form
         form={form}
         onFinish={onFinish}
         data-test="dashboard-edit-properties-form"
@@ -774,7 +778,7 @@ const PropertiesModal = ({
             )}
           </Col>
         </Row>
-      </AntdForm>
+      </Form>
     </Modal>
   );
 };

@@ -42,7 +42,7 @@ const NewComponent = styled.div`
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
-    padding: ${theme.gridUnit * 4}px;
+    padding: ${theme.sizeUnit * 4}px;
     background: ${theme.colors.grayscale.light5};
     cursor: move;
 
@@ -56,22 +56,22 @@ const NewComponentPlaceholder = styled.div`
   ${({ theme }) => css`
     position: relative;
     background: ${theme.colors.grayscale.light4};
-    width: ${theme.gridUnit * 10}px;
-    height: ${theme.gridUnit * 10}px;
-    margin-right: ${theme.gridUnit * 4}px;
+    width: ${theme.sizeUnit * 10}px;
+    height: ${theme.sizeUnit * 10}px;
+    margin-right: ${theme.sizeUnit * 4}px;
     border: 1px solid ${theme.colors.grayscale.light5};
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${theme.colors.text.label};
-    font-size: ${theme.typography.sizes.xxl}px;
+    color: ${theme.colorTextLabel};
+    font-size: ${theme.fontSizeXXL}px;
 
     &.fa-window-restore {
-      font-size: ${theme.typography.sizes.l}px;
+      font-size: ${theme.fontSizeLG}px;
     }
 
     &.fa-area-chart {
-      font-size: ${theme.typography.sizes.xl}px;
+      font-size: ${theme.fontSizeXL}px;
     }
 
     &.divider-placeholder:after {

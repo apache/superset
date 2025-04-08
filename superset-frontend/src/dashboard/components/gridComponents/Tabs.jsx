@@ -82,30 +82,30 @@ const StyledTabsContainer = styled.div`
     background-color: ${theme.colors.grayscale.light5};
 
     .dashboard-component-tabs-content {
-      min-height: ${theme.gridUnit * 12}px;
-      margin-top: ${theme.gridUnit / 4}px;
+      min-height: ${theme.sizeUnit * 12}px;
+      margin-top: ${theme.sizeUnit / 4}px;
       position: relative;
     }
 
-    .ant-tabs {
+    .antd5-tabs {
       overflow: visible;
 
-      .ant-tabs-nav-wrap {
-        min-height: ${theme.gridUnit * 12.5}px;
+      .antd5-tabs-nav-wrap {
+        min-height: ${theme.sizeUnit * 12.5}px;
       }
 
-      .ant-tabs-content-holder {
+      .antd5-tabs-content-holder {
         overflow: visible;
       }
     }
 
-    div .ant-tabs-tab-btn {
+    div .antd5-tabs-tab-btn {
       text-transform: none;
     }
   `}
 `;
 const DropIndicator = styled.div`
-  border: 2px solid ${({ theme }) => theme.colors.primary.base};
+  border: 2px solid ${({ theme }) => theme.colorPrimary};
   width: 5px;
   height: 100%;
   position: absolute;

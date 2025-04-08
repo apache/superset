@@ -39,14 +39,13 @@ import { CheckboxChangeEvent } from 'src/components/Checkbox';
 
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-// eslint-disable-next-line no-restricted-imports
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import Tabs from 'src/components/Tabs';
-import { AntdSelect, Upload } from 'src/components';
+import { AntdSelect } from 'src/components';
+import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
-import IconButton from 'src/components/IconButton';
+import { IconButton } from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
@@ -121,12 +120,12 @@ const engineSpecificAlertMapping = {
 };
 
 const TabsStyled = styled(Tabs)`
-  .ant-tabs-content {
+  .antd5-tabs-content {
     display: flex;
     width: 100%;
     overflow: inherit;
 
-    & > .ant-tabs-tabpane {
+    & > .antd5-tabs-tabpane {
       position: relative;
     }
   }
@@ -134,13 +133,13 @@ const TabsStyled = styled(Tabs)`
 
 const ErrorAlertContainer = styled.div`
   ${({ theme }) => `
-    margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
+    margin: ${theme.sizeUnit * 8}px ${theme.sizeUnit * 4}px;
   `};
 `;
 
 const SSHTunnelContainer = styled.div`
   ${({ theme }) => `
-    padding: 0px ${theme.gridUnit * 4}px;
+    padding: 0px ${theme.sizeUnit * 4}px;
   `};
 `;
 
@@ -245,8 +244,8 @@ export type DBReducerActionType =
     };
 
 const StyledBtns = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-  margin-left: ${({ theme }) => theme.gridUnit * 3}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 3}px;
 `;
 
 export function dbReducer(
@@ -1191,7 +1190,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (!hasConnectedDb || editNewDb) {
         return (
           <>
-            <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
+            <StyledFooterButton
+              key="back"
+              onClick={handleBackButtonOnConnect}
+              buttonStyle="secondary"
+            >
               {t('Back')}
             </StyledFooterButton>
             <StyledFooterButton
@@ -1249,7 +1252,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
     <>
-      <StyledFooterButton key="close" onClick={onClose}>
+      <StyledFooterButton key="close" onClick={onClose} buttonStyle="secondary">
         {t('Close')}
       </StyledFooterButton>
       <StyledFooterButton
@@ -1611,12 +1614,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <ErrorAlertContainer>
           <ErrorMessageWithStackTrace
             title={t('Database Creation Error')}
-            description={t(
-              'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
-            )}
+            subtitle={t('We are unable to connect to your database.')}
             descriptionDetails={
               alertErrors?.[0] || validationErrors?.description
             }
+            copyText={validationErrors?.description}
           />
         </ErrorAlertContainer>
       );
@@ -1661,7 +1663,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           redirectURL('/dataset/add/');
         }}
       >
-        {t('CREATE DATASET')}
+        {t('Create dataset')}
       </Button>
       <Button
         buttonStyle="secondary"
@@ -1671,7 +1673,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           redirectURL(`/sqllab?db=true`);
         }}
       >
-        {t('QUERY DATA IN SQL LAB')}
+        {t('Query data in SQL Lab')}
       </Button>
     </StyledBtns>
   );
@@ -1847,14 +1849,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <Icons.EditOutlined
               iconSize="l"
               css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
               `}
             />
           ) : (
             <Icons.InsertRowAboveOutlined
               iconSize="l"
               css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
               `}
             />
           )}
@@ -2029,7 +2031,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <Icons.InsertRowAboveOutlined
             iconSize="l"
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
             `}
           />
           {t('Connect a database')}
@@ -2083,7 +2085,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     <Button
                       data-test="import-database-btn"
                       buttonStyle="link"
-                      type="link"
                       css={importDbButtonLinkStyles}
                     >
                       {t('Import database from file')}

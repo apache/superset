@@ -22,7 +22,7 @@ import { Tooltip as BaseTooltip } from 'antd-v5';
 import {
   TooltipProps as BaseTooltipProps,
   TooltipPlacement as BaseTooltipPlacement,
-} from 'antd-v5/lib/tooltip';
+} from 'antd-v5/es/tooltip';
 
 export type TooltipProps = BaseTooltipProps;
 export type TooltipPlacement = BaseTooltipPlacement;
@@ -38,10 +38,10 @@ export const Tooltip = ({
     <BaseTooltip
       styles={{
         root: {
-          fontSize: theme.typography.sizes.s,
+          fontSize: theme.fontSizeSM,
           lineHeight: '1.6',
-          maxWidth: theme.gridUnit * 62,
-          minWidth: theme.gridUnit * 30,
+          maxWidth: theme.sizeUnit * 62,
+          minWidth: theme.sizeUnit * 30,
           ...overlayStyle,
         },
       }}

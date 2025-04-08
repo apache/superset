@@ -433,7 +433,7 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // <TabHeader> - AntD header
-      const closeButton = await screen.findByRole('button', { name: 'Close' });
+      const closeButton = screen.getByRole('img', { name: 'close' });
 
       const basicHeader = screen.getByRole('heading', {
         name: /connect a database/i,
@@ -563,37 +563,37 @@ describe('DatabaseModal', () => {
       const advancedTab = screen.getByRole('tab', { name: /advanced/i });
       // <ExtraOptions> - Advanced tabs
       const sqlLabTab = screen.getByRole('tab', {
-        name: /right sql lab adjust how this database will interact with sql lab\./i,
+        name: /collapsed sql lab adjust how this database will interact with sql lab\./i,
       });
       const sqlLabTabArrow = within(sqlLabTab).getByRole('img', {
-        name: /right/i,
+        name: /collapsed/i,
       });
       const sqlLabTabHeading = screen.getByRole('heading', {
         name: /sql lab/i,
       });
       const performanceTab = screen.getByRole('tab', {
-        name: /right performance adjust performance settings of this database\./i,
+        name: /collapsed performance adjust performance settings of this database\./i,
       });
       const performanceTabArrow = within(performanceTab).getByRole('img', {
-        name: /right/i,
+        name: /collapsed/i,
       });
       const performanceTabHeading = screen.getByRole('heading', {
         name: /performance/i,
       });
       const securityTab = screen.getByRole('tab', {
-        name: /right security add extra connection information\./i,
+        name: /collapsed security add extra connection information\./i,
       });
       const securityTabArrow = within(securityTab).getByRole('img', {
-        name: /right/i,
+        name: /collapsed/i,
       });
       const securityTabHeading = screen.getByRole('heading', {
         name: /security/i,
       });
       const otherTab = screen.getByRole('tab', {
-        name: /right other additional settings\./i,
+        name: /collapsed other additional settings\./i,
       });
       const otherTabArrow = within(otherTab).getByRole('img', {
-        name: /right/i,
+        name: /collapsed/i,
       });
       const otherTabHeading = screen.getByRole('heading', { name: /other/i });
       // renderModalFooter() - Advanced tab's footer
@@ -646,7 +646,7 @@ describe('DatabaseModal', () => {
       // Click the "SQL Lab" tab
       userEvent.click(
         await screen.findByRole('tab', {
-          name: /right sql lab adjust how this database will interact with sql lab\./i,
+          name: /collapsed sql lab adjust how this database will interact with sql lab\./i,
         }),
       );
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
@@ -674,7 +674,7 @@ describe('DatabaseModal', () => {
       });
       // <ExtraOptions> - Advanced tabs
       const sqlLabTab = screen.getByRole('tab', {
-        name: /right sql lab adjust how this database will interact with sql lab\./i,
+        name: /expanded sql lab adjust how this database will interact with sql lab\./i,
       });
       // These are the checkbox SVGs that cover the actual checkboxes
       const allCheckboxes = screen.getAllByRole(
@@ -815,7 +815,7 @@ describe('DatabaseModal', () => {
       // Click the "Performance" tab
       userEvent.click(
         screen.getByRole('tab', {
-          name: /right performance adjust performance settings of this database\./i,
+          name: /collapsed performance adjust performance settings of this database\./i,
         }),
       );
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
@@ -840,10 +840,10 @@ describe('DatabaseModal', () => {
       const advancedTab = screen.getByRole('tab', { name: /advanced/i });
       // <ExtraOptions> - Advanced tabs
       const sqlLabTab = screen.getByRole('tab', {
-        name: /right sql lab adjust how this database will interact with sql lab\./i,
+        name: /collapsed sql lab adjust how this database will interact with sql lab\./i,
       });
       const performanceTab = screen.getByRole('tab', {
-        name: /right performance adjust performance settings of this database\./i,
+        name: /expanded performance adjust performance settings of this database\./i,
       });
 
       // ---------- Assertions ----------
@@ -880,7 +880,7 @@ describe('DatabaseModal', () => {
       // Click the "Security" tab
       userEvent.click(
         screen.getByRole('tab', {
-          name: /right security add extra connection information\./i,
+          name: /collapsed security add extra connection information\./i,
         }),
       );
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
@@ -905,13 +905,13 @@ describe('DatabaseModal', () => {
       const advancedTab = screen.getByRole('tab', { name: /advanced/i });
       // <ExtraOptions> - Advanced tabs
       const sqlLabTab = screen.getByRole('tab', {
-        name: /right sql lab adjust how this database will interact with sql lab\./i,
+        name: /collapsed sql lab adjust how this database will interact with sql lab\./i,
       });
       const performanceTab = screen.getByRole('tab', {
-        name: /right performance adjust performance settings of this database\./i,
+        name: /collapsed performance adjust performance settings of this database\./i,
       });
       const securityTab = screen.getByRole('tab', {
-        name: /right security add extra connection information\./i,
+        name: /expanded security add extra connection information\./i,
       });
       const allowFileUploadCheckbox = screen.getByRole('checkbox', {
         name: /Allow file uploads to database/i,
@@ -966,7 +966,7 @@ describe('DatabaseModal', () => {
       // Click the "Security" tab
       userEvent.click(
         screen.getByRole('tab', {
-          name: /right security add extra connection information\./i,
+          name: /collapsed security add extra connection information\./i,
         }),
       );
       // Click the "Allow file uploads" tab
@@ -996,13 +996,13 @@ describe('DatabaseModal', () => {
       const advancedTab = screen.getByRole('tab', { name: /advanced/i });
       // <ExtraOptions> - Advanced tabs
       const sqlLabTab = screen.getByRole('tab', {
-        name: /right sql lab adjust how this database will interact with sql lab\./i,
+        name: /collapsed sql lab adjust how this database will interact with sql lab\./i,
       });
       const performanceTab = screen.getByRole('tab', {
-        name: /right performance adjust performance settings of this database\./i,
+        name: /collapsed performance adjust performance settings of this database\./i,
       });
       const securityTab = screen.getByRole('tab', {
-        name: /right security add extra connection information\./i,
+        name: /expanded security add extra connection information\./i,
       });
       const allowFileUploadText = screen.getByText(
         /Allow file uploads to database/i,
@@ -1054,7 +1054,7 @@ describe('DatabaseModal', () => {
       // Click the "Other" tab
       userEvent.click(
         screen.getByRole('tab', {
-          name: /right other additional settings\./i,
+          name: /collapsed other additional settings\./i,
         }),
       );
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
@@ -1079,16 +1079,16 @@ describe('DatabaseModal', () => {
       const advancedTab = screen.getByRole('tab', { name: /advanced/i });
       // <ExtraOptions> - Advanced tabs
       const sqlLabTab = screen.getByRole('tab', {
-        name: /right sql lab adjust how this database will interact with sql lab\./i,
+        name: /collapsed sql lab adjust how this database will interact with sql lab\./i,
       });
       const performanceTab = screen.getByRole('tab', {
-        name: /right performance adjust performance settings of this database\./i,
+        name: /collapsed performance adjust performance settings of this database\./i,
       });
       const securityTab = screen.getByRole('tab', {
-        name: /right security add extra connection information\./i,
+        name: /collapsed security add extra connection information\./i,
       });
       const otherTab = screen.getByRole('tab', {
-        name: /right other additional settings\./i,
+        name: /expanded other additional settings\./i,
       });
 
       // ---------- Assertions ----------
@@ -1485,7 +1485,7 @@ describe('DatabaseModal', () => {
       // Click the "Security" tab
       userEvent.click(
         screen.getByRole('tab', {
-          name: /right security add extra connection information\./i,
+          name: /collapsed security add extra connection information\./i,
         }),
       );
 
@@ -1586,12 +1586,12 @@ describe('DatabaseModal', () => {
 
       const step2of3text = await screen.findByText(/step 2 of 3/i);
       const errorTitleMessage = screen.getByText(/Database Creation Error/i);
+      expect(errorTitleMessage).toBeInTheDocument();
       const button = screen.getByText('See more');
       userEvent.click(button);
       const errorMessage = screen.getByText(/Test Error With String/i);
       expect(errorMessage).toBeInTheDocument();
       expect(step2of3text).toBeInTheDocument();
-      expect(errorTitleMessage).toBeInTheDocument();
     });
   });
 

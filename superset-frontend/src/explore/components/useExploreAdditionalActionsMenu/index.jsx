@@ -79,21 +79,21 @@ export const MenuItemWithCheckboxContainer = styled.div`
     align-items: center;
 
     & svg {
-      width: ${theme.gridUnit * 3}px;
-      height: ${theme.gridUnit * 3}px;
+      width: ${theme.sizeUnit * 3}px;
+      height: ${theme.sizeUnit * 3}px;
     }
 
     & span[role='checkbox'] {
       display: inline-flex;
-      margin-right: ${theme.gridUnit}px;
+      margin-right: ${theme.sizeUnit}px;
     }
   `}
 `;
 
 export const MenuTrigger = styled(Button)`
   ${({ theme }) => css`
-    width: ${theme.gridUnit * 8}px;
-    height: ${theme.gridUnit * 8}px;
+    width: ${theme.sizeUnit * 8}px;
+    height: ${theme.sizeUnit * 8}px;
     padding: 0;
     border: 1px solid ${theme.colors.primary.dark2};
 
@@ -388,7 +388,7 @@ export const useExploreAdditionalActionsMenu = (
                     addDangerToast={addDangerToast}
                   />
                 }
-                maxWidth={`${theme.gridUnit * 100}px`}
+                maxWidth={`${theme.sizeUnit * 100}px`}
                 destroyOnClose
                 responsive
               />
@@ -449,7 +449,7 @@ export const useExploreAdditionalActionsMenu = (
       latestQueryFormData,
       showReportSubMenu,
       slice,
-      theme.gridUnit,
+      theme.sizeUnit,
     ],
   );
   return [menu, isDropdownVisible, setIsDropdownVisible];

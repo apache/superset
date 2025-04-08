@@ -49,14 +49,14 @@ import ListView, {
 import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import { TagsList } from 'src/components/Tags';
+import TagsList from 'src/components/TagsList';
 import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
 import Tag from 'src/types/TagType';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import { ModifiedInfo } from 'src/components/AuditInfo';
-import { loadTags } from 'src/components/Tags/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from 'src/components/Icons';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
@@ -89,7 +89,7 @@ interface SavedQueryListProps {
 const StyledTableLabel = styled.div`
   .count {
     margin-left: 5px;
-    color: ${({ theme }) => theme.colors.primary.base};
+    color: ${({ theme }) => theme.colorPrimary};
     text-decoration: underline;
     cursor: pointer;
   }
@@ -212,7 +212,7 @@ function SavedQueryList({
           iconColor={theme.colors.primary.light5}
           iconSize="m"
           css={css`
-            margin: auto ${theme.gridUnit * 2}px auto 0;
+            margin: auto ${theme.sizeUnit * 2}px auto 0;
           `}
         />
         {t('Query')}

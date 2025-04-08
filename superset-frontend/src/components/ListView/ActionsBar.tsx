@@ -42,7 +42,7 @@ const StyledActions = styled.span`
 
     &:hover {
       path {
-        fill: ${({ theme }) => theme.colors.primary.base};
+        fill: ${({ theme }) => theme.colorPrimary};
       }
     }
   }

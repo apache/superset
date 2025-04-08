@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// eslint-disable-next-line no-restricted-imports
-import { ConfigProvider } from 'antd'; // TODO: Remove antd
 import { styled, t } from '@superset-ui/core';
 import ReactCronPicker, { Locale, CronProps } from 'react-js-cron';
 
@@ -104,11 +102,7 @@ export const LOCALE: Locale = {
 };
 
 export const CronPicker = styled((props: CronProps) => (
-  <ConfigProvider
-    getPopupContainer={trigger => trigger.parentElement as HTMLElement}
-  >
-    <ReactCronPicker locale={LOCALE} {...props} />
-  </ConfigProvider>
+  <ReactCronPicker locale={LOCALE} {...props} />
 ))`
   ${({ theme }) => `
 
@@ -119,8 +113,8 @@ export const CronPicker = styled((props: CronProps) => (
     :has(.react-js-cron-months) {
       display: grid !important;
       grid-template-columns: repeat(2, 50%);
-      column-gap: ${theme.gridUnit}px;
-      row-gap: ${theme.gridUnit * 2}px;
+      column-gap: ${theme.sizeUnit}px;
+      row-gap: ${theme.sizeUnit * 2}px;
       div:has(.react-js-cron-hours) {
         grid-column: span 2;
         display: flex;
@@ -136,8 +130,8 @@ export const CronPicker = styled((props: CronProps) => (
     :not(:has(.react-js-cron-months)) {
       display: grid;
       grid-template-columns: repeat(2, 50%);
-      column-gap: ${theme.gridUnit}px;
-      row-gap: ${theme.gridUnit * 2}px;
+      column-gap: ${theme.sizeUnit}px;
+      row-gap: ${theme.sizeUnit * 2}px;
       .react-js-cron-period {
         grid-column: span 2;
       }
@@ -171,7 +165,7 @@ export const CronPicker = styled((props: CronProps) => (
     }
 
     .react-js-cron-minutes > span {
-      padding-left: ${theme.gridUnit}px;
+      padding-left: ${theme.sizeUnit}px;
     }
 
     /* Sizing of select container */
@@ -193,7 +187,7 @@ export const CronPicker = styled((props: CronProps) => (
 
     .react-js-cron-custom-select .ant-select-selection-placeholder {
       flex: auto;
-      border-radius: ${theme.gridUnit}px;
+      border-radius: ${theme.sizeUnit}px;
     }
 
     .react-js-cron-custom-select .ant-select-selection-overflow-item {
@@ -202,7 +196,7 @@ export const CronPicker = styled((props: CronProps) => (
 
     .react-js-cron-select > div:first-of-type,
     .react-js-cron-custom-select {
-      border-radius: ${theme.gridUnit}px;
+      border-radius: ${theme.sizeUnit}px;
     }
   `}
 `;

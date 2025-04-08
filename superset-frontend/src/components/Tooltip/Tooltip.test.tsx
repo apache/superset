@@ -17,7 +17,6 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { supersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { Icons } from 'src/components/Icons';
 import { Tooltip } from '.';
@@ -39,18 +38,6 @@ test('renders on hover', async () => {
   );
   userEvent.hover(screen.getByRole('button'));
   expect(await screen.findByRole('tooltip')).toBeInTheDocument();
-});
-
-test('renders with theme', () => {
-  render(
-    <Tooltip title="Simple tooltip" defaultOpen>
-      <Button>Hover me</Button>
-    </Tooltip>,
-  );
-  const tooltip = screen.getByRole('tooltip');
-  expect(tooltip).toHaveStyle({
-    'background-color': `${supersetTheme.colors.grayscale.dark2}e6`,
-  });
 });
 
 test('renders with icon child', async () => {

@@ -26,23 +26,18 @@ export type FormLabelProps = {
   className?: string;
 };
 
-const Label = styled.label`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  margin-bottom: ${({ theme }) => theme.gridUnit}px;
-`;
-
-const RequiredLabel = styled.label`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  margin-bottom: ${({ theme }) => theme.gridUnit}px;
-  &::after {
-    display: inline-block;
-    margin-left: ${({ theme }) => theme.gridUnit}px;
-    color: ${({ theme }) => theme.colors.error.base};
-    font-size: ${({ theme }) => theme.typography.sizes.m}px;
-    content: '*';
-  }
+const Label = styled.label<{ required?: boolean }>`
+  ${({ required, theme }) =>
+    required &&
+    `
+      &::after {
+        display: inline-block;
+        margin-left: ${theme.sizeUnit}px;
+        color: ${theme.colorError};
+        font-size: ${theme.fontSize}px;
+        content: '*';
+      }
+    `}
 `;
 
 export default function FormLabel({
@@ -51,10 +46,9 @@ export default function FormLabel({
   required = false,
   className,
 }: FormLabelProps) {
-  const StyledLabel = required ? RequiredLabel : Label;
   return (
-    <StyledLabel htmlFor={htmlFor} className={className}>
+    <Label htmlFor={htmlFor} className={className} required={required}>
       {children}
-    </StyledLabel>
+    </Label>
   );
 }

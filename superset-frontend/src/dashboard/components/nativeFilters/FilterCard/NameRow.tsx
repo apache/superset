@@ -49,7 +49,7 @@ export const NameRow = ({
   return (
     <Row
       css={(theme: SupersetTheme) => css`
-        margin-bottom: ${theme.gridUnit * 3}px;
+        margin-bottom: ${theme.sizeUnit * 3}px;
         justify-content: space-between;
       `}
     >
@@ -57,7 +57,7 @@ export const NameRow = ({
         <Icons.FilterOutlined
           iconSize="s"
           css={(theme: SupersetTheme) => css`
-            margin-right: ${theme.gridUnit}px;
+            margin-right: ${theme.sizeUnit}px;
           `}
         />
         <TooltipWithTruncation title={elementsTruncated ? filter.name : null}>

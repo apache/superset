@@ -67,10 +67,9 @@ const InfoIconContainer = styled.div`
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    margin-left: ${theme.gridUnit}px;
+    margin-left: ${theme.sizeUnit}px;
   `}
 `;
-const defaultColor = 'rgba(0,0,0,0.9)';
 
 export default function InfoTooltip({
   tooltip,
@@ -78,13 +77,13 @@ export default function InfoTooltip({
   placement = 'right',
   trigger = 'hover',
   overlayStyle = defaultOverlayStyle,
-  bgColor = defaultColor,
+  bgColor,
   viewBox = '0 -1 24 24',
 }: InfoTooltipProps) {
   const theme = useTheme();
   const alteredIconStyle = {
     ...iconStyle,
-    color: iconStyle.color || theme.colors.grayscale.base,
+    color: iconStyle.color || theme.colorIcon,
   };
   return (
     <StyledTooltip

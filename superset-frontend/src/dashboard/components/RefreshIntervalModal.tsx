@@ -17,7 +17,7 @@
  * under the License.
  */
 import { createRef, PureComponent } from 'react';
-import Select from 'src/components/Select/Select';
+import { Select } from 'src/components';
 import { t, styled } from '@superset-ui/core';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
@@ -34,12 +34,12 @@ const StyledModalTrigger = styled(ModalTrigger)`
 `;
 
 const RefreshWarningContainer = styled.div`
-  margin-top: ${({ theme }) => theme.gridUnit * 6}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 6}px;
 `;
 
 const StyledDiv = styled.div`
   display: flex;
-  margin-top: ${({ theme }) => theme.gridUnit * 3}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 3}px;
 `;
 
 const InnerStyledDiv = styled.div`
@@ -301,7 +301,11 @@ class RefreshIntervalModal extends PureComponent<
         }
         modalFooter={
           <>
-            <Button onClick={this.onCancel} buttonSize="small">
+            <Button
+              onClick={this.onCancel}
+              buttonSize="small"
+              buttonStyle="secondary"
+            >
               {t('Cancel')}
             </Button>
             <Button

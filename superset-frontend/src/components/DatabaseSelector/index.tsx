@@ -25,9 +25,9 @@ import {
   useCallback,
 } from 'react';
 import { styled, SupersetClient, SupersetError, t } from '@superset-ui/core';
-import type { LabeledValue as AntdLabeledValue } from 'antd-v5/lib/select';
+import type { LabeledValue as AntdLabeledValue } from 'antd-v5/es/select';
 import rison from 'rison';
-import { AsyncSelect, Select } from 'src/components';
+import { Select, AsyncSelect } from 'src/components';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
@@ -46,8 +46,8 @@ const DatabaseSelectorWrapper = styled.div`
       display: flex;
       align-items: center;
       width: 30px;
-      margin-left: ${theme.gridUnit}px;
-      margin-top: ${theme.gridUnit * 5}px;
+      margin-left: ${theme.sizeUnit}px;
+      margin-top: ${theme.sizeUnit * 5}px;
     }
 
     .section {
@@ -57,12 +57,12 @@ const DatabaseSelectorWrapper = styled.div`
     }
 
     .select {
-      width: calc(100% - 30px - ${theme.gridUnit}px);
+      width: calc(100% - 30px - ${theme.sizeUnit}px);
       flex: 1;
     }
 
     & > div {
-      margin-bottom: ${theme.gridUnit * 4}px;
+      margin-bottom: ${theme.sizeUnit * 4}px;
     }
   `}
 `;
@@ -71,7 +71,7 @@ const LabelStyle = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin-left: ${({ theme }) => theme.gridUnit - 2}px;
+  margin-left: ${({ theme }) => theme.sizeUnit - 2}px;
 
   .backend {
     overflow: visible;

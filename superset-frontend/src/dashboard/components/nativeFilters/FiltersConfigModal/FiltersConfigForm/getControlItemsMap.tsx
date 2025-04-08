@@ -21,7 +21,7 @@ import {
   InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
 import { ReactNode } from 'react';
-import { Checkbox, FormInstance } from 'src/components';
+import Checkbox from 'src/components/Checkbox';
 import {
   Filter,
   getChartControlPanelRegistry,
@@ -29,7 +29,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import { FormItem } from 'src/components/Form';
+import { FormItem, FormInstance } from 'src/components/Form';
 import {
   doesColumnMatchFilterType,
   getControlItems,

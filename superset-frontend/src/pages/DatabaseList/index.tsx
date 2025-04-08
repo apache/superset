@@ -82,7 +82,7 @@ interface DatabaseListProps {
 }
 
 const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
 
   .action-button {
     display: inline-block;
@@ -93,15 +93,9 @@ const Actions = styled.div`
 function BooleanDisplay({ value }: { value: Boolean }) {
   const theme = useTheme();
   return value ? (
-    <Icons.CheckOutlined
-      iconSize="s"
-      iconColor={theme.colors.grayscale.dark1}
-    />
+    <Icons.CheckOutlined iconSize="s" iconColor={theme.colorText} />
   ) : (
-    <Icons.CloseOutlined
-      iconSize="s"
-      iconColor={theme.colors.grayscale.light1}
-    />
+    <Icons.CloseOutlined iconSize="s" iconColor={theme.colorText} />
   );
 }
 

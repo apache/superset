@@ -40,14 +40,13 @@ const FilterStyledIcon = styled.div`
 `;
 
 const VerticalFilterControlTitle = styled.h4`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-  margin: 0;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  color: ${({ theme }) => theme.colorText};
   overflow-wrap: anywhere;
 `;
 
 const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
-  font-weight: ${({ theme }) => theme.typography.weights.normal};
+  font-weight: ${({ theme }) => theme.fontWeightNormal};
   color: ${({ theme }) => theme.colors.grayscale.base};
   ${truncationCSS};
 `;
@@ -63,7 +62,7 @@ const VerticalFilterControlTitleBox = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const HorizontalFilterControlTitleBox = styled(VerticalFilterControlTitleBox)`
@@ -78,30 +77,30 @@ const HorizontalOverflowFilterControlTitleBox = styled(
 
 const VerticalFilterControlContainer = styled(Form)`
   width: 100%;
-  && .ant-form-item-label > label {
+  && .antd5-form-item-label > label {
     text-transform: none;
     width: 100%;
-    padding-right: ${({ theme }) => theme.gridUnit * 11}px;
+    padding-right: ${({ theme }) => theme.sizeUnit * 11}px;
   }
-  .ant-form-item-tooltip {
-    margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  .antd5-form-item-tooltip {
+    margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
 const HorizontalFilterControlContainer = styled(Form)`
-  && .ant-form-item-label > label {
+  && .antd5-form-item-label > label {
     margin-bottom: 0;
     text-transform: none;
   }
-  .ant-form-item-tooltip {
-    margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  .antd5-form-item-tooltip {
+    margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
 const HorizontalOverflowFilterControlContainer = styled(
   VerticalFilterControlContainer,
 )`
-  && .ant-form-item-label {
+  && .antd5-form-item-label {
     line-height: 1;
     & > label {
       padding-right: unset;
@@ -110,9 +109,11 @@ const HorizontalOverflowFilterControlContainer = styled(
 `;
 
 const VerticalFormItem = styled(StyledFormItem)`
-  .ant-form-item-label {
+  .antd5-form-item-label {
     overflow: visible;
-    label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+    label.antd5-form-item-required:not(
+        .antd5-form-item-required-mark-optional
+      ) {
       &::after {
         display: none;
       }
@@ -126,11 +127,13 @@ const HorizontalFormItem = styled(StyledFormItem)`
     align-items: center;
   }
 
-  .ant-form-item-label {
+  .antd5-form-item-label {
     overflow: visible;
     padding-bottom: 0;
-    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
-    label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+    margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
+    label.antd5-form-item-required:not(
+        .antd5-form-item-required-mark-optional
+      ) {
       &::after {
         display: none;
       }
@@ -141,8 +144,8 @@ const HorizontalFormItem = styled(StyledFormItem)`
     }
   }
 
-  .ant-form-item-control {
-    width: ${({ theme }) => theme.gridUnit * 41}px;
+  .antd5-form-item-control {
+    width: ${({ theme }) => theme.sizeUnit * 41}px;
   }
 `;
 
@@ -178,15 +181,15 @@ const useFilterControlDisplay = (
   }, [orientation, overflow]);
 
 const ToolTipContainer = styled.div`
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  font-size: ${({ theme }) => theme.fontSize}px;
   display: flex;
 `;
 
 const RequiredFieldIndicator = () => (
   <span
     css={(theme: SupersetTheme) => ({
-      color: theme.colors.error.base,
-      fontSize: `${theme.typography.sizes.s}px`,
+      color: theme.colorError,
+      fontSize: `${theme.fontSizeSM}px`,
       paddingLeft: '1px',
     })}
   >
@@ -213,7 +216,7 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
       <i
         className="fa fa-info-circle text-muted"
         css={(theme: SupersetTheme) => ({
-          paddingLeft: `${theme.gridUnit}px`,
+          paddingLeft: `${theme.sizeUnit}px`,
           cursor: 'pointer',
         })}
       />

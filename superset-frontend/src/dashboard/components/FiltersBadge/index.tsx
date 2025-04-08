@@ -60,9 +60,9 @@ const StyledFilterCount = styled.div`
     justify-items: center;
     align-items: center;
     cursor: pointer;
-    margin-right: ${theme.gridUnit}px;
-    padding-left: ${theme.gridUnit * 2}px;
-    padding-right: ${theme.gridUnit * 2}px;
+    margin-right: ${theme.sizeUnit}px;
+    padding-left: ${theme.sizeUnit * 2}px;
+    padding-right: ${theme.sizeUnit * 2}px;
     background: ${theme.colors.grayscale.light4};
     border-radius: 4px;
     height: 100%;
@@ -75,7 +75,7 @@ const StyledFilterCount = styled.div`
     }
 
     .incompatible-count {
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
     }
     &:focus-visible {
       outline: 2px solid ${theme.colors.primary.dark2};
@@ -85,16 +85,16 @@ const StyledFilterCount = styled.div`
 
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
-    margin-left: ${theme.gridUnit * 2}px;
+    margin-left: ${theme.sizeUnit * 2}px;
     &>sup.antd5-badge-count {
-      padding: 0 ${theme.gridUnit}px;
-      min-width: ${theme.gridUnit * 4}px;
-      height: ${theme.gridUnit * 4}px;
+      padding: 0 ${theme.sizeUnit}px;
+      min-width: ${theme.sizeUnit * 4}px;
+      height: ${theme.sizeUnit * 4}px;
       line-height: 1.5;
-      font-weight: ${theme.typography.weights.medium};
-      font-size: ${theme.typography.sizes.s - 1}px;
+      font-weight: ${theme.fontWeightMedium};
+      font-size: ${theme.fontSizeSM - 1}px;
       box-shadow: none;
-      padding: 0 ${theme.gridUnit}px;
+      padding: 0 ${theme.sizeUnit}px;
     }
   `}
 `;

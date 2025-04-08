@@ -254,7 +254,7 @@ function RowLevelSecurityList(props: RLSProps) {
           iconColor={theme.colors.primary.light5}
           iconSize="m"
           css={css`
-            margin: auto ${theme.gridUnit * 2}px auto 0;
+            margin: auto ${theme.sizeUnit * 2}px auto 0;
             vertical-align: text-top;
           `}
           data-test="add-rule-empty"
@@ -329,7 +329,7 @@ function RowLevelSecurityList(props: RLSProps) {
             iconColor={theme.colors.primary.light5}
             iconSize="m"
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
               vertical-align: text-top;
             `}
             data-test="add-rule"

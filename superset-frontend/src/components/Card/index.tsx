@@ -18,7 +18,7 @@
  */
 import { SupersetTheme } from '@superset-ui/core';
 import { Card as AntdCard } from 'antd-v5';
-import { CardProps as AntdCardProps } from 'antd-v5/lib/card';
+import { CardProps as AntdCardProps } from 'antd-v5/es/card';
 
 export interface CardProps extends AntdCardProps {
   padded?: boolean;
@@ -28,10 +28,8 @@ const Card = ({ padded, ...props }: CardProps) => (
   <AntdCard
     {...props}
     css={(theme: SupersetTheme) => ({
-      // 'border-radius': `${theme.gridUnit}px`,
-      border: `1px solid ${theme.colors.grayscale.light2}`,
       '.antd5-card-body': {
-        padding: padded ? theme.gridUnit * 4 : theme.gridUnit,
+        padding: padded ? theme.sizeUnit * 4 : theme.sizeUnit,
       },
     })}
   />

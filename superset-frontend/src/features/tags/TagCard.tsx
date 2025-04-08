@@ -26,7 +26,7 @@ import ListViewCard from 'src/components/ListViewCard';
 import { Icons } from 'src/components/Icons';
 import { Tag } from 'src/views/CRUD/types';
 import { deleteTags } from 'src/features/tags/tags';
-import { Button } from 'src/components';
+import Button from 'src/components/Button';
 
 interface TagCardProps {
   tag: Tag;
@@ -109,7 +109,7 @@ function TagCard({
             }}
           >
             <Dropdown dropdownRender={() => menu} trigger={['click', 'hover']}>
-              <Button buttonSize="xsmall" type="link">
+              <Button buttonSize="xsmall" buttonStyle="link">
                 <Icons.MoreOutlined iconSize="xl" />
               </Button>
             </Dropdown>

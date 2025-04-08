@@ -79,7 +79,7 @@ const FlexRowContainer = styled.div`
   display: flex;
 
   svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -92,7 +92,7 @@ const Actions = styled.div`
       i {
         &:hover {
           path {
-            fill: ${theme.colors.grayscale.light1};
+            fill: ${theme.colorText};
           }
         }
       }
@@ -480,7 +480,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleDuplicate}
                   >
-                    <Icons.CopyOutlined />
+                    <Icons.CopyOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}

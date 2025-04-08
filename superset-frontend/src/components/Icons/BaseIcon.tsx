@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { css, useTheme } from '@superset-ui/core';
+import { css, useTheme, themeObject } from '@superset-ui/core';
 import { AntdIconType, BaseIconProps, CustomIconType, IconType } from './types';
 
 const genAriaLabel = (fileName: string) => {
@@ -47,9 +47,9 @@ export const BaseIconComponent: React.FC<
 }) => {
   const theme = useTheme();
   const iconCss = css`
-    color: ${iconColor || theme.colors.grayscale.base};
+    color: ${iconColor || theme.colorIcon};
     font-size: ${iconSize
-      ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
+      ? `${themeObject.getFontSize(iconSize) || theme.fontSize}px`
       : '24px'};
   `;
   const whatRole = rest?.onClick ? 'button' : 'img';
@@ -74,12 +74,12 @@ export const BaseIconComponent: React.FC<
         viewBox={viewBox || '0 0 24 24'}
         width={
           iconSize
-            ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
+            ? `${themeObject.getFontSize(iconSize) || theme.fontSize}px`
             : '24px'
         }
         height={
           iconSize
-            ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
+            ? `${themeObject.getFontSize(iconSize) || theme.fontSize}px`
             : '24px'
         }
         {...(rest as CustomIconType)}

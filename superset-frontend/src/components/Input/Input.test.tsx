@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
-import { Input, InputNumber, TextArea } from '.';
+import { Input, InputNumber } from '.';
 
 test('should render Input', () => {
   const { container } = render(<Input />);
@@ -30,6 +30,6 @@ test('should render InputNumber', () => {
 });
 
 test('should render TextArea', () => {
-  const { container } = render(<TextArea />);
+  const { container } = render(<Input.TextArea />);
   expect(container).toBeInTheDocument();
 });

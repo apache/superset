@@ -20,7 +20,7 @@ import { ChangeEvent, useState, useEffect, FC } from 'react';
 
 import rison from 'rison';
 import Modal from 'src/components/Modal';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
+import { AsyncSelect } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import { t, styled, SupersetClient } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
@@ -32,10 +32,10 @@ import { fetchObjectsByTagIds } from 'src/features/tags/tags';
 
 const StyledModalBody = styled.div`
   .ant-select-dropdown {
-    max-height: ${({ theme }) => theme.gridUnit * 40}px;
+    max-height: ${({ theme }) => theme.sizeUnit * 40}px;
   }
   .tag-input {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
   }
 `;
 

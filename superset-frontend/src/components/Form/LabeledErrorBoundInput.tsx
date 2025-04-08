@@ -43,31 +43,31 @@ export interface LabeledErrorBoundInputProps {
 }
 
 const StyledInput = styled(Input)`
-  margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
+  margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
 `;
 
 const StyledInputPassword = styled(Input.Password)`
-  margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
+  margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
 `;
 
 const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
-  .ant-form-item-children-icon {
+  .antd5-form-item-children-icon {
     display: none;
   }
   ${hasError &&
-  `.ant-form-item-control-input-content {
+  `.antd5-form-item-control-input-content {
       position: relative;
       &:after {
         content: ' ';
         display: inline-block;
-        background: ${theme.colors.error.base};
+        background: ${theme.colorError};
         mask: url(${errorIcon});
         mask-size: cover;
-        width: ${theme.gridUnit * 4}px;
-        height: ${theme.gridUnit * 4}px;
+        width: ${theme.sizeUnit * 4}px;
+        height: ${theme.sizeUnit * 4}px;
         position: absolute;
-        right: ${theme.gridUnit * 1.25}px;
-        top: ${theme.gridUnit * 2.75}px;
+        right: ${theme.sizeUnit * 1.25}px;
+        top: ${theme.sizeUnit * 2.75}px;
       }
     }`}
 `;
@@ -78,8 +78,8 @@ const StyledFormGroup = styled('div')`
     -webkit-appearance: none;
     margin: 0;
   }
-  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-  .ant-form-item {
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
+  .antd5-form-item {
     margin-bottom: 0;
   }
 `;
@@ -154,9 +154,8 @@ const LabeledErrorBoundInput = ({
       )}
       {get_url && description ? (
         <Button
-          type="link"
           htmlType="button"
-          buttonStyle="default"
+          buttonStyle="secondary"
           onClick={() => {
             window.open(get_url);
             return true;

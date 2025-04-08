@@ -57,9 +57,9 @@ const StyledHeader = styled.div`
 
     a,
     Link {
-      margin-left: ${theme.gridUnit * 4}px;
-      font-size: ${theme.typography.sizes.s}px;
-      font-weight: ${theme.typography.weights.normal};
+      margin-left: ${theme.sizeUnit * 4}px;
+      font-size: ${theme.fontSizeSM}px;
+      font-weight: ${theme.fontWeightNormal};
       text-decoration: underline;
     }
   `}
@@ -233,7 +233,7 @@ function AnnotationList({
           iconColor={theme.colors.primary.light5}
           iconSize="m"
           css={css`
-            margin: auto ${theme.gridUnit * 2}px auto 0;
+            margin: auto ${theme.sizeUnit * 2}px auto 0;
             vertical-align: text-top;
           `}
         />
@@ -274,7 +274,7 @@ function AnnotationList({
           iconColor={theme.colors.primary.light5}
           iconSize="m"
           css={css`
-            margin: auto ${theme.gridUnit * 2}px auto 0;
+            margin: auto ${theme.sizeUnit * 2}px auto 0;
             vertical-align: text-top;
           `}
         />

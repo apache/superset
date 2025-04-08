@@ -17,32 +17,23 @@
  * under the License.
  */
 
-import { InputProps, TextAreaProps } from 'antd-v5/lib/input';
-import { InputNumberProps } from 'antd-v5/lib/input-number';
-import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
-import { Input, TextArea, InputNumber } from '.';
+import { InputProps, TextAreaProps } from 'antd-v5/es/input';
+import { InputNumberProps } from 'antd-v5/es/input-number';
+import { Input, InputNumber } from '.';
 
 export default {
   title: 'Input',
   component: Input,
 };
 
-export const InteractiveInput = (args: InputProps) => (
-  <AntdThemeProvider>
-    <Input {...args} />
-  </AntdThemeProvider>
-);
+export const InteractiveInput = (args: InputProps) => <Input {...args} />;
 
 export const InteractiveInputNumber = (args: InputNumberProps) => (
-  <AntdThemeProvider>
-    <InputNumber {...args} />
-  </AntdThemeProvider>
+  <InputNumber {...args} />
 );
 
 export const InteractiveTextArea = (args: TextAreaProps) => (
-  <AntdThemeProvider>
-    <TextArea {...args} />
-  </AntdThemeProvider>
+  <Input.TextArea {...args} />
 );
 
 InteractiveInput.args = {

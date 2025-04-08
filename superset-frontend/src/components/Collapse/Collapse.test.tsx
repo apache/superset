@@ -16,108 +16,74 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  render,
-  screen,
-  cleanup,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import Collapse, { CollapseProps } from '.';
 
-describe('Collapse', () => {
-  beforeAll(() => {
-    jest.setTimeout(30000);
-  });
+function renderCollapse(props?: CollapseProps) {
+  return render(
+    <Collapse
+      {...props}
+      items={[
+        {
+          key: '1',
+          label: 'Header 1',
+          children: 'Content 1',
+        },
+        {
+          key: '2',
+          label: 'Header 2',
+          children: 'Content 2',
+        },
+      ]}
+    />,
+  );
+}
 
-  afterEach(async () => {
-    cleanup();
-    await new Promise(resolve => setTimeout(resolve, 0));
-  });
+test('renders collapsed with default props', () => {
+  renderCollapse();
 
-  function renderCollapse(props?: CollapseProps) {
-    return render(
-      <Collapse {...props}>
-        <Collapse.Panel header="Header 1" key="1">
-          Content 1
-        </Collapse.Panel>
-        <Collapse.Panel header="Header 2" key="2">
-          Content 2
-        </Collapse.Panel>
-      </Collapse>,
-    );
-  }
+  const headers = screen.getAllByRole('button');
 
-  test('renders collapsed with default props', async () => {
-    const { unmount } = renderCollapse();
-    const headers = screen.getAllByRole('button');
+  expect(headers[0]).toHaveTextContent('Header 1');
+  expect(headers[1]).toHaveTextContent('Header 2');
+  expect(screen.queryByText('Content 1')).not.toBeInTheDocument();
+  expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
+});
 
-    expect(headers[0]).toHaveTextContent('Header 1');
-    expect(headers[1]).toHaveTextContent('Header 2');
-    expect(screen.queryByText('Content 1')).not.toBeInTheDocument();
-    expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
+test('renders with one item expanded by default', () => {
+  renderCollapse({ defaultActiveKey: ['1'] });
 
-    unmount();
-  });
+  const headers = screen.getAllByRole('button');
 
-  test('renders with one item expanded by default', async () => {
-    const { unmount } = renderCollapse({ defaultActiveKey: ['1'] });
-    const headers = screen.getAllByRole('button');
+  expect(headers[0]).toHaveTextContent('Header 1');
+  expect(headers[1]).toHaveTextContent('Header 2');
+  expect(screen.getByText('Content 1')).toBeInTheDocument();
+  expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
+});
 
-    expect(headers[0]).toHaveTextContent('Header 1');
-    expect(headers[1]).toHaveTextContent('Header 2');
-    expect(screen.getByText('Content 1')).toBeInTheDocument();
-    expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
+test('expands on click', () => {
+  renderCollapse();
 
-    unmount();
-  });
+  expect(screen.queryByText('Content 1')).not.toBeInTheDocument();
+  expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
 
-  test('expands on click without waitFor', async () => {
-    const { unmount } = renderCollapse();
+  userEvent.click(screen.getAllByRole('button')[0]);
 
-    expect(screen.queryByText('Content 1')).not.toBeInTheDocument();
-    expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
+  expect(screen.getByText('Content 1')).toBeInTheDocument();
+  expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
+});
 
-    await userEvent.click(screen.getAllByRole('button')[0]);
+test('collapses on click', () => {
+  renderCollapse({ defaultActiveKey: ['1'] });
 
-    expect(screen.getByText('Content 1')).toBeInTheDocument();
-    expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
+  expect(screen.getByText('Content 1')).toBeInTheDocument();
+  expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
 
-    unmount();
-  });
+  userEvent.click(screen.getAllByRole('button')[0]);
 
-  test('expands on click with waitFor', async () => {
-    const { unmount } = renderCollapse();
-
-    await waitFor(() => {
-      expect(screen.queryByText('Content 1')).not.toBeInTheDocument();
-      expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
-    });
-
-    await userEvent.click(screen.getAllByRole('button')[0]);
-
-    await waitFor(() => {
-      expect(screen.getByText('Content 1')).toBeInTheDocument();
-      expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
-    });
-
-    unmount();
-  });
-
-  // Update other tests similarly with waitFor
-  test('collapses on click', async () => {
-    const { unmount } = renderCollapse({ defaultActiveKey: ['1'] });
-
-    expect(screen.getByText('Content 1')).toBeInTheDocument();
-    expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getAllByRole('button')[0]);
-
-    expect(screen.getByText('Content 1').parentNode).toHaveClass(
-      'ant-collapse-content-hidden',
-    );
-    expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
-
-    unmount();
-  });
+  expect(screen.getByText('Content 1').parentNode).toHaveClass(
+    'ant-collapse-content-hidden',
+  );
+  expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
 });

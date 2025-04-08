@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import { ListProps } from 'antd-v5/lib/list';
+import { ListProps } from 'antd-v5/es/list';
 import { List } from '.';
 
 const mockedProps: ListProps<any> = {

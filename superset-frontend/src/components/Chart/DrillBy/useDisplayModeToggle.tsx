@@ -31,7 +31,7 @@ export const useDisplayModeToggle = () => {
     () => (
       <div
         css={(theme: SupersetTheme) => css`
-          margin-bottom: ${theme.gridUnit * 6}px;
+          margin-bottom: ${theme.sizeUnit * 6}px;
         `}
         data-test="drill-by-display-toggle"
       >

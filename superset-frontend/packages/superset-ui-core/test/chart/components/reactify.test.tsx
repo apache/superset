@@ -106,19 +106,12 @@ describe('reactify(renderFn)', () => {
   describe('propTypes', () => {
     it('has propTypes if renderFn.propTypes is defined', () => {
       /* eslint-disable-next-line react/forbid-foreign-prop-types */
-      expect(Object.keys(TheChart.propTypes ?? {})).toEqual([
-        'id',
-        'className',
-        'content',
-      ]);
+      expect(Object.keys(TheChart.propTypes ?? {})).toEqual(['content']);
     });
     it('does not have propTypes if renderFn.propTypes is not defined', () => {
       const AnotherChart = reactify(() => {});
       /* eslint-disable-next-line react/forbid-foreign-prop-types */
-      expect(Object.keys(AnotherChart.propTypes ?? {})).toEqual([
-        'id',
-        'className',
-      ]);
+      expect(Object.keys(AnotherChart.propTypes ?? {})).toEqual([]);
     });
   });
   describe('defaultProps', () => {

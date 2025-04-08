@@ -41,23 +41,23 @@ import { DataTablesPaneProps, ResultTypes } from './types';
 const SouthPane = styled.div`
   ${({ theme }) => `
     position: relative;
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgContainer};
     z-index: 5;
     overflow: hidden;
 
-    .ant-tabs {
+    .antd5-tabs {
       height: 100%;
     }
 
-    .ant-tabs-content-holder {
+    .antd5-tabs-content-holder {
       height: 100%;
     }
 
-    .ant-tabs-content {
+    .antd5-tabs-content {
       height: 100%;
     }
 
-    .ant-tabs-tabpane {
+    .antd5-tabs-tabpane {
       display: flex;
       flex-direction: column;
       height: 100%;
@@ -65,10 +65,10 @@ const SouthPane = styled.div`
       .table-condensed {
         height: 100%;
         overflow: auto;
-        margin-bottom: ${theme.gridUnit * 4}px;
+        margin-bottom: ${theme.sizeUnit * 4}px;
 
         .table {
-          margin-bottom: ${theme.gridUnit * 2}px;
+          margin-bottom: ${theme.sizeUnit * 2}px;
         }
       }
 
@@ -221,7 +221,6 @@ export const DataTablesPane = ({
   return (
     <SouthPane data-test="some-purposeful-instance">
       <Tabs
-        fullWidth={false}
         tabBarExtraContent={CollapseButton}
         activeKey={panelOpen ? activeTabKey : ''}
         onTabClick={handleTabClick}

@@ -17,10 +17,10 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { styled, css } from '@superset-ui/core';
+import { styled, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { Row, Col, Grid } from 'src/components';
+import Grid, { Row, Col } from 'src/components/Grid';
 import { MainNav, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -42,8 +42,7 @@ interface MenuProps {
 
 const StyledHeader = styled.header`
   ${({ theme }) => `
-      background-color: ${theme.colors.grayscale.light5};
-      margin-bottom: 2px;
+      background-color: ${theme.colorBgContainer};
       z-index: 10;
 
       &:nth-last-of-type(2) nav {
@@ -58,11 +57,11 @@ const StyledHeader = styled.header`
         justify-content: center;
         /* must be exactly the height of the Antd navbar */
         min-height: 50px;
-        padding: ${theme.gridUnit}px
-          ${theme.gridUnit * 2}px
-          ${theme.gridUnit}px
-          ${theme.gridUnit * 4}px;
-        max-width: ${theme.gridUnit * theme.brandIconMaxWidth}px;
+        padding: ${theme.sizeUnit}px
+          ${theme.sizeUnit * 2}px
+          ${theme.sizeUnit}px
+          ${theme.sizeUnit * 4}px;
+        max-width: ${theme.sizeUnit * theme.brandIconMaxWidth}px;
         img {
           height: 100%;
           object-fit: contain;
@@ -71,25 +70,25 @@ const StyledHeader = styled.header`
           border-color: transparent;
         }
         &:focus-visible {
-          border-color: ${theme.colors.primary.dark1};
+          border-color: ${theme.colorPrimaryText};
         }
       }
       .navbar-brand-text {
         border-left: 1px solid ${theme.colors.grayscale.light2};
         border-right: 1px solid ${theme.colors.grayscale.light2};
         height: 100%;
-        color: ${theme.colors.grayscale.dark1};
-        padding-left: ${theme.gridUnit * 4}px;
-        padding-right: ${theme.gridUnit * 4}px;
-        margin-right: ${theme.gridUnit * 6}px;
-        font-size: ${theme.gridUnit * 4}px;
+        color: ${theme.colorText};
+        padding-left: ${theme.sizeUnit * 4}px;
+        padding-right: ${theme.sizeUnit * 4}px;
+        margin-right: ${theme.sizeUnit * 6}px;
+        font-size: ${theme.sizeUnit * 4}px;
         float: left;
         display: flex;
         flex-direction: column;
         justify-content: center;
 
         span {
-          max-width: ${theme.gridUnit * 58}px;
+          max-width: ${theme.sizeUnit * 58}px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -105,8 +104,8 @@ const StyledHeader = styled.header`
       }
       @media (max-width: 767px) {
         .antd5-menu-item {
-          padding: 0 ${theme.gridUnit * 6}px 0
-            ${theme.gridUnit * 3}px !important;
+          padding: 0 ${theme.sizeUnit * 6}px 0
+            ${theme.sizeUnit * 3}px !important;
         }
         .antd5-menu > .antd5-menu-item > span > a {
           padding: 0px;
@@ -123,16 +122,16 @@ const StyledSubMenu = styled(SubMenu)`
   ${({ theme }) => css`
     [data-icon="caret-down"] {
       color: ${theme.colors.grayscale.base};
-      font-size: ${theme.typography.sizes.xs}px;
-      margin-left: ${theme.gridUnit}px;
+      font-size: ${theme.fontSizeXS}px;
+      margin-left: ${theme.sizeUnit}px;
     }
     &.antd5-menu-submenu {
-        padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 4}px;
+        padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
         display: flex;
         align-items: center;
         height: 100%;  &.antd5-menu-submenu-active {
     .antd5-menu-title-content {
-      color: ${theme.colors.primary.base};
+      color: ${theme.colorPrimary};
     }
   }
   `}
@@ -152,6 +151,7 @@ export function Menu({
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
   const uiConfig = useUiConfig();
+  const theme = useTheme();
 
   useEffect(() => {
     function handleResize() {
@@ -256,6 +256,43 @@ export function Menu({
       </StyledSubMenu>
     );
   };
+  const renderBrand = () => {
+    let link;
+    if (theme.brandLogoUrl) {
+      let style = { padding: '0px', margin: '0px' } as React.CSSProperties;
+      if (theme.brandLogoHeight) {
+        style = { ...style, height: theme.brandLogoHeight, minHeight: '0px' };
+      }
+      if (theme.brandLogoMargin) {
+        style = { ...style, margin: theme.brandLogoMargin };
+      }
+      link = (
+        <a href={theme.brandLogoHref} className="navbar-brand" style={style}>
+          <img
+            src={theme.brandLogoUrl}
+            alt={theme.brandLogoAlt || 'Apache Superset'}
+          />
+        </a>
+      );
+    } else if (isFrontendRoute(window.location.pathname)) {
+      // ---------------------------------------------------------------------------------
+      // TODO: deprecate this once Theme is fully rolled out
+      // Kept as is for backwards compatibility with the old theme system / superset_config.py
+      link = (
+        <GenericLink className="navbar-brand" to={brand.path}>
+          <img src={brand.icon} alt={brand.alt} />
+        </GenericLink>
+      );
+    } else {
+      link = (
+        <a className="navbar-brand" href={brand.path} tabIndex={-1}>
+          <img src={brand.icon} alt={brand.alt} />
+        </a>
+      );
+    }
+    // ---------------------------------------------------------------------------------
+    return <>{link}</>;
+  };
   return (
     <StyledHeader className="top" id="main-menu" role="navigation">
       <Row>
@@ -266,21 +303,8 @@ export function Menu({
             title={brand.tooltip}
             arrow={{ pointAtCenter: true }}
           >
-            {isFrontendRoute(window.location.pathname) ? (
-              <GenericLink className="navbar-brand" to={brand.path}>
-                <img src={brand.icon} alt={brand.alt} />
-              </GenericLink>
-            ) : (
-              <a className="navbar-brand" href={brand.path} tabIndex={-1}>
-                <img src={brand.icon} alt={brand.alt} />
-              </a>
-            )}
+            {renderBrand()}
           </Tooltip>
-          {brand.text && (
-            <div className="navbar-brand-text">
-              <span>{brand.text}</span>
-            </div>
-          )}
           <MainNav
             mode={showMenu}
             data-test="navbar-top"

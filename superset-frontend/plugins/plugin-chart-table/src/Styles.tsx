@@ -36,15 +36,17 @@ export default styled.div`
     thead > tr > th {
       padding-right: 0;
       position: relative;
-      background: ${theme.colors.grayscale.light5};
+      background: ${theme.colorBgLayout};
       text-align: left;
+      border-bottom: 2px solid ${theme.colorSplit};
+      color: ${theme.colorText};
     }
     th svg {
-      color: ${theme.colors.grayscale.light2};
-      margin: ${theme.gridUnit / 2}px;
+      color: ${theme.colorIcon};
+      margin: ${theme.sizeUnit / 2}px;
     }
     th.is-sorted svg {
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorText};
     }
     .table > tbody > tr:first-of-type > td,
     .table > tbody > tr:first-of-type > th {
@@ -53,6 +55,7 @@ export default styled.div`
 
     .table > tbody tr td {
       font-feature-settings: 'tnum' 1;
+      border-top: 1px solid ${theme.colorSplit};
     }
 
     .dt-controls {
@@ -62,20 +65,20 @@ export default styled.div`
       text-align: right;
     }
     .dt-totals {
-      font-weight: ${theme.typography.weights.bold};
+      font-weight: ${theme.fontWeightStrong};
     }
     .dt-is-null {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextTertiary};
     }
     td.dt-is-filter {
       cursor: pointer;
     }
     td.dt-is-filter:hover {
-      background-color: ${theme.colors.secondary.light4};
+      background-color: ${theme.colorPrimaryBgHover};
     }
     td.dt-is-active-filter,
     td.dt-is-active-filter:hover {
-      background-color: ${theme.colors.secondary.light3};
+      background-color: ${theme.colorPrimaryBgHover};
     }
 
     .dt-global-filter {
@@ -104,7 +107,7 @@ export default styled.div`
 
     .pagination > li > span.dt-pagination-ellipsis:focus,
     .pagination > li > span.dt-pagination-ellipsis:hover {
-      background: ${theme.colors.grayscale.light5};
+      background: ${theme.colorBgLayout};
     }
 
     .dt-no-results {
@@ -113,7 +116,7 @@ export default styled.div`
     }
 
     .right-border-only {
-      border-right: 2px solid ${theme.colors.grayscale.light2};
+      border-right: 2px solid ${theme.colorSplit};
     }
     table .right-border-only:last-child {
       border-right: none;
