@@ -122,7 +122,7 @@ describe('Charts list', () => {
 
     it('should bulk select in list mode', () => {
       toggleBulkSelect();
-      cy.get('#checkbox-header-toggle-all').click();
+      cy.getBySel('header-toggle-all').click();
       cy.get('input[type="checkbox"]:checked').should('have.length', 26);
       cy.getBySel('bulk-select-copy').contains('25 Selected');
       cy.getBySel('bulk-select-action')

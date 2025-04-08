@@ -20,7 +20,7 @@ import { Checkbox as AntCheckbox } from 'antd-v5';
 import type {
   CheckboxProps as AntCheckboxProps,
   CheckboxChangeEvent as AntCheckboxChangeEvent,
-} from 'antd-v5/lib/checkbox';
+} from 'antd-v5/es/checkbox';
 
 export type CheckboxProps = AntCheckboxProps;
 export type CheckboxChangeEvent = AntCheckboxChangeEvent;

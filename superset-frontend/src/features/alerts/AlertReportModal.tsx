@@ -1821,7 +1821,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <div className="inline-container">
                     <Checkbox
                       data-test="bypass-cache"
-                      className="checkbox"
                       checked={forceScreenshot}
                       onChange={onForceScreenshotChange}
                     >

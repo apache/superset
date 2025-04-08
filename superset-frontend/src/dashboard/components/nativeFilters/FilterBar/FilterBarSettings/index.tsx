@@ -150,7 +150,7 @@ const FilterBarSettings = () => {
     () => (
       <StyledMenuLabel>
         <Checkbox
-          name="enable_cross-filters"
+          name="enable-cross-filters"
           checked={crossFiltersEnabled}
           onChange={e => setCrossFiltersEnabled(e.target.checked)}
         >
