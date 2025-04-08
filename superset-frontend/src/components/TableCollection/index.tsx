@@ -16,26 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, useMemo } from 'react';
-import { SortingRule, TableInstance } from 'react-table';
+import { HTMLAttributes, memo, useMemo } from 'react';
+import {
+  ColumnInstance,
+  HeaderGroup,
+  Row,
+  SortingRule,
+  TableBodyPropGetter,
+  TablePropGetter,
+} from 'react-table';
 import { styled } from '@superset-ui/core';
 import { Table, TableSize } from 'src/components/Table';
-import { TableRowSelection } from 'antd-v5/es/table/interface';
+import { TableRowSelection, SorterResult } from 'antd-v5/es/table/interface';
 import { mapColumns, mapRows } from './utils';
 
-interface TableCollectionProps {
-  getTableProps: (userProps?: any) => any;
-  getTableBodyProps: (userProps?: any) => any;
-  prepareRow: TableInstance['prepareRow'];
-  headerGroups: TableInstance['headerGroups'];
-  rows: TableInstance['rows'];
-  columns: TableInstance['column'][];
+interface TableCollectionProps<T extends object> {
+  getTableProps: TablePropGetter<T>;
+  getTableBodyProps: TableBodyPropGetter<T>;
+  prepareRow: (row: Row<T>) => void;
+  headerGroups: HeaderGroup<T>[];
+  rows: Row<T>[];
+  columns: ColumnInstance<T>[];
   loading: boolean;
   highlightRowId?: number;
   columnsForWrapText?: string[];
-  setSortBy?: (updater: SortingRule<any>[]) => void;
+  setSortBy?: (updater: SortingRule<T>[]) => void;
   bulkSelectEnabled?: boolean;
-  selectedFlatRows?: any[];
+  selectedFlatRows?: Row<T>[];
   toggleRowSelected?: (rowId: string, value: boolean) => void;
   toggleAllRowsSelected?: (value?: boolean) => void;
   sticky?: boolean;
@@ -83,81 +90,90 @@ const StyledTable = styled(Table)`
     }
   `}
 `;
-export default memo(
-  ({
+
+function TableCollection<T extends object>({
+  columns,
+  rows,
+  loading,
+  setSortBy,
+  headerGroups,
+  columnsForWrapText,
+  bulkSelectEnabled = false,
+  selectedFlatRows = [],
+  toggleRowSelected,
+  toggleAllRowsSelected,
+  prepareRow,
+  sticky,
+}: TableCollectionProps<T>) {
+  const mappedColumns = mapColumns<T>(
     columns,
-    rows,
-    loading,
-    setSortBy,
     headerGroups,
     columnsForWrapText,
-    bulkSelectEnabled = false,
-    selectedFlatRows = [],
+  );
+  const mappedRows = mapRows(rows, prepareRow);
+
+  const selectedRowKeys = useMemo(
+    () => selectedFlatRows?.map(row => row.id) || [],
+    [selectedFlatRows],
+  );
+
+  const rowSelection: TableRowSelection | undefined = useMemo(() => {
+    if (!bulkSelectEnabled) return undefined;
+
+    return {
+      selectedRowKeys,
+      onSelect: (record, selected) => {
+        toggleRowSelected?.(record.rowId, selected);
+      },
+      onSelectAll: (selected: boolean) => {
+        toggleAllRowsSelected?.(selected);
+      },
+    };
+  }, [
+    bulkSelectEnabled,
+    selectedRowKeys,
     toggleRowSelected,
     toggleAllRowsSelected,
-    prepareRow,
-    sticky,
-  }: TableCollectionProps) => {
-    const mappedColumns = mapColumns(columns, headerGroups, columnsForWrapText);
-    const mappedRows = mapRows(rows, prepareRow);
-
-    const selectedRowKeys = useMemo(
-      () => selectedFlatRows?.map(row => row.id) || [],
-      [selectedFlatRows],
-    );
-
-    const rowSelection: TableRowSelection | undefined = useMemo(() => {
-      if (!bulkSelectEnabled) return undefined;
-
-      return {
-        selectedRowKeys,
-        onSelect: (record, selected) => {
-          toggleRowSelected?.(record.rowId, selected);
+  ]);
+  return (
+    <StyledTable
+      loading={loading}
+      sticky={sticky ?? false}
+      columns={mappedColumns}
+      data={mappedRows}
+      size={TableSize.Middle}
+      data-test="listview-table"
+      pagination={false}
+      tableLayout="auto"
+      rowKey="rowId"
+      rowSelection={rowSelection}
+      locale={{ emptyText: null }}
+      sortDirections={['ascend', 'descend', 'ascend']}
+      components={{
+        header: {
+          cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
+            <th {...props} data-test="sort-header" role="columnheader" />
+          ),
         },
-        onSelectAll: (selected: boolean) => {
-          toggleAllRowsSelected?.(selected);
+        body: {
+          row: (props: HTMLAttributes<HTMLTableRowElement>) => (
+            <tr {...props} data-test="table-row" />
+          ),
+          cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
+            <td {...props} data-test="table-row-cell" />
+          ),
         },
-      };
-    }, [
-      bulkSelectEnabled,
-      selectedRowKeys,
-      toggleRowSelected,
-      toggleAllRowsSelected,
-    ]);
-    return (
-      <StyledTable
-        loading={loading}
-        sticky={sticky ?? false}
-        columns={mappedColumns}
-        data={mappedRows}
-        size={TableSize.Middle}
-        data-test="listview-table"
-        pagination={false}
-        tableLayout="auto"
-        rowKey="rowId"
-        rowSelection={rowSelection}
-        locale={{ emptyText: null }}
-        sortDirections={['ascend', 'descend', 'ascend']}
-        components={{
-          header: {
-            cell: (props: any) => (
-              <th {...props} data-test="sort-header" role="columnheader" />
-            ),
+      }}
+      onChange={(_pagination, _filters, sorter: SorterResult) => {
+        setSortBy?.([
+          {
+            id: sorter.field,
+            desc: sorter.order === 'descend',
           },
-          body: {
-            row: (props: any) => <tr {...props} data-test="table-row" />,
-            cell: (props: any) => <td {...props} data-test="table-row-cell" />,
-          },
-        }}
-        onChange={(_pagination, _filters, sorter: any) => {
-          setSortBy?.([
-            {
-              id: sorter.field,
-              desc: sorter.order === 'descend',
-            },
-          ] as SortingRule<any>[]);
-        }}
-      />
-    );
-  },
-);
+        ] as SortingRule<T>[]);
+      }}
+    />
+  );
+}
+
+export default memo(TableCollection);

@@ -23,10 +23,14 @@
  */
 
 import { ReactNode } from 'react';
-import { ColumnInstance, HeaderGroup, Row } from 'react-table';
-import { ColumnsType } from 'src/components/Table';
+import { ColumnInstance, HeaderGroup, Row, CellValue } from 'react-table';
+import { SortOrder } from '../Table';
 
-const COLUMN_SIZE_MAP: Record<string, number> = {
+type TableSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
+
+type RowWithId<T extends object> = Row<T> & { rowId: string };
+
+const COLUMN_SIZE_MAP: Record<TableSize, number> = {
   xs: 25,
   sm: 50,
   md: 75,
@@ -35,8 +39,8 @@ const COLUMN_SIZE_MAP: Record<string, number> = {
   xxl: 200,
 };
 
-function getSortingInfo(
-  headerGroups: HeaderGroup[],
+function getSortingInfo<T extends object>(
+  headerGroups: HeaderGroup<T>[],
   headerId: string,
 ): {
   isSorted: boolean;
@@ -54,12 +58,12 @@ function getSortingInfo(
   return { isSorted: false, isSortedDesc: false };
 }
 
-export const mapColumns = (
-  columns: ColumnInstance[],
-  headerGroups: HeaderGroup[],
+export function mapColumns<T extends object>(
+  columns: ColumnInstance<T>[],
+  headerGroups: HeaderGroup<T>[],
   columnsForWrapText?: string[],
-): ColumnsType =>
-  columns.map(column => {
+) {
+  return columns.map(column => {
     const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, column.id);
     return {
       title: column.Header,
@@ -68,22 +72,22 @@ export const mapColumns = (
       key: column.id,
       minWidth: column.size ? COLUMN_SIZE_MAP[column.size] : COLUMN_SIZE_MAP.md,
       ellipsis: !columnsForWrapText?.includes(column.id),
-      defaultSortOrder: isSorted
+      defaultSortOrder: (isSorted
         ? isSortedDesc
           ? 'descend'
           : 'ascend'
-        : undefined,
+        : undefined) as SortOrder | undefined,
       sorter: !column.disableSortBy,
-      render: (val: any, record: any): ReactNode => {
+      render: (val: CellValue<T>, record: RowWithId<T>): ReactNode => {
         if (column.Cell) {
           const cellRenderer = column.Cell as ({
             value,
             row,
             column,
           }: {
-            value: any;
-            row: { original: any; id: string };
-            column: ColumnInstance;
+            value: CellValue<T>;
+            row: { original: Row<T>; id: string };
+            column: ColumnInstance<T>;
           }) => ReactNode;
 
           return cellRenderer({
@@ -96,9 +100,14 @@ export const mapColumns = (
       },
     };
   });
+}
 
-export const mapRows = (rows: Row[], prepareRow: (row: Row) => void): any[] =>
-  rows.map(row => {
+export function mapRows<T extends object>(
+  rows: Row<T>[],
+  prepareRow: (row: Row<T>) => void,
+) {
+  return rows.map(row => {
     prepareRow(row);
     return { rowId: row.id, ...row.original, ...row.getRowProps() };
   });
+}
