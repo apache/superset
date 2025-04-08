@@ -93,9 +93,7 @@ describe('BulkCertifyModal', () => {
     test('renders the correct title and message for charts', () => {
       render(<BulkCertifyModal {...mockedChartProps} />);
       expect(
-        screen.getByText(content =>
-          content.startsWith('You are certifying 2 charts'),
-        ),
+        screen.getByText((content) => content.startsWith('You are certifying 2 charts')),
       ).toBeInTheDocument();
       expect(
         screen.getByText(/bulk certify charts/i),
@@ -114,9 +112,7 @@ describe('BulkCertifyModal', () => {
     test('renders the correct title and message for dashboards', () => {
       render(<BulkCertifyModal {...mockedDashboardProps} />);
       expect(
-        screen.getByText(content =>
-          content.startsWith('You are certifying 2 dashboards'),
-        ),
+        screen.getByText((content) => content.startsWith('You are certifying 2 dashboards')),
       ).toBeInTheDocument();
       expect(
         screen.getByText(/bulk certify dashboards/i),
@@ -143,9 +139,7 @@ describe('BulkCertifyModal', () => {
       test('renders the correct title and message for charts', () => {
         render(<BulkCertifyModal {...mockedChartProps} />);
         expect(
-          screen.getByText(content =>
-            content.startsWith('You are certifying 2 charts'),
-          ),
+          screen.getByText((content) => content.startsWith('You are certifying 2 charts')),
         ).toBeInTheDocument();
         expect(
           screen.getByText(/bulk certify charts/i),
@@ -164,9 +158,7 @@ describe('BulkCertifyModal', () => {
       test('renders the correct title and message for dashboards', () => {
         render(<BulkCertifyModal {...mockedDashboardProps} />);
         expect(
-          screen.getByText(content =>
-            content.startsWith('You are certifying 2 dashboards'),
-          ),
+          screen.getByText((content) => content.startsWith('You are certifying 2 dashboards')),
         ).toBeInTheDocument();
         expect(
           screen.getByText(/bulk certify dashboards/i),
