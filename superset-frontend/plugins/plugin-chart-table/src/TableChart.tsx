@@ -698,18 +698,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
       if (isComparisonColumn) {
         if (config.customColumnName) {
-          if (config.displayTypeIcon !== false) {
-            displayLabel = `${column.label} ${config.customColumnName}`;
-          } else {
-            displayLabel = config.customColumnName;
-          }
+          displayLabel =
+            config.displayTypeIcon !== false
+              ? `${column.label} ${config.customColumnName}`
+              : config.customColumnName;
         } else if (config.displayTypeIcon === false) {
-          if (column.label === t('Main')) {
-            displayLabel = label;
-          } else {
-            const rawColumnKey = key.substring(column.label.length).trim();
-            displayLabel = rawColumnKey;
-          }
+          displayLabel = column.label === t('Main') ? label : '';
         }
       }
 

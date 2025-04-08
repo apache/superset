@@ -411,8 +411,8 @@ export default styled(BigNumberVis)`
     }
 
     .subtitle-line {
-    line-height: 1em;
-    padding-top: 0.3em;
+      line-height: 1em;
+      padding-top: 0.3em;
     }
 
     &.is-fallback-value {
