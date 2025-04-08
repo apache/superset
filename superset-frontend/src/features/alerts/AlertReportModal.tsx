@@ -587,6 +587,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const formatOptionEnabled =
     isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
   const tabsEnabled = isFeatureEnabled(FeatureFlag.AlertReportTabs);
+  const filtersEnabled = isFeatureEnabled(FeatureFlag.AlertReportsFilter);
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -596,6 +597,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   >([]);
   const [emailSubject, setEmailSubject] = useState<string>('');
   const [emailError, setEmailError] = useState(false);
+
+  console.log('filtersEnabled', filtersEnabled);
 
   const onNotificationAdd = () => {
     setNotificationSettings([
@@ -2066,7 +2069,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </>
             )}
           </StyledInputContainer>
-          {tabsEnabled && contentType === ContentType.Dashboard && (
+          {filtersEnabled && contentType === ContentType.Dashboard && (
             <StyledInputContainer>
               <div>
                 <div className="control-label">{t('Select tab')}</div>
