@@ -29,6 +29,7 @@ import {
 } from 'react';
 
 import {
+  css,
   ensureIsArray,
   formatNumber,
   NumberFormats,
@@ -73,6 +74,8 @@ import {
   DEFAULT_SORT_COMPARATOR,
 } from './constants';
 import { customTagRender } from './CustomTag';
+import Button from '../Button';
+import { Space } from '../Space';
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -131,6 +134,8 @@ const Select = forwardRef(
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(loading);
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+    const [visibleOptions, setVisibleOptions] = useState<SelectOptionsType>([]);
     const [maxTagCount, setMaxTagCount] = useState(
       propsMaxTagCount ?? MAX_TAG_COUNT,
     );
@@ -220,12 +225,14 @@ const Select = forwardRef(
 
     const selectAllEnabled = useMemo(
       () =>
+        !isSearching &&
         !isSingleMode &&
         allowSelectAll &&
         selectOptions.length > 0 &&
         enabledOptions.length > 1 &&
         !inputValue,
       [
+        isSearching,
         isSingleMode,
         allowSelectAll,
         selectOptions.length,
@@ -339,6 +346,7 @@ const Select = forwardRef(
 
     const handleOnSearch = debounce((search: string) => {
       const searchValue = search.trim();
+      setIsSearching(!!searchValue);
       if (allowNewOptions) {
         const newOption = searchValue &&
           !hasOption(searchValue, fullSelectOptions, true) && {
@@ -354,6 +362,15 @@ const Select = forwardRef(
           : cleanSelectOptions;
         setSelectOptions(newOptions);
       }
+      const filteredOptions = fullSelectOptions.filter(option =>
+        handleFilterOptionHelper(
+          search,
+          option as AntdLabeledValue,
+          ['label', 'value'],
+          true,
+        ),
+      );
+      setVisibleOptions(filteredOptions);
       setInputValue(searchValue);
       onSearch?.(searchValue);
     }, FAST_DEBOUNCE);
@@ -372,11 +389,109 @@ const Select = forwardRef(
         if (!isEqual(initialOptionsSorted, selectOptions)) {
           setSelectOptions(initialOptionsSorted);
         }
+        setVisibleOptions(fullSelectOptions);
       }
       if (onDropdownVisibleChange) {
         onDropdownVisibleChange(isDropdownVisible);
       }
     };
+
+    const handleSelectAll = useCallback(() => {
+      if (isSingleMode) return;
+
+      const optionsToSelect = isSearching ? visibleOptions : enabledOptions;
+
+      const currentValues = ensureIsArray(selectValue);
+      const currentValuesSet = new Set(currentValues.map(getValue));
+
+      const newValues = [...currentValues] as AntdLabeledValue[];
+      optionsToSelect.forEach(option => {
+        if (!option.disabled && !currentValuesSet.has(option.value)) {
+          if (labelInValue) {
+            newValues.push({
+              label: option.label,
+              value: option.value,
+            });
+          } else {
+            newValues.push(option.value);
+          }
+        }
+      });
+
+      setSelectValue(newValues);
+      fireOnChange();
+    }, [
+      isSingleMode,
+      isSearching,
+      visibleOptions,
+      enabledOptions,
+      selectValue,
+      labelInValue,
+      fireOnChange,
+    ]);
+
+    const handleDeselectAll = useCallback(() => {
+      if (isSingleMode) return;
+
+      const optionsToDeselect = isSearching ? visibleOptions : enabledOptions;
+      const deselectionValues = new Set(
+        optionsToDeselect.map(opt => opt.value),
+      );
+
+      const newValues = ensureIsArray(selectValue).filter(item => {
+        const itemValue = getValue(item);
+        return (
+          !deselectionValues.has(itemValue) && itemValue !== SELECT_ALL_VALUE
+        );
+      }) as AntdLabeledValue[];
+
+      setSelectValue(newValues);
+      fireOnChange();
+    }, [
+      isSingleMode,
+      isSearching,
+      visibleOptions,
+      enabledOptions,
+      selectValue,
+      fireOnChange,
+    ]);
+
+    useEffect(() => {
+      console.log({ visibleOptions });
+    }, [visibleOptions]);
+
+    const bulkSelectComponent = useMemo(
+      () => (
+        <Space
+          css={css`
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 4px;
+            width: 90%;
+          `}
+        >
+          <Button
+            onClick={e => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSelectAll();
+            }}
+          >
+            {t('Select all')}
+          </Button>
+          <Button
+            onClick={e => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleDeselectAll();
+            }}
+          >
+            {t('Deselect all')}
+          </Button>
+        </Space>
+      ),
+      [handleSelectAll, handleDeselectAll],
+    );
 
     const dropdownRender = (
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },
@@ -387,6 +502,8 @@ const Select = forwardRef(
         isLoading,
         fullSelectOptions.length,
         helperText,
+        undefined,
+        isSearching ? bulkSelectComponent : undefined,
       );
 
     const handleClear = () => {
@@ -399,6 +516,7 @@ const Select = forwardRef(
     useEffect(() => {
       // when `options` list is updated from component prop, reset states
       setSelectOptions(initialOptions);
+      setVisibleOptions(initialOptions);
     }, [initialOptions]);
 
     useEffect(() => {
@@ -651,7 +769,7 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
-          options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
+          options={shouldRenderChildrenOptions ? undefined : visibleOptions}
           oneLine={oneLine}
           tagRender={customTagRender}
           {...props}
@@ -667,8 +785,7 @@ const Select = forwardRef(
               {selectAllLabel()}
             </Option>
           )}
-          {shouldRenderChildrenOptions &&
-            renderSelectOptions(fullSelectOptions)}
+          {shouldRenderChildrenOptions && renderSelectOptions(visibleOptions)}
         </StyledSelect>
       </StyledContainer>
     );
