@@ -219,20 +219,24 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       ),
       Header: t('Name'),
       accessor: 'table_name',
+      id: 'table_name',
     },
     {
       Header: t('Type'),
       accessor: 'kind',
       disableSortBy: true,
+      id: 'kind',
     },
     {
       Header: t('Schema'),
       accessor: 'schema',
+      id: 'schema',
     },
     {
       Header: t('Connection'),
       accessor: 'database.database_name',
       disableSortBy: true,
+      id: 'database.database_name',
     },
     {
       Cell: ({

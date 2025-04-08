@@ -25,14 +25,17 @@ const mockedProps: TableViewProps = {
       accessor: 'id',
       Header: 'ID',
       sortable: true,
+      id: 'id',
     },
     {
       accessor: 'age',
       Header: 'Age',
+      id: 'age',
     },
     {
       accessor: 'name',
       Header: 'Name',
+      id: 'name',
     },
   ],
   data: [
@@ -62,12 +65,12 @@ test('should render the headers', () => {
 
 test('should render the rows', () => {
   render(<TableView {...mockedProps} />);
-  expect(screen.getAllByRole('row')).toHaveLength(2);
+  expect(screen.getAllByTestId('table-row')).toHaveLength(1);
 });
 
 test('should render the cells', () => {
   render(<TableView {...mockedProps} />);
-  expect(screen.getAllByRole('cell')).toHaveLength(3);
+  expect(screen.getAllByTestId('table-row-cell')).toHaveLength(3);
   expect(screen.getByText('123')).toBeInTheDocument();
   expect(screen.getByText('27')).toBeInTheDocument();
   expect(screen.getByText('Emily')).toBeInTheDocument();
@@ -135,13 +138,11 @@ test('should change page when « and » buttons are clicked', () => {
 
 test('should sort by age', () => {
   render(<TableView {...mockedProps} />);
-  const ageSort = screen.getAllByRole('columnheader')[1];
 
-  userEvent.click(ageSort);
-  expect(screen.getAllByRole('cell')[1]).toHaveTextContent('10');
-
-  userEvent.click(ageSort);
-  expect(screen.getAllByRole('cell')[1]).toHaveTextContent('27');
+  userEvent.click(screen.getAllByTestId('sort-header')[1]);
+  expect(screen.getAllByTestId('table-row-cell')[1]).toHaveTextContent('10');
+  userEvent.click(screen.getAllByTestId('sort-header')[1]);
+  expect(screen.getAllByTestId('table-row-cell')[1]).toHaveTextContent('27');
 });
 
 test('should sort by initialSortBy DESC', () => {
@@ -193,17 +194,17 @@ test('should render the right page', () => {
 test('should render the right wrap content text by columnsForWrapText', () => {
   const props = {
     ...mockedProps,
-    columnsForWrapText: ['Name'],
+    columnsForWrapText: ['name'],
   };
   render(<TableView {...props} />);
 
   expect(screen.getAllByTestId('table-row-cell')[0]).toHaveClass(
-    'table-cell__nowrap',
+    'ant-table-cell-ellipsis',
   );
   expect(screen.getAllByTestId('table-row-cell')[1]).toHaveClass(
-    'table-cell__nowrap',
+    'ant-table-cell-ellipsis',
   );
-  expect(screen.getAllByTestId('table-row-cell')[2]).toHaveClass(
-    'table-cell__wrap',
+  expect(screen.getAllByTestId('table-row-cell')[2]).not.toHaveClass(
+    'ant-table-cell-ellipsis',
   );
 });

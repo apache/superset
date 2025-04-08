@@ -34,7 +34,6 @@ import { QueryParamProvider } from 'use-query-params';
 import DatasetList from 'src/pages/DatasetList';
 import ListView from 'src/components/ListView';
 import Button from 'src/components/Button';
-import Checkbox from 'src/components/Checkbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import SubMenu from 'src/features/home/SubMenu';
 import * as reactRedux from 'react-redux';
@@ -153,22 +152,29 @@ describe('DatasetList', () => {
       button.props().onClick();
     });
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(Checkbox)).toHaveLength(
+    expect(wrapper.find('[type="checkbox"]')).toHaveLength(
       mockdatasets.length + 1, // 1 for each row and 1 for select all
     );
   });
 
   it('renders different bulk selected copy depending on type of row selected', async () => {
     // None selected
-    const checkedEvent = { target: { checked: true } };
-    const uncheckedEvent = { target: { checked: false } };
+    const checkedEvent = {
+      target: { checked: true },
+      nativeEvent: { shiftKey: false },
+    };
+    const uncheckedEvent = {
+      target: { checked: false },
+      nativeEvent: { shiftKey: false },
+    };
+    await waitForComponentToPaint(wrapper);
     expect(
       wrapper.find('[data-test="bulk-select-copy"]').text(),
     ).toMatchInlineSnapshot(`"0 Selected"`);
 
     // Virtual Selected
     act(() => {
-      wrapper.find(Checkbox).at(1).props().onChange(checkedEvent);
+      wrapper.find('[type="checkbox"]').at(1).props().onChange(checkedEvent);
     });
     await waitForComponentToPaint(wrapper);
     expect(
@@ -177,8 +183,8 @@ describe('DatasetList', () => {
 
     // Physical Selected
     act(() => {
-      wrapper.find(Checkbox).at(1).props().onChange(uncheckedEvent);
-      wrapper.find(Checkbox).at(2).props().onChange(checkedEvent);
+      wrapper.find('[type="checkbox"]').at(1).props().onChange(uncheckedEvent);
+      wrapper.find('[type="checkbox"]').at(2).props().onChange(checkedEvent);
     });
     await waitForComponentToPaint(wrapper);
     expect(
@@ -187,7 +193,7 @@ describe('DatasetList', () => {
 
     // All Selected
     act(() => {
-      wrapper.find(Checkbox).at(0).props().onChange(checkedEvent);
+      wrapper.find('[type="checkbox"]').at(0).props().onChange(checkedEvent);
     });
     await waitForComponentToPaint(wrapper);
     expect(
@@ -298,7 +304,7 @@ describe('Prevent unsafe URLs', () => {
   it('Check prevent unsafe is on renders relative links', async () => {
     useSelectorMock.mockReturnValue(true);
     wrapper = await mountAndWait(mockedProps);
-    const tdElements = wrapper.find(ListView).find('td');
+    const tdElements = wrapper.find('[data-test="table-row-cell"]').find('td');
     expect(tdElements.at(getTdIndex(0)).find('a').prop('href')).toBe(
       '/https://www.google.com?0',
     );
@@ -313,7 +319,7 @@ describe('Prevent unsafe URLs', () => {
   it('Check prevent unsafe is off renders absolute links', async () => {
     useSelectorMock.mockReturnValue(false);
     wrapper = await mountAndWait(mockedProps);
-    const tdElements = wrapper.find(ListView).find('td');
+    const tdElements = wrapper.find('[data-test="table-row-cell"]').find('td');
     expect(tdElements.at(getTdIndex(0)).find('a').prop('href')).toBe(
       'https://www.google.com?0',
     );

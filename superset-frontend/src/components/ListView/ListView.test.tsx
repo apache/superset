@@ -26,18 +26,22 @@ const mockedProps = {
       accessor: 'id',
       Header: 'ID',
       sortable: true,
+      id: 'id',
     },
     {
       accessor: 'age',
       Header: 'Age',
+      id: 'age',
     },
     {
       accessor: 'name',
       Header: 'Name',
+      id: 'name',
     },
     {
       accessor: 'time',
       Header: 'Time',
+      id: 'time',
     },
   ],
   data: [

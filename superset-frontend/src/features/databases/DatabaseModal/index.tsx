@@ -333,7 +333,10 @@ export function dbReducer(
             ...extraJson,
             schema_options: {
               ...extraJson?.schema_options,
-              [action.payload.name]: !!action.payload.value,
+              [action.payload.name]:
+                'checked' in action.payload
+                  ? !!action.payload.checked
+                  : !!action.payload.value,
             },
           }),
         };

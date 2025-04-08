@@ -259,6 +259,7 @@ function AlertList({
         accessor: 'last_state',
         size: 'xs',
         disableSortBy: true,
+        id: 'last_state',
       },
       {
         Cell: ({
@@ -275,11 +276,13 @@ function AlertList({
         accessor: 'last_eval_dttm',
         Header: t('Last run'),
         size: 'lg',
+        id: 'last_eval_dttm',
       },
       {
         accessor: 'name',
         Header: t('Name'),
         size: 'xl',
+        id: 'name',
       },
       {
         Header: t('Schedule'),
@@ -297,6 +300,7 @@ function AlertList({
             <span>{`${crontab_humanized} (${timezone})`}</span>
           </Tooltip>
         ),
+        id: 'crontab_humanized',
       },
       {
         Cell: ({
@@ -311,6 +315,7 @@ function AlertList({
         Header: t('Notification method'),
         disableSortBy: true,
         size: 'xl',
+        id: 'recipients',
       },
       {
         Cell: ({
@@ -335,6 +340,7 @@ function AlertList({
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -410,6 +416,7 @@ function AlertList({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canDelete, canEdit, isReportEnabled, toggleActive],

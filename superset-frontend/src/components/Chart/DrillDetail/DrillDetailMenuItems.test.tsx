@@ -286,7 +286,7 @@ const expectDrillToDetailByAll = async (
   const drillToDetailBySubmenuItem = await within(
     drillToDetailBySubMenus[1],
   ).findByRole('menuitem', {
-    name: /Drill to detail by\s+all/i,
+    name: /Drill to detail by\s*all/i,
   });
 
   await expectMenuItemEnabled(drillToDetailBySubmenuItem);
