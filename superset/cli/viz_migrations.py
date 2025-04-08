@@ -107,7 +107,7 @@ def migrate_viz() -> None:
 )
 def upgrade(viz_type: str, ids: tuple[int, ...] | None = None) -> None:
     """Upgrade a viz to the latest version."""
-    if ids is None:
+    if viz_type:
         migrate_by_viz_type(VizType(viz_type))
     else:
         migrate_by_id(ids)
@@ -133,7 +133,7 @@ def upgrade(viz_type: str, ids: tuple[int, ...] | None = None) -> None:
 )
 def downgrade(viz_type: str, ids: tuple[int, ...] | None = None) -> None:
     """Downgrade a viz to the previous version."""
-    if ids is None:
+    if viz_type:
         migrate_by_viz_type(VizType(viz_type), is_downgrade=True)
     else:
         migrate_by_id(ids, is_downgrade=True)
