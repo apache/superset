@@ -49,8 +49,7 @@ import {
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
-// eslint-disable-next-line no-restricted-imports
-import { SelectValue } from 'antd/lib/select'; // TODO: Remove antd
+import { SelectValue } from 'src/components/Select';
 import { isEmpty } from 'lodash';
 
 interface QueryDatabase {

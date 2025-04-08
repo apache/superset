@@ -24,11 +24,7 @@
  */
 // TODO: Remove these imports
 // eslint-disable-next-line no-restricted-imports
-export {
-  Breadcrumb as AntdBreadcrumb,
-  Checkbox as AntdCheckbox,
-  Select as AntdSelect,
-} from 'antd';
+export { Breadcrumb as AntdBreadcrumb, Checkbox as AntdCheckbox } from 'antd';
 
 /*
  * Re-exporting of components in src/components to facilitate

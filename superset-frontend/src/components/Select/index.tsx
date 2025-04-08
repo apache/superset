@@ -20,3 +20,7 @@ import Select from './Select';
 import AsyncSelect from './AsyncSelect';
 
 export { Select, AsyncSelect };
+export * from './types';
+export * from './styles';
+export * from './CustomTag';
+export * from './constants';

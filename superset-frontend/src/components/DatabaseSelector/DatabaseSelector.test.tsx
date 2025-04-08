@@ -348,7 +348,7 @@ test('Sends the correct db when changing the database', async () => {
   await waitFor(() =>
     expect(props.onDbChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: 2,
+        id: `mysql-test-mysql-2`,
         database_name: 'test-mysql',
         backend: 'mysql',
       }),
@@ -370,8 +370,8 @@ test('Sends the correct schema when changing the schema', async () => {
   });
   expect(select).toBeInTheDocument();
   userEvent.click(select);
-  const schemaOption = await screen.findAllByText('information_schema');
-  userEvent.click(schemaOption[1]);
+  const schemaOption = await screen.findByText('information_schema');
+  userEvent.click(schemaOption);
   await waitFor(() =>
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );

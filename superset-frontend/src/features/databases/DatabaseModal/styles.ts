@@ -119,7 +119,7 @@ export const formScrollableStyles = (theme: SupersetTheme) => css`
 `;
 
 export const antDModalStyles = (theme: SupersetTheme) => css`
-  .ant-select-dropdown {
+  .antd5-select-dropdown {
     height: ${theme.sizeUnit * 40}px;
   }
 

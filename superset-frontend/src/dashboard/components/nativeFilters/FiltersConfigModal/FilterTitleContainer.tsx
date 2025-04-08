@@ -109,7 +109,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
           onClick={() => onChange(id)}
           className={classNames.join(' ')}
         >
-          <div css={{ display: 'flex', width: '100%' }}>
+          <div css={{ display: 'flex', width: '100%', alignItems: 'center' }}>
             <div
               css={{
                 alignItems: 'center',
@@ -120,7 +120,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
               {isRemoved ? t('(Removed)') : getFilterTitle(id)}
             </div>
             {!removedFilters[id] && isErrored && (
-              <StyledWarning className="warning" />
+              <StyledWarning className="warning" iconSize="s" />
             )}
             {isRemoved && (
               <span

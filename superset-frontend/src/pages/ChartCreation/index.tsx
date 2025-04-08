@@ -54,7 +54,7 @@ export interface ChartCreationProps extends RouteComponentProps {
 }
 
 export type ChartCreationState = {
-  datasource?: { label: string; value: string };
+  datasource?: { label: string | ReactNode; value: string };
   datasetName?: string | string[] | null;
   vizType: string | null;
   canCreateDataset: boolean;
@@ -157,15 +157,15 @@ const StyledContainer = styled.div`
       display: inline;
     }
 
-    &&&& .ant-select-selector {
+    &&&& .antd5-select-selector {
       padding: 0;
     }
 
-    &&&& .ant-select-selection-placeholder {
+    &&&& .antd5-select-selection-placeholder {
       padding-left: ${theme.sizeUnit * 3}px;
     }
 
-    &&&& .ant-select-selection-item {
+    &&&& .antd5-select-selection-item {
       padding-left: ${theme.sizeUnit * 3}px;
     }
   `}
@@ -212,10 +212,6 @@ export class ChartCreation extends PureComponent<
     if (params) {
       this.loadDatasources(params, 0, 1).then(r => {
         const datasource = r.data[0];
-        // override here to force styling of option label
-        // which expects a reactnode instead of string
-        // @ts-expect-error
-        datasource.label = datasource.customLabel;
         this.setState({ datasource });
       });
       this.props.addSuccessToast(t('The dataset has been saved'));
@@ -235,7 +231,7 @@ export class ChartCreation extends PureComponent<
     this.props.history.push(this.exploreUrl());
   }
 
-  changeDatasource(datasource: { label: string; value: string }) {
+  changeDatasource(datasource: { label: string | ReactNode; value: string }) {
     this.setState({ datasource });
   }
 
@@ -272,15 +268,13 @@ export class ChartCreation extends PureComponent<
       endpoint: `/api/v1/dataset/?q=${query}`,
     }).then((response: JsonResponse) => {
       const list: {
-        customLabel: ReactNode;
         id: number;
-        label: string;
+        label: string | ReactNode;
         value: string;
       }[] = response.json.result.map((item: Dataset) => ({
         id: item.id,
         value: `${item.id}__${item.datasource_type}`,
-        customLabel: DatasetSelectLabel(item),
-        label: item.table_name,
+        label: DatasetSelectLabel(item),
       }));
       return {
         data: list,

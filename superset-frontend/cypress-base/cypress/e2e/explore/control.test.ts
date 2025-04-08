@@ -19,7 +19,7 @@
 // ***********************************************
 // Tests for setting controls in the UI
 // ***********************************************
-import { interceptChart } from 'cypress/utils';
+import { interceptChart, setSelectSearchInput } from 'cypress/utils';
 
 describe('Datasource control', () => {
   const newMetricName = `abc${Date.now()}`;
@@ -61,9 +61,12 @@ describe('Datasource control', () => {
       .contains('Drop columns/metrics here or click')
       .click();
 
-    cy.get('input[aria-label="Select saved metrics"]').type(
-      `${newMetricName}{enter}`,
-    );
+    cy.get('input[aria-label="Select saved metrics"]')
+      .should('exist')
+      .then($input => {
+        setSelectSearchInput($input, newMetricName);
+      });
+
     // delete metric
     cy.get('[data-test="datasource-menu-trigger"]').click();
     cy.get('[data-test="edit-dataset"]').click();
@@ -92,20 +95,29 @@ describe('Color scheme control', () => {
 
   it('should show color options with and without tooltips', () => {
     cy.get('#controlSections-tab-CUSTOMIZE').click();
-    cy.get('.ant-select-selection-item .color-scheme-label').contains(
+    cy.get('.antd5-select-selection-item .color-scheme-label').contains(
       'Superset Colors',
     );
-    cy.get('.ant-select-selection-item .color-scheme-label').trigger(
+    cy.get('.antd5-select-selection-item .color-scheme-label').trigger(
       'mouseover',
     );
     cy.get('.color-scheme-tooltip').should('be.visible');
     cy.get('.color-scheme-tooltip').contains('Superset Colors');
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
+
+    cy.get('.color-scheme-label')
+      .contains('Superset Colors')
+      .trigger('mouseover');
+
+    cy.get('.color-scheme-label')
+      .contains('Superset Colors')
+      .trigger('mouseout');
+
     cy.focused().type('lyftColors');
     cy.getBySel('lyftColors').should('exist');
-    cy.getBySel('lyftColors').trigger('mouseover');
-    cy.get('.color-scheme-tooltip').should('not.exist');
+    cy.getBySel('lyftColors').trigger('mouseover', { force: true });
+    cy.get('.color-scheme-tooltip').should('not.be.visible');
   });
 });
 describe('VizType control', () => {
