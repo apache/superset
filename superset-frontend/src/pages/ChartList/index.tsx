@@ -216,7 +216,7 @@ function ChartList(props: ChartListProps) {
   ] = useState<string[]>([]);
   const [showBulkUpdateOwnersModal, setShowBulkUpdateOwnersModal] =
     useState<boolean>(false);
-  const [BulkSelectedCharts, setBulkSelectedCharts] = useState<Chart[]>([]);
+  const [bulkSelected, setBulkSelected] = useState<Chart[]>([]);
 
   // TODO: Fix usage of localStorage keying on the user id
   const userSettings = dangerouslyGetItemDoNotUse(userId?.toString(), null) as {
@@ -238,13 +238,13 @@ function ChartList(props: ChartListProps) {
   };
 
   const openBulkUpdateOwnersModal = (selected: Chart[]) => {
-    setBulkSelectedCharts(selected);
+    setBulkSelected(selected);
     setShowBulkUpdateOwnersModal(true);
   };
 
   const closeBulkUpdateOwnersModal = () => {
     setShowBulkUpdateOwnersModal(false);
-    setBulkSelectedCharts([]);
+    setBulkSelected([]);
     refreshData();
   };
 
@@ -892,7 +892,7 @@ function ChartList(props: ChartListProps) {
       <BulkUpdateOwnersModal
         show={showBulkUpdateOwnersModal}
         onHide={closeBulkUpdateOwnersModal}
-        selected={BulkSelectedCharts}
+        selected={bulkSelected}
         resourceName="chart"
         resourceLabel={t('chart')}
         refreshData={refreshData}

@@ -197,7 +197,7 @@ function DashboardList(props: DashboardListProps) {
   ] = useState<string[]>([]);
   const [showBulkUpdateOwnersModal, setShowBulkUpdateOwnersModal] =
     useState<boolean>(false);
-  const [BulkSelected, setBulkSelected] = useState<Dashboard[]>([]);
+  const [bulkSelected, setBulkSelected] = useState<Dashboard[]>([]);
 
   const openDashboardImportModal = () => {
     showImportModal(true);
@@ -838,7 +838,7 @@ function DashboardList(props: DashboardListProps) {
       <BulkUpdateOwnersModal
         show={showBulkUpdateOwnersModal}
         onHide={closeBulkUpdateOwnersModal}
-        selected={BulkSelected}
+        selected={bulkSelected}
         resourceName="dashboard"
         resourceLabel={t('dashboard')}
         refreshData={refreshData}
