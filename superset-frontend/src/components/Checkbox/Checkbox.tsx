@@ -17,7 +17,11 @@
  * under the License.
  */
 import { Checkbox as AntCheckbox } from 'antd-v5';
-import type { CheckboxProps as AntCheckboxProps } from 'antd-v5/lib/checkbox';
+import type {
+  CheckboxProps as AntCheckboxProps,
+  CheckboxChangeEvent as AntCheckboxChangeEvent,
+} from 'antd-v5/lib/checkbox';
 
 export type CheckboxProps = AntCheckboxProps;
+export type CheckboxChangeEvent = AntCheckboxChangeEvent;
 export default AntCheckbox;

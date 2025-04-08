@@ -326,8 +326,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     );
   }
 
-  onShowOnlyMyCharts = e => {
-    const showOnlyMyCharts = e.target.checked;
+  onShowOnlyMyCharts = (showOnlyMyCharts: boolean) => {
     if (!showOnlyMyCharts) {
       this.slicesRequest = this.props.fetchSlices(
         undefined,
@@ -413,7 +412,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
           `}
         >
           <Checkbox
-            onChange={this.onShowOnlyMyCharts}
+            onChange={e => this.onShowOnlyMyCharts(e.target.checked)}
             checked={this.state.showOnlyMyCharts}
           />
           {t('Show only my charts')}

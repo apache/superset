@@ -27,7 +27,7 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
-import Checkbox from 'src/components/Checkbox';
+import Checkbox, { CheckboxChangeEvent } from 'src/components/Checkbox';
 import Collapse from 'src/components/Collapse';
 import {
   StyledInputContainer,
@@ -48,10 +48,14 @@ const ExtraOptions = ({
   extraExtension,
 }: {
   db: DatabaseObject | null;
-  onInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
+  onInputChange: (
+    e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
+  ) => void;
   onTextChange: EventHandler<ChangeEvent<HTMLTextAreaElement>>;
   onEditorChange: Function;
-  onExtraInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
+  onExtraInputChange: (
+    e: CheckboxChangeEvent | ChangeEvent<HTMLInputElement>,
+  ) => void;
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
 }) => {
@@ -160,7 +164,9 @@ const ExtraOptions = ({
                     type="text"
                     name="force_ctas_schema"
                     placeholder={t('Create or select schema...')}
-                    onChange={onInputChange}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      onInputChange(e as any)
+                    }
                     value={db?.force_ctas_schema || ''}
                   />
                 </div>
@@ -252,16 +258,20 @@ const ExtraOptions = ({
                   name="expand_rows"
                   indeterminate={false}
                   checked={!!extraJson?.schema_options?.expand_rows}
-                  onChange={e =>
-                    onExtraInputChange({
+                  onChange={e => {
+                    const checkboxEvent: CheckboxChangeEvent = {
                       target: {
                         type: 'checkbox',
                         name: 'expand_rows',
                         checked: e.target.checked,
                         value: e.target.checked,
-                      },
-                    } as any)
-                  }
+                      } as CheckboxChangeEvent['target'],
+                      stopPropagation: () => {},
+                      preventDefault: () => {},
+                      nativeEvent: e.nativeEvent,
+                    };
+                    onExtraInputChange(checkboxEvent);
+                  }}
                 >
                   {t('Enable row expansion in schemas')}
                 </Checkbox>
@@ -294,7 +304,9 @@ const ExtraOptions = ({
               name="cache_timeout"
               value={db?.cache_timeout || ''}
               placeholder={t('Enter duration in seconds')}
-              onChange={onInputChange}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onInputChange(e as any)
+              }
             />
           </div>
           <div className="helper">
@@ -612,7 +624,10 @@ const ExtraOptions = ({
               type="text"
               name="version"
               placeholder={t('Version number')}
-              onChange={onExtraInputChange}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                // For HTML inputs we call onExtraInputChange with the original ChangeEvent
+                onExtraInputChange(e);
+              }}
               value={extraJson?.version || ''}
             />
           </div>
