@@ -379,16 +379,13 @@ const Chart = props => {
     ],
   );
 
-  const exportCSV = useCallback(
-    (isFullCSV = false) => {
-      exportTable('csv', isFullCSV);
-    },
-    [exportTable],
-  );
+  const exportCSV = useCallback(() => {
+    exportTable('csv', false);
+  }, [exportTable]);
 
   const exportFullCSV = useCallback(() => {
-    exportCSV(true);
-  }, [exportCSV]);
+    exportTable('csv', true);
+  }, [exportTable]);
 
   const exportPivotCSV = useCallback(() => {
     exportTable('csv', false, true);
