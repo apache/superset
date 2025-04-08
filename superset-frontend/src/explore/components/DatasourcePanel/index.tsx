@@ -24,6 +24,7 @@ import {
   QueryFormData,
   styled,
   t,
+  useTheme,
 } from '@superset-ui/core';
 
 import { ControlConfig } from '@superset-ui/chart-controls';
@@ -276,18 +277,20 @@ export default function DataSourcePanel({
     datasource.type &&
     saveableDatasets[datasource.type as keyof typeof saveableDatasets];
 
+  const theme = useTheme();
   const mainBody = useMemo(
     () => (
       <>
-        <Input
-          allowClear
-          onChange={evt => {
-            setInputValue(evt.target.value);
-          }}
-          value={inputValue}
-          className="form-control input-md"
-          placeholder={t('Search Metrics & Columns')}
-        />
+        <div style={{ padding: theme.sizeUnit * 4 }}>
+          <Input
+            allowClear
+            onChange={evt => {
+              setInputValue(evt.target.value);
+            }}
+            value={inputValue}
+            placeholder={t('Search Metrics & Columns')}
+          />
+        </div>
         <div className="field-selections" data-test="fieldSelections">
           {datasourceIsSaveable && showInfoboxCheck() && (
             <StyledInfoboxWrapper>
