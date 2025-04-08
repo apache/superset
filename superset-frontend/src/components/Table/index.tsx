@@ -50,9 +50,10 @@ export type OnChangeFunction<RecordType> =
 export enum TableSize {
   Small = 'small',
   Middle = 'middle',
+  Large = 'large',
 }
 
-export interface TableProps<RecordType> {
+export interface TableProps<RecordType> extends AntTableProps<RecordType> {
   /**
    * Data that will populate the each row and map to the column key.
    */
@@ -76,7 +77,7 @@ export interface TableProps<RecordType> {
   /**
    * Controls the size of the table.
    */
-  size: TableSize;
+  size?: TableSize;
   /**
    * Controls if table rows are selectable and if multiple select is supported.
    */
@@ -161,7 +162,7 @@ const HEADER_HEIGHT = 68;
 const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
   ({ theme, height }) => `
     color: ${theme.colorText};
-    .ant-table-body {
+    .antd5-table-body {
       overflow: auto;
       height: ${height ? `${height}px` : undefined};
     }
@@ -259,6 +260,7 @@ export function Table<RecordType extends object>(
     onRow,
     allowHTML = false,
     childrenColumnName,
+    ...rest
   } = props;
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -400,6 +402,7 @@ export function Table<RecordType extends object>(
           {...sharedProps}
           rowSelection={selectionTypeValue !== null ? rowSelection : undefined}
           sticky={sticky}
+          {...rest}
         />
       )}
       {virtualize && (
@@ -414,6 +417,7 @@ export function Table<RecordType extends object>(
             }),
           }}
           allowHTML={allowHTML}
+          {...rest}
         />
       )}
     </div>

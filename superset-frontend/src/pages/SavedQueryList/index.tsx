@@ -334,25 +334,30 @@ function SavedQueryList({
             original: { id, label },
           },
         }: any) => <Link to={`/sqllab?savedQueryId=${id}`}>{label}</Link>,
+        id: 'label',
       },
       {
         accessor: 'description',
         Header: t('Description'),
+        id: 'description',
       },
       {
         accessor: 'database.database_name',
         Header: t('Database'),
         size: 'xl',
+        id: 'database.database_name',
       },
       {
         accessor: 'database',
         hidden: true,
         disableSortBy: true,
+        id: 'database',
       },
       {
         accessor: 'schema',
         Header: t('Schema'),
         size: 'xl',
+        id: 'schema',
       },
       {
         Cell: ({
@@ -391,6 +396,7 @@ function SavedQueryList({
         Header: t('Tables'),
         size: 'xl',
         disableSortBy: true,
+        id: 'sql_tables',
       },
       {
         Cell: ({
@@ -405,6 +411,7 @@ function SavedQueryList({
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        id: 'tags',
       },
       {
         Cell: ({
@@ -418,6 +425,7 @@ function SavedQueryList({
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -477,6 +485,7 @@ function SavedQueryList({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canDelete, canEdit, canExport, copyQueryLink, handleSavedQueryPreview],
