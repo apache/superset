@@ -112,7 +112,11 @@ docker compose -f docker-compose-non-dev.yml up
 ### Option #3 - boot up an official release
 
 ```bash
+# Set the version you want to run
 export TAG=3.1.1
+# Checkout the corresponding git ref
+git checkout $TAG
+# Fire up docker compose
 docker compose -f docker-compose-image-tag.yml up
 ```
 
