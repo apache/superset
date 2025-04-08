@@ -590,7 +590,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </span>
     );
 
-    return (
+    const PanelChildren = (
       <>
         <StashFormDataContainer
           key={`sectionId-${sectionId}`}
@@ -607,34 +607,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             .filter(Boolean)}
         />
         {isVisible && (
-          <Collapse.Panel
-            css={theme => css`
-              margin-bottom: 0;
-              box-shadow: none;
-
-              &:last-child {
-                padding-bottom: ${theme.sizeUnit * 16}px;
-                border-bottom: 0;
-              }
-
-              .panel-body {
-                margin-left: ${theme.sizeUnit * 4}px;
-                padding-bottom: 0;
-              }
-
-              span.label {
-                display: inline-block;
-              }
-              ${!section.label &&
-              `
-          .ant-collapse-header {
-            display: none;
-          }
-        `}
-            `}
-            header={<PanelHeader />}
-            key={sectionId}
-          >
+          <>
             {section.controlSetRows.map((controlSets, i) => {
               const renderedControls = controlSets
                 .map(controlItem => {
@@ -666,10 +639,18 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                 />
               );
             })}
-          </Collapse.Panel>
+          </>
         )}
       </>
     );
+
+    return {
+      key: String(section.label),
+      label: <PanelHeader />,
+      children: PanelChildren,
+      className: section.label ? '' : 'hidden-collapse-header',
+      style: { visibility: isVisible ? 'visible' : 'hidden' },
+    };
   };
 
   const hasControlsTransferred =
@@ -769,14 +750,16 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             key: TABS_KEYS.DATA,
             label: dataTabTitle,
             children: (
-              <Collapse
-                defaultActiveKey={expandedQuerySections}
-                expandIconPosition="right"
-                ghost
-              >
+              <>
                 {showDatasourceAlert && <DatasourceAlert />}
-                {querySections.map(renderControlPanelSection)}
-              </Collapse>
+                <Collapse
+                  defaultActiveKey={expandedQuerySections}
+                  expandIconPosition="right"
+                  ghost
+                  bordered
+                  items={[...querySections.map(renderControlPanelSection)]}
+                />
+              </>
             ),
           },
           ...(showCustomizeTab
@@ -789,9 +772,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                       defaultActiveKey={expandedCustomizeSections}
                       expandIconPosition="right"
                       ghost
-                    >
-                      {customizeSections.map(renderControlPanelSection)}
-                    </Collapse>
+                      bordered
+                      items={[
+                        ...customizeSections.map(renderControlPanelSection),
+                      ]}
+                    />
                   ),
                 },
               ]

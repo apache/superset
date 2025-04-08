@@ -17,7 +17,7 @@
  * under the License.
  */
 import { JSONTree } from 'react-json-tree';
-import { css, styled, SupersetTheme, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 
 import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
 import Collapse from 'src/components/Collapse';
@@ -35,18 +35,6 @@ interface MarshmallowErrorExtra {
 const StyledUl = styled.ul`
   padding-left: ${({ theme }) => theme.sizeUnit * 5}px;
   padding-top: ${({ theme }) => theme.sizeUnit * 4}px;
-`;
-
-const collapseStyle = (theme: SupersetTheme) => css`
-  .ant-collapse-arrow {
-    left: 0px !important;
-  }
-  .ant-collapse-header {
-    padding-left: ${theme.sizeUnit * 4}px !important;
-  }
-  .ant-collapse-content-box {
-    padding: 0px !important;
-  }
 `;
 
 const extractInvalidValues = (messages: object, payload: object): string[] => {
@@ -99,16 +87,23 @@ export default function MarshmallowErrorMessage({
         )}
       </StyledUl>
 
-      <Collapse ghost css={collapseStyle}>
-        <Collapse.Panel header={t('Details')} key="details" css={collapseStyle}>
-          <JSONTree
-            data={extra.messages}
-            shouldExpandNode={() => true}
-            hideRoot
-            theme={jsonTreeTheme}
-          />
-        </Collapse.Panel>
-      </Collapse>
+      <Collapse
+        ghost
+        items={[
+          {
+            label: t('Details'),
+            key: 'details',
+            children: (
+              <JSONTree
+                data={extra.messages}
+                shouldExpandNode={() => true}
+                hideRoot
+                theme={jsonTreeTheme}
+              />
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }

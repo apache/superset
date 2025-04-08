@@ -103,22 +103,6 @@ const Styles = styled.div`
     display: ${({ showSplite }) => (showSplite ? 'block' : 'none')};
     cursor: row-resize;
   }
-
-  .ant-collapse {
-    .antd5-tabs {
-      height: 100%;
-      .antd5-tabs-nav {
-        padding-left: ${({ theme }) => theme.sizeUnit * 5}px;
-        margin: 0;
-      }
-      .antd5-tabs-content-holder {
-        overflow: hidden;
-        .antd5-tabs-content {
-          height: 100%;
-        }
-      }
-    }
-  }
 `;
 
 const ExploreChartPanel = ({

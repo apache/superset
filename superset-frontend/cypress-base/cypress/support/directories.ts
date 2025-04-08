@@ -52,16 +52,16 @@ export const securityAccess = {
 };
 export const homePage = {
   homeSection: {
-    sectionArea: '.ant-collapse-content-box',
+    sectionArea: '.antd5-collapse-content-box',
     sectionElement: '.antd5-card-meta-title',
   },
   sections: {
-    expandedSection: '.ant-collapse-item-active',
+    expandedSection: '.antd5-collapse-item-active',
     expandedSectionHeader: '[aria-expanded="true"]',
-    collapseExpandButton: '.ant-collapse-arrow',
-    collapsedSection: '[class="ant-collapse-item"]',
+    collapseExpandButton: '.antd5-collapse-arrow',
+    collapsedSection: '[class="antd5-collapse-item"]',
     collapsedSectionHeader: '[aria-expanded="false"]',
-    section: '[class^="ant-collapse-item"]',
+    section: '[class^="antd5-collapse-item"]',
     sectionsMenuContainer: "[role='navigation']",
     sectionsMenuItem: "[role='menuitem']",
     card: dataTestLocator('styled-card'),
@@ -112,7 +112,7 @@ export const databasesPage = {
       advancedTab: '#rc-tabs-0-tab-2',
       activeTab: '.antd5-tabs-tab-active',
       securitySubMenu:
-        ':nth-child(3) > .ant-collapse-header > .anticon > svg > path',
+        ':nth-child(3) > .antd5-collapse-header > .anticon > svg > path',
       aceTextInput: '.ace_text-input',
       aceContent: '.ace_content',
       connectButton: '.css-16i3wh7',
@@ -359,14 +359,14 @@ export const nativeFilters = {
   removeFilter: '[aria-label="remove"]',
   silentLoading: '.loading inline-centered css-101mkpk',
   filterConfigurationSections: {
-    sectionHeader: '.ant-collapse-header',
+    sectionHeader: '.antd5-collapse-header',
     displayedSection: 'div[style="height: 100%; overflow-y: auto;"]',
-    collapseExpandButton: '.ant-collapse-arrow',
+    collapseExpandButton: '.antd5-collapse-arrow',
     checkedCheckbox: '.ant-checkbox-wrapper-checked',
     infoTooltip: '[aria-label="Show info tooltip"]',
     parentFilterInput: dataTestLocator('parent-filter-input'),
     filterPlaceholder: '.antd5-select-selection-placeholder',
-    collapsedSectionContainer: '[class="ant-collapse-content-box"]',
+    collapsedSectionContainer: '[class="antd5-collapse-content-box"]',
   },
   filtersList: {
     list: '.antd5-tabs-nav-list',
@@ -460,7 +460,7 @@ export const dashboardListView = {
 };
 export const exploreView = {
   openDatasourceMenu: dataTestLocator('open-datasource-tab'),
-  sectionsHeader: '.ant-collapse-header',
+  sectionsHeader: '.antd5-collapse-header',
   datasourceMenuThreeDots: dataTestLocator('datasource-menu-trigger'),
   threeDotsMenuDropdown: {
     editDataset: dataTestLocator('edit-dataset'),
@@ -495,7 +495,7 @@ export const exploreView = {
   },
   controlPanel: {
     panel: dataTestLocator('control-tabs'),
-    categoryArea: '.ant-collapse-content-box',
+    categoryArea: '.antd5-collapse-content-box',
     dragField: dataTestLocator('datasource'),
     metricsField: dataTestLocator('metrics'),
     optionField: dataTestLocator('option-label'),
