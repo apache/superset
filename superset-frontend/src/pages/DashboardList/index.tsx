@@ -71,7 +71,7 @@ import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { ModifiedInfo } from 'src/components/AuditInfo';
-import BulkCertifyModal from 'src/features/bulkCertifyModal/BulkCertifyModal';
+import BulkCertifyModal from 'src/features/bulkUpdate/BulkCertifyModal';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -196,9 +196,7 @@ function DashboardList(props: DashboardListProps) {
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
   const [showBulkCertifyModal, setShowBulkCertifyModal] = useState(false);
-  const [selectedDashboardsForCert, setSelectedDashboardsForCert] = useState<
-    Dashboard[]
-  >([]);
+  const [bulkSelected, setBulkSelected] = useState<Dashboard[]>([]);
 
   const openDashboardImportModal = () => {
     showImportModal(true);
@@ -215,13 +213,13 @@ function DashboardList(props: DashboardListProps) {
   };
 
   const openBulkCertifyModal = (selected: Dashboard[]) => {
-    setSelectedDashboardsForCert(selected);
+    setBulkSelected(selected);
     setShowBulkCertifyModal(true);
   };
 
   const closeBulkCertifyModal = () => {
     setShowBulkCertifyModal(false);
-    setSelectedDashboardsForCert([]);
+    setBulkSelected([]);
   };
 
   // TODO: Fix usage of localStorage keying on the user id
@@ -839,7 +837,7 @@ function DashboardList(props: DashboardListProps) {
       <BulkCertifyModal
         show={showBulkCertifyModal}
         onHide={closeBulkCertifyModal}
-        selected={selectedDashboardsForCert}
+        selected={bulkSelected}
         resourceName="dashboard"
         resourceLabel={t('dashboard')}
         refreshData={refreshData}

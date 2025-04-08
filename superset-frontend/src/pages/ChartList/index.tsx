@@ -75,7 +75,7 @@ import { findPermission } from 'src/utils/findPermission';
 import { DashboardCrossLinks } from 'src/components/ListView/DashboardCrossLinks';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import BulkCertifyModal from 'src/features/bulkCertifyModal/BulkCertifyModal';
+import BulkCertifyModal from 'src/features/bulkUpdate/BulkCertifyModal';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -215,9 +215,7 @@ function ChartList(props: ChartListProps) {
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
   const [showBulkCertifyModal, setShowBulkCertifyModal] = useState(false);
-  const [selectedChartsForCert, setSelectedChartsForCert] = useState<Chart[]>(
-    [],
-  );
+  const [bulkSelected, setBulkSelected] = useState<Chart[]>([]);
 
   // TODO: Fix usage of localStorage keying on the user id
   const userSettings = dangerouslyGetItemDoNotUse(userId?.toString(), null) as {
@@ -239,13 +237,13 @@ function ChartList(props: ChartListProps) {
   };
 
   const openBulkCertifyModal = (selected: Chart[]) => {
-    setSelectedChartsForCert(selected);
+    setBulkSelected(selected);
     setShowBulkCertifyModal(true);
   };
 
   const closeBulkCertifyModal = () => {
     setShowBulkCertifyModal(false);
-    setSelectedChartsForCert([]);
+    setBulkSelected([]);
   };
 
   const canCreate = hasPerm('can_write');
@@ -891,7 +889,7 @@ function ChartList(props: ChartListProps) {
       <BulkCertifyModal
         show={showBulkCertifyModal}
         onHide={closeBulkCertifyModal}
-        selected={selectedChartsForCert}
+        selected={bulkSelected}
         resourceName="chart"
         resourceLabel={t('chart')}
         refreshData={refreshData}
