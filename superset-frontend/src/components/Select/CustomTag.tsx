@@ -17,49 +17,11 @@
  * under the License.
  */
 import { MouseEvent } from 'react';
-// eslint-disable-next-line no-restricted-imports
-import { Tag as AntdTag } from 'antd'; // TODO: Remove antd
-import { styled, useCSSTextTruncation } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import { Tooltip } from '../Tooltip';
+import { css } from '@superset-ui/core';
+import { Tag } from '../Tag';
 import { CustomTagProps } from './types';
-import { SELECT_ALL_VALUE } from './utils';
+import { SELECT_ALL_VALUE } from './constants';
 import { NoElement } from './styles';
-
-const StyledTag = styled(AntdTag)`
-  & .ant-tag-close-icon {
-    display: inline-flex;
-    align-items: center;
-    margin-left: ${({ theme }) => theme.sizeUnit}px;
-  }
-
-  & .tag-content {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-`;
-
-// TODO: use antd Tag props instead of any. Currently it's causing a typescript error
-const Tag = (props: any) => {
-  const [tagRef, tagIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
-  return (
-    <Tooltip title={tagIsTruncated ? props.children : null}>
-      <StyledTag
-        closeIcon={
-          props?.closable ? (
-            <Icons.CloseOutlined iconSize="xs" role="button" />
-          ) : undefined
-        }
-        {...props}
-        className="ant-select-selection-item"
-      >
-        <span className="tag-content" ref={tagRef}>
-          {props.children}
-        </span>
-      </StyledTag>
-    </Tooltip>
-  );
-};
 
 /**
  * Custom tag renderer
@@ -74,7 +36,7 @@ export const customTagRender = (props: CustomTagProps) => {
       target.tagName === 'svg' ||
       target.tagName === 'path' ||
       (target.tagName === 'span' &&
-        target.className.includes('ant-tag-close-icon'))
+        target.className.includes('antd5-tag-close-icon'))
     ) {
       event.stopPropagation();
     }
@@ -82,7 +44,16 @@ export const customTagRender = (props: CustomTagProps) => {
 
   if (value !== SELECT_ALL_VALUE) {
     return (
-      <Tag onMouseDown={onPreventMouseDown} {...(props as object)}>
+      <Tag
+        onClick={onPreventMouseDown}
+        css={css`
+          display: flex;
+          align-items: center;
+        `}
+        name={label}
+        className="antd5-select-selection-item"
+        {...(props as object)}
+      >
         {label}
       </Tag>
     );

@@ -29,7 +29,7 @@ import { AsyncSelect } from '.';
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
-const NO_DATA = 'No Data';
+const NO_DATA = 'No data';
 const LOADING = 'Loading...';
 const OPTIONS = [
   { label: 'John', value: 1, gender: 'Male' },
@@ -122,6 +122,10 @@ const findSelectValue = () =>
 
 const findAllSelectValues = () =>
   waitFor(() => getElementsByClassName('.ant-select-selection-item'));
+
+// Tag sets classname manually.
+const findAllTagSelectValues = () =>
+  waitFor(() => [...getElementsByClassName('.antd5-select-selection-item')]);
 
 const clearAll = () => userEvent.click(screen.getByLabelText('close-circle'));
 
@@ -373,7 +377,9 @@ test('searches for custom fields', async () => {
   expect(options[4]).toHaveTextContent('Nikole');
   expect(options[5]).toHaveTextContent('Olivia');
   await type('1');
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('removes duplicated values', async () => {
@@ -386,7 +392,7 @@ test('removes duplicated values', async () => {
   });
   fireEvent(input, paste);
   await waitFor(async () => {
-    const values = await findAllSelectValues();
+    const values = await findAllTagSelectValues();
     expect(values.length).toBe(4);
     expect(values[0]).toHaveTextContent('a');
     expect(values[1]).toHaveTextContent('b');
@@ -398,9 +404,9 @@ test('removes duplicated values', async () => {
 test('renders a custom label', async () => {
   const loadOptions = jest.fn(async () => ({
     data: [
-      { label: 'John', value: 1, customLabel: <h1>John</h1> },
-      { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
-      { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+      { value: 'John', label: <h1>John</h1> },
+      { value: 'Liam', label: <h1>Liam</h1> },
+      { value: 'Olivia', label: <h1>Olivia</h1> },
     ],
     totalCount: 3,
   }));
@@ -414,9 +420,9 @@ test('renders a custom label', async () => {
 test('searches for a word with a custom label', async () => {
   const loadOptions = jest.fn(async () => ({
     data: [
-      { label: 'John', value: 1, customLabel: <h1>John</h1> },
-      { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
-      { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+      { value: 'John', label: <h1>John</h1> },
+      { value: 'Liam', label: <h1>Liam</h1> },
+      { value: 'Olivia', label: <h1>Olivia</h1> },
     ],
     totalCount: 3,
   }));
@@ -457,7 +463,9 @@ test('does not add a new option if allowNewOptions is false', async () => {
   render(<AsyncSelect {...defaultProps} />);
   await open();
   await type(NEW_OPTION);
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('adds the null option when selected in single mode', async () => {
@@ -483,7 +491,7 @@ test('adds the null option when selected in multiple mode', async () => {
   await open();
   userEvent.click(await findSelectOption(OPTIONS[0].label));
   userEvent.click(await findSelectOption(NULL_OPTION.label));
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   expect(values[0]).toHaveTextContent(OPTIONS[0].label);
   expect(values[1]).toHaveTextContent(NULL_OPTION.label);
 });
@@ -501,7 +509,9 @@ test('opens the select without any data', async () => {
     />,
   );
   await open();
-  expect(await screen.findByText(/no data/i)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('displays the loading indicator when opening', async () => {
@@ -527,7 +537,7 @@ test('multiple selections in multiple mode', async () => {
   const [firstOption, secondOption] = OPTIONS;
   userEvent.click(await findSelectOption(firstOption.label));
   userEvent.click(await findSelectOption(secondOption.label));
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   expect(values[0]).toHaveTextContent(firstOption.label);
   expect(values[1]).toHaveTextContent(secondOption.label);
 });
@@ -579,14 +589,14 @@ test('deselects an item in multiple mode', async () => {
   expect(options[0]).toHaveTextContent(option3.label);
   expect(options[1]).toHaveTextContent(option8.label);
 
-  let values = await findAllSelectValues();
+  let values = await findAllTagSelectValues();
   expect(values).toHaveLength(2);
   // should keep the order by which the options were selected
   expect(values[0]).toHaveTextContent(option8.label);
   expect(values[1]).toHaveTextContent(option3.label);
 
   userEvent.click(await findSelectOption(option3.label));
-  values = await findAllSelectValues();
+  values = await findAllTagSelectValues();
   expect(values.length).toBe(1);
   expect(values[0]).toHaveTextContent(option8.label);
 });
@@ -615,7 +625,9 @@ test('shows "No data" when allowNewOptions is false and a new option is entered'
   render(<AsyncSelect {...defaultProps} allowNewOptions={false} showSearch />);
   await open();
   await type(NEW_OPTION);
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('does not show "No data" when allowNewOptions is true and a new option is entered', async () => {
@@ -623,7 +635,9 @@ test('does not show "No data" when allowNewOptions is true and a new option is e
   await open();
   await type(NEW_OPTION);
   await waitFor(() =>
-    expect(screen.queryByText(NO_DATA)).not.toBeInTheDocument(),
+    expect(
+      screen.queryByText(NO_DATA, { selector: '.ant-empty-description' }),
+    ).not.toBeInTheDocument(),
   );
 });
 
@@ -640,7 +654,7 @@ test('sets a initial value in multiple mode', async () => {
       value={[OPTIONS[0], OPTIONS[1]]}
     />,
   );
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   expect(values[0]).toHaveTextContent(OPTIONS[0].label);
   expect(values[1]).toHaveTextContent(OPTIONS[1].label);
 });

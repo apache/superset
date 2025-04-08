@@ -17,7 +17,12 @@
  * under the License.
  */
 import { SAMPLE_DASHBOARD_1, TABBED_DASHBOARD } from 'cypress/utils/urls';
-import { drag, resize, waitForChartLoad } from 'cypress/utils';
+import {
+  drag,
+  resize,
+  setSelectSearchInput,
+  waitForChartLoad,
+} from 'cypress/utils';
 import { edit } from 'brace';
 import {
   interceptExploreUpdate,
@@ -34,21 +39,12 @@ function editDashboard() {
   cy.getBySel('edit-dashboard-button').click();
 }
 
-function closeModal() {
-  cy.getBySel('properties-modal-cancel-button').click({ force: true });
-}
-
 function openProperties() {
-  cy.get('body').then($body => {
-    if ($body.find('[data-test="properties-modal-cancel-button"]').length) {
-      closeModal();
-    }
-    cy.getBySel('actions-trigger').click({ force: true });
-    cy.getBySel('header-actions-menu')
-      .contains('Edit properties')
-      .click({ force: true });
-    cy.get('.antd5-modal-body').should('be.visible');
-  });
+  cy.getBySel('actions-trigger').click({ force: true });
+  cy.getBySel('header-actions-menu')
+    .contains('Edit properties')
+    .click({ force: true });
+  cy.get('.antd5-modal-body').should('be.visible');
 }
 
 function assertMetadata(text: string) {
@@ -150,12 +146,10 @@ function selectColorScheme(
   target = 'dashboard-edit-properties-form',
 ) {
   cy.get(`[data-test="${target}"] input[aria-label="Select color scheme"]`)
-    .first()
+    .should('exist')
     .then($input => {
-      cy.wrap($input).click({ force: true });
-      cy.wrap($input).type(color.slice(0, 5), { force: true });
+      setSelectSearchInput($input, color.slice(0, 5));
     });
-  cy.getBySel(color).click({ force: true });
 }
 
 function saveAndGo(dashboard = 'Tabbed Dashboard') {
@@ -163,7 +157,7 @@ function saveAndGo(dashboard = 'Tabbed Dashboard') {
   cy.getBySel('query-save-button').click();
   cy.getBySel('save-modal-body').then($modal => {
     cy.wrap($modal)
-      .find("div[aria-label='Select a dashboard'] .ant-select-selection-item")
+      .find("div[aria-label='Select a dashboard'] .antd5-select-selection-item")
       .should('have.text', dashboard);
     cy.getBySel('save-overwrite-radio').should('not.be.disabled');
     cy.getBySel('save-overwrite-radio').click();
@@ -1140,7 +1134,7 @@ describe('Dashboard edit', () => {
     });
 
     // TODO fix this test! This was the #1 flaky test as of 4/21/23 according to cypress dashboard.
-    xit('should disable the Save button when undoing', () => {
+    it.skip('should disable the Save button when undoing', () => {
       cy.get('input[type="checkbox"]').click();
       dragComponent('Unicode Cloud', 'card-title', false);
       cy.getBySel('header-save-button').should('be.enabled');

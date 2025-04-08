@@ -18,7 +18,11 @@
  */
 
 import { dashboardView, nativeFilters } from 'cypress/support/directories';
-import { ChartSpec, waitForChartLoad } from 'cypress/utils';
+import {
+  ChartSpec,
+  setSelectSearchInput,
+  waitForChartLoad,
+} from 'cypress/utils';
 
 export const WORLD_HEALTH_CHARTS = [
   { name: '% Rural', viz: 'world_map' },
@@ -264,10 +268,11 @@ export function fillNativeFilterForm(
   dataset?: string,
   filterColumn?: string,
 ) {
-  cy.get(nativeFilters.filtersPanel.filterTypeInput)
-    .find(nativeFilters.filtersPanel.filterTypeItem)
-    .click({ multiple: true, force: true });
-  cy.get(`[label="${type}"]`).click({ multiple: true, force: true });
+  cy.get(nativeFilters.filtersPanel.filterTypeInput).within(() => {
+    cy.get('input').then($input => {
+      setSelectSearchInput($input, type);
+    });
+  });
   cy.get(nativeFilters.modal.container)
     .find(nativeFilters.filtersPanel.filterName)
     .last()
@@ -280,31 +285,23 @@ export function fillNativeFilterForm(
     .find(nativeFilters.filtersPanel.filterName)
     .last()
     .type(name, { scrollBehavior: false, force: true });
+
   if (dataset) {
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.datasetName)
-      .last()
-      .click({ force: true, scrollBehavior: false });
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.datasetName)
-      .type(`${dataset}`, { scrollBehavior: false });
+    cy.get('div[aria-label="Dataset"]').within(() => {
+      cy.get('input').then($input => {
+        setSelectSearchInput($input, dataset, true);
+      });
+    });
     cy.get(nativeFilters.silentLoading).should('not.exist');
-    cy.get(`[label="${dataset}"]`).click({ multiple: true, force: true });
   }
-  cy.get(nativeFilters.silentLoading).should('not.exist');
+
   if (filterColumn) {
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .click({ force: true });
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .type(filterColumn);
-    cy.get(nativeFilters.filtersPanel.inputDropdown)
-      .should('be.visible', { timeout: 20000 })
-      .last()
-      .click();
+    cy.get('div[aria-label="Column select"]').within(() => {
+      cy.get('input').then($input => {
+        setSelectSearchInput($input, filterColumn, true);
+      });
+    });
   }
-  cy.get(nativeFilters.silentLoading).should('not.exist');
 }
 
 /** ************************************************************************
@@ -459,7 +456,7 @@ export function applyAdvancedTimeRangeFilterOnDashboard(
   endRange?: string,
 ) {
   cy.get('.control-label').contains('RANGE TYPE').should('be.visible');
-  cy.get('.antd5-popover-content .ant-select-selector')
+  cy.get('.antd5-popover-content .antd5-select-selector')
     .should('be.visible')
     .click();
   cy.get(`[label="Advanced"]`).should('be.visible').click();
@@ -502,7 +499,7 @@ export function inputNativeFilterDefaultValue(
       )
         .eq(1)
         .within(() => {
-          cy.get('.ant-select-selection-search-input').type(
+          cy.get('.antd5-select-selection-search-input').type(
             `${defaultValue}{enter}`,
             { force: true },
           );
@@ -510,8 +507,10 @@ export function inputNativeFilterDefaultValue(
     });
   } else {
     cy.getBySel('default-input').within(() => {
-      cy.get('.ant-select-selection-search-input').click();
-      cy.get('.ant-select-item-option-content').contains(defaultValue).click();
+      cy.get('.antd5-select-selection-search-input').click();
+      cy.get('.antd5-select-item-option-content')
+        .contains(defaultValue)
+        .click();
     });
   }
 }

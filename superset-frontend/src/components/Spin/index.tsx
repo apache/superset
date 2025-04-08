@@ -16,22 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/*
- * Components that conflict with the ones in src/components.
- * We should try to avoid using Ant Design directly. The components
- * listed below may need review. Avoid incrementing this list by using
- * or extending the components in src/components.
- */
-// TODO: Remove these imports
-// eslint-disable-next-line no-restricted-imports
-export { Breadcrumb as AntdBreadcrumb } from 'antd';
 
-/*
- * Re-exporting of components in src/components to facilitate
- * their imports by other components.
- * E.g. import { Select } from 'src/components', probably in the future from '@superset-ui/components'
- */
-export { Select, AsyncSelect } from './Select';
-
-// eslint-disable-next-line no-restricted-imports
-export type { RadioChangeEvent } from 'antd/lib/radio'; // TODO: Remove antd
+export { Spin } from 'antd-v5';

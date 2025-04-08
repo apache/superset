@@ -22,9 +22,8 @@ import Modal from 'src/components/Modal';
 import { Input } from 'src/components/Input';
 import Button from 'src/components/Button';
 import { AsyncSelect } from 'src/components';
+import { SelectValue } from 'src/components/Select';
 import { Row, Col } from 'src/components/Grid';
-// eslint-disable-next-line no-restricted-imports
-import { SelectValue } from 'antd/lib/select'; // TODO: Remove antd
 import rison from 'rison';
 import {
   t,
