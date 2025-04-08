@@ -114,6 +114,8 @@ docker compose -f docker-compose-non-dev.yml up
 ```bash
 # Set the version you want to run
 export TAG=3.1.1
+# Fetch the tag you're about to check out (assuming you shallow-cloned the repo)
+git fetch origin $TAG
 # Checkout the corresponding git ref
 git checkout $TAG
 # Fire up docker compose
