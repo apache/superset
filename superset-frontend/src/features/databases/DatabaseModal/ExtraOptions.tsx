@@ -29,6 +29,7 @@ import {
 import InfoTooltip from 'src/components/InfoTooltip';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
+import { Input } from 'src/components/Input';
 import {
   StyledInputContainer,
   StyledJsonEditor,
@@ -153,7 +154,7 @@ const ExtraOptions = ({
                         {t('CTAS & CVAS SCHEMA')}
                       </div>
                       <div className="input-container">
-                        <input
+                        <Input
                           type="text"
                           name="force_ctas_schema"
                           placeholder={t('Create or select schema...')}
@@ -271,7 +272,7 @@ const ExtraOptions = ({
               <StyledInputContainer className="mb-8">
                 <div className="control-label">{t('Chart cache timeout')}</div>
                 <div className="input-container">
-                  <input
+                  <Input
                     type="number"
                     name="cache_timeout"
                     value={db?.cache_timeout || ''}
@@ -290,7 +291,7 @@ const ExtraOptions = ({
               <StyledInputContainer>
                 <div className="control-label">{t('Schema cache timeout')}</div>
                 <div className="input-container">
-                  <input
+                  <Input
                     type="number"
                     name="schema_cache_timeout"
                     value={
@@ -312,7 +313,7 @@ const ExtraOptions = ({
               <StyledInputContainer>
                 <div className="control-label">{t('Table cache timeout')}</div>
                 <div className="input-container">
-                  <input
+                  <Input
                     type="number"
                     name="table_cache_timeout"
                     value={
@@ -417,7 +418,7 @@ const ExtraOptions = ({
               <StyledInputContainer>
                 <div className="control-label">{t('Root certificate')}</div>
                 <div className="input-container">
-                  <textarea
+                  <Input.TextArea
                     name="server_cert"
                     value={db?.server_cert || ''}
                     placeholder={t('Enter CA_BUNDLE')}
@@ -476,7 +477,7 @@ const ExtraOptions = ({
                     {t('Schemas allowed for File upload')}
                   </div>
                   <div className="input-container">
-                    <input
+                    <Input
                       type="text"
                       name="schemas_allowed_for_file_upload"
                       value={(
@@ -600,7 +601,7 @@ const ExtraOptions = ({
                   className="input-container"
                   data-test="version-spinbutton-test"
                 >
-                  <input
+                  <Input
                     type="text"
                     name="version"
                     placeholder={t('Version number')}

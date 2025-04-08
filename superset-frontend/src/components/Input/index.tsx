@@ -17,8 +17,4 @@
  * under the License.
  */
 
-import { Input as Antd5Input, InputNumber as AntdInputNumber } from 'antd-v5';
-
-export const InputNumber = AntdInputNumber;
-
-export const Input = Antd5Input;
+export { Input, InputNumber } from 'antd-v5';
