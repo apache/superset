@@ -184,13 +184,6 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   }
 
-  // styling for Tabs component
-  // Aaron note 20-11-19: this seems to be exclusively here for the Edit Database modal.
-  // TODO: remove this as it is a special case.
-  .ant-tabs-top {
-    margin-top: -${({ theme }) => theme.sizeUnit * 4}px;
-  }
-
   &.no-content-padding .antd5-modal-body {
     padding: 0;
   }
@@ -399,9 +392,6 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
-// TODO: in another PR, rename this to CompatabilityModal
-// and demote it as the default export.
-// We should start using AntD component interfaces going forward.
 const Modal = Object.assign(CustomModal, {
   error: AntdModal.error,
   warning: AntdModal.warning,

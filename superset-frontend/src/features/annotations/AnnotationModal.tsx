@@ -23,7 +23,7 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { RangePicker } from 'src/components/DatePicker';
 import { extendedDayjs } from 'src/utils/dates';
 import { Icons } from 'src/components/Icons';
-import { Input, TextArea } from 'src/components/Input';
+import { Input } from 'src/components/Input';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
@@ -325,7 +325,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       </StyledAnnotationTitle>
       <AnnotationContainer>
         <div className="control-label">{t('description')}</div>
-        <TextArea
+        <Input.TextArea
           name="long_descr"
           value={currentAnnotation ? currentAnnotation.long_descr : ''}
           placeholder={t('Description (this can be seen in the list)')}

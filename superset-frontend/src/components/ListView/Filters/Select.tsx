@@ -25,10 +25,9 @@ import {
 } from 'react';
 
 import { t } from '@superset-ui/core';
-import { Select } from 'src/components';
+import { Select, AsyncSelect } from 'src/components';
 import { Filter, SelectOption } from 'src/components/ListView/types';
 import { FormLabel } from 'src/components/Form';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
 import { FilterContainer, BaseFilter, FilterHandler } from './Base';
 
 interface SelectFilterProps extends BaseFilter {
@@ -37,6 +36,7 @@ interface SelectFilterProps extends BaseFilter {
   onSelect: (selected: SelectOption | undefined, isClear?: boolean) => void;
   paginate?: boolean;
   selects: Filter['selects'];
+  loading?: boolean;
 }
 
 function SelectFilter(
@@ -47,6 +47,7 @@ function SelectFilter(
     initialValue,
     onSelect,
     selects = [],
+    loading = false,
   }: SelectFilterProps,
   ref: RefObject<FilterHandler>,
 ) {
@@ -115,6 +116,7 @@ function SelectFilter(
           placeholder={t('Select or type a value')}
           showSearch
           value={selectedOption}
+          loading={loading}
         />
       )}
     </FilterContainer>

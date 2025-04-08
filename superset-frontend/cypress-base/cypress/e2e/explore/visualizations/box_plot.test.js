@@ -49,12 +49,12 @@ describe('Visualization > Box Plot', () => {
   it('should allow type to search color schemes', () => {
     verify(BOX_PLOT_FORM_DATA);
 
-    cy.get('#controlSections-tab-display').click();
+    cy.get('#controlSections-tab-CUSTOMIZE').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
     cy.focused().type('supersetColors{enter}');
     cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
+      '.Control[data-test="color_scheme"] .antd5-select-selection-item [data-test="supersetColors"]',
     ).should('exist');
   });
 });

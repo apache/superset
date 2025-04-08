@@ -19,7 +19,7 @@
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { css, isEqualArray, t } from '@superset-ui/core';
-import Select from 'src/components/Select/Select';
+import { Select } from 'src/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
@@ -94,8 +94,7 @@ export const innerGetOptions = props => {
     options = props.options.map(o => ({
       ...o,
       value: o[valueKey],
-      label: o.label || o[valueKey],
-      customLabel: optionRenderer ? optionRenderer(o) : undefined,
+      label: optionRenderer ? optionRenderer(o) : o.label || o[valueKey],
     }));
   } else if (choices) {
     // Accepts different formats of input

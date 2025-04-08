@@ -34,11 +34,8 @@ import {
   resetState,
 } from 'src/SqlLab/actions/sqlLab';
 import Button from 'src/components/Button';
-import { t, styled, css, SupersetTheme } from '@superset-ui/core';
-import Collapse from 'src/components/Collapse';
-import { Icons } from 'src/components/Icons';
+import { t, styled, css } from '@superset-ui/core';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
-import { IconTooltip } from 'src/components/IconTooltip';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import type { DatabaseObject } from 'src/components/DatabaseSelector';
 import { EmptyState } from 'src/components/EmptyState';
@@ -58,29 +55,6 @@ export interface SqlEditorLeftBarProps {
 const StyledScrollbarContainer = styled.div`
   flex: 1 1 auto;
   overflow: auto;
-`;
-
-const collapseStyles = (theme: SupersetTheme) => css`
-  .ant-collapse-item {
-    margin-bottom: ${theme.sizeUnit * 3}px;
-  }
-  .ant-collapse-header {
-    padding: 0px !important;
-    display: flex;
-    align-items: center;
-  }
-  .ant-collapse-content-box {
-    padding: 0px ${theme.sizeUnit * 4}px 0px 0px !important;
-  }
-  .ant-collapse-arrow {
-    padding: 0 !important;
-    bottom: ${theme.sizeUnit}px !important;
-    right: ${theme.sizeUnit * 4}px !important;
-    color: ${theme.colorPrimaryText} !important;
-    &:hover {
-      color: ${theme.colorPrimaryTextHover} !important;
-    }
-  }
 `;
 
 const LeftBarStyles = styled.div`
@@ -194,25 +168,6 @@ const SqlEditorLeftBar = ({
     });
   };
 
-  const renderExpandIconWithTooltip = ({ isActive }: { isActive: boolean }) => (
-    <IconTooltip
-      css={css`
-        transform: rotate(90deg);
-      `}
-      aria-label="Collapse"
-      tooltip={
-        isActive ? t('Collapse table preview') : t('Expand table preview')
-      }
-    >
-      <Icons.RightOutlined
-        iconSize="s"
-        css={css`
-          transform: ${isActive ? 'rotateY(180deg)' : ''};
-        `}
-      />
-    </IconTooltip>
-  );
-
   const shouldShowReset = window.location.search === '?reset=1';
   const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
@@ -276,20 +231,16 @@ const SqlEditorLeftBar = ({
             height: ${tableMetaDataHeight}px;
           `}
         >
-          <Collapse
-            activeKey={tables
-              .filter(({ expanded }) => expanded)
-              .map(({ id }) => id)}
-            css={collapseStyles}
-            expandIconPosition="right"
-            ghost
-            onChange={onToggleTable}
-            expandIcon={renderExpandIconWithTooltip}
-          >
-            {tables.map(table => (
-              <TableElement table={table} key={table.id} />
-            ))}
-          </Collapse>
+          {tables.map(table => (
+            <TableElement
+              table={table}
+              key={table.id}
+              activeKey={tables
+                .filter(({ expanded }) => expanded)
+                .map(({ id }) => id)}
+              onChange={onToggleTable}
+            />
+          ))}
         </div>
       </StyledScrollbarContainer>
       {shouldShowReset && (

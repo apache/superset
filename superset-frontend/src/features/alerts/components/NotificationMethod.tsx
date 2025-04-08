@@ -34,9 +34,9 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Input, TextArea } from 'src/components/Input';
-import { Select } from 'src/components';
+import { Input } from 'src/components/Input';
 import { Icons } from 'src/components/Icons';
+import { Select } from 'src/components';
 import RefreshLabel from 'src/components/RefreshLabel';
 import {
   NotificationMethodOption,
@@ -526,7 +526,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 ].includes(method) ? (
                   <>
                     <div className="input-container">
-                      <TextArea
+                      <Input.TextArea
                         name="To"
                         data-test="recipients"
                         value={recipientValue}
@@ -574,7 +574,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_CC_NAME}
                   </div>
                   <div className="input-container">
-                    <TextArea
+                    <Input.TextArea
                       name="CC"
                       data-test="cc"
                       value={ccValue}
@@ -595,7 +595,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_BCC_NAME}
                   </div>
                   <div className="input-container">
-                    <TextArea
+                    <Input.TextArea
                       name="BCC"
                       data-test="bcc"
                       value={bccValue}

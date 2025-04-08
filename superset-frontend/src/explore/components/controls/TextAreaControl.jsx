@@ -18,7 +18,7 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { TextArea } from 'src/components/Input';
+import { Input } from 'src/components/Input';
 import {
   Tooltip,
   TooltipProps as TooltipOptions,
@@ -125,7 +125,7 @@ class TextAreaControl extends Component {
 
     const textArea = (
       <div>
-        <TextArea
+        <Input.TextArea
           placeholder={t('textarea')}
           onChange={this.onControlChange.bind(this)}
           defaultValue={this.props.initialValue}

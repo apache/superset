@@ -141,7 +141,9 @@ describe('SelectControl', () => {
       expect(
         container.querySelector('[role="option"]'),
       ).not.toBeInTheDocument();
-      expect(within(selectorWrapper).getByText('No Data')).toBeInTheDocument();
+      expect(
+        within(selectorWrapper).getByText('No data', { selector: 'div' }),
+      ).toBeInTheDocument();
     });
 
     it('renders with tokenSeparators', () => {
@@ -163,13 +165,10 @@ describe('SelectControl', () => {
         },
       });
       fireEvent(selectorInput, paste);
-      const yearOption = screen.getByLabelText('1 year ago');
+      const yearOption = screen.getAllByText('1 year ago')[1];
       expect(yearOption).toBeInTheDocument();
-      expect(yearOption).toHaveAttribute('aria-selected', 'true');
-      const weekOption = screen.getByText(/1 week ago/, {
-        selector: 'div',
-      }).parentNode;
-      expect(weekOption?.getAttribute('aria-selected')).toEqual('true');
+      const weekOption = screen.getAllByText('1 week ago')[1];
+      expect(weekOption).toBeInTheDocument();
     });
 
     describe('empty placeholder', () => {

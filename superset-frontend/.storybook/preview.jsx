@@ -125,5 +125,5 @@ export const parameters = {
       ],
     },
   },
-  controls: { expanded: true, sort: 'alpha' },
+  controls: { expanded: true, sort: 'alpha', disableSaveFromUI: true },
 };

@@ -54,7 +54,7 @@ import { useDefaultTimeFilter } from '../../DateFilterControl/utils';
 import { Clauses, ExpressionTypes } from '../types';
 
 const SelectWithLabel = styled(Select)<{ labelText: string }>`
-  .ant-select-selector::after {
+  .antd5-select-selector::after {
     content: ${({ labelText }) => labelText || '\\A0'};
     display: inline-block;
     white-space: nowrap;
@@ -453,15 +453,11 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           ('column_name' in column && column.column_name) ||
           ('optionName' in column && column.optionName) ||
           '',
-        label:
-          ('saved_metric_name' in column && column.saved_metric_name) ||
-          ('column_name' in column && column.column_name) ||
-          ('label' in column && column.label),
         key:
           ('id' in column && column.id) ||
           ('optionName' in column && column.optionName) ||
           undefined,
-        customLabel: renderSubjectOptionLabel(column),
+        label: renderSubjectOptionLabel(column),
       }))}
       {...subjectSelectProps}
     />

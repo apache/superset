@@ -17,10 +17,10 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { styled, css } from '@superset-ui/core';
+import { styled, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { Row, Col, Grid } from 'src/components';
+import Grid, { Row, Col } from 'src/components/Grid';
 import { MainNav, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -151,6 +151,7 @@ export function Menu({
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
   const uiConfig = useUiConfig();
+  const theme = useTheme();
 
   useEffect(() => {
     function handleResize() {
@@ -255,6 +256,43 @@ export function Menu({
       </StyledSubMenu>
     );
   };
+  const renderBrand = () => {
+    let link;
+    if (theme.brandLogoUrl) {
+      let style = { padding: '0px', margin: '0px' } as React.CSSProperties;
+      if (theme.brandLogoHeight) {
+        style = { ...style, height: theme.brandLogoHeight, minHeight: '0px' };
+      }
+      if (theme.brandLogoMargin) {
+        style = { ...style, margin: theme.brandLogoMargin };
+      }
+      link = (
+        <a href={theme.brandLogoHref} className="navbar-brand" style={style}>
+          <img
+            src={theme.brandLogoUrl}
+            alt={theme.brandLogoAlt || 'Apache Superset'}
+          />
+        </a>
+      );
+    } else if (isFrontendRoute(window.location.pathname)) {
+      // ---------------------------------------------------------------------------------
+      // TODO: deprecate this once Theme is fully rolled out
+      // Kept as is for backwards compatibility with the old theme system / superset_config.py
+      link = (
+        <GenericLink className="navbar-brand" to={brand.path}>
+          <img src={brand.icon} alt={brand.alt} />
+        </GenericLink>
+      );
+    } else {
+      link = (
+        <a className="navbar-brand" href={brand.path} tabIndex={-1}>
+          <img src={brand.icon} alt={brand.alt} />
+        </a>
+      );
+    }
+    // ---------------------------------------------------------------------------------
+    return <>{link}</>;
+  };
   return (
     <StyledHeader className="top" id="main-menu" role="navigation">
       <Row>
@@ -265,21 +303,8 @@ export function Menu({
             title={brand.tooltip}
             arrow={{ pointAtCenter: true }}
           >
-            {isFrontendRoute(window.location.pathname) ? (
-              <GenericLink className="navbar-brand" to={brand.path}>
-                <img src={brand.icon} alt={brand.alt} />
-              </GenericLink>
-            ) : (
-              <a className="navbar-brand" href={brand.path} tabIndex={-1}>
-                <img src={brand.icon} alt={brand.alt} />
-              </a>
-            )}
+            {renderBrand()}
           </Tooltip>
-          {brand.text && (
-            <div className="navbar-brand-text">
-              <span>{brand.text}</span>
-            </div>
-          )}
           <MainNav
             mode={showMenu}
             data-test="navbar-top"

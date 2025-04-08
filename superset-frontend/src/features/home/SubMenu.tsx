@@ -23,7 +23,7 @@ import { styled, SupersetTheme, css, t, useTheme } from '@superset-ui/core';
 import cx from 'classnames';
 import { Tooltip } from 'src/components/Tooltip';
 import { debounce } from 'lodash';
-import { Row } from 'src/components';
+import { Row } from 'src/components/Grid';
 import { Menu, MenuMode, MainNav } from 'src/components/Menu';
 import Button, { OnClickHandler } from 'src/components/Button';
 import { Icons } from 'src/components/Icons';
@@ -130,7 +130,8 @@ export interface ButtonProps {
   name: ReactNode;
   onClick?: OnClickHandler;
   'data-test'?: string;
-  buttonStyle: 'primary' | 'secondary' | 'dashed' | 'link';
+  buttonStyle: 'primary' | 'secondary' | 'dashed' | 'link' | 'tertiary';
+  loading?: boolean;
 }
 
 export interface SubMenuProps {
@@ -280,6 +281,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
               buttonStyle={btn.buttonStyle}
               onClick={btn.onClick}
               data-test={btn['data-test']}
+              loading={btn.loading ?? false}
             >
               {btn.name}
             </Button>

@@ -26,8 +26,6 @@ const EXPOSE_IN_SQLLAB_FORM_HEIGHT = CTAS_CVAS_SCHEMA_FORM_HEIGHT + 153;
 const EXPOSE_ALL_FORM_HEIGHT = EXPOSE_IN_SQLLAB_FORM_HEIGHT + 102;
 const MODAL_BODY_HEIGHT = 180.5;
 
-const anticonHeight = 12;
-
 export const no_margin_bottom = css`
   margin-bottom: 0;
 `;
@@ -83,38 +81,14 @@ export const StyledFormHeader = styled.header`
   }
 `;
 
-export const antdCollapseStyles = (theme: SupersetTheme) => css`
-  .ant-collapse-header {
-    background-color: ${theme.colorBgLayout};
-    padding-top: ${theme.sizeUnit * 3.5}px;
-    padding-bottom: ${theme.sizeUnit * 2.5}px;
-
-    .anticon.ant-collapse-arrow {
-      top: calc(50% - ${anticonHeight / 2}px);
-    }
-    .helper {
-      color: ${theme.colors.grayscale.base};
-    }
-  }
-  h4 {
-    font-size: 16px;
-    margin-top: 0;
-    margin-bottom: ${theme.sizeUnit}px;
-  }
-  p.helper {
-    margin: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px;
-    margin-left: 0px;
-  }
-`;
-
 export const antDTabsStyles = css`
-  .ant-tabs-top {
+  .antd5-tabs-top {
     margin-top: 0;
   }
-  .ant-tabs-top > .ant-tabs-nav {
+  .antd5-tabs-top > .antd5-tabs-nav {
     margin-bottom: 0;
   }
-  .ant-tabs-tab {
+  .antd5-tabs-tab {
     margin-right: 0;
   }
 `;
@@ -145,7 +119,7 @@ export const formScrollableStyles = (theme: SupersetTheme) => css`
 `;
 
 export const antDModalStyles = (theme: SupersetTheme) => css`
-  .ant-select-dropdown {
+  .antd5-select-dropdown {
     height: ${theme.sizeUnit * 40}px;
   }
 
@@ -235,7 +209,7 @@ export const formStyles = (theme: SupersetTheme) => css`
     font-size: ${theme.fontSizeSM}px;
     margin-top: ${theme.sizeUnit * 1.5}px;
   }
-  .ant-tabs-content-holder {
+  .antd5-tabs-content-holder {
     overflow: auto;
     max-height: 480px;
   }
