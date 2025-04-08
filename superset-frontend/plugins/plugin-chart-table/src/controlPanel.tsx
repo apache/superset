@@ -356,7 +356,7 @@ const config: ControlPanelConfig = {
               label: t('Server Page Length'),
               default: 10,
               choices: PAGE_SIZE_OPTIONS,
-              description: t('Rows per page, 0 means no pagination'),
+              description: t('Rows per page, All means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
             },
@@ -423,7 +423,7 @@ const config: ControlPanelConfig = {
               label: t('Page length'),
               default: null,
               choices: PAGE_SIZE_OPTIONS,
-              description: t('Rows per page, 0 means no pagination'),
+              description: t('Rows per page, All means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 !controls?.server_pagination?.value,
             },
