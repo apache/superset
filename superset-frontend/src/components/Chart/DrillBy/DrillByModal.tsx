@@ -19,6 +19,7 @@
 
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
+  BinaryQueryObjectFilterClause,
   BaseFormData,
   Column,
   QueryData,
@@ -57,16 +58,18 @@ import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
 import { useContextMenu } from '../ChartContextMenu/useContextMenu';
 import { getChartDataRequest, handleChartDataResponse } from '../chartAction';
 import { useDisplayModeToggle } from './useDisplayModeToggle';
-import {
-  DrillByBreadcrumb,
-  useDrillByBreadcrumbs,
-} from './useDrillByBreadcrumbs';
 import { useResultsTableView } from './useResultsTableView';
+import { Breadcrumb } from 'src/components/Breadcrumb';
+import { Flex } from 'src/components/Flex';
 
 const DEFAULT_ADHOC_FILTER_FIELD_NAME = 'adhoc_filters';
 interface ModalFooterProps {
   closeModal?: () => void;
   formData: BaseFormData;
+}
+interface DrillByBreadcrumb {
+  groupby: Column | Column[];
+  filters?: BinaryQueryObjectFilterClause[];
 }
 
 const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
@@ -309,7 +312,16 @@ export default function DrillByModal({
     [dispatch, drillByConfigs, formData, getFormDataChangesFromConfigs],
   );
 
-  const breadcrumbs = useDrillByBreadcrumbs(breadcrumbsData, onBreadcrumbClick);
+  const breadcrumbItems = breadcrumbsData.map((breadcrumb, index) => ({
+    title: breadcrumb.groupby
+      ? Array.isArray(breadcrumb.groupby)
+        ? breadcrumb.groupby
+            .map(col => col.verbose_name || col.column_name)
+            .join(', ')
+        : breadcrumb.groupby.verbose_name || breadcrumb.groupby.column_name
+      : t('Root'),
+    onClick: () => onBreadcrumbClick(breadcrumb, index),
+  }));
 
   const drilledFormData = useMemo(() => {
     let updatedFormData = { ...currentFormData };
@@ -451,15 +463,35 @@ export default function DrillByModal({
       destroyOnClose
       maskClosable={false}
     >
-      <div
+      <Flex
+        vertical
+        gap={theme.sizeUnit}
         css={css`
-          display: flex;
-          flex-direction: column;
           height: 100%;
         `}
       >
         {metadataBar}
-        {breadcrumbs}
+        <Breadcrumb
+          css={css`
+            margin-bottom: ${theme.sizeUnit * 2}px;
+          `}
+          items={breadcrumbItems}
+          itemRender={(route, _, routes, paths) => {
+            const isLastElement = routes.indexOf(route) === routes.length - 1;
+            return isLastElement ? (
+              <span>{route.title}</span>
+            ) : (
+              <span
+                onClick={route.onClick}
+                css={css`
+                  cursor: pointer;
+                `}
+              >
+                {route.title}
+              </span>
+            );
+          }}
+        />
         {displayModeToggle}
         {isChartDataLoading && <Loading />}
         {!isChartDataLoading && !chartDataResult && (
@@ -481,7 +513,7 @@ export default function DrillByModal({
           chartDataResult &&
           resultsTable}
         {contextMenu}
-      </div>
+      </Flex>
     </Modal>
   );
 }
