@@ -26,6 +26,7 @@ import Owners from 'src/dashboard/components/PropertiesModal';
 
 import getOwnerName from 'src/utils/getOwnerName';
 import rison from 'rison';
+import Owner from 'src/types/Owner';
 
 interface BulkUpdateOwnersModalProps {
   onHide: () => void;
