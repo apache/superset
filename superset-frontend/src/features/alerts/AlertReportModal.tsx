@@ -82,6 +82,7 @@ import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { Icons } from 'src/components/Icons';
+import { native } from 'rimraf';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -1007,7 +1008,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           setTabOptions(tabTree);
           setTabNativeFilters(nativeFilters);
 
-          if (isEditMode) {
+          if (isEditMode && nativeFilters.all) {
             // update options for all filters
             addNativeFilterOptions(nativeFilters.all);
           }
@@ -1038,7 +1039,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 updateAnchorState(undefined);
               }
             }
-          } else {
+          } else if (nativeFilters.all) {
             setNativeFilterOptions(
               nativeFilters.all.map((filter: any) => ({
                 value: filter.id,
@@ -1047,7 +1048,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             );
           }
         })
-        .catch(() => {
+        .catch(e => {
+          console.log(e);
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }
