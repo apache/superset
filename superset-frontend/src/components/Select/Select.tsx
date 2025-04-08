@@ -58,6 +58,7 @@ import {
   isObject,
   getSuffixIcon,
   sortComparatorWithSearchHelper,
+  VIRTUAL_THRESHOLD,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -123,6 +124,8 @@ const Select = forwardRef(
       getPopupContainer,
       oneLine,
       maxTagCount: propsMaxTagCount,
+      virtual = undefined,
+      virtualThreshold = VIRTUAL_THRESHOLD,
       ...props
     }: SelectProps,
     ref: Ref<RefSelectProps>,
@@ -648,8 +651,12 @@ const Select = forwardRef(
           onClear={handleClear}
           placeholder={placeholder}
           tokenSeparators={tokenSeparators}
-          virtual={fullSelectOptions.length > 20}
           value={selectValue}
+          virtual={
+            virtual !== undefined
+              ? virtual
+              : fullSelectOptions.length > virtualThreshold
+          }
           suffixIcon={getSuffixIcon(
             isLoading,
             shouldShowSearch,
