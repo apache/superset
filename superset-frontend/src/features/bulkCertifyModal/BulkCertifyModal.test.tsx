@@ -94,11 +94,11 @@ describe('BulkCertifyModal', () => {
       render(<BulkCertifyModal {...mockedChartProps} />);
       expect(
         screen.getByText(content =>
-          content.startsWith('You are certifying 2 chart'),
+          content.startsWith('You are certifying 2 charts'),
         ),
       ).toBeInTheDocument();
       expect(
-        screen.getByText(/bulk certify chart\|charts/i),
+        screen.getByText(/bulk certify charts/i),
       ).toBeInTheDocument();
     });
   });
@@ -115,11 +115,11 @@ describe('BulkCertifyModal', () => {
       render(<BulkCertifyModal {...mockedDashboardProps} />);
       expect(
         screen.getByText(content =>
-          content.startsWith('You are certifying 2 dashboard'),
+          content.startsWith('You are certifying 2 dashboards'),
         ),
       ).toBeInTheDocument();
       expect(
-        screen.getByText(/bulk certify dashboard\|dashboards/i),
+        screen.getByText(/bulk certify dashboards/i),
       ).toBeInTheDocument();
     });
   });
@@ -144,11 +144,11 @@ describe('BulkCertifyModal', () => {
         render(<BulkCertifyModal {...mockedChartProps} />);
         expect(
           screen.getByText(content =>
-            content.startsWith('You are certifying 2 chart'),
+            content.startsWith('You are certifying 2 charts'),
           ),
         ).toBeInTheDocument();
         expect(
-          screen.getByText(/bulk certify chart\|charts/i),
+          screen.getByText(/bulk certify charts/i),
         ).toBeInTheDocument();
       });
     });
@@ -165,11 +165,11 @@ describe('BulkCertifyModal', () => {
         render(<BulkCertifyModal {...mockedDashboardProps} />);
         expect(
           screen.getByText(content =>
-            content.startsWith('You are certifying 2 dashboard'),
+            content.startsWith('You are certifying 2 dashboards'),
           ),
         ).toBeInTheDocument();
         expect(
-          screen.getByText(/bulk certify dashboard\|dashboards/i),
+          screen.getByText(/bulk certify dashboards/i),
         ).toBeInTheDocument();
       });
     });

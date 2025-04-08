@@ -50,8 +50,7 @@ const BulkCertifyModal: FC<BulkCertifyModalProps> = ({
   const [certificationDetails, setCertificationDetails] = useState<string>('');
 
   const resourceLabelPlural = t(
-    '%s|%s',
-    resourceLabel,
+    '%s',
     selected.length > 1 ? `${resourceLabel}s` : resourceLabel,
   );
 
