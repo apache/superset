@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Skeleton, type SkeletonProps } from 'antd-v5';
 
-export { default as TagsList } from './TagsList';
-export { default as Tag } from './Tag';
+export type { SkeletonProps };
+export default Skeleton;

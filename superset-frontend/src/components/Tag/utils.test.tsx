@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { tagToSelectOption } from 'src/components/Tags/utils';
+import { tagToSelectOption } from 'src/components/Tag/utils';
 
 describe('tagToSelectOption', () => {
   test('converts a Tag object with table_name to a SelectTagsValue', () => {

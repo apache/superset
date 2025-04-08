@@ -32,7 +32,9 @@ import {
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Icons } from 'src/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { Skeleton, AntdBreadcrumb as Breadcrumb, Button } from 'src/components';
+import { AntdBreadcrumb as Breadcrumb } from 'src/components';
+import Button from 'src/components/Button';
+import Skeleton from 'src/components/Skeleton';
 import { Dropdown } from 'src/components/Dropdown';
 import FilterableTable from 'src/components/FilterableTable';
 import Tabs from 'src/components/Tabs';
@@ -350,7 +352,6 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
             <AutoSizer disableWidth>
               {({ height }) => (
                 <Tabs
-                  fullWidth={false}
                   onTabClick={onTabSwitch}
                   css={css`
                     height: ${height}px;

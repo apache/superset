@@ -22,7 +22,7 @@ import { Tooltip as BaseTooltip } from 'antd-v5';
 import {
   TooltipProps as BaseTooltipProps,
   TooltipPlacement as BaseTooltipPlacement,
-} from 'antd-v5/lib/tooltip';
+} from 'antd-v5/es/tooltip';
 
 export type TooltipProps = BaseTooltipProps;
 export type TooltipPlacement = BaseTooltipPlacement;

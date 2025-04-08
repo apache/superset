@@ -68,19 +68,19 @@ const SqlLabStyles = styled.div`
         height: 100%;
       }
 
-      .ant-tabs-content-holder {
+      .antd5-tabs-content-holder {
         /* This is needed for Safari */
         height: 100%;
       }
 
-      .ant-tabs-content {
+      .antd5-tabs-content {
         height: 100%;
         position: relative;
         background-color: ${theme.colorBgContainer};
         overflow-x: auto;
         overflow-y: auto;
 
-        > .ant-tabs-tabpane {
+        > .antd5-tabs-tabpane {
           position: absolute;
           top: 0;
           right: 0;

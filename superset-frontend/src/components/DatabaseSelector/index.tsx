@@ -25,9 +25,9 @@ import {
   useCallback,
 } from 'react';
 import { styled, SupersetClient, SupersetError, t } from '@superset-ui/core';
-import type { LabeledValue as AntdLabeledValue } from 'antd-v5/lib/select';
+import type { LabeledValue as AntdLabeledValue } from 'src/components/Select';
 import rison from 'rison';
-import { AsyncSelect, Select } from 'src/components';
+import { Select, AsyncSelect } from 'src/components';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
@@ -219,7 +219,7 @@ export default function DatabaseSelector({
               />
             ),
             value: row.id,
-            id: row.id,
+            id: `${row.backend}-${row.database_name}-${row.id}`,
             database_name: row.database_name,
             backend: row.backend,
             allow_multi_catalog: row.allow_multi_catalog,

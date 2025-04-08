@@ -16,38 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import TagType from 'src/types/TagType';
-import { TagsList } from '.';
-import { TagsListProps } from './TagsList';
+import { Row, Col, Grid as AntdGrid } from 'antd-v5';
+import type { ColProps, ColSize } from 'antd-v5/es/col';
+import type { RowProps } from 'antd-v5/es/row';
 
-export default {
-  title: 'Tags',
-  component: TagsList,
-};
+export type { ColProps, ColSize, RowProps };
 
-export const InteractiveTagsList = ({
-  tags,
-  editable,
-  maxTags,
-}: TagsListProps) => (
-  <TagsList tags={tags} editable={editable} maxTags={maxTags} />
-);
-
-const tags: TagType[] = [
-  { name: 'tag1' },
-  { name: 'tag2' },
-  { name: 'tag3' },
-  { name: 'tag4' },
-  { name: 'tag5' },
-  { name: 'tag6' },
-];
-
-const editable = true;
-
-const maxTags = 3;
-
-InteractiveTagsList.args = {
-  tags,
-  editable,
-  maxTags,
-};
+export { Row, Col };
+export default AntdGrid;

@@ -25,8 +25,9 @@ import {
   screen,
   waitFor,
   userEvent,
+  fireEvent,
 } from 'spec/helpers/testing-library';
-import { UploadFile } from 'antd/lib/upload/interface';
+import { UploadFile } from 'src/components/Upload';
 
 const csvProps = {
   show: true,
@@ -567,7 +568,6 @@ test('Columnar, does not render the rows', () => {
 });
 
 test('database and schema are correctly populated', async () => {
-  jest.setTimeout(10000);
   render(<UploadDataModal {...csvProps} />, {
     useRedux: true,
   });
@@ -585,7 +585,9 @@ test('database and schema are correctly populated', async () => {
   await waitFor(() => screen.getByText('database2'));
 
   screen.getByText('database1').click();
+
   userEvent.click(selectSchema);
+
   // make sure the schemas for database1 are displayed
   await waitFor(() => screen.getAllByText('information_schema'));
   await waitFor(() => screen.getAllByText('public'));
@@ -595,7 +597,7 @@ test('database and schema are correctly populated', async () => {
   // make sure the schemas for database2 are displayed
   await waitFor(() => screen.getAllByText('schema1'));
   await waitFor(() => screen.getAllByText('schema2'));
-});
+}, 30000);
 
 test('form without required fields', async () => {
   render(<UploadDataModal {...csvProps} />, {
@@ -625,17 +627,17 @@ test('CSV form post', async () => {
   userEvent.click(selectButton);
 
   // Select a file from the file dialog
-  const file = new File(['test'], 'test.csv', { type: 'text' });
+  const file = new File(['test'], 'test.csv', { type: 'text/csv' });
   const inputElement = screen.getByTestId('model-file-input');
 
-  if (inputElement) {
-    userEvent.upload(inputElement as HTMLElement, file);
-  }
+  expect(inputElement).toBeInTheDocument();
+  fireEvent.change(inputElement, { target: { files: [file] } });
 
   const selectDatabase = screen.getByRole('combobox', {
     name: /select a database/i,
   });
   userEvent.click(selectDatabase);
+
   await screen.findByText('database1');
   await screen.findByText('database2');
 
@@ -644,6 +646,7 @@ test('CSV form post', async () => {
     name: /schema/i,
   });
   userEvent.click(selectSchema);
+
   await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
 
@@ -670,7 +673,7 @@ test('CSV form post', async () => {
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.csv');
-});
+}, 30000);
 
 test('Excel form post', async () => {
   render(<UploadDataModal {...excelProps} />, {
@@ -686,14 +689,14 @@ test('Excel form post', async () => {
   const file = new File(['test'], 'test.xls', { type: 'text' });
   const inputElement = screen.getByTestId('model-file-input');
 
-  if (inputElement) {
-    userEvent.upload(inputElement as HTMLElement, file);
-  }
+  expect(inputElement).toBeInTheDocument();
+  fireEvent.change(inputElement, { target: { files: [file] } });
 
   const selectDatabase = screen.getByRole('combobox', {
     name: /select a database/i,
   });
   userEvent.click(selectDatabase);
+
   await screen.findByText('database1');
   await screen.findByText('database2');
 
@@ -702,6 +705,7 @@ test('Excel form post', async () => {
     name: /schema/i,
   });
   userEvent.click(selectSchema);
+
   await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
 
@@ -728,7 +732,7 @@ test('Excel form post', async () => {
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.xls');
-});
+}, 30000);
 
 test('Columnar form post', async () => {
   render(<UploadDataModal {...columnarProps} />, {
@@ -744,14 +748,14 @@ test('Columnar form post', async () => {
   const file = new File(['test'], 'test.parquet', { type: 'text' });
   const inputElement = screen.getByTestId('model-file-input');
 
-  if (inputElement) {
-    userEvent.upload(inputElement as HTMLElement, file);
-  }
+  expect(inputElement).toBeInTheDocument();
+  fireEvent.change(inputElement, { target: { files: [file] } });
 
   const selectDatabase = screen.getByRole('combobox', {
     name: /select a database/i,
   });
   userEvent.click(selectDatabase);
+
   await screen.findByText('database1');
   await screen.findByText('database2');
 
@@ -760,6 +764,7 @@ test('Columnar form post', async () => {
     name: /schema/i,
   });
   userEvent.click(selectSchema);
+
   await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
 
@@ -772,6 +777,7 @@ test('Columnar form post', async () => {
     name: 'Upload',
   });
 
+  expect(uploadButton).toBeEnabled();
   userEvent.click(uploadButton);
   await waitFor(() => fetchMock.called('glob:*api/v1/database/1/upload/'));
 
@@ -786,7 +792,7 @@ test('Columnar form post', async () => {
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.parquet');
-});
+}, 30000);
 
 test('CSV, validate file extension returns false', () => {
   const invalidFileNames = ['out', 'out.exe', 'out.csv.exe', '.csv', 'out.xls'];

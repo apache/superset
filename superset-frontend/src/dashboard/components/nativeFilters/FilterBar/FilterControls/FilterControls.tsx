@@ -145,7 +145,6 @@ const FilterControls: FC<FilterControlsProps> = ({
           <FiltersOutOfScopeCollapsible
             filtersOutOfScope={filtersOutOfScope}
             forceRender={hasRequiredFirst}
-            hasTopMargin={filtersInScope.length > 0}
             renderer={renderer}
           />
         )}

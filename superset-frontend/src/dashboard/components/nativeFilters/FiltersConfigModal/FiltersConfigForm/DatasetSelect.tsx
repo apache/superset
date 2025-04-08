@@ -66,12 +66,10 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
     })
       .then((response: JsonResponse) => {
         const list: {
-          customLabel: ReactNode;
-          label: string;
+          label: string | ReactNode;
           value: string | number;
         }[] = response.json.result.map((item: Dataset) => ({
-          customLabel: DatasetSelectLabel(item),
-          label: item.table_name,
+          label: DatasetSelectLabel(item),
           value: item.id,
         }));
         return {
