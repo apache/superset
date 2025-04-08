@@ -521,7 +521,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
   const [tabOptions, setTabOptions] = useState<TabNode[]>([]);
-  const [nativeFilterOptions, setNativeFilterOptions] = useState<object[]>([]);
+  const [nativeFilterOptions, setNativeFilterOptions] = useState<
+    {
+      value: string;
+      name: string;
+    }[]
+  >([]);
   const [tabNativeFilters, setTabNativeFilters] = useState<object>({});
   const [nativeFilterData, setNativeFilterData] = useState<ExtraNativeFilter[]>(
     [
@@ -533,8 +538,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       },
     ],
   );
-
-  console.log('nativeFilterData', nativeFilterData);
 
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
@@ -597,8 +600,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   >([]);
   const [emailSubject, setEmailSubject] = useState<string>('');
   const [emailError, setEmailError] = useState(false);
-
-  console.log('filtersEnabled', filtersEnabled);
 
   const onNotificationAdd = () => {
     setNotificationSettings([
@@ -1011,8 +1012,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             addNativeFilterOptions(nativeFilters.all);
           }
           const anchor = currentAlert?.extra?.dashboard?.anchor;
-          console.log(nativeFilters);
-          console.log('anchor', anchor);
           if (anchor) {
             try {
               const parsedAnchor = JSON.parse(anchor);
@@ -1048,8 +1047,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             );
           }
         })
-        .catch(e => {
-          console.log(e);
+        .catch(() => {
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }
@@ -1339,8 +1337,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const filters = Object.values(tabNativeFilters).flat();
     const filter = filters.filter((f: any) => f.id === nativeFilterId)[0];
     const filterName = filter.name;
-
-    console.log('onChangeDashboardFilter', filter);
 
     const filterAlreadyExist = nativeFilterData.some(
       filter => filter.nativeFilterId === nativeFilterId,
@@ -2088,7 +2084,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 >
                   {(fields, { add, remove }) => (
                     <div>
-                      {fields.map(({ key, name }) => (
+                      {fields.map(({ key, name: idx }) => (
                         <div className="filters-container" key={key}>
                           <div className="filters-dash-container">
                             <div className="control-label">
@@ -2105,12 +2101,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               ariaLabel={t('Select Filter')}
                               placeholder={t('Select Filter')}
                               // @ts-ignore
-                              value={nativeFilterData[key]?.filterName}
+                              value={nativeFilterData[idx]?.filterName}
                               // @ts-ignore
                               options={filterNativeFilterOptions()}
                               onChange={value =>
                                 // @ts-ignore
-                                onChangeDashboardFilter(key, value)
+                                onChangeDashboardFilter(idx, value)
                               }
                               oneLine
                             />
@@ -2121,27 +2117,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               ariaLabel={t('Value')}
                               placeholder={t('Select Value')}
                               disabled={
-                                !nativeFilterData[key]?.optionFilterValues
+                                !nativeFilterData[idx]?.optionFilterValues
                               }
-                              value={nativeFilterData[key]?.filterValues}
+                              value={nativeFilterData[idx]?.filterValues}
                               // @ts-ignore
                               options={
-                                nativeFilterData[key]?.optionFilterValues
+                                nativeFilterData[idx]?.optionFilterValues
                               }
                               onChange={value =>
                                 // @ts-ignore
-                                onChangeDashboardFilterValue(key, value)
+                                onChangeDashboardFilterValue(idx, value)
                               }
                               mode="multiple"
                             />
                           </div>
-                          {name !== 0 && (
+                          {(idx !== 0 || isEditMode) && (
                             <div className="filters-delete">
                               <Icons.DeleteOutlined
                                 className="filters-trashcan"
                                 onClick={() => {
-                                  handleRemoveFilterField(name);
-                                  remove(name);
+                                  handleRemoveFilterField(idx);
+                                  remove(idx);
                                 }}
                               />
                             </div>
