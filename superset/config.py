@@ -25,7 +25,7 @@ at the end of this file.
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
-# import imp  # pylint: disable=deprecated-module
+#import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
 import logging
@@ -310,7 +310,7 @@ AUTH_RATE_LIMIT = "5 per second"
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Behjärta DS"
+APP_NAME = "Superset"
 
 # Specify the App icon
 APP_ICON = "/static/assets/images/favicon.png"
