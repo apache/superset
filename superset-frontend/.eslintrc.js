@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageConfig = require('./package');
 
 const importCoreModules = [];
@@ -83,6 +85,7 @@ module.exports = {
     'plugin:react-hooks/recommended',
     'plugin:react-prefer-function-component/recommended',
     'plugin:storybook/recommended',
+    'plugin:@typescript-eslint/recommended',
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {
@@ -117,6 +120,7 @@ module.exports = {
     'i18n-strings',
     'react-prefer-function-component',
     'prettier',
+    '@typescript-eslint/eslint-plugin',
   ],
   overrides: [
     {
@@ -134,6 +138,10 @@ module.exports = {
         '@typescript-eslint/ban-ts-ignore': 0,
         '@typescript-eslint/ban-ts-comment': 0, // disabled temporarily
         '@typescript-eslint/ban-types': 0, // disabled temporarily
+        '@typescript-eslint/consistent-type-imports': [
+          'error',
+          { prefer: 'type-imports' },
+        ],
         '@typescript-eslint/naming-convention': [
           'error',
           {
