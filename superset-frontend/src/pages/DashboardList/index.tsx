@@ -329,7 +329,7 @@ function DashboardList(props: DashboardListProps) {
             },
           },
         }: any) => (
-          <Link to={url}>
+          <Link to={url} title={dashboardTitle}>
             {certifiedBy && (
               <>
                 <CertifiedBadge
