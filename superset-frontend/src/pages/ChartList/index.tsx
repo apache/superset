@@ -75,6 +75,7 @@ import { findPermission } from 'src/utils/findPermission';
 import { DashboardCrossLinks } from 'src/components/ListView/DashboardCrossLinks';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import BulkUpdateOwnersModal from 'src/features/bulkUpdate/BulkUpdateOwnersModal';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -213,6 +214,9 @@ function ChartList(props: ChartListProps) {
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [showBulkUpdateOwnersModal, setShowBulkUpdateOwnersModal] =
+    useState<boolean>(false);
+  const [bulkSelected, setBulkSelected] = useState<Chart[]>([]);
 
   // TODO: Fix usage of localStorage keying on the user id
   const userSettings = dangerouslyGetItemDoNotUse(userId?.toString(), null) as {
@@ -231,6 +235,17 @@ function ChartList(props: ChartListProps) {
     showImportModal(false);
     refreshData();
     addSuccessToast(t('Chart imported'));
+  };
+
+  const openBulkUpdateOwnersModal = (selected: Chart[]) => {
+    setBulkSelected(selected);
+    setShowBulkUpdateOwnersModal(true);
+  };
+
+  const closeBulkUpdateOwnersModal = () => {
+    setShowBulkUpdateOwnersModal(false);
+    setBulkSelected([]);
+    refreshData();
   };
 
   const canCreate = hasPerm('can_write');
@@ -830,6 +845,14 @@ function ChartList(props: ChartListProps) {
               onSelect: handleBulkChartExport,
             });
           }
+          if (canEdit) {
+            bulkActions.push({
+              key: 'updateOwners',
+              name: t('Update Owners'),
+              type: 'primary',
+              onSelect: openBulkUpdateOwnersModal,
+            });
+          }
           return (
             <ListView<Chart>
               bulkActions={bulkActions}
@@ -866,6 +889,16 @@ function ChartList(props: ChartListProps) {
         }}
       </ConfirmStatusChange>
 
+      <BulkUpdateOwnersModal
+        show={showBulkUpdateOwnersModal}
+        onHide={closeBulkUpdateOwnersModal}
+        selected={bulkSelected}
+        resourceName="chart"
+        resourceLabel={t('chart')}
+        refreshData={refreshData}
+        addSuccessToast={addSuccessToast}
+        addDangerToast={addDangerToast}
+      />
       <ImportModelsModal
         resourceName="chart"
         resourceLabel={t('chart')}
