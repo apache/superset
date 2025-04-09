@@ -93,6 +93,11 @@ const CheckBoxControlWrapper = styled.div`
   cursor: pointer;
   margin-left: 8px;
   margin-top: 8px;
+
+  [role="checkbox"] {
+    margin-top: 4px;
+  }
+
 `;
 
 const iconStyles = css`
