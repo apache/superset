@@ -146,6 +146,8 @@ services:
     environment:
       SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
     restart: unless-stopped
+    ports:
+      - 5555:5555
     depends_on:
       superset-init:
         condition: service_completed_successfully
