@@ -30,6 +30,7 @@ const {
   defaultToFirstItem,
   searchAllOptions,
   sortAscending,
+  showExcludeSelection,
 } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
@@ -137,6 +138,19 @@ const config: ControlPanelConfig = {
                   'Check this box if you have more than 1000 filter values and want to enable dynamically ' +
                   'searching that loads filter values as users type (may add stress to your database).',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'showExcludeSelection',
+            config: {
+              type: 'CheckboxControl',
+              renderTrigger: true,
+              affectsDataMask: true,
+              label: t('Show dynamic exclude selection field'),
+              default: showExcludeSelection,
+              description: t('Exclude the selected filter values from the results instead of filtering them'),
             },
           },
         ],
