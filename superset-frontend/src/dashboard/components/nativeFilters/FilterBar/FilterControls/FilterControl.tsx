@@ -120,7 +120,7 @@ const VerticalFormItem = styled(StyledFormItem)`
   }
 `;
 
-const HorizontalFormItem = styled(StyledFormItem)`
+const HorizontalFormItem = styled(StyledFormItem)<{ showExcludeSelection: boolean }>`
   && {
     margin-bottom: 0;
     align-items: center;
@@ -142,7 +142,17 @@ const HorizontalFormItem = styled(StyledFormItem)`
   }
 
   .ant-form-item-control {
-    width: ${({ theme }) => theme.gridUnit * 41}px;
+    width: ${({ theme, showExcludeSelection }) =>
+      showExcludeSelection ? theme.gridUnit * 41 * 2 : theme.gridUnit * 41}px;
+  }
+
+  .ant-form-item-control-input-content {
+    ${({ showExcludeSelection }) =>
+      showExcludeSelection && 'display: flex;'}
+  }
+
+  .exclude-filter {
+    margin-top: 0px;
   }
 `;
 
@@ -151,20 +161,21 @@ const HorizontalOverflowFormItem = VerticalFormItem;
 const useFilterControlDisplay = (
   orientation: FilterBarOrientation,
   overflow: boolean,
+  showExcludeSelection: boolean,
 ) =>
   useMemo(() => {
     if (orientation === FilterBarOrientation.Horizontal) {
       if (overflow) {
         return {
           FilterControlContainer: HorizontalOverflowFilterControlContainer,
-          FormItem: HorizontalOverflowFormItem,
+          FormItem : HorizontalOverflowFormItem,
           FilterControlTitleBox: HorizontalOverflowFilterControlTitleBox,
           FilterControlTitle: HorizontalOverflowFilterControlTitle,
         };
       }
       return {
         FilterControlContainer: HorizontalFilterControlContainer,
-        FormItem: HorizontalFormItem,
+        FormItem: (props: any) => <HorizontalFormItem {...props} showExcludeSelection={showExcludeSelection} />,
         FilterControlTitleBox: HorizontalFilterControlTitleBox,
         FilterControlTitle: HorizontalFilterControlTitle,
       };
@@ -175,7 +186,7 @@ const useFilterControlDisplay = (
       FilterControlTitleBox: VerticalFilterControlTitleBox,
       FilterControlTitle: VerticalFilterControlTitle,
     };
-  }, [orientation, overflow]);
+  }, [orientation, overflow, showExcludeSelection]);
 
 const ToolTipContainer = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.m}px;
@@ -243,13 +254,14 @@ const FilterControl = ({
     checkIsMissingRequiredValue(filter, filter.dataMask?.filterState);
   const validateStatus = isMissingRequiredValue ? 'error' : undefined;
   const isRequired = !!filter.controlValues?.enableEmptyFilter;
+  const showExcludeSelection = !!filter.controlValues?.showExcludeSelection;
 
   const {
     FilterControlContainer,
     FormItem,
     FilterControlTitleBox,
     FilterControlTitle,
-  } = useFilterControlDisplay(orientation, overflow);
+  } = useFilterControlDisplay(orientation, overflow, showExcludeSelection);
 
   const label = useMemo(
     () => (

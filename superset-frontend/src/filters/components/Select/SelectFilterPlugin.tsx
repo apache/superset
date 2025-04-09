@@ -90,8 +90,9 @@ const CheckBoxControlWrapper = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 8px;
   cursor: pointer;
+  margin-left: 8px;
+  margin-top: 8px;
 `;
 
 const iconStyles = css`
@@ -363,17 +364,18 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           loading={isRefreshing}
           oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
           invertSelection={inverseSelection}
+          showExcludeSelection={showExcludeSelection}
           options={options}
           sortComparator={sortComparator}
           onDropdownVisibleChange={setFilterActive}
         />
         {showExcludeSelection && (
-          <CheckBoxControlWrapper onClick={() => handleExcludeCheckboxChange(!excludeFilterValues)}>
+          <CheckBoxControlWrapper className='exclude-filter' onClick={() => handleExcludeCheckboxChange(!excludeFilterValues)}>
             <Checkbox
               checked={excludeFilterValues}
               onChange={handleExcludeCheckboxChange}
             />
-            <span>{t('Exclude Filter Values')}</span>
+            <span>{filterBarOrientation === FilterBarOrientation.Horizontal ? t('Exclude Values')  : t('Exclude Filter Values')}</span>
             <Tooltip
               id="exclude-filter-tooltip"
               title={EXCLUDE_FILTER_VALUES_TOOLTIP(filterName)}
