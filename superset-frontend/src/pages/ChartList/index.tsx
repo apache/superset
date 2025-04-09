@@ -450,7 +450,7 @@ function ChartList(props: ChartListProps) {
         Cell: ({ row: { original } }: any) => {
           // Verify owner or isAdmin
           const allowEdit: boolean =
-            original.owners?.map((o: Owner) => o.id).includes(user.userId) ||
+            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
             isUserAdmin(user);
 
           const handleDelete = () =>
