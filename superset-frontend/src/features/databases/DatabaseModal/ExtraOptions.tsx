@@ -27,7 +27,7 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
-import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+import Checkbox, { CheckboxChangeEvent } from 'src/components/Checkbox';
 import Collapse from 'src/components/Collapse';
 import { Input } from 'src/components/Input';
 import {
@@ -48,10 +48,14 @@ const ExtraOptions = ({
   extraExtension,
 }: {
   db: DatabaseObject | null;
-  onInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
+  onInputChange: (
+    e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
+  ) => void;
   onTextChange: EventHandler<ChangeEvent<HTMLTextAreaElement>>;
   onEditorChange: Function;
-  onExtraInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
+  onExtraInputChange: (
+    e: CheckboxChangeEvent | ChangeEvent<HTMLInputElement>,
+  ) => void;
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
 }) => {
@@ -99,13 +103,15 @@ const ExtraOptions = ({
             <>
               <StyledInputContainer css={no_margin_bottom}>
                 <div className="input-container">
-                  <IndeterminateCheckbox
+                  <Checkbox
                     id="expose_in_sqllab"
+                    name="expose_in_sqllab"
                     indeterminate={false}
                     checked={!!db?.expose_in_sqllab}
                     onChange={onInputChange}
-                    labelText={t('Expose database in SQL Lab')}
-                  />
+                  >
+                    {t('Expose database in SQL Lab')}
+                  </Checkbox>
                   <InfoTooltip
                     tooltip={t('Allow this database to be queried in SQL Lab')}
                   />
@@ -118,13 +124,15 @@ const ExtraOptions = ({
                 >
                   <StyledInputContainer css={no_margin_bottom}>
                     <div className="input-container">
-                      <IndeterminateCheckbox
+                      <Checkbox
                         id="allow_ctas"
+                        name="allow_ctas"
                         indeterminate={false}
                         checked={!!db?.allow_ctas}
                         onChange={onInputChange}
-                        labelText={t('Allow CREATE TABLE AS')}
-                      />
+                      >
+                        {t('Allow CREATE TABLE AS')}
+                      </Checkbox>
                       <InfoTooltip
                         tooltip={t(
                           'Allow creation of new tables based on queries',
@@ -134,13 +142,15 @@ const ExtraOptions = ({
                   </StyledInputContainer>
                   <StyledInputContainer css={no_margin_bottom}>
                     <div className="input-container">
-                      <IndeterminateCheckbox
+                      <Checkbox
                         id="allow_cvas"
+                        name="allow_cvas"
                         indeterminate={false}
                         checked={!!db?.allow_cvas}
                         onChange={onInputChange}
-                        labelText={t('Allow CREATE VIEW AS')}
-                      />
+                      >
+                        {t('Allow CREATE VIEW AS')}
+                      </Checkbox>
                       <InfoTooltip
                         tooltip={t(
                           'Allow creation of new views based on queries',
@@ -171,13 +181,15 @@ const ExtraOptions = ({
                   </StyledInputContainer>
                   <StyledInputContainer css={no_margin_bottom}>
                     <div className="input-container">
-                      <IndeterminateCheckbox
+                      <Checkbox
                         id="allow_dml"
+                        name="allow_dml"
                         indeterminate={false}
                         checked={!!db?.allow_dml}
                         onChange={onInputChange}
-                        labelText={t('Allow DDL and DML')}
-                      />
+                      >
+                        {t('Allow DDL and DML')}
+                      </Checkbox>
                       <InfoTooltip
                         tooltip={t(
                           'Allow the execution of DDL (Data Definition Language: CREATE, DROP, TRUNCATE, etc.) and DML (Data Modification Language: INSERT, UPDATE, DELETE, etc)',
@@ -187,13 +199,15 @@ const ExtraOptions = ({
                   </StyledInputContainer>
                   <StyledInputContainer css={no_margin_bottom}>
                     <div className="input-container">
-                      <IndeterminateCheckbox
+                      <Checkbox
                         id="cost_estimate_enabled"
+                        name="cost_estimate_enabled"
                         indeterminate={false}
                         checked={!!extraJson?.cost_estimate_enabled}
                         onChange={onExtraInputChange}
-                        labelText={t('Enable query cost estimation')}
-                      />
+                      >
+                        {t('Enable query cost estimation')}
+                      </Checkbox>
                       <InfoTooltip
                         tooltip={t(
                           'For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.',
@@ -203,16 +217,18 @@ const ExtraOptions = ({
                   </StyledInputContainer>
                   <StyledInputContainer css={no_margin_bottom}>
                     <div className="input-container">
-                      <IndeterminateCheckbox
+                      <Checkbox
                         id="allows_virtual_table_explore"
+                        name="allows_virtual_table_explore"
                         indeterminate={false}
                         // when `allows_virtual_table_explore` is not present in `extra` it defaults to true
                         checked={
                           extraJson?.allows_virtual_table_explore !== false
                         }
                         onChange={onExtraInputChange}
-                        labelText={t('Allow this database to be explored')}
-                      />
+                      >
+                        {t('Allow this database to be explored')}
+                      </Checkbox>
                       <InfoTooltip
                         tooltip={t(
                           'When enabled, users are able to visualize SQL Lab results in Explore.',
@@ -222,13 +238,15 @@ const ExtraOptions = ({
                   </StyledInputContainer>
                   <StyledInputContainer css={no_margin_bottom}>
                     <div className="input-container">
-                      <IndeterminateCheckbox
+                      <Checkbox
                         id="disable_data_preview"
+                        name="disable_data_preview"
                         indeterminate={false}
                         checked={!!extraJson?.disable_data_preview}
                         onChange={onExtraInputChange}
-                        labelText={t('Disable SQL Lab data preview queries')}
-                      />
+                      >
+                        {t('Disable SQL Lab data preview queries')}
+                      </Checkbox>
                       <InfoTooltip
                         tooltip={t(
                           'Disable data preview when fetching table metadata in SQL Lab. ' +
@@ -240,13 +258,15 @@ const ExtraOptions = ({
                   </StyledInputContainer>
                   <StyledInputContainer>
                     <div className="input-container">
-                      <IndeterminateCheckbox
+                      <Checkbox
                         id="expand_rows"
+                        name="expand_rows"
                         indeterminate={false}
                         checked={!!extraJson?.schema_options?.expand_rows}
                         onChange={onExtraInputChange}
-                        labelText={t('Enable row expansion in schemas')}
-                      />
+                      >
+                        {t('Enable row expansion in schemas')}
+                      </Checkbox>
                       <InfoTooltip
                         tooltip={t(
                           'For Trino, describe full schemas of nested ROW types, expanding them with dotted paths',
@@ -334,13 +354,15 @@ const ExtraOptions = ({
               </StyledInputContainer>
               <StyledInputContainer css={{ no_margin_bottom }}>
                 <div className="input-container">
-                  <IndeterminateCheckbox
+                  <Checkbox
                     id="allow_run_async"
+                    name="allow_run_async"
                     indeterminate={false}
                     checked={allowRunAsync}
                     onChange={onInputChange}
-                    labelText={t('Asynchronous query execution')}
-                  />
+                  >
+                    {t('Asynchronous query execution')}
+                  </Checkbox>
                   <InfoTooltip
                     tooltip={t(
                       'Operate the database in asynchronous mode, meaning that the queries ' +
@@ -361,13 +383,15 @@ const ExtraOptions = ({
               </StyledInputContainer>
               <StyledInputContainer css={{ no_margin_bottom }}>
                 <div className="input-container">
-                  <IndeterminateCheckbox
+                  <Checkbox
                     id="cancel_query_on_windows_unload"
+                    name="cancel_query_on_windows_unload"
                     indeterminate={false}
                     checked={!!extraJson?.cancel_query_on_windows_unload}
                     onChange={onExtraInputChange}
-                    labelText={t('Cancel query on window unload event')}
-                  />
+                  >
+                    {t('Cancel query on window unload event')}
+                  </Checkbox>
                   <InfoTooltip
                     tooltip={t(
                       'Terminate running queries when browser window closed or navigated ' +
@@ -436,15 +460,17 @@ const ExtraOptions = ({
                 css={!isFileUploadSupportedByEngine ? no_margin_bottom : {}}
               >
                 <div className="input-container">
-                  <IndeterminateCheckbox
+                  <Checkbox
                     id="impersonate_user"
+                    name="impersonate_user"
                     indeterminate={false}
                     checked={!!db?.impersonate_user}
                     onChange={onInputChange}
-                    labelText={t(
+                  >
+                    {t(
                       'Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)',
                     )}
-                  />
+                  </Checkbox>
                   <InfoTooltip
                     tooltip={t(
                       'If Presto or Trino, all the queries in SQL Lab are going to be executed as the ' +
@@ -461,13 +487,15 @@ const ExtraOptions = ({
                   css={!db?.allow_file_upload ? no_margin_bottom : {}}
                 >
                   <div className="input-container">
-                    <IndeterminateCheckbox
+                    <Checkbox
                       id="allow_file_upload"
+                      name="allow_file_upload"
                       indeterminate={false}
                       checked={!!db?.allow_file_upload}
                       onChange={onInputChange}
-                      labelText={t('Allow file uploads to database')}
-                    />
+                    >
+                      {t('Allow file uploads to database')}
+                    </Checkbox>
                   </div>
                 </StyledInputContainer>
               )}
@@ -618,13 +646,15 @@ const ExtraOptions = ({
               </StyledInputContainer>
               <StyledInputContainer css={no_margin_bottom}>
                 <div className="input-container">
-                  <IndeterminateCheckbox
+                  <Checkbox
                     id="disable_drill_to_detail"
+                    name="disable_drill_to_detail"
                     indeterminate={false}
                     checked={!!extraJson?.disable_drill_to_detail}
                     onChange={onExtraInputChange}
-                    labelText={t('Disable drill to detail')}
-                  />
+                  >
+                    {t('Disable drill to detail')}
+                  </Checkbox>
                   <InfoTooltip
                     tooltip={t(
                       'Disables the drill to detail feature for this database.',
@@ -635,13 +665,15 @@ const ExtraOptions = ({
               {supportsDynamicCatalog && (
                 <StyledInputContainer css={no_margin_bottom}>
                   <div className="input-container">
-                    <IndeterminateCheckbox
+                    <Checkbox
                       id="allow_multi_catalog"
+                      name="allow_multi_catalog"
                       indeterminate={false}
                       checked={!!extraJson?.allow_multi_catalog}
                       onChange={onExtraInputChange}
-                      labelText={t('Allow changing catalogs')}
-                    />
+                    >
+                      {t('Allow changing catalogs')}
+                    </Checkbox>
                     <InfoTooltip
                       tooltip={t(
                         'Give access to multiple catalogs in a single database connection.',

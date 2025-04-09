@@ -101,7 +101,7 @@ describe('Dashboards list', () => {
           expect($btns).to.contain('Export');
         });
       cy.getBySel('bulk-select-deselect-all').click();
-      cy.get('[aria-label="checkbox-on"]').should('have.length', 0);
+      cy.get('input[type="checkbox"]:checked').should('have.length', 0);
       cy.getBySel('bulk-select-copy').contains('0 Selected');
       cy.getBySel('bulk-select-action').should('not.exist');
     });

@@ -35,6 +35,7 @@ import {
   useCallback,
   ChangeEvent,
 } from 'react';
+import { CheckboxChangeEvent } from 'src/components/Checkbox';
 
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
@@ -332,7 +333,10 @@ export function dbReducer(
             ...extraJson,
             schema_options: {
               ...extraJson?.schema_options,
-              [action.payload.name]: !!action.payload.value,
+              [action.payload.name]:
+                'checked' in action.payload
+                  ? !!action.payload.checked
+                  : !!action.payload.value,
             },
           }),
         };
@@ -1737,14 +1741,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <ExtraOptions
           extraExtension={dbConfigExtraExtension}
           db={db as DatabaseObject}
-          onInputChange={({ target }: { target: HTMLInputElement }) =>
+          onInputChange={(
+            e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
+          ) => {
+            const { target } = e;
             onChange(ActionType.InputChange, {
               type: target.type,
               name: target.name,
-              checked: target.checked,
+              checked: 'checked' in target ? target.checked : false,
               value: target.value,
-            })
-          }
+            });
+          }}
           onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
             onChange(ActionType.TextChange, {
               name: target.name,
@@ -1754,11 +1761,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           onEditorChange={(payload: { name: string; json: any }) =>
             onChange(ActionType.EditorChange, payload)
           }
-          onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
+          onExtraInputChange={(
+            e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
+          ) => {
+            const { target } = e;
             onChange(ActionType.ExtraInputChange, {
               type: target.type,
               name: target.name,
-              checked: target.checked,
+              checked: 'checked' in target ? target.checked : false,
               value: target.value,
             });
           }}
@@ -1966,24 +1976,28 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <ExtraOptions
             extraExtension={dbConfigExtraExtension}
             db={db as DatabaseObject}
-            onInputChange={({ target }: { target: HTMLInputElement }) =>
+            onInputChange={(e: CheckboxChangeEvent) => {
+              const { target } = e;
               onChange(ActionType.InputChange, {
                 type: target.type,
                 name: target.name,
                 checked: target.checked,
                 value: target.value,
-              })
-            }
-            onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
+              });
+            }}
+            onTextChange={({ target }: { target: HTMLTextAreaElement }) => {
               onChange(ActionType.TextChange, {
                 name: target.name,
                 value: target.value,
-              })
-            }
-            onEditorChange={(payload: { name: string; json: any }) =>
-              onChange(ActionType.EditorChange, payload)
-            }
-            onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
+              });
+            }}
+            onEditorChange={(payload: { name: string; json: any }) => {
+              onChange(ActionType.EditorChange, payload);
+            }}
+            onExtraInputChange={(
+              e: React.ChangeEvent<HTMLInputElement> | CheckboxChangeEvent,
+            ) => {
+              const { target } = e;
               onChange(ActionType.ExtraInputChange, {
                 type: target.type,
                 name: target.name,

@@ -22,7 +22,7 @@ import Alert from 'src/components/Alert';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import { Icons } from 'src/components/Icons';
-import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+import Checkbox from 'src/components/Checkbox';
 import Pagination from 'src/components/Pagination';
 import TableCollection from 'src/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
@@ -124,10 +124,10 @@ const BulkSelectWrapper = styled(Alert)`
 
 const bulkSelectColumnConfig = {
   Cell: ({ row }: any) => (
-    <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} id={row.id} />
+    <Checkbox {...row.getToggleRowSelectedProps()} id={row.id} />
   ),
   Header: ({ getToggleAllRowsSelectedProps }: any) => (
-    <IndeterminateCheckbox
+    <Checkbox
       {...getToggleAllRowsSelectedProps()}
       id="header-toggle-all"
       data-test="header-toggle-all"

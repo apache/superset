@@ -47,7 +47,8 @@ import TimezoneSelector from 'src/components/TimezoneSelector';
 import { propertyComparator } from 'src/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { AntdCheckbox, Select, AsyncSelect } from 'src/components';
+import { Select, AsyncSelect } from 'src/components';
+import Checkbox, { CheckboxChangeEvent } from 'src/components/Checkbox';
 import TreeSelect from 'src/components/TreeSelect';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
@@ -321,10 +322,6 @@ export const StyledInputContainer = styled.div`
       margin-left: 10px;
     }
   `}
-`;
-
-const StyledCheckbox = styled(AntdCheckbox)`
-  margin-top: ${({ theme }) => theme.sizeUnit * 0}px;
 `;
 
 const StyledTooltip = styled(InfoTooltipWithTrigger)`
@@ -1119,9 +1116,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onFormatChange = (value: string) => {
     setReportFormat(value);
   };
-
-  const onForceScreenshotChange = (event: any) => {
-    setForceScreenshot(event.target.checked);
+  const onForceScreenshotChange = (e: CheckboxChangeEvent) => {
+    setForceScreenshot(e.target.checked);
   };
 
   // Make sure notification settings has the required info
@@ -1823,14 +1819,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 )}
                 {(isReport || contentType === ContentType.Dashboard) && (
                   <div className="inline-container">
-                    <StyledCheckbox
+                    <Checkbox
                       data-test="bypass-cache"
-                      className="checkbox"
                       checked={forceScreenshot}
                       onChange={onForceScreenshotChange}
                     >
                       {t('Ignore cache when generating report')}
-                    </StyledCheckbox>
+                    </Checkbox>
                   </div>
                 )}
               </>
