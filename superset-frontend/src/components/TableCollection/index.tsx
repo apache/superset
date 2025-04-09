@@ -134,14 +134,12 @@ export const Table = styled.table`
       white-space: nowrap;
       min-width: 100px;
 
-      svg,
-      i {
+      .action-button [role=img],
+      .action-button [role=button] {
         margin-right: 8px;
 
         &:hover {
-          path {
-            fill: ${theme.colors.primary.base};
-          }
+          color: ${theme.colors.primary.base};
         }
       }
     }
