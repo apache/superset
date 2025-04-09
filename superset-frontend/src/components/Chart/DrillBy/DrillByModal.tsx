@@ -312,16 +312,32 @@ export default function DrillByModal({
     [dispatch, drillByConfigs, formData, getFormDataChangesFromConfigs],
   );
 
-  const breadcrumbItems = breadcrumbsData.map((breadcrumb, index) => ({
-    title: breadcrumb.groupby
-      ? Array.isArray(breadcrumb.groupby)
+  const breadcrumbItems = breadcrumbsData.map((breadcrumb, index) => {
+    let title = '';
+
+    if (breadcrumb.filters?.length) {
+      title = breadcrumb.filters
+        .map(filter =>
+          filter.val !== undefined
+            ? `${filter.col} (${String(filter.val)})`
+            : filter.col,
+        )
+        .join(', ');
+    } else if (breadcrumb.groupby) {
+      title = Array.isArray(breadcrumb.groupby)
         ? breadcrumb.groupby
             .map(col => col.verbose_name || col.column_name)
             .join(', ')
-        : breadcrumb.groupby.verbose_name || breadcrumb.groupby.column_name
-      : t('Root'),
-    onClick: () => onBreadcrumbClick(breadcrumb, index),
-  }));
+        : breadcrumb.groupby.verbose_name || breadcrumb.groupby.column_name;
+    } else {
+      title = t('Root');
+    }
+
+    return {
+      title,
+      onClick: () => onBreadcrumbClick(breadcrumb, index),
+    };
+  });
 
   const drilledFormData = useMemo(() => {
     let updatedFormData = { ...currentFormData };
@@ -479,7 +495,10 @@ export default function DrillByModal({
           itemRender={(route, _, routes, paths) => {
             const isLastElement = routes.indexOf(route) === routes.length - 1;
             return isLastElement ? (
-              <span data-test="drill-by-breadcrumb-item">{route.title}</span>
+              <span data-test="drill-by-breadcrumb-item">
+                {route.title}
+                {paths}
+              </span>
             ) : (
               <span
                 data-test="drill-by-breadcrumb-item"
