@@ -25,6 +25,7 @@ at the end of this file.
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
+# import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
 import logging
