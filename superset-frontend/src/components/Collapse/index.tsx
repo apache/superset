@@ -29,7 +29,12 @@ export interface CollapseProps extends AntdCollapseProps {
 
 const Collapse = styled((props: CollapseProps) => <AntdCollapse {...props} />)`
   ${({ modalMode }) =>
-    modalMode && `border-radius: 0; border-left: 0; border-right: 0;`}
+    modalMode &&
+    `
+      border-radius: 0;
+      border-left: 0;
+      border-right: 0;
+    `}
   .antd5-collapse-item {
     .antd5-collapse-header {
       .antd5-collapse-arrow svg {
