@@ -9,7 +9,6 @@ import {
 } from '@ant-design/icons';
 import { css, styled } from '@superset-ui/core';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
-import { set } from 'lodash';
 
 const Container = styled.div`
   ${({ theme }) => css`  
