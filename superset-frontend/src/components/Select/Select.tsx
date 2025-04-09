@@ -606,7 +606,7 @@ const Select = forwardRef(
     };
 
     return (
-      <StyledContainer showExcludeSelection={showExcludeSelection} headerPosition={headerPosition}>
+      <StyledContainer className='select-container'  headerPosition={headerPosition}>
         {header && (
           <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
         )}

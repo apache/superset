@@ -32,12 +32,12 @@ export const StyledHeader = styled.span<{ headerPosition: string }>`
   `}
 `;
 
-export const StyledContainer = styled.div<{ headerPosition: string , showExcludeSelection : boolean }>`
-  ${({ headerPosition , showExcludeSelection , theme }) => `
+export const StyledContainer = styled.div<{ headerPosition: string }>`
+  ${({ headerPosition , theme }) => `
     display: flex;
     flex-direction: ${headerPosition === 'top' ? 'column' : 'row'};
     align-items: ${headerPosition === 'left' ? 'center' : undefined};
-    width:${showExcludeSelection ? `${theme.gridUnit * 41}px` : '100%'};
+    width: 100%;
   `}
 `;
 

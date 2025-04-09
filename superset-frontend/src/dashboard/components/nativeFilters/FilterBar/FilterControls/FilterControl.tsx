@@ -151,6 +151,14 @@ const HorizontalFormItem = styled(StyledFormItem)<{ showExcludeSelection: boolea
       showExcludeSelection && 'display: flex;'}
   }
 
+  .select-container {
+    ${({ showExcludeSelection, theme }) =>
+    showExcludeSelection &&
+    `
+      width: ${theme.gridUnit * 41}px;
+    `}
+  }
+
   .exclude-filter {
     margin-top: 0px;
   }
