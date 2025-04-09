@@ -311,33 +311,35 @@ export default function DrillByModal({
     },
     [dispatch, drillByConfigs, formData, getFormDataChangesFromConfigs],
   );
+  const breadcrumbItems = breadcrumbsData
+    .map((breadcrumb, index) => {
+      const isClickable = index < breadcrumbsData.length - 1;
+      const hasGroupBy = ensureIsArray(breadcrumb.groupby).length > 0;
+      const hasFilters = ensureIsArray(breadcrumb.filters).length > 0;
 
-  const breadcrumbItems = breadcrumbsData.map((breadcrumb, index) => {
-    let title = '';
+      if (!hasGroupBy && !hasFilters) {
+        return null;
+      }
 
-    if (breadcrumb.filters?.length) {
-      title = breadcrumb.filters
-        .map(filter =>
-          filter.val !== undefined
-            ? `${filter.col} (${String(filter.val)})`
-            : filter.col,
-        )
+      const groupbyText = ensureIsArray(breadcrumb.groupby)
+        .map(column => column.verbose_name || column.column_name)
         .join(', ');
-    } else if (breadcrumb.groupby) {
-      title = Array.isArray(breadcrumb.groupby)
-        ? breadcrumb.groupby
-            .map(col => col.verbose_name || col.column_name)
-            .join(', ')
-        : breadcrumb.groupby.verbose_name || breadcrumb.groupby.column_name;
-    } else {
-      title = t('Root');
-    }
 
-    return {
-      title,
-      onClick: () => onBreadcrumbClick(breadcrumb, index),
-    };
-  });
+      const filtersText = hasFilters
+        ? `(${ensureIsArray(breadcrumb.filters)
+            .map(filter => filter.formattedVal ?? String(filter.val))
+            .join(', ')})`
+        : '';
+
+      const title = `${groupbyText} ${filtersText}`.trim();
+      return {
+        title,
+        onClick: isClickable
+          ? () => onBreadcrumbClick(breadcrumb, index)
+          : undefined,
+      };
+    })
+    .filter(Boolean);
 
   const drilledFormData = useMemo(() => {
     let updatedFormData = { ...currentFormData };
