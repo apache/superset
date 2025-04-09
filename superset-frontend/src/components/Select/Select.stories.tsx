@@ -19,7 +19,7 @@
 import { StoryObj } from '@storybook/react';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { SelectOptionsType, SelectProps } from './types';
-import Select from './Select';
+import { Select } from '.';
 
 export default {
   title: 'Select',
@@ -39,8 +39,7 @@ const options: SelectOptionsType = [
     value: 'Another incredibly awesome long long label',
   },
   {
-    label: 'JSX Label',
-    customLabel: <div style={{ color: 'red' }}>JSX Label</div>,
+    label: <div style={{ color: 'red' }}>JSX Label</div>,
     value: 'JSX Label',
   },
   { label: 'A', value: 'A' },

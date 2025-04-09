@@ -150,10 +150,12 @@ function AnnotationLayersList({
 
           return <a href={`/annotationlayer/${id}/annotation`}>{name}</a>;
         },
+        id: 'name',
       },
       {
         accessor: 'descr',
         Header: t('Description'),
+        id: 'descr',
       },
       {
         Cell: ({
@@ -167,6 +169,7 @@ function AnnotationLayersList({
         Header: t('Last modified'),
         accessor: 'changed_on',
         size: 'xl',
+        id: 'changed_on',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -205,6 +208,7 @@ function AnnotationLayersList({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canDelete, canCreate],

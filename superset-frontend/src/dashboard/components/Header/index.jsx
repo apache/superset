@@ -37,7 +37,7 @@ import {
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
 import { Icons } from 'src/components/Icons';
-import { Button } from 'src/components/';
+import Button from 'src/components/Button';
 import { findPermission } from 'src/utils/findPermission';
 import { Tooltip } from 'src/components/Tooltip';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -96,7 +96,7 @@ import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
 const extensionsRegistry = getExtensionsRegistry();
 
 const headerContainerStyle = theme => css`
-  border-bottom: 1px solid ${theme.colors.grayscale.light2};
+  border-bottom: 1px solid ${theme.colorSplit};
 `;
 
 const editButtonStyle = theme => css`
@@ -108,12 +108,12 @@ const actionButtonsStyle = theme => css`
   align-items: center;
 
   .action-schedule-report {
-    margin-left: ${theme.gridUnit * 2}px;
+    margin-left: ${theme.sizeUnit * 2}px;
   }
 
   .undoRedo {
     display: flex;
-    margin-right: ${theme.gridUnit * 2}px;
+    margin-right: ${theme.sizeUnit * 2}px;
   }
 `;
 
@@ -141,16 +141,16 @@ const undoRedoDisabled = theme => css`
 `;
 
 const saveBtnStyle = theme => css`
-  min-width: ${theme.gridUnit * 17}px;
-  height: ${theme.gridUnit * 8}px;
+  min-width: ${theme.sizeUnit * 17}px;
+  height: ${theme.sizeUnit * 8}px;
   span > :first-of-type {
     margin-right: 0;
   }
 `;
 
 const discardBtnStyle = theme => css`
-  min-width: ${theme.gridUnit * 22}px;
-  height: ${theme.gridUnit * 8}px;
+  min-width: ${theme.sizeUnit * 22}px;
+  height: ${theme.sizeUnit * 8}px;
 `;
 
 const discardChanges = () => {
@@ -637,7 +637,7 @@ const Header = () => {
                   css={discardBtnStyle}
                   buttonSize="small"
                   onClick={discardChanges}
-                  buttonStyle="default"
+                  buttonStyle="secondary"
                   data-test="discard-changes-button"
                   aria-label={t('Discard')}
                 >

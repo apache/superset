@@ -58,7 +58,7 @@ export const ChartPills = forwardRef(
           css={(theme: SupersetTheme) => css`
             display: flex;
             justify-content: flex-end;
-            padding-bottom: ${theme.gridUnit * 4}px;
+            padding-bottom: ${theme.sizeUnit * 4}px;
             & .ant-tag:last-of-type {
               margin: 0;
             }

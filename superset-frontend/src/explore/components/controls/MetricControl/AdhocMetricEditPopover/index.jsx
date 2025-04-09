@@ -75,7 +75,7 @@ const defaultProps = {
 const StyledSelect = styled(Select)`
   .metric-option {
     & > svg {
-      min-width: ${({ theme }) => `${theme.gridUnit * 4}px`};
+      min-width: ${({ theme }) => `${theme.sizeUnit * 4}px`};
     }
     & > .option-label {
       overflow: hidden;
@@ -380,8 +380,7 @@ export default class AdhocMetricEditPopover extends PureComponent {
                   options={ensureIsArray(savedMetricsOptions).map(
                     savedMetric => ({
                       value: savedMetric.metric_name,
-                      label: savedMetric.metric_name,
-                      customLabel: this.renderMetricOption(savedMetric),
+                      label: this.renderMetricOption(savedMetric),
                       key: savedMetric.id,
                     }),
                   )}
@@ -441,9 +440,8 @@ export default class AdhocMetricEditPopover extends PureComponent {
               <Select
                 options={columns.map(column => ({
                   value: column.column_name,
-                  label: column.verbose_name || column.column_name,
                   key: column.id,
-                  customLabel: this.renderColumnOption(column),
+                  label: this.renderColumnOption(column),
                 }))}
                 {...columnSelectProps}
               />

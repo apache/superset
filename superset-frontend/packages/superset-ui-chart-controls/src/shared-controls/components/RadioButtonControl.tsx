@@ -55,17 +55,17 @@ export default function RadioButtonControl({
         },
         '.control-label': {
           color: theme.colors.grayscale.base,
-          marginBottom: theme.gridUnit,
+          marginBottom: theme.sizeUnit,
         },
         '.control-label + .btn-group': {
           marginTop: '1px',
         },
         '.btn-group .btn-default': {
-          color: theme.colors.grayscale.dark1,
+          color: theme.colorText,
         },
         '.btn-group .btn.active': {
           background: theme.colors.grayscale.light4,
-          fontWeight: theme.typography.weights.bold,
+          fontWeight: theme.fontWeightStrong,
           boxShadow: 'none',
         },
       }}

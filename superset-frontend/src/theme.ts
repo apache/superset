@@ -20,3 +20,6 @@ import './assets/stylesheets/superset.less';
 
 // Importing Antd under its own stylesheet to prevent unintentional theming
 import './assets/stylesheets/antd/index.less';
+
+// Styles for the crontab-related lib
+import 'react-js-cron/dist/styles.css';

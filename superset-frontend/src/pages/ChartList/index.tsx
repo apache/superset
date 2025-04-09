@@ -43,7 +43,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import { TagsList } from 'src/components/Tags';
+import TagsList from 'src/components/TagsList';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import FaveStar from 'src/components/FaveStar';
 import { Link, useHistory } from 'react-router-dom';
@@ -67,7 +67,7 @@ import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
-import { loadTags } from 'src/components/Tags/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import FacePile from 'src/components/FacePile';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -88,7 +88,7 @@ const FlexRowContainer = styled.div`
   }
 
   svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -362,6 +362,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
+        id: 'slice_name',
       },
       {
         Cell: ({
@@ -372,6 +373,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Type'),
         accessor: 'viz_type',
         size: 'xxl',
+        id: 'viz_type',
       },
       {
         Cell: ({
@@ -390,6 +392,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'datasource_id',
         disableSortBy: true,
         size: 'xl',
+        id: 'datasource_id',
       },
       {
         Cell: ({
@@ -401,6 +404,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'dashboards',
         disableSortBy: true,
         size: 'xxl',
+        id: 'dashboards',
       },
       {
         Cell: ({
@@ -422,6 +426,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        id: 'tags',
       },
       {
         Cell: ({
@@ -433,6 +438,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'owners',
         disableSortBy: true,
         size: 'xl',
+        id: 'owners',
       },
       {
         Cell: ({
@@ -446,6 +452,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Last modified'),
         accessor: 'last_saved_at',
         size: 'xl',
+        id: 'last_saved_at',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -536,6 +543,7 @@ function ChartList(props: ChartListProps) {
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [

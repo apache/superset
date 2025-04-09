@@ -29,7 +29,7 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
-import { AntdForm } from 'src/components';
+import { Form } from 'src/components/Form';
 import { Icons } from 'src/components/Icons';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
@@ -96,17 +96,17 @@ export const StyledModalBody = styled.div<{ expanded: boolean }>`
   flex-direction: row;
   flex: 1;
   .filters-list {
-    width: ${({ theme }) => theme.gridUnit * 50}px;
+    width: ${({ theme }) => theme.sizeUnit * 50}px;
     overflow: auto;
   }
 `;
 
-export const StyledForm = styled(AntdForm)`
+export const StyledForm = styled(Form)`
   width: 100%;
 `;
 
 export const StyledExpandButtonWrapper = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 export const FILTERS_CONFIG_MODAL_TEST_ID = 'filters-config-modal';
@@ -156,7 +156,7 @@ function FiltersConfigModal({
   const dispatch = useDispatch();
   const theme = useTheme();
 
-  const [form] = AntdForm.useForm<NativeFiltersForm>();
+  const [form] = Form.useForm<NativeFiltersForm>();
 
   const configFormRef = useRef<any>();
 
@@ -554,7 +554,11 @@ function FiltersConfigModal({
       .forEach(filterId => {
         const result = hasCircularDependency(dependencyMap, filterId);
         const field = {
-          name: ['filters', filterId, 'dependencies'],
+          name: ['filters', filterId, 'dependencies'] as [
+            'filters',
+            string,
+            'dependencies',
+          ],
           errors: result ? [t('Cyclic dependency detected')] : [],
         };
         form.setFields([field]);

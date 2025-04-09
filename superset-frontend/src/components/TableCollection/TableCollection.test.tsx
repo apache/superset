@@ -29,10 +29,12 @@ beforeEach(() => {
     {
       Header: 'Column 1',
       accessor: 'col1',
+      id: 'col1',
     },
     {
       Header: 'Column 2',
       accessor: 'col2',
+      id: 'col2',
     },
   ];
   const data = [
@@ -61,17 +63,18 @@ beforeEach(() => {
     highlightRowId: 1,
     getTableProps: jest.fn(),
     getTableBodyProps: jest.fn(),
+    sticky: false,
   };
 });
 
-test('Should headers visible', () => {
+test('Headers should be visible', () => {
   render(<TableCollection {...defaultProps} />);
 
-  expect(screen.getByRole('columnheader', { name: 'Column 1' })).toBeVisible();
-  expect(screen.getByRole('columnheader', { name: 'Column 2' })).toBeVisible();
+  expect(screen.getByText('Column 1')).toBeVisible();
+  expect(screen.getByText('Column 2')).toBeVisible();
 });
 
-test('Should the body visible', () => {
+test('Body should be visible', () => {
   render(<TableCollection {...defaultProps} />);
 
   expect(screen.getByText('Line 01 - Col 01')).toBeVisible();
@@ -84,30 +87,16 @@ test('Should the body visible', () => {
   expect(screen.getByText('Line 03 - Col 02')).toBeVisible();
 });
 
-test('Should the body content not be visible during loading', () => {
+test('Body content should be blurred loading', () => {
   render(<TableCollection {...defaultProps} loading />);
 
-  expect(screen.getByText('Line 01 - Col 01')).toBeInTheDocument();
-  expect(screen.getByText('Line 01 - Col 01')).not.toBeVisible();
-  expect(screen.getByText('Line 01 - Col 02')).toBeInTheDocument();
-  expect(screen.getByText('Line 01 - Col 02')).not.toBeVisible();
-
-  expect(screen.getByText('Line 02 - Col 01')).toBeInTheDocument();
-  expect(screen.getByText('Line 02 - Col 01')).not.toBeVisible();
-  expect(screen.getByText('Line 02 - Col 02')).toBeInTheDocument();
-  expect(screen.getByText('Line 02 - Col 02')).not.toBeVisible();
-
-  expect(screen.getByText('Line 03 - Col 01')).toBeInTheDocument();
-  expect(screen.getByText('Line 03 - Col 01')).not.toBeVisible();
-  expect(screen.getByText('Line 03 - Col 02')).toBeInTheDocument();
-  expect(screen.getByText('Line 03 - Col 02')).not.toBeVisible();
+  expect(screen.getByTestId('listview-table').parentNode).toHaveClass(
+    'ant-spin-blur',
+  );
 });
 
-test('Should the loading bar be visible during loading', () => {
+test('Should the loading-indicator be visible during loading', () => {
   render(<TableCollection {...defaultProps} loading />);
 
-  expect(screen.getAllByRole('progressbar')).toHaveLength(6);
-  screen
-    .getAllByRole('progressbar')
-    .forEach(progressbar => expect(progressbar).toBeVisible());
+  expect(screen.getByTestId('loading-indicator')).toBeVisible();
 });

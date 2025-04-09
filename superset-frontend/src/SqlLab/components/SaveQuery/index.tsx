@@ -19,8 +19,8 @@
 import { useState, useEffect, useMemo, ChangeEvent } from 'react';
 
 import type { DatabaseObject } from 'src/features/databases/types';
-import { Row, Col } from 'src/components';
-import { Input, TextArea } from 'src/components/Input';
+import { Row, Col } from 'src/components/Grid';
+import { Input } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { Menu } from 'src/components/Menu';
@@ -62,7 +62,7 @@ const Styles = styled.span`
     margin: 0;
     color: ${({ theme }) => theme.colors.grayscale.base};
     svg {
-      vertical-align: -${({ theme }) => theme.gridUnit * 1.25}px;
+      vertical-align: -${({ theme }) => theme.sizeUnit * 1.25}px;
       margin: 0;
     }
   }
@@ -172,7 +172,7 @@ const SaveQuery = ({
       <Row>
         <Col xs={24}>
           <FormItem label={t('Description')}>
-            <TextArea
+            <Input.TextArea
               rows={4}
               value={description}
               onChange={onDescriptionChange}
@@ -221,7 +221,12 @@ const SaveQuery = ({
         title={<h4>{t('Save query')}</h4>}
         footer={
           <>
-            <Button onClick={close} data-test="cancel-query" cta>
+            <Button
+              onClick={close}
+              data-test="cancel-query"
+              cta
+              buttonStyle="secondary"
+            >
               {t('Cancel')}
             </Button>
             <Button

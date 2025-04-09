@@ -29,7 +29,7 @@ import {
 import { Icons } from 'src/components/Icons';
 import Checkbox from 'src/components/Checkbox';
 import { Dropdown } from 'src/components/Dropdown';
-import { Button } from 'src/components';
+import Button from 'src/components/Button';
 import { Space } from 'src/components/Space';
 import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
@@ -45,19 +45,8 @@ const StyledMenuLabel = styled.span`
   justify-content: space-between;
 
   .enable-cross-filters-text {
-    padding-left: ${({ theme }) => `${theme.gridUnit * 2}px`};
+    padding-left: ${({ theme }) => `${theme.sizeUnit * 2}px`};
   }
-`;
-
-const StyledCheckbox = styled(Checkbox)`
-  ${({ theme }) => `
-  &,
-  svg {
-    display: inline-block;
-    width: ${theme.gridUnit * 4}px;
-    height: ${theme.gridUnit * 4}px;
-  }
-`}
 `;
 
 const CROSS_FILTERS_MENU_KEY = 'cross-filters-menu-key';
@@ -160,14 +149,13 @@ const FilterBarSettings = () => {
   const crossFiltersMenuItem = useMemo(
     () => (
       <StyledMenuLabel>
-        <StyledCheckbox
-          className="enable-cross-filters"
+        <Checkbox
+          name="enable-cross-filters"
           checked={crossFiltersEnabled}
-          onChange={checked => setCrossFiltersEnabled(checked || false)}
-        />{' '}
-        <span className="enable-cross-filters-text">
+          onChange={e => setCrossFiltersEnabled(e.target.checked)}
+        >
           {t('Enable cross-filtering')}
-        </span>
+        </Checkbox>
       </StyledMenuLabel>
     ),
     [crossFiltersEnabled],
@@ -215,7 +203,7 @@ const FilterBarSettings = () => {
                   <Icons.CheckOutlined
                     iconColor={theme.colors.primary.base}
                     css={css`
-                      vertical-align: -${theme.gridUnit * 0.03125}em;
+                      vertical-align: -${theme.sizeUnit * 0.03125}em;
                     `}
                     iconSize="m"
                   />
@@ -268,7 +256,7 @@ const FilterBarSettings = () => {
         trigger={['click']}
       >
         <Button
-          type="link"
+          buttonStyle="link"
           css={css`
             padding: 0;
           `}

@@ -24,6 +24,7 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { Icons } from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { Input } from 'src/components/Input';
 import { CssEditor } from 'src/components/AsyncAceEditor';
 
 import { OnlyKeyWithType } from 'src/utils/types';
@@ -44,34 +45,34 @@ type CssTemplateStringKeys = keyof Pick<
 
 const StyledCssTemplateTitle = styled.div(
   ({ theme }) => css`
-    margin: ${theme.gridUnit * 2}px auto ${theme.gridUnit * 4}px auto;
+    margin: ${theme.sizeUnit * 2}px auto ${theme.sizeUnit * 4}px auto;
   `,
 );
 
 const StyledCssEditor = styled(CssEditor)`
   ${({ theme }) => css`
     border-radius: ${theme.borderRadius}px;
-    border: 1px solid ${theme.colors.secondary.light2};
+    border: 1px solid ${theme.colorPrimaryBg};
   `}
 `;
 
 const TemplateContainer = styled.div(
   ({ theme }) => css`
-    margin-bottom: ${theme.gridUnit * 10}px;
+    margin-bottom: ${theme.sizeUnit * 10}px;
 
     .control-label {
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
 
     .required {
-      margin-left: ${theme.gridUnit / 2}px;
+      margin-left: ${theme.sizeUnit / 2}px;
       color: ${theme.colors.error.base};
     }
 
     input[type='text'] {
-      padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 2}px;
+      padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 2}px;
       border: 1px solid ${theme.colors.grayscale.light2};
-      border-radius: ${theme.gridUnit}px;
+      border-radius: ${theme.sizeUnit}px;
       width: 50%;
     }
   `,
@@ -237,14 +238,14 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
             <Icons.EditOutlined
               iconSize="l"
               css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
               `}
             />
           ) : (
             <Icons.PlusOutlined
               iconSize="l"
               css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
               `}
             />
           )}
@@ -262,7 +263,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
           {t('Name')}
           <span className="required">*</span>
         </div>
-        <input
+        <Input
           name="template_name"
           onChange={onTemplateNameChange}
           type="text"

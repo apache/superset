@@ -39,7 +39,6 @@ import {
   chartLabelWeight,
   chartLabelExplanations,
 } from '@superset-ui/core';
-import { AntdCollapse } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import { Input } from 'src/components/Input';
 import Label from 'src/components/Label';
@@ -47,6 +46,7 @@ import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Icons } from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import scrollIntoView from 'scroll-into-view-if-needed';
+import Collapse from 'src/components/Collapse';
 
 interface VizTypeGalleryProps {
   onChange: (vizType: string | null) => void;
@@ -103,30 +103,31 @@ const VizPickerLayout = styled.div<{ isSelectedVizMetadata: boolean }>`
 
 const SectionTitle = styled.h3`
   margin-top: 0;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  font-size: ${({ theme }) => theme.typography.sizes.l}px;
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
-  line-height: ${({ theme }) => theme.gridUnit * 6}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+  font-size: ${({ theme }) => theme.fontSizeLG}px;
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  line-height: ${({ theme }) => theme.sizeUnit * 6}px;
 `;
 
 const LeftPane = styled.div`
   grid-area: sidebar;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-right: 1px solid ${({ theme }) => theme.colorBorder};
   overflow: auto;
 
-  .ant-collapse .ant-collapse-item {
-    .ant-collapse-header {
-      font-size: ${({ theme }) => theme.typography.sizes.s}px;
-      color: ${({ theme }) => theme.colors.grayscale.base};
-      padding-left: ${({ theme }) => theme.gridUnit * 2}px;
-      padding-bottom: ${({ theme }) => theme.gridUnit}px;
+  .antd5-collapse .antd5-collapse-item {
+    .antd5-collapse-header {
+      font-size: ${({ theme }) => theme.fontSizeSM}px;
+      color: ${({ theme }) => theme.colorText};
+      padding-left: ${({ theme }) => theme.sizeUnit * 2}px;
+      padding-bottom: ${({ theme }) => theme.sizeUnit}px;
     }
-    .ant-collapse-content .ant-collapse-content-box {
+
+    .antd5-collapse-content .antd5-collapse-content-box {
       display: flex;
       flex-direction: column;
-      padding: 0 ${({ theme }) => theme.gridUnit * 2}px;
+      padding: 0 ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
 `;
@@ -139,12 +140,12 @@ const RightPane = styled.div`
 const SearchWrapper = styled.div`
   ${({ theme }) => `
     grid-area: search;
-    margin-top: ${theme.gridUnit * 3}px;
-    margin-bottom: ${theme.gridUnit}px;
-    margin-left: ${theme.gridUnit * 3}px;
-    margin-right: ${theme.gridUnit * 3}px;
+    margin-top: ${theme.sizeUnit * 3}px;
+    margin-bottom: ${theme.sizeUnit}px;
+    margin-left: ${theme.sizeUnit * 3}px;
+    margin-right: ${theme.sizeUnit * 3}px;
     .antd5-input-affix-wrapper {
-      padding-left: ${theme.gridUnit * 2}px;
+      padding-left: ${theme.sizeUnit * 2}px;
     }
   `}
 `;
@@ -154,7 +155,7 @@ const InputIconAlignment = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorIcon};
 `;
 
 const SelectorLabel = styled.button`
@@ -164,24 +165,25 @@ const SelectorLabel = styled.button`
     flex-direction: row;
     align-items: center;
     cursor: pointer;
-    margin: ${theme.gridUnit}px 0;
-    padding: 0 ${theme.gridUnit}px;
+    margin: ${theme.sizeUnit}px 0;
+    padding: 0 ${theme.sizeUnit}px;
     border-radius: ${theme.borderRadius}px;
     line-height: 2em;
     text-overflow: ellipsis;
     white-space: nowrap;
     position: relative;
+    color: ${theme.colorText};
 
     &:focus {
       outline: initial;
     }
 
     &.selected {
-      background-color: ${theme.colors.primary.base};
-      color: ${theme.colors.primary.light5};
+      background-color: ${theme.colorPrimaryBgHover};
+      color: ${theme.colorPrimaryTextActive};
 
       svg {
-        color: ${theme.colors.primary.light5};
+        color: ${theme.colorIcon};
       }
 
       &:hover {
@@ -192,7 +194,7 @@ const SelectorLabel = styled.button`
     }
 
     & > span[role="img"] {
-      margin-right: ${theme.gridUnit * 2}px;
+      margin-right: ${theme.sizeUnit * 2}px;
     }
 
     .cancel {
@@ -206,14 +208,14 @@ const IconsPane = styled.div`
   display: grid;
   grid-template-columns: repeat(
     auto-fill,
-    ${({ theme }) => theme.gridUnit * THUMBNAIL_GRID_UNITS}px
+    ${({ theme }) => theme.sizeUnit * THUMBNAIL_GRID_UNITS}px
   );
   grid-auto-rows: max-content;
   justify-content: space-evenly;
-  grid-gap: ${({ theme }) => theme.gridUnit * 2}px;
+  grid-gap: ${({ theme }) => theme.sizeUnit * 2}px;
   justify-items: center;
   // for some reason this padding doesn't seem to apply at the bottom of the container. Why is a mystery.
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const DetailsPane = (theme: SupersetTheme) => css`
@@ -222,7 +224,7 @@ const DetailsPane = (theme: SupersetTheme) => css`
 `;
 
 const DetailsPopulated = (theme: SupersetTheme) => css`
-  padding: ${theme.gridUnit * 4}px;
+  padding: ${theme.sizeUnit * 4}px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto auto 1fr;
@@ -236,15 +238,15 @@ const DetailsPopulated = (theme: SupersetTheme) => css`
 // (plus grid layout) enables the description to scroll while the header stays in place.
 const TagsWrapper = styled.div`
   grid-area: viz-tags;
-  width: ${({ theme }) => theme.gridUnit * 120}px;
-  padding-right: ${({ theme }) => theme.gridUnit * 14}px;
-  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  width: ${({ theme }) => theme.sizeUnit * 120}px;
+  padding-right: ${({ theme }) => theme.sizeUnit * 14}px;
+  padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const Description = styled.p`
   grid-area: description;
   overflow: auto;
-  padding-right: ${({ theme }) => theme.gridUnit * 14}px;
+  padding-right: ${({ theme }) => theme.sizeUnit * 14}px;
   margin: 0;
 `;
 
@@ -254,26 +256,26 @@ const Examples = styled.div`
   flex-direction: row;
   flex-wrap: nowrap;
   overflow: auto;
-  gap: ${({ theme }) => theme.gridUnit * 4}px;
+  gap: ${({ theme }) => theme.sizeUnit * 4}px;
 
   img {
     height: 100%;
-    border-radius: ${({ theme }) => theme.gridUnit}px;
+    border-radius: ${({ theme }) => theme.sizeUnit}px;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
 `;
 
 const thumbnailContainerCss = (theme: SupersetTheme) => css`
   cursor: pointer;
-  width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
+  width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
   position: relative;
 
   img {
-    min-width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
-    min-height: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
+    min-width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
+    min-height: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
     border: 1px solid ${theme.colors.grayscale.light2};
-    border-radius: ${theme.gridUnit}px;
-    transition: border-color ${theme.transitionTiming};
+    border-radius: ${theme.sizeUnit}px;
+    transition: border-color ${theme.motionDurationMid};
   }
 
   &.selected img {
@@ -285,23 +287,23 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   }
 
   .viztype-label {
-    margin-top: ${theme.gridUnit * 2}px;
+    margin-top: ${theme.sizeUnit * 2}px;
     text-align: center;
   }
 `;
 
 const HighlightLabel = styled.div`
   ${({ theme }) => `
-    border: 1px solid ${theme.colors.primary.dark1};
+    border: 1px solid ${theme.colorPrimaryText};
     box-sizing: border-box;
-    border-radius: ${theme.gridUnit}px;
+    border-radius: ${theme.sizeUnit}px;
     background: ${theme.colors.grayscale.light5};
-    line-height: ${theme.gridUnit * 2.5}px;
-    color: ${theme.colors.primary.dark1};
-    font-size: ${theme.typography.sizes.s}px;
-    font-weight: ${theme.typography.weights.bold};
+    line-height: ${theme.sizeUnit * 2.5}px;
+    color: ${theme.colorPrimaryText};
+    font-size: ${theme.fontSizeSM}px;
+    font-weight: ${theme.fontWeightStrong};
     text-align: center;
-    padding: ${theme.gridUnit * 0.5}px ${theme.gridUnit}px;
+    padding: ${theme.sizeUnit * 0.5}px ${theme.sizeUnit}px;
     cursor: pointer;
 
     div {
@@ -312,13 +314,13 @@ const HighlightLabel = styled.div`
 
 const ThumbnailLabelWrapper = styled.div`
   position: absolute;
-  right: ${({ theme }) => theme.gridUnit}px;
-  top: ${({ theme }) => theme.gridUnit * 19}px;
+  right: ${({ theme }) => theme.sizeUnit}px;
+  top: ${({ theme }) => theme.sizeUnit * 19}px;
 `;
 
 const TitleLabelWrapper = styled.div`
   display: inline-block !important;
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 interface ThumbnailProps {
@@ -658,10 +660,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     >
       <LeftPane>
         <Selector
-          css={({ gridUnit }) =>
+          css={({ sizeUnit }) =>
             // adjust style for not being inside a collapse
             css`
-              margin: ${gridUnit * 2}px;
+              margin: ${sizeUnit * 2}px;
               margin-bottom: 0;
             `
           }
@@ -676,10 +678,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           onClick={clickSelector}
         />
         <Selector
-          css={({ gridUnit }) =>
+          css={({ sizeUnit }) =>
             // adjust style for not being inside a collapse
             css`
-              margin: ${gridUnit * 2}px;
+              margin: ${sizeUnit * 2}px;
               margin-bottom: 0;
             `
           }
@@ -693,37 +695,37 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           }
           onClick={clickSelector}
         />
-        <AntdCollapse
+        <Collapse
           expandIconPosition="right"
           ghost
           defaultActiveKey={Sections.Category}
-        >
-          {Object.keys(sectionMap).map(sectionId => {
+          items={Object.keys(sectionMap).map(sectionId => {
             const section = sectionMap[sectionId as keyof typeof sectionMap];
 
-            return (
-              <AntdCollapse.Panel
-                header={<span className="header">{section.title}</span>}
-                key={sectionId}
-              >
-                {section.selectors.map((selector: string) => (
-                  <Selector
-                    key={selector}
-                    selector={selector}
-                    sectionId={sectionId}
-                    icon={section.icon}
-                    isSelected={
-                      !isActivelySearching &&
-                      selector === activeSelector &&
-                      sectionId === activeSection
-                    }
-                    onClick={clickSelector}
-                  />
-                ))}
-              </AntdCollapse.Panel>
-            );
+            return {
+              key: sectionId,
+              label: <span className="header">{section.title}</span>,
+              children: (
+                <>
+                  {section.selectors.map((selector: string) => (
+                    <Selector
+                      key={selector}
+                      selector={selector}
+                      sectionId={sectionId}
+                      icon={section.icon}
+                      isSelected={
+                        !isActivelySearching &&
+                        selector === activeSelector &&
+                        sectionId === activeSection
+                      }
+                      onClick={clickSelector}
+                    />
+                  ))}
+                </>
+              ),
+            };
           })}
-        </AntdCollapse>
+        />
       </LeftPane>
 
       <SearchWrapper>
@@ -795,8 +797,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               {selectedVizMetadata?.tags.map(tag => (
                 <Label
                   key={tag}
-                  css={({ gridUnit }) => css`
-                    margin-bottom: ${gridUnit * 2}px;
+                  css={({ sizeUnit }) => css`
+                    margin-bottom: ${sizeUnit * 2}px;
                   `}
                 >
                   {tag}

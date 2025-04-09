@@ -17,30 +17,27 @@
  * under the License.
  */
 import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
-
-// eslint-disable-next-line no-restricted-imports
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import { styled, t } from '@superset-ui/core';
-
 import Button from 'src/components/Button';
+import { Input } from 'src/components/Input';
 import Modal from 'src/components/Modal';
-import { Upload } from 'src/components';
+import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
-import ErrorAlert from './ErrorAlert';
+import ImportErrorAlert from './ImportErrorAlert';
 
 const HelperMessage = styled.div`
   display: block;
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  color: ${({ theme }) => theme.colorTextSecondary};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
 
 const StyledInputContainer = styled.div`
-  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+  padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
 
   & > div {
-    margin: ${({ theme }) => theme.gridUnit}px 0;
+    margin: ${({ theme }) => theme.sizeUnit}px 0;
   }
 
   &.extra-container {
@@ -48,7 +45,7 @@ const StyledInputContainer = styled.div`
   }
 
   .confirm-overwrite {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   .input-container {
@@ -57,11 +54,11 @@ const StyledInputContainer = styled.div`
 
     label {
       display: flex;
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
     }
 
     i {
-      margin: 0 ${({ theme }) => theme.gridUnit}px;
+      margin: 0 ${({ theme }) => theme.sizeUnit}px;
     }
   }
 
@@ -77,17 +74,17 @@ const StyledInputContainer = styled.div`
 
   input::placeholder,
   textarea::placeholder {
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colorTextPlaceholder};
   }
 
   textarea,
   input[type='text'],
   input[type='number'] {
-    padding: ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 2}px;
+    padding: ${({ theme }) => theme.sizeUnit * 1.5}px
+      ${({ theme }) => theme.sizeUnit * 2}px;
     border-style: none;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.gridUnit}px;
+    border: 1px solid ${({ theme }) => theme.colorBorder};
+    border-radius: ${({ theme }) => theme.sizeUnit}px;
 
     &[name='name'] {
       flex: 0 1 auto;
@@ -95,7 +92,7 @@ const StyledInputContainer = styled.div`
     }
 
     &[name='sqlalchemy_uri'] {
-      margin-right: ${({ theme }) => theme.gridUnit * 3}px;
+      margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
     }
   }
 `;
@@ -300,7 +297,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s PASSWORD', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <input
+                <Input
                   name={`password-${fileName}`}
                   autoComplete={`password-${fileName}`}
                   type="password"
@@ -320,7 +317,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s SSH TUNNEL PASSWORD', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <input
+                <Input
                   name={`ssh_tunnel_password-${fileName}`}
                   autoComplete={`ssh_tunnel_password-${fileName}`}
                   type="password"
@@ -365,7 +362,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s SSH TUNNEL PRIVATE KEY PASSWORD', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <input
+                <Input
                   name={`ssh_tunnel_private_key_password-${fileName}`}
                   autoComplete={`ssh_tunnel_private_key_password-${fileName}`}
                   type="password"
@@ -398,7 +395,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
           <div className="control-label">
             {t('Type "%s" to confirm', t('OVERWRITE'))}
           </div>
-          <input
+          <Input
             data-test="overwrite-modal-input"
             id="overwrite"
             type="text"
@@ -448,7 +445,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
         </Upload>
       </StyledInputContainer>
       {errorMessage && (
-        <ErrorAlert
+        <ImportErrorAlert
           errorMessage={errorMessage}
           showDbInstallInstructions={
             passwordFields.length > 0 ||

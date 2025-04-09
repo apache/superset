@@ -18,7 +18,7 @@
  */
 
 // eslint-disable-next-line
-import { Typography } from 'src/components';
+import Typography from 'src/components/Typography';
 import { Tooltip } from 'src/components/Tooltip';
 import Card, { CardProps } from 'src/components/Card';
 import { Icons } from 'src/components/Icons';
@@ -89,7 +89,7 @@ const IconButton: React.FC<IconButtonProps> = ({
       onKeyDown={handleKeyDown}
       cover={renderIcon()}
       css={(theme: SupersetTheme) => ({
-        padding: theme.gridUnit * 3,
+        padding: theme.sizeUnit * 3,
         textAlign: 'center',
         ...cardProps.style,
       })}

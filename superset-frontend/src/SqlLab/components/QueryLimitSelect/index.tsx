@@ -76,7 +76,7 @@ const QueryLimitSelect = ({
       dropdownRender={() => renderQueryLimit(maxRow, setQueryLimit)}
       trigger={['click']}
     >
-      <Button size="small" showMarginRight={false} type="link">
+      <Button size="small" showMarginRight={false} buttonStyle="link">
         <span>{t('LIMIT')}:</span>
         <span className="limitDropdown">
           {convertToNumWithSpaces(queryLimit)}

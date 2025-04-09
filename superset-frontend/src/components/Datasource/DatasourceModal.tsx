@@ -68,6 +68,10 @@ const StyledDatasourceModal = styled(Modal)`
   .modal-footer {
     flex: 0 1 auto;
   }
+
+  .antd5-tabs-top {
+    margin-top: -${({ theme }) => theme.sizeUnit * 4}px;
+  }
 `;
 
 interface DatasourceModalProps {
@@ -270,8 +274,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     <div>
       <Alert
         css={theme => ({
-          marginTop: theme.gridUnit * 4,
-          marginBottom: theme.gridUnit * 4,
+          marginTop: theme.sizeUnit * 4,
+          marginBottom: theme.sizeUnit * 4,
         })}
         type="warning"
         showIcon
@@ -305,7 +309,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           <Icons.EditOutlined
             iconSize="l"
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
             `}
             data-test="edit-alt"
           />

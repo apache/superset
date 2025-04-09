@@ -25,9 +25,8 @@ import {
 } from '@superset-ui/core';
 import { useEffect, useMemo, useState } from 'react';
 import { Select } from 'src/components';
-// eslint-disable-next-line no-restricted-imports
-import { FormItemProps } from 'antd/lib/form'; // TODO: Remove antd
-import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
+import { FormItem, FormItemProps } from 'src/components/Form';
+import { FilterPluginStyle, StatusMessage } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
 
 export default function PluginFilterTimegrain(
@@ -117,10 +116,7 @@ export default function PluginFilterTimegrain(
 
   return (
     <FilterPluginStyle height={height} width={width}>
-      <StyledFormItem
-        validateStatus={filterState.validateStatus}
-        {...formItemData}
-      >
+      <FormItem validateStatus={filterState.validateStatus} {...formItemData}>
         <Select
           name={formData.nativeFilterId}
           allowClear
@@ -136,7 +132,7 @@ export default function PluginFilterTimegrain(
           options={options}
           onDropdownVisibleChange={setFilterActive}
         />
-      </StyledFormItem>
+      </FormItem>
     </FilterPluginStyle>
   );
 }

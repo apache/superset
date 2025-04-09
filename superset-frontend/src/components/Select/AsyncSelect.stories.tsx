@@ -18,12 +18,12 @@
  */
 import { ReactNode, useState, useCallback, useRef, useMemo } from 'react';
 import Button from 'src/components/Button';
-import AsyncSelect from './AsyncSelect';
 import {
   AsyncSelectProps,
   AsyncSelectRef,
   SelectOptionsTypePage,
 } from './types';
+import { AsyncSelect } from '.';
 
 export default {
   title: 'AsyncSelect',

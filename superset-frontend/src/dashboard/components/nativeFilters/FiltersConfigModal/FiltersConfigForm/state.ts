@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { FormInstance } from 'src/components';
+import { FormInstance } from 'src/components/Form';
 import { Filter, t } from '@superset-ui/core';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import { setNativeFilterFieldValues, useForceUpdate } from './utils';

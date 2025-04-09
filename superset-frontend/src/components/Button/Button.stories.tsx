@@ -32,13 +32,9 @@ export default {
 const buttonStyles: ButtonStyleValue[] = [
   'primary',
   'secondary',
-  'tertiary',
   'dashed',
   'danger',
-  'warning',
-  'success',
   'link',
-  'default',
 ];
 
 const buttonSizes: ButtonSizeValue[] = ['xsmall', 'small', 'default'];

@@ -257,6 +257,8 @@ describe('SelectFilterPlugin', () => {
     userEvent.click(screen.getByRole('combobox'));
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     await userEvent.type(screen.getByRole('combobox'), '1');
-    expect(screen.queryByLabelText(String(bigValue))).toBeInTheDocument();
+    expect(
+      await screen.findByRole('option', { name: String(bigValue) }),
+    ).toBeInTheDocument();
   });
 });

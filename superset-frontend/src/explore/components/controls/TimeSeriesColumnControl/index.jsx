@@ -20,7 +20,8 @@ import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { Input } from 'src/components/Input';
 import Button from 'src/components/Button';
-import { Select, Row, Col } from 'src/components';
+import { Select } from 'src/components';
+import { Row, Col } from 'src/components/Grid';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import BoundsControl from '../BoundsControl';
@@ -75,7 +76,7 @@ const colTypeOptions = [
 ];
 
 const StyledRow = styled(Row)`
-  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
   display: flex;
   align-items: center;
 `;
@@ -86,12 +87,12 @@ const StyledCol = styled(Col)`
 `;
 
 const StyledTooltip = styled(InfoTooltipWithTrigger)`
-  margin-left: ${({ theme }) => theme.gridUnit}px;
+  margin-left: ${({ theme }) => theme.sizeUnit}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
 const ButtonBar = styled.div`
-  margin-top: ${({ theme }) => theme.gridUnit * 5}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 5}px;
   display: flex;
   justify-content: center;
 `;

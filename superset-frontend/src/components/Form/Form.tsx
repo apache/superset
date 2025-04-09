@@ -16,21 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// eslint-disable-next-line no-restricted-imports
-import AntdForm, { FormProps } from 'antd/lib/form'; // TODO: Remove antd
-import { styled } from '@superset-ui/core';
-
-const StyledForm = styled(AntdForm)`
-  &.ant-form label {
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  }
-  .ant-form-item {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-  }
-`;
+import { Form as AntdForm } from 'antd-v5';
+import { FormProps, FormInstance, FormItemProps } from 'antd-v5/es/form';
 
 function Form(props: FormProps) {
-  return <StyledForm {...props} />;
+  return <AntdForm {...props} />;
 }
 
 export default Object.assign(Form, {
@@ -41,4 +31,4 @@ export default Object.assign(Form, {
   Provider: AntdForm.Provider,
 });
 
-export type { FormProps };
+export type { FormProps, FormInstance, FormItemProps };

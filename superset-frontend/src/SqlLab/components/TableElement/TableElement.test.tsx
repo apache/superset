@@ -76,6 +76,7 @@ const mockedProps = {
     ...table,
     initialized: true,
   },
+  activeKey: [table.id],
 };
 
 test('renders', () => {

@@ -18,34 +18,34 @@
  */
 import { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
-import { AntdForm, Col, Row } from 'src/components';
+import { Col, Row } from 'src/components/Grid';
 import { Form, FormLabel } from 'src/components/Form';
 import { Radio } from 'src/components/Radio';
-import { Input, TextArea } from 'src/components/Input';
 // eslint-disable-next-line no-restricted-imports
-import { Input as AntdInput, Tooltip } from 'antd'; // TODO: Remove antd
+import { Tooltip } from 'antd'; // TODO: Remove antd
+import { Input } from 'src/components/Input';
 import { Icons } from 'src/components/Icons';
 import { DatabaseObject, FieldPropTypes } from '../types';
 import { AuthType } from '.';
 
 const StyledDiv = styled.div`
-  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
   label {
     color: ${({ theme }) => theme.colors.grayscale.base};
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 `;
 
 const StyledRow = styled(Row)`
-  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const StyledFormItem = styled(AntdForm.Item)`
+const StyledFormItem = styled(Form.Item)`
   margin-bottom: 0 !important;
 `;
 
-const StyledInputPassword = styled(AntdInput.Password)`
-  margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
+const StyledInputPassword = styled(Input.Password)`
+  margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
 `;
 
 const SSHTunnelForm = ({
@@ -178,7 +178,7 @@ const SSHTunnelForm = ({
                 <FormLabel htmlFor="private_key" required>
                   {t('Private Key')}
                 </FormLabel>
-                <TextArea
+                <Input.TextArea
                   name="private_key"
                   placeholder={t('Paste Private Key here')}
                   value={db?.ssh_tunnel?.private_key || ''}

@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { css, styled, t } from '@superset-ui/core';
-import { Input, TextArea } from 'src/components/Input';
+import { Input } from 'src/components/Input';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { URL_PARAMS } from 'src/constants';
 import { getChartPermalink } from 'src/utils/urlUtils';
@@ -26,7 +26,7 @@ import { CopyButton } from './DataTableControl';
 
 const CopyButtonEmbedCode = styled(CopyButton)`
   && {
-    margin: 0 0 ${({ theme }) => theme.gridUnit}px;
+    margin: 0 0 ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -99,7 +99,7 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
             </CopyButtonEmbedCode>
           }
         />
-        <TextArea
+        <Input.TextArea
           data-test="embed-code-textarea"
           name="embedCode"
           disabled={!html}
@@ -108,23 +108,23 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
           readOnly
           css={theme => css`
             resize: vertical;
-            padding: ${theme.gridUnit * 2}px;
-            font-size: ${theme.typography.sizes.s}px;
+            padding: ${theme.sizeUnit * 2}px;
+            font-size: ${theme.fontSizeSM}px;
             border-radius: 4px;
-            background-color: ${theme.colors.secondary.light5};
+            background-color: ${theme.colorPrimaryBg};
           `}
         />
       </div>
       <div
         css={theme => css`
           display: flex;
-          margin-top: ${theme.gridUnit * 4}px;
+          margin-top: ${theme.sizeUnit * 4}px;
           & > div {
-            margin-right: ${theme.gridUnit * 2}px;
+            margin-right: ${theme.sizeUnit * 2}px;
           }
           & > div:last-of-type {
             margin-right: 0;
-            margin-left: ${theme.gridUnit * 2}px;
+            margin-left: ${theme.sizeUnit * 2}px;
           }
         `}
       >

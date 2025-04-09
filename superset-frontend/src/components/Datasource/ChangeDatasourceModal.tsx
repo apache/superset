@@ -96,7 +96,7 @@ const ConfirmModalStyled = styled.div`
 
 const StyledSpan = styled.span`
   cursor: pointer;
-  color: ${({ theme }) => theme.colors.primary.dark1};
+  color: ${({ theme }) => theme.colorPrimaryText};
   &: hover {
     color: ${({ theme }) => theme.colors.primary.dark2};
   }
@@ -219,20 +219,24 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       ),
       Header: t('Name'),
       accessor: 'table_name',
+      id: 'table_name',
     },
     {
       Header: t('Type'),
       accessor: 'kind',
       disableSortBy: true,
+      id: 'kind',
     },
     {
       Header: t('Schema'),
       accessor: 'schema',
+      id: 'schema',
     },
     {
       Header: t('Connection'),
       accessor: 'database.database_name',
       disableSortBy: true,
+      id: 'database.database_name',
     },
     {
       Cell: ({
@@ -288,7 +292,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             <Alert
               roomBelow
               type="warning"
-              css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+              css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
               message={
                 <>
                   <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}

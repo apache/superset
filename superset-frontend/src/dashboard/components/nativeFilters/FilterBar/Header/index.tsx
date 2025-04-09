@@ -31,12 +31,12 @@ const TitleArea = styled.div`
     flex-direction: row;
     justify-content: space-between;
     margin: 0;
-    padding: 0 ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
+    padding: 0 ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px;
 
     & > span {
-      font-size: ${theme.typography.sizes.l}px;
+      font-size: ${theme.fontSizeLG}px;
       flex-grow: 1;
-      font-weight: ${theme.typography.weights.bold};
+      font-weight: ${theme.fontWeightStrong};
     }
 
     & > div:first-of-type {
@@ -55,8 +55,8 @@ const HeaderButton = styled(Button)`
 
 const Wrapper = styled.div`
   ${({ theme }) => `
-    padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
-      theme.gridUnit
+    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px ${
+      theme.sizeUnit
     }px;
   `}
 `;
