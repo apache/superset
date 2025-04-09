@@ -59,7 +59,7 @@ case "${1}" in
   worker)
     echo "Starting Celery worker..."
     # setting up only 2 workers by default to contain memory usage in dev environments
-    celery --app=superset.tasks.celery_app:app worker -O fair -l INFO --concurrency=${CELERYD_CONCURRENCY:-2} -E
+    celery --app=superset.tasks.celery_app:app worker -O fair -l INFO --concurrency=${CELERYD_CONCURRENCY:-2} -E --loglevel=DEBUG
     ;;
   beat)
     echo "Starting Celery beat..."
@@ -74,6 +74,9 @@ case "${1}" in
     echo "Starting web app..."
     /usr/bin/run-server.sh
     ;;
+  flower)
+    echo "Starting Flower..."
+    celery --app=superset.tasks.celery_app:app flower --port=5555 --persistent=True
   *)
     echo "Unknown Operation!!!"
     ;;
