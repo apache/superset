@@ -549,10 +549,6 @@ describe('plugin-chart-table', () => {
         );
         cells = document.querySelectorAll('td');
 
-        cells.forEach(cell => {
-          expect(cell).toHaveClass('test-c7w8t3');
-        });
-
         props.columns[0].isPercentMetric = false;
         props.columns[0].isMetric = true;
 
@@ -562,9 +558,6 @@ describe('plugin-chart-table', () => {
           }),
         );
         cells = document.querySelectorAll('td');
-        cells.forEach(cell => {
-          expect(cell).toHaveClass('test-c7w8t3');
-        });
       });
     });
   });

@@ -813,7 +813,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
             background: ${backgroundColor || undefined};
-            padding-left: ${column.isChildColumn ? '20px' : '8px'};
+            padding-left: ${column.isChildColumn
+              ? `${theme.gridUnit * 5}px`
+              : `${theme.gridUnit}px`};
           `;
 
           const cellBarStyles = css`
@@ -892,7 +894,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               className,
               value == null ? 'dt-is-null' : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
-              'test-c7w8t3',
             ].join(' '),
             tabIndex: 0,
           };

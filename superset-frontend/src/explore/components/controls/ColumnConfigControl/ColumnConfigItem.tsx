@@ -81,10 +81,12 @@ export default memo(function ColumnConfigItem({
     color: colors.grayscale.light1,
   });
 
+  const theme = useTheme();
+
   const caretIconStyle = css({
-    fontSize: '14px',
-    fontWeight: 'normal',
-    color: colors.grayscale.light1,
+    fontSize: `${theme.typography.sizes.s}px`,
+    fontWeight: theme.typography.weights.normal,
+    color: theme.colors.grayscale.light1,
   });
 
   return (
