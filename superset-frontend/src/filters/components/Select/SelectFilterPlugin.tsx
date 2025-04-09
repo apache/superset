@@ -335,18 +335,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const handleExcludeCheckboxChange = (checked: boolean) => {
     setExcludeFilterValues(checked);
+  };
+
+  useEffect(() => {
     dispatchDataMask({
       type: 'filterState',
       extraFormData: { ...dataMask.extraFormData },
       filterState: {
         ...dataMask.filterState,
         value: dataMask.filterState?.value || [],
-        excludeFilterValues: checked,
+        excludeFilterValues: excludeFilterValues,
       },
     });
-  };
-
-
+  }, [excludeFilterValues]);
 
   return (
     <FilterPluginStyle height={height} width={width}>
