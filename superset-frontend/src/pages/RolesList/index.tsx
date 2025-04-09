@@ -114,7 +114,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
 
       const fetchPage = async (pageIndex: number) => {
         const response = await SupersetClient.get({
-          endpoint: `api/v1/security/permissions-resources/?q={"page_size":${pageSize}, "page":${pageIndex}}`,
+          endpoint: `api/v1/security/permissions-resources/?q=(page_size:${pageSize},page:${pageIndex})`,
         });
 
         return {
@@ -163,7 +163,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
 
       const fetchPage = async (pageIndex: number) => {
         const response = await SupersetClient.get({
-          endpoint: `api/v1/security/users/?q={"page_size":${pageSize},"page":${pageIndex}}`,
+          endpoint: `api/v1/security/users/?q=(page_size:${pageSize},page:${pageIndex})`,
         });
         return response.json;
       };
