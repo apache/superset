@@ -342,6 +342,16 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     );
   }
 
+  renderWithFontSize(
+    renderer: (height: number) => React.ReactNode,
+    fontSizeProp: number | undefined,
+  ): React.ReactNode {
+    const { height, showTrendLine } = this.props;
+    const multiplier = showTrendLine ? 1 - PROPORTION.TRENDLINE : 1;
+    const computedHeight = Math.ceil((fontSizeProp || 0) * multiplier * height);
+    return renderer(computedHeight);
+  }
+
   render() {
     const {
       showTrendLine,
@@ -362,23 +372,21 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         <div className={className}>
           <div className="text-container" style={{ height: allTextHeight }}>
             {this.renderFallbackWarning()}
-            {this.renderMetricName(
-              Math.ceil(
-                (metricNameFontSize || 0) * (1 - PROPORTION.TRENDLINE) * height,
-              ),
+            {this.renderWithFontSize(
+              this.renderMetricName.bind(this),
+              metricNameFontSize,
             )}
-            {this.renderKicker(
-              Math.ceil(
-                (kickerFontSize || 0) * (1 - PROPORTION.TRENDLINE) * height,
-              ),
+            {this.renderWithFontSize(
+              this.renderKicker.bind(this),
+              kickerFontSize,
             )}
-            {this.renderHeader(
-              Math.ceil(headerFontSize * (1 - PROPORTION.TRENDLINE) * height),
+            {this.renderWithFontSize(
+              this.renderHeader.bind(this),
+              headerFontSize,
             )}
-            {this.renderSubheader(
-              Math.ceil(
-                subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
-              ),
+            {this.renderWithFontSize(
+              this.renderSubheader.bind(this),
+              subheaderFontSize,
             )}
             {this.renderSubtitle(
               Math.ceil(subtitleFontSize * (1 - PROPORTION.TRENDLINE) * height),

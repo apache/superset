@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { CustomControlItem } from '@superset-ui/chart-controls';
 import {
   headerFontSize,
   subheaderFontSize,
@@ -23,23 +24,16 @@ import {
 } from '../sharedControls';
 
 const headerFontSizes = [16, 20, 30, 48, 60];
-const comparisonFontSizes = [16, 20, 26, 32, 40];
-const metricNameFontSizes = [12, 16, 20, 24, 28];
+const sharedFontSizes = [16, 20, 26, 32, 40];
 
-const metricNameProportionValues =
-  metricNameFontSize.config.options.map(
+const extractProportionValues = (control: CustomControlItem): number[] =>
+  control.config.options.map(
     (option: { label: string; value: number }) => option.value,
-  ) ?? [];
+  );
 
-const headerProportionValues =
-  headerFontSize.config.options.map(
-    (option: { label: string; value: number }) => option.value,
-  ) ?? [];
-
-const subheaderProportionValues =
-  subheaderFontSize.config.options.map(
-    (option: { label: string; value: number }) => option.value,
-  ) ?? [];
+const metricNameProportionValues = extractProportionValues(metricNameFontSize);
+const headerProportionValues = extractProportionValues(headerFontSize);
+const subheaderProportionValues = extractProportionValues(subheaderFontSize);
 
 const getFontSizeMapping = (
   proportionValues: number[],
@@ -50,28 +44,24 @@ const getFontSizeMapping = (
     return acc;
   }, {});
 
-const metricNameFontSizesMapping = getFontSizeMapping(
+const createFontSizeGetter = (
+  proportionValues: number[],
+  actualSizes: number[],
+) => {
+  const mapping = getFontSizeMapping(proportionValues, actualSizes);
+  return (proportionValue: number) =>
+    mapping[proportionValue] ?? actualSizes[actualSizes.length - 1];
+};
+
+export const getMetricNameFontSize = createFontSizeGetter(
   metricNameProportionValues,
-  metricNameFontSizes,
+  sharedFontSizes,
 );
-const headerFontSizesMapping = getFontSizeMapping(
+export const getHeaderFontSize = createFontSizeGetter(
   headerProportionValues,
   headerFontSizes,
 );
-
-const comparisonFontSizesMapping = getFontSizeMapping(
+export const getComparisonFontSize = createFontSizeGetter(
   subheaderProportionValues,
-  comparisonFontSizes,
+  sharedFontSizes,
 );
-
-export const getMetricNameFontSize = (proportionValue: number) =>
-  metricNameFontSizesMapping[proportionValue] ??
-  metricNameFontSizes[metricNameFontSizes.length - 1];
-
-export const getHeaderFontSize = (proportionValue: number) =>
-  headerFontSizesMapping[proportionValue] ??
-  headerFontSizes[headerFontSizes.length - 1];
-
-export const getComparisonFontSize = (proportionValue: number) =>
-  comparisonFontSizesMapping[proportionValue] ??
-  comparisonFontSizes[comparisonFontSizes.length - 1];

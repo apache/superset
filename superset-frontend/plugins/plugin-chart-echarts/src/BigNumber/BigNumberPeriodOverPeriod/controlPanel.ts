@@ -77,7 +77,7 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show Metric Name'),
               renderTrigger: true,
-              default: true,
+              default: false,
               description: t('Whether to display the metric name'),
             },
           },
