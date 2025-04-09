@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, fireEvent, screen } from 'spec/helpers/testing-library';
-import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
+import { LabeledErrorBoundInput } from './LabeledErrorBoundInput';
 
 const defaultProps = {
   id: 1,

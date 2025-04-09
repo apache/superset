@@ -18,7 +18,7 @@
  */
 import { t, styled } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
-import Alert from 'src/components/Alert';
+import { Alert } from 'src/components';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
 // @ts-ignore
 import LOADING_GIF from 'src/assets/images/loading.gif';

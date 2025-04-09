@@ -29,7 +29,10 @@ import {
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';
 import rison from 'rison';
-import { FetchDataConfig, FilterValue } from 'src/components/ListView';
+import type {
+  ListViewFetchDataConfig as FetchDataConfig,
+  ListViewFilterValue as FilterValue,
+} from 'src/components';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';

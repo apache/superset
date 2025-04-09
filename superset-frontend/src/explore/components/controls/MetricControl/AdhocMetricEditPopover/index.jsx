@@ -27,12 +27,15 @@ import {
   DatasourceType,
 } from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
-import Button from 'src/components/Button';
-import { Select } from 'src/components';
-import { Tooltip } from 'src/components/Tooltip';
-import { EmptyState } from 'src/components/EmptyState';
-import { Form, FormItem } from 'src/components/Form';
-import { SQLEditor } from 'src/components/AsyncAceEditor';
+import {
+  Button,
+  EmptyState,
+  Form,
+  FormItem,
+  Select,
+  Tooltip,
+  SQLEditor,
+} from 'src/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
 import {

@@ -19,7 +19,7 @@
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import DatabaseErrorMessage from './DatabaseErrorMessage';
+import { DatabaseErrorMessage } from './DatabaseErrorMessage';
 
 jest.mock(
   'src/components/Icons/AsyncIcon',

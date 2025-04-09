@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Meta, StoryObj } from '@storybook/react';
-import { IconButton } from 'src/components/IconButton';
+import { IconButton } from '.';
 
 const meta: Meta<typeof IconButton> = {
   title: 'Components/IconButton',

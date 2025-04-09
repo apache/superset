@@ -32,12 +32,14 @@ import Table, {
   TableSize,
   OnChangeFunction,
 } from 'src/components/Table';
-import { EmptyState } from 'src/components/EmptyState';
+import {
+  EmptyState,
+  ListViewFilterOperator as FilterOperator,
+} from 'src/components';
 import ChartImage from 'src/assets/images/chart.svg';
 import { Icons } from 'src/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { FilterOperator } from 'src/components/ListView';
 import { extendedDayjs } from 'src/utils/dates';
 import TruncatedList from 'src/components/TruncatedList';
 

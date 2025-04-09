@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Button from 'src/components/Button';
 import { Icons } from 'src/components/Icons';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
-import CopyToClipboard from '.';
+import { Button } from '../Button';
+import { CopyToClipboard } from '.';
 
 export default {
   title: 'CopyToClipboard',

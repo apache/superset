@@ -32,8 +32,7 @@ import { isFeatureEnabled } from '@superset-ui/core';
 import { QueryParamProvider } from 'use-query-params';
 
 import DatasetList from 'src/pages/DatasetList';
-import ListView from 'src/components/ListView';
-import Button from 'src/components/Button';
+import { Button, ListView } from 'src/components';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import SubMenu from 'src/features/home/SubMenu';
 import * as reactRedux from 'react-redux';

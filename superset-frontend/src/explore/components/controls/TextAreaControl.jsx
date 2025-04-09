@@ -18,15 +18,10 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Input } from 'src/components/Input';
-import {
-  Tooltip,
-  TooltipProps as TooltipOptions,
-} from 'src/components/Tooltip';
+import { Input, Tooltip, Button, TextAreaEditor } from 'src/components';
+import { TooltipProps as TooltipOptions } from 'src/components/Tooltip/types';
 import { t, withTheme } from '@superset-ui/core';
 
-import Button from 'src/components/Button';
-import { TextAreaEditor } from 'src/components/AsyncAceEditor';
 import ModalTrigger from 'src/components/ModalTrigger';
 
 import ControlHeader from 'src/explore/components/ControlHeader';

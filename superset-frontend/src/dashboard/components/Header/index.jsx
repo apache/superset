@@ -37,9 +37,8 @@ import {
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
 import { Icons } from 'src/components/Icons';
-import Button from 'src/components/Button';
+import { Button, Tooltip, DeleteModal } from 'src/components';
 import { findPermission } from 'src/utils/findPermission';
-import { Tooltip } from 'src/components/Tooltip';
 import { safeStringify } from 'src/utils/safeStringify';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
@@ -54,7 +53,6 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import ReportModal from 'src/features/reports/ReportModal';
-import DeleteModal from 'src/components/DeleteModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import DashboardEmbedModal from '../EmbeddedModal';

@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Layout } from 'antd-v5';
-import type { LayoutProps, SiderProps } from 'antd-v5/es/layout';
 
-export type { LayoutProps, SiderProps };
-export default Layout;
+export type { LayoutProps, SiderProps } from './types';
+export { Layout };

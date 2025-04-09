@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import Button from 'src/components/Button';
+import { Button } from 'src/components';
 import { Icons } from 'src/components/Icons';
 import { Tooltip } from '.';
 

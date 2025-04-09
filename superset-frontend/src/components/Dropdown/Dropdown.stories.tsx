@@ -17,7 +17,8 @@
  * under the License.
  */
 import { Menu } from 'src/components/Menu';
-import { MenuDotsDropdown, MenuDotsDropdownProps } from '.';
+import { MenuDotsDropdown } from '.';
+import type { MenuDotsDropdownProps } from './types';
 
 export default {
   title: 'Dropdown',

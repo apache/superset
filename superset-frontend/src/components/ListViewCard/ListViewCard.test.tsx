@@ -18,8 +18,8 @@
  */
 import fetchMock from 'fetch-mock';
 
-import ListViewCard from 'src/components/ListViewCard';
 import { render, screen } from 'spec/helpers/testing-library';
+import { ListViewCard } from '.';
 
 global.URL.createObjectURL = jest.fn(() => '/local_url');
 fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });

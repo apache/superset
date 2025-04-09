@@ -17,8 +17,8 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import { ListProps } from 'antd-v5/es/list';
 import { List } from '.';
+import type { ListProps } from './types';
 
 const mockedProps: ListProps<any> = {
   dataSource: ['Item 1', 'Item 2', 'Item 3'],

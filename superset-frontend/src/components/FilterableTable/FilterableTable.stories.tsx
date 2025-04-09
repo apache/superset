@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import FilterableTable, { FilterableTableProps } from '.';
+import type { FilterableTableProps } from './types';
+import { FilterableTable } from '.';
 
 export default {
   title: 'FilterableTable',

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Badge, { BadgeProps } from '.';
+import { Badge } from '.';
+import type { BadgeProps } from './types';
 
 export default {
   title: 'Badge',

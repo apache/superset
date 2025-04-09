@@ -17,8 +17,7 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { Row, Col } from 'src/components/Grid';
-import Button from 'src/components/Button';
+import { Button, Row, Col } from 'src/components';
 import Tabs from 'src/components/Tabs';
 import { legacyValidateInteger, styled, t } from '@superset-ui/core';
 import ControlHeader from '../../ControlHeader';

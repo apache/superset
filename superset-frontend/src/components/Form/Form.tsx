@@ -17,18 +17,16 @@
  * under the License.
  */
 import { Form as AntdForm } from 'antd-v5';
-import { FormProps, FormInstance, FormItemProps } from 'antd-v5/es/form';
+import { FormProps } from './types';
 
-function Form(props: FormProps) {
+function CustomForm(props: FormProps) {
   return <AntdForm {...props} />;
 }
 
-export default Object.assign(Form, {
+export const Form = Object.assign(CustomForm, {
   useForm: AntdForm.useForm,
   Item: AntdForm.Item,
   List: AntdForm.List,
   ErrorList: AntdForm.ErrorList,
   Provider: AntdForm.Provider,
 });
-
-export type { FormProps, FormInstance, FormItemProps };

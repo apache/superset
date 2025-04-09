@@ -19,9 +19,10 @@
 import { useRef, useCallback, useState } from 'react';
 import { isEqual } from 'lodash';
 import { css } from '@superset-ui/core';
-import { Select } from 'src/components';
-import Button from '../Button';
-import DropdownContainer, { DropdownContainerProps, Ref } from '.';
+import { Button } from '../Button';
+import { Select } from '../Select';
+import type { DropdownContainerProps, DropdownRef } from './types';
+import { DropdownContainer } from '.';
 
 export default {
   title: 'Design System/Components/DropdownContainer',
@@ -62,7 +63,7 @@ const generateItems = (overflowingState?: OverflowingState) =>
 export const Component = (props: DropdownContainerProps) => {
   const [items, setItems] = useState<ItemsType>([]);
   const [overflowingState, setOverflowingState] = useState<OverflowingState>();
-  const containerRef = useRef<Ref>(null);
+  const containerRef = useRef<DropdownRef>(null);
   const onOverflowingStateChange = useCallback(
     value => {
       if (!isEqual(overflowingState, value)) {

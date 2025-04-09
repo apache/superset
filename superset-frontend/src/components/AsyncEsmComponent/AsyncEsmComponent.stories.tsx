@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import AsyncEsmComponent, { PlaceholderProps } from '.';
+import { AsyncEsmComponent } from '.';
+import type { PlaceholderProps } from './types';
 
 export default {
   title: 'AsyncEsmComponent',

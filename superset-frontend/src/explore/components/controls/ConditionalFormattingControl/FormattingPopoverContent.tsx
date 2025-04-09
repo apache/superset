@@ -23,11 +23,16 @@ import {
   Comparator,
   MultipleValueComparators,
 } from '@superset-ui/chart-controls';
-import { Form, FormItem, FormProps } from 'src/components/Form';
-import { Select } from 'src/components';
-import { Col, Row } from 'src/components/Grid';
-import { InputNumber } from 'src/components/Input';
-import Button from 'src/components/Button';
+import {
+  Select,
+  Button,
+  Form,
+  FormItem,
+  InputNumber,
+  Col,
+  Row,
+  type FormProps,
+} from 'src/components';
 import { ConditionalFormattingConfig } from './types';
 
 const FullWidthInputNumber = styled(InputNumber)`

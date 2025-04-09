@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Divider, DividerProps } from 'src/components/Divider';
+import { Divider } from '.';
+import type { DividerProps } from './types';
 
 export default {
   title: 'Divider',

@@ -18,8 +18,8 @@
  */
 import { ReactNode } from 'react';
 import { ErrorSource, t, SupersetError } from '@superset-ui/core';
-import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry';
-import ErrorAlert from './ErrorAlert';
+import { getErrorMessageComponentRegistry } from './getErrorMessageComponentRegistry';
+import { ErrorAlert } from './ErrorAlert';
 
 const DEFAULT_TITLE = t('Unexpected error');
 
@@ -38,7 +38,7 @@ type Props = {
   compact?: boolean;
 };
 
-export default function ErrorMessageWithStackTrace({
+export function ErrorMessageWithStackTrace({
   title = DEFAULT_TITLE,
   error,
   subtitle,

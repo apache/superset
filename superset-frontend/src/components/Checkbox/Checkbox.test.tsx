@@ -22,7 +22,8 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import Checkbox, { CheckboxProps } from '.';
+import { Checkbox } from '.';
+import type { CheckboxProps } from './types';
 
 const mockedProps: CheckboxProps = {
   checked: false,

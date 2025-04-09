@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Collapse, { CollapseProps } from '.';
+import { Collapse } from '.';
+import type { CollapseProps } from './types';
 
 export default {
   title: 'Collapse',

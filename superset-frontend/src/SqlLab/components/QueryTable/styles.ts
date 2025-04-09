@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled, css } from '@superset-ui/core';
-import { IconTooltip } from '../../../components/IconTooltip';
+import { IconTooltip } from 'src/components';
 
 export const StaticPosition = css`
   position: static;

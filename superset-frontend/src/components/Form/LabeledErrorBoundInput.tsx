@@ -17,30 +17,15 @@
  * under the License.
  */
 import { styled, css, SupersetTheme, t } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
-import { Input } from 'src/components/Input';
-import InfoTooltip from 'src/components/InfoTooltip';
 import { Icons } from 'src/components/Icons';
-import Button from 'src/components/Button';
 import errorIcon from 'src/assets/images/icons/error.svg';
-import FormItem from './FormItem';
-import FormLabel from './FormLabel';
-
-export interface LabeledErrorBoundInputProps {
-  label?: string;
-  validationMethods:
-    | { onBlur: (value: any) => void }
-    | { onChange: (value: any) => void };
-  errorMessage?: string | null;
-  helpText?: string;
-  required?: boolean;
-  hasTooltip?: boolean;
-  tooltipText?: string | null;
-  id?: string;
-  classname?: string;
-  visibilityToggle?: boolean;
-  [x: string]: any;
-}
+import { Button } from '../Button';
+import { InfoTooltip } from '../InfoTooltip';
+import { Input } from '../Input';
+import { Tooltip } from '../Tooltip';
+import { FormItem } from './FormItem';
+import { FormLabel } from './FormLabel';
+import type { LabeledErrorBoundInputProps } from './types';
 
 const StyledInput = styled(Input)`
   margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
@@ -99,7 +84,7 @@ const iconReset = css`
   }
 `;
 
-const LabeledErrorBoundInput = ({
+export const LabeledErrorBoundInput = ({
   label,
   validationMethods,
   errorMessage,
@@ -169,5 +154,3 @@ const LabeledErrorBoundInput = ({
     </FormItem>
   </StyledFormGroup>
 );
-
-export default LabeledErrorBoundInput;

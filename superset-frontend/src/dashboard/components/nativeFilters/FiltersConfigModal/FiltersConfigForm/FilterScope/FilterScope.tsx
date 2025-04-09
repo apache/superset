@@ -19,7 +19,7 @@
 
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { NativeFilterScope, styled } from '@superset-ui/core';
-import { FormItem } from 'src/components/Form';
+import { FormItem } from 'src/components';
 import ScopingTree from './ScopingTree';
 import { getDefaultScopeValue } from './utils';
 

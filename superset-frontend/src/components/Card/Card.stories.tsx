@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Card, { CardProps } from '.';
+import { Card } from '.';
+import type { CardProps } from './types';
 
 export default {
   title: 'Card',

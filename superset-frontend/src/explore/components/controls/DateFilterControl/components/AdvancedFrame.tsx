@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SEPARATOR, t } from '@superset-ui/core';
-import { Input } from 'src/components/Input';
+import { Input } from 'src/components';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { FrameComponentProps } from 'src/explore/components/controls/DateFilterControl/types';
 import DateFunctionTooltip from './DateFunctionTooltip';

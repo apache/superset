@@ -18,8 +18,8 @@
  */
 import { useArgs } from '@storybook/preview-api';
 import { useState } from 'react';
-import type { CheckboxChangeEvent } from 'antd/es/checkbox';
-import Checkbox, { CheckboxProps } from '.';
+import { Checkbox } from '.';
+import type { CheckboxProps, CheckboxChangeEvent } from './types';
 
 export default {
   title: 'Checkbox',

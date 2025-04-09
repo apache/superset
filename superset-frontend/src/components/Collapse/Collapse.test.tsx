@@ -18,7 +18,8 @@
  */
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import Collapse, { CollapseProps } from '.';
+import { Collapse } from '.';
+import type { CollapseProps } from './types';
 
 function renderCollapse(props?: CollapseProps) {
   return render(

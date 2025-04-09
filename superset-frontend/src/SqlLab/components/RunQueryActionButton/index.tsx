@@ -20,9 +20,8 @@ import { useMemo, FC, ReactElement } from 'react';
 
 import { t, styled, useTheme, SupersetTheme } from '@superset-ui/core';
 
-import Button from 'src/components/Button';
+import { Button, DropdownButton } from 'src/components';
 import { Icons } from 'src/components/Icons';
-import { DropdownButton } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';

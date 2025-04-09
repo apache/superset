@@ -23,7 +23,7 @@ import { Tag as AntdTag } from 'antd-v5';
 import type { TagProps } from 'antd-v5/es';
 import type { CheckableTagProps } from 'antd-v5/es/tag';
 import { useMemo } from 'react';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip } from '../Tooltip';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `

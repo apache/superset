@@ -18,8 +18,6 @@
  */
 import { FunctionComponent, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import Alert from 'src/components/Alert';
-import Button from 'src/components/Button';
 import {
   isDefined,
   styled,
@@ -32,9 +30,6 @@ import {
 } from '@superset-ui/core';
 
 import { Icons } from 'src/components/Icons';
-import Modal from 'src/components/Modal';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   startMetaDataLoading,
@@ -45,7 +40,13 @@ import {
   fetchSyncedColumns,
   updateColumns,
 } from 'src/components/Datasource/utils';
-import { DatasetObject } from '../../features/datasets/types';
+import type { DatasetObject } from 'src/features/datasets/types';
+import { ErrorMessageWithStackTrace } from '../ErrorMessage';
+import { AsyncEsmComponent } from '../AsyncEsmComponent';
+import { Button } from '../Button';
+import { Alert } from '../Alert';
+import { Modal } from '../Modal';
+import type { DatasourceModalProps } from './types';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
@@ -73,16 +74,6 @@ const StyledDatasourceModal = styled(Modal)`
     margin-top: -${({ theme }) => theme.sizeUnit * 4}px;
   }
 `;
-
-interface DatasourceModalProps {
-  addSuccessToast: (msg: string) => void;
-  addDangerToast: (msg: string) => void;
-  datasource: DatasetObject;
-  onChange: () => {};
-  onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
-  onHide: () => {};
-  show: boolean;
-}
 
 function buildExtraJsonObject(
   item: DatasetObject['metrics'][0] | DatasetObject['columns'][0],
