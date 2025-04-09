@@ -40,9 +40,26 @@ const ValidatedPanelHeader = ({
   );
   return (
     <div>
-      <Space data-test={testId}>
-        <span>{t(title)}</span>
-        {validateCheckStatus ? <span>{checkmark}</span> : <span>*</span>}
+      <Space size="small" data-test={testId}>
+        <h5
+          style={{
+            fontSize: theme.fontSizeLG,
+          }}
+        >
+          {t(title)}
+        </h5>
+        {validateCheckStatus ? (
+          <span>{checkmark}</span>
+        ) : (
+          <span
+            style={{
+              color: theme.colors.error.base,
+              fontSize: theme.fontSizeLG,
+            }}
+          >
+            *
+          </span>
+        )}
       </Space>
       <p>{subtitle ? t(subtitle) : undefined}</p>
     </div>
