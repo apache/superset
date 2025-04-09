@@ -52,6 +52,8 @@ import {
 } from 'src/logger/LogUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { getQuerySettings } from 'src/explore/exploreUtils';
+import { Breadcrumb } from 'src/components/Breadcrumb';
+import { Flex } from 'src/components/Flex';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
@@ -59,8 +61,6 @@ import { useContextMenu } from '../ChartContextMenu/useContextMenu';
 import { getChartDataRequest, handleChartDataResponse } from '../chartAction';
 import { useDisplayModeToggle } from './useDisplayModeToggle';
 import { useResultsTableView } from './useResultsTableView';
-import { Breadcrumb } from 'src/components/Breadcrumb';
-import { Flex } from 'src/components/Flex';
 
 const DEFAULT_ADHOC_FILTER_FIELD_NAME = 'adhoc_filters';
 interface ModalFooterProps {
