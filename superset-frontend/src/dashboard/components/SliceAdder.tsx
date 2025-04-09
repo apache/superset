@@ -326,7 +326,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     );
   }
 
-  onShowOnlyMyCharts(showOnlyMyCharts: boolean) {
+  onShowOnlyMyCharts = (showOnlyMyCharts: boolean) => {
     if (!showOnlyMyCharts) {
       this.slicesRequest = this.props.fetchSlices(
         undefined,
@@ -344,7 +344,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
       ),
     }));
     setItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, showOnlyMyCharts);
-  }
+  };
 
   render() {
     const { theme } = this.props;
@@ -412,7 +412,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
           `}
         >
           <Checkbox
-            onChange={this.onShowOnlyMyCharts}
+            onChange={e => this.onShowOnlyMyCharts(e.target.checked)}
             checked={this.state.showOnlyMyCharts}
           />
           {t('Show only my charts')}

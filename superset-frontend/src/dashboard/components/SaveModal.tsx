@@ -196,8 +196,9 @@ class SaveModal extends PureComponent<SaveModalProps, SaveModalState> {
               <Checkbox
                 checked={this.state.duplicateSlices}
                 onChange={() => this.toggleDuplicateSlices()}
-              />
-              <span className="m-l-5">{t('also copy (duplicate) charts')}</span>
+              >
+                {t('also copy (duplicate) charts')}
+              </Checkbox>
             </div>
           </div>
         }
