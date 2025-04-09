@@ -141,9 +141,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     showExcludeSelection,
   } = formData;
   const filterName = useSelector(({ nativeFilters }: RootState) => {
-    const filterId = formData.nativeFilterId;
-    return nativeFilters?.filters?.[filterId]?.name;
-  })
+    const filterId = formData?.nativeFilterId;
+    if (!filterId || !nativeFilters?.filters) {
+      return "";
+    }
+    return nativeFilters.filters[filterId]?.name ?? "";
+  });
 
   const groupby = useMemo(
     () => ensureIsArray(formData.groupby).map(getColumnLabel),
