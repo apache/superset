@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createRef, useCallback, useMemo } from 'react';
+import { createRef, useCallback, useEffect, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
 import Tabs from 'src/components/Tabs';
@@ -35,6 +35,10 @@ import {
 } from '../../constants';
 import Results from './Results';
 import TablePreview from '../TablePreview';
+import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
+import useExtensions, { Extension } from 'src/extensions/useExtensions';
+import { getContribution } from 'src/extensions/utils';
+import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 
 const TAB_HEIGHT = 130;
 
@@ -93,6 +97,27 @@ const SouthPane = ({
 }: SouthPaneProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
+
+  // Initialize SQL Lab extensions
+  const extensions = useExtensions();
+
+  // TODO: Reference typed names and get rid of the conversion
+  const contributions = getContribution(
+    extensions,
+    'views',
+    'sqllab.panels',
+  ) as {
+    id: string;
+    name: string;
+  }[];
+
+  const { views } = useExtensionsContext();
+  useEffect(() => {
+    extensions.forEach((extension: Extension) => {
+      extension.activate();
+    });
+  }, [extensions]);
+
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
@@ -177,6 +202,16 @@ const SouthPane = ({
             latestQueryId={latestQueryId}
           />
         </Tabs.TabPane>
+        {contributions.map(contribution => (
+          <Tabs.TabPane
+            key={contribution.id}
+            tab={contribution.name}
+            closable={false}
+            forceRender
+          >
+            {views[contribution.id] || <ExtensionPlaceholder />}
+          </Tabs.TabPane>
+        ))}
         {pinnedTables.map(({ id, dbId, catalog, schema, name }) => (
           <Tabs.TabPane
             tab={
