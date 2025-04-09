@@ -25,7 +25,6 @@ at the end of this file.
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
-import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
 import logging
@@ -108,7 +107,10 @@ PACKAGE_JSON_FILE = str(files("superset") / "static/assets/package.json")
 #     "type": "image/png"
 #     "rel": "icon"
 # },
-FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
+FAVICONS = [{"href": "/static/assets/images/favicon.png",
+                "sizes": "16x16",
+                "type": "image/png",
+                "rel": "icon"}]
 
 
 def _try_json_readversion(filepath: str) -> str | None:
@@ -130,7 +132,7 @@ def _try_json_readsha(filepath: str, length: int) -> str | None:
 #
 # If True, we will skip the call to load the logger config found in alembic.init
 #
-ALEMBIC_SKIP_LOG_CONFIG = False
+ALEMBIC_SKIP_LOG_CONFIG = True
 
 # Depending on the context in which this config is loaded, the
 # version_info.json file may or may not be available, as it is
@@ -310,7 +312,7 @@ AUTH_RATE_LIMIT = "5 per second"
 APP_NAME = "Superset"
 
 # Specify the App icon
-APP_ICON = "/static/assets/images/superset-logo-horiz.png"
+APP_ICON = "/static/assets/images/favicon.png"
 
 # Specify where clicking the logo would take the user'
 # Default value of None will take you to '/superset/welcome'
@@ -447,7 +449,7 @@ class D3TimeFormat(TypedDict, total=False):
 
 D3_TIME_FORMAT: D3TimeFormat = {}
 
-CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
+CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY", "SEK"]
 
 # ---------------------------------------------------
 # Feature flags
@@ -534,7 +536,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # and Bigquery.
     # It also needs to be enabled on a per-database basis, by adding the key/value pair
     # `cost_estimate_enabled: true` to the database `extra` attribute.
-    "ESTIMATE_QUERY_COST": False,
+    "ESTIMATE_QUERY_COST": True,
     # Allow users to enable ssh tunneling when creating a DB.
     # Users must check whether the DB engine supports SSH Tunnels
     # otherwise enabling this flag won't have any effect on the DB.
