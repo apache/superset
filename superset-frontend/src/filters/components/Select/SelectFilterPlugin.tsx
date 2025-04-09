@@ -370,18 +370,25 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           onDropdownVisibleChange={setFilterActive}
         />
         {showExcludeSelection && (
-          <CheckBoxControlWrapper className='exclude-filter' onClick={() => handleExcludeCheckboxChange(!excludeFilterValues)}>
+          <CheckBoxControlWrapper 
+            className='exclude-filter' 
+            onClick={() => handleExcludeCheckboxChange(!excludeFilterValues)}
+            data-test="exclude-filter-wrapper"
+          >
             <Checkbox
+              dataTestAttribute="exclude-filter-checkbox"
               checked={excludeFilterValues}
               onChange={handleExcludeCheckboxChange}
             />
-            <span>{filterBarOrientation === FilterBarOrientation.Horizontal ? t('Exclude Values')  : t('Exclude Filter Values')}</span>
+            <span data-test="exclude-filter-label">
+              {filterBarOrientation === FilterBarOrientation.Horizontal ? t('Exclude Values')  : t('Exclude Filter Values')}
+            </span>
             <Tooltip
               id="exclude-filter-tooltip"
               title={EXCLUDE_FILTER_VALUES_TOOLTIP(filterName)}
               placement="top"
             >
-              <Icons.InfoCircleOutlined css={iconStyles} />
+              <Icons.InfoCircleOutlined css={iconStyles} data-test="info-circle" />
             </Tooltip>
           </CheckBoxControlWrapper>
         )}
