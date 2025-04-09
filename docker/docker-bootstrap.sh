@@ -77,6 +77,7 @@ case "${1}" in
   flower)
     echo "Starting Flower..."
     celery --app=superset.tasks.celery_app:app flower --port=5555 --persistent=True
+    ;;
   *)
     echo "Unknown Operation!!!"
     ;;
