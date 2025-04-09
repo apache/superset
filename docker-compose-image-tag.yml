@@ -135,8 +135,7 @@ services:
       SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
   celery-flower:
-    build:
-      <<: *superset-image
+    image: *superset-image
     container_name: celery_flower
     command: ["/app/docker/docker-bootstrap.sh", "flower"]
     env_file:
