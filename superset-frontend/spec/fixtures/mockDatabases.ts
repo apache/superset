@@ -16,22 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import IconButton from 'src/components/IconButton';
 
-const defaultProps = {
-  buttonText: 'This is the IconButton text',
-  icon: '/images/icons/sql.svg',
+export default {
+  1: {
+    allow_ctas: false,
+    allow_cvas: false,
+    allow_dml: false,
+    allow_file_upload: false,
+    allow_run_async: true,
+    backend: 'postgresql',
+    database_name: 'examples',
+    expose_in_sqllab: true,
+    force_ctas_schema: null,
+    id: 1,
+  },
 };
 
-describe('IconButton', () => {
-  it('renders an IconButton', () => {
-    render(<IconButton {...defaultProps} />);
-
-    const icon = screen.getByRole('img');
-    const buttonText = screen.getByText(/this is the iconbutton text/i);
-
-    expect(icon).toBeVisible();
-    expect(buttonText).toBeVisible();
-  });
-});
+export const disabledAsyncDb = {
+  21: {
+    allow_ctas: false,
+    allow_cvas: false,
+    allow_dml: false,
+    allow_file_upload: false,
+    allow_run_async: false,
+    backend: 'postgresql',
+    database_name: 'examples',
+    expose_in_sqllab: true,
+    force_ctas_schema: null,
+    id: 21,
+  },
+};

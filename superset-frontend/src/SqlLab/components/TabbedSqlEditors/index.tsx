@@ -287,7 +287,6 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
         className="SqlEditorTabs"
         data-test="sql-editor-tabs"
         onChange={this.handleSelect}
-        fullWidth={false}
         hideAdd={this.props.offline}
         onTabClick={this.onTabClicked}
         onEdit={this.handleEdit}

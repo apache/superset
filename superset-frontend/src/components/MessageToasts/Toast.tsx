@@ -42,7 +42,7 @@ const ToastContainer = styled.div`
 
 const notificationStyledIcon = (theme: SupersetTheme) => css`
   min-width: ${theme.sizeUnit * 5}px;
-  color: ${theme.colorIcon};
+  color: ${theme.colorTextLightSolid};
   margin-right: 0;
 `;
 

@@ -119,9 +119,7 @@ test('skips select all options', async () => {
     name: 'Select table or type to search tables',
   });
   userEvent.click(tableSelect);
-  expect(
-    await screen.findByRole('option', { name: 'table_a' }),
-  ).toBeInTheDocument();
+  expect(await screen.findByText('table_a')).toBeInTheDocument();
   expect(
     screen.queryByRole('option', { name: /Select All/i }),
   ).not.toBeInTheDocument();
@@ -145,12 +143,8 @@ test('renders table options without Select All option', async () => {
 
   await waitFor(
     () => {
-      expect(
-        screen.getByRole('option', { name: 'table_a' }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole('option', { name: 'table_b' }),
-      ).toBeInTheDocument();
+      expect(screen.getByText('table_a')).toBeInTheDocument();
+      expect(screen.getByText('table_b')).toBeInTheDocument();
     },
     { timeout: 10000 },
   );
@@ -182,15 +176,13 @@ test('table select retain value if not in SQL Lab mode', async () => {
 
   await waitFor(
     () => {
-      expect(
-        screen.getByRole('option', { name: 'table_a' }),
-      ).toBeInTheDocument();
+      expect(screen.getByText('table_a')).toBeInTheDocument();
     },
     { timeout: 10000 },
   );
 
   await act(async () => {
-    userEvent.click(screen.getAllByText('table_a')[1]);
+    userEvent.click(screen.getByText('table_a'));
   });
 
   await waitFor(
@@ -262,9 +254,8 @@ test('table multi select retain all the values selected', async () => {
     userEvent.click(item[item.length - 1]);
   });
 
-  const selection1 = await screen.findByRole('option', { name: 'table_b' });
-  expect(selection1).toHaveAttribute('aria-selected', 'true');
-
-  const selection2 = await screen.findByRole('option', { name: 'table_c' });
-  expect(selection2).toHaveAttribute('aria-selected', 'true');
+  const selections = await screen.findAllByRole('option', { selected: true });
+  expect(selections).toHaveLength(2);
+  expect(selections[0]).toHaveTextContent('table_b');
+  expect(selections[1]).toHaveTextContent('table_c');
 });

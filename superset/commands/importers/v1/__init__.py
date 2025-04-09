@@ -14,8 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from marshmallow import Schema, validate  # noqa: F401
 from marshmallow.exceptions import ValidationError
@@ -64,7 +67,12 @@ class ImportModelsCommand(BaseCommand):
         self._configs: dict[str, Any] = {}
 
     @staticmethod
-    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
+    # ruff: noqa: C901
+    def _import(
+        configs: dict[str, Any],
+        overwrite: bool = False,
+        contents: dict[str, Any] | None = None,
+    ) -> None:
         raise NotImplementedError("Subclasses MUST implement _import")
 
     @classmethod
@@ -76,7 +84,7 @@ class ImportModelsCommand(BaseCommand):
         self.validate()
 
         try:
-            self._import(self._configs, self.overwrite)
+            self._import(self._configs, self.overwrite, self.contents)
         except CommandException:
             raise
         except Exception as ex:
@@ -87,7 +95,7 @@ class ImportModelsCommand(BaseCommand):
 
         # verify that the metadata file is present and valid
         try:
-            metadata: Optional[dict[str, str]] = load_metadata(self.contents)
+            metadata: dict[str, str] | None = load_metadata(self.contents)
         except ValidationError as exc:
             exceptions.append(exc)
             metadata = None

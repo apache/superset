@@ -21,6 +21,7 @@ import { SerializedStyles } from '@emotion/react';
 
 export interface TagType {
   id?: number;
+  className?: string;
   type?: string | number;
   editable?: boolean;
   onDelete?: (index: number) => void;

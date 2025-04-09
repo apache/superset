@@ -19,6 +19,7 @@
 import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
 import { styled, t } from '@superset-ui/core';
 import Button from 'src/components/Button';
+import { Input } from 'src/components/Input';
 import Modal from 'src/components/Modal';
 import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
 import { useImportResource } from 'src/views/CRUD/hooks';
@@ -296,7 +297,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s PASSWORD', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <input
+                <Input
                   name={`password-${fileName}`}
                   autoComplete={`password-${fileName}`}
                   type="password"
@@ -316,7 +317,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s SSH TUNNEL PASSWORD', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <input
+                <Input
                   name={`ssh_tunnel_password-${fileName}`}
                   autoComplete={`ssh_tunnel_password-${fileName}`}
                   type="password"
@@ -361,7 +362,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
                   {t('%s SSH TUNNEL PRIVATE KEY PASSWORD', fileName.slice(10))}
                   <span className="required">*</span>
                 </div>
-                <input
+                <Input
                   name={`ssh_tunnel_private_key_password-${fileName}`}
                   autoComplete={`ssh_tunnel_private_key_password-${fileName}`}
                   type="password"
@@ -394,7 +395,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
           <div className="control-label">
             {t('Type "%s" to confirm', t('OVERWRITE'))}
           </div>
-          <input
+          <Input
             data-test="overwrite-modal-input"
             id="overwrite"
             type="text"

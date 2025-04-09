@@ -28,8 +28,8 @@ import {
   AreaChartOutlined,
   ArrowRightOutlined,
   BarChartOutlined,
-  BgColorsOutlined,
   BellOutlined,
+  BgColorsOutlined,
   BookOutlined,
   CaretUpOutlined,
   CaretDownOutlined,
@@ -113,6 +113,8 @@ import {
   FilterOutlined,
   UnorderedListOutlined,
   WarningOutlined,
+  SortAscendingOutlined,
+  KeyOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
 import { IconType } from './types';
@@ -215,6 +217,8 @@ const AntdIcons = {
   FilterOutlined,
   UnorderedListOutlined,
   WarningOutlined,
+  SortAscendingOutlined,
+  KeyOutlined,
 } as const;
 
 type AntdIconNames = keyof typeof AntdIcons;

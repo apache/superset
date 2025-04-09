@@ -17,86 +17,67 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import { Collapse as AntdCollapse } from 'antd'; // TODO: Remove antd
-// eslint-disable-next-line no-restricted-imports
-import { CollapseProps as AntdCollapseProps } from 'antd/lib/collapse'; // TODO: Remove antd
+import {
+  Collapse as AntdCollapse,
+  CollapseProps as AntdCollapseProps,
+} from 'antd-v5';
 
 export interface CollapseProps extends AntdCollapseProps {
-  light?: boolean;
-  bigger?: boolean;
-  bold?: boolean;
   animateArrows?: boolean;
 }
 
-const Collapse = Object.assign(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  styled(({ light, bigger, bold, animateArrows, ...props }: CollapseProps) => (
-    <AntdCollapse {...props} />
-  ))`
-    .ant-collapse-item {
-      .ant-collapse-header {
-        font-weight: ${({ bold, theme }) =>
-          bold ? theme.fontWeightStrong : theme.fontWeightNormal};
-        font-size: ${({ bigger, theme }) =>
-          bigger ? `${theme.sizeUnit * 4}px` : 'inherit'};
+const Collapse = styled((props: CollapseProps) => <AntdCollapse {...props} />)`
+  .antd5-collapse-item {
+    .antd5-collapse-header {
+      .antd5-collapse-arrow svg {
+        transition: ${({ animateArrows }) =>
+          animateArrows ? 'transform 0.24s' : 'none'};
+      }
 
-        .ant-collapse-arrow svg {
-          transition: ${({ animateArrows }) =>
-            animateArrows ? 'transform 0.24s' : 'none'};
-        }
-
-        ${({ expandIconPosition }) =>
-          expandIconPosition &&
-          expandIconPosition === 'right' &&
-          `
-            .anticon.anticon-right.ant-collapse-arrow > svg {
+      ${({ expandIconPosition }) =>
+        expandIconPosition &&
+        expandIconPosition === 'right' &&
+        `
+            .anticon.anticon-right.antd5-collapse-arrow > svg {
               transform: rotate(90deg) !important;
             }
           `}
+    }
 
-        ${({ light, theme }) =>
-          light &&
-          `
-            color: ${theme.colorTextSecondary};
-            .ant-collapse-arrow svg {
-              color: ${theme.colorTextSecondary};
-            }
-          `}
+    ${({ ghost, bordered, theme }) =>
+      ghost &&
+      bordered &&
+      `
+        border-bottom: 1px solid ${theme.colorBorderSecondary};
+      `}
+    .antd5-collapse-content {
+      color: ${({ theme }) => theme.colorText};
 
-        ${({ ghost, bordered, theme }) =>
-          ghost &&
-          bordered &&
-          `
-            border-bottom: 1px solid ${theme.colorBorderSecondary};
-          `}
-      }
-      .ant-collapse-content {
-        color: ${({ theme }) => theme.colorText};
-        .ant-collapse-content-box {
-          .loading.inline {
-            margin: ${({ theme }) => theme.sizeUnit * 12}px auto;
-            display: block;
-          }
+      .antd5-collapse-content-box {
+        .loading.inline {
+          margin: ${({ theme }) => theme.sizeUnit * 12}px auto;
+          display: block;
         }
       }
     }
-    .ant-collapse-item-active {
-      .ant-collapse-header {
-        ${({ expandIconPosition }) =>
-          expandIconPosition &&
-          expandIconPosition === 'right' &&
-          `
-            .anticon.anticon-right.ant-collapse-arrow > svg {
+  }
+
+  .hidden-collapse-header .antd5-collapse-header {
+    display: none;
+  }
+
+  .antd5-collapse-item-active {
+    .antd5-collapse-header {
+      ${({ expandIconPosition }) =>
+        expandIconPosition &&
+        expandIconPosition === 'right' &&
+        `
+            .anticon.anticon-right.antd5-collapse-arrow > svg {
               transform: rotate(-90deg) !important;
             }
           `}
-      }
     }
-  `,
-  {
-    Panel: AntdCollapse.Panel,
-  },
-);
+  }
+`;
 
 export default Collapse;

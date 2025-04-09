@@ -91,7 +91,7 @@ describe('Visualization > Bubble', () => {
     cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
     cy.focused().type('supersetColors{enter}');
     cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
+      '.Control[data-test="color_scheme"] .antd5-select-selection-item [data-test="supersetColors"]',
     ).should('exist');
     cy.get('[data-test=run-query-button]').click();
     cy.get('.bubble .nv-legend .nv-legend-symbol').should(

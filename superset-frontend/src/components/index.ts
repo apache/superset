@@ -29,7 +29,6 @@ export {
   Collapse as AntdCollapse,
   Select as AntdSelect,
 } from 'antd';
-
 /*
  * Re-exporting of components in src/components to facilitate
  * their imports by other components.

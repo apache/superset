@@ -59,7 +59,11 @@ const EstimateQueryCostButton = ({
   const columns = useMemo(
     () =>
       Array.isArray(cost) && cost.length
-        ? Object.keys(cost[0]).map(key => ({ accessor: key, Header: key }))
+        ? Object.keys(cost[0]).map(key => ({
+            accessor: key,
+            Header: key,
+            id: key,
+          }))
         : [],
     [cost],
   );

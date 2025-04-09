@@ -24,7 +24,6 @@ import { styledMount as mount } from 'spec/helpers/theming';
 
 import AnnotationList from 'src/pages/AnnotationList';
 import DeleteModal from 'src/components/DeleteModal';
-import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import ListView from 'src/components/ListView';
 import SubMenu from 'src/features/home/SubMenu';
 
@@ -155,7 +154,7 @@ describe('AnnotationList', () => {
       button.props().onClick();
     });
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
+    expect(wrapper.find('[type="checkbox"]')).toHaveLength(
       mockannotations.length + 1, // 1 for each row and 1 for select all
     );
   });

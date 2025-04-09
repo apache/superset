@@ -16,130 +16,52 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo } from 'react';
-import cx from 'classnames';
-import { TableInstance } from 'react-table';
+import { HTMLAttributes, memo, useMemo } from 'react';
+import {
+  ColumnInstance,
+  HeaderGroup,
+  Row,
+  SortingRule,
+  TableBodyPropGetter,
+  TablePropGetter,
+} from 'react-table';
 import { styled } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Table, TableSize } from 'src/components/Table';
+import { TableRowSelection, SorterResult } from 'antd-v5/es/table/interface';
+import { mapColumns, mapRows } from './utils';
 
-interface TableCollectionProps {
-  getTableProps: (userProps?: any) => any;
-  getTableBodyProps: (userProps?: any) => any;
-  prepareRow: TableInstance['prepareRow'];
-  headerGroups: TableInstance['headerGroups'];
-  rows: TableInstance['rows'];
-  columns: TableInstance['column'][];
+interface TableCollectionProps<T extends object> {
+  getTableProps: TablePropGetter<T>;
+  getTableBodyProps: TableBodyPropGetter<T>;
+  prepareRow: (row: Row<T>) => void;
+  headerGroups: HeaderGroup<T>[];
+  rows: Row<T>[];
+  columns: ColumnInstance<T>[];
   loading: boolean;
   highlightRowId?: number;
   columnsForWrapText?: string[];
+  setSortBy?: (updater: SortingRule<T>[]) => void;
+  bulkSelectEnabled?: boolean;
+  selectedFlatRows?: Row<T>[];
+  toggleRowSelected?: (rowId: string, value: boolean) => void;
+  toggleAllRowsSelected?: (value?: boolean) => void;
+  sticky?: boolean;
 }
 
-export const Table = styled.table`
+const StyledTable = styled(Table)`
   ${({ theme }) => `
-    background-color: ${theme.colorBgContainer};
-    border-collapse: separate;
-    border-radius: ${theme.borderRadius}px;
-
-    thead > tr > th {
-      border: 0;
+    th.antd5-column-cell {
+      min-width: fit-content;
     }
-
-    tbody {
-      tr:first-of-type > td {
-        border-top: 0;
-      }
-      tr > td {
-        border-top: 1px solid ${theme.colorSplit};
-      }
-    }
-    th {
-      position: sticky;
-      top: 0;
-
-      &:first-of-type {
-        padding-left: ${theme.sizeUnit * 4}px;
-      }
-
-      &.xs {
-        min-width: 25px;
-      }
-      &.sm {
-        min-width: 50px;
-      }
-      &.md {
-        min-width: 75px;
-      }
-      &.lg {
-        min-width: 100px;
-      }
-      &.xl {
-        min-width: 150px;
-      }
-      &.xxl {
-        min-width: 200px;
-      }
-
-      span {
-        white-space: nowrap;
-        display: flex;
-        align-items: center;
-        line-height: 2;
-      }
-
-      svg {
-        display: inline-block;
-        position: relative;
-      }
-    }
-
-    td {
-      &.xs {
-        width: 25px;
-      }
-      &.sm {
-        width: 50px;
-      }
-      &.md {
-        width: 75px;
-      }
-      &.lg {
-        width: 100px;
-      }
-      &.xl {
-        width: 150px;
-      }
-      &.xxl {
-        width: 200px;
-      }
-    }
-
-    .table-cell-loader {
-      position: relative;
-
-      .loading-bar {
-        background-color: ${theme.colorBgTextHover};
-        border-radius: 7px;
-
-        span {
-          visibility: hidden;
-        }
-      }
-
-      .empty-loading-bar {
-        display: inline-block;
-        width: 100%;
-        height: 1.2em;
-      }
-    }
-
     .actions {
+      opacity: 0;
+      font-size: ${theme.fontSizeXL}px;
+      display: flex;
       white-space: nowrap;
       min-width: 100px;
-
       svg,
       i {
         margin-right: 8px;
-
         &:hover {
           path {
             fill: ${theme.colorPrimary};
@@ -147,184 +69,111 @@ export const Table = styled.table`
         }
       }
     }
-
-    .table-row {
+    .antd5-table-row:hover {
       .actions {
-        opacity: 0;
-        font-size: ${theme.fontSizeXL}px;
-        display: flex;
-      }
-
-      &:hover {
-        background-color: ${theme.colorBgTextHover};
-
-        .actions {
-          opacity: 1;
-          transition: opacity ease-in ${theme.motionDurationMid};
-        }
+        opacity: 1;
+        transition: opacity ease-in ${theme.motionDurationMid};
       }
     }
-
-    .table-row-selected {
-      background-color: ${theme.colorPrimaryBgHover};
-
-      &:hover {
-        background-color: ${theme.colorPrimaryBgHover};
-      }
-    }
-
-    .table-cell {
+    .antd5-table-cell {
       font-feature-settings: 'tnum' 1;
       text-overflow: ellipsis;
       overflow: hidden;
       max-width: 320px;
       line-height: 1;
       vertical-align: middle;
-      &:first-of-type {
-        padding-left: ${theme.sizeUnit * 4}px;
-      }
-      &__wrap {
-        white-space: normal;
-      }
-      &__nowrap {
-        white-space: nowrap;
-      }
+      padding-left: ${theme.sizeUnit * 4}px;
+      white-space: nowrap;
     }
-
-    @keyframes loading-shimmer {
-      40% {
-        background-position: 100% 0;
-      }
-
-      100% {
-        background-position: 100% 0;
-      }
+    .antd5-table-placeholder .antd5-table-cell {
+      border-bottom: 0;
     }
   `}
 `;
 
-Table.displayName = 'table';
-
-export default memo(
-  ({
-    getTableProps,
-    getTableBodyProps,
-    prepareRow,
-    headerGroups,
+function TableCollection<T extends object>({
+  columns,
+  rows,
+  loading,
+  setSortBy,
+  headerGroups,
+  columnsForWrapText,
+  bulkSelectEnabled = false,
+  selectedFlatRows = [],
+  toggleRowSelected,
+  toggleAllRowsSelected,
+  prepareRow,
+  sticky,
+}: TableCollectionProps<T>) {
+  const mappedColumns = mapColumns<T>(
     columns,
-    rows,
-    loading,
-    highlightRowId,
+    headerGroups,
     columnsForWrapText,
-  }: TableCollectionProps) => (
-    <Table
-      {...getTableProps()}
-      className="table table-hover"
+  );
+  const mappedRows = mapRows(rows, prepareRow);
+
+  const selectedRowKeys = useMemo(
+    () => selectedFlatRows?.map(row => row.id) || [],
+    [selectedFlatRows],
+  );
+
+  const rowSelection: TableRowSelection | undefined = useMemo(() => {
+    if (!bulkSelectEnabled) return undefined;
+
+    return {
+      selectedRowKeys,
+      onSelect: (record, selected) => {
+        toggleRowSelected?.(record.rowId, selected);
+      },
+      onSelectAll: (selected: boolean) => {
+        toggleAllRowsSelected?.(selected);
+      },
+    };
+  }, [
+    bulkSelectEnabled,
+    selectedRowKeys,
+    toggleRowSelected,
+    toggleAllRowsSelected,
+  ]);
+  return (
+    <StyledTable
+      loading={loading}
+      sticky={sticky ?? false}
+      columns={mappedColumns}
+      data={mappedRows}
+      size={TableSize.Middle}
       data-test="listview-table"
-    >
-      <thead>
-        {headerGroups.map(headerGroup => (
-          <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map(column => {
-              let sortIcon = <Icons.Sort />;
-              if (column.isSorted && column.isSortedDesc) {
-                sortIcon = <Icons.SortDesc />;
-              } else if (column.isSorted && !column.isSortedDesc) {
-                sortIcon = <Icons.SortAsc />;
-              }
-              return column.hidden ? null : (
-                <th
-                  {...column.getHeaderProps(
-                    column.canSort ? column.getSortByToggleProps() : {},
-                  )}
-                  data-test="sort-header"
-                  className={cx({
-                    [column.size || '']: column.size,
-                  })}
-                >
-                  <span>
-                    {column.render('Header')}
-                    {column.canSort && sortIcon}
-                  </span>
-                </th>
-              );
-            })}
-          </tr>
-        ))}
-      </thead>
-      <tbody {...getTableBodyProps()}>
-        {loading &&
-          rows.length === 0 &&
-          [...new Array(12)].map((_, i) => (
-            <tr key={i}>
-              {columns.map((column, i2) => {
-                if (column.hidden) return null;
-                return (
-                  <td
-                    key={i2}
-                    className={cx('table-cell', {
-                      'table-cell-loader': loading,
-                    })}
-                  >
-                    <span
-                      className="loading-bar empty-loading-bar"
-                      role="progressbar"
-                      aria-label="loading"
-                    />
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        {rows.length > 0 &&
-          rows.map(row => {
-            prepareRow(row);
-            // @ts-ignore
-            const rowId = row.original.id;
-            return (
-              <tr
-                data-test="table-row"
-                {...row.getRowProps()}
-                className={cx('table-row', {
-                  'table-row-selected':
-                    row.isSelected ||
-                    (typeof rowId !== 'undefined' && rowId === highlightRowId),
-                })}
-              >
-                {row.cells.map(cell => {
-                  if (cell.column.hidden) return null;
-                  const columnCellProps = cell.column.cellProps || {};
-                  const isWrapText = columnsForWrapText?.includes(
-                    cell.column.Header as string,
-                  );
-                  return (
-                    <td
-                      data-test="table-row-cell"
-                      className={cx(
-                        `table-cell table-cell__${
-                          isWrapText ? 'wrap' : 'nowrap'
-                        }`,
-                        {
-                          'table-cell-loader': loading,
-                          [cell.column.size || '']: cell.column.size,
-                        },
-                      )}
-                      {...cell.getCellProps()}
-                      {...columnCellProps}
-                    >
-                      <span
-                        className={cx({ 'loading-bar': loading })}
-                        role={loading ? 'progressbar' : undefined}
-                      >
-                        <span data-test="cell-text">{cell.render('Cell')}</span>
-                      </span>
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
-      </tbody>
-    </Table>
-  ),
-);
+      pagination={false}
+      tableLayout="auto"
+      rowKey="rowId"
+      rowSelection={rowSelection}
+      locale={{ emptyText: null }}
+      sortDirections={['ascend', 'descend', 'ascend']}
+      components={{
+        header: {
+          cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
+            <th {...props} data-test="sort-header" role="columnheader" />
+          ),
+        },
+        body: {
+          row: (props: HTMLAttributes<HTMLTableRowElement>) => (
+            <tr {...props} data-test="table-row" />
+          ),
+          cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
+            <td {...props} data-test="table-row-cell" />
+          ),
+        },
+      }}
+      onChange={(_pagination, _filters, sorter: SorterResult) => {
+        setSortBy?.([
+          {
+            id: sorter.field,
+            desc: sorter.order === 'descend',
+          },
+        ] as SortingRule<T>[]);
+      }}
+    />
+  );
+}
+
+export default memo(TableCollection);

@@ -150,6 +150,7 @@ const TableView = ({
     prepareRow,
     pageCount,
     gotoPage,
+    setSortBy,
     state: { pageIndex, pageSize, sortBy },
   } = useTable(
     {
@@ -217,6 +218,7 @@ const TableView = ({
           rows={content}
           columns={columns}
           loading={loading}
+          setSortBy={setSortBy}
           columnsForWrapText={columnsForWrapText}
         />
         {isEmpty && (

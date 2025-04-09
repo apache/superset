@@ -34,6 +34,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
+import { Input } from 'src/components/Input';
 import { Icons } from 'src/components/Icons';
 import { Select } from 'src/components';
 import RefreshLabel from 'src/components/RefreshLabel';
@@ -485,7 +486,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_SUBJECT_NAME}
                   </div>
                   <div className={`input-container ${error ? 'error' : ''}`}>
-                    <input
+                    <Input
                       type="text"
                       name="email_subject"
                       value={email_subject}
@@ -525,7 +526,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 ].includes(method) ? (
                   <>
                     <div className="input-container">
-                      <textarea
+                      <Input.TextArea
                         name="To"
                         data-test="recipients"
                         value={recipientValue}
@@ -573,7 +574,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_CC_NAME}
                   </div>
                   <div className="input-container">
-                    <textarea
+                    <Input.TextArea
                       name="CC"
                       data-test="cc"
                       value={ccValue}
@@ -594,7 +595,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_BCC_NAME}
                   </div>
                   <div className="input-container">
-                    <textarea
+                    <Input.TextArea
                       name="BCC"
                       data-test="bcc"
                       value={bccValue}
