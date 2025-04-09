@@ -263,7 +263,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const handleFocus = useCallback(e => {
     if (
       // prevent scrolling when tabbing to the tab pane
-      e.target.classList.contains('ant-tabs-tabpane') &&
+      e.target.classList.contains('antd5-tabs-tabpane') &&
       window.scrollY < TOP_OF_PAGE_RANGE
     ) {
       // prevent window from jumping down when tabbing
@@ -274,39 +274,32 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, []);
 
   const renderParentSizeChildren = useCallback(
-    ({ width }) => (
-      /*
-      We use a TabContainer irrespective of whether top-level tabs exist to maintain
-      a consistent React component tree. This avoids expensive mounts/unmounts of
-      the entire dashboard upon adding/removing top-level tabs, which would otherwise
-      happen because of React's diffing algorithm
-    */
-      <Tabs
-        id={DASHBOARD_GRID_ID}
-        activeKey={activeKey}
-        renderTabBar={renderTabBar}
-        animated={false}
-        allowOverflow
-        onFocus={handleFocus}
-      >
-        {childIds.map((id, index) => (
-          // Matching the key of the first TabPane irrespective of topLevelTabs
-          // lets us keep the same React component tree when !!topLevelTabs changes.
-          // This avoids expensive mounts/unmounts of the entire dashboard.
-          <Tabs.TabPane
-            key={index === 0 ? DASHBOARD_GRID_ID : index.toString()}
-          >
-            <DashboardGrid
-              gridComponent={dashboardLayout[id]}
-              // see isValidChild for why tabs do not increment the depth of their children
-              depth={DASHBOARD_ROOT_DEPTH + 1} // (topLevelTabs ? 0 : 1)}
-              width={width}
-              isComponentVisible={index === tabIndex}
-            />
-          </Tabs.TabPane>
-        ))}
-      </Tabs>
-    ),
+    ({ width }) => {
+      const tabItems = childIds.map((id, index) => ({
+        key: index === 0 ? DASHBOARD_GRID_ID : index.toString(),
+        label: null,
+        children: (
+          <DashboardGrid
+            gridComponent={dashboardLayout[id]}
+            depth={DASHBOARD_ROOT_DEPTH + 1}
+            width={width}
+            isComponentVisible={index === tabIndex}
+          />
+        ),
+      }));
+
+      return (
+        <Tabs
+          id={DASHBOARD_GRID_ID}
+          activeKey={activeKey}
+          renderTabBar={renderTabBar}
+          animated={false}
+          allowOverflow
+          onFocus={handleFocus}
+          items={tabItems}
+        />
+      );
+    },
     [activeKey, childIds, dashboardLayout, handleFocus, renderTabBar, tabIndex],
   );
 

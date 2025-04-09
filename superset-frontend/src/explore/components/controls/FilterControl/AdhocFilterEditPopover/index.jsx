@@ -206,42 +206,43 @@ export default class AdhocFilterEditPopover extends Component {
           style={{ minHeight: this.state.height, width: this.state.width }}
           allowOverflow
           onChange={this.onTabChange}
-        >
-          <Tabs.TabPane
-            className="adhoc-filter-edit-tab"
-            key={ExpressionTypes.Simple}
-            tab={t('Simple')}
-          >
-            <ErrorBoundary>
-              <AdhocFilterEditPopoverSimpleTabContent
-                operators={operators}
-                adhocFilter={this.state.adhocFilter}
-                onChange={this.onAdhocFilterChange}
-                options={options}
-                datasource={datasource}
-                onHeightChange={this.adjustHeight}
-                partitionColumn={partitionColumn}
-                popoverRef={this.popoverContentRef.current}
-                validHandler={this.setSimpleTabIsValid}
-              />
-            </ErrorBoundary>
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            className="adhoc-filter-edit-tab"
-            key={ExpressionTypes.Sql}
-            tab={t('Custom SQL')}
-          >
-            <ErrorBoundary>
-              <AdhocFilterEditPopoverSqlTabContent
-                adhocFilter={this.state.adhocFilter}
-                onChange={this.onAdhocFilterChange}
-                options={this.props.options}
-                height={this.state.height}
-                activeKey={this.state.activeKey}
-              />
-            </ErrorBoundary>
-          </Tabs.TabPane>
-        </Tabs>
+          items={[
+            {
+              key: ExpressionTypes.Simple,
+              label: t('Simple'),
+              children: (
+                <ErrorBoundary>
+                  <AdhocFilterEditPopoverSimpleTabContent
+                    operators={operators}
+                    adhocFilter={this.state.adhocFilter}
+                    onChange={this.onAdhocFilterChange}
+                    options={options}
+                    datasource={datasource}
+                    onHeightChange={this.adjustHeight}
+                    partitionColumn={partitionColumn}
+                    popoverRef={this.popoverContentRef.current}
+                    validHandler={this.setSimpleTabIsValid}
+                  />
+                </ErrorBoundary>
+              ),
+            },
+            {
+              key: ExpressionTypes.Sql,
+              label: t('Custom SQL'),
+              children: (
+                <ErrorBoundary>
+                  <AdhocFilterEditPopoverSqlTabContent
+                    adhocFilter={this.state.adhocFilter}
+                    onChange={this.onAdhocFilterChange}
+                    options={this.props.options}
+                    height={this.state.height}
+                    activeKey={this.state.activeKey}
+                  />
+                </ErrorBoundary>
+              ),
+            },
+          ]}
+        />
         <FilterActionsContainer>
           <Button buttonSize="small" onClick={this.props.onClose} cta>
             {t('Close')}

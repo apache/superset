@@ -11,8 +11,8 @@
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ * OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
@@ -197,26 +197,29 @@ export const DataTablesPane = ({
     actions,
     isVisible: ResultTypes.Results === activeTabKey,
     canDownload,
-  }).map((pane, idx) => {
-    if (idx === 0) {
-      return (
-        <Tabs.TabPane tab={t('Results')} key={ResultTypes.Results}>
-          {pane}
-        </Tabs.TabPane>
-      );
-    }
-    if (idx > 0) {
-      return (
-        <Tabs.TabPane
-          tab={t('Results %s', idx + 1)}
-          key={`${ResultTypes.Results} ${idx + 1}`}
-        >
-          {pane}
-        </Tabs.TabPane>
-      );
-    }
-    return null;
-  });
+  }).map((pane, idx) => ({
+    key: idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`,
+    label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
+    children: pane,
+  }));
+
+  const tabItems = [
+    ...queryResultsPanes,
+    {
+      key: ResultTypes.Samples,
+      label: t('Samples'),
+      children: (
+        <SamplesPane
+          datasource={datasource}
+          queryForce={queryForce}
+          isRequest={isRequest.samples}
+          actions={actions}
+          isVisible={ResultTypes.Samples === activeTabKey}
+          canDownload={canDownload}
+        />
+      ),
+    },
+  ];
 
   return (
     <SouthPane data-test="some-purposeful-instance">
@@ -224,19 +227,8 @@ export const DataTablesPane = ({
         tabBarExtraContent={CollapseButton}
         activeKey={panelOpen ? activeTabKey : ''}
         onTabClick={handleTabClick}
-      >
-        {queryResultsPanes}
-        <Tabs.TabPane tab={t('Samples')} key={ResultTypes.Samples}>
-          <SamplesPane
-            datasource={datasource}
-            queryForce={queryForce}
-            isRequest={isRequest.samples}
-            actions={actions}
-            isVisible={ResultTypes.Samples === activeTabKey}
-            canDownload={canDownload}
-          />
-        </Tabs.TabPane>
-      </Tabs>
+        items={tabItems}
+      />
     </SouthPane>
   );
 };
