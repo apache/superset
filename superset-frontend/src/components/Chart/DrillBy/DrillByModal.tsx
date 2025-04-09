@@ -318,7 +318,7 @@ export default function DrillByModal({
       const hasFilters = ensureIsArray(breadcrumb.filters).length > 0;
 
       if (!hasGroupBy && !hasFilters) {
-        return null;
+        return undefined;
       }
 
       const groupbyText = ensureIsArray(breadcrumb.groupby)
@@ -339,7 +339,7 @@ export default function DrillByModal({
           : undefined,
       };
     })
-    .filter(Boolean);
+    .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
   const drilledFormData = useMemo(() => {
     let updatedFormData = { ...currentFormData };
