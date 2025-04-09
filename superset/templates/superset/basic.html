@@ -60,8 +60,8 @@
         as="style"
       />
 
-      {{ css_bundle("theme") }} {% if entry %} {{ css_bundle(entry) }} {% endif %}
-      {% endblock %} {{ js_bundle("theme") }}
+      {{ css_bundle(assets_prefix, "theme") }} {% if entry %} {{ css_bundle(assets_prefix, entry) }} {% endif %}
+      {% endblock %} {{ js_bundle(assets_prefix, "theme") }}
 
       <input
         type="hidden"
@@ -119,8 +119,8 @@
         </div>
       </div>
 
-      {% block tail_js %} {% if not standalone_mode %} {{ js_bundle('menu') }} {%
-      endif %} {% if entry %} {{ js_bundle(entry) }} {% endif %} {% include
+      {% block tail_js %} {% if not standalone_mode %} {{ js_bundle(assets_prefix, 'menu') }} {%
+      endif %} {% if entry %} {{ js_bundle(assets_prefix, entry) }} {% endif %} {% include
       "tail_js_custom_extra.html" %} {% endblock %}
 
       <!-- Handle deferred stylesheets -->

@@ -25,7 +25,7 @@ import {
 } from './utils';
 
 function interceptSamples() {
-  cy.intercept(`/datasource/samples*`).as('samples');
+  cy.intercept(`**/datasource/samples*`).as('samples');
 }
 
 function openModalFromMenu(chartType: string) {

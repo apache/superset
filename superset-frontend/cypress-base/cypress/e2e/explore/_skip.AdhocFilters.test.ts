@@ -18,11 +18,11 @@
  */
 describe.skip('AdhocFilters', () => {
   beforeEach(() => {
-    cy.intercept('GET', '/api/v1/datasource/table/*/column/name/values').as(
+    cy.intercept('GET', '**/api/v1/datasource/table/*/column/name/values').as(
       'filterValues',
     );
-    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
-    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '**/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '**/superset/explore_json/**').as('getJson');
     cy.visitChartByName('Boys'); // a table chart
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
   });

@@ -35,13 +35,13 @@ describe('makeApi()', () => {
     expect(api.requestType).toEqual('search');
   });
 
-  it('should allow custom client', async () => {
+  it('should allow custom path', async () => {
     expect.assertions(2);
     const api = makeApi({
       method: 'GET',
       endpoint: '/test-custom-client',
     });
-    const client = new SupersetClientClass({ baseUrl: 'http://foo/' });
+    const client = new SupersetClientClass({ appRoot: '/foo' });
     const mockResponse = { yes: 'ok' };
     const mockRequest = jest.fn(() =>
       Promise.resolve(

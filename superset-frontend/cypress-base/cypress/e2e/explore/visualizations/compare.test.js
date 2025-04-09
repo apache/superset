@@ -18,7 +18,7 @@
  */
 describe('Visualization > Compare', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '**/superset/explore_json/**').as('getJson');
   });
 
   const COMPARE_FORM_DATA = {

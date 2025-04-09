@@ -41,6 +41,7 @@ import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from 'src/utils/dates';
 
@@ -551,7 +552,7 @@ export function redirectSQLLab(formData, history) {
             },
           });
         } else {
-          SupersetClient.postForm(redirectUrl, {
+          SupersetClient.postForm(ensureAppRoot(redirectUrl), {
             form_data: safeStringify(payload),
           });
         }

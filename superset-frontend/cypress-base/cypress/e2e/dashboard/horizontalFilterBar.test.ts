@@ -177,7 +177,7 @@ describe('Horizontal FilterBar', () => {
   });
 
   it.skip('should spot changes in "more filters" and apply their values', () => {
-    cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
+    cy.intercept(`**/api/v1/chart/data?form_data=**`).as('chart');
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },

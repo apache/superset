@@ -18,7 +18,7 @@
  */
 describe('Visualization > World Map', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '**/superset/explore_json/**').as('getJson');
   });
 
   const WORLD_MAP_FORM_DATA = {

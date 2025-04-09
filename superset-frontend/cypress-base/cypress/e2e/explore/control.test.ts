@@ -146,7 +146,7 @@ describe('Test datatable', () => {
   });
   it('Datapane loads view samples', () => {
     cy.intercept(
-      'datasource/samples?force=false&datasource_type=table&datasource_id=*',
+      '**/datasource/samples?force=false&datasource_type=table&datasource_id=*',
     ).as('Samples');
     cy.contains('Samples').click();
     cy.wait('@Samples');

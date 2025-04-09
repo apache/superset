@@ -35,7 +35,7 @@ describe('SqlLab query panel', () => {
 
     cy.intercept({
       method: 'POST',
-      url: '/api/v1/sqllab/execute/',
+      url: '**/api/v1/sqllab/execute/',
     }).as('mockSQLResponse');
 
     cy.get('.TableSelector .Select:eq(0)').click();
@@ -79,7 +79,7 @@ describe('SqlLab query panel', () => {
   });
 
   it.skip('successfully saves a query', () => {
-    cy.intercept('api/v1/database/**/tables/**').as('getTables');
+    cy.intercept('**/api/v1/database/**/tables/**').as('getTables');
 
     const query =
       'SELECT ds, gender, name, num FROM main.birth_names ORDER BY name LIMIT 3';
@@ -142,7 +142,7 @@ describe('SqlLab query panel', () => {
   });
 
   it.skip('Create a chart from a query', () => {
-    cy.intercept('/api/v1/sqllab/execute/').as('queryFinished');
+    cy.intercept('**/api/v1/sqllab/execute/').as('queryFinished');
     cy.intercept('**/api/v1/explore/**').as('explore');
     cy.intercept('**/api/v1/chart/**').as('chart');
     cy.intercept('**/tabstateview/**').as('tabstateview');

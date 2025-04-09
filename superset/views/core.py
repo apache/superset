@@ -23,7 +23,7 @@ from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-from flask import abort, flash, g, redirect, request, Response
+from flask import abort, flash, g, redirect, request, Response, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
@@ -132,11 +132,11 @@ class Superset(BaseSupersetView):
         if not slc:
             abort(404)
         form_data = parse.quote(json.dumps({"slice_id": slice_id}))
-        endpoint = f"/explore/?form_data={form_data}"
+        endpoint_params = {"form_data": f"{form_data}"}
 
         if ReservedUrlParameters.is_standalone_mode():
-            endpoint += f"&{ReservedUrlParameters.STANDALONE}=true"
-        return redirect(endpoint)
+            endpoint_params[ReservedUrlParameters.STANDALONE] = "true"
+        return redirect(url_for("ExploreView.root", **endpoint_params))
 
     def get_query_string_response(self, viz_obj: BaseViz) -> FlaskResponse:
         query = None
@@ -421,7 +421,7 @@ class Superset(BaseSupersetView):
                     )
             except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
                 flash(__("Error: %(msg)s", msg=ex.message), "danger")
-                return redirect("/chart/list/")
+                return redirect(url_for("SliceModelView.list"))
         elif form_data_key:
             parameters = CommandParameters(key=form_data_key)
             value = GetFormDataCommand(parameters).run()
@@ -797,7 +797,7 @@ class Superset(BaseSupersetView):
                 redirect_url = f"{appbuilder.get_url_for_login}?next={request.url}"
                 warn_msg = "Users must be logged in to view this dashboard."
             else:
-                redirect_url = "/dashboard/list/"
+                redirect_url = url_for("DashboardModelView.list")
                 warn_msg = utils.error_msg_from_exception(ex)
             return redirect_with_flash(
                 url=redirect_url,
@@ -840,14 +840,16 @@ class Superset(BaseSupersetView):
             value = GetDashboardPermalinkCommand(key).run()
         except DashboardPermalinkGetFailedError as ex:
             flash(__("Error: %(msg)s", msg=ex.message), "danger")
-            return redirect("/dashboard/list/")
+            return redirect(url_for("DashboardModelView.list"))
         except DashboardAccessDeniedError as ex:
             flash(__("Error: %(msg)s", msg=ex.message), "danger")
-            return redirect("/dashboard/list/")
+            return redirect(url_for("DashboardModelView.list"))
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
         dashboard_id, state = value["dashboardId"], value.get("state", {})
-        url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
+        url = url_for(
+            "Superset.dashboard", dashboard_id_or_slug=dashboard_id, permalink_key=key
+        )
         if url_params := state.get("urlParams"):
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
@@ -924,4 +926,4 @@ class Superset(BaseSupersetView):
     @expose("/sqllab/history/", methods=("GET",))
     @deprecated(new_target="/sqllab/history")
     def sqllab_history(self) -> FlaskResponse:
-        return redirect("/sqllab/history")
+        return redirect(url_for("SqllabView.history"))
