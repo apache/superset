@@ -99,6 +99,7 @@ const Select = forwardRef(
       headerPosition = 'top',
       helperText,
       invertSelection = false,
+      showExcludeSelection = false,
       labelInValue = false,
       loading,
       mode = 'single',
@@ -604,7 +605,7 @@ const Select = forwardRef(
     };
 
     return (
-      <StyledContainer headerPosition={headerPosition}>
+      <StyledContainer showExcludeSelection={showExcludeSelection} headerPosition={headerPosition}>
         {header && (
           <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
         )}
