@@ -1950,13 +1950,11 @@ class TestSecurityManager(SupersetTestCase):
 
 class TestDatasources(SupersetTestCase):
     @patch("superset.security.SupersetSecurityManager.can_access_database")
-    @patch("superset.security.SupersetSecurityManager.get_session")
-    def test_get_user_datasources_admin(
-        self, mock_get_session, mock_can_access_database
-    ):
+    @patch("superset.security.manager.db.session")
+    def test_get_user_datasources_admin(self, mock_session, mock_can_access_database):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
         mock_can_access_database.return_value = True
-        mock_get_session.query.return_value.filter.return_value.all.return_value = []
+        mock_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
             SqlaTable, "get_all_datasources"
@@ -1975,13 +1973,11 @@ class TestDatasources(SupersetTestCase):
                 ]
 
     @patch("superset.security.SupersetSecurityManager.can_access_database")
-    @patch("superset.security.SupersetSecurityManager.get_session")
-    def test_get_user_datasources_gamma(
-        self, mock_get_session, mock_can_access_database
-    ):
+    @patch("superset.security.manager.db.session")
+    def test_get_user_datasources_gamma(self, mock_session, mock_can_access_database):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
         mock_can_access_database.return_value = False
-        mock_get_session.query.return_value.filter.return_value.all.return_value = []
+        mock_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
             SqlaTable, "get_all_datasources"
@@ -1996,14 +1992,14 @@ class TestDatasources(SupersetTestCase):
                 assert datasources == []
 
     @patch("superset.security.SupersetSecurityManager.can_access_database")
-    @patch("superset.security.SupersetSecurityManager.get_session")
+    @patch("superset.security.manager.db.session")
     def test_get_user_datasources_gamma_with_schema(
-        self, mock_get_session, mock_can_access_database
+        self, mock_session, mock_can_access_database
     ):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
         mock_can_access_database.return_value = False
 
-        mock_get_session.query.return_value.filter.return_value.all.return_value = [
+        mock_session.query.return_value.filter.return_value.all.return_value = [
             Datasource("database1", "schema1", "table1"),
             Datasource("database1", "schema1", "table2"),
         ]

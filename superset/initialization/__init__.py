@@ -568,7 +568,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.indexview = SupersetIndexView
         appbuilder.base_template = "superset/base.html"
         appbuilder.security_manager_class = custom_sm
-        appbuilder.init_app(self.superset_app, db.session)
+        appbuilder.init_app(self.superset_app)
 
     def configure_url_map_converters(self) -> None:
         #

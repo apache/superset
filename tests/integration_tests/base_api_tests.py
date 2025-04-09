@@ -55,10 +55,10 @@ class Model1Api(BaseSupersetModelRestApi):
     }
 
 
-appbuilder.add_api(Model1Api)
-
-
 class TestOpenApiSpec(SupersetTestCase):
+    def setUp(self) -> None:
+        appbuilder.add_api(Model1Api)
+
     def test_open_api_spec(self):
         """
         API: Test validate OpenAPI spec
