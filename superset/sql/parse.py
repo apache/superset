@@ -85,6 +85,7 @@ SQLGLOT_DIALECTS = {
     "risingwave": Dialects.RISINGWAVE,
     # "rockset": ???
     "shillelagh": Dialects.SQLITE,
+    "singlestore": Dialects.MYSQL,
     "snowflake": Dialects.SNOWFLAKE,
     # "solr": ???
     "spark": Dialects.SPARK,
