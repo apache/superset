@@ -56,7 +56,7 @@ type DataMaskAction =
   | {
     type: 'filterState';
     extraFormData: ExtraFormData;
-    filterState: { value: SelectValue; label?: string };
+    filterState: { value: SelectValue; label?: string , excludeFilterValues?: boolean };
   };
 
 function reducer(draft: DataMask, action: DataMaskAction) {
@@ -167,7 +167,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       }),
     [data, col],
   );
-  const [excludeFilterValues, setExcludeFilterValues] = useState(false);
+  const [excludeFilterValues, setExcludeFilterValues] = useState(!!filterState?.excludeFilterValues);
 
   const updateDataMask = useCallback(
     (values: SelectValue) => {
@@ -194,6 +194,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             appSection === AppSection.FilterConfigModal && defaultToFirstItem
               ? undefined
               : values,
+           excludeFilterValues,
         },
       });
     },
@@ -334,6 +335,15 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const handleExcludeCheckboxChange = (checked: boolean) => {
     setExcludeFilterValues(checked);
+    dispatchDataMask({
+      type: 'filterState',
+      extraFormData: { ...dataMask.extraFormData },
+      filterState: {
+        ...dataMask.filterState,
+        value: dataMask.filterState?.value || [],
+        excludeFilterValues: checked,
+      },
+    });
   };
 
 
