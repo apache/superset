@@ -33,7 +33,7 @@ export const StyledHeader = styled.span<{ headerPosition: string }>`
 `;
 
 export const StyledContainer = styled.div<{ headerPosition: string }>`
-  ${({ headerPosition , theme }) => `
+  ${({ headerPosition }) => `
     display: flex;
     flex-direction: ${headerPosition === 'top' ? 'column' : 'row'};
     align-items: ${headerPosition === 'left' ? 'center' : undefined};
