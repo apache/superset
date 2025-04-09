@@ -479,9 +479,12 @@ export default function DrillByModal({
           itemRender={(route, _, routes, paths) => {
             const isLastElement = routes.indexOf(route) === routes.length - 1;
             return isLastElement ? (
-              <span>{route.title}</span>
+              <span data-test="drill-by-breadcrumb-item">{route.title}</span>
             ) : (
               <span
+                data-test="drill-by-breadcrumb-item"
+                role="button"
+                tabIndex={0}
                 onClick={route.onClick}
                 css={css`
                   cursor: pointer;
