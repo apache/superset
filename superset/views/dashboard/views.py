@@ -17,7 +17,7 @@
 import builtins
 from typing import Callable, Union
 
-from flask import g, redirect, Response
+from flask import g, redirect, Response, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -66,8 +66,7 @@ class DashboardModelView(DashboardMixin, SupersetModelView, DeleteMixin):  # pyl
     ) -> FlaskResponse:
         if not isinstance(items, list):
             items = [items]
-        ids = "".join(f"&id={d.id}" for d in items)
-        return redirect(f"/dashboard/export_dashboards_form?{ids[1:]}")
+        return redirect(url_for("DashboardModelView.download_dashboards", id=items))
 
 
 class Dashboard(BaseSupersetView):
@@ -86,7 +85,11 @@ class Dashboard(BaseSupersetView):
         )
         db.session.add(new_dashboard)
         db.session.commit()  # pylint: disable=consider-using-transaction
-        return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
+        return redirect(
+            url_for(
+                "Superset.dashboard", dashboard_id_or_slug=new_dashboard.id, edit=True
+            )
+        )
 
     @expose("/<dashboard_id_or_slug>/embedded")
     @event_logger.log_this_with_extra_payload

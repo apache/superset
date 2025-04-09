@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import 'src/public-path';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 
-import './assets/stylesheets/superset.less';
-
-// Importing Antd under its own stylesheet to prevent unintentional theming
-import './assets/stylesheets/antd/index.less';
+/**
+ * Takes a string path to a resource and prefixes it with the application root that is
+ * defined in the application configuration. The application path is sanitized.
+ * @param path A string path to a resource
+ */
+export function ensureAppRoot(path: string): string {
+  return `${applicationRoot()}${path.startsWith('/') ? path : `/${path}`}`;
+}

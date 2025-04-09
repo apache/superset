@@ -143,6 +143,8 @@ export const SLOW_DEBOUNCE = 500;
 export const NULL_DISPLAY = t('N/A');
 
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
+  application_root: '/',
+  static_assets_prefix: '',
   flash_messages: [],
   conf: {},
   locale: 'en',
