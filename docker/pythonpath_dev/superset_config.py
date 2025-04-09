@@ -92,6 +92,8 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
+APP_NAME = "FF Analytics Dashboard"
+
 FEATURE_FLAGS = {"ALERT_REPORTS": True}
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = "http://superset:8088/"
