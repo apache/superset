@@ -215,10 +215,6 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
   ],
   [GenericDataType.Numeric]: [
     {
-      tab: t('General'),
-      children: [['customColumnName'], ['displayTypeIcon'], ['visible']],
-    },
-    {
       tab: t('Column Settings'),
       children: [
         [

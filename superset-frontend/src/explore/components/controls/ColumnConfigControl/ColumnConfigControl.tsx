@@ -135,7 +135,25 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
             key={col.name}
             column={col}
             onChange={config => setColumnConfig(col.name, config as T)}
-            configFormLayout={configFormLayout}
+            configFormLayout={
+              col.isChildColumn
+                ? ({
+                    [col.type ?? GenericDataType.String]: [
+                      {
+                        tab: 'General',
+                        children: [
+                          ['customColumnName'],
+                          ['displayTypeIcon'],
+                          ['visible'],
+                        ],
+                      },
+                      ...(configFormLayout?.[
+                        col.type ?? GenericDataType.String
+                      ] ?? []),
+                    ],
+                  } as ColumnConfigFormLayout)
+                : configFormLayout
+            }
             width={width}
             height={height}
           />
