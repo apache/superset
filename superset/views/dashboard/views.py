@@ -87,7 +87,7 @@ class Dashboard(BaseSupersetView):
         db.session.commit()  # pylint: disable=consider-using-transaction
         return redirect(
             url_for(
-                "Superset.dashboard", dashboard_id_or_slug=new_dashboard.id, edit=True
+                "Superset.dashboard", dashboard_id_or_slug=new_dashboard.id, edit="true"
             )
         )
 
