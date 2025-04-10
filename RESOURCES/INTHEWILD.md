@@ -217,6 +217,7 @@ Join our growing community!
 - [Increff](https://www.increff.com/) [@ishansinghania]
 - [komoot](https://www.komoot.com/) [@christophlingg]
 - [Let's Roam](https://www.letsroam.com/)
+- [Machrent SA](https://www.machrent.com/)
 - [Onebeat](https://1beat.com/) [@GuyAttia]
 - [X](https://x.com/)
 - [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
