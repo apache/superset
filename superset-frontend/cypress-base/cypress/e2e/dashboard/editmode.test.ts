@@ -1124,7 +1124,7 @@ describe('Dashboard edit', () => {
 
     it('should filter charts', () => {
       interceptCharts();
-      cy.get('[role="checkbox"]').click();
+      cy.get('input[type="checkbox"]').click();
       cy.getBySel('dashboard-charts-filter-search-input').type('Unicode');
       cy.wait('@filtering');
       cy.getBySel('chart-card')
@@ -1135,7 +1135,7 @@ describe('Dashboard edit', () => {
 
     // TODO fix this test! This was the #1 flaky test as of 4/21/23 according to cypress dashboard.
     it.skip('should disable the Save button when undoing', () => {
-      cy.get('[role="checkbox"]').click();
+      cy.get('input[type="checkbox"]').click();
       dragComponent('Unicode Cloud', 'card-title', false);
       cy.getBySel('header-save-button').should('be.enabled');
       discardChanges();
@@ -1149,13 +1149,13 @@ describe('Dashboard edit', () => {
     });
 
     it('should add charts', () => {
-      cy.get('[role="checkbox"]').click();
+      cy.get('input[type="checkbox"]').click();
       dragComponent();
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
     });
 
     it.skip('should remove added charts', () => {
-      cy.get('[role="checkbox"]').click();
+      cy.get('input[type="checkbox"]').click();
       dragComponent('Unicode Cloud');
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
       cy.getBySel('dashboard-delete-component-button').click();
@@ -1198,7 +1198,7 @@ describe('Dashboard edit', () => {
     });
 
     it('should save', () => {
-      cy.get('[role="checkbox"]').click();
+      cy.get('input[type="checkbox"]').click();
       dragComponent();
       cy.getBySel('header-save-button').should('be.enabled');
       saveChanges();

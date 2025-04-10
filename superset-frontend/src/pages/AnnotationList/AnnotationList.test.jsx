@@ -154,7 +154,7 @@ describe('AnnotationList', () => {
       button.props().onClick();
     });
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find('[type="checkbox"]')).toHaveLength(
+    expect(wrapper.find('input[type="checkbox"]')).toHaveLength(
       mockannotations.length + 1, // 1 for each row and 1 for select all
     );
   });
