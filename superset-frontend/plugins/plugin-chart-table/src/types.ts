@@ -68,6 +68,7 @@ export interface DataColumnMeta {
   isPercentMetric?: boolean;
   isNumeric?: boolean;
   config?: TableColumnConfig;
+  isFilterable?: boolean;
 }
 
 export interface TableChartData {
