@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SupersetTheme, css, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Button from 'src/components/Button';
 import { Input } from 'src/components/Input';
 import { FormLabel } from 'src/components/Form';
+import Upload from 'src/components/Upload';
 import { Icons } from 'src/components/Icons';
+import { addWarningToast } from 'src/components/MessageToasts/actions';
 import { DatabaseParameters, FieldPropTypes } from '../../types';
 import { infoTooltip, CredentialInfoForm } from '../styles';
 
@@ -45,13 +47,10 @@ export const EncryptedField = ({
   db,
   editNewDb,
 }: FieldPropTypes) => {
-  const selectedFileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.JsonUpload.valueOf(),
   );
-  const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
-    null,
-  );
+
   const showCredentialsInfo = !isEditMode;
   const encryptedField =
     db?.engine &&
@@ -62,6 +61,23 @@ export const EncryptedField = ({
     paramValue && typeof paramValue === 'object'
       ? JSON.stringify(paramValue)
       : paramValue;
+  const readTextFile = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsText(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+    });
+
+  useEffect(() => {
+    changeMethods.onParametersChange({
+      target: {
+        name: encryptedField,
+        value: '',
+      },
+    });
+  }, []);
+
   return (
     <CredentialInfoForm>
       {showCredentialsInfo && (
@@ -113,58 +129,42 @@ export const EncryptedField = ({
             className="input-container"
             css={(theme: SupersetTheme) => infoTooltip(theme)}
           >
-            {!fileToUpload && (
-              <Button onClick={() => selectedFileInputRef.current?.click()}>
-                <Icons.LinkOutlined iconSize="m" />
-                {t('Upload credentials')}
-              </Button>
-            )}
-            {fileToUpload && (
-              <div className="credentials-uploaded">
-                <Button block disabled>
-                  <Icons.LinkOutlined iconSize="m" />
-                  {t('Credentials uploaded')}
-                </Button>
-                <Icons.DeleteFilled
-                  iconSize="m"
-                  onClick={() => {
-                    setFileToUpload(null);
-                    changeMethods.onParametersChange({
+            <Upload
+              accept=".json"
+              maxCount={1}
+              beforeUpload={() => false}
+              onChange={async info => {
+                const file = info.fileList?.[0]?.originFileObj;
+                if (file) {
+                  try {
+                    const fileContent = await readTextFile(file);
+                    return changeMethods.onParametersChange({
                       target: {
+                        type: null,
                         name: encryptedField,
-                        value: '',
+                        value: fileContent,
+                        checked: false,
                       },
                     });
-                  }}
-                />
-              </div>
-            )}
-
-            <input
-              ref={selectedFileInputRef}
-              id="selectedFile"
-              accept=".json"
-              className="input-upload"
-              type="file"
-              onChange={async event => {
-                let file;
-                if (event.target.files) {
-                  file = event.target.files[0];
-                }
-                setFileToUpload(file?.name);
-                changeMethods.onParametersChange({
-                  target: {
-                    type: null,
-                    name: encryptedField,
-                    value: await file?.text(),
-                    checked: false,
-                  },
-                });
-                if (selectedFileInputRef.current) {
-                  selectedFileInputRef.current.value = null as any;
+                  } catch (error) {
+                    return addWarningToast(
+                      t('Image download failed, please refresh and try again.'),
+                    );
+                  }
+                } else {
+                  return changeMethods.onParametersChange({
+                    target: {
+                      name: encryptedField,
+                      value: '',
+                    },
+                  });
                 }
               }}
-            />
+            >
+              <Button icon={<Icons.LinkOutlined iconSize="m" />}>
+                {t('Upload credentials')}
+              </Button>
+            </Upload>
           </div>
         )
       )}
