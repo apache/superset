@@ -205,7 +205,9 @@ const DropdownContainer = forwardRef(
         const { children } = container;
         const childrenArray = Array.from(children);
 
-        const currentWidths = childrenArray.map(child => child.getBoundingClientRect().width);
+        const currentWidths = childrenArray.map(
+          child => child.getBoundingClientRect().width,
+        );
 
         // Update state with new widths
         setItemsWidth(currentWidths);

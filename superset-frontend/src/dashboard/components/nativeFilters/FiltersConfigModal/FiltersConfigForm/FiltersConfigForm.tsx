@@ -139,7 +139,7 @@ const controlsOrder: ControlKey[] = [
   'multiSelect',
   'searchAllOptions',
   'inverseSelection',
-  'showExcludeSelection'
+  'showExcludeSelection',
 ];
 
 export const StyledFormItem = styled(FormItem)<{ expanded: boolean }>`

@@ -150,7 +150,9 @@ const config: ControlPanelConfig = {
               affectsDataMask: true,
               label: t('Show dynamic exclude selection field'),
               default: showExcludeSelection,
-              description: t('Exclude the selected filter values from the results instead of filtering them'),
+              description: t(
+                'Exclude the selected filter values from the results instead of filtering them',
+              ),
             },
           },
         ],

@@ -120,7 +120,9 @@ const VerticalFormItem = styled(StyledFormItem)`
   }
 `;
 
-const HorizontalFormItem = styled(StyledFormItem)<{ showExcludeSelection: boolean }>`
+const HorizontalFormItem = styled(StyledFormItem)<{
+  showExcludeSelection: boolean;
+}>`
   && {
     margin-bottom: 0;
     align-items: center;
@@ -147,14 +149,13 @@ const HorizontalFormItem = styled(StyledFormItem)<{ showExcludeSelection: boolea
   }
 
   .ant-form-item-control-input-content {
-    ${({ showExcludeSelection }) =>
-      showExcludeSelection && 'display: flex;'}
+    ${({ showExcludeSelection }) => showExcludeSelection && 'display: flex;'}
   }
 
   .select-container {
     ${({ showExcludeSelection, theme }) =>
-    showExcludeSelection &&
-    `
+      showExcludeSelection &&
+      `
       width: ${theme.gridUnit * 41}px;
     `}
   }
@@ -176,14 +177,19 @@ const useFilterControlDisplay = (
       if (overflow) {
         return {
           FilterControlContainer: HorizontalOverflowFilterControlContainer,
-          FormItem : HorizontalOverflowFormItem,
+          FormItem: HorizontalOverflowFormItem,
           FilterControlTitleBox: HorizontalOverflowFilterControlTitleBox,
           FilterControlTitle: HorizontalOverflowFilterControlTitle,
         };
       }
       return {
         FilterControlContainer: HorizontalFilterControlContainer,
-        FormItem: (props: any) => <HorizontalFormItem {...props} showExcludeSelection={showExcludeSelection} />,
+        FormItem: (props: any) => (
+          <HorizontalFormItem
+            {...props}
+            showExcludeSelection={showExcludeSelection}
+          />
+        ),
         FilterControlTitleBox: HorizontalFilterControlTitleBox,
         FilterControlTitle: HorizontalFilterControlTitle,
       };

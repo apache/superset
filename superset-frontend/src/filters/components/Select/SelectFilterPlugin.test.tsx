@@ -19,10 +19,10 @@
 import { AppSection } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { NULL_STRING } from 'src/utils/common';
-import SelectFilterPlugin from './SelectFilterPlugin';
-import transformProps from './transformProps';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
+import SelectFilterPlugin from './SelectFilterPlugin';
+import transformProps from './transformProps';
 
 jest.useFakeTimers();
 
@@ -31,10 +31,10 @@ const store = mockStore({
   nativeFilters: {
     filters: {
       'test-filter': {
-        name: 'Test Filter'
-      }
-    }
-  }
+        name: 'Test Filter',
+      },
+    },
+  },
 });
 
 const selectMultipleProps = {
@@ -88,14 +88,14 @@ describe('SelectFilterPlugin', () => {
       <Provider store={store}>
         {/* @ts-ignore */}
         <SelectFilterPlugin
-        /* @ts-ignore */
+          /* @ts-ignore */
           {...transformProps({
             ...selectMultipleProps,
             formData: { ...selectMultipleProps.formData, ...props },
           })}
           setDataMask={setDataMask}
         />
-      </Provider>
+      </Provider>,
     );
 
   beforeEach(() => {
@@ -261,7 +261,7 @@ describe('SelectFilterPlugin', () => {
       <Provider store={store}>
         {/* @ts-ignore */}
         <SelectFilterPlugin
-         // @ts-ignore
+          // @ts-ignore
           {...transformProps({
             ...selectMultipleProps,
             formData: { ...selectMultipleProps.formData, groupby: 'bval' },
@@ -270,7 +270,7 @@ describe('SelectFilterPlugin', () => {
           data={[{ bval: bigValue }]}
           setDataMask={jest.fn()}
         />
-      </Provider>
+      </Provider>,
     );
     userEvent.click(screen.getByRole('combobox'));
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
@@ -280,7 +280,9 @@ describe('SelectFilterPlugin', () => {
 
   test('Exclude filter checkbox is not visible when showExcludeSelection is false', () => {
     getWrapper({ showExcludeSelection: false });
-    expect(screen.queryByTestId('exclude-filter-checkbox')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('exclude-filter-checkbox'),
+    ).not.toBeInTheDocument();
   });
 
   test('Exclude filter checkbox is visible when showExcludeSelection is true', () => {
@@ -292,23 +294,23 @@ describe('SelectFilterPlugin', () => {
     getWrapper({ showExcludeSelection: true });
     const checkbox = screen.getByTestId('exclude-filter-checkbox');
     expect(checkbox).not.toBeChecked();
-    
+
     userEvent.click(checkbox);
     expect(checkbox).toBeChecked();
-    
+
     userEvent.click(checkbox);
     expect(checkbox).not.toBeChecked();
   });
 
   test('Exclude filter checkbox updates data mask when toggled', async () => {
-    getWrapper({ 
+    getWrapper({
       showExcludeSelection: true,
-      filterState: { value: ['boy'] }
+      filterState: { value: ['boy'] },
     });
-    
+
     const checkbox = screen.getByTestId('exclude-filter-checkbox');
     userEvent.click(checkbox);
-    
+
     expect(setDataMask).toHaveBeenCalledWith({
       extraFormData: {
         filters: [
@@ -327,18 +329,23 @@ describe('SelectFilterPlugin', () => {
   });
 
   test('Exclude filter checkbox shows correct tooltip', async () => {
-    getWrapper({ 
+    getWrapper({
       showExcludeSelection: true,
-      formData: { ...selectMultipleProps.formData, nativeFilterId: 'test-filter' }
+      formData: {
+        ...selectMultipleProps.formData,
+        nativeFilterId: 'test-filter',
+      },
     });
-    
+
     const tooltipIcon = screen.getByTestId('info-circle');
     expect(tooltipIcon).toBeInTheDocument();
-    
+
     userEvent.hover(tooltipIcon);
-    
+
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toBeInTheDocument();
-    expect(tooltip).toHaveTextContent('Check this box to exclude the selected Test Filter values from the results instead of filtering them');
+    expect(tooltip).toHaveTextContent(
+      'Check this box to exclude the selected Test Filter values from the results instead of filtering them',
+    );
   });
 });

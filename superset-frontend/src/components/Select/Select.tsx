@@ -122,7 +122,7 @@ const Select = forwardRef(
       getPopupContainer,
       oneLine,
       maxTagCount: propsMaxTagCount,
-   
+
       ...props
     }: SelectProps,
     ref: RefObject<HTMLInputElement>,
@@ -606,7 +606,10 @@ const Select = forwardRef(
     };
 
     return (
-      <StyledContainer className='select-container'  headerPosition={headerPosition}>
+      <StyledContainer
+        className="select-container"
+        headerPosition={headerPosition}
+      >
         {header && (
           <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
         )}

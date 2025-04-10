@@ -40,24 +40,29 @@ import { Select } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { PluginFilterSelectProps, SelectValue } from './types';
-import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
-import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 import Checkbox from 'src/components/Checkbox/Checkbox';
 import { Tooltip } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
+import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
+import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
+import { PluginFilterSelectProps, SelectValue } from './types';
 
-const EXCLUDE_FILTER_VALUES_TOOLTIP = (filterName: string) => `Check this box to exclude the selected ${filterName} values from the results instead of filtering them`
+const EXCLUDE_FILTER_VALUES_TOOLTIP = (filterName: string) =>
+  `Check this box to exclude the selected ${filterName} values from the results instead of filtering them`;
 
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
   | {
-    type: 'filterState';
-    extraFormData: ExtraFormData;
-    filterState: { value: SelectValue; label?: string , excludeFilterValues?: boolean };
-  };
+      type: 'filterState';
+      extraFormData: ExtraFormData;
+      filterState: {
+        value: SelectValue;
+        label?: string;
+        excludeFilterValues?: boolean;
+      };
+    };
 
 function reducer(draft: DataMask, action: DataMaskAction) {
   switch (action.type) {
@@ -94,10 +99,13 @@ const CheckBoxControlWrapper = styled.div`
   margin-left: 8px;
   margin-top: 8px;
 
-  [role="checkbox"] {
+  [role='checkbox'] {
     margin-top: 4px;
   }
 
+  span[data-test='exclude-filter-label'] {
+    font-size: 12px;
+  }
 `;
 
 const iconStyles = css`
@@ -143,9 +151,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const filterName = useSelector(({ nativeFilters }: RootState) => {
     const filterId = formData?.nativeFilterId;
     if (!filterId || !nativeFilters?.filters) {
-      return "";
+      return '';
     }
-    return nativeFilters.filters[filterId]?.name ?? "";
+    return nativeFilters.filters[filterId]?.name ?? '';
   });
 
   const groupby = useMemo(
@@ -167,7 +175,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       }),
     [data, col],
   );
-  const [excludeFilterValues, setExcludeFilterValues] = useState(!!filterState?.excludeFilterValues);
+  const [excludeFilterValues, setExcludeFilterValues] = useState(
+    !!filterState?.excludeFilterValues,
+  );
 
   const updateDataMask = useCallback(
     (values: SelectValue) => {
@@ -187,14 +197,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           ...filterState,
           label: values?.length
             ? `${(values || [])
-              .map(value => labelFormatter(value, datatype))
-              .join(', ')}${suffix}`
+                .map(value => labelFormatter(value, datatype))
+                .join(', ')}${suffix}`
             : undefined,
           value:
             appSection === AppSection.FilterConfigModal && defaultToFirstItem
               ? undefined
               : values,
-           excludeFilterValues,
+          excludeFilterValues,
         },
       });
     },
@@ -344,7 +354,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       filterState: {
         ...dataMask.filterState,
         value: dataMask.filterState?.value || [],
-        excludeFilterValues: excludeFilterValues,
+        excludeFilterValues,
       },
     });
   }, [excludeFilterValues]);
@@ -366,7 +376,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             showOverflow
               ? () => (parentRef?.current as HTMLElement) || document.body
               : (trigger: HTMLElement) =>
-                (trigger?.parentNode as HTMLElement) || document.body
+                  (trigger?.parentNode as HTMLElement) || document.body
           }
           showSearch={showSearch}
           mode={multiSelect ? 'multiple' : 'single'}
@@ -389,8 +399,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           onDropdownVisibleChange={setFilterActive}
         />
         {showExcludeSelection && (
-          <CheckBoxControlWrapper 
-            className='exclude-filter' 
+          <CheckBoxControlWrapper
+            className="exclude-filter"
             onClick={() => handleExcludeCheckboxChange(!excludeFilterValues)}
             data-test="exclude-filter-wrapper"
           >
@@ -400,18 +410,22 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               onChange={handleExcludeCheckboxChange}
             />
             <span data-test="exclude-filter-label">
-              {filterBarOrientation === FilterBarOrientation.Horizontal ? t('Exclude Values')  : t('Exclude Filter Values')}
+              {filterBarOrientation === FilterBarOrientation.Horizontal
+                ? t('Exclude Values')
+                : t('Exclude Filter Values')}
             </span>
             <Tooltip
               id="exclude-filter-tooltip"
               title={EXCLUDE_FILTER_VALUES_TOOLTIP(filterName)}
               placement="top"
             >
-              <Icons.InfoCircleOutlined css={iconStyles} data-test="info-circle" />
+              <Icons.InfoCircleOutlined
+                css={iconStyles}
+                data-test="info-circle"
+              />
             </Tooltip>
           </CheckBoxControlWrapper>
         )}
-
       </StyledFormItem>
     </FilterPluginStyle>
   );
