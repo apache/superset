@@ -509,7 +509,9 @@ const config: ControlPanelConfig = {
                         generateComparisonColumns(colname);
                       comparisonColumns.forEach((name, idx) => {
                         updatedColnames.push(name);
-                        updatedColtypes.push(GenericDataType.Numeric);
+                        updatedColtypes.push(
+                          ...generateComparisonColumnTypes(4),
+                        );
 
                         if (idx === 0 && name.startsWith('Main ')) {
                           childColumnMap[name] = false;
