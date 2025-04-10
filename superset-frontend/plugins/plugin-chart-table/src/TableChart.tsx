@@ -697,13 +697,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       );
 
       if (isComparisonColumn) {
-        if (config.customColumnName) {
+        if (column.label === t('Main')) {
+          displayLabel = config.customColumnName || column.originalLabel || '';
+        } else if (config.customColumnName) {
           displayLabel =
             config.displayTypeIcon !== false
               ? `${column.label} ${config.customColumnName}`
               : config.customColumnName;
         } else if (config.displayTypeIcon === false) {
-          displayLabel = column.label === t('Main') ? label : '';
+          displayLabel = '';
         }
       }
 
