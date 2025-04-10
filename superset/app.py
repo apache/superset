@@ -17,8 +17,7 @@
 
 import logging
 import os
-from typing import cast, Iterable, Optional
-from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
+from typing import Any, Callable, cast, Dict, Iterable, Optional
 
 from flask import Flask
 from werkzeug.exceptions import NotFound
@@ -79,14 +78,16 @@ class AppRootMiddleware:
 
     def __init__(
         self,
-        wsgi_app: WSGIApplication,
+        wsgi_app: Any,
         app_root: str,
     ):
         self.wsgi_app = wsgi_app
         self.app_root = app_root
 
     def __call__(
-        self, environ: WSGIEnvironment, start_response: StartResponse
+        self,
+        environ: Dict[str, Any],
+        start_response: Callable[[str, Any], Iterable[bytes]],
     ) -> Iterable[bytes]:
         original_path_info = environ.get("PATH_INFO", "")
         if original_path_info.startswith(self.app_root):
