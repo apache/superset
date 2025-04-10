@@ -50,7 +50,10 @@ import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
 import { PluginFilterSelectProps, SelectValue } from './types';
 
 const EXCLUDE_FILTER_VALUES_TOOLTIP = (filterName: string) =>
-  t('Check this box to exclude the selected %s values from the results instead of filtering them', filterName);
+  t(
+    'Check this box to exclude the selected %s values from the results instead of filtering them',
+    filterName,
+  );
 
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }

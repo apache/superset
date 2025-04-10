@@ -19,23 +19,10 @@
 import { AppSection } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { NULL_STRING } from 'src/utils/common';
-import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';
 
 jest.useFakeTimers();
-
-const mockStore = configureStore([]);
-const store = mockStore({
-  nativeFilters: {
-    filters: {
-      'test-filter': {
-        name: 'Test Filter',
-      },
-    },
-  },
-});
 
 const selectMultipleProps = {
   formData: {
@@ -85,17 +72,46 @@ describe('SelectFilterPlugin', () => {
   const setDataMask = jest.fn();
   const getWrapper = (props = {}) =>
     render(
-      <Provider store={store}>
-        {/* @ts-ignore */}
-        <SelectFilterPlugin
-          /* @ts-ignore */
-          {...transformProps({
-            ...selectMultipleProps,
-            formData: { ...selectMultipleProps.formData, ...props },
-          })}
-          setDataMask={setDataMask}
-        />
-      </Provider>,
+      // @ts-ignore
+      <SelectFilterPlugin
+        // @ts-ignore
+        {...transformProps({
+          ...selectMultipleProps,
+          formData: { ...selectMultipleProps.formData, ...props },
+        })}
+        setDataMask={setDataMask}
+        showOverflow={false}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: {
+              'test-filter': {
+                name: 'Test Filter',
+              },
+            },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {
+                filters: [
+                  {
+                    col: 'gender',
+                    op: 'IN',
+                    val: ['boy'],
+                  },
+                ],
+              },
+              filterState: {
+                value: ['boy'],
+                label: 'boy',
+                excludeFilterValues: false,
+              },
+            },
+          },
+        },
+      },
     );
 
   beforeEach(() => {
@@ -258,19 +274,40 @@ describe('SelectFilterPlugin', () => {
   test('Select big int value', async () => {
     const bigValue = 1100924931345932234n;
     render(
-      <Provider store={store}>
-        {/* @ts-ignore */}
-        <SelectFilterPlugin
-          // @ts-ignore
-          {...transformProps({
-            ...selectMultipleProps,
-            formData: { ...selectMultipleProps.formData, groupby: 'bval' },
-          })}
-          coltypeMap={{ bval: 1 }}
-          data={[{ bval: bigValue }]}
-          setDataMask={jest.fn()}
-        />
-      </Provider>,
+      // @ts-ignore
+      <SelectFilterPlugin
+        // @ts-ignore
+        {...transformProps({
+          ...selectMultipleProps,
+          formData: { ...selectMultipleProps.formData, groupby: 'bval' },
+        })}
+        coltypeMap={{ bval: 1 }}
+        data={[{ bval: bigValue }]}
+        setDataMask={jest.fn()}
+        showOverflow={false}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: {
+              'test-filter': {
+                name: 'Test Filter',
+              },
+            },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {},
+              filterState: {
+                value: [],
+                label: '',
+                excludeFilterValues: false,
+              },
+            },
+          },
+        },
+      },
     );
     userEvent.click(screen.getByRole('combobox'));
     expect(await screen.findByRole('combobox')).toBeInTheDocument();

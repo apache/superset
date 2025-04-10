@@ -35,7 +35,7 @@ describe('Select buildQuery', () => {
     searchAllOptions: false,
     height: 100,
     width: 100,
-    showExcludeSelection : false,
+    showExcludeSelection: false,
   };
 
   it('should build a default query', () => {
