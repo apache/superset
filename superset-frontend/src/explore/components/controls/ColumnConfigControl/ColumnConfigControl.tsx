@@ -34,7 +34,11 @@ import ControlHeader from '../../ControlHeader';
 
 export type ColumnConfigControlProps<T extends ColumnConfig> =
   ControlComponentProps<Record<string, T>> & {
-    columnsPropsObject?: { colnames: string[]; coltypes: GenericDataType[] };
+    columnsPropsObject?: {
+      colnames: string[];
+      coltypes: GenericDataType[];
+      childColumnMap?: Record<string, boolean>;
+    };
     configFormLayout?: ColumnConfigFormLayout;
     appliedColumnNames?: string[];
     width?: number | string;
@@ -82,13 +86,12 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
         name: COLUMN_NAME_ALIASES[col] || col,
         type: coltypes?.[idx],
         config: value?.[col] || {},
-        isChildColumn: ['#', '△', '%'].some(
-          prefix => col.startsWith(`${prefix} `) || col.includes(` ${prefix}`),
-        ),
+        isChildColumn: columnsPropsObject?.childColumnMap?.[col] ?? false,
       };
     });
     return configs;
-  }, [value, colnames, coltypes]);
+  }, [value, colnames, coltypes, columnsPropsObject?.childColumnMap]);
+
   const [showAllColumns, setShowAllColumns] = useState(false);
 
   const getColumnInfo = (col: string) => columnConfigs[col] || {};
@@ -116,12 +119,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
       ? colnames.slice(0, MAX_NUM_COLS)
       : colnames;
 
-  const columnsWithChildInfo = cols.map(col => ({
-    ...getColumnInfo(col),
-    isChildColumn: ['#', '△', '%'].some(prefix =>
-      getColumnInfo(col).name.startsWith(prefix),
-    ),
-  }));
+  const columnsWithChildInfo = cols.map(col => getColumnInfo(col));
 
   return (
     <>
