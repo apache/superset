@@ -213,7 +213,7 @@ describe('plugin-chart-table', () => {
       );
       expect(metric1Column).toBeDefined();
       expect(metric1Column?.originalLabel).toBe('metric_1');
-      expect(metric1Column?.label).toBe('metric_1');
+      expect(metric1Column?.label).toBe('Main');
 
       const hashMetric1 = transformedProps.columns.find(
         col => col.key === '# metric_1',
@@ -244,7 +244,7 @@ describe('plugin-chart-table', () => {
       expect(metric2Column).toBeDefined();
       expect(metric2Column?.originalLabel).toBe('metric_2');
 
-      expect(metric2Column?.label).toBe('metric_2');
+      expect(metric2Column?.label).toBe('Main');
 
       const hashMetric2 = transformedProps.columns.find(
         col => col.key === '# metric_2',
