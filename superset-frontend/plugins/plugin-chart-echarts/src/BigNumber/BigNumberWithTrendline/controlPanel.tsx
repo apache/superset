@@ -137,6 +137,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_picker', null],
+        [metricNameFontSize],
         [headerFontSize],
         [subheaderFontSize],
         [subtitleControl],

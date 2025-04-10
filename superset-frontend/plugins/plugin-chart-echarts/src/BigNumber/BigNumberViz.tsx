@@ -35,7 +35,6 @@ const defaultNumberFormatter = getNumberFormatter();
 
 const PROPORTION = {
   // text size: proportion of the chart container sans trendline
-  METRIC_NAME: 0.125,
   KICKER: 0.1,
   HEADER: 0.3,
   SUBHEADER: 0.125,
@@ -50,8 +49,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     formatTime: getTimeFormatter(SMART_DATE_VERBOSE_ID),
     headerFontSize: PROPORTION.HEADER,
     kickerFontSize: PROPORTION.KICKER,
-    metricNameFontSize: PROPORTION.METRIC_NAME,
-    showMetricName: true,
     mainColor: BRAND_COLOR,
     showTimestamp: false,
     showTrendLine: false,
@@ -92,36 +89,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       >
         {t('Not up to date')}
       </span>
-    );
-  }
-
-  renderMetricName(maxHeight: number) {
-    const { metricName, width, showMetricName } = this.props;
-    if (!showMetricName || !metricName) return null;
-
-    const text = metricName;
-
-    const container = this.createTemporaryContainer();
-    document.body.append(container);
-    const fontSize = computeMaxFontSize({
-      text,
-      maxWidth: width,
-      maxHeight,
-      className: 'metric-name',
-      container,
-    });
-    container.remove();
-
-    return (
-      <div
-        className="metric-name"
-        style={{
-          fontSize,
-          height: 'auto',
-        }}
-      >
-        {text}
-      </div>
     );
   }
 
@@ -342,16 +309,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     );
   }
 
-  renderWithFontSize(
-    renderer: (height: number) => React.ReactNode,
-    fontSizeProp: number | undefined,
-  ): React.ReactNode {
-    const { height, showTrendLine } = this.props;
-    const multiplier = showTrendLine ? 1 - PROPORTION.TRENDLINE : 1;
-    const computedHeight = Math.ceil((fontSizeProp || 0) * multiplier * height);
-    return renderer(computedHeight);
-  }
-
   render() {
     const {
       showTrendLine,
@@ -360,7 +317,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       headerFontSize,
       subheaderFontSize,
       subtitleFontSize,
-      metricNameFontSize,
     } = this.props;
     const className = this.getClassName();
 
@@ -372,21 +328,18 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         <div className={className}>
           <div className="text-container" style={{ height: allTextHeight }}>
             {this.renderFallbackWarning()}
-            {this.renderWithFontSize(
-              this.renderMetricName.bind(this),
-              metricNameFontSize,
+            {this.renderKicker(
+              Math.ceil(
+                (kickerFontSize || 0) * (1 - PROPORTION.TRENDLINE) * height,
+              ),
             )}
-            {this.renderWithFontSize(
-              this.renderKicker.bind(this),
-              kickerFontSize,
+            {this.renderHeader(
+              Math.ceil(headerFontSize * (1 - PROPORTION.TRENDLINE) * height),
             )}
-            {this.renderWithFontSize(
-              this.renderHeader.bind(this),
-              headerFontSize,
-            )}
-            {this.renderWithFontSize(
-              this.renderSubheader.bind(this),
-              subheaderFontSize,
+            {this.renderSubheader(
+              Math.ceil(
+                subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
+              ),
             )}
             {this.renderSubtitle(
               Math.ceil(subtitleFontSize * (1 - PROPORTION.TRENDLINE) * height),
@@ -400,7 +353,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     return (
       <div className={className} style={{ height }}>
         {this.renderFallbackWarning()}
-        {this.renderMetricName((metricNameFontSize || 0) * height)}
         {this.renderKicker((kickerFontSize || 0) * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}
         {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
@@ -441,11 +393,6 @@ export default styled(BigNumberVis)`
       line-height: 1em;
       padding-bottom: 2em;
     }
-    .metric-name {
-     line-height: 1em;
-     white-space: nowrap;
-     margin-bottom: ${theme.gridUnit * 2}px;
-   }
 
     .header-line {
       position: relative;

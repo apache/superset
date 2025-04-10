@@ -76,6 +76,7 @@ export default function transformProps(
     yAxisFormat,
     currencyFormat,
     timeRangeFixed,
+    metricNameFontSize,
   } = formData;
   const granularity = extractTimegrain(rawFormData);
   const {
@@ -318,5 +319,7 @@ export default function transformProps(
     onContextMenu,
     xValueFormatter: formatTime,
     refs,
+    metricName,
+    metricNameFontSize,
   };
 }
