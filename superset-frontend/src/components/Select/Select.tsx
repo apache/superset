@@ -307,6 +307,9 @@ const Select = forwardRef(
     const handleOnSearch = debounce((search: string) => {
       const searchValue = search.trim();
       setIsSearching(!!searchValue);
+
+      let updatedOptions = selectOptions;
+
       if (allowNewOptions) {
         const newOption = searchValue &&
           !hasOption(searchValue, fullSelectOptions, true) && {
@@ -317,12 +320,13 @@ const Select = forwardRef(
         const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
           opt => !opt.isNewOption || hasOption(opt.value, selectValue),
         );
-        const newOptions = newOption
+        updatedOptions = newOption
           ? [newOption, ...cleanSelectOptions]
           : cleanSelectOptions;
-        setSelectOptions(newOptions);
+        setSelectOptions(updatedOptions);
       }
-      const filteredOptions = fullSelectOptions.filter(option =>
+
+      const filteredOptions = updatedOptions.filter(option =>
         handleFilterOptionHelper(
           search,
           option as AntdLabeledValue,
@@ -330,6 +334,7 @@ const Select = forwardRef(
           true,
         ),
       );
+
       setVisibleOptions(filteredOptions);
       setInputValue(searchValue);
       onSearch?.(searchValue);
@@ -359,7 +364,9 @@ const Select = forwardRef(
     const handleSelectAll = useCallback(() => {
       if (isSingleMode) return;
 
-      const optionsToSelect = isSearching ? visibleOptions : enabledOptions;
+      const optionsToSelect = isSearching
+        ? visibleOptions.filter(option => !option.isNewOption)
+        : enabledOptions;
 
       const currentValues = ensureIsArray(selectValue);
       const currentValuesSet = new Set(currentValues.map(getValue));
@@ -393,7 +400,9 @@ const Select = forwardRef(
     const handleDeselectAll = useCallback(() => {
       if (isSingleMode) return;
 
-      const optionsToDeselect = isSearching ? visibleOptions : enabledOptions;
+      const optionsToDeselect = isSearching
+        ? visibleOptions.filter(option => !option.isNewOption)
+        : enabledOptions;
       const deselectionValues = new Set(
         optionsToDeselect.map(opt => opt.value),
       );
@@ -414,9 +423,10 @@ const Select = forwardRef(
       fireOnChange,
     ]);
 
-    useEffect(() => {
-      console.log({ visibleOptions });
-    }, [visibleOptions]);
+    const visibleOptionsCount = useMemo(
+      () => visibleOptions.filter(option => !option.isNewOption).length,
+      [visibleOptions],
+    );
 
     const bulkSelectComponent = useMemo(
       () => (
@@ -429,26 +439,28 @@ const Select = forwardRef(
           `}
         >
           <Button
+            type="link"
             onClick={e => {
               e.preventDefault();
               e.stopPropagation();
               handleSelectAll();
             }}
           >
-            {t('Select all')}
+            {`${t('Select all')} (${visibleOptionsCount})`}
           </Button>
           <Button
+            type="link"
             onClick={e => {
               e.preventDefault();
               e.stopPropagation();
               handleDeselectAll();
             }}
           >
-            {t('Deselect all')}
+            {`${t('Deselect all')} (${visibleOptionsCount})`}
           </Button>
         </Space>
       ),
-      [handleSelectAll, handleDeselectAll],
+      [handleSelectAll, handleDeselectAll, visibleOptionsCount],
     );
 
     const dropdownRender = (
