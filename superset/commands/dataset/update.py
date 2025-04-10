@@ -222,8 +222,8 @@ def validate_folders(  # noqa: C901
         raise ValidationError("Dataset folders are not enabled")
 
     existing = {
-        *[metric.uuid for metric in metrics],
-        *[column.uuid for column in columns],
+        "metric": {metric.uuid: metric.metric_name for metric in metrics},
+        "column": {column.uuid: column.column_name for column in columns},
     }
 
     queue: list[tuple[FolderSchema, list[str]]] = [(folder, []) for folder in folders]
@@ -231,7 +231,7 @@ def validate_folders(  # noqa: C901
     seen_fqns = set()  # fully qualified folder names
     while queue:
         obj, path = queue.pop(0)
-        uuid, name = obj["uuid"], obj.get("name")
+        uuid, name, type = obj["uuid"], obj.get("name"), obj["type"]
 
         if uuid in path:
             raise ValidationError(f"Cycle detected: {uuid} appears in its ancestry")
@@ -243,12 +243,21 @@ def validate_folders(  # noqa: C901
         # folders can have duplicate name as long as they're not siblings
         if name:
             fqn = tuple(path + [name])
-            if name and fqn in seen_fqns:
+            if type == "folder" and fqn in seen_fqns:
                 raise ValidationError(f"Duplicate folder name: {name}")
             seen_fqns.add(fqn)
 
-            if name.lower() in {"metrics", "columns"}:
+            if type == "folder" and name.lower() in {
+                "metrics",
+                "columns",
+            }:
                 raise ValidationError(f"Folder cannot have name '{name}'")
+
+            if type in {"metric", "column"}:
+                if uuid not in existing[type]:
+                    raise ValidationError(f"Invalid UUID for {type} '{name}': {uuid}")
+                if name != existing[type][uuid]:
+                    raise ValidationError(f"Mismatched name '{name}' for UUID '{uuid}'")
 
         # check if metric/column UUID exists
         elif not name and uuid not in existing:

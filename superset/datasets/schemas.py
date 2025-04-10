@@ -20,7 +20,7 @@ from typing import Any
 from dateutil.parser import isoparse
 from flask_babel import lazy_gettext as _
 from marshmallow import fields, pre_load, Schema, validates_schema, ValidationError
-from marshmallow.validate import Length
+from marshmallow.validate import Length, OneOf
 
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.utils import json
@@ -90,6 +90,10 @@ class DatasetMetricsPutSchema(Schema):
 
 class FolderSchema(Schema):
     uuid = fields.UUID(required=True)
+    type = fields.String(
+        required=False,
+        validate=OneOf(["metric", "column", "folder"]),
+    )
     name = fields.String(required=False, validate=Length(1, 250))
     description = fields.String(
         required=False,
