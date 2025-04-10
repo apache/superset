@@ -133,6 +133,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: 'boy',
         value: ['boy'],
+        excludeFilterValues: false,
       },
     });
     userEvent.click(screen.getByRole('combobox'));
@@ -151,6 +152,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: 'boy, girl',
         value: ['boy', 'girl'],
+        excludeFilterValues: false,
       },
     });
   });
@@ -176,6 +178,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: undefined,
         value: null,
+        excludeFilterValues: false,
       },
     });
   });
@@ -193,6 +196,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: undefined,
         value: null,
+        excludeFilterValues: false,
       },
     });
   });
@@ -215,6 +219,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: 'girl (excluded)',
         value: ['girl'],
+        excludeFilterValues: false,
       },
     });
   });
@@ -237,6 +242,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: `boy, ${NULL_STRING}`,
         value: ['boy', null],
+        excludeFilterValues: false,
       },
     });
   });
@@ -361,6 +367,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: 'boy',
         value: ['boy'],
+        excludeFilterValues: true,
       },
     });
   });
