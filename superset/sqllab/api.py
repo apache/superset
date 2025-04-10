@@ -430,6 +430,7 @@ class SqlLabRestApi(BaseSupersetApi):
 
     @expose("/generate_sql/", methods=("POST",))
     @protect()
+    @permission_name("read")
     @statsd_metrics
     @requires_json
     @event_logger.log_this_with_context(
