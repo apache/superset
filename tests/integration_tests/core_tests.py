@@ -866,7 +866,7 @@ class TestCore(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         resp = self.client.get("superset/dashboard/p/123/")
 
-        expected_url = "/superset/dashboard/1?permalink_key=123&standalone=3"
+        expected_url = "/superset/dashboard/1/?permalink_key=123&standalone=3"
 
         assert resp.headers["Location"] == expected_url
         assert resp.status_code == 302
