@@ -18,11 +18,12 @@
  */
 
 import { styled } from '@superset-ui/core';
+import { Link } from 'react-router-dom';
 import TagType from 'src/types/TagType';
 import { Tag as AntdTag } from 'antd-v5';
 import { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
-import { CloseOutlined } from '@ant-design/icons';
+import { Icons } from 'src/components/Icons';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
@@ -31,7 +32,9 @@ const StyledTag = styled(AntdTag)`
   `};
 `;
 
-export const CustomCloseIcon = <CloseOutlined role="button" />;
+export const CustomCloseIcon = (
+  <Icons.CloseOutlined iconSize="xs" role="button" />
+);
 
 const MAX_DISPLAY_CHAR = 20;
 
@@ -78,13 +81,13 @@ const Tag = ({
           >
             {' '}
             {id ? (
-              <a
-                href={`/superset/all_entities/?id=${id}`}
+              <Link
+                to={`/superset/all_entities/?id=${id}`}
                 target="_blank"
                 rel="noreferrer"
               >
                 {children || tagDisplay}
-              </a>
+              </Link>
             ) : (
               children || tagDisplay
             )}

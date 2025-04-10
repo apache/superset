@@ -19,7 +19,7 @@
 import { useState } from 'react';
 import { css, useTheme } from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Popover from 'src/components/Popover';
 
 export interface HeaderWithRadioGroupProps {
@@ -78,7 +78,7 @@ function HeaderWithRadioGroup(props: HeaderWithRadioGroupProps) {
           iconSize="m"
           iconColor={theme.colors.grayscale.light1}
           css={css`
-            margin-top: 3px; // we need exactly 3px to align the icon
+            margin-top: ${theme.gridUnit * 0.75}px;
             margin-right: ${theme.gridUnit}px;
           `}
           onClick={() => setPopoverVisible(true)}

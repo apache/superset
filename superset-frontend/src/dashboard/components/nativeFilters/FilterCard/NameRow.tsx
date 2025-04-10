@@ -18,7 +18,7 @@
  */
 import { useSelector } from 'react-redux';
 import { css, SupersetTheme, useTheme, useTruncation } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { RootState } from 'src/dashboard/types';
 import { Row, FilterName, InternalRow } from './Styles';
@@ -54,7 +54,8 @@ export const NameRow = ({
       `}
     >
       <InternalRow>
-        <Icons.FilterSmall
+        <Icons.FilterOutlined
+          iconSize="s"
           css={(theme: SupersetTheme) => css`
             margin-right: ${theme.gridUnit}px;
           `}
@@ -70,7 +71,7 @@ export const NameRow = ({
             hidePopover();
           }}
         >
-          <Icons.Edit
+          <Icons.EditOutlined
             iconSize="l"
             iconColor={theme.colors.grayscale.light1}
             css={() => css`

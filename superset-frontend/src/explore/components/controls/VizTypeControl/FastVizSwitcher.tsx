@@ -19,7 +19,7 @@
 import { memo, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { css, SupersetTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { ExplorePageState } from 'src/explore/types';
 import { FastVizSwitcherProps } from './types';

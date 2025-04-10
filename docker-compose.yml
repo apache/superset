@@ -29,7 +29,6 @@ x-superset-volumes: &superset-volumes
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
   - ./tests:/app/tests
-
 x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
@@ -43,6 +42,11 @@ x-common-build: &common-build
 
 services:
   nginx:
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     image: nginx:latest
     container_name: superset_nginx
     restart: unless-stopped
@@ -52,6 +56,8 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/templates:/etc/nginx/templates:ro
+
   redis:
     image: redis:7
     container_name: superset_cache
@@ -67,7 +73,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:15
+    image: postgres:16
     container_name: superset_db
     restart: unless-stopped
     ports:
@@ -176,7 +182,7 @@ services:
       NPM_RUN_PRUNE: false
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
-      superset: "http://host.docker.internal:8088"
+      superset: "http://superset:8088"
     ports:
       - "127.0.0.1:9000:9000"  # exposing the dynamic webpack dev server
     container_name: superset_node

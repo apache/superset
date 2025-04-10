@@ -17,16 +17,17 @@
  * under the License.
  */
 import { Link } from 'react-router-dom';
-import { isFeatureEnabled, FeatureFlag, t, useTheme } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
 import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListViewCard from 'src/components/ListViewCard';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Tag } from 'src/views/CRUD/types';
 import { deleteTags } from 'src/features/tags/tags';
 import { Button } from 'src/components';
+import { assetUrl } from 'src/utils/assetUrl';
 
 interface TagCardProps {
   tag: Tag;
@@ -59,7 +60,6 @@ function TagCard({
     refreshData();
   };
 
-  const theme = useTheme();
   const menu = (
     <Menu>
       {canDelete && (
@@ -81,7 +81,7 @@ function TagCard({
                 onClick={confirmDelete}
                 data-test="dashboard-card-option-delete-button"
               >
-                <Icons.Trash iconSize="l" /> {t('Delete')}
+                <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
               </div>
             )}
           </ConfirmStatusChange>
@@ -100,7 +100,9 @@ function TagCard({
         }
         url={undefined}
         linkComponent={Link}
-        imgFallbackURL="/static/assets/images/dashboard-card-fallback.svg"
+        imgFallbackURL={assetUrl(
+          '/static/assets/images/dashboard-card-fallback.svg',
+        )}
         description={t('Modified %s', tag.changed_on_delta_humanized)}
         actions={
           <ListViewCard.Actions
@@ -111,7 +113,7 @@ function TagCard({
           >
             <Dropdown dropdownRender={() => menu} trigger={['click', 'hover']}>
               <Button buttonSize="xsmall" type="link">
-                <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
+                <Icons.MoreOutlined iconSize="xl" />
               </Button>
             </Dropdown>
           </ListViewCard.Actions>

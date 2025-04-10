@@ -22,8 +22,9 @@ import { AntdForm, Col, Row } from 'src/components';
 import { Form, FormLabel } from 'src/components/Form';
 import { Radio } from 'src/components/Radio';
 import { Input, TextArea } from 'src/components/Input';
-import { Input as AntdInput, Tooltip } from 'antd';
-import Icons from 'src/components/Icons';
+// eslint-disable-next-line no-restricted-imports
+import { Input as AntdInput, Tooltip } from 'antd'; // TODO: Remove antd
+import { Icons } from 'src/components/Icons';
 import { DatabaseObject, FieldPropTypes } from '../types';
 import { AuthType } from '.';
 

@@ -253,6 +253,7 @@ class TestDatasetApi(SupersetTestCase):
             "schema",
             "sql",
             "table_name",
+            "uuid",
         ]
         assert sorted(response["result"][0]) == expected_columns
 

@@ -17,15 +17,16 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, css } from '@superset-ui/core';
 import { debounce } from 'lodash';
+import { assetUrl } from 'src/utils/assetUrl';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { Row, Col, Grid } from 'src/components';
 import { MainNav, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { NavLink, useLocation } from 'react-router-dom';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
 import {
@@ -120,13 +121,23 @@ const StyledHeader = styled.header`
 const { SubMenu } = MainNav;
 
 const StyledSubMenu = styled(SubMenu)`
-  &.antd5-menu-submenu-active {
+  ${({ theme }) => css`
+    [data-icon="caret-down"] {
+      color: ${theme.colors.grayscale.base};
+      font-size: ${theme.typography.sizes.xs}px;
+      margin-left: ${theme.gridUnit}px;
+    }
+    &.antd5-menu-submenu {
+        padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 4}px;
+        display: flex;
+        align-items: center;
+        height: 100%;  &.antd5-menu-submenu-active {
     .antd5-menu-title-content {
-      color: ${({ theme }) => theme.colors.primary.base};
+      color: ${theme.colors.primary.base};
     }
   }
+  `}
 `;
-
 const { useBreakpoint } = Grid;
 
 export function Menu({
@@ -212,7 +223,13 @@ export function Menu({
       <StyledSubMenu
         key={index}
         title={label}
-        icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
+        icon={
+          showMenu === 'inline' ? (
+            <></>
+          ) : (
+            <Icons.CaretDownOutlined iconSize="xs" />
+          )
+        }
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-' && label !== 'Data') {
@@ -252,11 +269,11 @@ export function Menu({
           >
             {isFrontendRoute(window.location.pathname) ? (
               <GenericLink className="navbar-brand" to={brand.path}>
-                <img src={brand.icon} alt={brand.alt} />
+                <img src={assetUrl(brand.icon)} alt={brand.alt} />
               </GenericLink>
             ) : (
               <a className="navbar-brand" href={brand.path} tabIndex={-1}>
-                <img src={brand.icon} alt={brand.alt} />
+                <img src={assetUrl(brand.icon)} alt={brand.alt} />
               </a>
             )}
           </Tooltip>

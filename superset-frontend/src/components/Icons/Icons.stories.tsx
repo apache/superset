@@ -19,13 +19,13 @@
 import { useState } from 'react';
 import { styled, supersetTheme } from '@superset-ui/core';
 import { Input } from 'antd-v5';
-import Icons from '.';
-import IconType from './IconType';
-import Icon from './Icon';
+import { Icons, IconNameType } from '.';
+import IconType from './types';
+import { BaseIconComponent } from './BaseIcon';
 
 export default {
   title: 'Icons',
-  component: Icon,
+  component: BaseIconComponent,
 };
 
 const palette: Record<string, string | null> = { Default: null };
@@ -84,7 +84,7 @@ export const InteractiveIcons = ({
       />
       <IconSet>
         {filteredIcons.map(k => {
-          const IconComponent = Icons[k];
+          const IconComponent = Icons[k as IconNameType];
           return (
             <IconBlock key={k}>
               <IconComponent {...rest} />
@@ -106,7 +106,7 @@ InteractiveIcons.argTypes = {
   iconSize: {
     defaultValue: 'xl',
     control: { type: 'inline-radio' },
-    options: ['s', 'l', 'm', 'xl', 'xxl'],
+    options: ['s', 'm', 'l', 'xl', 'xxl'],
   },
   iconColor: {
     defaultValue: null,

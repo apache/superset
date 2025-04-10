@@ -217,6 +217,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "tags.id",
         "tags.name",
         "tags.type",
+        "uuid",
     ]
 
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
@@ -1086,16 +1087,19 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             "urlParams": payload.get("urlParams", []),
         }
 
-        permalink_key = CreateDashboardPermalinkCommand(
-            dashboard_id=str(dashboard.id),
-            state=dashboard_state,
-        ).run()
+        # if the permalink key is provided, dashboard_state will be ignored
+        # else, create a permalink key from the dashboard_state
+        permalink_key = (
+            payload.get("permalinkKey", None)
+            or CreateDashboardPermalinkCommand(
+                dashboard_id=str(dashboard.id),
+                state=dashboard_state,
+            ).run()
+        )
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
-        cache_key = screenshot_obj.get_cache_key(
-            window_size, thumb_size, dashboard_state
-        )
+        cache_key = screenshot_obj.get_cache_key(window_size, thumb_size, permalink_key)
         image_url = get_url_path(
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )

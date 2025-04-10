@@ -18,8 +18,10 @@
 
 import copy
 from collections.abc import Generator
+from unittest.mock import patch
 
 import pytest
+import yaml
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
@@ -27,8 +29,11 @@ from sqlalchemy.orm.session import Session
 from superset import security_manager
 from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.exceptions import ImportFailedError
+from superset.commands.importers.v1.utils import import_tag
 from superset.connectors.sqla.models import Database, SqlaTable
+from superset.extensions import feature_flag_manager
 from superset.models.slice import Slice
+from superset.tags.models import TaggedObject
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import chart_config
 
@@ -181,7 +186,56 @@ def test_import_existing_chart_without_permission(
         .one_or_none()
     )
 
-    with override_user("admin"):
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(user):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_chart(chart_config, overwrite=True)
+        assert (
+            str(excinfo.value)
+            == "A chart already exists and user doesn't have permissions to overwrite it"  # noqa: E501
+        )
+
+    # Assert that the can write to chart was checked
+    mock_can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access_chart.assert_called_once_with(slice)
+
+
+def test_import_existing_chart_without_owner_permission(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Test importing a chart when a user doesn't have permissions to modify.
+    """
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
+    mock_can_access_chart = mocker.patch.object(
+        security_manager, "can_access_chart", return_value=True
+    )
+
+    slice = (
+        session_with_data.query(Slice)
+        .filter(Slice.uuid == chart_config["uuid"])
+        .one_or_none()
+    )
+
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(user):
         with pytest.raises(ImportFailedError) as excinfo:
             import_chart(chart_config, overwrite=True)
         assert (
@@ -231,3 +285,43 @@ def test_import_existing_chart_with_permission(
     # Assert that the can write to chart was checked
     mock_can_access.assert_called_once_with("can_write", "Chart")
     mock_can_access_chart.assert_called_once_with(slice)
+
+
+def test_import_tag_logic_for_charts(session_with_schema: Session):
+    contents = {
+        "tags.yaml": yaml.dump(
+            {"tags": [{"tag_name": "tag_1", "description": "Description for tag_1"}]}
+        )
+    }
+
+    object_id = 1
+    object_type = "chart"
+
+    with patch.object(feature_flag_manager, "is_feature_enabled", return_value=True):
+        new_tag_ids = import_tag(
+            ["tag_1"], contents, object_id, object_type, session_with_schema
+        )
+        assert len(new_tag_ids) > 0
+        assert (
+            session_with_schema.query(TaggedObject)
+            .filter_by(object_id=object_id, object_type=object_type)
+            .count()
+            > 0
+        )
+
+    session_with_schema.query(TaggedObject).filter_by(
+        object_id=object_id, object_type=object_type
+    ).delete()
+    session_with_schema.commit()
+
+    with patch.object(feature_flag_manager, "is_feature_enabled", return_value=False):
+        new_tag_ids_disabled = import_tag(
+            ["tag_1"], contents, object_id, object_type, session_with_schema
+        )
+        assert len(new_tag_ids_disabled) == 0
+        associated_tags = (
+            session_with_schema.query(TaggedObject)
+            .filter_by(object_id=object_id, object_type=object_type)
+            .all()
+        )
+        assert len(associated_tags) == 0

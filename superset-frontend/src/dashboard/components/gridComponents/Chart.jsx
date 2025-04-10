@@ -157,6 +157,7 @@ const Chart = props => {
         state.datasources[chart.form_data.datasource]) ||
       PLACEHOLDER_DATASOURCE,
   );
+  const dashboardInfo = useSelector(state => state.dashboardInfo);
 
   const [descriptionHeight, setDescriptionHeight] = useState(0);
   const [height, setHeight] = useState(props.height);
@@ -304,6 +305,8 @@ const Chart = props => {
     ],
   );
 
+  formData.dashboardId = dashboardInfo.id;
+
   const onExploreChart = useCallback(
     async clickEvent => {
       const isOpenInNewTab =
@@ -376,16 +379,13 @@ const Chart = props => {
     ],
   );
 
-  const exportCSV = useCallback(
-    (isFullCSV = false) => {
-      exportTable('csv', isFullCSV);
-    },
-    [exportTable],
-  );
+  const exportCSV = useCallback(() => {
+    exportTable('csv', false);
+  }, [exportTable]);
 
   const exportFullCSV = useCallback(() => {
-    exportCSV(true);
-  }, [exportCSV]);
+    exportTable('csv', true);
+  }, [exportTable]);
 
   const exportPivotCSV = useCallback(() => {
     exportTable('csv', false, true);

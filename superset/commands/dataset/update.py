@@ -228,10 +228,10 @@ def validate_folders(  # noqa: C901
 
     queue: list[tuple[FolderSchema, list[str]]] = [(folder, []) for folder in folders]
     seen_uuids = set()
-    seen_fqns = set()  # fully qualified names
+    seen_fqns = set()  # fully qualified folder names
     while queue:
         obj, path = queue.pop(0)
-        uuid, name, type = obj["uuid"], obj["name"], obj["type"]
+        uuid, name, type = obj["uuid"], obj.get("name"), obj["type"]
 
         if uuid in path:
             raise ValidationError(f"Cycle detected: {uuid} appears in its ancestry")
@@ -241,23 +241,29 @@ def validate_folders(  # noqa: C901
         seen_uuids.add(uuid)
 
         # folders can have duplicate name as long as they're not siblings
-        fqn = tuple(path + [name])
-        if type == "folder" and fqn in seen_fqns:
-            raise ValidationError(f"Duplicate folder name: {name}")
-        seen_fqns.add(fqn)
+        if name:
+            fqn = tuple(path + [name])
+            if type == "folder" and fqn in seen_fqns:
+                raise ValidationError(f"Duplicate folder name: {name}")
+            seen_fqns.add(fqn)
 
-        if type == "folder" and name.lower() in {
-            "metrics",
-            "columns",
-        }:
-            raise ValidationError(f"Folder cannot have name '{name}'")
+            if type == "folder" and name.lower() in {
+                "metrics",
+                "columns",
+            }:
+                raise ValidationError(f"Folder cannot have name '{name}'")
 
-        if type in {"metric", "column"}:
-            if uuid not in existing[type]:
-                raise ValidationError(f"Invalid UUID for {type} '{name}': {uuid}")
-            if name != existing[type][uuid]:
-                raise ValidationError(f"Mismatched name '{name}' for UUID '{uuid}'")
+            if type in {"metric", "column"}:
+                if uuid not in existing[type]:
+                    raise ValidationError(f"Invalid UUID for {type} '{name}': {uuid}")
+                if name != existing[type][uuid]:
+                    raise ValidationError(f"Mismatched name '{name}' for UUID '{uuid}'")
 
+        # check if metric/column UUID exists
+        elif not name and uuid not in existing:
+            raise ValidationError(f"Invalid UUID: {uuid}")
+
+        # traverse children
         if children := obj.get("children"):
             path.append(uuid)
             queue.extend((folder, path) for folder in children)

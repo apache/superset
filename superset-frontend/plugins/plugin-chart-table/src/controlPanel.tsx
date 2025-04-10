@@ -467,7 +467,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: true,
               description: t(
-                'Renders table cells as HTML when applicable. For example, HTML &lt;a&gt; tags will be rendered as hyperlinks.',
+                'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
               ),
             },
           },
@@ -486,13 +486,15 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
-                const timeComparisonStatus =
-                  !!explore?.controls?.time_compare?.value;
+                const timeComparisonStatus = !isEmpty(
+                  explore?.controls?.time_compare?.value,
+                );
 
                 const { colnames: _colnames, coltypes: _coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
                 let colnames: string[] = _colnames || [];
                 let coltypes: GenericDataType[] = _coltypes || [];
+                const childColumnMap: Record<string, boolean> = {};
 
                 if (timeComparisonStatus) {
                   /**
@@ -500,15 +502,27 @@ const config: ControlPanelConfig = {
                    */
                   const updatedColnames: string[] = [];
                   const updatedColtypes: GenericDataType[] = [];
+
                   colnames.forEach((colname, index) => {
                     if (coltypes[index] === GenericDataType.Numeric) {
-                      updatedColnames.push(
-                        ...generateComparisonColumns(colname),
-                      );
-                      updatedColtypes.push(...generateComparisonColumnTypes(4));
+                      const comparisonColumns =
+                        generateComparisonColumns(colname);
+                      comparisonColumns.forEach((name, idx) => {
+                        updatedColnames.push(name);
+                        updatedColtypes.push(
+                          ...generateComparisonColumnTypes(4),
+                        );
+
+                        if (idx === 0 && name.startsWith('Main ')) {
+                          childColumnMap[name] = false;
+                        } else {
+                          childColumnMap[name] = true;
+                        }
+                      });
                     } else {
                       updatedColnames.push(colname);
                       updatedColtypes.push(coltypes[index]);
+                      childColumnMap[colname] = false;
                     }
                   });
 
@@ -516,7 +530,7 @@ const config: ControlPanelConfig = {
                   coltypes = updatedColtypes;
                 }
                 return {
-                  columnsPropsObject: { colnames, coltypes },
+                  columnsPropsObject: { colnames, coltypes, childColumnMap },
                 };
               },
             },
