@@ -17,9 +17,10 @@
 
 import logging
 import os
-from typing import cast, Iterable, Optional
-from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
+from typing import Any, cast, Iterable, Optional
 
+# TODO: set up these types once we deprecate python 3.10
+# from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
 from flask import Flask
 from werkzeug.exceptions import NotFound
 
@@ -79,15 +80,13 @@ class AppRootMiddleware:
 
     def __init__(
         self,
-        wsgi_app: WSGIApplication,
+        wsgi_app: Any,
         app_root: str,
     ):
         self.wsgi_app = wsgi_app
         self.app_root = app_root
 
-    def __call__(
-        self, environ: WSGIEnvironment, start_response: StartResponse
-    ) -> Iterable[bytes]:
+    def __call__(self, environ: Any, start_response: Any) -> Iterable[bytes]:
         original_path_info = environ.get("PATH_INFO", "")
         if original_path_info.startswith(self.app_root):
             environ["PATH_INFO"] = original_path_info.removeprefix(self.app_root)
