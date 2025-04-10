@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
+import Button from 'src/components/Button';
 import PopoverDropdown, { PopoverDropdownProps, OptionProps } from '.';
 
 const OPTIONS: OptionProps[] = [
@@ -40,11 +41,7 @@ export const InteractivePopoverDropdown = (props: Props) => {
     (type: ElementType) =>
     ({ label, value }: OptionProps) => {
       if (type === 'button') {
-        return (
-          <button type="button" key={value}>
-            {label}
-          </button>
-        );
+        return <Button key={value}>{label}</Button>;
       }
       return <span>{label}</span>;
     };
