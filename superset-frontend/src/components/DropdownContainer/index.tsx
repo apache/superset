@@ -179,6 +179,39 @@ const DropdownContainer = forwardRef(
       [items, overflowingIndex],
     );
 
+    useEffect(() => {
+      const container = current?.children.item(0);
+      if (!container) return;
+
+      const childrenArray = Array.from(container.children);
+
+      const resizeObserver = new ResizeObserver(() => {
+        recalculateItemWidths();
+      });
+
+      childrenArray.forEach(child => resizeObserver.observe(child));
+
+      return () => {
+        childrenArray.forEach(child => resizeObserver.unobserve(child));
+        resizeObserver.disconnect();
+      };
+    }, [current, items.length]);
+
+    // callback to update item widths so that the useLayoutEffect runs whenever
+    // width of any of the child changes
+    const recalculateItemWidths = () => {
+      const container = current?.children.item(0);
+      if (container) {
+        const { children } = container;
+        const childrenArray = Array.from(children);
+
+        const currentWidths = childrenArray.map(child => child.getBoundingClientRect().width);
+
+        // Update state with new widths
+        setItemsWidth(currentWidths);
+      }
+    };
+
     useLayoutEffect(() => {
       if (popoverVisible) {
         return;
