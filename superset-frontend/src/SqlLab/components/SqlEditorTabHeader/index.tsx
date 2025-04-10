@@ -217,8 +217,8 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
         className="status-icon"
         iconSize="xs"
         iconColor={getStatusColor(queryState, theme)}
-      />
-    </TabTitleWrapper>{' '}
+      />{' '}
+    </TabTitleWrapper>
   );
 };
 
