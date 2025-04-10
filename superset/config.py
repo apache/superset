@@ -1393,6 +1393,11 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
 def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: N802
     sql: str, **kwargs: Any
 ) -> str:
+    import re
+
+    # Check if the query contains any @@ variables
+    if re.search(r"@@\w+", sql):
+        raise Exception("MySQL system variables (@@) are blocked for security reasons")
     return sql
 
 
