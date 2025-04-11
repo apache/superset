@@ -172,11 +172,7 @@ def paginated_update(
 
 
 def try_load_json(data: Optional[str]) -> dict[str, Any]:
-    try:
-        return data and json.loads(data) or {}
-    except json.JSONDecodeError:
-        print(f"Failed to parse: {data}")
-        return {}
+    return data and json.loads(data) or {}
 
 
 def has_table(table_name: str) -> bool:

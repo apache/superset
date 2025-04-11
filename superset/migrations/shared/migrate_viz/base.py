@@ -121,34 +121,44 @@ class MigrateViz:
 
     @classmethod
     def upgrade_slice(cls, slc: Slice) -> None:
-        clz = cls(slc.params)
-        form_data_bak = copy.deepcopy(clz.data)
+        try:
+            clz = cls(slc.params)
+            form_data_bak = copy.deepcopy(clz.data)
 
-        clz._pre_action()
-        clz._migrate()
-        clz._post_action()
+            clz._pre_action()
+            clz._migrate()
+            clz._post_action()
 
-        # viz_type depends on the migration and should be set after its execution
-        # because a source viz can be mapped to different target viz types
-        slc.viz_type = clz.target_viz_type
+            # viz_type depends on the migration and should be set after its execution
+            # because a source viz can be mapped to different target viz types
+            slc.viz_type = clz.target_viz_type
 
-        # only backup params
-        slc.params = json.dumps({**clz.data, FORM_DATA_BAK_FIELD_NAME: form_data_bak})
+            # only backup params
+            slc.params = json.dumps(
+                {**clz.data, FORM_DATA_BAK_FIELD_NAME: form_data_bak}
+            )
 
-        if "form_data" in (query_context := try_load_json(slc.query_context)):
-            query_context["form_data"] = clz.data
-            slc.query_context = json.dumps(query_context)
+            if "form_data" in (query_context := try_load_json(slc.query_context)):
+                query_context["form_data"] = clz.data
+                slc.query_context = json.dumps(query_context)
+        except Exception as e:
+            print(f"Failed to migrate slice {slc.id}: {e}")
 
     @classmethod
     def downgrade_slice(cls, slc: Slice) -> None:
-        form_data = try_load_json(slc.params)
-        if "viz_type" in (form_data_bak := form_data.get(FORM_DATA_BAK_FIELD_NAME, {})):
-            slc.params = json.dumps(form_data_bak)
-            slc.viz_type = form_data_bak.get("viz_type")
-            query_context = try_load_json(slc.query_context)
-            if "form_data" in query_context:
-                query_context["form_data"] = form_data_bak
-                slc.query_context = json.dumps(query_context)
+        try:
+            form_data = try_load_json(slc.params)
+            if "viz_type" in (
+                form_data_bak := form_data.get(FORM_DATA_BAK_FIELD_NAME, {})
+            ):
+                slc.params = json.dumps(form_data_bak)
+                slc.viz_type = form_data_bak.get("viz_type")
+                query_context = try_load_json(slc.query_context)
+                if "form_data" in query_context:
+                    query_context["form_data"] = form_data_bak
+                    slc.query_context = json.dumps(query_context)
+        except Exception as e:
+            print(f"Failed to downgrade slice {slc.id}: {e}")
 
     @classmethod
     def upgrade(cls, session: Session) -> None:
