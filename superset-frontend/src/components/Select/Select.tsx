@@ -137,24 +137,6 @@ const Select = forwardRef(
       deselectable: 0,
     });
 
-    useEffect(() => {
-      const selectedValues = ensureIsArray(selectValue);
-      const selectable = visibleOptions.filter(
-        option =>
-          !option.disabled &&
-          !hasOption(option.value, selectedValues) &&
-          !option.isNewOption,
-      ).length;
-
-      const deselectable = visibleOptions.filter(
-        option =>
-          !option.disabled &&
-          hasOption(option.value, ensureIsArray(selectValue)),
-      ).length;
-
-      setBulkSelectCounts({ selectable, deselectable });
-    }, [visibleOptions, selectValue]);
-
     const fireOnChange = useCallback(
       () => setOnChangeCount(onChangeCount + 1),
       [onChangeCount],
@@ -222,16 +204,18 @@ const Select = forwardRef(
     }, [selectOptions, selectValue]);
 
     const enabledOptions = useMemo(
-      () => fullSelectOptions.filter(option => !option.disabled),
-      [fullSelectOptions],
+      () => visibleOptions.filter(option => !option.disabled),
+      [visibleOptions],
     );
 
     const selectAllEligible = useMemo(
       () =>
-        fullSelectOptions.filter(
-          option => hasOption(option.value, selectValue) || !option.disabled,
+        visibleOptions.filter(
+          option =>
+            (hasOption(option.value, selectValue) || !option.disabled) &&
+            !option.isNewOption,
         ),
-      [fullSelectOptions, selectValue],
+      [visibleOptions, selectValue],
     );
 
     const selectAllEnabled = useMemo(
@@ -252,6 +236,19 @@ const Select = forwardRef(
       () => ensureIsArray(selectValue).length === selectAllEligible.length + 1,
       [selectValue, selectAllEligible],
     );
+
+    useEffect(() => {
+      const deselectable = visibleOptions.filter(
+        option =>
+          !option.disabled &&
+          hasOption(option.value, ensureIsArray(selectValue)),
+      ).length;
+
+      setBulkSelectCounts({
+        selectable: selectAllEligible.length,
+        deselectable,
+      });
+    }, [visibleOptions, selectValue, selectAllEligible.length]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
@@ -315,11 +312,11 @@ const Select = forwardRef(
 
         // removes new option
         if (option.isNewOption) {
-          setSelectOptions(
-            fullSelectOptions.filter(
-              option => getValue(option.value) !== getValue(value),
-            ),
+          const updatedOptions = fullSelectOptions.filter(
+            option => getValue(option.value) !== getValue(value),
           );
+          setSelectOptions(updatedOptions);
+          setVisibleOptions(updatedOptions);
         }
       }
       fireOnChange();
@@ -365,7 +362,7 @@ const Select = forwardRef(
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
 
-      setVisibleOptions(initialOptionsSorted);
+      setVisibleOptions(fullSelectOptions);
       // if no search input value, force sort options because it won't be sorted by
       // `filterSort`.
       if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
