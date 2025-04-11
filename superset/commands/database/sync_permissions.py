@@ -28,6 +28,7 @@ from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseConnectionSyncPermissionsError,
     DatabaseNotFoundError,
+    MissingOAuth2TokenError,
     UserNotFoundInSessionError,
 )
 from superset.commands.database.utils import (
@@ -115,6 +116,11 @@ class SyncPermissionsCommand(BaseCommand):
             try:
                 alive = ping(engine)
             except Exception as err:
+                if (
+                    self.db_connection.is_oauth2_enabled()
+                    and self.db_connection.db_engine_spec.needs_oauth2(err)
+                ):
+                    raise MissingOAuth2TokenError() from err
                 raise DatabaseConnectionFailedError() from err
 
         if not alive:

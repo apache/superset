@@ -30,6 +30,7 @@ from superset.commands.database.exceptions import (
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
+    MissingOAuth2TokenError,
 )
 from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
@@ -108,7 +109,7 @@ class UpdateDatabaseCommand(BaseCommand):
                 db_connection=database,
                 ssh_tunnel=ssh_tunnel,
             ).run()
-        except OAuth2RedirectError:
+        except (OAuth2RedirectError, MissingOAuth2TokenError):
             pass
 
         return database
