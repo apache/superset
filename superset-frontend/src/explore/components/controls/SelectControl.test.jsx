@@ -97,7 +97,7 @@ describe('SelectControl', () => {
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
       userEvent.click(selectorInput);
-      expect(screen.getByText('Select All (3)')).toBeInTheDocument();
+      expect(screen.getByText('Select all (3)')).toBeInTheDocument();
     });
 
     it('renders with allowNewOptions when freeForm', () => {
@@ -167,8 +167,8 @@ describe('SelectControl', () => {
       expect(yearOption).toBeInTheDocument();
       expect(yearOption).toHaveAttribute('aria-selected', 'true');
       const weekOption = screen.getByText(/1 week ago/, {
-        selector: 'div',
-      }).parentNode;
+        selector: 'div [role="option"]',
+      });
       expect(weekOption?.getAttribute('aria-selected')).toEqual('true');
     });
 

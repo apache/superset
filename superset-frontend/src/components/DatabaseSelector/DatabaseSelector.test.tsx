@@ -328,12 +328,18 @@ test('Should schema select display options', async () => {
   });
   expect(select).toBeInTheDocument();
   userEvent.click(select);
-  expect(
-    await screen.findByRole('option', { name: 'public' }),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByRole('option', { name: 'information_schema' }),
-  ).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+  const publicOption = await screen.findByText('public', {
+    selector: '.ant-select-item-option-content',
+  });
+  expect(publicOption).toBeInTheDocument();
+
+  const infoSchemaOption = await screen.findByText('information_schema', {
+    selector: '.ant-select-item-option-content',
+  });
+  expect(infoSchemaOption).toBeInTheDocument();
 });
 
 test('Sends the correct db when changing the database', async () => {

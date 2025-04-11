@@ -28,15 +28,9 @@ import {
   ClipboardEvent,
 } from 'react';
 
-import {
-  ensureIsArray,
-  formatNumber,
-  NumberFormats,
-  t,
-  usePrevious,
-} from '@superset-ui/core';
+import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
-import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
+import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
 import { debounce, isEqual, uniq } from 'lodash';
 import { FAST_DEBOUNCE } from 'src/constants';
 import {
@@ -49,8 +43,6 @@ import {
   handleFilterOptionHelper,
   dropDownRenderHelper,
   getSuffixIcon,
-  SELECT_ALL_VALUE,
-  selectAllOption,
   mapValues,
   mapOptions,
   hasCustomLabels,
@@ -60,6 +52,7 @@ import {
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
+  StyledBulkActionsContainer,
   StyledCheckOutlined,
   StyledContainer,
   StyledHeader,
@@ -73,6 +66,7 @@ import {
   DEFAULT_SORT_COMPARATOR,
 } from './constants';
 import { customTagRender } from './CustomTag';
+import Button from '../Button';
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -131,11 +125,17 @@ const Select = forwardRef(
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(loading);
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+    const [visibleOptions, setVisibleOptions] = useState<SelectOptionsType>([]);
     const [maxTagCount, setMaxTagCount] = useState(
       propsMaxTagCount ?? MAX_TAG_COUNT,
     );
     const [onChangeCount, setOnChangeCount] = useState(0);
     const previousChangeCount = usePrevious(onChangeCount, 0);
+    const [bulkSelectCounts, setBulkSelectCounts] = useState({
+      selectable: 0,
+      deselectable: 0,
+    });
 
     const fireOnChange = useCallback(
       () => setOnChangeCount(onChangeCount + 1),
@@ -149,8 +149,6 @@ const Select = forwardRef(
     }, [isDropdownVisible, oneLine]);
 
     const mappedMode = isSingleMode ? undefined : 'multiple';
-
-    const { Option } = AntdSelect;
 
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
@@ -202,20 +200,22 @@ const Select = forwardRef(
         missingValues.length > 0
           ? missingValues.concat(selectOptions)
           : selectOptions;
-      return result.filter(opt => opt.value !== SELECT_ALL_VALUE);
+      return result;
     }, [selectOptions, selectValue]);
 
     const enabledOptions = useMemo(
-      () => fullSelectOptions.filter(option => !option.disabled),
-      [fullSelectOptions],
+      () => visibleOptions.filter(option => !option.disabled),
+      [visibleOptions],
     );
 
     const selectAllEligible = useMemo(
       () =>
-        fullSelectOptions.filter(
-          option => hasOption(option.value, selectValue) || !option.disabled,
+        visibleOptions.filter(
+          option =>
+            (hasOption(option.value, selectValue) || !option.disabled) &&
+            !option.isNewOption,
         ),
-      [fullSelectOptions, selectValue],
+      [visibleOptions, selectValue],
     );
 
     const selectAllEnabled = useMemo(
@@ -223,14 +223,12 @@ const Select = forwardRef(
         !isSingleMode &&
         allowSelectAll &&
         selectOptions.length > 0 &&
-        enabledOptions.length > 1 &&
-        !inputValue,
+        enabledOptions.length > 1,
       [
         isSingleMode,
         allowSelectAll,
         selectOptions.length,
         enabledOptions.length,
-        inputValue,
       ],
     );
 
@@ -238,6 +236,24 @@ const Select = forwardRef(
       () => ensureIsArray(selectValue).length === selectAllEligible.length + 1,
       [selectValue, selectAllEligible],
     );
+
+    useEffect(() => {
+      const selectedValues = ensureIsArray(selectValue);
+      const selectable = visibleOptions.filter(
+        option =>
+          !option.disabled &&
+          !hasOption(option.value, selectedValues) &&
+          !option.isNewOption,
+      ).length;
+      const deselectable = visibleOptions.filter(
+        option => !option.disabled && hasOption(option.value, selectedValues),
+      ).length;
+
+      setBulkSelectCounts({
+        selectable,
+        deselectable,
+      });
+    }, [visibleOptions, selectValue]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
@@ -255,19 +271,6 @@ const Select = forwardRef(
         setSelectValue(previousState => {
           const array = ensureIsArray(previousState);
           const value = getValue(selectedItem);
-          // Tokenized values can contain duplicated values
-          if (value === getValue(SELECT_ALL_VALUE)) {
-            if (isLabeledValue(selectedItem)) {
-              return [
-                ...selectAllEligible,
-                selectAllOption,
-              ] as AntdLabeledValue[];
-            }
-            return [
-              SELECT_ALL_VALUE,
-              ...selectAllEligible.map(opt => opt.value),
-            ] as AntdLabeledValue[];
-          }
           if (!hasOption(value, array)) {
             const result = [...array, selectedItem];
             if (
@@ -275,8 +278,8 @@ const Select = forwardRef(
               selectAllEnabled
             ) {
               return isLabeledValue(selectedItem)
-                ? ([...result, selectAllOption] as AntdLabeledValue[])
-                : ([...result, SELECT_ALL_VALUE] as (string | number)[]);
+                ? ([...result] as AntdLabeledValue[])
+                : ([...result] as (string | number)[]);
             }
             return result as AntdLabeledValue[];
           }
@@ -308,37 +311,32 @@ const Select = forwardRef(
 
     const handleOnDeselect: SelectProps['onDeselect'] = (value, option) => {
       if (Array.isArray(selectValue)) {
-        if (getValue(value) === getValue(SELECT_ALL_VALUE)) {
-          clear();
-        } else {
-          let array = selectValue as AntdLabeledValue[];
-          array = array.filter(
-            element => getValue(element) !== getValue(value),
-          );
-          // if this was not a new item, deselect select all option
-          if (selectAllMode && !option.isNewOption) {
-            array = array.filter(
-              element => getValue(element) !== SELECT_ALL_VALUE,
-            );
-          }
-          setSelectValue(array);
+        let array = selectValue as AntdLabeledValue[];
+        array = array.filter(element => getValue(element) !== getValue(value));
+        setSelectValue(array);
 
-          // removes new option
-          if (option.isNewOption) {
-            setSelectOptions(
-              fullSelectOptions.filter(
-                option => getValue(option.value) !== getValue(value),
-              ),
-            );
-          }
+        // removes new option
+        if (option.isNewOption) {
+          const updatedOptions = fullSelectOptions.filter(
+            option => getValue(option.value) !== getValue(value),
+          );
+          setSelectOptions(updatedOptions);
+          setVisibleOptions(updatedOptions);
         }
       }
       fireOnChange();
       onDeselect?.(value, option);
     };
 
+    const handleFilterOption = (search: string, option: AntdLabeledValue) =>
+      handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
+
     const handleOnSearch = debounce((search: string) => {
       const searchValue = search.trim();
+      setIsSearching(!!searchValue);
+
+      let updatedOptions = selectOptions;
+
       if (allowNewOptions) {
         const newOption = searchValue &&
           !hasOption(searchValue, fullSelectOptions, true) && {
@@ -349,23 +347,27 @@ const Select = forwardRef(
         const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
           opt => !opt.isNewOption || hasOption(opt.value, selectValue),
         );
-        const newOptions = newOption
+        updatedOptions = newOption
           ? [newOption, ...cleanSelectOptions]
           : cleanSelectOptions;
-        setSelectOptions(newOptions);
+        setSelectOptions(updatedOptions);
       }
+
+      const filteredOptions = updatedOptions.filter(
+        (option: AntdLabeledValue) => handleFilterOption(search, option),
+      );
+
+      setVisibleOptions(filteredOptions);
       setInputValue(searchValue);
       onSearch?.(searchValue);
     }, FAST_DEBOUNCE);
 
     useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
 
-    const handleFilterOption = (search: string, option: AntdLabeledValue) =>
-      handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
-
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
 
+      setVisibleOptions(fullSelectOptions);
       // if no search input value, force sort options because it won't be sorted by
       // `filterSort`.
       if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
@@ -378,6 +380,105 @@ const Select = forwardRef(
       }
     };
 
+    const handleSelectAll = useCallback(() => {
+      if (isSingleMode) return;
+
+      const optionsToSelect = isSearching
+        ? visibleOptions.filter(option => !option.isNewOption)
+        : enabledOptions;
+
+      const currentValues = ensureIsArray(selectValue);
+      const currentValuesSet = new Set(currentValues.map(getValue));
+
+      const newValues = [...currentValues] as AntdLabeledValue[];
+      optionsToSelect.forEach(option => {
+        if (!option.disabled && !currentValuesSet.has(option.value)) {
+          if (labelInValue) {
+            newValues.push({
+              label: option.label,
+              value: option.value,
+            });
+          } else {
+            newValues.push(option.value);
+          }
+        }
+      });
+
+      setSelectValue(newValues);
+      fireOnChange();
+    }, [
+      isSingleMode,
+      isSearching,
+      visibleOptions,
+      enabledOptions,
+      selectValue,
+      labelInValue,
+      fireOnChange,
+    ]);
+
+    const handleDeselectAll = useCallback(() => {
+      if (isSingleMode) return;
+
+      const optionsToDeselect = isSearching
+        ? visibleOptions.filter(option => !option.isNewOption)
+        : enabledOptions;
+      const deselectionValues = new Set(
+        optionsToDeselect.map(opt => opt.value),
+      );
+
+      const newValues = ensureIsArray(selectValue).filter(item => {
+        const itemValue = getValue(item);
+        return !deselectionValues.has(itemValue);
+      }) as AntdLabeledValue[];
+
+      setSelectValue(newValues);
+      fireOnChange();
+    }, [
+      isSingleMode,
+      isSearching,
+      visibleOptions,
+      enabledOptions,
+      selectValue,
+      fireOnChange,
+    ]);
+
+    const bulkSelectComponent = useMemo(
+      () => (
+        <StyledBulkActionsContainer size={0}>
+          <Button
+            type="link"
+            buttonSize="xsmall"
+            disabled={bulkSelectCounts.selectable === 0}
+            onMouseDown={e => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSelectAll();
+            }}
+          >
+            {`${t('Select all')} (${bulkSelectCounts.selectable})`}
+          </Button>
+          <Button
+            type="link"
+            buttonSize="xsmall"
+            disabled={bulkSelectCounts.deselectable === 0}
+            onMouseDown={e => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleDeselectAll();
+            }}
+          >
+            {`${t('Deselect all')} (${bulkSelectCounts.deselectable})`}
+          </Button>
+        </StyledBulkActionsContainer>
+      ),
+      [
+        handleSelectAll,
+        handleDeselectAll,
+        bulkSelectCounts.selectable,
+        bulkSelectCounts.deselectable,
+      ],
+    );
+
     const dropdownRender = (
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },
     ) =>
@@ -387,6 +488,8 @@ const Select = forwardRef(
         isLoading,
         fullSelectOptions.length,
         helperText,
+        undefined,
+        selectAllEnabled ? bulkSelectComponent : undefined,
       );
 
     const handleClear = () => {
@@ -399,6 +502,7 @@ const Select = forwardRef(
     useEffect(() => {
       // when `options` list is updated from component prop, reset states
       setSelectOptions(initialOptions);
+      setVisibleOptions(initialOptions);
     }, [initialOptions]);
 
     useEffect(() => {
@@ -410,50 +514,6 @@ const Select = forwardRef(
     useEffect(() => {
       setSelectValue(value);
     }, [value]);
-
-    useEffect(() => {
-      // if all values are selected, add select all to value
-      if (
-        selectAllEnabled &&
-        ensureIsArray(value).length === selectAllEligible.length
-      ) {
-        setSelectValue(
-          labelInValue
-            ? ([...ensureIsArray(value), selectAllOption] as AntdLabeledValue[])
-            : ([...ensureIsArray(value), SELECT_ALL_VALUE] as RawValue[]),
-        );
-      }
-    }, [labelInValue, selectAllEligible.length, selectAllEnabled, value]);
-
-    useEffect(() => {
-      const checkSelectAll = ensureIsArray(selectValue).some(
-        v => getValue(v) === SELECT_ALL_VALUE,
-      );
-      if (checkSelectAll && !selectAllMode) {
-        const optionsToSelect = selectAllEligible.map(option =>
-          labelInValue ? option : option.value,
-        );
-        optionsToSelect.push(labelInValue ? selectAllOption : SELECT_ALL_VALUE);
-        setSelectValue(optionsToSelect);
-        fireOnChange();
-      }
-    }, [
-      selectValue,
-      selectAllMode,
-      labelInValue,
-      selectAllEligible,
-      fireOnChange,
-    ]);
-
-    const selectAllLabel = useMemo(
-      () => () =>
-        // TODO: localize
-        `${SELECT_ALL_VALUE} (${formatNumber(
-          NumberFormats.INTEGER,
-          selectAllEligible.length,
-        )})`,
-      [selectAllEligible],
-    );
 
     const handleOnBlur = (event: FocusEvent<HTMLElement>) => {
       setInputValue('');
@@ -469,20 +529,6 @@ const Select = forwardRef(
         let newOptions = options;
         if (!isSingleMode) {
           if (
-            ensureIsArray(newValues).some(
-              val => getValue(val) === SELECT_ALL_VALUE,
-            )
-          ) {
-            // send all options to onchange if all are not currently there
-            if (!selectAllMode) {
-              newValues = mapValues(selectAllEligible, labelInValue);
-              newOptions = mapOptions(selectAllEligible);
-            } else {
-              newValues = ensureIsArray(values).filter(
-                (val: any) => getValue(val) !== SELECT_ALL_VALUE,
-              );
-            }
-          } else if (
             ensureIsArray(values).length === selectAllEligible.length &&
             selectAllMode
           ) {
@@ -651,24 +697,13 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
-          options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
+          options={shouldRenderChildrenOptions ? undefined : visibleOptions}
           oneLine={oneLine}
           tagRender={customTagRender}
           {...props}
           ref={ref}
         >
-          {selectAllEnabled && (
-            <Option
-              id="select-all"
-              className="select-all"
-              key={SELECT_ALL_VALUE}
-              value={SELECT_ALL_VALUE}
-            >
-              {selectAllLabel()}
-            </Option>
-          )}
-          {shouldRenderChildrenOptions &&
-            renderSelectOptions(fullSelectOptions)}
+          {shouldRenderChildrenOptions && renderSelectOptions(visibleOptions)}
         </StyledSelect>
       </StyledContainer>
     );
