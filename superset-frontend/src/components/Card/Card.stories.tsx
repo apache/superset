@@ -20,7 +20,7 @@ import { Card } from '.';
 import type { CardProps } from './types';
 
 export default {
-  title: 'Card',
+  title: 'Components/Card',
   component: Card,
 };
 
@@ -28,7 +28,7 @@ export const InteractiveCard = (args: CardProps) => <Card {...args} />;
 
 InteractiveCard.args = {
   padded: true,
-  title: 'Card title',
+  title: 'Components/Card',
   children: 'Card content',
   bordered: true,
   loading: false,

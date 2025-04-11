@@ -22,7 +22,7 @@ import { Flex } from '.';
 import type { FlexProps } from './types';
 
 export default {
-  title: 'Flex',
+  title: 'Design System/Components/Flex',
   component: Flex,
 };
 

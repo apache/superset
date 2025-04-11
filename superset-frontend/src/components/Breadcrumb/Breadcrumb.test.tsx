@@ -16,20 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import WarningIconWithTooltip, { WarningIconWithTooltipProps } from '.';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { Breadcrumb } from '.';
 
-export default {
-  title: 'Components/WarningIconWithTooltip',
-  component: WarningIconWithTooltip,
-};
+describe('Breadcrumb Component', () => {
+  test('renders breadcrumb items correctly', () => {
+    render(
+      <Breadcrumb>
+        <Breadcrumb.Item>Home</Breadcrumb.Item>
+        <Breadcrumb.Item>Library</Breadcrumb.Item>
+        <Breadcrumb.Item>Data</Breadcrumb.Item>
+      </Breadcrumb>,
+    );
 
-export const InteractiveWarningIcon = (args: WarningIconWithTooltipProps) => (
-  <div css={{ margin: 40 }}>
-    <WarningIconWithTooltip {...args} />
-  </div>
-);
+    expect(screen.getByText('Home')).toBeInTheDocument();
+    expect(screen.getByText('Library')).toBeInTheDocument();
+    expect(screen.getByText('Data')).toBeInTheDocument();
 
-InteractiveWarningIcon.args = {
-  warningMarkdown: 'Markdown example',
-  size: 20,
-};
+    const separators = screen.getAllByText('/');
+    expect(separators.length).toBe(2);
+  });
+});

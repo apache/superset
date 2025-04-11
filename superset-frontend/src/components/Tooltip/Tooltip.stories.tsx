@@ -21,7 +21,7 @@ import { Tooltip } from '.';
 import { TooltipPlacement, TooltipProps } from './types';
 
 export default {
-  title: 'Tooltip',
+  title: 'Components/Tooltip',
   component: Tooltip,
 };
 

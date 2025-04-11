@@ -20,7 +20,7 @@ import type { LoadingProps, PositionOption } from './types';
 import { Loading } from '.';
 
 export default {
-  title: 'Loading',
+  title: 'Components/Loading',
   component: Loading,
   includeStories: ['LoadingGallery', 'InteractiveLoading'],
 };

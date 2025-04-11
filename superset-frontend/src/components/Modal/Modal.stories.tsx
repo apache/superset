@@ -22,7 +22,7 @@ import { Modal } from './Modal';
 import type { ModalProps, ModalFuncProps } from './types';
 
 export default {
-  title: 'Modal',
+  title: 'Components/Modal',
   component: Modal,
 };
 

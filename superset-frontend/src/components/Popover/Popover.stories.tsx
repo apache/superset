@@ -20,7 +20,7 @@ import Popover, { PopoverProps } from 'src/components/Popover';
 import { Button } from '../Button';
 
 export default {
-  title: 'Popover',
+  title: 'Components/Popover',
   component: Popover,
 };
 

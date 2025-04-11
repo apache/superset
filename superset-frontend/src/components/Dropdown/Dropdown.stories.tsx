@@ -21,7 +21,7 @@ import { MenuDotsDropdown } from '.';
 import type { MenuDotsDropdownProps } from './types';
 
 export default {
-  title: 'Dropdown',
+  title: 'Components/Dropdown',
 };
 
 const menu = (

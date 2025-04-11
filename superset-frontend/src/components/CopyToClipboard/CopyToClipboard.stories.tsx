@@ -22,7 +22,7 @@ import { Button } from '../Button';
 import { CopyToClipboard } from '.';
 
 export default {
-  title: 'CopyToClipboard',
+  title: 'Components/CopyToClipboard',
   component: CopyToClipboard,
 };
 

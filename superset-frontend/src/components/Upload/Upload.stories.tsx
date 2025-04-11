@@ -22,7 +22,7 @@ import { Button } from 'src/components';
 import Upload from '.';
 
 const meta: Meta<typeof Upload> = {
-  title: 'Upload',
+  title: 'Components/Upload',
   component: Upload,
   argTypes: {
     accept: {

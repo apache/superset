@@ -18,16 +18,6 @@
  */
 
 /*
- * Components that conflict with the ones in src/components.
- * We should try to avoid using Ant Design directly. The components
- * listed below may need review. Avoid incrementing this list by using
- * or extending the components in src/components.
- */
-// TODO: Remove these imports
-// eslint-disable-next-line no-restricted-imports
-export { Breadcrumb as AntdBreadcrumb } from 'antd';
-
-/*
  * Re-exporting of components in src/components to facilitate
  * their imports by other components.
  * E.g. import { Select } from 'src/components', probably in the future from '@superset-ui/components'
@@ -63,6 +53,7 @@ export { Badge, type BadgeProps } from './Badge';
 export { Tooltip, type TooltipProps } from './Tooltip';
 export { Button, type ButtonProps, type OnClickHandler } from './Button';
 export { ButtonGroup, type ButtonGroupProps } from './ButtonGroup';
+export { Breadcrumb, type BreadcrumbProps } from './Breadcrumb';
 export { CachedLabel, type CacheLabelProps } from './CachedLabel';
 export { Card } from './Card';
 export { CertifiedBadge } from './CertifiedBadge';

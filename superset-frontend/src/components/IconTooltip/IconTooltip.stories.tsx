@@ -22,7 +22,7 @@ import { IconTooltip } from '.';
 import type { IconTooltipProps } from './types';
 
 export default {
-  title: 'IconTooltip',
+  title: 'Components/IconTooltip',
 };
 
 const PLACEMENTS = [

@@ -26,7 +26,7 @@ import {
 import { AsyncSelect } from '.';
 
 export default {
-  title: 'AsyncSelect',
+  title: 'Components/Select/AsyncSelect',
   component: AsyncSelect,
 };
 

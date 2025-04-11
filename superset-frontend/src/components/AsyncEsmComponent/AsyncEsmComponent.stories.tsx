@@ -20,7 +20,7 @@ import { AsyncEsmComponent } from '.';
 import type { PlaceholderProps } from './types';
 
 export default {
-  title: 'AsyncEsmComponent',
+  title: 'Components/AsyncEsmComponent',
 };
 
 const Placeholder = () => <span>Loading...</span>;

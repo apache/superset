@@ -22,7 +22,7 @@ import { STYLES, SIZES } from '../Button/Button.stories';
 import { ButtonGroup } from '.';
 
 export default {
-  title: 'ButtonGroup',
+  title: 'Components/ButtonGroup',
   component: ButtonGroup,
 };
 

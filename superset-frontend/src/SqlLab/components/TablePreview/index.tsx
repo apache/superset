@@ -34,7 +34,7 @@ import { Icons } from 'src/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import {
   Alert,
-  AntdBreadcrumb as Breadcrumb,
+  Breadcrumb,
   Button,
   Card,
   CopyToClipboard,

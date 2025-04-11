@@ -21,7 +21,7 @@ import { Input, InputNumber } from '.';
 import type { InputNumberProps, InputProps, TextAreaProps } from './types';
 
 export default {
-  title: 'Input',
+  title: 'Components/Input',
   component: Input,
 };
 

@@ -19,7 +19,6 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { Input, Tooltip, Button, TextAreaEditor } from 'src/components';
-import { TooltipProps as TooltipOptions } from 'src/components/Tooltip/types';
 import { t, withTheme } from '@superset-ui/core';
 
 import ModalTrigger from 'src/components/ModalTrigger';
@@ -54,7 +53,7 @@ const propTypes = {
     'vertical',
   ]),
   textAreaStyles: PropTypes.object,
-  tooltipOptions: PropTypes.oneOf([null, TooltipOptions]),
+  tooltipOptions: PropTypes.oneOf([null, PropTypes.object]),
 };
 
 const defaultProps = {

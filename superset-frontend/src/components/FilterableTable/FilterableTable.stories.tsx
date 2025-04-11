@@ -20,7 +20,7 @@ import type { FilterableTableProps } from './types';
 import { FilterableTable } from '.';
 
 export default {
-  title: 'FilterableTable',
+  title: 'Components/FilterableTable',
   component: FilterableTable,
 };
 

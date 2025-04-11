@@ -22,7 +22,7 @@ import { Space } from '../Space';
 import { Radio, RadioProps, RadioGroupWrapperProps } from './index';
 
 export default {
-  title: 'Radio',
+  title: 'Components/Radio',
   component: Radio,
   tags: ['autodocs'],
 };

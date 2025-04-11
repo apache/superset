@@ -23,7 +23,7 @@ import { CronPicker } from '.';
 import type { CronError, CronProps } from './types';
 
 export default {
-  title: 'CronPicker',
+  title: 'Components/CronPicker',
   component: CronPicker,
 };
 

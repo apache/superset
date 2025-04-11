@@ -31,7 +31,7 @@ const emptyStates = [
 ];
 
 export default {
-  title: 'Empty State Gallery',
+  title: 'Components/EmptyState',
   component: EmptyState,
   argTypes: {
     size: {

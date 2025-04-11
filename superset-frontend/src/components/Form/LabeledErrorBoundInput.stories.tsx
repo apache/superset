@@ -21,7 +21,7 @@ import type { LabeledErrorBoundInputProps } from './types';
 import { LabeledErrorBoundInput } from './LabeledErrorBoundInput';
 
 export default {
-  title: 'LabeledErrorBoundInput',
+  title: 'Components/Form/LabeledErrorBoundInput',
   component: LabeledErrorBoundInput,
 };
 

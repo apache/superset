@@ -20,7 +20,7 @@ import type { DatePickerProps, RangePickerProps } from './types';
 import { DatePicker, RangePicker } from '.';
 
 export default {
-  title: 'DatePicker',
+  title: 'Components/DatePicker',
   component: DatePicker,
 };
 

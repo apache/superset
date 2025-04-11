@@ -20,7 +20,7 @@ import { Divider } from '.';
 import type { DividerProps } from './types';
 
 export default {
-  title: 'Divider',
+  title: 'Components/Divider',
   component: Divider,
 };
 

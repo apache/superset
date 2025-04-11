@@ -21,7 +21,7 @@ import { ConfirmStatusChange } from '.';
 import type { ConfirmStatusChangeProps, Callback } from './types';
 
 export default {
-  title: 'ConfirmStatusChange',
+  title: 'Components/ConfirmStatusChange',
 };
 
 export const InteractiveConfirmStatusChange = (
