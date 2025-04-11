@@ -659,7 +659,38 @@ export function setDirectPathToChild(path) {
 
 export const SET_ACTIVE_TAB = 'SET_ACTIVE_TAB';
 export function setActiveTab(tabId, prevTabId) {
-  return { type: SET_ACTIVE_TAB, tabId, prevTabId };
+  return (dispatch, getState) => {
+    const { dashboardLayout, dashboardState } = getState();
+    const { activeTabs, inactiveTabs: prevInactiveTabs } = dashboardState;
+    const { present: currentLayout } = dashboardLayout;
+    const restoredTabs = [];
+    const queue = [tabId];
+    while (queue.length > 0) {
+      const seek = queue.shift();
+      const found =
+        prevInactiveTabs?.filter(inactiveTabId =>
+          currentLayout[inactiveTabId]?.parents.slice(-1).includes(seek),
+        ) ?? [];
+
+      restoredTabs.push(...found);
+      queue.push(...found);
+    }
+    const tabIds = restoredTabs ? [tabId].concat(restoredTabs) : [tabId];
+    const inactiveTabs =
+      Boolean(prevTabId) && tabId !== prevTabId
+        ? activeTabs.filter(
+            activeTabId =>
+              activeTabId !== prevTabId &&
+              currentLayout[activeTabId]?.parents.includes(prevTabId),
+          )
+        : [];
+    return dispatch({
+      type: SET_ACTIVE_TAB,
+      tabIds,
+      prevTabId,
+      inactiveTabs,
+    });
+  };
 }
 
 // Even though SET_ACTIVE_TABS is not being called from Superset's codebase,
