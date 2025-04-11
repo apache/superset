@@ -1525,7 +1525,7 @@ WEBDRIVER_AUTH_FUNC = None
 
 # Any config options to be passed as-is to the webdriver
 WEBDRIVER_CONFIGURATION = {
-    "options": {"capabilities": {}, "preferences": {}},
+    "options": {"capabilities": {}, "preferences": {}, "binary_location": ""},
     "service": {"log_output": "/dev/null", "service_args": [], "port": 0, "env": {}},
 }
 
