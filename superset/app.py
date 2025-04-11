@@ -14,13 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
 
 import logging
 import os
-from typing import Any, cast, Iterable, Optional
+import sys
+from typing import cast, Iterable, Optional
 
-# TODO: set up these types once we deprecate python 3.10
-# from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
+if sys.version_info >= (3, 11):
+    from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
+else:
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
+
+
 from flask import Flask
 from werkzeug.exceptions import NotFound
 
@@ -80,13 +89,15 @@ class AppRootMiddleware:
 
     def __init__(
         self,
-        wsgi_app: Any,
+        wsgi_app: WSGIApplication,
         app_root: str,
     ):
         self.wsgi_app = wsgi_app
         self.app_root = app_root
 
-    def __call__(self, environ: Any, start_response: Any) -> Iterable[bytes]:
+    def __call__(
+        self, environ: WSGIEnvironment, start_response: StartResponse
+    ) -> Iterable[bytes]:
         original_path_info = environ.get("PATH_INFO", "")
         if original_path_info.startswith(self.app_root):
             environ["PATH_INFO"] = original_path_info.removeprefix(self.app_root)
