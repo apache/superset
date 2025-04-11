@@ -479,10 +479,6 @@ const Select = forwardRef(
       ],
     );
 
-    useEffect(() => {
-      console.log({ visibleOptions, selectValue });
-    }, [visibleOptions, selectValue]);
-
     const dropdownRender = (
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },
     ) =>
