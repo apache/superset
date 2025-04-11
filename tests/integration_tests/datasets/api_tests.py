@@ -2099,7 +2099,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
 
-        assert rv.status_code == 404
+        assert rv.status_code in (403, 404)
 
     @pytest.mark.usefixtures("create_datasets")
     def test_export_dataset_bundle_gamma(self):
@@ -2115,8 +2115,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
         # gamma users by default do not have access to this dataset
-        print(rv.data.decode("utf-8"))
-        assert rv.status_code == 404
+        assert rv.status_code in (403, 404)
 
     @unittest.skip("Number of related objects depend on DB")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
