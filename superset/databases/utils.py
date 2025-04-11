@@ -132,10 +132,6 @@ def make_url_safe(raw_url: str | URL) -> URL:
     else:
         return raw_url
 
-def get_superset_internal_schema_names() -> list[str]:
-    # TODO(AW): What are the schemas created by Superset that we should exlude?
-    # How do we get this list programmatically?
-    return ["information_schema", "public"]
 
 def get_database_metadata(
     database: Any,
@@ -161,12 +157,6 @@ def get_database_metadata(
     db_schemas = database.get_all_schema_names(catalog=catalog)
     schemas_info = []
     for schema in db_schemas:
-        if schema in get_superset_internal_schema_names():
-            continue
-        # If the schema contains the string "timescaledb_", skip it
-        if "timescaledb_" in schema:
-            logger.info(f"Skipping timescaledb schema {schema}")
-            continue
         if tables and (len(tables) > 0) and (schema not in schemas):
             logger.info(f"Skipping schema {schema} not in schemas")
             continue
