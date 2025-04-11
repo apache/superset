@@ -221,7 +221,7 @@ function PropertiesModal({
         {
           objectType: OBJECT_TYPES.CHART,
           objectId: slice.slice_id,
-          includeTypes: false,
+          _includeTypes: false,
         },
         (tags: TagType[]) => setTags(tags),
         error => {

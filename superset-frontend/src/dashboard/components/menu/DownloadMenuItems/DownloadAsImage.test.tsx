@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SyntheticEvent } from 'react';
 import {
   render,
   screen,
@@ -31,7 +30,7 @@ const mockAddDangerToast = jest.fn();
 
 jest.mock('src/utils/downloadAsImage', () => ({
   __esModule: true,
-  default: jest.fn(() => (_e: SyntheticEvent) => {}),
+  default: jest.fn(() => () => {}),
 }));
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({

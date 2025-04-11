@@ -38,8 +38,10 @@ import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
 import { NULL_STRING } from '../constants';
 
-const isIterable = (obj: any): obj is Iterable<any> =>
-  obj != null && typeof obj[Symbol.iterator] === 'function';
+// Check if object is array-like (has indexed access)
+const isArrayLike = (obj: any): obj is any[] =>
+  Array.isArray(obj) ||
+  (obj != null && typeof obj === 'object' && typeof obj.length === 'number');
 
 function normalizeSymbolSize(
   nodes: ScatterSeriesOption[],
@@ -49,7 +51,7 @@ function normalizeSymbolSize(
     nodes,
     x => {
       const tmpValue = x.data?.[0];
-      const result = isIterable(tmpValue) ? tmpValue[2] : null;
+      const result = isArrayLike(tmpValue) ? tmpValue[2] : null;
       if (typeof result === 'number') {
         return result;
       }
@@ -60,7 +62,7 @@ function normalizeSymbolSize(
     const nodeSpread = bubbleMaxValue - bubbleMinValue;
     nodes.forEach(node => {
       const tmpValue = node.data?.[0];
-      const calculated = isIterable(tmpValue) ? tmpValue[2] : null;
+      const calculated = isArrayLike(tmpValue) ? tmpValue[2] : null;
       if (typeof calculated === 'number') {
         // eslint-disable-next-line no-param-reassign
         node.symbolSize =

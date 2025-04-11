@@ -20,7 +20,7 @@ import Modal, { ModalProps } from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { Form } from 'src/components/Form';
 import { useState, useCallback } from 'react';
-import { t } from '@superset-ui/core';
+import { logging, t } from '@superset-ui/core';
 
 export interface FormModalProps extends ModalProps {
   initialValues: Object;
@@ -65,7 +65,7 @@ function FormModal({
         await formSubmitHandler(values);
         handleSave();
       } catch (err) {
-        console.error(err);
+        logging.error(err);
       } finally {
         setIsSaving(false);
       }

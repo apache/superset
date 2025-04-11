@@ -35,7 +35,7 @@ export default {
   decorators: [],
 };
 
-export const basic = ({ width, height }: { width: string; height: string }) => (
+export const Basic = ({ width, height }: { width: string; height: string }) => (
   <SuperChart
     chartType={ChartKeys.DILIGENT}
     width={width}
@@ -44,16 +44,16 @@ export const basic = ({ width, height }: { width: string; height: string }) => (
     formData={{ hi: 1 }}
   />
 );
-basic.args = {
+Basic.args = {
   width: '100%',
   height: '100%',
 };
-basic.argTypes = {
+Basic.argTypes = {
   width: { control: 'text', description: 'Vis width' },
   height: { control: 'text', description: 'Vis height' },
 };
 
-export const container50pct = ({
+export const Container50pct = ({
   width,
   height,
 }: {
@@ -69,12 +69,12 @@ export const container50pct = ({
   />
 );
 
-container50pct.storyName = '50% of container';
-container50pct.args = {
+Container50pct.storyName = '50% of container';
+Container50pct.args = {
   width: '50%',
   height: '50%',
 };
-container50pct.argTypes = {
+Container50pct.argTypes = {
   width: { control: 'text', description: 'Vis width' },
   height: { control: 'text', description: 'Vis height' },
 };
@@ -92,7 +92,7 @@ export const Resizable = () => (
   </ResizableChartDemo>
 );
 
-export const fixedWidth100height = ({
+export const FixedWidth100height = ({
   width,
   height,
 }: {
@@ -107,17 +107,17 @@ export const fixedWidth100height = ({
   />
 );
 
-fixedWidth100height.storyName = 'fixed width, 100% height';
-fixedWidth100height.args = {
+FixedWidth100height.storyName = 'fixed width, 100% height';
+FixedWidth100height.args = {
   width: '500',
   height: '100%',
 };
-fixedWidth100height.argTypes = {
+FixedWidth100height.argTypes = {
   width: { control: 'text', description: 'Vis width' },
   height: { control: 'text', description: 'Vis height' },
 };
 
-export const fixedHeight100Width = ({
+export const FixedHeight100Width = ({
   width,
   height,
 }: {
@@ -131,17 +131,17 @@ export const fixedHeight100Width = ({
     queriesData={[DEFAULT_QUERY_DATA]}
   />
 );
-fixedHeight100Width.storyName = 'fixed height, 100% width';
-fixedHeight100Width.args = {
+FixedHeight100Width.storyName = 'fixed height, 100% width';
+FixedHeight100Width.args = {
   width: '100%',
   height: '300',
 };
-fixedHeight100Width.argTypes = {
+FixedHeight100Width.argTypes = {
   width: { control: 'text', description: 'Vis width' },
   height: { control: 'text', description: 'Vis height' },
 };
 
-export const withErrorBoundary = ({
+export const WithErrorBoundary = ({
   width,
   height,
 }: {
@@ -155,17 +155,17 @@ export const withErrorBoundary = ({
     queriesData={[DEFAULT_QUERY_DATA]}
   />
 );
-withErrorBoundary.storyName = 'With Error Boundary';
-withErrorBoundary.args = {
+// The story name is automatically generated from the export name
+WithErrorBoundary.args = {
   width: '500',
   height: '300',
 };
-withErrorBoundary.argTypes = {
+WithErrorBoundary.argTypes = {
   width: { control: 'text', description: 'Vis width' },
   height: { control: 'text', description: 'Vis height' },
 };
 
-export const withWrapper = ({
+export const WithWrapper = ({
   width,
   height,
 }: {
@@ -185,17 +185,17 @@ export const withWrapper = ({
     )}
   />
 );
-withWrapper.storyName = 'With Wrapper';
-withWrapper.args = {
+// The story name is automatically generated from the export name
+WithWrapper.args = {
   width: '100%',
   height: '100%',
 };
-withWrapper.argTypes = {
+WithWrapper.argTypes = {
   width: { control: 'text', description: 'Vis width' },
   height: { control: 'text', description: 'Vis height' },
 };
 
-export const withNoResults = ({
+export const WithNoResults = ({
   width,
   height,
 }: {
@@ -204,17 +204,17 @@ export const withNoResults = ({
 }) => (
   <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />
 );
-withNoResults.storyName = 'With no results';
-withNoResults.args = {
+WithNoResults.storyName = 'With no results';
+WithNoResults.args = {
   width: '100%',
   height: '100%',
 };
-withNoResults.argTypes = {
+WithNoResults.argTypes = {
   width: { control: 'text', description: 'Vis width' },
   height: { control: 'text', description: 'Vis height' },
 };
 
-export const withNoResultsAndMedium = ({
+export const WithNoResultsAndMedium = ({
   width,
   height,
 }: {
@@ -224,17 +224,17 @@ export const withNoResultsAndMedium = ({
   <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />
 );
 
-withNoResultsAndMedium.storyName = 'With no results and medium';
-withNoResultsAndMedium.args = {
+WithNoResultsAndMedium.storyName = 'With no results and medium';
+WithNoResultsAndMedium.args = {
   width: '400',
   height: '300',
 };
-withNoResultsAndMedium.argTypes = {
+WithNoResultsAndMedium.argTypes = {
   width: { control: 'text', description: 'Vis width' },
   height: { control: 'text', description: 'Vis height' },
 };
 
-export const withNoResultsAndSmall = ({
+export const WithNoResultsAndSmall = ({
   width,
   height,
 }: {
@@ -243,12 +243,12 @@ export const withNoResultsAndSmall = ({
 }) => (
   <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />
 );
-withNoResultsAndSmall.storyName = 'With no results and small';
-withNoResultsAndSmall.args = {
+WithNoResultsAndSmall.storyName = 'With no results and small';
+WithNoResultsAndSmall.args = {
   width: '150',
   height: '200',
 };
-withNoResultsAndSmall.argTypes = {
+WithNoResultsAndSmall.argTypes = {
   width: { control: 'text', description: 'Vis width' },
   height: { control: 'text', description: 'Vis height' },
 };

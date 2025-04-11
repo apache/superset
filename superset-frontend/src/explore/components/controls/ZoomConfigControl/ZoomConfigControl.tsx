@@ -65,7 +65,6 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
   };
 
   const onBaseWidthChange = (width: number) => {
-    console.log('now in onbasewidthcahnge');
     setBaseWidth(width);
     if (!value) {
       return;

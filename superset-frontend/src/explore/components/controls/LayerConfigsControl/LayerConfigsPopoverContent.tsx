@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, JsonValue, styled, t } from '@superset-ui/core';
+import { css, JsonValue, styled, t, logging } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { Button, Form, Tabs } from 'antd'; // TODO: Remove antd
 import { mix } from 'polished';
@@ -329,7 +329,7 @@ export const LayerConfigsPopoverContent: FC<
         });
         setGeoStylerData(gsData);
       } catch {
-        console.warn('Could not read geostyler data');
+        logging.warn('Could not read geostyler data');
         setGeoStylerData(undefined);
       }
     };
