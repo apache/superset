@@ -17,8 +17,6 @@
 from typing import Any, Optional, Type
 from unittest import mock
 
-import pytest
-
 from superset.async_events.cache_backend import (
     RedisCacheBackend,
     RedisSentinelCacheBackend,
@@ -133,11 +131,8 @@ class TestAsyncEventApi(SupersetTestCase):
         rv = self.fetch_events()
         assert rv.status_code == 401
 
-    # TODO: Fix this test
-    @pytest.mark.skip
     def test_events_no_token(self):
         self.login(ADMIN_USERNAME)
         self.client.set_cookie(app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "")
         rv = self.fetch_events()
-        print(rv.data)
         assert rv.status_code == 401
