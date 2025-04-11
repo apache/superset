@@ -47,78 +47,78 @@ describe('DashboardState reducer', () => {
     });
 
     it('switches a multi-depth tab', () => {
-      const initState = { activeTabs: ['tab1', 'tabA', 'tab__a'] };
+      const initState = { activeTabs: ['TAB-1', 'TAB-A', 'TAB-__a'] };
       const store = mockStore({
         dashboardState: initState,
         dashboardLayout: {
           present: {
-            tab1: { parents: [] },
-            tab2: { parents: [] },
-            tabA: { parents: ['tab1'] },
-            tabB: { parents: ['tab1'] },
-            tab__a: { parents: ['tab1', 'tabA'] },
-            tab__b: { parents: ['tab1', 'tabB'] },
+            'TAB-1': { parents: [] },
+            'TAB-2': { parents: [] },
+            'TAB-A': { parents: ['TAB-1', 'TABS-1'] },
+            'TAB-B': { parents: ['TAB-1', 'TABS-1'] },
+            'TAB-__a': { parents: ['TAB-1', 'TABS-1', 'TAB-A', 'TABS-A'] },
+            'TAB-__b': { parents: ['TAB-1', 'TABS-1', 'TAB-B', 'TABS-B'] },
           },
         },
       });
-      let request = setActiveTab('tabB', 'tabA');
+      let request = setActiveTab('TAB-B', 'TAB-A');
       let thunkAction = request(store.dispatch, store.getState);
       let result = dashboardStateReducer(
-        { activeTabs: ['tab1', 'tabA', 'tab__a'] },
+        { activeTabs: ['TAB-1', 'TAB-A', 'TAB-__a'] },
         thunkAction,
       );
       expect(result).toEqual({
-        activeTabs: expect.arrayContaining(['tab1', 'tabB']),
-        inactiveTabs: ['tab__a'],
+        activeTabs: expect.arrayContaining(['TAB-1', 'TAB-B']),
+        inactiveTabs: ['TAB-__a'],
       });
-      request = setActiveTab('tab2', 'tab1');
+      request = setActiveTab('TAB-2', 'TAB-1');
       thunkAction = request(store.dispatch, () => ({
         ...(store.getState() ?? {}),
         dashboardState: result,
       }));
       result = dashboardStateReducer(result, thunkAction);
       expect(result).toEqual({
-        activeTabs: ['tab2'],
-        inactiveTabs: expect.arrayContaining(['tabB', 'tab__a']),
+        activeTabs: ['TAB-2'],
+        inactiveTabs: expect.arrayContaining(['TAB-B', 'TAB-__a']),
       });
-      request = setActiveTab('tab1', 'tab2');
+      request = setActiveTab('TAB-1', 'TAB-2');
       thunkAction = request(store.dispatch, () => ({
         ...(store.getState() ?? {}),
         dashboardState: result,
       }));
       result = dashboardStateReducer(result, thunkAction);
       expect(result).toEqual({
-        activeTabs: expect.arrayContaining(['tab1', 'tabB']),
-        inactiveTabs: ['tab__a'],
+        activeTabs: expect.arrayContaining(['TAB-1', 'TAB-B']),
+        inactiveTabs: ['TAB-__a'],
       });
-      request = setActiveTab('tabA', 'tabB');
+      request = setActiveTab('TAB-A', 'TAB-B');
       thunkAction = request(store.dispatch, () => ({
         ...(store.getState() ?? {}),
         dashboardState: result,
       }));
       result = dashboardStateReducer(result, thunkAction);
       expect(result).toEqual({
-        activeTabs: expect.arrayContaining(['tab1', 'tabA', 'tab__a']),
+        activeTabs: expect.arrayContaining(['TAB-1', 'TAB-A', 'TAB-__a']),
         inactiveTabs: [],
       });
-      request = setActiveTab('tab2', 'tab1');
+      request = setActiveTab('TAB-2', 'TAB-1');
       thunkAction = request(store.dispatch, () => ({
         ...(store.getState() ?? {}),
         dashboardState: result,
       }));
       result = dashboardStateReducer(result, thunkAction);
       expect(result).toEqual({
-        activeTabs: expect.arrayContaining(['tab2']),
-        inactiveTabs: ['tabA', 'tab__a'],
+        activeTabs: expect.arrayContaining(['TAB-2']),
+        inactiveTabs: ['TAB-A', 'TAB-__a'],
       });
-      request = setActiveTab('tab1', 'tab2');
+      request = setActiveTab('TAB-1', 'TAB-2');
       thunkAction = request(store.dispatch, () => ({
         ...(store.getState() ?? {}),
         dashboardState: result,
       }));
       result = dashboardStateReducer(result, thunkAction);
       expect(result).toEqual({
-        activeTabs: expect.arrayContaining(['tab1', 'tabA', 'tab__a']),
+        activeTabs: expect.arrayContaining(['TAB-1', 'TAB-A', 'TAB-__a']),
         inactiveTabs: [],
       });
     });
