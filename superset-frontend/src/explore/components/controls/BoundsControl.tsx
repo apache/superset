@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { InputNumber } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
-import { debounce, parseInt } from 'lodash';
+import { debounce } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 type ValueType = (number | null)[];
@@ -47,7 +47,7 @@ const parseNumber = (value: undefined | number | string | null) => {
   if (
     value === null ||
     value === undefined ||
-    (typeof value === 'string' && Number.isNaN(parseInt(value)))
+    (typeof value === 'string' && Number.isNaN(Number.parseInt(value, 10)))
   ) {
     return null;
   }
@@ -79,11 +79,11 @@ export default function BoundsControl({
     setMinMax([parseNumber(min), parseNumber(max)]);
   }, [min, max]);
 
-  const onMinChange = (value: number | string | undefined) => {
+  const onMinChange = (value: number | string | undefined | null) => {
     update([parseNumber(value), minMax[1]]);
   };
 
-  const onMaxChange = (value: number | string | undefined) => {
+  const onMaxChange = (value: number | string | undefined | null) => {
     update([minMax[0], parseNumber(value)]);
   };
 
@@ -94,7 +94,7 @@ export default function BoundsControl({
         <MinInput
           data-test="min-bound"
           placeholder={t('Min')}
-          // emit (string | number | undefined)
+          // emit (string | number | undefined | null)
           onChange={onMinChange}
           // accept (number | undefined)
           value={minMax[0] === null ? undefined : minMax[0]}
@@ -102,7 +102,7 @@ export default function BoundsControl({
         <MaxInput
           data-test="max-bound"
           placeholder={t('Max')}
-          // emit (number | string | undefined)
+          // emit (number | string | undefined | null)
           onChange={onMaxChange}
           // accept (number | undefined)
           value={minMax[1] === null ? undefined : minMax[1]}

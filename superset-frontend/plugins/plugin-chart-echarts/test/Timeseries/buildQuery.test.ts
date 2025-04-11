@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SqlaFormData } from '@superset-ui/core';
+import { SqlaFormData, VizType } from '@superset-ui/core';
 import buildQuery from '../../src/Timeseries/buildQuery';
 
 describe('Timeseries buildQuery', () => {
@@ -64,7 +64,7 @@ describe('Timeseries buildQuery', () => {
 describe('queryObject conversion', () => {
   const formData: SqlaFormData = {
     datasource: '5__table',
-    viz_type: 'table',
+    viz_type: VizType.Table,
     granularity_sqla: 'time_column',
     time_grain_sqla: 'P1Y',
     time_range: '1 year ago : 2013',

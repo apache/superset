@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useReducer, Reducer, useEffect, useState } from 'react';
+import { useReducer, Reducer, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import useDatasetsList from 'src/features/datasets/hooks/useDatasetLists';
 import Header from 'src/features/datasets/AddDataset/Header';

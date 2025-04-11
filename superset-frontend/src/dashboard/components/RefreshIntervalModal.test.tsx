@@ -16,19 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { isValidElement } from 'react';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
-import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+import { useHeaderActionsMenu } from './Header/useHeaderActionsDropdownMenu';
 
 const createProps = () => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
   customCss:
-    '.header-with-actions .right-button-panel .ant-dropdown-trigger{margin-left: 100px;}',
+    '.header-with-actions .right-button-panel .antd5-dropdown-trigger{margin-left: 100px;}',
   dashboardId: 1,
   dashboardInfo: {
     id: 1,
@@ -81,10 +83,25 @@ const editModeOnProps = {
   editMode: true,
 };
 
+const mockStore = configureStore([thunk]);
+const store = mockStore({
+  dashboardState: {
+    dashboardInfo: createProps().dashboardInfo,
+  },
+});
+
+const HeaderActionsMenu = (props: any) => {
+  const [menu] = useHeaderActionsMenu(props);
+
+  return <>{menu}</>;
+};
+
 const setup = (overrides?: any) => (
-  <div className="dashboard-header">
-    <HeaderActionsDropdown {...editModeOnProps} {...overrides} />
-  </div>
+  <Provider store={store}>
+    <div className="dashboard-header">
+      <HeaderActionsMenu {...editModeOnProps} {...overrides} />
+    </div>
+  </Provider>
 );
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
@@ -110,7 +127,7 @@ const defaultRefreshIntervalModalProps = {
 
 test('is valid', () => {
   expect(
-    React.isValidElement(
+    isValidElement(
       <RefreshIntervalModal {...defaultRefreshIntervalModalProps} />,
     ),
   ).toBe(true);
@@ -118,10 +135,12 @@ test('is valid', () => {
 
 test('renders refresh interval modal', async () => {
   render(setup(editModeOnProps));
+
+  expect(screen.queryByText('Refresh Interval')).not.toBeInTheDocument();
   await openRefreshIntervalModal();
 
   // Assert that modal exists by checking for the modal title
-  expect(screen.getByText('Refresh interval')).toBeVisible();
+  expect(screen.getByText('Refresh interval')).toBeInTheDocument();
 });
 
 test('renders refresh interval options', async () => {

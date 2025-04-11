@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import React from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, useTheme, css } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
+import { ActionType } from 'src/types/Action';
 
 export interface InfoTooltipProps {
-  className?: string;
+  iconStyle?: React.CSSProperties;
   tooltip: string;
   placement?:
     | 'bottom'
@@ -39,7 +39,7 @@ export interface InfoTooltipProps {
     | 'rightTop'
     | 'rightBottom'
     | undefined;
-  trigger?: string | Array<string>;
+  trigger?: ActionType | ActionType[];
   overlayStyle?: any;
   bgColor?: string;
   viewBox?: string;
@@ -47,9 +47,6 @@ export interface InfoTooltipProps {
 
 const StyledTooltip = styled(Tooltip)`
   cursor: pointer;
-  path:first-of-type {
-    fill: ${({ theme }) => theme.colors.grayscale.base};
-  }
 `;
 
 const StyledTooltipTitle = styled.span`
@@ -64,17 +61,31 @@ const defaultOverlayStyle = {
   fontSize: '12px',
   lineHeight: '16px',
 };
-
+const InfoIconContainer = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-left: ${theme.gridUnit}px;
+  `}
+`;
 const defaultColor = 'rgba(0,0,0,0.9)';
 
 export default function InfoTooltip({
   tooltip,
+  iconStyle = {},
   placement = 'right',
   trigger = 'hover',
   overlayStyle = defaultOverlayStyle,
   bgColor = defaultColor,
   viewBox = '0 -1 24 24',
 }: InfoTooltipProps) {
+  const theme = useTheme();
+  const alteredIconStyle = {
+    ...iconStyle,
+    color: iconStyle.color || theme.colors.grayscale.base,
+  };
   return (
     <StyledTooltip
       title={<StyledTooltipTitle>{tooltip}</StyledTooltipTitle>}
@@ -83,7 +94,15 @@ export default function InfoTooltip({
       overlayStyle={overlayStyle}
       color={bgColor}
     >
-      <Icons.InfoSolidSmall className="info-solid-small" viewBox={viewBox} />
+      <InfoIconContainer>
+        <Icons.InfoCircleFilled
+          aria-label="info-tooltip"
+          data-test="info-tooltip-icon"
+          iconSize="m"
+          style={alteredIconStyle}
+          viewBox={viewBox}
+        />
+      </InfoIconContainer>
     </StyledTooltip>
   );
 }

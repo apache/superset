@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode } from 'react';
+import { Component, ReactNode } from 'react';
 import {
   SupersetClient,
   Method,
@@ -53,7 +53,7 @@ export const renderError = (error: Error) => (
   </div>
 );
 
-export default class VerifyCORS extends React.Component<Props, State> {
+export default class VerifyCORS extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { didVerify: false };

@@ -16,10 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { forwardRef, useImperativeHandle, useState } from 'react';
-import { t, styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
-import { AntdInput } from 'src/components';
+import {
+  forwardRef,
+  useImperativeHandle,
+  useState,
+  RefObject,
+  ChangeEvent,
+} from 'react';
+
+import { t, styled, useTheme, css } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
+import { Input as AntdInput } from 'src/components/Input';
 import { SELECT_WIDTH } from 'src/components/ListView/utils';
 import { FormLabel } from 'src/components/Form';
 import InfoTooltip from 'src/components/InfoTooltip';
@@ -36,10 +43,6 @@ const Container = styled.div`
   width: ${SELECT_WIDTH}px;
 `;
 
-const SearchIcon = styled(Icons.Search)`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
-`;
-
 const StyledInput = styled(AntdInput)`
   border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
@@ -52,15 +55,16 @@ function SearchFilter(
     toolTipDescription,
     onSubmit,
   }: SearchHeaderProps,
-  ref: React.RefObject<FilterHandler>,
+  ref: RefObject<FilterHandler>,
 ) {
+  const theme = useTheme();
   const [value, setValue] = useState(initialValue || '');
   const handleSubmit = () => {
     if (value) {
       onSubmit(value.trim());
     }
   };
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setValue(e.currentTarget.value);
     if (e.currentTarget.value === '') {
       onSubmit('');
@@ -76,10 +80,17 @@ function SearchFilter(
 
   return (
     <Container>
-      <FormLabel>{Header}</FormLabel>
-      {toolTipDescription && (
-        <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
-      )}
+      <div
+        css={css`
+          display: flex;
+          align-items: start;
+        `}
+      >
+        <FormLabel>{Header}</FormLabel>
+        {toolTipDescription && (
+          <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
+        )}
+      </div>
       <StyledInput
         allowClear
         data-test="filters-search"
@@ -89,7 +100,12 @@ function SearchFilter(
         onChange={handleChange}
         onPressEnter={handleSubmit}
         onBlur={handleSubmit}
-        prefix={<SearchIcon iconSize="l" />}
+        prefix={
+          <Icons.SearchOutlined
+            iconColor={theme.colors.grayscale.light1}
+            iconSize="l"
+          />
+        }
       />
     </Container>
   );

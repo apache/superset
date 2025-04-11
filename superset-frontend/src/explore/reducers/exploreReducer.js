@@ -50,6 +50,24 @@ export default function exploreReducer(state = {}, action) {
         isDatasourceMetaLoading: true,
       };
     },
+    [actions.START_METADATA_LOADING]() {
+      return {
+        ...state,
+        isDatasourceMetaLoading: true,
+      };
+    },
+    [actions.STOP_METADATA_LOADING]() {
+      return {
+        ...state,
+        isDatasourceMetaLoading: false,
+      };
+    },
+    [actions.SYNC_DATASOURCE_METADATA]() {
+      return {
+        ...state,
+        datasource: action.datasource,
+      };
+    },
     [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {
       const newFormData = { ...state.form_data };
       const { prevDatasource, newDatasource } = action;
@@ -261,14 +279,16 @@ export default function exploreReducer(state = {}, action) {
       }
 
       const restoredField = pick(hiddenFormData, fieldNames);
-      return {
-        ...state,
-        form_data: {
-          ...form_data,
-          ...restoredField,
-        },
-        hiddenFormData,
-      };
+      return Object.keys(restoredField).length === 0
+        ? state
+        : {
+            ...state,
+            form_data: {
+              ...form_data,
+              ...restoredField,
+            },
+            hiddenFormData: omit(hiddenFormData, fieldNames),
+          };
     },
     [actions.SLICE_UPDATED]() {
       return {

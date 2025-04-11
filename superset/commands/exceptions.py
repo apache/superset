@@ -28,7 +28,7 @@ class CommandException(SupersetException):
     def __repr__(self) -> str:
         if self._exception:
             return repr(self._exception)
-        return repr(self)
+        return super().__repr__()
 
 
 class ObjectNotFoundError(CommandException):
@@ -71,7 +71,7 @@ class CommandInvalidError(CommandException):
         self._exceptions.extend(exceptions)
 
     def get_list_classnames(self) -> list[str]:
-        return list(sorted({ex.__class__.__name__ for ex in self._exceptions}))
+        return sorted({ex.__class__.__name__ for ex in self._exceptions})
 
     def normalized_messages(self) -> dict[Any, Any]:
         errors: dict[Any, Any] = {}

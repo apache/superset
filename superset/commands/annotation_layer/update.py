@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -28,8 +29,8 @@ from superset.commands.annotation_layer.exceptions import (
 )
 from superset.commands.base import BaseCommand
 from superset.daos.annotation_layer import AnnotationLayerDAO
-from superset.daos.exceptions import DAOUpdateFailedError
 from superset.models.annotations import AnnotationLayer
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -40,16 +41,11 @@ class UpdateAnnotationLayerCommand(BaseCommand):
         self._properties = data.copy()
         self._model: Optional[AnnotationLayer] = None
 
+    @transaction(on_error=partial(on_error, reraise=AnnotationLayerUpdateFailedError))
     def run(self) -> Model:
         self.validate()
         assert self._model
-
-        try:
-            annotation_layer = AnnotationLayerDAO.update(self._model, self._properties)
-        except DAOUpdateFailedError as ex:
-            logger.exception(ex.exception)
-            raise AnnotationLayerUpdateFailedError() from ex
-        return annotation_layer
+        return AnnotationLayerDAO.update(self._model, self._properties)
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []

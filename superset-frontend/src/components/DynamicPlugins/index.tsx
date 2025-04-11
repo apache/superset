@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useContext, useEffect, useReducer } from 'react';
+import { useContext, useEffect, useReducer, createContext, FC } from 'react';
+
 import {
   ChartMetadata,
   defineSharedModules,
@@ -58,7 +59,7 @@ const dummyPluginContext: PluginContextType = {
  * It is highly recommended to use the usePluginContext hook instead.
  * @see usePluginContext
  */
-export const PluginContext = React.createContext(dummyPluginContext);
+export const PluginContext = createContext(dummyPluginContext);
 
 /**
  * The plugin context provides info about what dynamic plugins are available.
@@ -163,7 +164,7 @@ const sharedModules = {
   '@superset-ui/core': () => import('@superset-ui/core'),
 };
 
-export const DynamicPluginProvider: React.FC = ({ children }) => {
+export const DynamicPluginProvider: FC = ({ children }) => {
   const [pluginState, dispatch] = useReducer(
     pluginContextReducer,
     dummyPluginContext,

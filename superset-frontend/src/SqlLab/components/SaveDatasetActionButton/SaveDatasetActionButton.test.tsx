@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { Menu } from 'src/components/Menu';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 
@@ -38,7 +36,7 @@ describe('SaveDatasetActionButton', () => {
     );
 
     const saveBtn = screen.getByRole('button', { name: /save/i });
-    const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+    const caretBtn = screen.getByRole('button', { name: /down/i });
 
     expect(
       await screen.findByRole('button', { name: /save/i }),
@@ -55,9 +53,9 @@ describe('SaveDatasetActionButton', () => {
       />,
     );
 
-    const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+    const caretBtn = screen.getByRole('button', { name: /down/i });
     expect(
-      await screen.findByRole('button', { name: /caret-down/i }),
+      await screen.findByRole('button', { name: /down/i }),
     ).toBeInTheDocument();
     userEvent.click(caretBtn);
 

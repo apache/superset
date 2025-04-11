@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
+  FC,
+  memo,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
+
 import {
   ChartDataResponseResult,
   Behavior,
@@ -42,7 +45,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import Loading from 'src/components/Loading';
-import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
@@ -52,6 +54,7 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
 import { FAST_DEBOUNCE } from 'src/constants';
+import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
@@ -83,7 +86,7 @@ const useShouldFilterRefresh = () => {
   return !isDashboardRefreshing && isFilterRefreshing;
 };
 
-const FilterValue: React.FC<FilterControlProps> = ({
+const FilterValue: FC<FilterControlProps> = ({
   dataMaskSelected,
   filter,
   onFilterSelectionChange,
@@ -103,6 +106,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
+
   const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
     inView: false,
@@ -172,14 +176,13 @@ const FilterValue: React.FC<FilterControlProps> = ({
       setIsRefreshing(true);
       getChartDataRequest({
         formData: newFormData,
-        force: false,
+        force: shouldRefresh,
         ownState: filterOwnState,
       })
         .then(({ response, json }) => {
           if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result[0] : json;
-
             if (response.status === 200) {
               setState([result]);
               handleFilterLoadFinish();
@@ -219,7 +222,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
     datasetId,
     groupby,
     handleFilterLoadFinish,
-    JSON.stringify(filter),
+    filter,
     hasDataSource,
     isRefreshing,
     shouldRefresh,
@@ -285,8 +288,8 @@ const FilterValue: React.FC<FilterControlProps> = ({
 
   const filterState = useMemo(
     () => ({
-      ...filter.dataMask?.filterState,
       validateStatus,
+      ...filter.dataMask?.filterState,
     }),
     [filter.dataMask?.filterState, validateStatus],
   );
@@ -303,11 +306,13 @@ const FilterValue: React.FC<FilterControlProps> = ({
     return (
       <ErrorMessageWithStackTrace
         error={error.errors?.[0]}
+        compact
         fallback={
-          <BasicErrorAlert
-            title={t('Cannot load filter')}
-            body={error.error}
-            level="error"
+          <ErrorAlert
+            errorType={t('Network error')}
+            message={t('Network error while attempting to fetch resource')}
+            type="error"
+            compact
           />
         }
       />
@@ -341,4 +346,4 @@ const FilterValue: React.FC<FilterControlProps> = ({
     </StyledDiv>
   );
 };
-export default React.memo(FilterValue);
+export default memo(FilterValue);

@@ -34,7 +34,8 @@ from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.date_parser import get_since_until
-from superset.views.base import api, BaseSupersetView, handle_api_exception
+from superset.views.base import api, BaseSupersetView
+from superset.views.error_handling import handle_api_exception
 
 if TYPE_CHECKING:
     from superset.common.query_context_factory import QueryContextFactory

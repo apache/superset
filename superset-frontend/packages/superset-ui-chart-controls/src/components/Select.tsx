@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, ReactNode } from 'react';
+import { useState, ReactNode } from 'react';
 import AntdSelect, { SelectProps as AntdSelectProps } from 'antd/lib/select';
 
 export const { Option }: any = AntdSelect;

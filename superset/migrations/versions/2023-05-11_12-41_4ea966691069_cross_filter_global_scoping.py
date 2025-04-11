@@ -90,9 +90,9 @@ def upgrade():
             if needs_upgrade:
                 dashboard.json_metadata = json.dumps(json_metadata)
 
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to run up migration")
-            raise e
+            raise
 
     session.commit()
     session.close()
@@ -127,9 +127,9 @@ def downgrade():
 
             dashboard.json_metadata = json.dumps(json_metadata)
 
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to run down migration")
-            raise e
+            raise
 
     session.commit()
     session.close()

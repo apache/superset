@@ -16,14 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useState,
+  memo,
+  ChangeEvent,
+  MouseEvent,
+} from 'react';
+
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { pick } from 'lodash';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import {
   QueryState,
   styled,
@@ -34,6 +42,7 @@ import {
   css,
   getNumberFormatter,
   getExtensionsRegistry,
+  ErrorTypeEnum,
 } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
@@ -54,6 +63,7 @@ import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import Modal from 'src/components/Modal';
 import {
   addQueryEditor,
   clearQueryResults,
@@ -63,7 +73,14 @@ import {
   reRunQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import { URL_PARAMS } from 'src/constants';
-import Icons from 'src/components/Icons';
+import useLogAction from 'src/logger/useLogAction';
+import {
+  LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD,
+  LOG_ACTIONS_SQLLAB_CREATE_CHART,
+  LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
+} from 'src/logger/LogUtils';
+import { Icons } from 'src/components/Icons';
+import { findPermission } from 'src/utils/findPermission';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -133,6 +150,15 @@ const ResultSetButtons = styled.div`
   padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
 `;
 
+const copyButtonStyles = css`
+  &:hover {
+    text-decoration: unset;
+  }
+  span > :first-of-type {
+    margin: 0px;
+  }
+`;
+
 const ROWS_CHIP_WIDTH = 100;
 const GAP = 8;
 
@@ -163,6 +189,7 @@ const ResultSet = ({
         'dbId',
         'tab',
         'sql',
+        'sqlEditorId',
         'templateParams',
         'schema',
         'rows',
@@ -193,6 +220,7 @@ const ResultSet = ({
 
   const history = useHistory();
   const dispatch = useDispatch();
+  const logAction = useLogAction({ queryId, sqlEditorId: query.sqlEditorId });
 
   const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
     if (
@@ -208,8 +236,8 @@ const ResultSet = ({
     reRunQueryIfSessionTimeoutErrorOnMount();
   }, [reRunQueryIfSessionTimeoutErrorOnMount]);
 
-  const fetchResults = (q: typeof query) => {
-    dispatch(fetchQueryResults(q, displayLimit));
+  const fetchResults = (q: typeof query, timeout?: number) => {
+    dispatch(fetchQueryResults(q, displayLimit, timeout));
   };
 
   const prevQuery = usePrevious(query);
@@ -233,7 +261,7 @@ const ResultSet = ({
 
   const popSelectStar = (tempSchema: string | null, tempTable: string) => {
     const qe = {
-      id: shortid.generate(),
+      id: nanoid(11),
       name: tempTable,
       autorun: false,
       dbId: query.dbId,
@@ -242,15 +270,15 @@ const ResultSet = ({
     dispatch(addQueryEditor(qe));
   };
 
-  const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const changeSearch = (event: ChangeEvent<HTMLInputElement>) => {
     setSearchText(event.target.value);
   };
 
-  const createExploreResultsOnClick = async (clickEvent: React.MouseEvent) => {
+  const createExploreResultsOnClick = async (clickEvent: MouseEvent) => {
     const { results } = query;
 
     const openInNewWindow = clickEvent.metaKey;
-
+    logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
     if (results?.query_id) {
       const key = await postFormData(results.query_id, 'query', {
         ...EXPLORE_CHART_DEFAULT,
@@ -277,6 +305,9 @@ const ResultSet = ({
 
   const renderControls = () => {
     if (search || visualize || csv) {
+      const { results, queryLimit, limitingFactor, rows } = query;
+      const limit = queryLimit || results.query.limit;
+      const rowsCount = Math.min(rows || 0, results?.data?.length || 0);
       let { data } = query.results;
       if (cache && query.cached) {
         data = cachedData;
@@ -292,6 +323,12 @@ const ResultSet = ({
         templateParams: query?.templateParams,
         schema: query?.schema,
       };
+
+      const canExportData = findPermission(
+        'can_export_csv',
+        'SQLLab',
+        user?.roles,
+      );
 
       return (
         <ResultSetControls>
@@ -312,22 +349,59 @@ const ResultSet = ({
                 onClick={createExploreResultsOnClick}
               />
             )}
-            {csv && (
-              <Button buttonSize="small" href={getExportCsvUrl(query.id)}>
-                <i className="fa fa-file-text-o" /> {t('Download to CSV')}
+            {csv && canExportData && (
+              <Button
+                css={copyButtonStyles}
+                buttonSize="small"
+                href={getExportCsvUrl(query.id)}
+                data-test="export-csv-button"
+                onClick={() => {
+                  logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
+                  if (
+                    limitingFactor === LimitingFactor.Dropdown &&
+                    limit === rowsCount
+                  ) {
+                    Modal.warning({
+                      title: t('Download is on the way'),
+                      content: t(
+                        'Downloading %(rows)s rows based on the LIMIT configuration. If you want the entire result set, you need to adjust the LIMIT.',
+                        { rows: rowsCount.toLocaleString() },
+                      ),
+                    });
+                  }
+                }}
+              >
+                <Icons.DownloadOutlined
+                  iconSize="m"
+                  iconColor={theme.colors.primary.dark2}
+                />{' '}
+                {t('Download to CSV')}
               </Button>
             )}
 
-            <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data, columns)}
-              wrapped={false}
-              copyNode={
-                <Button buttonSize="small">
-                  <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
-                </Button>
-              }
-              hideTooltip
-            />
+            {canExportData && (
+              <CopyToClipboard
+                text={prepareCopyToClipboardTabularData(data, columns)}
+                wrapped={false}
+                copyNode={
+                  <Button
+                    css={copyButtonStyles}
+                    buttonSize="small"
+                    data-test="copy-to-clipboard-button"
+                  >
+                    <Icons.CopyOutlined
+                      iconSize="s"
+                      iconColor={theme.colors.primary.dark2}
+                    />{' '}
+                    {t('Copy to Clipboard')}
+                  </Button>
+                }
+                hideTooltip
+                onCopyEnd={() =>
+                  logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
+                }
+              />
+            )}
           </ResultSetButtons>
           {search && (
             <input
@@ -503,17 +577,34 @@ const ResultSet = ({
   }
 
   if (query.state === QueryState.Failed) {
+    const errors = [...(query.extra?.errors || []), ...(query.errors || [])];
+
     return (
       <ResultlessStyles>
-        <ErrorMessageWithStackTrace
-          title={t('Database error')}
-          error={query?.extra?.errors?.[0] || query?.errors?.[0]}
-          subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
-          copyText={query.errorMessage || undefined}
-          link={query.link}
-          source="sqllab"
-        />
-        {trackingUrl}
+        {errors.map((error, index) => (
+          <ErrorMessageWithStackTrace
+            key={index}
+            title={t('Database error')}
+            error={error}
+            subtitle={<MonospaceDiv>{error.message}</MonospaceDiv>}
+            copyText={error.message || undefined}
+            link={query.link}
+            source="sqllab"
+          />
+        ))}
+        {errors.some(
+          error => error?.error_type === ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
+        ) ? (
+          <Button
+            className="sql-result-track-job"
+            buttonSize="small"
+            onClick={() => fetchResults(query, 0)}
+          >
+            {t('Retry fetching results')}
+          </Button>
+        ) : (
+          trackingUrl
+        )}
       </ResultlessStyles>
     );
   }
@@ -582,7 +673,7 @@ const ResultSet = ({
         : [];
       const allowHTML = getItem(
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
-        false,
+        true,
       );
       return (
         <ResultContainer>
@@ -695,4 +786,4 @@ const ResultSet = ({
   );
 };
 
-export default React.memo(ResultSet);
+export default memo(ResultSet);

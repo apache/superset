@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { Filter } from '@superset-ui/core';
 import { ScopeRow } from './ScopeRow';
 import { DependenciesRow } from './DependenciesRow';

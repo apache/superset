@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import 'src/public-path';
 
 // Menu App. Used in views that do not already include the Menu component in the layout.
 // eg, backend rendered views
-import React from 'react';
 import { Provider } from 'react-redux';
 import ReactDOM from 'react-dom';
 import { Route, BrowserRouter } from 'react-router-dom';
@@ -29,6 +29,7 @@ import createCache from '@emotion/cache';
 import { ThemeProvider } from '@superset-ui/core';
 import Menu from 'src/features/home/Menu';
 import { theme } from 'src/preamble';
+import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { setupStore } from './store';
 
@@ -46,16 +47,18 @@ const app = (
   // @ts-ignore: emotion types defs are incompatible between core and cache
   <CacheProvider value={emotionCache}>
     <ThemeProvider theme={theme}>
-      <Provider store={store}>
-        <BrowserRouter>
-          <QueryParamProvider
-            ReactRouterRoute={Route}
-            stringifyOptions={{ encode: false }}
-          >
-            <Menu data={menu} />
-          </QueryParamProvider>
-        </BrowserRouter>
-      </Provider>
+      <AntdThemeProvider>
+        <Provider store={store}>
+          <BrowserRouter>
+            <QueryParamProvider
+              ReactRouterRoute={Route}
+              stringifyOptions={{ encode: false }}
+            >
+              <Menu data={menu} />
+            </QueryParamProvider>
+          </BrowserRouter>
+        </Provider>
+      </AntdThemeProvider>
     </ThemeProvider>
   </CacheProvider>
 );

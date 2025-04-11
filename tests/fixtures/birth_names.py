@@ -18,9 +18,9 @@ from __future__ import annotations
 
 from typing import Callable, TYPE_CHECKING
 
-from pytest import fixture
+from pytest import fixture  # noqa: PT013
 
-from tests.example_data.data_generator.birth_names.birth_names_generator_factory import (
+from tests.example_data.data_generator.birth_names.birth_names_generator_factory import (  # noqa: E501
     BirthNamesGeneratorFactory,
 )
 from tests.example_data.data_loading.data_definitions.birth_names import (

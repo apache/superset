@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, ChangeEvent } from 'react';
+
 import type { DatabaseObject } from 'src/features/databases/types';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
@@ -33,6 +34,11 @@ import {
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { QueryEditor } from 'src/SqlLab/types';
+import useLogAction from 'src/logger/useLogAction';
+import {
+  LOG_ACTIONS_SQLLAB_CREATE_CHART,
+  LOG_ACTIONS_SQLLAB_SAVE_QUERY,
+} from 'src/logger/LogUtils';
 
 interface SaveQueryProps {
   queryEditorId: string;
@@ -51,7 +57,7 @@ export type QueryPayload = {
 } & Pick<QueryEditor, 'dbId' | 'catalog' | 'schema' | 'sql'>;
 
 const Styles = styled.span`
-  span[role='img'] {
+  span[role='img']:not([aria-label='down']) {
     display: flex;
     margin: 0;
     color: ${({ theme }) => theme.colors.grayscale.base};
@@ -91,6 +97,7 @@ const SaveQuery = ({
     }),
     [queryEditor, columns],
   );
+  const logAction = useLogAction({ queryEditorId });
   const defaultLabel = query.name || query.description || t('Undefined');
   const [description, setDescription] = useState<string>(
     query.description || '',
@@ -105,7 +112,12 @@ const SaveQuery = ({
 
   const overlayMenu = (
     <Menu>
-      <Menu.Item onClick={() => setShowSaveDatasetModal(true)}>
+      <Menu.Item
+        onClick={() => {
+          logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
+          setShowSaveDatasetModal(true);
+        }}
+      >
         {t('Save dataset')}
       </Menu.Item>
     </Menu>
@@ -129,6 +141,7 @@ const SaveQuery = ({
   const close = () => setShowSave(false);
 
   const onSaveWrapper = () => {
+    logAction(LOG_ACTIONS_SQLLAB_SAVE_QUERY, {});
     onSave(queryPayload(), query.id);
     close();
   };
@@ -138,11 +151,11 @@ const SaveQuery = ({
     close();
   };
 
-  const onLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onLabelChange = (e: ChangeEvent<HTMLInputElement>) => {
     setLabel(e.target.value);
   };
 
-  const onDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const onDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setDescription(e.target.value);
   };
 

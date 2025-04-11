@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import React from 'react';
+import { forwardRef } from 'react';
 import { css } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { getFilterValueForDisplay } from 'src/dashboard/components/nativeFilters/utils';
 import {
   FilterValue,
@@ -33,7 +33,7 @@ export interface IndicatorProps {
   onClick?: (path: string[]) => void;
 }
 
-const FilterIndicator = React.forwardRef<HTMLButtonElement, IndicatorProps>(
+const FilterIndicator = forwardRef<HTMLButtonElement, IndicatorProps>(
   ({ indicator: { column, name, value, path = [] }, onClick }, ref) => {
     const resultValue = getFilterValueForDisplay(value);
     return (

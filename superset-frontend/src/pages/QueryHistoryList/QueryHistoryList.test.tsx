@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { MouseEvent } from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
@@ -104,11 +104,11 @@ describe('QueryList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(QueryList)).toExist();
+    expect(wrapper.find(QueryList)).toBeTruthy();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   it('fetches data', () => {
@@ -121,7 +121,7 @@ describe('QueryList', () => {
   });
 
   it('renders a SyntaxHighlight', () => {
-    expect(wrapper.find(SyntaxHighlighter)).toExist();
+    expect(wrapper.find(SyntaxHighlighter)).toBeTruthy();
   });
 
   it('opens a query preview', () => {
@@ -130,11 +130,11 @@ describe('QueryList', () => {
         .find('[data-test="open-sql-preview-0"]')
         .first()
         .props();
-      if (props.onClick) props.onClick({} as React.MouseEvent);
+      if (props.onClick) props.onClick({} as MouseEvent);
     });
     wrapper.update();
 
-    expect(wrapper.find(QueryPreviewModal)).toExist();
+    expect(wrapper.find(QueryPreviewModal)).toBeTruthy();
   });
 
   it('searches', async () => {
@@ -151,7 +151,7 @@ describe('QueryList', () => {
   });
 
   it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find(SubMenu)).toBeTruthy();
   });
 
   it('renders a SubMenu with Saved queries and Query History links', () => {

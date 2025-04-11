@@ -39,5 +39,5 @@ def downgrade():
     try:
         op.drop_column("dbs", "allow_run_sync")
         op.drop_column("dbs", "allow_run_async")
-    except Exception:
+    except Exception:  # noqa: S110
         pass

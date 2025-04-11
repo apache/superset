@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import {
   css,
@@ -37,7 +37,7 @@ import {
 } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { SelectOptionsType } from 'src/components/Select/types';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import Alert from 'src/components/Alert';
 import { NEW_CHART_SCOPING_ID } from './constants';
@@ -118,7 +118,6 @@ const ChartSelect = ({
         <Tooltip title={t('Tooltip')} placement="top">
           <Icons.InfoCircleOutlined
             iconSize="xs"
-            iconColor={theme.colors.grayscale.base}
             css={css`
               & > span {
                 line-height: 0;

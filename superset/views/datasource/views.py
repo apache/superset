@@ -44,7 +44,6 @@ from superset.views.base import (
     api,
     BaseSupersetView,
     deprecated,
-    handle_api_exception,
     json_error_response,
 )
 from superset.views.datasource.schemas import (
@@ -55,6 +54,7 @@ from superset.views.datasource.schemas import (
     SamplesRequestSchema,
 )
 from superset.views.datasource.utils import get_samples
+from superset.views.error_handling import handle_api_exception
 from superset.views.utils import sanitize_datasource_data
 
 
@@ -116,7 +116,7 @@ class Datasource(BaseSupersetView):
             )
         orm_datasource.update_from_object(datasource_dict)
         data = orm_datasource.data
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         return self.json_response(sanitize_datasource_data(data))
 

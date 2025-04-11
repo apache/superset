@@ -17,7 +17,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { QueryColumn, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ExtraControlProps,
@@ -189,11 +188,12 @@ export const dndSortByControl: SharedControlConfig<
   'DndMetricSelect' | 'MetricsControl'
 > = {
   type: 'DndMetricSelect',
-  label: t('Sort by'),
+  label: t('Sort query by'),
   default: null,
   description: t(
-    'This metric is used to define row selection criteria (how the rows are sorted) if a series or row limit is present. ' +
-      'If not defined, it reverts to the first metric (where appropriate).',
+    'Orders the query result that generates the source data for this chart. ' +
+      'If a series or row limit is reached, this determines what data are truncated. ' +
+      'If undefined, defaults to the first metric (where appropriate).',
   ),
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],

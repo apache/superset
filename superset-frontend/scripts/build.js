@@ -25,7 +25,7 @@
  */
 process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
-const rimraf = require('rimraf');
+const { sync } = require('rimraf');
 const { spawnSync } = require('child_process');
 const fastGlob = require('fast-glob');
 const { argv } = require('yargs')
@@ -114,7 +114,7 @@ if (shouldCleanup) {
   const dirtyModules = 'node_modules/@types/react,node_modules/@superset-ui';
   const cachePath = `./node_modules/${scope}/{lib,esm,tsconfig.tsbuildinfo,${dirtyModules}}`;
   console.log(`\n>> Cleaning up ${cachePath}`);
-  rimraf.sync(cachePath);
+  sync(cachePath);
 }
 
 if (shouldRunBabel) {
@@ -126,7 +126,7 @@ if (shouldRunBabel) {
   console.log('--- Run babel esm ---');
   // run again with
   run(`${babelCommand} --out-dir esm`, {
-    env: { ...process.env, BABEL_OUTPUT: 'esm' },
+    env: { ...process.env, NODE_ENV: 'production', BABEL_OUTPUT: 'esm' },
   });
 }
 

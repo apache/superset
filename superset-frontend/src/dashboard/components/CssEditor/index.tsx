@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { AntdDropdown } from 'src/components';
+import { Key, ReactNode, PureComponent } from 'react';
+import { Dropdown } from 'src/components/Dropdown';
+import rison from 'rison';
 import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
 import { t, styled, SupersetClient } from '@superset-ui/core';
@@ -26,7 +27,7 @@ import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
 
 export interface CssEditorProps {
   initialCss: string;
-  triggerNode: React.ReactNode;
+  triggerNode: ReactNode;
   onChange: (css: string) => void;
   addDangerToast: (msg: string) => void;
 }
@@ -56,7 +57,7 @@ const StyledWrapper = styled.div`
   `}
 `;
 
-class CssEditor extends React.PureComponent<CssEditorProps, CssEditorState> {
+class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
   static defaultProps: Partial<CssEditorProps> = {
     initialCss: '',
     onChange: () => {},
@@ -73,8 +74,8 @@ class CssEditor extends React.PureComponent<CssEditorProps, CssEditorState> {
 
   componentDidMount() {
     AceCssEditor.preload();
-
-    SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
+    const query = rison.encode({ columns: ['template_name', 'css'] });
+    SupersetClient.get({ endpoint: `/api/v1/css_template/?q=${query}` })
       .then(({ json }) => {
         const templates = json.result.map(
           (row: { template_name: string; css: string }) => ({
@@ -99,7 +100,7 @@ class CssEditor extends React.PureComponent<CssEditorProps, CssEditorState> {
     });
   }
 
-  changeCssTemplate(info: { key: React.Key }) {
+  changeCssTemplate(info: { key: Key }) {
     const keyAsString = String(info.key);
     this.changeCss(keyAsString);
   }
@@ -114,9 +115,9 @@ class CssEditor extends React.PureComponent<CssEditorProps, CssEditorState> {
         </Menu>
       );
       return (
-        <AntdDropdown overlay={menu} placement="bottomRight">
+        <Dropdown dropdownRender={() => menu} placement="bottomRight">
           <Button>{t('Load a CSS template')}</Button>
-        </AntdDropdown>
+        </Dropdown>
       );
     }
     return null;

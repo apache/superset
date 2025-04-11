@@ -16,11 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { RefObject } from 'react';
-import { AntdDropdown } from 'src/components';
-import { DropDownProps } from 'antd/lib/dropdown';
+import {
+  ReactElement,
+  ReactNode,
+  FocusEvent,
+  KeyboardEvent,
+  cloneElement,
+} from 'react';
+
+import {
+  Dropdown as AntdDropdown,
+  DropdownProps as AntdDropdownProps,
+} from 'antd-v5';
 import { styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 const MenuDots = styled.div`
   width: ${({ theme }) => theme.gridUnit * 0.75}px;
@@ -71,8 +80,9 @@ export enum IconOrientation {
   Vertical = 'vertical',
   Horizontal = 'horizontal',
 }
-export interface DropdownProps extends DropDownProps {
-  overlay: React.ReactElement;
+
+export interface MenuDotsDropdownProps extends AntdDropdownProps {
+  overlay: ReactElement;
   iconOrientation?: IconOrientation;
 }
 
@@ -81,45 +91,46 @@ const RenderIcon = (
 ) => {
   const component =
     iconOrientation === IconOrientation.Horizontal ? (
-      <Icons.MoreHoriz iconSize="xl" />
+      <Icons.EllipsisOutlined iconSize="xl" />
     ) : (
       <MenuDots />
     );
   return component;
 };
 
-export const Dropdown = ({
+export const MenuDotsDropdown = ({
   overlay,
   iconOrientation = IconOrientation.Vertical,
   ...rest
-}: DropdownProps) => (
-  <AntdDropdown overlay={overlay} {...rest}>
+}: MenuDotsDropdownProps) => (
+  <AntdDropdown dropdownRender={() => overlay} {...rest}>
     <MenuDotsWrapper data-test="dropdown-trigger">
       {RenderIcon(iconOrientation)}
     </MenuDotsWrapper>
   </AntdDropdown>
 );
 
-interface ExtendedDropDownProps extends DropDownProps {
-  ref?: RefObject<HTMLDivElement>;
-}
-
-export interface NoAnimationDropdownProps extends ExtendedDropDownProps {
-  children: React.ReactNode;
-  onBlur?: (e: React.FocusEvent<HTMLDivElement>) => void;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+export interface NoAnimationDropdownProps extends AntdDropdownProps {
+  children: ReactNode;
+  onBlur?: (e: FocusEvent<HTMLDivElement>) => void;
+  onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
 }
 
 export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   const { children, onBlur, onKeyDown, ...rest } = props;
-  const childrenWithProps = React.cloneElement(children as React.ReactElement, {
+  const childrenWithProps = cloneElement(children as ReactElement, {
     onBlur,
     onKeyDown,
   });
 
   return (
-    <AntdDropdown overlayStyle={props.overlayStyle} {...rest}>
+    <AntdDropdown autoFocus overlayStyle={props.overlayStyle} {...rest}>
       {childrenWithProps}
     </AntdDropdown>
   );
 };
+
+export type DropdownProps = AntdDropdownProps;
+export const Dropdown = (props: DropdownProps) => (
+  <AntdDropdown autoFocus {...props} />
+);

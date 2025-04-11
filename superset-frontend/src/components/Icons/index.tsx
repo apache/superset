@@ -17,166 +17,63 @@
  * under the License.
  */
 
-import React from 'react';
-import { startCase } from 'lodash';
-import AntdEnhancedIcons from './AntdEnhanced';
-import Icon from './Icon';
-import IconType from './IconType';
+import { FC } from 'react';
+import { antdEnhancedIcons } from './AntdEnhanced';
+import AsyncIcon from './AsyncIcon';
+import IconType from './types';
 
-const IconFileNames = [
-  'alert',
-  'alert_solid',
-  'alert_solid_small',
-  'area-chart-tile',
-  'bar-chart-tile',
-  'big-number-chart-tile',
-  'binoculars',
-  'bolt',
-  'bolt_small',
-  'bolt_small_run',
-  'calendar',
-  'cancel',
-  'cancel_solid',
-  'cancel-x',
-  'card_view',
-  'cards',
-  'cards_locked',
-  'caret_down',
-  'caret_left',
-  'caret_right',
-  'caret_up',
-  'certified',
-  'check',
-  'checkbox-half',
-  'checkbox-off',
-  'checkbox-on',
-  'circle_check',
-  'circle_check_solid',
-  'circle',
-  'clock',
-  'close',
-  'code',
-  'cog',
-  'collapse',
-  'color_palette',
-  'current-rendered-tile',
-  'components',
-  'copy',
-  'cursor_target',
-  'database',
-  'dataset_physical',
-  'dataset_virtual_greyscale',
-  'dataset_virtual',
-  'download',
-  'drag',
-  'edit_alt',
-  'edit',
-  'email',
-  'error',
-  'error_solid',
-  'error_solid_small',
-  'exclamation',
-  'expand',
-  'eye',
-  'eye_slash',
-  'favorite-selected',
-  'favorite_small_selected',
-  'favorite-unselected',
-  'field_abc',
-  'field_boolean',
-  'field_date',
-  'field_derived',
-  'field_num',
-  'field_struct',
-  'file',
-  'filter',
-  'filter_small',
-  'folder',
-  'full',
-  'function_x',
-  'gear',
-  'grid',
-  'image',
-  'import',
-  'info',
-  'info-solid',
-  'info_solid_small',
-  'join',
-  'keyboard',
-  'layers',
-  'lightbulb',
-  'line-chart-tile',
-  'link',
-  'list',
-  'list_view',
-  'location',
-  'lock_locked',
-  'lock_unlocked',
-  'map',
-  'message',
-  'minus',
-  'minus_solid',
-  'more_horiz',
-  'more_vert',
-  'move',
-  'nav_charts',
-  'nav_dashboard',
-  'nav_data',
-  'nav_explore',
-  'nav_home',
-  'nav_lab',
-  'note',
-  'offline',
-  'paperclip',
-  'pie-chart-tile',
-  'placeholder',
-  'plus',
-  'plus_large',
-  'plus_small',
-  'plus_solid',
-  'queued',
-  'refresh',
-  'running',
-  'save',
-  'sql',
-  'search',
-  'server',
-  'share',
-  'slack',
-  'sort_asc',
-  'sort_desc',
-  'sort',
-  'table',
-  'table-chart-tile',
-  'tag',
-  'trash',
-  'triangle_change',
-  'triangle_down',
-  'triangle_up',
-  'up-level',
-  'user',
-  'warning',
-  'warning_solid',
-  'x-large',
-  'x-small',
-  'tags',
-  'ballot',
-  'category',
-  'undo',
-  'redo',
-];
+export type { IconType };
+/**
+ * Filename is going to be inferred from the icon name.
+ * i.e. BigNumberChartTile => assets/images/icons/big_number_chart_tile
+ */
+const customIcons = [
+  'Ballot',
+  'BigNumberChartTile',
+  'Binoculars',
+  'Category',
+  'Certified',
+  'CheckboxHalf',
+  'CheckboxOff',
+  'CheckboxOn',
+  'CircleSolid',
+  'Drag',
+  'ErrorSolidSmallRed',
+  'Error',
+  'Full',
+  'Layers',
+  'Queued',
+  'Redo',
+  'Running',
+  'Slack',
+  'Square',
+  'SortAsc',
+  'SortDesc',
+  'Sort',
+  'Transparent',
+  'TriangleDown',
+  'Undo',
+] as const;
 
-const iconOverrides: Record<string, React.FC<IconType>> = {};
-IconFileNames.forEach(fileName => {
-  const keyName = startCase(fileName).replace(/ /g, '');
-  iconOverrides[keyName] = (props: IconType) => (
-    <Icon fileName={fileName} {...props} />
+type CustomIconType = Record<(typeof customIcons)[number], FC<IconType>>;
+
+const iconOverrides: CustomIconType = {} as CustomIconType;
+customIcons.forEach(customIcon => {
+  const fileName = customIcon
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toLowerCase();
+  iconOverrides[customIcon] = (props: IconType) => (
+    <AsyncIcon customIcons fileName={fileName} {...props} />
   );
 });
 
-export type { IconType };
+export type IconNameType =
+  | keyof typeof antdEnhancedIcons
+  | keyof typeof iconOverrides;
 
-export default {
-  ...AntdEnhancedIcons,
+type IconComponentType = Record<IconNameType, FC<IconType>>;
+
+export const Icons: IconComponentType = {
+  ...antdEnhancedIcons,
   ...iconOverrides,
 };

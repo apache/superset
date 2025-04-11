@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, FC } from 'react';
+
 import { isEqual, isEmpty } from 'lodash';
-import { QueryFormData, styled, t } from '@superset-ui/core';
+import { QueryFormData, t } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
+import Label from 'src/components/Label';
+import { Icons } from 'src/components/Icons';
 import { safeStringify } from 'src/utils/safeStringify';
 import { Tooltip } from 'src/components/Tooltip';
 import ModalTrigger from '../ModalTrigger';
@@ -67,18 +70,6 @@ export type RowType = {
   control: string;
 };
 
-const StyledLabel = styled.span`
-  ${({ theme }) => `
-    font-size: ${theme.typography.sizes.s}px;
-    color: ${theme.colors.grayscale.dark1};
-    background-color: ${theme.colors.alert.base};
-
-    &:hover {
-      background-color: ${theme.colors.alert.dark1};
-    }
-  `}
-`;
-
 export const alterForComparison = (
   value?: string | null | [],
 ): string | null => {
@@ -124,7 +115,7 @@ export const formatValueHandler = (
       })
       .join(', ');
   }
-  if (controlsMap[key]?.type === 'BoundsControl') {
+  if (controlsMap[key]?.type === 'BoundsControl' && Array.isArray(value)) {
     return `Min: ${value[0]}, Max: ${value[1]}`;
   }
   if (controlsMap[key]?.type === 'CollectionControl' && Array.isArray(value)) {
@@ -160,7 +151,7 @@ export const getRowsFromDiffs = (
 export const isEqualish = (val1: string, val2: string): boolean =>
   isEqual(alterForComparison(val1), alterForComparison(val2));
 
-const AlteredSliceTag: React.FC<AlteredSliceTagProps> = props => {
+const AlteredSliceTag: FC<AlteredSliceTagProps> = props => {
   const [rows, setRows] = useState<RowType[]>([]);
   const [hasDiffs, setHasDiffs] = useState<boolean>(false);
 
@@ -227,7 +218,14 @@ const AlteredSliceTag: React.FC<AlteredSliceTagProps> = props => {
   const triggerNode = useMemo(
     () => (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
-        <StyledLabel className="label">{t('Altered')}</StyledLabel>
+        <Label
+          icon={<Icons.ExclamationCircleOutlined iconSize="m" />}
+          className="label"
+          type="warning"
+          onClick={() => {}}
+        >
+          {t('Altered')}
+        </Label>
       </Tooltip>
     ),
     [],

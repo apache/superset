@@ -16,26 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen, cleanup } from 'spec/helpers/testing-library';
-import { FeatureFlag } from '@superset-ui/core';
-import userEvent from '@testing-library/user-event';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
+import { isFeatureEnabled } from '@superset-ui/core';
 import { QueryParamProvider } from 'use-query-params';
-import * as uiCore from '@superset-ui/core';
 
 import DatasetList from 'src/pages/DatasetList';
 import ListView from 'src/components/ListView';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'react-dom/test-utils';
 import SubMenu from 'src/features/home/SubMenu';
 import * as reactRedux from 'react-redux';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 // store needed for withToasts(DatasetList)
 const mockStore = configureStore([thunk]);
@@ -107,11 +116,11 @@ describe('DatasetList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(DatasetList)).toExist();
+    expect(wrapper.find(DatasetList)).toBeTruthy();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   it('fetches info', () => {
@@ -197,7 +206,7 @@ describe('DatasetList', () => {
     ).toBeFalsy();
     act(() => {
       wrapper
-        .find('#duplicate-action-tooltop')
+        .find('#duplicate-action-tooltip')
         .at(0)
         .find('.action-button')
         .props()
@@ -213,7 +222,7 @@ describe('DatasetList', () => {
     await waitForComponentToPaint(wrapper);
     await act(async () => {
       wrapper
-        .find('#duplicate-action-tooltop')
+        .find('#duplicate-action-tooltip')
         .at(0)
         .find('.action-button')
         .props()
@@ -229,7 +238,7 @@ describe('DatasetList', () => {
   });
 
   it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find(SubMenu)).toBeTruthy();
   });
 
   it('renders a SubMenu with no tabs', () => {
@@ -258,17 +267,14 @@ describe('RTL', () => {
     return mounted;
   }
 
-  let isFeatureEnabledMock: jest.SpyInstance<boolean, [feature: FeatureFlag]>;
   beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(() => true);
+    mockedIsFeatureEnabled.mockReturnValue(true);
     await renderAndWait();
   });
 
   afterEach(() => {
     cleanup();
-    isFeatureEnabledMock.mockRestore();
+    mockedIsFeatureEnabled.mockRestore();
   });
 
   it('renders an "Import Dataset" tooltip under import button', async () => {

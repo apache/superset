@@ -19,7 +19,7 @@ from unittest.mock import MagicMock
 import pytest
 from flask_appbuilder import Model
 from jinja2.exceptions import TemplateError
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -49,7 +49,7 @@ from superset.models.sql_lab import Query, SavedQuery
 def test_sql_tables_mixin_sql_tables_exception(
     klass: type[Model],
     exception: Exception,
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     mocker.patch(
         "superset.models.sql_lab.extract_tables_from_jinja_sql",

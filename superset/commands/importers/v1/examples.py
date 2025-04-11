@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from typing import Any, Optional
 
 from marshmallow import Schema
 from sqlalchemy.exc import MultipleResultsFound
@@ -43,6 +43,7 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
+from superset.utils.decorators import transaction
 
 
 class ImportExamplesCommand(ImportModelsCommand):
@@ -62,19 +63,17 @@ class ImportExamplesCommand(ImportModelsCommand):
         super().__init__(contents, *args, **kwargs)
         self.force_data = kwargs.get("force_data", False)
 
+    @transaction()
     def run(self) -> None:
         self.validate()
 
-        # rollback to prevent partial imports
         try:
             self._import(
                 self._configs,
                 self.overwrite,
                 self.force_data,
             )
-            db.session.commit()
         except Exception as ex:
-            db.session.rollback()
             raise self.import_error() from ex
 
     @classmethod
@@ -88,9 +87,10 @@ class ImportExamplesCommand(ImportModelsCommand):
         )
 
     @staticmethod
-    def _import(  # pylint: disable=too-many-locals, too-many-branches
+    def _import(  # pylint: disable=too-many-locals, too-many-branches  # noqa: C901
         configs: dict[str, Any],
         overwrite: bool = False,
+        contents: Optional[dict[str, Any]] = None,
         force_data: bool = False,
     ) -> None:
         # import databases

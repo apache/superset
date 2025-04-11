@@ -21,13 +21,12 @@ import {
   QueryFormData,
   PostProcessingRule,
   ensureIsArray,
-  SimpleAdhocFilter,
-  getTimeOffset,
 } from '@superset-ui/core';
 import {
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
+import { isEmpty } from 'lodash';
 
 export default function buildQuery(formData: QueryFormData) {
   const { cols: groupby } = formData;
@@ -35,20 +34,30 @@ export default function buildQuery(formData: QueryFormData) {
   const queryContextA = buildQueryContext(formData, baseQueryObject => {
     const postProcessing: PostProcessingRule[] = [];
     postProcessing.push(timeCompareOperator(formData, baseQueryObject));
-    const TimeRangeFilters =
-      formData.adhoc_filters?.filter(
-        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-      ) || [];
 
-    const timeOffsets = ensureIsArray(
-      isTimeComparison(formData, baseQueryObject)
-        ? getTimeOffset(
-            TimeRangeFilters[0],
-            formData.time_compare,
-            formData.start_date_offset,
-          )
-        : [],
+    const nonCustomNorInheritShifts = ensureIsArray(
+      formData.time_compare,
+    ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
+    const customOrInheritShifts = ensureIsArray(formData.time_compare).filter(
+      (shift: string) => shift === 'custom' || shift === 'inherit',
     );
+
+    let timeOffsets: string[] = [];
+
+    // Shifts for non-custom or non inherit time comparison
+    if (!isEmpty(nonCustomNorInheritShifts)) {
+      timeOffsets = nonCustomNorInheritShifts;
+    }
+
+    // Shifts for custom or inherit time comparison
+    if (!isEmpty(customOrInheritShifts)) {
+      if (customOrInheritShifts.includes('custom')) {
+        timeOffsets = timeOffsets.concat([formData.start_date_offset]);
+      }
+      if (customOrInheritShifts.includes('inherit')) {
+        timeOffsets = timeOffsets.concat(['inherit']);
+      }
+    }
     return [
       {
         ...baseQueryObject,

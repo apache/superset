@@ -39,7 +39,7 @@ const metadata = {
     t('Advanced-Analytics'),
     t('Line'),
     t('Percentages'),
-    t('Popular'),
+    t('Featured'),
     t('Report'),
     t('Trend'),
   ],

@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent, Fragment } from 'react';
+import { withTheme } from '@emotion/react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { addAlpha, css, styled, t } from '@superset-ui/core';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
+import { Icons } from 'src/components/Icons';
+import { navigateTo } from 'src/utils/navigationUtils';
 import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
 import { Droppable } from './dnd/DragDroppable';
@@ -56,7 +59,6 @@ const GridContent = styled.div`
   ${({ theme, editMode }) => css`
     display: flex;
     flex-direction: column;
-
     /* gutters between rows */
     & > div:not(:last-child):not(.empty-droptarget) {
       ${!editMode && `margin-bottom: ${theme.gridUnit * 4}px`};
@@ -118,13 +120,13 @@ const GridColumnGuide = styled.div`
   `};
 `;
 
-class DashboardGrid extends React.PureComponent {
+class DashboardGrid extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       isResizing: false,
     };
-
+    this.theme = this;
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.handleResizeStop = this.handleResizeStop.bind(this);
     this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
@@ -154,8 +156,12 @@ class DashboardGrid extends React.PureComponent {
     }));
   }
 
-  handleResizeStop({ id, widthMultiple: width, heightMultiple: height }) {
-    this.props.resizeComponent({ id, width, height });
+  handleResizeStop(_event, _direction, _elementRef, delta, id) {
+    this.props.resizeComponent({
+      id,
+      width: delta.width,
+      height: delta.height,
+    });
 
     this.setState(() => ({
       isResizing: false,
@@ -190,6 +196,7 @@ class DashboardGrid extends React.PureComponent {
       canEdit,
       setEditMode,
       dashboardId,
+      theme,
     } = this.props;
     const columnPlusGutterWidth =
       (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
@@ -202,52 +209,57 @@ class DashboardGrid extends React.PureComponent {
       shouldDisplayEmptyState && gridComponent.type === TAB_TYPE;
 
     const dashboardEmptyState = editMode && (
-      <EmptyStateBig
+      <EmptyState
         title={t('Drag and drop components and charts to the dashboard')}
         description={t(
           'You can create a new chart or use existing ones from the panel on the right',
         )}
+        size="large"
         buttonText={
           <>
-            <i className="fa fa-plus" />
+            <Icons.PlusOutlined
+              iconSize="m"
+              iconColor={theme.colors.primary.light5}
+            />
             {t('Create a new chart')}
           </>
         }
         buttonAction={() => {
-          window.open(
-            `/chart/add?dashboard_id=${dashboardId}`,
-            '_blank',
-            'noopener noreferrer',
-          );
+          navigateTo(`/chart/add?dashboard_id=${dashboardId}`, {
+            newWindow: true,
+          });
         }}
         image="chart.svg"
       />
     );
 
     const topLevelTabEmptyState = editMode ? (
-      <EmptyStateBig
+      <EmptyState
         title={t('Drag and drop components to this tab')}
+        size="large"
         description={t(
           `You can create a new chart or use existing ones from the panel on the right`,
         )}
         buttonText={
           <>
-            <i className="fa fa-plus" />
+            <Icons.PlusOutlined
+              iconSize="m"
+              iconColor={theme.colors.primary.light5}
+            />
             {t('Create a new chart')}
           </>
         }
         buttonAction={() => {
-          window.open(
-            `/chart/add?dashboard_id=${dashboardId}`,
-            '_blank',
-            'noopener noreferrer',
-          );
+          navigateTo(`/chart/add?dashboard_id=${dashboardId}`, {
+            newWindow: true,
+          });
         }}
         image="chart.svg"
       />
     ) : (
-      <EmptyStateBig
+      <EmptyState
         title={t('There are no components added to this tab')}
+        size="large"
         description={
           canEdit && t('You can add the components in the edit mode.')
         }
@@ -298,7 +310,7 @@ class DashboardGrid extends React.PureComponent {
               </Droppable>
             )}
             {gridComponent?.children?.map((id, index) => (
-              <React.Fragment key={id}>
+              <Fragment key={id}>
                 <DashboardComponent
                   id={id}
                   parentId={gridComponent.id}
@@ -327,7 +339,7 @@ class DashboardGrid extends React.PureComponent {
                     {renderDraggableContent}
                   </Droppable>
                 )}
-              </React.Fragment>
+              </Fragment>
             ))}
             {isResizing &&
               Array(GRID_COLUMN_COUNT)
@@ -352,4 +364,4 @@ class DashboardGrid extends React.PureComponent {
 DashboardGrid.propTypes = propTypes;
 DashboardGrid.defaultProps = defaultProps;
 
-export default DashboardGrid;
+export default withTheme(DashboardGrid);

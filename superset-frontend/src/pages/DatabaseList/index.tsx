@@ -21,13 +21,14 @@ import {
   styled,
   SupersetClient,
   t,
+  useTheme,
+  css,
 } from '@superset-ui/core';
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
-
 import Loading from 'src/components/Loading';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
@@ -41,7 +42,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import handleResourceExport from 'src/utils/export';
@@ -65,27 +66,20 @@ const dbConfigExtraExtension = extensionsRegistry.get(
 const PAGE_SIZE = 25;
 
 interface DatabaseDeleteObject extends DatabaseObject {
-  chart_count: number;
-  dashboard_count: number;
+  charts: any;
+  dashboards: any;
   sqllab_tab_count: number;
 }
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  addInfoToast: (msg: string) => void;
   user: {
     userId: string | number;
     firstName: string;
     lastName: string;
   };
 }
-
-const IconCheck = styled(Icons.Check)`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-`;
-
-const IconCancelX = styled(Icons.CancelX)`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
-`;
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
@@ -97,14 +91,27 @@ const Actions = styled.div`
 `;
 
 function BooleanDisplay({ value }: { value: Boolean }) {
-  return value ? <IconCheck /> : <IconCancelX />;
+  const theme = useTheme();
+  return value ? (
+    <Icons.CheckOutlined
+      iconSize="s"
+      iconColor={theme.colors.grayscale.dark1}
+    />
+  ) : (
+    <Icons.CloseOutlined
+      iconSize="s"
+      iconColor={theme.colors.grayscale.light1}
+    />
+  );
 }
 
 function DatabaseList({
   addDangerToast,
+  addInfoToast,
   addSuccessToast,
   user,
 }: DatabaseListProps) {
+  const theme = useTheme();
   const {
     state: {
       loading,
@@ -121,6 +128,9 @@ function DatabaseList({
   );
   const fullUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
+  );
+  const shouldSyncPermsInAsyncMode = useSelector<any, boolean>(
+    state => state.common?.conf.SYNC_DB_PERMISSIONS_IN_ASYNC_MODE,
   );
   const showDatabaseModal = getUrlParam(URL_PARAMS.showDatabaseModal);
 
@@ -170,8 +180,8 @@ function DatabaseList({
       .then(({ json = {} }) => {
         setDatabaseCurrentlyDeleting({
           ...database,
-          chart_count: json.charts.count,
-          dashboard_count: json.dashboards.count,
+          charts: json.charts,
+          dashboards: json.dashboards,
           sqllab_tab_count: json.sqllab_tab_states.count,
         });
       })
@@ -281,7 +291,7 @@ function DatabaseList({
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
     }).then(({ json }: Record<string, any>) => {
-      // There might be some existings Gsheets and Clickhouse DBs
+      // There might be some existing Gsheets and Clickhouse DBs
       // with allow_file_upload set as True which is not possible from now on
       const allowedDatabasesWithFileUpload =
         json?.result?.filter(
@@ -313,7 +323,14 @@ function DatabaseList({
         'data-test': 'btn-create-database',
         name: (
           <>
-            <i className="fa fa-plus" /> {t('Database')}{' '}
+            <Icons.PlusOutlined
+              css={css`
+                vertical-align: text-top;
+              `}
+              iconColor={theme.colors.primary.light5}
+              iconSize="m"
+            />
+            {t('Database')}
           </>
         ),
         buttonStyle: 'primary',
@@ -334,6 +351,44 @@ function DatabaseList({
       setPreparingExport(false);
     });
     setPreparingExport(true);
+  }
+
+  function handleDatabasePermSync(database: DatabaseObject) {
+    if (shouldSyncPermsInAsyncMode) {
+      addInfoToast(t('Validating connectivity for %s', database.database_name));
+    } else {
+      addInfoToast(t('Syncing permissions for %s', database.database_name));
+    }
+    SupersetClient.post({
+      endpoint: `/api/v1/database/${database.id}/sync_permissions/`,
+    }).then(
+      ({ response }) => {
+        // Sync request
+        if (response.status === 200) {
+          addSuccessToast(
+            t('Permissions successfully synced for %s', database.database_name),
+          );
+        }
+        // Async request
+        else {
+          addInfoToast(
+            t(
+              'Syncing permissions for %s in the background',
+              database.database_name,
+            ),
+          );
+        }
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t(
+            'An error occurred while syncing permissions for %s: %s',
+            database.database_name,
+            errMsg,
+          ),
+        ),
+      ),
+    );
   }
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -427,6 +482,7 @@ function DatabaseList({
             handleDatabaseEditModal({ database: original, modalOpen: true });
           const handleDelete = () => openDatabaseDeleteModal(original);
           const handleExport = () => handleDatabaseExport(original);
+          const handleSync = () => handleDatabasePermSync(original);
           if (!canEdit && !canDelete && !canExport) {
             return null;
           }
@@ -445,7 +501,7 @@ function DatabaseList({
                     title={t('Delete database')}
                     placement="bottom"
                   >
-                    <Icons.Trash />
+                    <Icons.DeleteOutlined iconSize="l" />
                   </Tooltip>
                 </span>
               )}
@@ -461,7 +517,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share />
+                    <Icons.UploadOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -478,7 +534,24 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                  </span>
+                </Tooltip>
+              )}
+              {canEdit && (
+                <Tooltip
+                  id="sync-action-tooltip"
+                  title={t('Sync Permissions')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    data-test="database-sync-perm"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleSync}
+                  >
+                    <Icons.SyncOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -609,14 +682,82 @@ function DatabaseList({
           description={
             <>
               <p>
+                {t('The database')}{' '}
+                <b>{databaseCurrentlyDeleting.database_name}</b>{' '}
                 {t(
-                  'The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
-                  databaseCurrentlyDeleting.database_name,
-                  databaseCurrentlyDeleting.chart_count,
-                  databaseCurrentlyDeleting.dashboard_count,
+                  'is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
+                  databaseCurrentlyDeleting.charts.count,
+                  databaseCurrentlyDeleting.dashboards.count,
                   databaseCurrentlyDeleting.sqllab_tab_count,
                 )}
               </p>
+              {databaseCurrentlyDeleting.dashboards.count >= 1 && (
+                <>
+                  <h4>{t('Affected Dashboards')}</h4>
+                  <ul>
+                    {databaseCurrentlyDeleting.dashboards.result
+                      .slice(0, 10)
+                      .map(
+                        (
+                          result: { id: number; title: string },
+                          index: number,
+                        ) => (
+                          <li key={result.id}>
+                            <a
+                              href={`/superset/dashboard/${result.id}`}
+                              target="_atRiskItem"
+                            >
+                              {result.title}
+                            </a>
+                          </li>
+                        ),
+                      )}
+                    {databaseCurrentlyDeleting.dashboards.result.length >
+                      10 && (
+                      <li>
+                        {t(
+                          '... and %s others',
+                          databaseCurrentlyDeleting.dashboards.result.length -
+                            10,
+                        )}
+                      </li>
+                    )}
+                  </ul>
+                </>
+              )}
+              {databaseCurrentlyDeleting.charts.count >= 1 && (
+                <>
+                  <h4>{t('Affected Charts')}</h4>
+                  <ul>
+                    {databaseCurrentlyDeleting.charts.result.slice(0, 10).map(
+                      (
+                        result: {
+                          id: number;
+                          slice_name: string;
+                        },
+                        index: number,
+                      ) => (
+                        <li key={result.id}>
+                          <a
+                            href={`/explore/?slice_id=${result.id}`}
+                            target="_atRiskItem"
+                          >
+                            {result.slice_name}
+                          </a>
+                        </li>
+                      ),
+                    )}
+                    {databaseCurrentlyDeleting.charts.result.length > 10 && (
+                      <li>
+                        {t(
+                          '... and %s others',
+                          databaseCurrentlyDeleting.charts.result.length - 10,
+                        )}
+                      </li>
+                    )}
+                  </ul>
+                </>
+              )}
               {DatabaseDeleteRelatedExtension && (
                 <DatabaseDeleteRelatedExtension
                   database={databaseCurrentlyDeleting}

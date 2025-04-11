@@ -56,5 +56,22 @@ class JSONLibraryImportChecker(BaseChecker):
                 self.add_message("disallowed-import", node=node)
 
 
+class TransactionChecker(BaseChecker):
+    name = "consider-using-transaction"
+    msgs = {
+        "W0001": (
+            'Consider using the @transaction decorator when defining a "unit of work"',
+            "consider-using-transaction",
+            "Used when an explicit commit or rollback call is detected",
+        ),
+    }
+
+    def visit_call(self, node: nodes.Call) -> None:
+        if isinstance(node.func, nodes.Attribute):
+            if node.func.attrname in ("commit", "rollback"):
+                self.add_message("consider-using-transaction", node=node)
+
+
 def register(linter: PyLinter) -> None:
     linter.register_checker(JSONLibraryImportChecker(linter))
+    linter.register_checker(TransactionChecker(linter))

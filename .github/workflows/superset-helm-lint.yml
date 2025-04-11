@@ -1,4 +1,4 @@
-name: Lint and Test Charts
+name: "Helm: lint and test charts"
 
 on:
   pull_request:
@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   lint-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@v4
         with:
-          version: v3.5.4
+          version: v3.16.4
 
       - name: Setup Python
         uses: ./.github/actions/setup-backend/

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { EChartsCoreOption } from 'echarts';
+import type { EChartsCoreOption } from 'echarts/core';
 import {
   ChartDataResponseResult,
   ContextMenuFilters,
@@ -78,7 +78,9 @@ export type BigNumberVizProps = {
   headerFontSize: number;
   kickerFontSize?: number;
   subheader: string;
+  subtitle: string;
   subheaderFontSize: number;
+  subtitleFontSize: number;
   showTimestamp?: boolean;
   showTrendLine?: boolean;
   startYAxisAtZero?: boolean;

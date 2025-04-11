@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GraphSeriesOption } from 'echarts';
+import type { GraphSeriesOption } from 'echarts/charts';
 
 export const DEFAULT_GRAPH_SERIES_OPTION: GraphSeriesOption = {
   zoom: 0.7,

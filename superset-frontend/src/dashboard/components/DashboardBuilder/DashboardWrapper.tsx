@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import { FC, useEffect, useState } from 'react';
+
 import { FAST_DEBOUNCE, css, styled } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
@@ -46,6 +47,12 @@ const StyledDiv = styled.div`
       }
       & .grid-row:after {
         border-style: hidden;
+      }
+      & .droptarget-side:last-child {
+        inset-inline-end: 0;
+      }
+      & .droptarget-edge:last-child {
+        inset-block-end: 0;
       }
     }
 
@@ -99,19 +106,19 @@ const StyledDiv = styled.div`
     }
 
     i.warning {
-      color: ${theme.colors.alert.base};
+      color: ${theme.colors.warning.base};
     }
   `}
 `;
 
 type Props = {};
 
-const DashboardWrapper: React.FC<Props> = ({ children }) => {
+const DashboardWrapper: FC<Props> = ({ children }) => {
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );
   const dragDropManager = useDragDropManager();
-  const [isDragged, setIsDragged] = React.useState(
+  const [isDragged, setIsDragged] = useState(
     dragDropManager.getMonitor().isDragging(),
   );
 

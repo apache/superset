@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { ErrorLevel, styled, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 const StyledContainer = styled.div<{ level: ErrorLevel }>`
   display: flex;
@@ -46,7 +45,7 @@ const StyledTitle = styled.span`
 interface BasicErrorAlertProps {
   title: string;
   body: string;
-  level: ErrorLevel;
+  level?: ErrorLevel;
 }
 
 export default function BasicErrorAlert({
@@ -59,11 +58,7 @@ export default function BasicErrorAlert({
 
   return (
     <StyledContainer level={level} role="alert">
-      {level === 'error' ? (
-        <Icons.ErrorSolid iconColor={iconColor} />
-      ) : (
-        <Icons.WarningSolid iconColor={iconColor} />
-      )}
+      <Icons.ExclamationCircleFilled iconColor={iconColor} />
       <StyledContent>
         <StyledTitle>{title}</StyledTitle>
         <p>{body}</p>

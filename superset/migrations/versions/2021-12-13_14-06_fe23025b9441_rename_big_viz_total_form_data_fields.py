@@ -63,12 +63,12 @@ def upgrade():
             if header_timestamp_format:
                 params["time_format"] = header_timestamp_format
             slc.params = json.dumps(params, sort_keys=True)
-        except Exception as e:
+        except Exception:
             logger.exception(
                 f"An error occurred: parsing params for slice {slc.id} failed."
                 f"You need to fix it before upgrading your DB."
             )
-            raise e
+            raise
 
     session.commit()
     session.close()
@@ -89,12 +89,12 @@ def downgrade():
             if force_timestamp_formatting:
                 params["header_format_selector"] = force_timestamp_formatting
             slc.params = json.dumps(params, sort_keys=True)
-        except Exception as e:
+        except Exception:
             logger.exception(
                 f"An error occurred: parsing params for slice {slc.id} failed. "
                 "You need to fix it before downgrading your DB."
             )
-            raise e
+            raise
 
     session.commit()
     session.close()

@@ -19,6 +19,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import os
+from textwrap import dedent
 from typing import Any, Callable, TYPE_CHECKING
 from unittest.mock import patch
 
@@ -58,27 +59,27 @@ def test_client(app_context: AppContext):
 def login_as(test_client: FlaskClient[Any]):
     """Fixture with app context and logged in admin user."""
 
-    def _login_as(username: str, password: str = "general"):
+    def _login_as(username: str, password: str = "general"):  # noqa: S107
         login(test_client, username=username, password=password)
 
-    yield _login_as
+    return _login_as
     # no need to log out as both app_context and test_client are
     # function level fixtures anyway
 
 
 @pytest.fixture
 def login_as_admin(login_as: Callable[..., None]):
-    yield login_as("admin")
+    return login_as("admin")
 
 
 @pytest.fixture
 def create_user(app_context: AppContext):
-    def _create_user(username: str, role: str = "Admin", password: str = "general"):
+    def _create_user(username: str, role: str = "Admin", password: str = "general"):  # noqa: S107
         security_manager.add_user(
             username,
             "firstname",
             "lastname",
-            "email@exaple.com",
+            "email@example.com",
             security_manager.find_role(role),
             password,
         )
@@ -121,11 +122,10 @@ def setup_sample_data() -> Any:
     # relying on `tests.integration_tests.test_app.app` leveraging an `app` fixture
     # which is purposely scoped to the function level to ensure tests remain idempotent.
     with app.app_context():
-        setup_presto_if_needed()
-
-        from superset.cli.test import load_test_users_run
-
-        load_test_users_run()
+        try:
+            setup_presto_if_needed()
+        except Exception:  # noqa: S110
+            pass
 
         from superset.examples.css_templates import load_css_templates
 
@@ -139,7 +139,7 @@ def setup_sample_data() -> Any:
         from sqlalchemy.ext import declarative
 
         sqla_base = declarative.declarative_base()
-        # uses sorted_tables to drop in proper order without violating foreign constrains
+        # uses sorted_tables to drop in proper order without violating foreign constrains  # noqa: E501
         for table in sqla_base.metadata.sorted_tables:
             table.__table__.drop()
         db.session.commit()
@@ -157,8 +157,8 @@ def drop_from_schema(engine: Engine, schema_name: str):
 
 
 @pytest.fixture(scope="session")
-def example_db_provider() -> Callable[[], Database]:  # type: ignore
-    class _example_db_provider:
+def example_db_provider() -> Callable[[], Database]:
+    class _example_db_provider:  # noqa: N801
         _db: Database | None = None
 
         def __call__(self) -> Database:
@@ -171,7 +171,7 @@ def example_db_provider() -> Callable[[], Database]:  # type: ignore
 
         def _load_lazy_data_to_decouple_from_session(self) -> None:
             self._db._get_sqla_engine()  # type: ignore
-            self._db.backend  # type: ignore
+            self._db.backend  # type: ignore  # noqa: B018
 
         def remove(self) -> None:
             if self._db:
@@ -180,7 +180,7 @@ def example_db_provider() -> Callable[[], Database]:  # type: ignore
 
     _instance = _example_db_provider()
 
-    yield _instance
+    return _instance
 
     # TODO - can not use it until referenced objects will be deleted.
     # _instance.remove()
@@ -256,38 +256,6 @@ def with_feature_flags(**mock_feature_flags):
     return decorate
 
 
-def with_config(override_config: dict[str, Any]):
-    """
-    Use this decorator to mock specific config keys.
-
-    Usage:
-
-        class TestYourFeature(SupersetTestCase):
-
-            @with_config({"SOME_CONFIG": True})
-            def test_your_config(self):
-                self.assertEqual(curren_app.config["SOME_CONFIG"), True)
-
-    """
-
-    def decorate(test_fn):
-        config_backup = {}
-
-        def wrapper(*args, **kwargs):
-            from flask import current_app
-
-            for key, value in override_config.items():
-                config_backup[key] = current_app.config[key]
-                current_app.config[key] = value
-            test_fn(*args, **kwargs)
-            for key, value in config_backup.items():
-                current_app.config[key] = value
-
-        return functools.update_wrapper(wrapper, test_fn)
-
-    return decorate
-
-
 @pytest.fixture
 def virtual_dataset():
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -295,25 +263,27 @@ def virtual_dataset():
     dataset = SqlaTable(
         table_name="virtual_dataset",
         sql=(
-            "SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5, 1 as col6 "
-            "UNION ALL "
-            "SELECT 1, 'b', 1.1, NULL, '2000-01-02 00:00:00', NULL "
-            "UNION ALL "
-            "SELECT 2 as col1, 'c' as col2, 1.2, NULL, '2000-01-03 00:00:00', 3 "
-            "UNION ALL "
-            "SELECT 3 as col1, 'd' as col2, 1.3, NULL, '2000-01-04 00:00:00', 4 "
-            "UNION ALL "
-            "SELECT 4 as col1, 'e' as col2, 1.4, NULL, '2000-01-05 00:00:00', 5 "
-            "UNION ALL "
-            "SELECT 5 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00', 6 "
-            "UNION ALL "
-            "SELECT 6 as col1, 'g' as col2, 1.6, NULL, '2000-01-07 00:00:00', 7 "
-            "UNION ALL "
-            "SELECT 7 as col1, 'h' as col2, 1.7, NULL, '2000-01-08 00:00:00', 8 "
-            "UNION ALL "
-            "SELECT 8 as col1, 'i' as col2, 1.8, NULL, '2000-01-09 00:00:00', 9 "
-            "UNION ALL "
-            "SELECT 9 as col1, 'j' as col2, 1.9, NULL, '2000-01-10 00:00:00', 10"
+            dedent("""\
+            SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5, 1 as col6
+            UNION ALL
+            SELECT 1, 'b', 1.1, NULL, '2000-01-02 00:00:00', NULL
+            UNION ALL
+            SELECT 2 as col1, 'c' as col2, 1.2, NULL, '2000-01-03 00:00:00', 3
+            UNION ALL
+            SELECT 3 as col1, 'd' as col2, 1.3, NULL, '2000-01-04 00:00:00', 4
+            UNION ALL
+            SELECT 4 as col1, 'e' as col2, 1.4, NULL, '2000-01-05 00:00:00', 5
+            UNION ALL
+            SELECT 5 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00', 6
+            UNION ALL
+            SELECT 6 as col1, 'g' as col2, 1.6, NULL, '2000-01-07 00:00:00', 7
+            UNION ALL
+            SELECT 7 as col1, 'h' as col2, 1.7, NULL, '2000-01-08 00:00:00', 8
+            UNION ALL
+            SELECT 8 as col1, 'i' as col2, 1.8, NULL, '2000-01-09 00:00:00', 9
+            UNION ALL
+            SELECT 9 as col1, 'j' as col2, 1.9, NULL, '2000-01-10 00:00:00', 10
+        """)  # noqa: E501
         ),
         database=get_example_database(),
     )
@@ -321,7 +291,47 @@ def virtual_dataset():
     TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
     TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
     TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
-    # Different database dialect datetime type is not consistent, so temporarily use varchar
+    # Different database dialect datetime type is not consistent, so temporarily use varchar  # noqa: E501
+    TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col6", type="INTEGER", table=dataset)
+
+    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.add(dataset)
+    db.session.commit()
+
+    yield dataset
+
+    db.session.delete(dataset)
+    db.session.commit()
+
+
+@pytest.fixture
+def virtual_dataset_with_comments():
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    dataset = SqlaTable(
+        table_name="virtual_dataset_with_comments",
+        sql=(
+            dedent("""\
+            --COMMENT
+            /*COMMENT*/
+            WITH cte as (--COMMENT
+                SELECT 2 as col1, /*COMMENT*/'j' as col2, 1.9, NULL, '2000-01-10 00:00:00', 10
+            )
+            SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5, 1 as col6
+            \n /*  COMMENT */ \n
+            UNION ALL/*COMMENT*/
+            SELECT 1 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00', 6 --COMMENT
+            UNION ALL--COMMENT
+            SELECT * FROM cte --COMMENT""")  # noqa: E501
+        ),
+        database=get_example_database(),
+    )
+    TableColumn(column_name="col1", type="INTEGER", table=dataset)
+    TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
+    TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
+    # Different database dialect datetime type is not consistent, so temporarily use varchar  # noqa: E501
     TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
     TableColumn(column_name="col6", type="INTEGER", table=dataset)
 
@@ -354,7 +364,7 @@ def physical_dataset():
             col4 VARCHAR(255),
             col5 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
             col6 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-            {quoter('time column with spaces')} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
+            {quoter("time column with spaces")} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
             );
             """
         )
@@ -371,7 +381,7 @@ def physical_dataset():
             (7, 'h', 1.7, NULL, '2000-01-08 00:00:00', '2002-08-18 00:00:00', '2002-08-18 00:00:00'),
             (8, 'i', 1.8, NULL, '2000-01-09 00:00:00', '2002-09-20 00:00:00', '2002-09-20 00:00:00'),
             (9, 'j', 1.9, NULL, '2000-01-10 00:00:00', '2002-10-22 00:00:00', '2002-10-22 00:00:00');
-        """
+        """  # noqa: E501
         )
 
     dataset = SqlaTable(

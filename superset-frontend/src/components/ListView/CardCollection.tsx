@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactNode, MouseEvent as ReactMouseEvent } from 'react';
 import { TableInstance, Row } from 'react-table';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
@@ -25,7 +25,7 @@ interface CardCollectionProps {
   bulkSelectEnabled?: boolean;
   loading: boolean;
   prepareRow: TableInstance['prepareRow'];
-  renderCard?: (row: any) => React.ReactNode;
+  renderCard?: (row: any) => ReactNode;
   rows: TableInstance['rows'];
   showThumbnails?: boolean;
 }
@@ -63,7 +63,7 @@ export default function CardCollection({
   showThumbnails,
 }: CardCollectionProps) {
   function handleClick(
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+    event: ReactMouseEvent<HTMLDivElement, MouseEvent>,
     toggleRowSelected: Row['toggleRowSelected'],
   ) {
     if (bulkSelectEnabled) {

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import { FC, ChangeEvent, useEffect, useState } from 'react';
+
 import FormItem from 'src/components/Form/FormItem';
 import { Select } from 'src/components';
 import {
@@ -165,7 +166,9 @@ export const useSimpleTabFilterProps = (props: Props) => {
     let { operator, operatorId, comparator } = props.adhocFilter;
     operator =
       operator && operatorId && isOperatorRelevant(operatorId, subject)
-        ? OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation
+        ? OPERATOR_ENUM_TO_OPERATOR_TYPE[
+            operatorId as keyof typeof OPERATOR_ENUM_TO_OPERATOR_TYPE
+          ].operation
         : null;
     if (!isDefined(operator)) {
       // if operator is `null`, use the `IN` and reset the comparator.
@@ -205,9 +208,6 @@ export const useSimpleTabFilterProps = (props: Props) => {
       newComparator = Array.isArray(currentComparator)
         ? currentComparator[0]
         : currentComparator;
-    }
-    if (operatorId === Operators.IsTrue || operatorId === Operators.IsFalse) {
-      newComparator = Operators.IsTrue === operatorId;
     }
     if (operatorId && CUSTOM_OPERATORS.has(operatorId)) {
       props.onChange(
@@ -267,7 +267,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
   };
 };
 
-const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
+const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   const {
     onSubjectChange,
     onOperatorChange,
@@ -294,9 +294,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       ? isOperatorRelevant(operator, subject) &&
         advancedDataTypesState.advancedDataTypeOperatorList.includes(operator)
       : isOperatorRelevant(operator, subject);
-  const onInputComparatorChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const onInputComparatorChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;
     setComparator(value);
     onComparatorChange(value);
@@ -311,7 +309,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     const valuesFromSuggestionsLength = Array.isArray(comparator)
       ? comparator.filter(v => suggestions.includes(v)).length
       : 0;
-    return suggestions?.length - valuesFromSuggestionsLength ?? 0;
+    return suggestions ? suggestions.length - valuesFromSuggestionsLength : 0;
   };
   const createSuggestionsPlaceholder = () => {
     const optionsRemaining = getOptionsRemaining();

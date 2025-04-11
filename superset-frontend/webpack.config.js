@@ -32,6 +32,7 @@ const {
 } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
+const Visualizer = require('webpack-visualizer-plugin2');
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package');
 
@@ -40,22 +41,24 @@ const APP_DIR = path.resolve(__dirname, './');
 // output dir
 const BUILD_DIR = path.resolve(__dirname, '../superset/static/assets');
 const ROOT_DIR = path.resolve(__dirname, '..');
+// Public path for extracted css src:urls. All assets are compiled into the same
+// folder. This forces the src:url in the extracted css to only contain the filename
+// and will therefore be relative to the .css file itself and not have to worry about
+// any url prefix.
+const MINI_CSS_EXTRACT_PUBLICPATH = './';
 
 const {
   mode = 'development',
   devserverPort = 9000,
   measure = false,
-  analyzeBundle = false,
-  analyzerPort = 8888,
   nameChunks = false,
 } = parsedArgs;
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
-const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
 
 const output = {
   path: BUILD_DIR,
-  publicPath: `${ASSET_BASE_URL}/static/assets/`,
+  publicPath: '/static/assets/',
 };
 if (isDevMode) {
   output.filename = '[name].[contenthash:8].entry.js';
@@ -75,6 +78,7 @@ if (!isDevMode) {
 const plugins = [
   new webpack.ProvidePlugin({
     process: 'process/browser.js',
+    ...(isDevMode ? { Buffer: ['buffer', 'Buffer'] } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
   }),
 
   // creates a manifest.json mapping of name to hashed output used in template files
@@ -155,18 +159,8 @@ if (!isDevMode) {
     }),
   );
 
-  plugins.push(
-    // runs type checking on a separate process to speed up the build
-    new ForkTsCheckerWebpackPlugin({
-      eslint: {
-        files: './{src,packages,plugins}/**/*.{ts,tsx,js,jsx}',
-        memoryLimit: 4096,
-        options: {
-          ignorePath: './.eslintignore',
-        },
-      },
-    }),
-  );
+  // Runs type checking on a separate process to speed up the build
+  plugins.push(new ForkTsCheckerWebpackPlugin());
 }
 
 const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
@@ -191,10 +185,18 @@ const babelLoader = {
     // disable gzip compression for cache files
     // faster when there are millions of small files
     cacheCompression: false,
-    plugins: ['emotion'],
     presets: [
       [
-        '@emotion/babel-preset-css-prop',
+        '@babel/preset-react',
+        {
+          runtime: 'automatic',
+          importSource: '@emotion/react',
+        },
+      ],
+    ],
+    plugins: [
+      [
+        '@emotion/babel-plugin',
         {
           autoLabel: 'dev-only',
           labelFormat: '[local]',
@@ -232,6 +234,9 @@ const config = {
     {
       message:
         /export 'withTooltipPropTypes' \(imported as 'vxTooltipPropTypes'\) was not found/,
+    },
+    {
+      message: /Can't resolve.*superset_text/,
     },
   ],
   performance: {
@@ -301,7 +306,7 @@ const config = {
     // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
     modules: ['node_modules', APP_DIR],
     alias: {
-      // TODO: remove aliases once React has been upgraded to v. 17 and
+      // TODO: remove aliases once React has been upgraded to v17 and
       //  AntD version conflict has been resolved
       antd: path.resolve(path.join(APP_DIR, './node_modules/antd')),
       react: path.resolve(path.join(APP_DIR, './node_modules/react')),
@@ -314,12 +319,21 @@ const config = {
       This prevents "Module not found" errors for moment locale files.
       */
       'moment/min/moment-with-locales': false,
+      // Temporary workaround to allow Storybook 8 to work with existing React v16-compatible stories.
+      // Remove below alias once React has been upgreade to v18.
+      '@storybook/react-dom-shim': path.resolve(
+        path.join(
+          APP_DIR,
+          './node_modules/@storybook/react-dom-shim/dist/react-16',
+        ),
+      ),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
       fs: false,
       vm: require.resolve('vm-browserify'),
       path: false,
+      ...(isDevMode ? { buffer: require.resolve('buffer/') } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
     },
   },
   context: APP_DIR, // to automatically find tsconfig.json
@@ -387,7 +401,14 @@ const config = {
         test: /\.css$/,
         include: [APP_DIR, /superset-ui.+\/src/],
         use: [
-          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+          isDevMode
+            ? 'style-loader'
+            : {
+                loader: MiniCssExtractPlugin.loader,
+                options: {
+                  publicPath: MINI_CSS_EXTRACT_PUBLICPATH,
+                },
+              },
           {
             loader: 'css-loader',
             options: {
@@ -400,7 +421,14 @@ const config = {
         test: /\.less$/,
         include: APP_DIR,
         use: [
-          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+          isDevMode
+            ? 'style-loader'
+            : {
+                loader: MiniCssExtractPlugin.loader,
+                options: {
+                  publicPath: MINI_CSS_EXTRACT_PUBLICPATH,
+                },
+              },
           {
             loader: 'css-loader',
             options: {
@@ -496,7 +524,7 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins,
-  devtool: 'source-map',
+  devtool: isDevMode ? 'eval-cheap-module-source-map' : false,
 };
 
 // find all the symlinked plugins and use their source code for imports
@@ -511,27 +539,27 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
 });
 console.log(''); // pure cosmetic new line
 
-let proxyConfig = getProxyConfig();
-
 if (isDevMode) {
-  config.devtool = 'eval-cheap-module-source-map';
-  config.devServer = {
-    onBeforeSetupMiddleware(devServer) {
-      // load proxy config when manifest updates
-      const { afterEmit } = getCompilerHooks(devServer.compiler);
+  let proxyConfig = getProxyConfig();
+  // Set up a plugin to handle manifest updates
+  config.plugins = config.plugins || [];
+  config.plugins.push({
+    apply: compiler => {
+      const { afterEmit } = getCompilerHooks(compiler);
       afterEmit.tap('ManifestPlugin', manifest => {
         proxyConfig = getProxyConfig(manifest);
       });
     },
+  });
+
+  config.devServer = {
+    devMiddleware: {
+      writeToDisk: true,
+    },
     historyApiFallback: true,
     hot: true,
     port: devserverPort,
-    // Only serves bundled files from webpack-dev-server
-    // and proxy everything else to Superset backend
-    proxy: [
-      // functions are called for every request
-      () => proxyConfig,
-    ],
+    proxy: [() => proxyConfig],
     client: {
       overlay: {
         errors: true,
@@ -540,15 +568,25 @@ if (isDevMode) {
       },
       logging: 'error',
     },
-    static: path.join(process.cwd(), '../static/assets'),
+    static: {
+      directory: path.join(process.cwd(), '../static/assets'),
+    },
   };
 }
 
-// Bundle analyzer is disabled by default
-// Pass flag --analyzeBundle=true to enable
-// e.g. npm run build -- --analyzeBundle=true
-if (analyzeBundle) {
-  config.plugins.push(new BundleAnalyzerPlugin({ analyzerPort }));
+// To
+// e.g. npm run package-stats
+if (process.env.BUNDLE_ANALYZER) {
+  config.plugins.push(new BundleAnalyzerPlugin({ analyzerMode: 'static' }));
+  config.plugins.push(
+    // this creates an HTML page with a sunburst diagram of dependencies.
+    // you'll find it at superset/static/stats/statistics.html
+    // note that the file is >100MB so it's in .gitignore
+    new Visualizer({
+      filename: path.join('..', 'stats', 'statistics.html'),
+      throwOnError: true,
+    }),
+  );
 }
 
 // Speed measurement is disabled by default

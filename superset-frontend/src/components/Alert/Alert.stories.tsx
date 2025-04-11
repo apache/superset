@@ -16,16 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import Alert, { AlertProps } from './index';
 
-type AlertType = Pick<AlertProps, 'type'>;
-type AlertTypeValue = AlertType[keyof AlertType];
+type AlertType = Required<Pick<AlertProps, 'type'>>;
+type AlertTypeValue = AlertType['type'];
 
 const types: AlertTypeValue[] = ['info', 'error', 'warning', 'success'];
 
 const smallText = 'Lorem ipsum dolor sit amet';
-
 const bigText =
   'Lorem ipsum dolor sit amet, consectetur adipiscing elit. ' +
   'Nam id porta neque, a vehicula orci. Maecenas rhoncus elit sit amet ' +
@@ -39,40 +37,35 @@ export default {
 export const AlertGallery = () => (
   <>
     {types.map(type => (
-      <div key={type} style={{ marginBottom: 40, width: 600 }}>
-        <h4>{type}</h4>
-        <Alert
-          type={type}
-          showIcon
-          closable
-          message={bigText}
-          style={{ marginBottom: 20 }}
-        />
-        <Alert
-          type={type}
-          showIcon
-          message={smallText}
-          description={bigText}
-          closable
-        />
+      <div key={type} style={{ marginBottom: '40px', width: '600px' }}>
+        <h4 style={{ textTransform: 'capitalize' }}>{type} Alerts</h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <Alert
+            type={type}
+            showIcon
+            message={smallText}
+            description={bigText}
+            closable
+          />
+        </div>
       </div>
     ))}
   </>
 );
 
-AlertGallery.parameters = {
-  actions: {
-    disable: true,
-  },
-  controls: {
-    disable: true,
-  },
-};
-
 export const InteractiveAlert = (args: AlertProps) => (
   <>
     <Alert {...args} />
-    Some content to test the `roomBelow` prop
+    <div
+      style={{
+        marginTop: args.roomBelow ? '40px' : '0px',
+        border: '1px dashed gray',
+        padding: '10px',
+        textAlign: 'center',
+      }}
+    >
+      Content below the Alert to test the `roomBelow` property
+    </div>
   </>
 );
 
@@ -80,14 +73,28 @@ InteractiveAlert.args = {
   closable: true,
   roomBelow: false,
   type: 'info',
-  message: smallText,
-  description: bigText,
+  message: 'This is a sample alert message.',
+  description: 'Sample description for additional context.',
   showIcon: true,
 };
 
 InteractiveAlert.argTypes = {
   onClose: { action: 'onClose' },
   type: {
-    control: { type: 'select', options: types },
+    control: { type: 'select' },
+    options: types,
+    description: 'Type of the alert (e.g., info, error, warning, success).',
+  },
+  closable: {
+    control: { type: 'boolean' },
+    description: 'Whether the Alert can be closed with a close button.',
+  },
+  showIcon: {
+    control: { type: 'boolean' },
+    description: 'Whether to display an icon in the Alert.',
+  },
+  roomBelow: {
+    control: { type: 'boolean' },
+    description: 'Adds margin below the Alert for layout spacing.',
   },
 };

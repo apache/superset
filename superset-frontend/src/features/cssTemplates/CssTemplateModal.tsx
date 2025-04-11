@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useEffect } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
+
+import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import Icons from 'src/components/Icons';
-import { StyledIcon } from 'src/views/CRUD/utils';
+import { Icons } from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { CssEditor } from 'src/components/AsyncAceEditor';
 
+import { OnlyKeyWithType } from 'src/utils/types';
 import { TemplateObject } from './types';
 
 interface CssTemplateModalProps {
@@ -36,36 +37,45 @@ interface CssTemplateModalProps {
   show: boolean;
 }
 
-const StyledCssTemplateTitle = styled.div`
-  margin: ${({ theme }) => theme.gridUnit * 2}px auto
-    ${({ theme }) => theme.gridUnit * 4}px auto;
-`;
+type CssTemplateStringKeys = keyof Pick<
+  TemplateObject,
+  OnlyKeyWithType<TemplateObject, String>
+>;
+
+const StyledCssTemplateTitle = styled.div(
+  ({ theme }) => css`
+    margin: ${theme.gridUnit * 2}px auto ${theme.gridUnit * 4}px auto;
+  `,
+);
 
 const StyledCssEditor = styled(CssEditor)`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
+  ${({ theme }) => css`
+    border-radius: ${theme.borderRadius}px;
+    border: 1px solid ${theme.colors.secondary.light2};
+  `}
 `;
 
-const TemplateContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 10}px;
+const TemplateContainer = styled.div(
+  ({ theme }) => css`
+    margin-bottom: ${theme.gridUnit * 10}px;
 
-  .control-label {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  }
+    .control-label {
+      margin-bottom: ${theme.gridUnit * 2}px;
+    }
 
-  .required {
-    margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-    color: ${({ theme }) => theme.colors.error.base};
-  }
+    .required {
+      margin-left: ${theme.gridUnit / 2}px;
+      color: ${theme.colors.error.base};
+    }
 
-  input[type='text'] {
-    padding: ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 2}px;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.gridUnit}px;
-    width: 50%;
-  }
-`;
+    input[type='text'] {
+      padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 2}px;
+      border: 1px solid ${theme.colors.grayscale.light2};
+      border-radius: ${theme.gridUnit}px;
+      width: 50%;
+    }
+  `,
+);
 
 const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   addDangerToast,
@@ -74,6 +84,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   show,
   cssTemplate = null,
 }) => {
+  const theme = useTheme();
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentCssTemplate, setCurrentCssTemplate] =
     useState<TemplateObject | null>(null);
@@ -136,7 +147,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
     }
   };
 
-  const onTemplateNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const onTemplateNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { target } = event;
 
     const data = {
@@ -145,7 +156,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       css: currentCssTemplate ? currentCssTemplate.css : '',
     };
 
-    data[target.name] = target.value;
+    data[target.name as CssTemplateStringKeys] = target.value;
     setCurrentCssTemplate(data);
   };
 
@@ -223,9 +234,19 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       title={
         <h4 data-test="css-template-modal-title">
           {isEditMode ? (
-            <Icons.EditAlt css={StyledIcon} />
+            <Icons.EditOutlined
+              iconSize="l"
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
+            />
           ) : (
-            <Icons.PlusLarge css={StyledIcon} />
+            <Icons.PlusOutlined
+              iconSize="l"
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
+            />
           )}
           {isEditMode
             ? t('Edit CSS template properties')

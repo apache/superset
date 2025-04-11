@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState } from 'react';
-import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
+import { useMemo, useState } from 'react';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  t,
+  useTheme,
+  css,
+} from '@superset-ui/core';
 import {
   Actions,
   createErrorHandler,
@@ -33,11 +39,12 @@ import ListView, {
 } from 'src/components/ListView';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
-import { Tag as AntdTag } from 'antd';
+// eslint-disable-next-line no-restricted-imports
+import { Tag as AntdTag } from 'antd'; // TODO: Remove antd
 import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import FaveStar from 'src/components/FaveStar';
@@ -58,6 +65,7 @@ interface TagListProps {
 function TagList(props: TagListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
   const { userId } = user;
+  const theme = useTheme();
 
   const initialFilters = useMemo(
     () => [
@@ -134,8 +142,16 @@ function TagList(props: TagListProps) {
     buttonAction: () => setShowTagModal(true),
     buttonText: (
       <>
-        <i className="fa fa-plus" data-test="add-rule-empty" />{' '}
-        {'Create a new Tag'}{' '}
+        <Icons.PlusOutlined
+          iconSize="m"
+          iconColor={theme.colors.primary.light5}
+          css={css`
+            margin: auto ${theme.gridUnit * 2}px auto 0;
+            vertical-align: text-top;
+          `}
+          data-test="add-rule-empty"
+        />
+        Create a new Tag
       </>
     ),
   };
@@ -215,7 +231,10 @@ function TagList(props: TagListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.Trash data-test="dashboard-list-trash-icon" />
+                        <Icons.DeleteOutlined
+                          data-test="dashboard-list-trash-icon"
+                          iconSize="l"
+                        />
                       </span>
                     </Tooltip>
                   )}
@@ -233,7 +252,7 @@ function TagList(props: TagListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -321,7 +340,14 @@ function TagList(props: TagListProps) {
   subMenuButtons.push({
     name: (
       <>
-        <i className="fa fa-plus" /> {t('Tag')}
+        <Icons.PlusOutlined
+          css={css`
+            vertical-align: text-top;
+          `}
+          iconSize="m"
+          iconColor={theme.colors.primary.light5}
+        />{' '}
+        {t('Tag')}
       </>
     ),
     buttonStyle: 'primary',

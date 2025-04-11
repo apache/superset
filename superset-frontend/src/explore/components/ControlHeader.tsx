@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, ReactNode, useMemo, useRef } from 'react';
+import { FC, ReactNode, useMemo, useRef } from 'react';
 import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormLabel } from 'src/components/Form';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 type ValidationError = string;
 
@@ -79,8 +79,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       return 'unset';
     }
 
-    return colors.alert.base;
-  }, [colors.error.base, colors.alert.base, validationErrors.length]);
+    return colors.warning.base;
+  }, [colors.error.base, colors.warning.base, validationErrors.length]);
 
   if (!label) {
     return null;
@@ -151,14 +151,23 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           {warning && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={warning}>
-                <Icons.AlertSolid iconColor={colors.alert.base} iconSize="s" />
+                <Icons.WarningOutlined
+                  iconColor={colors.warning.base}
+                  css={css`
+                    vertical-align: baseline;
+                  `}
+                  iconSize="s"
+                />
               </Tooltip>{' '}
             </span>
           )}
           {danger && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={danger}>
-                <Icons.ErrorSolid iconColor={colors.error.base} iconSize="s" />
+                <Icons.ExclamationCircleOutlined
+                  iconColor={colors.error.base}
+                  iconSize="s"
+                />
               </Tooltip>{' '}
             </span>
           )}

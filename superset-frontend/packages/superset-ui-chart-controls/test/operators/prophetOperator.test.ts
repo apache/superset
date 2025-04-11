@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DTTM_ALIAS, QueryObject, SqlaFormData } from '@superset-ui/core';
+import {
+  DTTM_ALIAS,
+  QueryObject,
+  SqlaFormData,
+  VizType,
+} from '@superset-ui/core';
 import { prophetOperator } from '@superset-ui/chart-controls';
 
 const formData: SqlaFormData = {
@@ -27,7 +32,7 @@ const formData: SqlaFormData = {
   time_range: '2015 : 2016',
   time_grain_sqla: 'P1Y',
   datasource: 'foo',
-  viz_type: 'table',
+  viz_type: VizType.Table,
 };
 const queryObject: QueryObject = {
   metrics: [
