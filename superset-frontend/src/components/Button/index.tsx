@@ -16,48 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  Children,
-  ReactElement,
-  ReactNode,
-  Fragment,
-  MouseEventHandler,
-} from 'react';
+import { Children, ReactElement, Fragment } from 'react';
 
 import cx from 'classnames';
 import { Button as AntdButton } from 'antd-v5';
 import { useTheme } from '@superset-ui/core';
-import { Tooltip, TooltipProps } from 'src/components/Tooltip';
-import {
-  ButtonProps as AntdButtonProps,
+import { Tooltip } from '../Tooltip';
+import type {
+  ButtonColorType,
+  ButtonProps,
+  ButtonStyle,
   ButtonType,
   ButtonVariantType,
-  ButtonColorType,
-} from 'antd-v5/es/button';
+  OnClickHandler,
+} from './types';
 
-export type OnClickHandler = MouseEventHandler<HTMLElement>;
-
-export type ButtonStyle =
-  | 'primary'
-  | 'secondary'
-  | 'tertiary'
-  | 'danger'
-  | 'link'
-  | 'dashed';
-
-export type ButtonSize = 'default' | 'small' | 'xsmall';
-
-export type ButtonProps = Omit<AntdButtonProps, 'css'> &
-  Pick<TooltipProps, 'placement'> & {
-    tooltip?: ReactNode;
-    className?: string;
-    buttonSize?: ButtonSize;
-    buttonStyle?: ButtonStyle;
-    cta?: boolean;
-    showMarginRight?: boolean;
-  };
-
-export default function Button(props: ButtonProps) {
+export function Button(props: ButtonProps) {
   const {
     tooltip,
     placement,
@@ -189,3 +163,5 @@ export default function Button(props: ButtonProps) {
 
   return button;
 }
+
+export type { ButtonProps, OnClickHandler };

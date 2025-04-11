@@ -17,14 +17,10 @@
  * under the License.
  */
 import { createRef, PureComponent } from 'react';
-import { Select } from 'src/components';
+import { FormLabel, Alert, Button, Input, Select } from 'src/components';
 import { t, styled } from '@superset-ui/core';
-import Alert from 'src/components/Alert';
-import Button from 'src/components/Button';
-import { Input } from 'src/components/Input';
 
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
-import { FormLabel } from 'src/components/Form';
 import { propertyComparator } from 'src/components/Select/utils';
 
 const StyledModalTrigger = styled(ModalTrigger)`

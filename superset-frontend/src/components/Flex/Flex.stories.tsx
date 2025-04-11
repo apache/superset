@@ -17,11 +17,12 @@
  * under the License.
  */
 
-import { Flex, FlexProps } from 'src/components/Flex';
 import { css } from '@superset-ui/core';
+import { Flex } from '.';
+import type { FlexProps } from './types';
 
 export default {
-  title: 'Flex',
+  title: 'Design System/Components/Flex',
   component: Flex,
 };
 

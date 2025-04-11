@@ -26,10 +26,13 @@ import {
   useTheme,
   FeatureFlag,
 } from '@superset-ui/core';
-import InfoTooltip from 'src/components/InfoTooltip';
-import Checkbox, { CheckboxChangeEvent } from 'src/components/Checkbox';
-import Collapse from 'src/components/Collapse';
-import { Input } from 'src/components/Input';
+import {
+  Input,
+  Checkbox,
+  Collapse,
+  InfoTooltip,
+  type CheckboxChangeEvent,
+} from 'src/components';
 import {
   StyledInputContainer,
   StyledJsonEditor,

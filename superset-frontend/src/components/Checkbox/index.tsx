@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default } from 'src/components/Checkbox/Checkbox';
-export type {
-  CheckboxProps,
-  CheckboxChangeEvent,
-} from 'src/components/Checkbox/Checkbox';
-export * from 'src/components/Checkbox/CheckboxIcons';
+import { Checkbox } from 'antd-v5';
+
+export { Checkbox };
+export type { CheckboxProps, CheckboxChangeEvent } from './types';

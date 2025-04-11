@@ -16,68 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ReactNode,
-  DetailedHTMLProps,
-  TdHTMLAttributes,
-  PureComponent,
-} from 'react';
+import { PureComponent } from 'react';
 
 import { nanoid } from 'nanoid';
 
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { t, styled } from '@superset-ui/core';
 
-import Button from 'src/components/Button';
 import { Icons } from 'src/components/Icons';
+import { Button } from '../Button';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
-
-interface CRUDCollectionProps {
-  allowAddItem?: boolean;
-  allowDeletes?: boolean;
-  collection: Record<PropertyKey, any>[];
-  columnLabels?: Record<PropertyKey, any>;
-  columnLabelTooltips?: Record<PropertyKey, any>;
-  emptyMessage?: ReactNode;
-  expandFieldset?: ReactNode;
-  extraButtons?: ReactNode;
-  itemGenerator?: () => any;
-  itemCellProps?: ((
-    val: unknown,
-    label: string,
-    record: any,
-  ) => DetailedHTMLProps<
-    TdHTMLAttributes<HTMLTableCellElement>,
-    HTMLTableCellElement
-  >)[];
-  itemRenderers?: ((
-    val: unknown,
-    onChange: () => void,
-    label: string,
-    record: any,
-  ) => ReactNode)[];
-  onChange?: (arg0: any) => void;
-  tableColumns: any[];
-  sortColumns: string[];
-  stickyHeader?: boolean;
-}
-
-type Sort = number | string | boolean | any;
-
-enum SortOrder {
-  Asc = 1,
-  Desc = 2,
-  Unsorted = 0,
-}
-
-interface CRUDCollectionState {
-  collection: Record<PropertyKey, any>;
-  collectionArray: Record<PropertyKey, any>[];
-  expandedColumns: Record<PropertyKey, any>;
-  sortColumn: string;
-  sort: SortOrder;
-}
+import {
+  SortOrder,
+  type CRUDCollectionProps,
+  type CRUDCollectionState,
+  type Sort,
+} from './types';
 
 function createCollectionArray(collection: Record<PropertyKey, any>) {
   return Object.keys(collection).map(k => collection[k]);

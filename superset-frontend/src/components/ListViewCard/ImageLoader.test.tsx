@@ -18,10 +18,8 @@
  */
 import fetchMock from 'fetch-mock';
 
-import ImageLoader, {
-  BackgroundPosition,
-} from 'src/components/ListViewCard/ImageLoader';
 import { render, screen } from 'spec/helpers/testing-library';
+import { ImageLoader, type BackgroundPosition } from './ImageLoader';
 
 global.URL.createObjectURL = jest.fn(() => '/local_url');
 const blob = new Blob([], { type: 'image/png' });

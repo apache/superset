@@ -16,15 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PropsWithChildren } from 'react';
 import { Alert as AntdAlert } from 'antd-v5';
-import { AlertProps as AntdAlertProps } from 'antd-v5/es/alert';
+import type { AlertProps } from './types';
 
-export type AlertProps = PropsWithChildren<
-  Omit<AntdAlertProps, 'children'> & { roomBelow?: boolean }
->;
-
-export default function Alert(props: AlertProps) {
+export const Alert = (props: AlertProps) => {
   const {
     type = 'info',
     description,
@@ -46,4 +41,6 @@ export default function Alert(props: AlertProps) {
       {...rest}
     />
   );
-}
+};
+
+export type { AlertProps };

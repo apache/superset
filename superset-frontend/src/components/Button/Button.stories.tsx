@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Button, { ButtonProps } from './index';
+import { Button } from '.';
+import type { ButtonProps } from './types';
 
 type ButtonStyle = Pick<ButtonProps, 'buttonStyle'>;
 type ButtonStyleValue = ButtonStyle[keyof ButtonStyle];
@@ -24,7 +25,7 @@ type ButtonSize = Pick<ButtonProps, 'buttonSize'>;
 type ButtonSizeValue = ButtonSize[keyof ButtonSize];
 
 export default {
-  title: 'Button',
+  title: 'Components/Button',
   component: Button,
   includeStories: ['ButtonGallery', 'InteractiveButton'],
 };

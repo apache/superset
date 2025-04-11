@@ -17,7 +17,7 @@
  * under the License.
  */
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Tag } from 'src/components/Tag';
+import { Tag } from '../Tag';
 
 type Props = {
   title: string;

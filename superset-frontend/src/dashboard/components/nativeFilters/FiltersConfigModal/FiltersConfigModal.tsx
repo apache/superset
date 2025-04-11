@@ -29,10 +29,8 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
-import { Form } from 'src/components/Form';
 import { Icons } from 'src/components/Icons';
-import ErrorBoundary from 'src/components/ErrorBoundary';
-import { StyledModal } from 'src/components/Modal';
+import { ErrorBoundary, Form, StyledModal } from 'src/components';
 import { testWithId } from 'src/utils/testUtils';
 import { updateCascadeParentIds } from 'src/dashboard/actions/nativeFilters';
 import useEffectEvent from 'src/hooks/useEffectEvent';

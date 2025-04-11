@@ -19,10 +19,7 @@
 import { useState, useEffect, FC } from 'react';
 
 import { t, styled, SupersetClient } from '@superset-ui/core';
-import { FormLabel } from 'src/components/Form';
-import Modal from 'src/components/Modal';
-import { AsyncSelect } from 'src/components';
-import Button from 'src/components/Button';
+import { FormLabel, AsyncSelect, Button, Modal } from 'src/components';
 import { loadTags } from 'src/components/Tag/utils';
 import { TaggableResourceOption } from 'src/features/tags/TagModal';
 

@@ -30,16 +30,16 @@ import {
 } from '@superset-ui/core';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { Dropdown } from 'src/components/Dropdown';
-import { Menu } from 'src/components/Menu';
-import { Tooltip } from 'src/components/Tooltip';
-import { Icons } from 'src/components/Icons';
 import {
+  Dropdown,
+  Tooltip,
+  Button,
   ChangeDatasourceModal,
   DatasourceModal,
-} from 'src/components/Datasource';
-import Button from 'src/components/Button';
-import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
+  ErrorAlert,
+} from 'src/components';
+import { Menu } from 'src/components/Menu';
+import { Icons } from 'src/components/Icons';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';

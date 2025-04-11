@@ -17,9 +17,9 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import type { Type } from 'src/components/Label';
+import type { LabelType } from 'src/components';
 
-export const STATE_TYPE_MAP: Record<string, Type> = {
+export const STATE_TYPE_MAP: Record<string, LabelType> = {
   offline: 'error',
   failed: 'error',
   pending: 'info',

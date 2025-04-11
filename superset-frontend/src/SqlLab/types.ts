@@ -22,8 +22,7 @@ import {
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
-import { DropdownButtonProps } from 'src/components/DropdownButton';
-import { ButtonProps } from 'src/components/Button';
+import type { ButtonProps, DropdownButtonProps } from 'src/components';
 import type { TableMetaData } from 'src/hooks/apiResources';
 
 export type QueryButtonProps = DropdownButtonProps | ButtonProps;

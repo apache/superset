@@ -43,8 +43,8 @@ import {
 } from 'antd-v5/es/select';
 import { debounce, isEqual, uniq } from 'lodash';
 import { Icons } from 'src/components/Icons';
-import { Space } from 'src/components/Space';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
+import { Space } from '../Space';
 import {
   getValue,
   hasOption,

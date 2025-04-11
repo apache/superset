@@ -18,10 +18,9 @@
  */
 import { createRef, Component } from 'react';
 import PropTypes from 'prop-types';
-import Button from 'src/components/Button';
+import { Button, ErrorBoundary } from 'src/components';
 import { styled, t } from '@superset-ui/core';
 
-import ErrorBoundary from 'src/components/ErrorBoundary';
 import Tabs from 'src/components/Tabs';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';

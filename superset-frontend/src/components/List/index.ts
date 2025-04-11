@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ListProps, ListItemProps, ListItemMetaProps } from 'antd-v5/es/list';
 import { List as AntdList } from 'antd-v5';
-
-export type { ListProps, ListItemProps, ListItemMetaProps };
 
 export const List = Object.assign(AntdList, {
   Item: AntdList.Item,
   ItemMeta: AntdList.Item.Meta,
 });
+
+export type { ListProps, ListItemProps } from './types';

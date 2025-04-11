@@ -16,38 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip } from '../Tooltip';
+import type { IconTooltipProps } from './types';
 
-export interface Props {
-  children?: ReactNode;
-  className?: string;
-  onClick?: () => void;
-  placement?:
-    | 'bottom'
-    | 'left'
-    | 'right'
-    | 'top'
-    | 'topLeft'
-    | 'topRight'
-    | 'bottomLeft'
-    | 'bottomRight'
-    | 'leftTop'
-    | 'leftBottom'
-    | 'rightTop'
-    | 'rightBottom';
-  style?: object;
-  tooltip?: string | null;
-}
-
-const IconTooltip = ({
+export const IconTooltip = ({
   children = null,
   className = '',
   onClick = () => undefined,
   placement = 'top',
   style = {},
   tooltip = null,
-}: Props) => {
+}: IconTooltipProps) => {
   const iconTooltip = (
     <button
       type="button"
@@ -79,4 +58,4 @@ const IconTooltip = ({
   return iconTooltip;
 };
 
-export { IconTooltip };
+export type { IconTooltipProps };

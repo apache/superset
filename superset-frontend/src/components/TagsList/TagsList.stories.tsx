@@ -20,7 +20,7 @@ import { Meta, StoryObj } from '@storybook/react';
 import TagsList, { type TagsListProps } from 'src/components/TagsList';
 
 export default {
-  title: 'components/TagsList',
+  title: 'Components/TagsList',
   component: TagsList,
   argTypes: {
     tags: {

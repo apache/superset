@@ -25,11 +25,9 @@ import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { LoadingCards } from 'src/pages/Home';
 import { TableTab } from 'src/views/CRUD/types';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Dropdown } from 'src/components/Dropdown';
+import { Dropdown, DeleteModal, Button, ListViewCard } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
-import ListViewCard from 'src/components/ListViewCard';
-import DeleteModal from 'src/components/DeleteModal';
 import { Icons } from 'src/components/Icons';
 import { User } from 'src/types/bootstrapTypes';
 import {
@@ -39,7 +37,6 @@ import {
   PAGE_SIZE,
   shortenSQL,
 } from 'src/views/CRUD/utils';
-import Button from 'src/components/Button';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';

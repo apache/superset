@@ -18,7 +18,7 @@
  */
 
 import { render, screen } from 'spec/helpers/testing-library';
-import Loading from './index';
+import { Loading } from '.';
 
 test('Rerendering correctly with default props', () => {
   render(<Loading />);

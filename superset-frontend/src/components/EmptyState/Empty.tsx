@@ -27,3 +27,5 @@ export const Empty = Object.assign(
     PRESENTED_IMAGE_DEFAULT: AntdEmpty.PRESENTED_IMAGE_DEFAULT,
   },
 );
+
+export type { EmptyProps };

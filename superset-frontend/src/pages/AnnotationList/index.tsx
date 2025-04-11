@@ -30,10 +30,14 @@ import {
 import dayjs from 'dayjs';
 import rison from 'rison';
 
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import DeleteModal from 'src/components/DeleteModal';
-import ListView, { ListViewProps } from 'src/components/ListView';
+import {
+  ConfirmStatusChange,
+  DeleteModal,
+  ListView,
+  ListViewActionsBar,
+  type ListViewProps,
+  type ListViewActionProps,
+} from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -218,7 +222,9 @@ function AnnotationList({
               onClick: handleDelete,
             },
           ];
-          return <ActionsBar actions={actions as ActionProps[]} />;
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
         },
         Header: t('Actions'),
         id: 'actions',

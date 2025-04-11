@@ -17,17 +17,15 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import {
-  Collapse as AntdCollapse,
-  CollapseProps as AntdCollapseProps,
-} from 'antd-v5';
+import { Collapse as AntdCollapse } from 'antd-v5';
+import type { CollapseProps } from './types';
 
 export interface CollapseProps extends AntdCollapseProps {
   animateArrows?: boolean;
   modalMode?: boolean;
 }
 
-const Collapse = styled((props: CollapseProps) => <AntdCollapse {...props} />)`
+export const Collapse = styled((props: CollapseProps) => <AntdCollapse {...props} />)`
   ${({ modalMode }) =>
     modalMode &&
     `
@@ -88,4 +86,4 @@ const Collapse = styled((props: CollapseProps) => <AntdCollapse {...props} />)`
   }
 `;
 
-export default Collapse;
+export type { CollapseProps };

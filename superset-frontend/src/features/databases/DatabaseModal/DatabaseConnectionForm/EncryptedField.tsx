@@ -18,10 +18,7 @@
  */
 import { useRef, useState } from 'react';
 import { SupersetTheme, css, t } from '@superset-ui/core';
-import { Select } from 'src/components';
-import Button from 'src/components/Button';
-import { Input } from 'src/components/Input';
-import { FormLabel } from 'src/components/Form';
+import { Input, Button, FormLabel, Select } from 'src/components';
 import { Icons } from 'src/components/Icons';
 import { DatabaseParameters, FieldPropTypes } from '../../types';
 import { infoTooltip, CredentialInfoForm } from '../styles';

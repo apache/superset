@@ -17,12 +17,11 @@
  * under the License.
  */
 import { useState } from 'react';
-import LabeledErrorBoundInput, {
-  LabeledErrorBoundInputProps,
-} from './LabeledErrorBoundInput';
+import type { LabeledErrorBoundInputProps } from './types';
+import { LabeledErrorBoundInput } from './LabeledErrorBoundInput';
 
 export default {
-  title: 'LabeledErrorBoundInput',
+  title: 'Components/Form/LabeledErrorBoundInput',
   component: LabeledErrorBoundInput,
 };
 

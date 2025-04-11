@@ -17,8 +17,8 @@
  * under the License.
  */
 import { Icons } from 'src/components/Icons';
-import Label from 'src/components/Label';
 import { t, useTheme } from '@superset-ui/core';
+import { Label } from '..';
 
 // Define the prop types for DatasetTypeLabel
 interface DatasetTypeLabelProps {
@@ -27,7 +27,9 @@ interface DatasetTypeLabelProps {
 
 const SIZE = 's'; // Define the size as a constant
 
-const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({ datasetType }) => {
+export const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({
+  datasetType,
+}) => {
   const theme = useTheme();
   const label: string =
     datasetType === 'physical' ? t('Physical') : t('Virtual');
@@ -48,5 +50,3 @@ const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({ datasetType }) => {
     </Label>
   );
 };
-
-export default DatasetTypeLabel;

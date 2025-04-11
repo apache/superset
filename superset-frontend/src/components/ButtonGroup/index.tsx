@@ -16,15 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import type { ButtonGroupProps } from './types';
 
-export interface ButtonGroupProps {
-  className?: string;
-  children: ReactNode;
-  expand?: boolean;
-}
-
-export default function ButtonGroup(props: ButtonGroupProps) {
+export function ButtonGroup(props: ButtonGroupProps) {
   const { className, children } = props;
   return (
     <div
@@ -59,3 +53,5 @@ export default function ButtonGroup(props: ButtonGroupProps) {
     </div>
   );
 }
+
+export type { ButtonGroupProps };

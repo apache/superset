@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Button from 'src/components/Button';
-import ConfirmStatusChange, { ConfirmStatusChangeProps, Callback } from '.';
+import { Button } from 'src/components';
+import { ConfirmStatusChange } from '.';
+import type { ConfirmStatusChangeProps, Callback } from './types';
 
 export default {
-  title: 'ConfirmStatusChange',
+  title: 'Components/ConfirmStatusChange',
 };
 
 export const InteractiveConfirmStatusChange = (

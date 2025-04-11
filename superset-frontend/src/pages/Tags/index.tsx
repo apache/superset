@@ -30,25 +30,26 @@ import {
   createFetchRelated,
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import {
+  ConfirmStatusChange,
+  Tooltip,
+  ModifiedInfo,
+  FaveStar,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewFilters,
+  type ListViewProps,
+} from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
 // eslint-disable-next-line no-restricted-imports
 import { Tag as AntdTag } from 'antd'; // TODO: Remove antd
 import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
-import FaveStar from 'src/components/FaveStar';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 
 const PAGE_SIZE = 25;
 
@@ -275,7 +276,7 @@ function TagList(props: TagListProps) {
     [userId, canDelete, refreshData, addSuccessToast, addDangerToast],
   );
 
-  const filters: Filters = useMemo(() => {
+  const filters: ListViewFilters = useMemo(() => {
     const filters_list = [
       {
         Header: t('Name'),
@@ -303,7 +304,7 @@ function TagList(props: TagListProps) {
         ),
         paginate: true,
       },
-    ] as Filters;
+    ] as ListViewFilters;
     return filters_list;
   }, [addDangerToast, props.user]);
 

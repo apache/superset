@@ -20,10 +20,8 @@ import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { css, styled, t } from '@superset-ui/core';
 
-import Alert from 'src/components/Alert';
+import { Alert, Button, Loading } from 'src/components';
 import TableView from 'src/components/TableView';
-import Button from 'src/components/Button';
-import Loading from 'src/components/Loading';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { EmptyWrapperType } from 'src/components/TableView/TableView';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';

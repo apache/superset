@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FormInstance } from 'src/components/Form';
+import type { FormInstance } from 'src/components';
 import { nanoid } from 'nanoid';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import {

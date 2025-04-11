@@ -17,12 +17,11 @@
  * under the License.
  */
 
-import { InputProps, TextAreaProps } from 'antd-v5/es/input';
-import { InputNumberProps } from 'antd-v5/es/input-number';
 import { Input, InputNumber } from '.';
+import type { InputNumberProps, InputProps, TextAreaProps } from './types';
 
 export default {
-  title: 'Input',
+  title: 'Components/Input',
   component: Input,
 };
 

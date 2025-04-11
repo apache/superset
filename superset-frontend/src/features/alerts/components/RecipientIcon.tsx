@@ -18,7 +18,7 @@
  */
 import { SupersetTheme, css } from '@superset-ui/core';
 import { ReactElement } from 'react';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip } from 'src/components';
 import { Icons } from 'src/components/Icons';
 import { NotificationMethodOption } from '../types';
 

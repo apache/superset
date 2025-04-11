@@ -18,7 +18,7 @@
  */
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 
-import LastUpdated from '.';
+import { LastUpdated } from '.';
 
 const updatedAt = new Date('Sat Dec 12 2020 00:00:00 GMT-0800');
 

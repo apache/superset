@@ -23,7 +23,7 @@ import {
   waitFor,
   cleanup,
 } from 'spec/helpers/testing-library';
-import { FormInstance } from 'src/components/Form';
+import type { FormInstance } from 'src/components';
 import { createMockModal, getTreeSwitcher } from './utils';
 
 describe('FilterScope TreeSelection', () => {

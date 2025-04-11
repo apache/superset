@@ -26,7 +26,7 @@ import {
   t,
 } from '@superset-ui/core';
 import rison from 'rison';
-import Collapse from 'src/components/Collapse';
+import { Collapse, ListViewCard } from 'src/components';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
 import {
@@ -36,7 +36,6 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import ListViewCard from 'src/components/ListViewCard';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   CardContainer,

@@ -18,32 +18,9 @@
  */
 
 import { styled, useTheme, css } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
-import { ActionType } from 'src/types/Action';
-
-export interface InfoTooltipProps {
-  iconStyle?: React.CSSProperties;
-  tooltip: string;
-  placement?:
-    | 'bottom'
-    | 'left'
-    | 'right'
-    | 'top'
-    | 'topLeft'
-    | 'topRight'
-    | 'bottomLeft'
-    | 'bottomRight'
-    | 'leftTop'
-    | 'leftBottom'
-    | 'rightTop'
-    | 'rightBottom'
-    | undefined;
-  trigger?: ActionType | ActionType[];
-  overlayStyle?: any;
-  bgColor?: string;
-  viewBox?: string;
-}
+import { Tooltip } from '../Tooltip';
+import type { InfoTooltipProps } from './types';
 
 const StyledTooltip = styled(Tooltip)`
   cursor: pointer;
@@ -71,7 +48,7 @@ const InfoIconContainer = styled.div`
   `}
 `;
 
-export default function InfoTooltip({
+export function InfoTooltip({
   tooltip,
   iconStyle = {},
   placement = 'right',
@@ -105,3 +82,5 @@ export default function InfoTooltip({
     </StyledTooltip>
   );
 }
+
+export type { InfoTooltipProps };

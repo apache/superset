@@ -29,7 +29,6 @@ import {
 } from '@superset-ui/core';
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
-import { Input } from 'src/components/Input';
 import {
   BOOL_FALSE_DISPLAY,
   BOOL_TRUE_DISPLAY,
@@ -38,10 +37,9 @@ import {
 } from 'src/constants';
 import { Radio } from 'src/components/Radio';
 import { Icons } from 'src/components/Icons';
-import Button from 'src/components/Button';
+import { Input, Button, CopyToClipboard } from 'src/components';
 import Popover from 'src/components/Popover';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
-import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getTimeColumns, setTimeColumns } from './utils';
 
 export const CellNull = styled('span')`

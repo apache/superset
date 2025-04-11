@@ -25,12 +25,7 @@ import {
   useCallback,
 } from 'react';
 import { styled, SupersetClient, SupersetError, t } from '@superset-ui/core';
-import type { LabeledValue as AntdLabeledValue } from 'src/components/Select';
 import rison from 'rison';
-import { Select, AsyncSelect } from 'src/components';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import Label from 'src/components/Label';
-import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
@@ -39,6 +34,17 @@ import {
   useSchemas,
   SchemaOption,
 } from 'src/hooks/apiResources';
+import { Label } from '../Label';
+import { Select, AsyncSelect } from '../Select';
+import { FormLabel } from '../Form';
+import { ErrorMessageWithStackTrace } from '../ErrorMessage';
+
+import type { LabeledValue as AntdLabeledValue } from '../Select';
+import type {
+  DatabaseSelectorProps,
+  DatabaseValue,
+  DatabaseObject,
+} from './types';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -83,38 +89,6 @@ const LabelStyle = styled.div`
   }
 `;
 
-type DatabaseValue = {
-  label: ReactNode;
-  value: number;
-  id: number;
-  database_name: string;
-  backend?: string;
-};
-
-export type DatabaseObject = {
-  id: number;
-  database_name: string;
-  backend?: string;
-  allow_multi_catalog?: boolean;
-};
-
-export interface DatabaseSelectorProps {
-  db?: DatabaseObject | null;
-  emptyState?: ReactNode;
-  formMode?: boolean;
-  getDbList?: (arg0: any) => void;
-  handleError: (msg: string) => void;
-  isDatabaseSelectEnabled?: boolean;
-  onDbChange?: (db: DatabaseObject) => void;
-  onEmptyResults?: (searchText?: string) => void;
-  onCatalogChange?: (catalog?: string) => void;
-  catalog?: string | null;
-  onSchemaChange?: (schema?: string) => void;
-  schema?: string;
-  readOnly?: boolean;
-  sqlLabMode?: boolean;
-}
-
 const SelectLabel = ({
   backend,
   databaseName,
@@ -137,7 +111,7 @@ interface AntdLabeledValueWithOrder extends AntdLabeledValue {
   order: number;
 }
 
-export default function DatabaseSelector({
+export function DatabaseSelector({
   db,
   formMode = false,
   emptyState,
@@ -454,3 +428,5 @@ export default function DatabaseSelector({
     </DatabaseSelectorWrapper>
   );
 }
+
+export type { DatabaseObject };

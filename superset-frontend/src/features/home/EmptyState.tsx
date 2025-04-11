@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Button from 'src/components/Button';
-import { EmptyState as EmptyStateComponent } from 'src/components/EmptyState';
+import { Button, EmptyState as EmptyStateComponent } from 'src/components';
 import { TableTab } from 'src/views/CRUD/types';
 import { styled, t } from '@superset-ui/core';
 import { WelcomeTable } from './types';

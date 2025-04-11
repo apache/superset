@@ -27,7 +27,7 @@ new SelectFilterPlugin().configure({ key: 'filter_select' }).register();
 getChartTransformPropsRegistry().registerValue('filter_select', transformProps);
 
 export default {
-  title: 'Filter Plugins',
+  title: 'Components/Filter Plugins',
   argTypes: {
     multiSelect: { control: 'boolean', defaultValue: true },
     inverseSelection: { control: 'boolean', defaultValue: false },

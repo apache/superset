@@ -17,28 +17,14 @@
  * under the License.
  */
 import { useState } from 'react';
-import { Tooltip } from 'src/components/Tooltip';
-import Modal from 'src/components/Modal';
 import { Icons } from 'src/components/Icons';
-import Alert from 'src/components/Alert';
 import { t, useTheme } from '@superset-ui/core';
+import { Tooltip } from '../Tooltip';
+import { Alert } from '../Alert';
+import { Modal } from '../Modal';
+import type { ErrorAlertProps } from './types';
 
-export interface ErrorAlertProps {
-  errorType?: string; // Strong text on the first line
-  message: React.ReactNode | string; // Text shown on the first line
-  type?: 'warning' | 'error' | 'info'; // Allows only 'warning' or 'error'
-  description?: React.ReactNode; // Text shown under the first line, not collapsible
-  descriptionDetails?: React.ReactNode | string; // Text shown under the first line, collapsible
-  descriptionDetailsCollapsed?: boolean; // Hides the collapsible section unless "Show more" is clicked, default true
-  descriptionPre?: boolean; // Uses pre-style to break lines, default true
-  compact?: boolean; // Shows the error icon with tooltip and modal, default false
-  children?: React.ReactNode; // Additional content to show in the modal
-  closable?: boolean; // Show close button, default true
-  showIcon?: boolean; // Show icon, default true
-  className?: string;
-}
-
-const ErrorAlert: React.FC<ErrorAlertProps> = ({
+export const ErrorAlert: React.FC<ErrorAlertProps> = ({
   errorType = t('Error'),
   message,
   type = 'error',
@@ -112,7 +98,7 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
       message={errorType}
       description={renderDescription()}
       type={type}
-      showIcon
+      showIcon={showIcon}
       closable={closable}
       className={className}
     />
@@ -141,5 +127,3 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
 
   return renderAlert(closable);
 };
-
-export default ErrorAlert;

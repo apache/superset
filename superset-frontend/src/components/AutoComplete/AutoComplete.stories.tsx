@@ -17,10 +17,9 @@
  * under the License.
  */
 import { useState } from 'react';
-import { Meta, StoryObj } from '@storybook/react';
-import AutoComplete, {
-  AntAutoCompleteProps,
-} from 'src/components/AutoComplete';
+import type { Meta, StoryObj } from '@storybook/react';
+import { AutoComplete } from '.';
+import type { AutoCompleteProps } from './types';
 
 export default {
   title: 'Components/AutoComplete',
@@ -244,8 +243,8 @@ const searchResult = (query: string) =>
     };
   });
 
-const AutoCompleteWithOptions = (args: AntAutoCompleteProps) => {
-  const [options, setOptions] = useState<AntAutoCompleteProps['options']>([]);
+const AutoCompleteWithOptions = (args: AutoCompleteProps) => {
+  const [options, setOptions] = useState<AutoCompleteProps['options']>([]);
 
   const handleSearch = (value: string) => {
     setOptions(value ? searchResult(value) : []);
@@ -260,7 +259,7 @@ export const AutoCompleteStory: Story = {
     style: { width: 300 },
     placeholder: 'Type to search...',
   },
-  render: (args: AntAutoCompleteProps) => (
+  render: (args: AutoCompleteProps) => (
     <div style={{ margin: '20px' }}>
       <AutoCompleteWithOptions {...args} />
     </div>

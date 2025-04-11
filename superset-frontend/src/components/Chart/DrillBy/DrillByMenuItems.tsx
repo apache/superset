@@ -46,9 +46,8 @@ import rison from 'rison';
 import { debounce } from 'lodash';
 import { FixedSizeList as List } from 'react-window';
 import { Icons } from 'src/components/Icons';
-import { Input } from 'src/components/Input';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import Loading from 'src/components/Loading';
+import { Input, Loading } from 'src/components';
 import {
   cachedSupersetGet,
   supersetGetCache,

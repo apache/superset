@@ -26,9 +26,8 @@ import {
 } from 'react';
 import { css, getExtensionsRegistry, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip, EditableTitle } from 'src/components';
 import { useSelector } from 'react-redux';
-import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
