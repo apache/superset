@@ -291,7 +291,7 @@ export default function PopKPI(props: PopKPIProps) {
         {subtitle && (
           <SubtitleText
             style={{
-              fontSize: `${subtitleFontSize * height * 0.4}px`,
+              fontSize: `${subtitleFontSize}px`,
             }}
           >
             {subtitle}

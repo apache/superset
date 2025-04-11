@@ -30,6 +30,7 @@ import {
   getComparisonFontSize,
   getHeaderFontSize,
   getMetricNameFontSize,
+  getSubtitleFontSize,
 } from './utils';
 
 dayjs.extend(utc);
@@ -192,7 +193,7 @@ export default function transformProps(chartProps: ChartProps) {
     percentDifferenceFormattedString: percentDifference,
     boldText,
     subtitle,
-    subtitleFontSize,
+    subtitleFontSize: getSubtitleFontSize(subtitleFontSize),
     showMetricName,
     metricNameFontSize: getMetricNameFontSize(metricNameFontSize),
     headerFontSize: getHeaderFontSize(headerFontSize),

@@ -21,20 +21,28 @@ import {
   headerFontSize,
   subheaderFontSize,
   metricNameFontSize,
+  subtitleFontSize,
 } from '../sharedControls';
 
+// Define font sizes
 const headerFontSizes = [16, 20, 30, 48, 60];
-const sharedFontSizes = [16, 20, 26, 32, 40];
+const standardFontSizes = [16, 20, 26, 32, 40];
 
+// Helper function to extract proportion values from control
 const extractProportionValues = (control: CustomControlItem): number[] =>
   control.config.options.map(
     (option: { label: string; value: number }) => option.value,
   );
 
-const metricNameProportionValues = extractProportionValues(metricNameFontSize);
-const headerProportionValues = extractProportionValues(headerFontSize);
-const subheaderProportionValues = extractProportionValues(subheaderFontSize);
+// Extract proportion values for each control
+const proportionValues = {
+  metricName: extractProportionValues(metricNameFontSize),
+  header: extractProportionValues(headerFontSize),
+  subheader: extractProportionValues(subheaderFontSize),
+  subtitle: extractProportionValues(subtitleFontSize),
+};
 
+// Create font size mapping
 const getFontSizeMapping = (
   proportionValues: number[],
   actualSizes: number[],
@@ -44,6 +52,7 @@ const getFontSizeMapping = (
     return acc;
   }, {});
 
+// Create font size getter factory
 const createFontSizeGetter = (
   proportionValues: number[],
   actualSizes: number[],
@@ -53,15 +62,23 @@ const createFontSizeGetter = (
     mapping[proportionValue] ?? actualSizes[actualSizes.length - 1];
 };
 
+// Export getters for each font size
 export const getMetricNameFontSize = createFontSizeGetter(
-  metricNameProportionValues,
-  sharedFontSizes,
+  proportionValues.metricName,
+  standardFontSizes,
 );
+
 export const getHeaderFontSize = createFontSizeGetter(
-  headerProportionValues,
+  proportionValues.header,
   headerFontSizes,
 );
+
 export const getComparisonFontSize = createFontSizeGetter(
-  subheaderProportionValues,
-  sharedFontSizes,
+  proportionValues.subheader,
+  standardFontSizes,
+);
+
+export const getSubtitleFontSize = createFontSizeGetter(
+  proportionValues.subtitle,
+  standardFontSizes,
 );

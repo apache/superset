@@ -28,6 +28,7 @@ import {
   subheaderFontSize,
   subtitleControl,
   subtitleFontSize,
+  metricNameFontSize,
 } from '../sharedControls';
 import { ColorSchemeEnum } from './types';
 

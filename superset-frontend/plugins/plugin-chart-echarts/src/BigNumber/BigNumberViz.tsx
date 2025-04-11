@@ -35,6 +35,7 @@ const defaultNumberFormatter = getNumberFormatter();
 
 const PROPORTION = {
   // text size: proportion of the chart container sans trendline
+  METRIC_NAME: 0.125,
   KICKER: 0.1,
   HEADER: 0.3,
   SUBHEADER: 0.125,
@@ -49,6 +50,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     formatTime: getTimeFormatter(SMART_DATE_VERBOSE_ID),
     headerFontSize: PROPORTION.HEADER,
     kickerFontSize: PROPORTION.KICKER,
+    metricNameFontSize: PROPORTION.METRIC_NAME,
+    showMetricName: true,
     mainColor: BRAND_COLOR,
     showTimestamp: false,
     showTrendLine: false,
@@ -89,6 +92,36 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       >
         {t('Not up to date')}
       </span>
+    );
+  }
+
+  renderMetricName(maxHeight: number) {
+    const { metricName, width, showMetricName } = this.props;
+    if (!showMetricName || !metricName) return null;
+
+    const text = metricName;
+
+    const container = this.createTemporaryContainer();
+    document.body.append(container);
+    const fontSize = computeMaxFontSize({
+      text,
+      maxWidth: width,
+      maxHeight,
+      className: 'metric-name',
+      container,
+    });
+    container.remove();
+
+    return (
+      <div
+        className="metric-name"
+        style={{
+          fontSize,
+          height: 'auto',
+        }}
+      >
+        {text}
+      </div>
     );
   }
 
@@ -316,6 +349,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       kickerFontSize,
       headerFontSize,
       subheaderFontSize,
+      metricNameFontSize,
       subtitleFontSize,
     } = this.props;
     const className = this.getClassName();
@@ -333,6 +367,11 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
                 (kickerFontSize || 0) * (1 - PROPORTION.TRENDLINE) * height,
               ),
             )}
+            {this.renderMetricName(
+              Math.ceil(
+                (metricNameFontSize || 0) * (1 - PROPORTION.TRENDLINE) * height,
+              ),
+            )}
             {this.renderHeader(
               Math.ceil(headerFontSize * (1 - PROPORTION.TRENDLINE) * height),
             )}
@@ -342,7 +381,9 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
               ),
             )}
             {this.renderSubtitle(
-              Math.ceil(subtitleFontSize * (1 - PROPORTION.TRENDLINE) * height),
+              Math.ceil(
+                (subtitleFontSize || 0) * (1 - PROPORTION.TRENDLINE) * height,
+              ),
             )}
           </div>
           {this.renderTrendline(chartHeight)}
@@ -354,9 +395,10 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       <div className={className} style={{ height }}>
         {this.renderFallbackWarning()}
         {this.renderKicker((kickerFontSize || 0) * height)}
+        {this.renderMetricName((metricNameFontSize || 0) * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}
         {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
-        {this.renderSubtitle(Math.ceil(subtitleFontSize * height))}
+        {this.renderSubtitle(Math.ceil((subtitleFontSize || 0) * height))}
       </div>
     );
   }
@@ -380,6 +422,7 @@ export default styled(BigNumberVis)`
       flex-direction: column;
       justify-content: center;
       align-items: flex-start;
+      width: 100%;
       .alert {
         font-size: ${theme.typography.sizes.s};
         margin: -0.5em 0 0.4em;
@@ -392,6 +435,12 @@ export default styled(BigNumberVis)`
     .kicker {
       line-height: 1em;
       padding-bottom: 2em;
+    }
+    
+    .metric-name {
+      line-height: 1em;
+      white-space: nowrap;
+      padding-bottom: ${theme.gridUnit * 4}px;
     }
 
     .header-line {
@@ -411,8 +460,7 @@ export default styled(BigNumberVis)`
     }
 
     .subtitle-line {
-      line-height: 1em;
-      padding-top: 0.3em;
+      line-height: 1em;      
     }
 
     &.is-fallback-value {

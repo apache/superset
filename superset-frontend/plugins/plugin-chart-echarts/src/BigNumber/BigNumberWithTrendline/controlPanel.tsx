@@ -28,6 +28,7 @@ import {
 } from '@superset-ui/chart-controls';
 import {
   headerFontSize,
+  metricNameFontSize,
   subheaderFontSize,
   subtitleFontSize,
   subtitleControl,

@@ -28,6 +28,7 @@ import {
   headerFontSize,
   subtitleFontSize,
   subtitleControl,
+  metricNameFontSize,
 } from '../sharedControls';
 
 export default {
