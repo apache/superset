@@ -88,7 +88,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     sqlalchemy_uri_placeholder = "snowflake://"
 
     supports_dynamic_schema = True
-    supports_catalog = supports_dynamic_catalog = True
+    supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
 
     # pylint: disable=invalid-name
     encrypted_extra_sensitive_fields = {
@@ -189,7 +189,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return parse.unquote(database.split("/")[1])
 
     @classmethod
-    def get_default_catalog(cls, database: "Database") -> Optional[str]:
+    def get_default_catalog(cls, database: "Database") -> str:
         """
         Return the default catalog.
         """
