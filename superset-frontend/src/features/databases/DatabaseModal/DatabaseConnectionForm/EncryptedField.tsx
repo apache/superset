@@ -22,9 +22,9 @@ import { Select } from 'src/components';
 import Button from 'src/components/Button';
 import { Input } from 'src/components/Input';
 import { FormLabel } from 'src/components/Form';
-import Upload from 'src/components/Upload';
+import Upload, { type UploadFile } from 'src/components/Upload';
 import { Icons } from 'src/components/Icons';
-import { addWarningToast } from 'src/components/MessageToasts/actions';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DatabaseParameters, FieldPropTypes } from '../../types';
 import { infoTooltip, CredentialInfoForm } from '../styles';
 
@@ -47,10 +47,11 @@ export const EncryptedField = ({
   db,
   editNewDb,
 }: FieldPropTypes) => {
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.JsonUpload.valueOf(),
   );
-
+  const { addDangerToast } = useToasts();
   const showCredentialsInfo = !isEditMode;
   const encryptedField =
     db?.engine &&
@@ -61,6 +62,7 @@ export const EncryptedField = ({
     paramValue && typeof paramValue === 'object'
       ? JSON.stringify(paramValue)
       : paramValue;
+
   const readTextFile = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -132,13 +134,25 @@ export const EncryptedField = ({
             <Upload
               accept=".json"
               maxCount={1}
+              fileList={fileList}
+              // avoid automatic upload
               beforeUpload={() => false}
+              onRemove={() => {
+                setFileList([]);
+                changeMethods.onParametersChange({
+                  target: {
+                    name: encryptedField,
+                    value: '',
+                  },
+                });
+                return true;
+              }}
               onChange={async info => {
                 const file = info.fileList?.[0]?.originFileObj;
                 if (file) {
                   try {
                     const fileContent = await readTextFile(file);
-                    return changeMethods.onParametersChange({
+                    changeMethods.onParametersChange({
                       target: {
                         type: null,
                         name: encryptedField,
@@ -146,13 +160,17 @@ export const EncryptedField = ({
                         checked: false,
                       },
                     });
+                    setFileList(info.fileList);
                   } catch (error) {
-                    return addWarningToast(
-                      t('Image download failed, please refresh and try again.'),
+                    setFileList([]);
+                    addDangerToast(
+                      t(
+                        'Unable to read the file, please refresh and try again.',
+                      ),
                     );
                   }
                 } else {
-                  return changeMethods.onParametersChange({
+                  changeMethods.onParametersChange({
                     target: {
                       name: encryptedField,
                       value: '',
