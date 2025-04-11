@@ -17,4 +17,4 @@
  * under the License.
  */
 
-export { Input, InputNumber } from 'antd-v5';
+export { Input, InputRef, InputNumber } from 'antd-v5';
