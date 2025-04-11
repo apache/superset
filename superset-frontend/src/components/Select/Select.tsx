@@ -238,17 +238,22 @@ const Select = forwardRef(
     );
 
     useEffect(() => {
-      const deselectable = visibleOptions.filter(
+      const selectedValues = ensureIsArray(selectValue);
+      const selectable = visibleOptions.filter(
         option =>
           !option.disabled &&
-          hasOption(option.value, ensureIsArray(selectValue)),
+          !hasOption(option.value, selectedValues) &&
+          !option.isNewOption,
+      ).length;
+      const deselectable = visibleOptions.filter(
+        option => !option.disabled && hasOption(option.value, selectedValues),
       ).length;
 
       setBulkSelectCounts({
-        selectable: selectAllEligible.length,
+        selectable,
         deselectable,
       });
-    }, [visibleOptions, selectValue, selectAllEligible.length]);
+    }, [visibleOptions, selectValue]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
