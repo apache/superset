@@ -326,6 +326,9 @@ const Select = forwardRef(
       onDeselect?.(value, option);
     };
 
+    const handleFilterOption = (search: string, option: AntdLabeledValue) =>
+      handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
+
     const handleOnSearch = debounce((search: string) => {
       const searchValue = search.trim();
       setIsSearching(!!searchValue);
@@ -348,13 +351,8 @@ const Select = forwardRef(
         setSelectOptions(updatedOptions);
       }
 
-      const filteredOptions = updatedOptions.filter(option =>
-        handleFilterOptionHelper(
-          search,
-          option as AntdLabeledValue,
-          ['label', 'value'],
-          true,
-        ),
+      const filteredOptions = updatedOptions.filter(
+        (option: AntdLabeledValue) => handleFilterOption(search, option),
       );
 
       setVisibleOptions(filteredOptions);
@@ -363,9 +361,6 @@ const Select = forwardRef(
     }, FAST_DEBOUNCE);
 
     useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
-
-    const handleFilterOption = (search: string, option: AntdLabeledValue) =>
-      handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
