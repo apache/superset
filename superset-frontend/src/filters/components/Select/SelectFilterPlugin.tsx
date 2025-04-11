@@ -29,6 +29,8 @@ import {
   finestTemporalGrainFormatter,
   t,
   tn,
+  styled,
+  css,
 } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
@@ -38,16 +40,31 @@ import { Select } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { PluginFilterSelectProps, SelectValue } from './types';
-import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
+import Checkbox from 'src/components/Checkbox/Checkbox';
+import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from 'src/components/Icons';
+import { useSelector } from 'react-redux';
+import { RootState } from 'src/views/store';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
+import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
+import { PluginFilterSelectProps, SelectValue } from './types';
+
+const EXCLUDE_FILTER_VALUES_TOOLTIP = (filterName: string) =>
+  t(
+    'Check this box to exclude the selected %s values from the results instead of filtering them',
+    filterName,
+  );
 
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
   | {
       type: 'filterState';
       extraFormData: ExtraFormData;
-      filterState: { value: SelectValue; label?: string };
+      filterState: {
+        value: SelectValue;
+        label?: string;
+        excludeFilterValues?: boolean;
+      };
     };
 
 function reducer(draft: DataMask, action: DataMaskAction) {
@@ -77,6 +94,33 @@ function reducer(draft: DataMask, action: DataMaskAction) {
   }
 }
 
+const CheckBoxControlWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-left: 8px;
+  margin-top: 8px;
+
+  [role='checkbox'] {
+    margin-top: 4px;
+  }
+
+  span[data-test='exclude-filter-label'] {
+    font-size: 12px;
+  }
+`;
+
+const iconStyles = css`
+  &.anticon {
+    font-size: unset;
+    .anticon {
+      line-height: unset;
+      vertical-align: unset;
+    }
+  }
+`;
+
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
     coltypeMap,
@@ -105,7 +149,16 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     inverseSelection,
     defaultToFirstItem,
     searchAllOptions,
+    showExcludeSelection,
   } = formData;
+  const filterName = useSelector(({ nativeFilters }: RootState) => {
+    const filterId = formData?.nativeFilterId;
+    if (!filterId || !nativeFilters?.filters) {
+      return '';
+    }
+    return nativeFilters.filters[filterId]?.name ?? '';
+  });
+
   const groupby = useMemo(
     () => ensureIsArray(formData.groupby).map(getColumnLabel),
     [formData.groupby],
@@ -125,6 +178,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       }),
     [data, col],
   );
+  const [excludeFilterValues, setExcludeFilterValues] = useState(
+    !!filterState?.excludeFilterValues,
+  );
 
   const updateDataMask = useCallback(
     (values: SelectValue) => {
@@ -138,7 +194,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           col,
           values,
           emptyFilter,
-          inverseSelection,
+          excludeFilterValues || inverseSelection,
         ),
         filterState: {
           ...filterState,
@@ -151,6 +207,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             appSection === AppSection.FilterConfigModal && defaultToFirstItem
               ? undefined
               : values,
+          excludeFilterValues,
         },
       });
     },
@@ -163,6 +220,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       dispatchDataMask,
       enableEmptyFilter,
       inverseSelection,
+      excludeFilterValues,
       JSON.stringify(filterState),
       labelFormatter,
     ],
@@ -277,6 +335,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     defaultToFirstItem,
     enableEmptyFilter,
     inverseSelection,
+    excludeFilterValues,
     updateDataMask,
     data,
     groupby,
@@ -286,6 +345,30 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   useEffect(() => {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
+
+  const handleExcludeCheckboxChange = (checked: boolean) => {
+    setExcludeFilterValues(checked);
+  };
+
+  useEffect(() => {
+    dispatchDataMask({
+      type: 'filterState',
+      extraFormData: getSelectExtraFormData(
+        col,
+        filterState.value,
+        !filterState.value?.length,
+        excludeFilterValues,
+      ),
+      filterState: {
+        ...(filterState as {
+          value: SelectValue;
+          label?: string;
+          excludeFilterValues?: boolean;
+        }),
+        excludeFilterValues,
+      },
+    });
+  }, [excludeFilterValues]);
 
   return (
     <FilterPluginStyle height={height} width={width}>
@@ -298,7 +381,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           allowClear
           allowNewOptions={!searchAllOptions}
           allowSelectAll={!searchAllOptions}
-          // @ts-ignore
           value={filterState.value || []}
           disabled={isDisabled}
           getPopupContainer={
@@ -322,10 +404,39 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           loading={isRefreshing}
           oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
           invertSelection={inverseSelection}
+          showExcludeSelection={showExcludeSelection}
           options={options}
           sortComparator={sortComparator}
           onDropdownVisibleChange={setFilterActive}
         />
+        {showExcludeSelection && (
+          <CheckBoxControlWrapper
+            className="exclude-filter"
+            onClick={() => handleExcludeCheckboxChange(!excludeFilterValues)}
+            data-test="exclude-filter-wrapper"
+          >
+            <Checkbox
+              dataTestAttribute="exclude-filter-checkbox"
+              checked={excludeFilterValues}
+              onChange={handleExcludeCheckboxChange}
+            />
+            <span data-test="exclude-filter-label">
+              {filterBarOrientation === FilterBarOrientation.Horizontal
+                ? t('Exclude Values')
+                : t('Exclude Filter Values')}
+            </span>
+            <Tooltip
+              id="exclude-filter-tooltip"
+              title={EXCLUDE_FILTER_VALUES_TOOLTIP(filterName)}
+              placement="top"
+            >
+              <Icons.InfoCircleOutlined
+                css={iconStyles}
+                data-test="info-circle"
+              />
+            </Tooltip>
+          </CheckBoxControlWrapper>
+        )}
       </StyledFormItem>
     </FilterPluginStyle>
   );

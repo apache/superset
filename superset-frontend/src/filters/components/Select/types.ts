@@ -41,6 +41,7 @@ export interface PluginFilterSelectCustomizeProps {
   searchAllOptions: boolean;
   sortAscending?: boolean;
   sortMetric?: string;
+  showExcludeSelection: boolean;
 }
 
 export type PluginFilterSelectQueryFormData = QueryFormData &
@@ -74,4 +75,5 @@ export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   multiSelect: true,
   searchAllOptions: false,
   sortAscending: true,
+  showExcludeSelection: false,
 };

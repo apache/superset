@@ -46,8 +46,10 @@ const selectMultipleProps = {
     urlParams: {},
     vizType: 'filter_select',
     inputRef: { current: null },
+    nativeFilterId: 'test-filter',
   },
   height: 20,
+  width: 220,
   hooks: {},
   ownState: {},
   filterState: { value: ['boy'] },
@@ -61,7 +63,6 @@ const selectMultipleProps = {
       rejected_filters: [],
     },
   ],
-  width: 220,
   behaviors: ['NATIVE_FILTER'],
   isRefreshing: false,
   appSection: AppSection.Dashboard,
@@ -79,7 +80,38 @@ describe('SelectFilterPlugin', () => {
           formData: { ...selectMultipleProps.formData, ...props },
         })}
         setDataMask={setDataMask}
+        showOverflow={false}
       />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: {
+              'test-filter': {
+                name: 'Test Filter',
+              },
+            },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {
+                filters: [
+                  {
+                    col: 'gender',
+                    op: 'IN',
+                    val: ['boy'],
+                  },
+                ],
+              },
+              filterState: {
+                value: ['boy'],
+                label: 'boy',
+                excludeFilterValues: false,
+              },
+            },
+          },
+        },
+      },
     );
 
   beforeEach(() => {
@@ -101,6 +133,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: 'boy',
         value: ['boy'],
+        excludeFilterValues: false,
       },
     });
     userEvent.click(screen.getByRole('combobox'));
@@ -119,6 +152,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: 'boy, girl',
         value: ['boy', 'girl'],
+        excludeFilterValues: false,
       },
     });
   });
@@ -144,6 +178,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: undefined,
         value: null,
+        excludeFilterValues: false,
       },
     });
   });
@@ -161,6 +196,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: undefined,
         value: null,
+        excludeFilterValues: false,
       },
     });
   });
@@ -183,6 +219,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: 'girl (excluded)',
         value: ['girl'],
+        excludeFilterValues: false,
       },
     });
   });
@@ -205,6 +242,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: `boy, ${NULL_STRING}`,
         value: ['boy', null],
+        excludeFilterValues: false,
       },
     });
   });
@@ -252,11 +290,106 @@ describe('SelectFilterPlugin', () => {
         coltypeMap={{ bval: 1 }}
         data={[{ bval: bigValue }]}
         setDataMask={jest.fn()}
+        showOverflow={false}
       />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: {
+              'test-filter': {
+                name: 'Test Filter',
+              },
+            },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {},
+              filterState: {
+                value: [],
+                label: '',
+                excludeFilterValues: false,
+              },
+            },
+          },
+        },
+      },
     );
     userEvent.click(screen.getByRole('combobox'));
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     await userEvent.type(screen.getByRole('combobox'), '1');
     expect(screen.queryByLabelText(String(bigValue))).toBeInTheDocument();
+  });
+
+  test('Exclude filter checkbox is not visible when showExcludeSelection is false', () => {
+    getWrapper({ showExcludeSelection: false });
+    expect(
+      screen.queryByTestId('exclude-filter-checkbox'),
+    ).not.toBeInTheDocument();
+  });
+
+  test('Exclude filter checkbox is visible when showExcludeSelection is true', () => {
+    getWrapper({ showExcludeSelection: true });
+    expect(screen.getByTestId('exclude-filter-checkbox')).toBeInTheDocument();
+  });
+
+  test('Exclude filter checkbox toggles correctly', async () => {
+    getWrapper({ showExcludeSelection: true });
+    const checkbox = screen.getByTestId('exclude-filter-checkbox');
+    expect(checkbox).not.toBeChecked();
+
+    userEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
+
+    userEvent.click(checkbox);
+    expect(checkbox).not.toBeChecked();
+  });
+
+  test('Exclude filter checkbox updates data mask when toggled', async () => {
+    getWrapper({
+      showExcludeSelection: true,
+      filterState: { value: ['boy'] },
+    });
+
+    const checkbox = screen.getByTestId('exclude-filter-checkbox');
+    userEvent.click(checkbox);
+
+    expect(setDataMask).toHaveBeenCalledWith({
+      extraFormData: {
+        filters: [
+          {
+            col: 'gender',
+            op: 'NOT IN',
+            val: ['boy'],
+          },
+        ],
+      },
+      filterState: {
+        label: 'boy',
+        value: ['boy'],
+        excludeFilterValues: true,
+      },
+    });
+  });
+
+  test('Exclude filter checkbox shows correct tooltip', async () => {
+    getWrapper({
+      showExcludeSelection: true,
+      formData: {
+        ...selectMultipleProps.formData,
+        nativeFilterId: 'test-filter',
+      },
+    });
+
+    const tooltipIcon = screen.getByTestId('info-circle');
+    expect(tooltipIcon).toBeInTheDocument();
+
+    userEvent.hover(tooltipIcon);
+
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toBeInTheDocument();
+    expect(tooltip).toHaveTextContent(
+      'Check this box to exclude the selected Test Filter values from the results instead of filtering them',
+    );
   });
 });
