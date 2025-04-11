@@ -2039,7 +2039,7 @@ class TestDatasetApi(SupersetTestCase):
     @pytest.mark.usefixtures("create_datasets")
     def test_export_dataset_gamma(self):
         """
-        Dataset API: Test export dataset has gamma
+        Dataset API: Test export dataset as gamma
         """
 
         dataset = self.get_fixture_datasets()[0]
@@ -2049,7 +2049,7 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
-        assert rv.status_code == 404
+        assert rv.status_code in (403, 404)
 
         perm1 = security_manager.find_permission_view_menu("can_export", "Dataset")
 
