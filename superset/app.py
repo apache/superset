@@ -14,11 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
 
 import logging
 import os
+import sys
 from typing import cast, Iterable, Optional
-from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
+
+if sys.version_info >= (3, 11):
+    from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
+else:
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
+
 
 from flask import Flask
 from werkzeug.exceptions import NotFound
