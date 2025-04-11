@@ -137,7 +137,7 @@ export interface BaseSelectProps extends AntdExposedProps {
   invertSelection?: boolean;
 
   /*
-  It enables the user to get a dynamic control to Include or exclude the 
+  It enables the user to get a dynamic control to Include or exclude the
   Filters which will be shown on the basis of this flag
   */
   showExcludeSelection?: boolean;
