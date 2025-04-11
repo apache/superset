@@ -31,6 +31,5 @@ export default function XAxisSortControl(props: {
       setValue(null);
     }
   }, [props.shouldReset, props.value]);
-
-  return <SelectControl {...props} value={value} />;
+  return <SelectControl {...props} value={value} name="x_axis_sort" />;
 }

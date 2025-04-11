@@ -54,9 +54,14 @@ const REDIRECTS = {
 export interface EmptyStateProps {
   tableName: WelcomeTable;
   tab?: string;
+  otherTabTitle?: string;
 }
 
-export default function EmptyState({ tableName, tab }: EmptyStateProps) {
+export default function EmptyState({
+  tableName,
+  tab,
+  otherTabTitle,
+}: EmptyStateProps) {
   const getActionButton = () => {
     if (tableName === WelcomeTable.Recents) {
       return null;

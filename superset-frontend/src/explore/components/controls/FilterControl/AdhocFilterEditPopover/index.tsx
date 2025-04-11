@@ -16,43 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef, useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import Button from 'src/components/Button';
-import { styled, t } from '@superset-ui/core';
-
+import { styled, t, SupersetTheme, DatasourceType } from '@superset-ui/core';
+import { OptionSortType } from 'src/explore/types';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Tabs from 'src/components/Tabs';
-import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
+import AdhocFilterEditPopoverSimpleTabContent, {
+  ColumnType,
+} from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
 import AdhocFilterEditPopoverSqlTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent';
-import columnType from 'src/explore/components/controls/FilterControl/columnType';
 import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
+  Operators,
 } from 'src/explore/constants';
+import { Dataset } from '@superset-ui/chart-controls';
 import { ExpressionTypes } from '../types';
 
-const propTypes = {
-  adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
-  onChange: PropTypes.func.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onResize: PropTypes.func.isRequired,
-  options: PropTypes.arrayOf(
-    PropTypes.oneOfType([
-      columnType,
-      PropTypes.shape({ saved_metric_name: PropTypes.string.isRequired }),
-      adhocMetricType,
-    ]),
-  ).isRequired,
-  datasource: PropTypes.object,
-  partitionColumn: PropTypes.string,
-  theme: PropTypes.object,
-  sections: PropTypes.arrayOf(PropTypes.string),
-  operators: PropTypes.arrayOf(PropTypes.string),
-  requireSave: PropTypes.bool,
-};
+export interface AdhocFilterEditPopoverProps {
+  adhocFilter: AdhocFilter;
+  onChange: (adhocFilter: AdhocFilter) => void;
+  onClose: (() => void) | undefined;
+  onResize: () => void;
+  options: OptionSortType[] | ColumnType[];
+  datasource?: Record<string, any>;
+  partitionColumn?: string;
+  theme?: SupersetTheme;
+  sections?: string[];
+  operators?: Operators[];
+  requireSave?: boolean;
+}
 
 const ResizeIcon = styled.i`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
@@ -90,7 +85,23 @@ const FilterActionsContainer = styled.div`
   margin-top: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-const AdhocFilterEditPopover = props => {
+// Default empty Dataset object that satisfies the Dataset interface
+const emptyDataset: Dataset = {
+  id: 0,
+  type: DatasourceType.Table,
+  columns: [],
+  metrics: [],
+  column_formats: {},
+  currency_formats: {},
+  verbose_map: {},
+  main_dttm_col: '',
+  datasource_name: null,
+  description: null,
+};
+
+const AdhocFilterEditPopover = (
+  props: AdhocFilterEditPopoverProps & Record<string, any>,
+) => {
   const {
     adhocFilter: propsAdhocFilter,
     options,
@@ -99,38 +110,42 @@ const AdhocFilterEditPopover = props => {
     onResize,
     datasource,
     partitionColumn,
-    theme,
     operators,
     requireSave,
     ...popoverProps
   } = props;
 
-  const [adhocFilter, setAdhocFilter] = useState(propsAdhocFilter);
-  const [width, setWidth] = useState(POPOVER_INITIAL_WIDTH);
-  const [height, setHeight] = useState(POPOVER_INITIAL_HEIGHT);
-  const [activeKey, setActiveKey] = useState(
-    propsAdhocFilter?.expressionType || 'SIMPLE',
+  const [adhocFilter, setAdhocFilter] = useState<AdhocFilter>(propsAdhocFilter);
+  const [width, setWidth] = useState<number>(POPOVER_INITIAL_WIDTH);
+  const [height, setHeight] = useState<number>(POPOVER_INITIAL_HEIGHT);
+  const [isSimpleTabValid, setIsSimpleTabValid] = useState<boolean>(true);
+
+  const popoverContentRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>({ x: 0, y: 0, width: 0, height: 0 });
+
+  const onMouseMove = useCallback(
+    (e: MouseEvent) => {
+      onResize();
+      setWidth(
+        Math.max(
+          dragStartRef.current.width + (e.clientX - dragStartRef.current.x),
+          POPOVER_INITIAL_WIDTH,
+        ),
+      );
+      setHeight(
+        Math.max(
+          dragStartRef.current.height + (e.clientY - dragStartRef.current.y),
+          POPOVER_INITIAL_HEIGHT,
+        ),
+      );
+    },
+    [onResize],
   );
-  const [isSimpleTabValid, setIsSimpleTabValid] = useState(true);
-
-  const popoverContentRef = useRef(null);
-  const dragStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
-
-  const onMouseMove = e => {
-    onResize();
-    setWidth(
-      Math.max(
-        dragStartRef.current.width + (e.clientX - dragStartRef.current.x),
-        POPOVER_INITIAL_WIDTH,
-      ),
-    );
-    setHeight(
-      Math.max(
-        dragStartRef.current.height + (e.clientY - dragStartRef.current.y),
-        POPOVER_INITIAL_HEIGHT,
-      ),
-    );
-  };
 
   useEffect(() => {
     const onMouseUp = () => {
@@ -143,18 +158,20 @@ const AdhocFilterEditPopover = props => {
       document.removeEventListener('mouseup', onMouseUp);
       document.removeEventListener('mousemove', onMouseMove);
     };
-  }, []);
+  }, [onMouseMove]);
 
-  const onAdhocFilterChange = newAdhocFilter => {
+  const onAdhocFilterChange = (newAdhocFilter: AdhocFilter) => {
     setAdhocFilter(newAdhocFilter);
   };
 
   const onSave = () => {
     onChange(adhocFilter);
-    onClose();
+    if (onClose) {
+      onClose();
+    }
   };
 
-  const onDragDown = e => {
+  const onDragDown = (e: React.MouseEvent<HTMLElement>) => {
     dragStartRef.current = {
       x: e.clientX,
       y: e.clientY,
@@ -164,17 +181,12 @@ const AdhocFilterEditPopover = props => {
     document.addEventListener('mousemove', onMouseMove);
   };
 
-  const onTabChange = newActiveKey => {
-    setActiveKey(newActiveKey);
-  };
-
-  const adjustHeight = heightDifference => {
-    setHeight(prevHeight => prevHeight + heightDifference);
-  };
-
   const stateIsValid = adhocFilter.isValid();
   const hasUnsavedChanges =
     requireSave || !adhocFilter.equals(propsAdhocFilter);
+
+  // Convert datasource to Dataset type or use empty dataset
+  const datasetForSimpleTab: Dataset = (datasource as Dataset) || emptyDataset;
 
   return (
     <FilterPopoverContentContainer
@@ -190,7 +202,6 @@ const AdhocFilterEditPopover = props => {
         data-test="adhoc-filter-edit-tabs"
         style={{ minHeight: height, width }}
         allowOverflow
-        onChange={onTabChange}
       >
         <Tabs.TabPane
           className="adhoc-filter-edit-tab"
@@ -202,11 +213,9 @@ const AdhocFilterEditPopover = props => {
               operators={operators}
               adhocFilter={adhocFilter}
               onChange={onAdhocFilterChange}
-              options={options}
-              datasource={datasource}
-              onHeightChange={adjustHeight}
-              partitionColumn={partitionColumn}
-              popoverRef={popoverContentRef.current}
+              options={options as ColumnType[]}
+              datasource={datasetForSimpleTab}
+              partitionColumn={partitionColumn || ''}
               validHandler={setIsSimpleTabValid}
             />
           </ErrorBoundary>
@@ -220,9 +229,8 @@ const AdhocFilterEditPopover = props => {
             <AdhocFilterEditPopoverSqlTabContent
               adhocFilter={adhocFilter}
               onChange={onAdhocFilterChange}
-              options={options}
+              options={options as OptionSortType[]}
               height={height}
-              activeKey={activeKey}
             />
           </ErrorBoundary>
         </Tabs.TabPane>
@@ -253,7 +261,5 @@ const AdhocFilterEditPopover = props => {
     </FilterPopoverContentContainer>
   );
 };
-
-AdhocFilterEditPopover.propTypes = propTypes;
 
 export default AdhocFilterEditPopover;

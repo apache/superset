@@ -33,14 +33,14 @@ type ShouldFocusContainer = HTMLDivElement & {
 
 interface WithPopoverMenuProps {
   children: ReactNode;
-  disableClick: Boolean;
-  menuItems: ReactNode[];
+  disableClick?: Boolean;
+  menuItems?: ReactNode[];
   onChangeFocus?: (focus: Boolean) => void;
-  isFocused: Boolean;
+  isFocused?: Boolean;
   // Event argument is left as "any" because of the clash. In defaultProps it seems
   // like it should be React.FocusEvent<>, however from handleClick() we can also
   // derive that type is EventListenerOrEventListenerObject.
-  shouldFocus: (event: any, container: ShouldFocusContainer) => Boolean;
+  shouldFocus?: (event: any, container: ShouldFocusContainer) => Boolean;
   editMode: Boolean;
   style?: CSSProperties;
 }
@@ -115,11 +115,11 @@ const WithPopoverMenu = ({
   children,
   disableClick = false,
   menuItems = [],
-  onChangeFocus = null,
+  onChangeFocus,
   isFocused: propIsFocused = false,
   shouldFocus = defaultShouldFocus,
   editMode,
-  style = null,
+  style,
 }: WithPopoverMenuProps) => {
   const [isFocused, setIsFocused] = useState(propIsFocused);
   const containerRef = useRef<ShouldFocusContainer>(null);

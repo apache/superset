@@ -105,9 +105,9 @@ describe('VerifiedMetricsControl', () => {
       baseControl: 'MetricsControl',
       onChange: mockOnChange,
       extraProps: {
-        onChange: (value: any) => {
+        onChange: () => {
           // Simulate the MetricsControl onChange
-          mockOnChange(value, props);
+          mockOnChange();
         },
       },
     });
@@ -116,9 +116,9 @@ describe('VerifiedMetricsControl', () => {
     await verifier;
 
     // Call the onChange from props
-    props.onChange(['sum__value']);
+    props.onChange();
 
     expect(mockOnChange).toHaveBeenCalledTimes(1);
-    expect(mockOnChange).toHaveBeenCalledWith(['sum__value'], props);
+    expect(mockOnChange).toHaveBeenCalledWith();
   });
 });

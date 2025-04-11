@@ -23,9 +23,9 @@ import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 
 interface HoverMenuProps {
-  position: 'left' | 'top';
-  innerRef: RefObject<HTMLDivElement>;
-  children: ReactNode;
+  position?: 'left' | 'top';
+  innerRef?: RefObject<HTMLDivElement>;
+  children?: ReactNode;
   onHover?: (data: { isHovered: boolean }) => void;
 }
 

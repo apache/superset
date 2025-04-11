@@ -96,11 +96,7 @@ export function ControlFormItem({
         <ControlFormItemComponents.Checkbox
           value={value as boolean}
           onChange={handleChange}
-          name={name}
-          label={label}
-          description={description}
-          validationErrors={validationErrors}
-          {...props}
+          label={label ? String(label) : undefined}
         />
       ) : (
         <>
