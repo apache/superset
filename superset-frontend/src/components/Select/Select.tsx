@@ -132,6 +132,28 @@ const Select = forwardRef(
     );
     const [onChangeCount, setOnChangeCount] = useState(0);
     const previousChangeCount = usePrevious(onChangeCount, 0);
+    const [bulkSelectCounts, setBulkSelectCounts] = useState({
+      selectable: 0,
+      deselectable: 0,
+    });
+
+    useEffect(() => {
+      const selectedValues = ensureIsArray(selectValue);
+      const selectable = visibleOptions.filter(
+        option =>
+          !option.disabled &&
+          !hasOption(option.value, selectedValues) &&
+          !option.isNewOption,
+      ).length;
+
+      const deselectable = visibleOptions.filter(
+        option =>
+          !option.disabled &&
+          hasOption(option.value, ensureIsArray(selectValue)),
+      ).length;
+
+      setBulkSelectCounts({ selectable, deselectable });
+    }, [visibleOptions, selectValue]);
 
     const fireOnChange = useCallback(
       () => setOnChangeCount(onChangeCount + 1),
@@ -423,59 +445,40 @@ const Select = forwardRef(
       fireOnChange,
     ]);
 
-    const selectableOptionsCount = useMemo(() => {
-      const selectedValues = ensureIsArray(selectValue);
-      return visibleOptions.filter(
-        option =>
-          !option.disabled &&
-          !hasOption(option.value, selectedValues) &&
-          !option.isNewOption,
-      ).length;
-    }, [visibleOptions, selectValue]);
-    const deselectableOptionsCount = useMemo(
-      () =>
-        visibleOptions.filter(
-          option =>
-            !option.disabled &&
-            hasOption(option.value, ensureIsArray(selectValue)),
-        ).length,
-      [visibleOptions, selectValue],
-    );
-
     const bulkSelectComponent = useMemo(
       () => (
         <StyledBulkActionsContainer size={0}>
           <Button
             type="link"
             buttonSize="xsmall"
-            disabled={selectableOptionsCount === 0}
-            onClick={e => {
+            disabled={bulkSelectCounts.selectable === 0}
+            onMouseDown={e => {
               e.preventDefault();
               e.stopPropagation();
               handleSelectAll();
             }}
           >
-            {`${t('Select all')} (${selectableOptionsCount})`}
+            {`${t('Select all')} (${bulkSelectCounts.selectable})`}
           </Button>
           <Button
             type="link"
             buttonSize="xsmall"
-            disabled={deselectableOptionsCount === 0}
-            onClick={e => {
+            disabled={bulkSelectCounts.deselectable === 0}
+            onMouseDown={e => {
               e.preventDefault();
               e.stopPropagation();
               handleDeselectAll();
             }}
           >
-            {`${t('Deselect all')} (${deselectableOptionsCount})`}
+            {`${t('Deselect all')} (${bulkSelectCounts.deselectable})`}
           </Button>
         </StyledBulkActionsContainer>
       ),
       [
         handleSelectAll,
         handleDeselectAll,
-        selectableOptionsCount,
-        deselectableOptionsCount,
+        bulkSelectCounts.selectable,
+        bulkSelectCounts.deselectable,
       ],
     );
 
