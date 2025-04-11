@@ -93,6 +93,7 @@ const ExtraOptions = ({
     <Collapse
       expandIconPosition="right"
       accordion
+      modalMode
       items={[
         {
           key: 'sql-lab',

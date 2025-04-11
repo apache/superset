@@ -877,6 +877,7 @@ const FiltersConfigForm = (
           }}
           expandIconPosition="right"
           key={`native-filter-config-${filterId}`}
+          modalMode
           items={[
             ...(formFilter?.filterType !== 'filter_time'
               ? [
