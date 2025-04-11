@@ -99,7 +99,18 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {"ALERT_REPORTS": True}
+FEATURE_FLAGS = {"ALERT_REPORTS": True, "SHOW_DASHBOARD_AGENT_QUERY": False}
+
+DASHBOARD_AGENTIC_QUERY_CONFIG = {
+    "model": "gpt-4o",
+    "temperature": 0.8,
+    "max_tokens": None,
+    "timeout": None,
+    "max_retries": 2,
+    "api_key": "-",
+    "base_url": "",
+}
+
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
 # The base URL for the email report hyperlinks.
