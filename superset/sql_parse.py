@@ -208,6 +208,8 @@ class ParsedQuery:
         strip_comments: bool = False,
         engine: str = "base",
     ):
+        self.strip_comments_sql = None
+        self.stripped_sql = None
         if strip_comments:
             sql_statement = sqlparse.format(sql_statement, strip_comments=True)
 
@@ -394,38 +396,33 @@ class ParsedQuery:
         return len(parsed) == 1 and parsed[0].get_type() == "SELECT"
 
     def is_explain(self) -> bool:
-        # Remove comments
-        statements_without_comments = sqlparse.format(
-            self.stripped(), strip_comments=True
-        )
-
         # Explain statements will only be the first statement
-        return statements_without_comments.upper().startswith("EXPLAIN")
+        return self.strip_comments().upper().startswith("EXPLAIN")
 
     def is_show(self) -> bool:
-        # Remove comments
-        statements_without_comments = sqlparse.format(
-            self.stripped(), strip_comments=True
-        )
         # Show statements will only be the first statement
-        return statements_without_comments.upper().startswith("SHOW")
+        return self.strip_comments().upper().startswith("SHOW")
 
     def is_set(self) -> bool:
-        # Remove comments
-        statements_without_comments = sqlparse.format(
-            self.stripped(), strip_comments=True
-        )
         # Set statements will only be the first statement
-        return statements_without_comments.upper().startswith("SET")
+        return self.strip_comments().upper().startswith("SET")
 
     def is_unknown(self) -> bool:
         return self._parsed[0].get_type() == "UNKNOWN"
 
     def stripped(self) -> str:
-        return self.sql.strip(" \t\r\n;")
+        if self.stripped_sql is None:
+            self.stripped_sql = self.sql.strip(" \t\r\n;")
+
+        return self.stripped_sql
 
     def strip_comments(self) -> str:
-        return sqlparse.format(self.stripped(), strip_comments=True)
+        if self.strip_comments_sql is None:
+            self.strip_comments_sql = sqlparse.format(
+                self.stripped(), strip_comments=True
+            )
+
+        return self.strip_comments_sql
 
     def get_statements(self) -> list[str]:
         """Returns a list of SQL statements as strings, stripped"""
