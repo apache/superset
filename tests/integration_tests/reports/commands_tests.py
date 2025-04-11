@@ -673,54 +673,58 @@ def test_email_chart_report_schedule_with_cc_bcc(
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
 
-    with freeze_time("2020-01-01T00:00:00Z"):
-        AsyncExecuteReportScheduleCommand(
-            TEST_ID, create_report_email_chart_with_cc_and_bcc.id, datetime.utcnow()
-        ).run()
+    with current_app.test_request_context():
+        with freeze_time("2020-01-01T00:00:00Z"):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_report_email_chart_with_cc_and_bcc.id, datetime.utcnow()
+            ).run()
 
-        notification_targets = get_target_from_report_schedule(
-            create_report_email_chart_with_cc_and_bcc
-        )
-
-        notification_cctargets = get_cctarget_from_report_schedule(
-            create_report_email_chart_with_cc_and_bcc
-        )
-
-        notification_bcctargets = get_bcctarget_from_report_schedule(
-            create_report_email_chart_with_cc_and_bcc
-        )
-
-        # assert that the link sent is correct
-        assert (
-            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
-            f"{create_report_email_chart_with_cc_and_bcc.chart.id}"
-            '%7D&force=false">Explore in Superset</a>' in email_mock.call_args[0][2]
-        )
-        # Assert the email smtp address
-        if notification_targets:
-            assert email_mock.call_args[0][0] == notification_targets[0]
-
-        # Assert the cc recipients if provided
-        if notification_cctargets:
-            expected_cc_targets = [target.strip() for target in notification_cctargets]
-            assert (
-                email_mock.call_args[1].get("cc", "").split(",") == expected_cc_targets
+            notification_targets = get_target_from_report_schedule(
+                create_report_email_chart_with_cc_and_bcc
             )
 
-        if notification_bcctargets:
-            expected_bcc_targets = [
-                target.strip() for target in notification_bcctargets
-            ]
-            assert (
-                email_mock.call_args[1].get("bcc", "").split(",")
-                == expected_bcc_targets
+            notification_cctargets = get_cctarget_from_report_schedule(
+                create_report_email_chart_with_cc_and_bcc
             )
 
-        # Assert the email inline screenshot
-        smtp_images = email_mock.call_args[1]["images"]
-        assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
-        # Assert logs are correct
-        assert_log(ReportState.SUCCESS)
+            notification_bcctargets = get_bcctarget_from_report_schedule(
+                create_report_email_chart_with_cc_and_bcc
+            )
+
+            # assert that the link sent is correct
+            assert (
+                '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
+                f"{create_report_email_chart_with_cc_and_bcc.chart.id}"
+                '%7D&force=false">Explore in Superset</a>' in email_mock.call_args[0][2]
+            )
+            # Assert the email smtp address
+            if notification_targets:
+                assert email_mock.call_args[0][0] == notification_targets[0]
+
+            # Assert the cc recipients if provided
+            if notification_cctargets:
+                expected_cc_targets = [
+                    target.strip() for target in notification_cctargets
+                ]
+                assert (
+                    email_mock.call_args[1].get("cc", "").split(",")
+                    == expected_cc_targets
+                )
+
+            if notification_bcctargets:
+                expected_bcc_targets = [
+                    target.strip() for target in notification_bcctargets
+                ]
+                assert (
+                    email_mock.call_args[1].get("bcc", "").split(",")
+                    == expected_bcc_targets
+                )
+
+            # Assert the email inline screenshot
+            smtp_images = email_mock.call_args[1]["images"]
+            assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
+            # Assert logs are correct
+            assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures(
