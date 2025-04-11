@@ -436,7 +436,7 @@ export default styled(BigNumberVis)`
       line-height: 1em;
       padding-bottom: 2em;
     }
-    
+
     .metric-name {
       line-height: 1em;
       white-space: nowrap;
@@ -460,7 +460,7 @@ export default styled(BigNumberVis)`
     }
 
     .subtitle-line {
-      line-height: 1em;      
+      line-height: 1em;
     }
 
     &.is-fallback-value {
