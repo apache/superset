@@ -27,6 +27,7 @@ jest.useFakeTimers();
 const selectMultipleProps = {
   formData: {
     sortAscending: true,
+    creatable: false,
     multiSelect: true,
     enableEmptyFilter: true,
     defaultToFirstItem: false,
@@ -258,5 +259,17 @@ describe('SelectFilterPlugin', () => {
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     await userEvent.type(screen.getByRole('combobox'), '1');
     expect(screen.queryByLabelText(String(bigValue))).toBeInTheDocument();
+  });
+
+  test('Should not allow for new values when creatable is false', () => {
+    getWrapper({ creatable: false });
+    userEvent.type(screen.getByRole('combobox'), 'new value');
+    expect(screen.queryByTitle('new value')).not.toBeInTheDocument();
+  });
+
+  test('Should allow for new values when creatable is false', async () => {
+    getWrapper({ creatable: true });
+    userEvent.type(screen.getByRole('combobox'), 'new value');
+    expect(await screen.findByTitle('new value')).toBeInTheDocument();
   });
 });
