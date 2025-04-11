@@ -39,7 +39,7 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import { InputNumber } from 'src/components/Input';
+import { Input, InputNumber } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import Collapse from 'src/components/Collapse';
@@ -1088,12 +1088,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('validator_config_json', config);
   };
 
-  const onThresholdChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { target } = event;
-
+  const onThresholdChange = (value: number | null) => {
     const config = {
       op: currentAlert ? currentAlert.validator_config_json?.op : undefined,
-      threshold: target.value,
+      threshold: value,
     };
 
     updateAlertState('validator_config_json', config);
@@ -1487,15 +1485,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     <span className="required">*</span>
                   </div>
                   <div className="input-container">
-                    <input
-                      type="text"
+                    <Input
                       name="name"
-                      value={currentAlert ? currentAlert.name : ''}
                       placeholder={
                         isReport
                           ? t('Enter report name')
                           : t('Enter alert name')
                       }
+                      value={currentAlert ? currentAlert.name : ''}
                       onChange={onInputChange}
                     />
                   </div>
@@ -1526,8 +1523,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <StyledInputContainer>
                   <div className="control-label">{t('Description')}</div>
                   <div className="input-container">
-                    <input
-                      type="text"
+                    <Input
                       name="description"
                       value={currentAlert ? currentAlert.description || '' : ''}
                       placeholder={t(
@@ -1642,16 +1638,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             )}
                           </div>
                           <div className="input-container">
-                            <input
+                            <InputNumber
+                              disabled={conditionNotNull}
                               type="number"
                               name="threshold"
-                              disabled={conditionNotNull}
                               value={
                                 currentAlert?.validator_config_json
                                   ?.threshold !== undefined && !conditionNotNull
                                   ? currentAlert.validator_config_json.threshold
                                   : ''
                               }
+                              min={0}
                               placeholder={t('Value')}
                               onChange={onThresholdChange}
                             />

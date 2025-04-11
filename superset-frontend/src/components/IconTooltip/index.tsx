@@ -18,6 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
+import Button from 'src/components/Button';
 
 export interface Props {
   children?: ReactNode;
@@ -49,19 +50,17 @@ const IconTooltip = ({
   tooltip = null,
 }: Props) => {
   const iconTooltip = (
-    <button
-      type="button"
+    <Button
       onClick={onClick}
       style={{
-        background: 'none',
-        border: 'none',
         padding: 0,
         ...style,
       }}
+      buttonStyle="link"
       className={`IconTooltip ${className}`}
     >
       {children}
-    </button>
+    </Button>
   );
   if (tooltip) {
     return (
