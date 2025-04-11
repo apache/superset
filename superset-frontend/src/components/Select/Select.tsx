@@ -423,9 +423,23 @@ const Select = forwardRef(
       fireOnChange,
     ]);
 
-    const visibleOptionsCount = useMemo(
-      () => visibleOptions.filter(option => !option.isNewOption).length,
-      [visibleOptions],
+    const selectableOptionsCount = useMemo(() => {
+      const selectedValues = ensureIsArray(selectValue);
+      return visibleOptions.filter(
+        option =>
+          !option.disabled &&
+          !hasOption(option.value, selectedValues) &&
+          !option.isNewOption,
+      ).length;
+    }, [visibleOptions, selectValue]);
+    const deselectableOptionsCount = useMemo(
+      () =>
+        visibleOptions.filter(
+          option =>
+            !option.disabled &&
+            hasOption(option.value, ensureIsArray(selectValue)),
+        ).length,
+      [visibleOptions, selectValue],
     );
 
     const bulkSelectComponent = useMemo(
@@ -434,29 +448,40 @@ const Select = forwardRef(
           <Button
             type="link"
             buttonSize="xsmall"
+            disabled={selectableOptionsCount === 0}
             onClick={e => {
               e.preventDefault();
               e.stopPropagation();
               handleSelectAll();
             }}
           >
-            {`${t('Select all')} (${visibleOptionsCount})`}
+            {`${t('Select all')} (${selectableOptionsCount})`}
           </Button>
           <Button
             type="link"
             buttonSize="xsmall"
+            disabled={deselectableOptionsCount === 0}
             onClick={e => {
               e.preventDefault();
               e.stopPropagation();
               handleDeselectAll();
             }}
           >
-            {`${t('Deselect all')} (${visibleOptionsCount})`}
+            {`${t('Deselect all')} (${deselectableOptionsCount})`}
           </Button>
         </StyledBulkActionsContainer>
       ),
-      [handleSelectAll, handleDeselectAll, visibleOptionsCount],
+      [
+        handleSelectAll,
+        handleDeselectAll,
+        selectableOptionsCount,
+        deselectableOptionsCount,
+      ],
     );
+
+    useEffect(() => {
+      console.log({ visibleOptions, selectValue });
+    }, [visibleOptions, selectValue]);
 
     const dropdownRender = (
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },

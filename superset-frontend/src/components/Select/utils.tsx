@@ -171,11 +171,11 @@ export const dropDownRenderHelper = (
   }
   return (
     <>
-      {bulkSelectComponents}
       {helperText && (
         <StyledHelperText role="note">{helperText}</StyledHelperText>
       )}
       {originNode}
+      {bulkSelectComponents}
     </>
   );
 };
