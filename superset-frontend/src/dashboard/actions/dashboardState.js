@@ -665,18 +665,21 @@ export function setActiveTab(tabId, prevTabId) {
     const { present: currentLayout } = dashboardLayout;
     const restoredTabs = [];
     const queue = [tabId];
+    const visited = new Set();
     while (queue.length > 0) {
       const seek = queue.shift();
-      const found =
-        prevInactiveTabs?.filter(inactiveTabId =>
-          currentLayout[inactiveTabId]?.parents
-            .filter(id => id.startsWith('TAB-'))
-            .slice(-1)
-            .includes(seek),
-        ) ?? [];
-
-      restoredTabs.push(...found);
-      queue.push(...found);
+      if (!visited.has(seek)) {
+        visited.add(seek);
+        const found =
+          prevInactiveTabs?.filter(inactiveTabId =>
+            currentLayout[inactiveTabId]?.parents
+              .filter(id => id.startsWith('TAB-'))
+              .slice(-1)
+              .includes(seek),
+          ) ?? [];
+        restoredTabs.push(...found);
+        queue.push(...found);
+      }
     }
     const tabIds = restoredTabs ? [tabId].concat(restoredTabs) : [tabId];
     const inactiveTabs =
