@@ -848,10 +848,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 catalog,
                 schemas,
             )
-            def exclude_meta_schemas(schemas):
-                return [schema for schema in schemas if not "timescaledb_" in schema and schema not in ["information_schema", "public", "superset_uploads"]]
 
-            schemas = exclude_meta_schemas(schemas)
             def get_tables(pk, catalog, schema, force):
                 tables_result = TablesDatabaseCommand(pk, catalog, schema, force).run()["result"]
                 return [result["value"] for result in tables_result]
