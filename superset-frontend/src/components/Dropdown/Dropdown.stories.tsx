@@ -20,7 +20,7 @@ import { Menu } from 'src/components/Menu';
 import { MenuDotsDropdown, MenuDotsDropdownProps } from '.';
 
 export default {
-  title: 'Dropdown',
+  title: 'Components/Dropdown',
 };
 
 const menu = (

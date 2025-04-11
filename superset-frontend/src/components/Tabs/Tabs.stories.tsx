@@ -19,7 +19,7 @@
 import Tabs, { TabsProps } from '.';
 
 export default {
-  title: 'Tabs',
+  title: 'Components/Tabs',
   component: Tabs,
 };
 

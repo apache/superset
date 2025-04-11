@@ -20,7 +20,7 @@
 import { List, ListProps } from '.';
 
 export default {
-  title: 'List',
+  title: 'Components/List',
   component: List,
 };
 

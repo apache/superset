@@ -20,7 +20,7 @@ import { extendedDayjs } from 'src/utils/dates';
 import Timer, { TimerProps } from './index';
 
 export default {
-  title: 'Timer',
+  title: 'Components/Timer',
   component: Timer,
 };
 

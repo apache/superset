@@ -21,7 +21,7 @@ import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import FormRow from '.';
 
 export default {
-  title: 'FormRow',
+  title: 'Components/FormRow',
 };
 
 export const InteractiveFormRow = ({ isCheckbox, ...rest }: any) => {

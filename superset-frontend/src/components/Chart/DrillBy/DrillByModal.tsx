@@ -19,6 +19,7 @@
 
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
+  BinaryQueryObjectFilterClause,
   BaseFormData,
   Column,
   QueryData,
@@ -51,22 +52,24 @@ import {
 } from 'src/logger/LogUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { getQuerySettings } from 'src/explore/exploreUtils';
+import { Breadcrumb } from 'src/components/Breadcrumb';
+import { Flex } from 'src/components/Flex';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
 import { useContextMenu } from '../ChartContextMenu/useContextMenu';
 import { getChartDataRequest, handleChartDataResponse } from '../chartAction';
 import { useDisplayModeToggle } from './useDisplayModeToggle';
-import {
-  DrillByBreadcrumb,
-  useDrillByBreadcrumbs,
-} from './useDrillByBreadcrumbs';
 import { useResultsTableView } from './useResultsTableView';
 
 const DEFAULT_ADHOC_FILTER_FIELD_NAME = 'adhoc_filters';
 interface ModalFooterProps {
   closeModal?: () => void;
   formData: BaseFormData;
+}
+interface DrillByBreadcrumb {
+  groupby: Column | Column[];
+  filters?: BinaryQueryObjectFilterClause[];
 }
 
 const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
@@ -308,8 +311,35 @@ export default function DrillByModal({
     },
     [dispatch, drillByConfigs, formData, getFormDataChangesFromConfigs],
   );
+  const breadcrumbItems = breadcrumbsData
+    .map((breadcrumb, index) => {
+      const isClickable = index < breadcrumbsData.length - 1;
+      const hasGroupBy = ensureIsArray(breadcrumb.groupby).length > 0;
+      const hasFilters = ensureIsArray(breadcrumb.filters).length > 0;
 
-  const breadcrumbs = useDrillByBreadcrumbs(breadcrumbsData, onBreadcrumbClick);
+      if (!hasGroupBy && !hasFilters) {
+        return undefined;
+      }
+
+      const groupbyText = ensureIsArray(breadcrumb.groupby)
+        .map(column => column.verbose_name || column.column_name)
+        .join(', ');
+
+      const filtersText = hasFilters
+        ? `(${ensureIsArray(breadcrumb.filters)
+            .map(filter => filter.formattedVal ?? String(filter.val))
+            .join(', ')})`
+        : '';
+
+      const title = `${groupbyText} ${filtersText}`.trim();
+      return {
+        title,
+        onClick: isClickable
+          ? () => onBreadcrumbClick(breadcrumb, index)
+          : undefined,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
   const drilledFormData = useMemo(() => {
     let updatedFormData = { ...currentFormData };
@@ -451,15 +481,41 @@ export default function DrillByModal({
       destroyOnClose
       maskClosable={false}
     >
-      <div
+      <Flex
+        vertical
+        gap={theme.sizeUnit}
         css={css`
-          display: flex;
-          flex-direction: column;
           height: 100%;
         `}
       >
         {metadataBar}
-        {breadcrumbs}
+        <Breadcrumb
+          css={css`
+            margin-bottom: ${theme.sizeUnit * 2}px;
+          `}
+          items={breadcrumbItems}
+          itemRender={(route, _, routes, paths) => {
+            const isLastElement = routes.indexOf(route) === routes.length - 1;
+            return isLastElement ? (
+              <span data-test="drill-by-breadcrumb-item">
+                {route.title}
+                {paths}
+              </span>
+            ) : (
+              <span
+                data-test="drill-by-breadcrumb-item"
+                role="button"
+                tabIndex={0}
+                onClick={route.onClick}
+                css={css`
+                  cursor: pointer;
+                `}
+              >
+                {route.title}
+              </span>
+            );
+          }}
+        />
         {displayModeToggle}
         {isChartDataLoading && <Loading />}
         {!isChartDataLoading && !chartDataResult && (
@@ -481,7 +537,7 @@ export default function DrillByModal({
           chartDataResult &&
           resultsTable}
         {contextMenu}
-      </div>
+      </Flex>
     </Modal>
   );
 }

@@ -30,7 +30,7 @@ const bigText =
   'purus convallis placerat in at nunc. Nulla nec viverra augue.';
 
 export default {
-  title: 'Alert',
+  title: 'Components/Alert',
   component: Alert,
 };
 

@@ -19,7 +19,7 @@
 import Collapse, { CollapseProps } from '.';
 
 export default {
-  title: 'Collapse',
+  title: 'Components/Collapse',
   component: Collapse,
 };
 

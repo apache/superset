@@ -19,7 +19,7 @@
 import Badge, { BadgeProps } from '.';
 
 export default {
-  title: 'Badge',
+  title: 'Components/Badge',
   component: Badge,
 };
 

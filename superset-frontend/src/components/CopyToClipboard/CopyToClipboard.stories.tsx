@@ -22,7 +22,7 @@ import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import CopyToClipboard from '.';
 
 export default {
-  title: 'CopyToClipboard',
+  title: 'Components/CopyToClipboard',
   component: CopyToClipboard,
 };
 

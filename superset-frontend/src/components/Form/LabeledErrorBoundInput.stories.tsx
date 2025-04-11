@@ -22,7 +22,7 @@ import LabeledErrorBoundInput, {
 } from './LabeledErrorBoundInput';
 
 export default {
-  title: 'LabeledErrorBoundInput',
+  title: 'Components/Form/LabeledErrorBoundInput',
   component: LabeledErrorBoundInput,
 };
 

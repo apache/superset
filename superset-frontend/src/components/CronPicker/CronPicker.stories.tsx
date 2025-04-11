@@ -22,7 +22,7 @@ import { Input } from 'src/components/Input';
 import { CronPicker, CronError, CronProps } from '.';
 
 export default {
-  title: 'CronPicker',
+  title: 'Components/CronPicker',
   component: CronPicker,
 };
 

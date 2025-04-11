@@ -47,7 +47,7 @@ const editorTypes: EditorType[] = [
 ];
 
 export default {
-  title: 'AsyncAceEditor',
+  title: 'Components/AsyncAceEditor',
 };
 
 const parseEditorType = (editorType: EditorType) => {

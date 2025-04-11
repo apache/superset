@@ -21,7 +21,7 @@ import Modal, { ModalProps, ModalFuncProps } from '.';
 import Button from '../Button';
 
 export default {
-  title: 'Modal',
+  title: 'Components/Modal',
   component: Modal,
 };
 

@@ -24,7 +24,7 @@ import FaveStar from 'src/components/FaveStar';
 import ListViewCard from '.';
 
 export default {
-  title: 'ListViewCard',
+  title: 'Components/ListViewCard',
   component: ListViewCard,
   argTypes: {
     loading: { control: 'boolean', defaultValue: false },

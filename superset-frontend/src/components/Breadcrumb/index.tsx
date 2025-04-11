@@ -16,20 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import WarningIconWithTooltip, { WarningIconWithTooltipProps } from '.';
+import { Breadcrumb as AntdBreadcrumb } from 'antd-v5';
 
-export default {
-  title: 'Components/WarningIconWithTooltip',
-  component: WarningIconWithTooltip,
-};
-
-export const InteractiveWarningIcon = (args: WarningIconWithTooltipProps) => (
-  <div css={{ margin: 40 }}>
-    <WarningIconWithTooltip {...args} />
-  </div>
-);
-
-InteractiveWarningIcon.args = {
-  warningMarkdown: 'Markdown example',
-  size: 20,
-};
+export const Breadcrumb = AntdBreadcrumb;

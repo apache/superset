@@ -20,7 +20,7 @@ import Button from 'src/components/Button';
 import ConfirmStatusChange, { ConfirmStatusChangeProps, Callback } from '.';
 
 export default {
-  title: 'ConfirmStatusChange',
+  title: 'Components/ConfirmStatusChange',
 };
 
 export const InteractiveConfirmStatusChange = (

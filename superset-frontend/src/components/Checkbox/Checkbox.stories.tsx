@@ -22,7 +22,7 @@ import type { CheckboxChangeEvent } from 'antd/es/checkbox';
 import Checkbox, { CheckboxProps } from '.';
 
 export default {
-  title: 'Checkbox',
+  title: 'Components/Checkbox',
   component: Checkbox,
   parameters: {
     docs: {

@@ -24,7 +24,7 @@ import IconType from './types';
 import { BaseIconComponent } from './BaseIcon';
 
 export default {
-  title: 'Icons',
+  title: 'Components/Icons',
   component: BaseIconComponent,
 };
 

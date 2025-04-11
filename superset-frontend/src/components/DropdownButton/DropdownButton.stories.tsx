@@ -20,7 +20,7 @@ import { Menu } from 'src/components/Menu';
 import { DropdownButton, DropdownButtonProps } from '.';
 
 export default {
-  title: 'DropdownButton',
+  title: 'Components/DropdownButton',
 };
 
 const menu = (

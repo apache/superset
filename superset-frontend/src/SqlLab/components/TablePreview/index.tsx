@@ -32,7 +32,7 @@ import {
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Icons } from 'src/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { AntdBreadcrumb as Breadcrumb } from 'src/components';
+import { Breadcrumb } from 'src/components/Breadcrumb';
 import Button from 'src/components/Button';
 import Skeleton from 'src/components/Skeleton';
 import { Dropdown } from 'src/components/Dropdown';
