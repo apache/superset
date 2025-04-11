@@ -306,7 +306,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
             />
           </Tooltip>
         }
-        items={tabItems} // Use the dynamically generated items array
+        items={tabItems}
       />
     );
   }

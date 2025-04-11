@@ -18,7 +18,8 @@
  */
 import { css, JsonValue, styled, t } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
-import { Button, Form } from 'antd'; // TODO: Remove antd
+import Button from 'src/components/Button';
+import { Form } from 'src/components/Form';
 import Tabs from 'src/components/Tabs';
 import { mix } from 'polished';
 import { Data as GsData } from 'geostyler-data';

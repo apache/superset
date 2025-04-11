@@ -214,7 +214,6 @@ const ContourPopoverControl = ({
     }
   };
 
-  // Define tab items
   const tabItems = [
     {
       key: ContourTypes.Isoline,

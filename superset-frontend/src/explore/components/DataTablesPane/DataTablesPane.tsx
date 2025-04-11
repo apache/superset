@@ -38,6 +38,14 @@ import {
 } from './components';
 import { DataTablesPaneProps, ResultTypes } from './types';
 
+const StyledDiv = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    `}
+`;
+
 const SouthPane = styled.div`
   ${({ theme }) => `
     position: relative;
@@ -58,9 +66,8 @@ const SouthPane = styled.div`
     }
 
     .antd5-tabs-tabpane {
-      display: flex;
-      flex-direction: column;
       height: 100%;
+      position: relative;
 
       .table-condensed {
         height: 100%;
@@ -71,8 +78,7 @@ const SouthPane = styled.div`
           margin-bottom: ${theme.sizeUnit * 2}px;
         }
       }
-
-      .pagination-container > ul[role='navigation'] {
+     .pagination-container > ul[role='navigation'] {
         margin-top: 0;
       }
     }
@@ -209,14 +215,16 @@ export const DataTablesPane = ({
       key: ResultTypes.Samples,
       label: t('Samples'),
       children: (
-        <SamplesPane
-          datasource={datasource}
-          queryForce={queryForce}
-          isRequest={isRequest.samples}
-          actions={actions}
-          isVisible={ResultTypes.Samples === activeTabKey}
-          canDownload={canDownload}
-        />
+        <StyledDiv>
+          <SamplesPane
+            datasource={datasource}
+            queryForce={queryForce}
+            isRequest={isRequest.samples}
+            actions={actions}
+            isVisible={ResultTypes.Samples === activeTabKey}
+            canDownload={canDownload}
+          />
+        </StyledDiv>
       ),
     },
   ];

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t, theme } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import useGetDatasetRelatedCounts from 'src/features/datasets/hooks/useGetDatasetRelatedCounts';
 import Badge from 'src/components/Badge';
 import Tabs from 'src/components/Tabs';
@@ -87,13 +87,7 @@ const EditPage = ({ id }: EditPageProps) => {
     },
   ];
 
-  return (
-    <StyledTabs
-      moreIcon={null}
-      items={items}
-      tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
-    />
-  );
+  return <StyledTabs moreIcon={null} items={items} />;
 };
 
 export default EditPage;

@@ -723,7 +723,6 @@ const FiltersConfigForm = (
     <Tabs
       activeKey={activeTabKey}
       onChange={activeKey => setActiveTabKey(activeKey)}
-      tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
       items={[
         {
           key: FilterTabs.configuration.key,
