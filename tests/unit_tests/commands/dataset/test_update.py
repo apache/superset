@@ -33,36 +33,60 @@ from tests.unit_tests.conftest import with_feature_flags
 
 @pytest.mark.usefixture("session")
 def test_update_uniqueness_error(mocker: MockerFixture) -> None:
+    """
+    Test uniqueness validation in dataset update command.
+    """
     SqlaTable.metadata.create_all(db.session.get_bind())
-    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
-    bar = SqlaTable(table_name="bar", schema="foo", database=database)
-    baz = SqlaTable(table_name="baz", schema="qux", database=database)
-    db.session.add_all([database, bar, baz])
-    db.session.commit()
 
-    mock_g = mocker.patch("superset.security.manager.g")
-    mock_g.user = MagicMock()
+    # First, make sure session is clean
+    db.session.rollback()
 
-    mocker.patch(
-        "superset.views.base.security_manager.can_access_all_datasources",
-        return_value=True,
-    )
+    try:
+        # Set up test data
+        database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+        bar = SqlaTable(table_name="bar", schema="foo", database=database)
+        baz = SqlaTable(table_name="baz", schema="qux", database=database)
+        db.session.add_all([database, bar, baz])
+        db.session.commit()
 
-    mocker.patch(
-        "superset.commands.dataset.update.security_manager.raise_for_ownership",
-        return_value=None,
-    )
+        # Set up mocks
+        mock_g = mocker.patch("superset.security.manager.g")
+        mock_g.user = MagicMock()
+        mocker.patch(
+            "superset.views.base.security_manager.can_access_all_datasources",
+            return_value=True,
+        )
+        mocker.patch(
+            "superset.commands.dataset.update.security_manager.raise_for_ownership",
+            return_value=None,
+        )
+        mocker.patch.object(UpdateDatasetCommand, "compute_owners", return_value=[])
 
-    mocker.patch.object(UpdateDatasetCommand, "compute_owners", return_value=[])
-
-    with pytest.raises(DatasetInvalidError):
-        UpdateDatasetCommand(
-            bar.id,
-            {
-                "table_name": "baz",
-                "schema": "qux",
-            },
-        ).run()
+        # Run the test that should fail
+        with pytest.raises(DatasetInvalidError):
+            UpdateDatasetCommand(
+                bar.id,
+                {
+                    "table_name": "baz",
+                    "schema": "qux",
+                },
+            ).run()
+    except Exception:
+        db.session.rollback()
+        raise
+    finally:
+        # Clean up - this will run even if the test fails
+        try:
+            db.session.query(SqlaTable).filter(
+                SqlaTable.table_name.in_(["bar", "baz"]),
+                SqlaTable.schema.in_(["foo", "qux"]),
+            ).delete(synchronize_session=False)
+            db.session.query(Database).filter(Database.database_name == "my_db").delete(
+                synchronize_session=False
+            )
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
 
 @with_feature_flags(DATASET_FOLDERS=True)

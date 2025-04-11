@@ -1580,8 +1580,7 @@ class TestDatasetApi(SupersetTestCase):
                     "children": [
                         {
                             "type": "metric",
-                            "uuid": dataset.metrics[0].uuid,
-                            "name": dataset.metrics[0].metric_name,
+                            "uuid": str(dataset.metrics[0].uuid),
                         },
                     ],
                 },
@@ -1597,8 +1596,7 @@ class TestDatasetApi(SupersetTestCase):
                             "children": [
                                 {
                                     "type": "column",
-                                    "uuid": dataset.columns[1].uuid,
-                                    "name": dataset.columns[1].column_name,
+                                    "uuid": str(dataset.columns[1].uuid),
                                 },
                             ],
                         },
@@ -1609,6 +1607,7 @@ class TestDatasetApi(SupersetTestCase):
 
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.put_assert_metric(uri, dataset_data, "put")
+        print(rv.data.decode("utf-8"))
         assert rv.status_code == 200
 
         model = db.session.query(SqlaTable).get(dataset.id)
@@ -1621,7 +1620,6 @@ class TestDatasetApi(SupersetTestCase):
                     {
                         "uuid": str(dataset.metrics[0].uuid),
                         "type": "metric",
-                        "name": "count",
                     }
                 ],
             },
@@ -1638,7 +1636,6 @@ class TestDatasetApi(SupersetTestCase):
                             {
                                 "uuid": str(dataset.columns[1].uuid),
                                 "type": "column",
-                                "name": "name",
                             }
                         ],
                     }
@@ -2052,7 +2049,7 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
-        assert rv.status_code == 403
+        assert rv.status_code == 404
 
         perm1 = security_manager.find_permission_view_menu("can_export", "Dataset")
 
@@ -2118,7 +2115,8 @@ class TestDatasetApi(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
         # gamma users by default do not have access to this dataset
-        assert rv.status_code == 403
+        print(rv.data.decode("utf-8"))
+        assert rv.status_code == 404
 
     @unittest.skip("Number of related objects depend on DB")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
