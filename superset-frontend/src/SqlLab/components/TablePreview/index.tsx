@@ -32,11 +32,16 @@ import {
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Icons } from 'src/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { Breadcrumb } from 'src/components/Breadcrumb';
-import Button from 'src/components/Button';
+import {
+  Alert,
+  Breadcrumb,
+  Button,
+  Card,
+  CopyToClipboard,
+  Dropdown,
+  FilterableTable,
+} from 'src/components';
 import Skeleton from 'src/components/Skeleton';
-import { Dropdown } from 'src/components/Dropdown';
-import FilterableTable from 'src/components/FilterableTable';
 import Tabs from 'src/components/Tabs';
 import {
   tableApiUtil,
@@ -45,10 +50,7 @@ import {
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
 import { runTablePreviewQuery } from 'src/SqlLab/actions/sqlLab';
-import Alert from 'src/components/Alert';
 import { Menu } from 'src/components/Menu';
-import Card from 'src/components/Card';
-import CopyToClipboard from 'src/components/CopyToClipboard';
 import ResultSet from '../ResultSet';
 import ShowSQL from '../ShowSQL';
 

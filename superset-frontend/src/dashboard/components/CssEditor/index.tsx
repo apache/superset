@@ -17,13 +17,11 @@
  * under the License.
  */
 import { Key, ReactNode, PureComponent } from 'react';
-import { Dropdown } from 'src/components/Dropdown';
+import { Dropdown, CssEditor as AceCssEditor, Button } from 'src/components';
 import rison from 'rison';
 import { Menu } from 'src/components/Menu';
-import Button from 'src/components/Button';
 import { t, styled, SupersetClient } from '@superset-ui/core';
 import ModalTrigger from 'src/components/ModalTrigger';
-import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
 
 export interface CssEditorProps {
   initialCss: string;

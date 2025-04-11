@@ -18,13 +18,13 @@
  */
 import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
 import { styled, t } from '@superset-ui/core';
-import Button from 'src/components/Button';
-import { Input } from 'src/components/Input';
-import Modal from 'src/components/Modal';
 import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
 import { useImportResource } from 'src/views/CRUD/hooks';
-import { ImportResourceName } from 'src/views/CRUD/types';
-import ImportErrorAlert from './ImportErrorAlert';
+import { Button } from '../Button';
+import { Input } from '../Input';
+import { Modal } from '../Modal';
+import { ImportErrorAlert } from './ImportErrorAlert';
+import type { ImportModelsModalProps } from './types';
 
 const HelperMessage = styled.div`
   display: block;
@@ -97,29 +97,7 @@ const StyledInputContainer = styled.div`
   }
 `;
 
-export interface ImportModelsModalProps {
-  resourceName: ImportResourceName;
-  resourceLabel: string;
-  passwordsNeededMessage: string;
-  confirmOverwriteMessage: string;
-  addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
-  onModelImport: () => void;
-  show: boolean;
-  onHide: () => void;
-  passwordFields?: string[];
-  setPasswordFields?: (passwordFields: string[]) => void;
-  sshTunnelPasswordFields?: string[];
-  setSSHTunnelPasswordFields?: (sshTunnelPasswordFields: string[]) => void;
-  sshTunnelPrivateKeyFields?: string[];
-  setSSHTunnelPrivateKeyFields?: (sshTunnelPrivateKeyFields: string[]) => void;
-  sshTunnelPrivateKeyPasswordFields?: string[];
-  setSSHTunnelPrivateKeyPasswordFields?: (
-    sshTunnelPrivateKeyPasswordFields: string[],
-  ) => void;
-}
-
-const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
+export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
   resourceName,
   resourceLabel,
   passwordsNeededMessage,
@@ -461,4 +439,4 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   );
 };
 
-export default ImportModelsModal;
+export type { ImportModelsModalProps };

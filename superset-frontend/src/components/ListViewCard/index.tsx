@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, ComponentType, ReactElement, FC } from 'react';
 import { styled, useTheme } from '@superset-ui/core';
-import Card from 'src/components/Card';
 import Skeleton from 'src/components/Skeleton';
-import { Tooltip } from 'src/components/Tooltip';
-import ImageLoader, { BackgroundPosition } from './ImageLoader';
-import CertifiedBadge from '../CertifiedBadge';
+import { FC } from 'react';
+import { Card } from '../Card';
+import { CertifiedBadge } from '../CertifiedBadge';
+import { Tooltip } from '../Tooltip';
+import { ImageLoader } from './ImageLoader';
+import type { ListViewCardProps, LinkProps } from './types';
 
 const ActionsWrapper = styled.div`
   width: 64px;
@@ -131,34 +132,9 @@ const ThinSkeleton = styled(Skeleton)`
 
 const paragraphConfig = { rows: 1, width: 150 };
 
-interface LinkProps {
-  to: string;
-}
-
 const AnchorLink: FC<LinkProps> = ({ to, children }) => (
   <a href={to}>{children}</a>
 );
-
-interface CardProps {
-  title?: ReactNode;
-  subtitle?: ReactNode;
-  url?: string;
-  linkComponent?: ComponentType<LinkProps>;
-  imgURL?: string | null;
-  imgFallbackURL?: string;
-  imgPosition?: BackgroundPosition;
-  description: string;
-  loading?: boolean;
-  titleRight?: ReactNode;
-  coverLeft?: ReactNode;
-  coverRight?: ReactNode;
-  actions?: ReactNode | null;
-  rows?: number | string;
-  avatar?: ReactElement | null;
-  cover?: ReactNode | null;
-  certifiedBy?: string;
-  certificationDetails?: string;
-}
 
 function ListViewCard({
   title,
@@ -178,7 +154,7 @@ function ListViewCard({
   cover,
   certifiedBy,
   certificationDetails,
-}: CardProps) {
+}: ListViewCardProps) {
   const Link = url && linkComponent ? linkComponent : AnchorLink;
   const theme = useTheme();
   return (
@@ -280,4 +256,5 @@ function ListViewCard({
 
 ListViewCard.Actions = ActionsWrapper;
 
-export default ListViewCard;
+export { ListViewCard, ImageLoader };
+export type { ListViewCardProps };

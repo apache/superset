@@ -18,12 +18,16 @@
  */
 import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
 
-import Modal from 'src/components/Modal';
-import { Input } from 'src/components/Input';
-import Button from 'src/components/Button';
-import { AsyncSelect } from 'src/components';
-import { SelectValue } from 'src/components/Select';
-import { Row, Col } from 'src/components/Grid';
+import {
+  Input,
+  Modal,
+  AsyncSelect,
+  Button,
+  Form,
+  Row,
+  Col,
+  type SelectValue,
+} from 'src/components';
 import rison from 'rison';
 import {
   t,
@@ -42,7 +46,6 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/Tag/utils';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import TagType from 'src/types/TagType';
-import { Form } from 'src/components/Form';
 
 export type PropertiesModalProps = {
   slice: Slice;

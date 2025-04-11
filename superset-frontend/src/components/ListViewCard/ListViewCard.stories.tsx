@@ -17,11 +17,11 @@
  * under the License.
  */
 import { action } from '@storybook/addon-actions';
-import { Dropdown } from 'src/components/Dropdown';
-import { Menu } from 'src/components/Menu';
 import { Icons } from 'src/components/Icons';
-import FaveStar from 'src/components/FaveStar';
-import ListViewCard from '.';
+import { Menu } from '../Menu';
+import { Dropdown } from '../Dropdown';
+import { FaveStar } from '../FaveStar';
+import { ListViewCard } from '.';
 
 export default {
   title: 'Components/ListViewCard',

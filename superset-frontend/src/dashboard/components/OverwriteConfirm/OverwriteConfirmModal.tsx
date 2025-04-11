@@ -21,8 +21,7 @@ import { extendedDayjs } from 'src/utils/dates';
 import { useDispatch } from 'react-redux';
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import { useInView } from 'react-intersection-observer';
-import Modal from 'src/components/Modal';
-import Button from 'src/components/Button';
+import { Button, Modal } from 'src/components';
 import { DashboardState } from 'src/dashboard/types';
 import {
   saveDashboardRequest,

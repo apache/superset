@@ -56,16 +56,18 @@ import { useSelector } from 'react-redux';
 import { rgba } from 'emotion-rgba';
 import { kebabCase, isEqual } from 'lodash';
 
-import Collapse from 'src/components/Collapse';
+import {
+  Collapse,
+  Modal,
+  Loading,
+  Tooltip,
+  PluginContext,
+} from 'src/components';
 import Tabs from 'src/components/Tabs';
-import { PluginContext } from 'src/components/DynamicPlugins';
-import Loading from 'src/components/Loading';
-import Modal from 'src/components/Modal';
 
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
-import { Tooltip } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
 import ControlRow from './ControlRow';
 import Control from './Control';

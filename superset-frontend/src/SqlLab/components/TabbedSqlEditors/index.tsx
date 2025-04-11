@@ -30,10 +30,9 @@ import {
   css,
 } from '@superset-ui/core';
 import { Logger } from 'src/logger/LogUtils';
-import { Tooltip } from 'src/components/Tooltip';
+import { EmptyState, Tooltip } from 'src/components';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
-import { EmptyState } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { locationContext } from 'src/pages/SqlLab/LocationContext';
 import { Icons } from 'src/components/Icons';

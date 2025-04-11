@@ -20,7 +20,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
 import { omit } from 'lodash';
-import { EmptyState } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components';
 import {
   t,
   styled,

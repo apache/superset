@@ -30,8 +30,7 @@ import { withTheme, Theme } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
-import Button from 'src/components/Button';
-import { AsyncSelect } from 'src/components';
+import { AsyncSelect, Button } from 'src/components';
 import { Steps } from 'src/components/Steps';
 import withToasts from 'src/components/MessageToasts/withToasts';
 

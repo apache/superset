@@ -20,13 +20,10 @@ import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-import { RangePicker } from 'src/components/DatePicker';
 import { extendedDayjs } from 'src/utils/dates';
 import { Icons } from 'src/components/Icons';
-import { Input } from 'src/components/Input';
-import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { JsonEditor } from 'src/components/AsyncAceEditor';
+import { Input, JsonEditor, Modal, RangePicker } from 'src/components';
 
 import { OnlyKeyWithType } from 'src/utils/types';
 import { AnnotationObject } from './types';

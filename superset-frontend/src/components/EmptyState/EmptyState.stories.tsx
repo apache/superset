@@ -18,7 +18,7 @@
  * under the License.
  */
 import { Meta, StoryFn } from '@storybook/react';
-import { Row, Col } from 'antd';
+import { Row, Col } from 'antd'; // TODO: Remove antd
 import { EmptyState, imageMap } from '.';
 
 const emptyStates = [

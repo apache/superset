@@ -18,26 +18,27 @@
  */
 import { t, styled } from '@superset-ui/core';
 import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
-import Alert from 'src/components/Alert';
 import cx from 'classnames';
-import Button from 'src/components/Button';
 import { Icons } from 'src/components/Icons';
-import Checkbox from 'src/components/Checkbox';
 import Pagination from 'src/components/Pagination';
 import TableCollection from 'src/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
+import type { EmptyStateProps } from '../EmptyState/types';
+import { EmptyState } from '../EmptyState';
+import { Checkbox } from '../Checkbox';
+import { Button } from '../Button';
+import { Alert } from '../Alert';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
 import {
-  FetchDataConfig,
-  Filters,
+  ListViewFetchDataConfig as FetchDataConfig,
+  ListViewFilters as Filters,
   SortColumn,
   CardSortSelectOption,
   ViewModeType,
 } from './types';
 import { ListViewError, useListViewState } from './utils';
-import { EmptyState, EmptyStateProps } from '../EmptyState';
 
 const ListViewStyles = styled.div`
   text-align: center;
@@ -236,7 +237,7 @@ export interface ListViewProps<T extends object = any> {
   bulkTagResourceName?: string;
 }
 
-function ListView<T extends object = any>({
+export function ListView<T extends object = any>({
   columns,
   data,
   count,
@@ -501,5 +502,3 @@ function ListView<T extends object = any>({
     </ListViewStyles>
   );
 }
-
-export default ListView;

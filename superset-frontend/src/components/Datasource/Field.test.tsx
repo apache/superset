@@ -17,7 +17,7 @@
  * under the License.
  */
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
-import { Input } from 'src/components/Input';
+import { Input } from '../Input';
 
 import Field from './Field';
 

@@ -19,7 +19,7 @@
 import { Form } from 'antd-v5';
 import { styled } from '@superset-ui/core';
 
-const StyledItem = styled(Form.Item)`
+export const FormItem = styled(Form.Item)`
   ${({ theme }) => `
     margin-bottom: 0;
     .antd5-form-item-label {
@@ -40,5 +40,3 @@ const StyledItem = styled(Form.Item)`
     }
   `}
 `;
-
-export default StyledItem;

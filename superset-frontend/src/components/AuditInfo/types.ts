@@ -16,5 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type Owner from 'src/types/Owner';
 
-export * from './CronPicker';
+export type ModifiedInfoProps = {
+  user?: Owner;
+  date: string;
+};

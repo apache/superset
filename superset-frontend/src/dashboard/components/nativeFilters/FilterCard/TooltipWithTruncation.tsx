@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip, TooltipProps } from 'src/components/Tooltip';
+import { Tooltip } from 'src/components';
+import { TooltipProps } from 'src/components/Tooltip/types';
 import { TooltipTrigger } from './Styles';
 
 export const TooltipWithTruncation = ({

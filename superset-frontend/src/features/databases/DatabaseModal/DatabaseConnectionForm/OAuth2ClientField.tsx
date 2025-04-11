@@ -18,9 +18,7 @@
  */
 
 import { useState } from 'react';
-import Collapse from 'src/components/Collapse';
-import { Input } from 'src/components/Input';
-import { FormItem } from 'src/components/Form';
+import { Input, Collapse, FormItem } from 'src/components';
 import { CustomParametersChangeType, FieldPropTypes } from '../../types';
 
 const LABELS = {

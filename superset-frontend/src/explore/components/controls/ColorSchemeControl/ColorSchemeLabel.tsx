@@ -19,7 +19,7 @@
 
 import { css, SupersetTheme } from '@superset-ui/core';
 import { useRef, useState } from 'react';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip } from 'src/components';
 
 type ColorSchemeLabelProps = {
   colors: string[];

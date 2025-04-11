@@ -35,5 +35,3 @@ export type AntdIconType = typeof Icon;
 export interface BaseIconProps {
   component: CustomIconType | AntdIconType;
 }
-
-export default IconType;

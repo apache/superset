@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Button from 'src/components/Button';
-import { Tooltip, TooltipPlacement, TooltipProps } from './index';
+import { Button } from '../Button';
+import { Tooltip } from '.';
+import { TooltipPlacement, TooltipProps } from './types';
 
 export default {
   title: 'Components/Tooltip',

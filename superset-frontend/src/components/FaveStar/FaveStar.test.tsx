@@ -18,7 +18,7 @@
  */
 
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import FaveStar from '.';
+import { FaveStar } from '.';
 
 jest.mock('src/components/Tooltip', () => ({
   Tooltip: (props: any) => <div data-test="tooltip" {...props} />,

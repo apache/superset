@@ -20,7 +20,7 @@
 import { ReactNode } from 'react';
 import { css, SupersetTheme } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip } from 'src/components';
 
 export const MenuItemTooltip = ({
   title,

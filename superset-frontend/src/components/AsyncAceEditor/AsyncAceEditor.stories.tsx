@@ -24,8 +24,9 @@ import {
   CssEditor,
   JsonEditor,
   ConfigEditor,
-  AsyncAceEditorOptions,
 } from '.';
+
+import type { AsyncAceEditorOptions } from './types';
 
 type EditorType =
   | 'sql'

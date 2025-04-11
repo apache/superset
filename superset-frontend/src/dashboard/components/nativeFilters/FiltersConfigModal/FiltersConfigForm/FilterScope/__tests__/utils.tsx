@@ -22,7 +22,7 @@ import FiltersConfigForm, {
   FilterPanels,
 } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm';
 import { mockStoreWithChartsInTabsAndRoot } from 'spec/fixtures/mockStore';
-import { Form, FormInstance } from 'src/components/Form';
+import { Form, type FormInstance } from 'src/components';
 
 export const createMockedProps = () => ({
   expanded: false,

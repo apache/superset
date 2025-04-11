@@ -16,11 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Row, Col, Grid as AntdGrid } from 'antd-v5';
-import type { ColProps, ColSize } from 'antd-v5/es/col';
-import type { RowProps } from 'antd-v5/es/row';
-
-export type { ColProps, ColSize, RowProps };
-
-export { Row, Col };
-export default AntdGrid;
+export { Row, Col, Grid } from 'antd-v5';
+export type { RowProps, ColProps } from './types';

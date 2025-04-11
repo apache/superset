@@ -47,9 +47,10 @@ import {
   useSelectFiltersInScope,
 } from 'src/dashboard/components/nativeFilters/state';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
-import DropdownContainer, {
-  Ref as DropdownContainerRef,
-} from 'src/components/DropdownContainer';
+import {
+  DropdownContainer,
+  type DropdownRef as DropdownContainerRef,
+} from 'src/components';
 import { Icons } from 'src/components/Icons';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';

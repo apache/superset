@@ -30,9 +30,9 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
-jest.mock('src/components/Loading', () => () => (
-  <div data-test="mock-loading" />
-));
+jest.mock('src/components/Loading', () => ({
+  Loading: () => <div data-test="mock-loading" />,
+}));
 jest.mock('src/components/IconTooltip', () => ({
   IconTooltip: ({
     onClick,

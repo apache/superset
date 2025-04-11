@@ -25,10 +25,8 @@ import { styledMount as mount } from 'spec/helpers/theming';
 
 import DatabaseList from 'src/pages/DatabaseList';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
-import DeleteModal from 'src/components/DeleteModal';
+import { DeleteModal, ListView, ListViewUIFilters } from 'src/components';
 import SubMenu from 'src/features/home/SubMenu';
-import ListView from 'src/components/ListView';
-import Filters from 'src/components/ListView/Filters';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'spec/helpers/testing-library';
 
@@ -191,7 +189,7 @@ describe('Admin DatabaseList', () => {
   });
 
   test('filters', async () => {
-    const filtersWrapper = wrapper.find(Filters);
+    const filtersWrapper = wrapper.find(ListViewUIFilters);
     act(() => {
       filtersWrapper
         .find('[name="expose_in_sqllab"]')

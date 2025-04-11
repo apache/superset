@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
-import { IconTooltip } from 'src/components/IconTooltip';
+import { IconTooltip } from '.';
 
 jest.mock('src/components/Tooltip', () => ({
   Tooltip: () => <div data-test="mock-tooltip" />,

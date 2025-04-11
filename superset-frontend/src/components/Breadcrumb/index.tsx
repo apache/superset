@@ -16,6 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Breadcrumb as AntdBreadcrumb } from 'antd-v5';
-
-export const Breadcrumb = AntdBreadcrumb;
+export { Breadcrumb } from 'antd-v5';
+export type { BreadcrumbProps } from './types';

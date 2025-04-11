@@ -17,7 +17,7 @@
  * under the License.
  */
 import type { Meta, StoryObj } from '@storybook/react';
-import FaveStar from 'src/components/FaveStar';
+import { FaveStar } from '.';
 
 export default {
   title: 'Components/FaveStar',

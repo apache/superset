@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { List, ListProps } from '.';
+import { List } from '.';
+import type { ListProps } from './types';
 
 export default {
   title: 'Components/List',

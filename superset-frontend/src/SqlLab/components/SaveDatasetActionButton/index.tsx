@@ -18,8 +18,7 @@
  */
 import { t, useTheme } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
-import { DropdownButton } from 'src/components/DropdownButton';
-import Button from 'src/components/Button';
+import { Button, DropdownButton } from 'src/components';
 
 interface SaveDatasetActionButtonProps {
   setShowSave: (arg0: boolean) => void;

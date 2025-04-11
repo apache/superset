@@ -16,42 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  CSSProperties,
-  HTMLAttributes,
-  MouseEventHandler,
-  ReactNode,
-} from 'react';
-
 import { Tag } from 'src/components/Tag';
 import { css } from '@emotion/react';
 import { useTheme, themeObject } from '@superset-ui/core';
-import DatasetTypeLabel from 'src/components/Label/reusable/DatasetTypeLabel';
-import PublishedLabel from 'src/components/Label/reusable/PublishedLabel';
+import { DatasetTypeLabel } from './reusable/DatasetTypeLabel';
+import { PublishedLabel } from './reusable/PublishedLabel';
+import type { LabelProps } from './types';
 
-export type OnClickHandler = MouseEventHandler<HTMLElement>;
-
-export type Type =
-  | 'success'
-  | 'warning'
-  | 'error'
-  | 'info'
-  | 'default'
-  | 'primary';
-
-export interface LabelProps extends HTMLAttributes<HTMLSpanElement> {
-  key?: string;
-  className?: string;
-  onClick?: OnClickHandler;
-  type?: Type;
-  style?: CSSProperties;
-  children?: ReactNode;
-  role?: string;
-  monospace?: boolean;
-  icon?: ReactNode;
-}
-
-export default function Label(props: LabelProps) {
+export function Label(props: LabelProps) {
   const theme = useTheme();
   const { transitionTiming } = theme;
   const {
@@ -111,3 +83,4 @@ export default function Label(props: LabelProps) {
   );
 }
 export { DatasetTypeLabel, PublishedLabel };
+export type { LabelType } from './types';

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { List } from 'src/components/List';
 import { connect } from 'react-redux';
 import { PureComponent } from 'react';
 import {
@@ -30,7 +29,7 @@ import {
   css,
 } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import { AsyncEsmComponent, List } from 'src/components';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';

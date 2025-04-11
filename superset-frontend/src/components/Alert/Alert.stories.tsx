@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Alert, { AlertProps } from './index';
+import { Alert } from '.';
+import type { AlertProps } from './types';
 
 type AlertType = Required<Pick<AlertProps, 'type'>>;
 type AlertTypeValue = AlertType['type'];

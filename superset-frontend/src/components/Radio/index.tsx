@@ -23,7 +23,7 @@ import type {
   RadioGroupProps,
 } from 'antd-v5/es/radio';
 
-import { Space, SpaceProps } from 'src/components/Space';
+import { Space, SpaceProps } from '../Space';
 
 export type RadioGroupWrapperProps = RadioGroupProps & {
   spaceConfig?: {

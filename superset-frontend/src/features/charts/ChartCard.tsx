@@ -18,18 +18,20 @@
  */
 import { isFeatureEnabled, FeatureFlag, t, css } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import {
+  ConfirmStatusChange,
+  Button,
+  Dropdown,
+  FacePile,
+  FaveStar,
+  Label,
+  ListViewCard,
+} from 'src/components';
 import { Icons } from 'src/components/Icons';
 import Chart from 'src/types/Chart';
 
-import ListViewCard from 'src/components/ListViewCard';
-import Label from 'src/components/Label';
-import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
-import FaveStar from 'src/components/FaveStar';
-import FacePile from 'src/components/FacePile';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
-import Button from 'src/components/Button';
 
 interface ChartCardProps {
   chart: Chart;

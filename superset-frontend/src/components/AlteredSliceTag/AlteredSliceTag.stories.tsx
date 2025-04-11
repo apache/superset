@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import AlteredSliceTag from '.';
+import { AlteredSliceTag } from '.';
 import { defaultProps } from './AlteredSliceTagMocks';
 
 export default {

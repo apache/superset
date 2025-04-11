@@ -22,10 +22,9 @@ import {
   SupersetClient,
   css,
 } from '@superset-ui/core';
-import Button from 'src/components/Button';
+import { Button, CopyToClipboard } from 'src/components';
 import { Icons } from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import CopyToClipboard from 'src/components/CopyToClipboard';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { LOG_ACTIONS_SQLLAB_COPY_LINK } from 'src/logger/LogUtils';
 import useLogAction from 'src/logger/useLogAction';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import { AsyncEsmComponent } from '.';
 
 const Placeholder = () => <span>Loading...</span>;
 

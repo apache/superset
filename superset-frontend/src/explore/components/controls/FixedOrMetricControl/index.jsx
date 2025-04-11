@@ -19,8 +19,7 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
-import Label from 'src/components/Label';
-import Collapse from 'src/components/Collapse';
+import { Collapse, Label } from 'src/components';
 import TextControl from 'src/explore/components/controls/TextControl';
 import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
 import ControlHeader from 'src/explore/components/ControlHeader';

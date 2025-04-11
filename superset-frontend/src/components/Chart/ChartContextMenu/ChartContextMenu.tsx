@@ -43,7 +43,7 @@ import {
 import { RootState } from 'src/dashboard/types';
 import { Menu } from 'src/components/Menu';
 import { usePermissions } from 'src/hooks/usePermissions';
-import { Dropdown } from 'src/components/Dropdown';
+import { Dropdown } from 'src/components';
 import { updateDataMask } from 'src/dataMask/actions';
 import DrillByModal from 'src/components/Chart/DrillBy/DrillByModal';
 import { useVerboseMap } from 'src/hooks/apiResources/datasets';

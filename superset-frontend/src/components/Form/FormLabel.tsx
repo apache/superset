@@ -40,7 +40,7 @@ const Label = styled.label<{ required?: boolean }>`
     `}
 `;
 
-export default function FormLabel({
+export function FormLabel({
   children,
   htmlFor,
   required = false,

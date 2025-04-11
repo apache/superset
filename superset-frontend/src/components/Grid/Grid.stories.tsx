@@ -19,7 +19,8 @@
 import { Meta, StoryObj } from '@storybook/react';
 import Slider from 'src/components/Slider/index';
 import { useState } from 'react';
-import { Row, Col, ColProps, RowProps } from './index';
+import { Row, Col } from '.';
+import type { ColProps, RowProps } from './types';
 
 export default {
   title: 'Design System/Components/Grid',

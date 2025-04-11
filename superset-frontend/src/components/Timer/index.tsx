@@ -18,7 +18,8 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { styled, useTheme } from '@superset-ui/core';
-import Label, { Type } from 'src/components/Label';
+import type { LabelType } from 'src/components/Label/types';
+import { Label } from 'src/components';
 import { Icons } from 'src/components/Icons';
 
 import { now, fDuration } from 'src/utils/dates';
@@ -27,7 +28,7 @@ export interface TimerProps {
   endTime?: number;
   isRunning: boolean;
   startTime?: number;
-  status?: Type;
+  status?: LabelType;
 }
 
 const TimerLabel = styled(Label)`
@@ -45,10 +46,10 @@ export default function Timer({
   const [clockStr, setClockStr] = useState('00:00:00.00');
   const timer = useRef<ReturnType<typeof setInterval>>();
 
-  const getIconColor = (status: Type) => {
+  const getIconColor = (status: LabelType) => {
     const { colors } = theme;
 
-    const colorMap: Record<Type, string> = {
+    const colorMap: Record<LabelType, string> = {
       success: colors.success.dark2,
       warning: colors.warning.dark2,
       info: colors.info.dark2,

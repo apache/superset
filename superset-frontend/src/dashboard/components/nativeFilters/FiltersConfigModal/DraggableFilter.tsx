@@ -25,7 +25,8 @@ import {
   useDrop,
   XYCoord,
 } from 'react-dnd';
-import { Icons, IconType } from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
+import type { IconType } from 'src/components/Icons/types';
 
 interface TitleContainerProps {
   readonly isDragging: boolean;

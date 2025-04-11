@@ -20,9 +20,7 @@ import { useState, useCallback, FocusEvent, FC } from 'react';
 
 import { t, useTheme } from '@superset-ui/core';
 
-import { Select } from 'src/components';
-import { Input } from 'src/components/Input';
-import { CronPicker, CronError } from 'src/components/CronPicker';
+import { Input, CronPicker, Select, type CronError } from 'src/components';
 import { StyledInputContainer } from '../AlertReportModal';
 
 export interface AlertReportCronSchedulerProps {
