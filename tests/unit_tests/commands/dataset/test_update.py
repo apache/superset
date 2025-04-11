@@ -375,11 +375,6 @@ def test_validate_folders_invalid_uuid(mocker: MockerFixture) -> None:
     """
     Test that we can detect invalid UUIDs.
     """
-    metrics = [mocker.MagicMock(metric_name="metric1", uuid="uuid1")]
-    columns = [
-        mocker.MagicMock(column_name="column1", uuid="uuid2"),
-        mocker.MagicMock(column_name="column2", uuid="uuid3"),
-    ]
     folders = cast(
         list[FolderSchema],
         [
@@ -398,6 +393,5 @@ def test_validate_folders_invalid_uuid(mocker: MockerFixture) -> None:
         ],
     )
 
-    with pytest.raises(ValidationError) as excinfo:
-        validate_folders(folders=folders, metrics=metrics, columns=columns)
-    assert str(excinfo.value) == "Invalid UUID for metric 'metric1': uuid2"
+    with pytest.raises(ValidationError):
+        FolderSchema(many=True).load(folders)
