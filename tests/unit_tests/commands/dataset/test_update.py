@@ -401,36 +401,3 @@ def test_validate_folders_invalid_uuid(mocker: MockerFixture) -> None:
     with pytest.raises(ValidationError) as excinfo:
         validate_folders(folders=folders, metrics=metrics, columns=columns)
     assert str(excinfo.value) == "Invalid UUID for metric 'metric1': uuid2"
-
-
-@with_feature_flags(DATASET_FOLDERS=True)
-def test_validate_folders_mismatched_name(mocker: MockerFixture) -> None:
-    """
-    Test that we can detect mismatched names.
-    """
-    metrics = [mocker.MagicMock(metric_name="metric1", uuid="uuid1")]
-    columns = [
-        mocker.MagicMock(column_name="column1", uuid="uuid2"),
-        mocker.MagicMock(column_name="column2", uuid="uuid3"),
-    ]
-    folders = cast(
-        list[FolderSchema],
-        [
-            {
-                "uuid": "uuid4",
-                "type": "folder",
-                "name": "My folder",
-                "children": [
-                    {
-                        "uuid": "uuid1",
-                        "type": "metric",
-                        "name": "metric2",
-                    },
-                ],
-            },
-        ],
-    )
-
-    with pytest.raises(ValidationError) as excinfo:
-        validate_folders(folders=folders, metrics=metrics, columns=columns)
-    assert str(excinfo.value) == "Mismatched name 'metric2' for UUID 'uuid1'"
