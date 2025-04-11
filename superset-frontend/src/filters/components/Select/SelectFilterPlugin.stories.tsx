@@ -29,17 +29,20 @@ getChartTransformPropsRegistry().registerValue('filter_select', transformProps);
 export default {
   title: 'Filter Plugins',
   argTypes: {
+    creatable: { control: 'boolean', defaultValue: true },
     multiSelect: { control: 'boolean', defaultValue: true },
     inverseSelection: { control: 'boolean', defaultValue: false },
   },
 };
 
 export const Select = ({
+  creatable,
   multiSeelct,
   inverseSelection,
   width,
   height,
 }: {
+  creatable: boolean;
   multiSeelct: boolean;
   inverseSelection: boolean;
   width: number;
@@ -53,6 +56,7 @@ export const Select = ({
     formData={{
       adhoc_filters: [],
       extra_filters: [],
+      creatable,
       multiSelect: { multiSeelct },
       inverseSelection: { inverseSelection },
       row_limit: 1000,

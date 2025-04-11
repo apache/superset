@@ -30,6 +30,7 @@ describe('Select buildQuery', () => {
     filters: undefined,
     enableEmptyFilter: false,
     inverseSelection: false,
+    creatable: false,
     multiSelect: false,
     defaultToFirstItem: false,
     searchAllOptions: false,
