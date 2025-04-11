@@ -231,10 +231,27 @@ def test_sync_permissions_command_async_mode_new_db_name(
     async_task_mock.delay.assert_called_once_with(1, "admin", "Old Name")
 
 
-def test_resync_permissions_command_get_catalogs(database_with_catalog: MagicMock):
+def test_sync_permissions_command_get_catalogs(database_with_catalog: MagicMock):
     """
     Test the ``_get_catalog_names`` method.
     """
+    cmmd = SyncPermissionsCommand(1, None, db_connection=database_with_catalog)
+    assert cmmd._get_catalog_names() == ["catalog1", "catalog2"]
+
+
+def test_sync_permissions_command_get_default_catalog(database_with_catalog: MagicMock):
+    """
+    Test ``_get_catalog_names`` when only the default one should be returned.
+
+    When the database doesn't not support cross-catalog queries (like Postgres), we
+    should only return all catalogs if multi-catalog is enabled.
+    """
+    database_with_catalog.db_engine_spec.supports_cross_catalog_queries = False
+    database_with_catalog.allow_multi_catalog = False
+    cmmd = SyncPermissionsCommand(1, None, db_connection=database_with_catalog)
+    assert cmmd._get_catalog_names() == {"catalog2"}
+
+    database_with_catalog.allow_multi_catalog = True
     cmmd = SyncPermissionsCommand(1, None, db_connection=database_with_catalog)
     assert cmmd._get_catalog_names() == ["catalog1", "catalog2"]
 
@@ -249,7 +266,7 @@ def test_resync_permissions_command_get_catalogs(database_with_catalog: MagicMoc
         (GenericDBException, DatabaseConnectionFailedError),
     ],
 )
-def test_resync_permissions_command_raise_on_getting_catalogs(
+def test_sync_permissions_command_raise_on_getting_catalogs(
     inner_exception: Exception,
     outer_exception: Exception,
     database_with_catalog: MagicMock,
@@ -263,7 +280,7 @@ def test_resync_permissions_command_raise_on_getting_catalogs(
         cmmd._get_catalog_names()
 
 
-def test_resync_permissions_command_get_schemas(database_with_catalog: MagicMock):
+def test_sync_permissions_command_get_schemas(database_with_catalog: MagicMock):
     """
     Test the ``_get_schema_names`` method.
     """
@@ -282,7 +299,7 @@ def test_resync_permissions_command_get_schemas(database_with_catalog: MagicMock
         (GenericDBException, DatabaseConnectionFailedError),
     ],
 )
-def test_resync_permissions_command_raise_on_getting_schemas(
+def test_sync_permissions_command_raise_on_getting_schemas(
     inner_exception: Exception,
     outer_exception: Exception,
     database_with_catalog: MagicMock,
@@ -296,7 +313,7 @@ def test_resync_permissions_command_raise_on_getting_schemas(
         cmmd._get_schema_names("blah")
 
 
-def test_resync_permissions_command_refresh_schemas(
+def test_sync_permissions_command_refresh_schemas(
     mocker: MockerFixture, database_with_catalog: MagicMock
 ):
     """
@@ -319,7 +336,7 @@ def test_resync_permissions_command_refresh_schemas(
     )
 
 
-def test_resync_permissions_command_rename_db_in_perms(
+def test_sync_permissions_command_rename_db_in_perms(
     mocker: MockerFixture, database_with_catalog: MagicMock
 ):
     """

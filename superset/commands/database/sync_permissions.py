@@ -140,13 +140,7 @@ class SyncPermissionsCommand(BaseCommand):
         """
         Syncs the permissions for a DB connection.
         """
-        catalogs = (
-            self._get_catalog_names()
-            if self.db_connection.db_engine_spec.supports_catalog
-            else [None]
-        )
-
-        for catalog in catalogs:
+        for catalog in self._get_catalog_names():
             try:
                 schemas = self._get_schema_names(catalog)
 
@@ -192,15 +186,29 @@ class SyncPermissionsCommand(BaseCommand):
             if self.old_db_connection_name != self.db_connection.database_name:
                 self._rename_database_in_permissions(catalog, schemas)
 
-    def _get_catalog_names(self) -> set[str]:
+    def _get_catalog_names(self) -> set[str | None]:
         """
         Helper method to load catalogs.
         """
+        if not self.db_connection.db_engine_spec.supports_catalog:
+            return {None}
+
         try:
-            return self.db_connection.get_all_catalog_names(
-                force=True,
-                ssh_tunnel=self.db_connection_ssh_tunnel,
-            )
+            # Adding permissions to all catalogs (and all their schemas) can take a long
+            # time (minutes, while importing a chart, eg). If the database does not
+            # support cross-catalog queries (like Postgres), and the multi-catalog
+            # feature is not enabled, then we only need to add permissions to the
+            # default catalog.
+            if (
+                self.db_connection.db_engine_spec.supports_cross_catalog_queries
+                or self.db_connection.allow_multi_catalog
+            ):
+                return self.db_connection.get_all_catalog_names(
+                    force=True,
+                    ssh_tunnel=self.db_connection_ssh_tunnel,
+                )
+            else:
+                return {self.db_connection.get_default_catalog()}
         except OAuth2RedirectError:
             # raise OAuth2 exceptions as-is
             raise
