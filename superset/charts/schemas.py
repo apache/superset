@@ -1373,6 +1373,13 @@ class ChartDataQueryContextSchema(Schema):
     @post_load
     def make_query_context(self, data: dict[str, Any], **kwargs: Any) -> QueryContext:
         query_context = self.get_query_context_factory().create(**data)
+        try:
+            if query_context.slice_.id:
+                for query in query_context.queries:
+                    query.chart_id = query_context.slice_.id
+        except:
+            # If the slice is not available, we ignore it
+            pass
         return query_context
 
     def get_query_context_factory(self) -> QueryContextFactory:
