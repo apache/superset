@@ -28,7 +28,7 @@ import {
   ClipboardEvent,
 } from 'react';
 
-import { css, ensureIsArray, t, usePrevious } from '@superset-ui/core';
+import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
 import { debounce, isEqual, uniq } from 'lodash';
@@ -52,6 +52,7 @@ import {
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
+  StyledBulkActionsContainer,
   StyledCheckOutlined,
   StyledContainer,
   StyledHeader,
@@ -66,7 +67,6 @@ import {
 } from './constants';
 import { customTagRender } from './CustomTag';
 import Button from '../Button';
-import { Space } from '../Space';
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -348,13 +348,13 @@ const Select = forwardRef(
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
 
+      setVisibleOptions(initialOptionsSorted);
       // if no search input value, force sort options because it won't be sorted by
       // `filterSort`.
       if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
         if (!isEqual(initialOptionsSorted, selectOptions)) {
           setSelectOptions(initialOptionsSorted);
         }
-        setVisibleOptions(fullSelectOptions);
       }
       if (onDropdownVisibleChange) {
         onDropdownVisibleChange(isDropdownVisible);
@@ -430,16 +430,10 @@ const Select = forwardRef(
 
     const bulkSelectComponent = useMemo(
       () => (
-        <Space
-          css={css`
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 4px;
-            width: 90%;
-          `}
-        >
+        <StyledBulkActionsContainer size={0}>
           <Button
             type="link"
+            buttonSize="xsmall"
             onClick={e => {
               e.preventDefault();
               e.stopPropagation();
@@ -450,6 +444,7 @@ const Select = forwardRef(
           </Button>
           <Button
             type="link"
+            buttonSize="xsmall"
             onClick={e => {
               e.preventDefault();
               e.stopPropagation();
@@ -458,7 +453,7 @@ const Select = forwardRef(
           >
             {`${t('Deselect all')} (${visibleOptionsCount})`}
           </Button>
-        </Space>
+        </StyledBulkActionsContainer>
       ),
       [handleSelectAll, handleDeselectAll, visibleOptionsCount],
     );
