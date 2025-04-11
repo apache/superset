@@ -953,11 +953,11 @@ class DatasourceEditor extends PureComponent {
   renderSpatialTab() {
     const { datasource } = this.state;
     const { spatials, all_cols: allCols } = datasource;
-    return (
-      <Tabs.TabPane
-        tab={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
-        key={TABS_KEYS.SPATIAL}
-      >
+
+    return {
+      key: TABS_KEYS.SPATIAL,
+      label: <CollectionTabTitle collection={spatials} title={t('Spatial')} />,
+      children: (
         <CollectionTable
           tableColumns={['name', 'config']}
           onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
@@ -977,8 +977,8 @@ class DatasourceEditor extends PureComponent {
             ),
           }}
         />
-      </Tabs.TabPane>
-    );
+      ),
+    };
   }
 
   renderSourceFieldset() {

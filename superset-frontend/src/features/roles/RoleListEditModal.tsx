@@ -129,26 +129,32 @@ function RoleListEditModal({
       <Tabs
         activeKey={activeTabKey}
         onChange={activeKey => setActiveTabKey(activeKey)}
-      >
-        <Tabs.TabPane
-          tab={roleTabs.edit.name}
-          key={roleTabs.edit.key}
-          forceRender
-        >
-          <>
-            <RoleNameField />
-            <PermissionsField permissions={permissions} />
-            <UsersField users={users} />
-          </>
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={roleTabs.users.name} key={roleTabs.users.key}>
-          <TableView
-            columns={userColumns}
-            data={filteredUsers}
-            emptyWrapperType={EmptyWrapperType.Small}
-          />
-        </Tabs.TabPane>
-      </Tabs>
+        items={[
+          {
+            key: roleTabs.edit.key,
+            label: roleTabs.edit.name,
+            forceRender: true,
+            children: (
+              <>
+                <RoleNameField />
+                <PermissionsField permissions={permissions} />
+                <UsersField users={users} />
+              </>
+            ),
+          },
+          {
+            key: roleTabs.users.key,
+            label: roleTabs.users.name,
+            children: (
+              <TableView
+                columns={userColumns}
+                data={filteredUsers}
+                emptyWrapperType={EmptyWrapperType.Small}
+              />
+            ),
+          },
+        ]}
+      />
     </FormModal>
   );
 }
