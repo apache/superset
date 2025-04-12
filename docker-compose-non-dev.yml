@@ -67,35 +67,35 @@ services:
     restart: unless-stopped
     ports:
       - 9004:8088
-#    depends_on:
-#      superset-init:
-#        condition: service_completed_successfully
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
     volumes: *superset-volumes
     environment:
       SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
-#  superset-init:
-#    container_name: superset_init
-#    build:
-#      <<: *common-build
-#    command: ["/app/docker/docker-init.sh"]
-#    env_file:
-#      - path: docker/.env # default
-#        required: true
-#      - path: docker/.env-local # optional override
-#        required: false
-#    depends_on:
-#      db:
-#        condition: service_started
-#      redis:
-#        condition: service_started
-#    user: "root"
-#    volumes: *superset-volumes
-#    healthcheck:
-#      disable: true
-#    environment:
-#      SUPERSET_LOAD_EXAMPLES: "${SUPERSET_LOAD_EXAMPLES:-no}"
-#      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
+  superset-init:
+    container_name: superset_init
+    build:
+      <<: *common-build
+    command: ["/app/docker/docker-init.sh"]
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+    user: "root"
+    volumes: *superset-volumes
+    healthcheck:
+      disable: true
+    environment:
+      SUPERSET_LOAD_EXAMPLES: "${SUPERSET_LOAD_EXAMPLES:-no}"
+      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
   superset-worker:
     build:
@@ -108,9 +108,9 @@ services:
       - path: docker/.env-local # optional override
         required: false
     restart: unless-stopped
-#    depends_on:
-#      superset-init:
-#        condition: service_completed_successfully
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
     user: "root"
     volumes: *superset-volumes
     healthcheck:
@@ -133,9 +133,9 @@ services:
       - path: docker/.env-local # optional override
         required: false
     restart: unless-stopped
-#    depends_on:
-#      superset-init:
-#        condition: service_completed_successfully
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
     user: "root"
     volumes: *superset-volumes
     healthcheck:
