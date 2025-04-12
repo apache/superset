@@ -116,6 +116,7 @@ from superset.utils.screenshots import (
     DashboardScreenshot,
     DEFAULT_DASHBOARD_WINDOW_SIZE,
     ScreenshotCachePayload,
+    StatusValues,
 )
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
@@ -1307,6 +1308,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 dashboard_id=dashboard.id,
                 force=False,
             )
+
+        if (
+            cache_payload.should_trigger_task()
+            or cache_payload.status == StatusValues.COMPUTING
+        ):
             return self.response(
                 202,
                 cache_key=cache_key,
@@ -1316,12 +1322,15 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
 
-        self.incr_stats("from_cache", self.thumbnail.__name__)
-        return Response(
-            FileWrapper(cache_payload.get_image()),
-            mimetype="image/png",
-            direct_passthrough=True,
-        )
+        if image := cache_payload.get_image():
+            self.incr_stats("from_cache", self.thumbnail.__name__)
+            return Response(
+                FileWrapper(image),
+                mimetype="image/png",
+                direct_passthrough=True,
+            )
+        else:
+            return self.response_404()
 
     @expose("/favorite_status/", methods=("GET",))
     @protect()
