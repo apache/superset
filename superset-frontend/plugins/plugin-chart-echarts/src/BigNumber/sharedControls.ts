@@ -55,36 +55,4 @@ export const headerFontSize: CustomControlItem = {
   },
 };
 
-export const subheaderFontSize: CustomControlItem = {
-  name: 'subheader_font_size',
-  config: {
-    type: 'SelectControl',
-    label: t('Subheader Font Size'),
-    renderTrigger: true,
-    clearable: false,
-    default: 0.15,
-    // Values represent the percentage of space a subheader should take
-    options: [
-      {
-        label: t('Tiny'),
-        value: 0.125,
-      },
-      {
-        label: t('Small'),
-        value: 0.15,
-      },
-      {
-        label: t('Normal'),
-        value: 0.2,
-      },
-      {
-        label: t('Large'),
-        value: 0.3,
-      },
-      {
-        label: t('Huge'),
-        value: 0.4,
-      },
-    ],
-  },
-};
+
