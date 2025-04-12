@@ -631,9 +631,29 @@ const Select = forwardRef(
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
         const array = token ? uniq(pastedText.split(token)) : [pastedText];
+
+        const newOptions: SelectOptionsType = [];
+
         const values = array
-          .map(item => getPastedTextValue(item))
+          .map(item => {
+            const option = getOption(item, fullSelectOptions, true);
+            if (!option && allowNewOptions) {
+              const newOption = {
+                label: item,
+                value: item,
+                isNewOption: true,
+              };
+              newOptions.push(newOption);
+            }
+            return getPastedTextValue(item);
+          })
           .filter(item => item !== undefined);
+
+        if (newOptions.length > 0) {
+          const updatedOptions = [...fullSelectOptions, ...newOptions];
+          setSelectOptions(updatedOptions);
+          setVisibleOptions(updatedOptions);
+        }
         if (labelInValue) {
           setSelectValue(previous => [
             ...((previous || []) as AntdLabeledValue[]),
