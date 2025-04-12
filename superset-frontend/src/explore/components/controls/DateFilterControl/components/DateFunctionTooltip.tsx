@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useTheme, t } from '@superset-ui/core';
 
 import { Tooltip } from 'src/components/Tooltip';
@@ -111,12 +110,12 @@ const StyledTooltip = (props: any) => {
       {({ css }) => (
         <Tooltip
           overlayClassName={css`
-            .ant-tooltip-content {
+            .antd5-tooltip-content {
               min-width: ${theme.gridUnit * 125}px;
               max-height: 410px;
               overflow-y: scroll;
 
-              .ant-tooltip-inner {
+              .antd5-tooltip-inner {
                 max-width: ${theme.gridUnit * 125}px;
                 h3 {
                   font-size: ${theme.typography.sizes.m}px;

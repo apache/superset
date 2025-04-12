@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FC } from 'react';
 import { styled, t, css } from '@superset-ui/core';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { detectOS } from 'src/utils/common';
@@ -38,9 +38,11 @@ export enum KeyboardShortcut {
   CtrlF = 'ctrl+f',
   CtrlH = 'ctrl+h',
   CtrlShiftF = 'ctrl+shift+f',
+  CtrlLeft = 'ctrl+[',
+  CtrlRight = 'ctrl+]',
 }
 
-export const KEY_MAP = {
+export const KEY_MAP: Record<KeyboardShortcut, string | undefined> = {
   [KeyboardShortcut.CtrlR]: t('Run query'),
   [KeyboardShortcut.CtrlEnter]: t('Run query'),
   [KeyboardShortcut.AltEnter]: t('Run query'),
@@ -51,6 +53,8 @@ export const KEY_MAP = {
   [KeyboardShortcut.CtrlT]: userOS !== 'Windows' ? t('New tab') : undefined,
   [KeyboardShortcut.CtrlP]: t('Previous Line'),
   [KeyboardShortcut.CtrlShiftF]: t('Format SQL'),
+  [KeyboardShortcut.CtrlLeft]: t('Switch to the previous tab'),
+  [KeyboardShortcut.CtrlRight]: t('Switch to the next tab'),
   // default ace editor shortcuts
   [KeyboardShortcut.CmdF]: userOS === 'MacOS' ? t('Find') : undefined,
   [KeyboardShortcut.CtrlF]: userOS !== 'MacOS' ? t('Find') : undefined,
@@ -58,15 +62,14 @@ export const KEY_MAP = {
   [KeyboardShortcut.CtrlH]: userOS !== 'MacOS' ? t('Replace') : undefined,
 };
 
-const KeyMapByCommand = Object.entries(KEY_MAP).reduce(
-  (acc, [shortcut, command]) => {
-    if (command) {
-      acc[command] = [...(acc[command] || []), shortcut];
-    }
-    return acc;
-  },
-  {} as Record<string, string[]>,
-);
+const KeyMapByCommand = Object.entries(KEY_MAP).reduce<
+  Record<string, string[]>
+>((acc, [shortcut, command]) => {
+  if (command) {
+    acc[command] = [...(acc[command] || []), shortcut];
+  }
+  return acc;
+}, {});
 
 const ShortcutDescription = styled.span`
   font-size: ${({ theme }) => theme.typography.sizes.m}px;
@@ -88,7 +91,7 @@ const ShortcutCode = styled.code`
   padding: ${({ theme }) => `${theme.gridUnit}px ${theme.gridUnit * 2}px`};
 `;
 
-const KeyboardShortcutButton: React.FC<{}> = ({ children }) => (
+const KeyboardShortcutButton: FC<{}> = ({ children }) => (
   <ModalTrigger
     modalTitle={t('Keyboard shortcuts')}
     modalBody={

@@ -21,6 +21,7 @@ import {
   supersetTheme,
   TimeseriesDataRecord,
   Metric,
+  SimpleAdhocFilter,
 } from '@superset-ui/core';
 
 export interface PopKPIStylesProps {
@@ -31,6 +32,12 @@ export interface PopKPIStylesProps {
   boldText: boolean;
   comparisonColorEnabled: boolean;
 }
+
+export type TableColumnConfig = {
+  visible?: boolean;
+  customColumnName?: string;
+  displayTypeIcon?: boolean;
+};
 
 interface PopKPICustomizeProps {
   headerText: string;
@@ -56,12 +63,18 @@ export type PopKPIProps = PopKPIStylesProps &
     metricName: string;
     bigNumber: string;
     prevNumber: string;
+    subtitle?: string;
+    subtitleFontSize: number;
     valueDifference: string;
     percentDifferenceFormattedString: string;
     compType: string;
     percentDifferenceNumber: number;
-    comparatorText: string;
     comparisonColorScheme?: string;
+    currentTimeRangeFilter?: SimpleAdhocFilter;
+    startDateOffset?: string;
+    shift: string;
+    dashboardTimeRange?: string;
+    columnConfig?: Record<string, TableColumnConfig>;
   };
 
 export enum ColorSchemeEnum {

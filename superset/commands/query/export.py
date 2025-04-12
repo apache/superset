@@ -16,7 +16,6 @@
 # under the License.
 # isort:skip_file
 
-import json
 import logging
 from collections.abc import Iterator
 from typing import Callable
@@ -29,6 +28,7 @@ from superset.models.sql_lab import SavedQuery
 from superset.commands.query.exceptions import SavedQueryNotFoundError
 from superset.daos.query import SavedQueryDAO
 from superset.utils.dict_import_export import EXPORT_VERSION
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -69,9 +69,10 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
     def _export(
         model: SavedQuery, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:
-        yield ExportSavedQueriesCommand._file_name(
-            model
-        ), lambda: ExportSavedQueriesCommand._file_content(model)
+        yield (
+            ExportSavedQueriesCommand._file_name(model),
+            lambda: ExportSavedQueriesCommand._file_content(model),
+        )
 
         if export_related:  # TODO: Maybe we can use database export command here?
             # include database as well
@@ -89,7 +90,7 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
             if "extra" in payload:
                 try:
                     payload["extra"] = json.loads(payload["extra"])
-                except json.decoder.JSONDecodeError:
+                except json.JSONDecodeError:
                     logger.info("Unable to decode `extra` field: %s", payload["extra"])
 
             payload["version"] = EXPORT_VERSION

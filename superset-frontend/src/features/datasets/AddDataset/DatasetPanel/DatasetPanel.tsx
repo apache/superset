@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t, styled, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { t, styled } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
 import Alert from 'src/components/Alert';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
-import { alphabeticalSort } from 'src/components/Table/sorters';
 // @ts-ignore
 import LOADING_GIF from 'src/assets/images/loading.gif';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
@@ -70,11 +68,10 @@ const StyledHeader = styled.div<StyledHeaderProps>`
   text-overflow: ellipsis;
 
   .anticon:first-of-type {
-    margin-right: ${theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px;
+    margin-right: ${theme.gridUnit * 2}px;
+    vertical-align: text-top;
   }
 
-  .anticon:nth-of-type(2) {
-    margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px;
   `}
 `;
 
@@ -185,16 +182,14 @@ export const tableColumnDefinition: ColumnsType<ITableColumn> = [
     title: 'Column Name',
     dataIndex: 'name',
     key: 'name',
-    sorter: (a: ITableColumn, b: ITableColumn) =>
-      alphabeticalSort('name', a, b),
+    sorter: (a: ITableColumn, b: ITableColumn) => a.name.localeCompare(b.name),
   },
   {
     title: 'Datatype',
     dataIndex: 'type',
     key: 'type',
     width: '100px',
-    sorter: (a: ITableColumn, b: ITableColumn) =>
-      alphabeticalSort('type', a, b),
+    sorter: (a: ITableColumn, b: ITableColumn) => a.name.localeCompare(b.name),
   },
 ];
 
@@ -261,8 +256,7 @@ const DatasetPanel = ({
   hasError,
   datasets,
 }: IDatasetPanelProps) => {
-  const theme = useTheme();
-  const hasColumns = columnList?.length > 0 ?? false;
+  const hasColumns = Boolean(columnList?.length > 0);
   const datasetNames = datasets?.map(dataset => dataset.table_name);
   const tableWithDataset = datasets?.find(
     dataset => dataset.table_name === tableName,
@@ -337,9 +331,7 @@ const DatasetPanel = ({
             }
             title={tableName || ''}
           >
-            {tableName && (
-              <Icons.Table iconColor={theme.colors.grayscale.base} />
-            )}
+            <Icons.InsertRowAboveOutlined />
             {tableName}
           </StyledHeader>
         </>

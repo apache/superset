@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t } from '@superset-ui/core';
 
 import { MARKDOWN_TYPE } from '../../../util/componentTypes';
@@ -28,7 +27,7 @@ export default function DraggableNewDivider() {
     <DraggableNewComponent
       id={NEW_MARKDOWN_ID}
       type={MARKDOWN_TYPE}
-      label={t('Text')}
+      label={t('Text / Markdown')}
       className="fa fa-font"
     />
   );

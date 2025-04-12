@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
 import { Link } from 'react-router-dom';
 
@@ -57,7 +57,7 @@ const DashboardsSubMenu = ({
         <Input
           allowClear
           placeholder={t('Search')}
-          prefix={<Icons.Search iconSize="l" />}
+          prefix={<Icons.StarOutlined iconSize="l" />}
           css={css`
             width: ${WIDTH}px;
             margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
@@ -105,7 +105,6 @@ const DashboardsSubMenu = ({
                 </div>
                 <Icons.Full
                   iconSize="l"
-                  iconColor={theme.colors.grayscale.base}
                   css={css`
                     margin-left: ${theme.gridUnit * 2}px;
                     visibility: ${hoveredItem === dashboard.id

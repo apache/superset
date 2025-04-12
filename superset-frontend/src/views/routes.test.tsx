@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { isFrontendRoute, routes } from './routes';
 
 jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
@@ -29,6 +28,6 @@ describe('isFrontendRoute', () => {
   });
 
   it('returns false if a route does not match', () => {
-    expect(isFrontendRoute('/non-existent/path/')).toBe(false);
+    expect(isFrontendRoute('/nonexistent/path/')).toBe(false);
   });
 });

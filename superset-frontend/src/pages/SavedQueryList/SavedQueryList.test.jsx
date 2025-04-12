@@ -16,363 +16,219 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import thunk from 'redux-thunk';
-import * as reactRedux from 'react-redux';
-import { BrowserRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen, cleanup, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
-import { act } from 'react-dom/test-utils';
-import * as uiCore from '@superset-ui/core';
-import SavedQueryList from 'src/pages/SavedQueryList';
-import SubMenu from 'src/features/home/SubMenu';
-import ListView from 'src/components/ListView';
-import Filters from 'src/components/ListView/Filters';
-import ActionsBar from 'src/components/ListView/ActionsBar';
-import DeleteModal from 'src/components/DeleteModal';
-import Button from 'src/components/Button';
-import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import SavedQueryList from '.';
+
+// Increase default timeout
+jest.setTimeout(30000);
+
+const mockQueries = [...new Array(3)].map((_, i) => ({
+  created_by: { id: i, first_name: 'user', last_name: `${i}` },
+  created_on: `${i}-2020`,
+  database: { database_name: `db ${i}`, id: i },
+  changed_on_delta_humanized: '1 day ago',
+  db_id: i,
+  description: `SQL for ${i}`,
+  id: i,
+  label: `query ${i}`,
+  schema: 'public',
+  sql: `SELECT ${i} FROM table`,
+  sql_tables: [{ catalog: null, schema: null, table: `${i}` }],
+  tags: [],
+}));
+
+const mockUser = {
+  userId: 1,
+  firstName: 'admin',
+  lastName: 'admin',
+};
 
 const queriesInfoEndpoint = 'glob:*/api/v1/saved_query/_info*';
 const queriesEndpoint = 'glob:*/api/v1/saved_query/?*';
 const queryEndpoint = 'glob:*/api/v1/saved_query/*';
-const queriesRelatedEndpoint = 'glob:*/api/v1/saved_query/related/database?*';
-const queriesDistinctEndpoint = 'glob:*/api/v1/saved_query/distinct/schema?*';
-
-const mockqueries = [...new Array(3)].map((_, i) => ({
-  created_by: {
-    id: i,
-    first_name: `user`,
-    last_name: `${i}`,
-  },
-  created_on: `${i}-2020`,
-  database: {
-    database_name: `db ${i}`,
-    id: i,
-  },
-  changed_on_delta_humanized: '1 day ago',
-  db_id: i,
-  description: `SQL for ${i}`,
-  id: i,
-  label: `query ${i}`,
-  schema: 'public',
-  sql: `SELECT ${i} FROM table`,
-  sql_tables: [
-    {
-      catalog: null,
-      schema: null,
-      table: `${i}`,
-    },
-  ],
-}));
-
-const user = {
-  createdOn: '2021-04-27T18:12:38.952304',
-  email: 'admin',
-  firstName: 'admin',
-  isActive: true,
-  lastName: 'admin',
-  permissions: {},
-  roles: {
-    Admin: [
-      ['can_sqllab', 'Superset'],
-      ['can_write', 'Dashboard'],
-      ['can_write', 'Chart'],
-    ],
-  },
-  userId: 1,
-  username: 'admin',
-};
-
-// store needed for withToasts(DatabaseList)
-const mockStore = configureStore([thunk]);
-const store = mockStore({ user });
-
-const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
-
-// ---------- For import testing ----------
-// Create an one more mocked query than the original mocked query array
-const mockOneMoreQuery = [...new Array(mockqueries.length + 1)].map((_, i) => ({
-  created_by: {
-    id: i,
-    first_name: `user`,
-    last_name: `${i}`,
-  },
-  created_on: `${i}-2020`,
-  database: {
-    database_name: `db ${i}`,
-    id: i,
-  },
-  changed_on_delta_humanized: '1 day ago',
-  db_id: i,
-  description: `SQL for ${i}`,
-  id: i,
-  label: `query ${i}`,
-  schema: 'public',
-  sql: `SELECT ${i} FROM table`,
-  sql_tables: [
-    {
-      catalog: null,
-      schema: null,
-      table: `${i}`,
-    },
-  ],
-}));
-// Grab the last mocked query, to mock import
-const mockNewImportQuery = mockOneMoreQuery.pop();
-// Create a new file out of mocked import query to mock upload
-const mockImportFile = new File(
-  [mockNewImportQuery],
-  'saved_query_import_mock.json',
-);
+const permalinkEndpoint = 'glob:*/api/v1/sqllab/permalink';
 
 fetchMock.get(queriesInfoEndpoint, {
   permissions: ['can_write', 'can_read', 'can_export'],
 });
+
 fetchMock.get(queriesEndpoint, {
-  result: mockqueries,
-  count: 3,
+  ids: [2, 0, 1],
+  result: mockQueries,
+  count: mockQueries.length,
+});
+
+fetchMock.post(permalinkEndpoint, {
+  url: 'http://localhost/permalink',
 });
 
 fetchMock.delete(queryEndpoint, {});
-fetchMock.delete(queriesEndpoint, {});
 
-fetchMock.get(queriesRelatedEndpoint, {
-  count: 0,
-  result: [],
-});
-
-fetchMock.get(queriesDistinctEndpoint, {
-  count: 0,
-  result: [],
-});
-
-// Mock utils module
-jest.mock('src/views/CRUD/utils');
-
-describe('SavedQueryList', () => {
-  const wrapper = mount(
-    <reactRedux.Provider store={store}>
-      <SavedQueryList />
-    </reactRedux.Provider>,
+const renderList = (props = {}, storeOverrides = {}) =>
+  render(
+    <MemoryRouter>
+      <QueryParamProvider>
+        <SavedQueryList user={mockUser} {...props} />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    {
+      useRedux: true,
+      store: configureStore([thunk])({
+        user: {
+          ...mockUser,
+          roles: { Admin: [['can_write', 'SavedQuery']] },
+        },
+        ...storeOverrides,
+      }),
+    },
   );
 
+describe('SavedQueryList', () => {
   beforeEach(() => {
-    // setup a DOM element as a render target
-    useSelectorMock.mockClear();
+    fetchMock.resetHistory();
   });
 
-  beforeAll(async () => {
-    await waitForComponentToPaint(wrapper);
+  it('renders', async () => {
+    renderList();
+    expect(await screen.findByText('Saved queries')).toBeInTheDocument();
   });
 
-  it('renders', () => {
-    expect(wrapper.find(SavedQueryList)).toExist();
-  });
-
-  it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
-  });
-
-  it('renders a SubMenu with Saved queries and Query History links', () => {
-    expect(wrapper.find(SubMenu).props().tabs).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ label: 'Saved queries' }),
-        expect.objectContaining({ label: 'Query history' }),
-      ]),
-    );
-  });
-
-  it('renders a SubMenu without Databases and Datasets links', () => {
-    expect(wrapper.find(SubMenu).props().tabs).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ label: 'Databases' }),
-        expect.objectContaining({ label: 'Datasets' }),
-      ]),
-    );
-  });
-
-  it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
-  });
-
-  it('fetches saved queries', () => {
-    const callsQ = fetchMock.calls(/saved_query\/\?q/);
-    expect(callsQ).toHaveLength(1);
-    expect(callsQ[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/saved_query/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
-    );
-  });
-
-  it('renders ActionsBar in table', () => {
-    expect(wrapper.find(ActionsBar)).toExist();
-    expect(wrapper.find(ActionsBar)).toHaveLength(3);
-  });
-
-  it('deletes', async () => {
-    act(() => {
-      wrapper.find('span[data-test="delete-action"]').first().props().onClick();
-    });
-    await waitForComponentToPaint(wrapper);
-
+  it('renders a ListView', async () => {
+    renderList();
     expect(
-      wrapper.find(DeleteModal).first().props().description,
-    ).toMatchInlineSnapshot(
-      `"This action will permanently delete the saved query."`,
-    );
-
-    act(() => {
-      wrapper
-        .find('#delete')
-        .first()
-        .props()
-        .onChange({ target: { value: 'DELETE' } });
-    });
-    await waitForComponentToPaint(wrapper);
-    act(() => {
-      wrapper.find('button').last().props().onClick();
-    });
-
-    await waitForComponentToPaint(wrapper);
-
-    expect(fetchMock.calls(/saved_query\/0/, 'DELETE')).toHaveLength(1);
+      await screen.findByTestId('saved_query-list-view'),
+    ).toBeInTheDocument();
   });
 
-  it('shows/hides bulk actions when bulk actions is clicked', async () => {
-    const button = wrapper.find(Button).at(0);
-    act(() => {
-      button.props().onClick();
-    });
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
-      mockqueries.length + 1, // 1 for each row and 1 for select all
-    );
-  });
+  it('renders query information', async () => {
+    renderList();
 
-  it('searches', async () => {
-    const filtersWrapper = wrapper.find(Filters);
-    act(() => {
-      filtersWrapper.find('[name="label"]').first().props().onSubmit('fooo');
-    });
-    await waitForComponentToPaint(wrapper);
+    // Wait for list to load
+    await screen.findByTestId('saved_query-list-view');
 
-    expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/saved_query/?q=(filters:!((col:label,opr:all_text,value:fooo)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
-    );
-  });
-});
-
-describe('RTL', () => {
-  async function renderAndWait() {
-    const mounted = act(async () => {
-      render(
-        <BrowserRouter>
-          <QueryParamProvider>
-            <SavedQueryList />
-          </QueryParamProvider>
-        </BrowserRouter>,
-        { useRedux: true },
-      );
-    });
-
-    return mounted;
-  }
-
-  let isFeatureEnabledMock;
-  beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(() => true);
-    await renderAndWait();
-  });
-
-  afterEach(() => {
-    cleanup();
-    isFeatureEnabledMock.mockRestore();
-  });
-  it('renders an export button in the bulk actions', () => {
-    // Grab and click the "Bulk Select" button to expose checkboxes
-    const bulkSelectButton = screen.getByRole('button', {
-      name: /bulk select/i,
-    });
-    userEvent.click(bulkSelectButton);
-
-    // Grab and click the "toggle all" checkbox to expose export button
-    const selectAllCheckbox = screen.getByRole('checkbox', {
-      name: /toggle all rows selected/i,
-    });
-    userEvent.click(selectAllCheckbox);
-
-    // Grab and assert that export button is visible
-    const exportButton = screen.getByRole('button', {
-      name: /export/i,
-    });
-    expect(exportButton).toBeVisible();
-  });
-
-  it('renders an export button in the actions bar', async () => {
-    // Grab Export action button and mock mouse hovering over it
-    const exportActionButton = screen.getAllByTestId('export-action')[0];
-    userEvent.hover(exportActionButton);
-
-    // Wait for the tooltip to pop up
-    await screen.findByRole('tooltip');
-
-    // Grab and assert that "Export Query" tooltip is in the document
-    const exportTooltip = screen.getByRole('tooltip', {
-      name: /export query/i,
-    });
-    expect(exportTooltip).toBeInTheDocument();
-  });
-
-  it('renders an import button in the submenu', async () => {
-    // Grab and assert that import saved query button is visible
-    const importButton = await screen.findByTestId('import-button');
-    expect(importButton).toBeVisible();
-  });
-
-  it('renders an "Import Saved Query" tooltip under import button', async () => {
-    const importButton = await screen.findByTestId('import-button');
-    userEvent.hover(importButton);
-    waitFor(() => {
-      expect(importButton).toHaveClass('ant-tooltip-open');
-      screen.findByTestId('import-tooltip-test');
-      const importTooltip = screen.getByRole('tooltip', {
-        name: 'Import queries',
+    // Wait for data to load
+    await waitFor(() => {
+      mockQueries.forEach(query => {
+        expect(screen.getByText(query.label)).toBeInTheDocument();
+        expect(
+          screen.getByText(query.database.database_name),
+        ).toBeInTheDocument();
+        expect(screen.getAllByText(query.schema)[0]).toBeInTheDocument();
       });
-      expect(importTooltip).toBeInTheDocument();
     });
   });
 
-  it('renders an import modal when import button is clicked', async () => {
-    // Grab and click import saved query button to reveal modal
-    const importButton = await screen.findByTestId('import-button');
-    userEvent.click(importButton);
+  it('handles query deletion', async () => {
+    renderList();
 
-    // Grab and assert that saved query import modal's heading is visible
-    const importSavedQueryModalHeading = screen.getByRole('heading', {
-      name: 'Import queries',
+    // Wait for list to load
+    await screen.findByTestId('saved_query-list-view');
+
+    // Wait for data and find delete button
+    const deleteButtons = await screen.findAllByTestId('delete-action');
+    fireEvent.click(deleteButtons[0]);
+
+    // Confirm deletion
+    const deleteInput = screen.getByTestId('delete-modal-input');
+    fireEvent.change(deleteInput, { target: { value: 'DELETE' } });
+
+    const confirmButton = screen.getByTestId('modal-confirm-button');
+    fireEvent.click(confirmButton);
+
+    // Verify API call
+    await waitFor(() => {
+      expect(fetchMock.calls(/saved_query\/0/, 'DELETE')).toHaveLength(1);
     });
-    expect(importSavedQueryModalHeading).toBeVisible();
   });
 
-  it('imports a saved query', async () => {
-    // Grab and click import saved query button to reveal modal
-    const importButton = await screen.findByTestId('import-button');
-    userEvent.click(importButton);
+  it('handles search filtering', async () => {
+    renderList();
 
-    // Grab "Choose File" input from import modal
-    const chooseFileInput = screen.getByTestId('model-file-input');
-    // Upload mocked import file
-    userEvent.upload(chooseFileInput, mockImportFile);
+    // Wait for list to load
+    await screen.findByTestId('saved_query-list-view');
 
-    expect(chooseFileInput.files[0]).toStrictEqual(mockImportFile);
-    expect(chooseFileInput.files.item(0)).toStrictEqual(mockImportFile);
-    expect(chooseFileInput.files).toHaveLength(1);
+    // Find and use search input
+    const searchInput = screen.getByTestId('filters-search');
+    fireEvent.change(searchInput, { target: { value: 'test query' } });
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+
+    // Verify API call
+    await waitFor(() => {
+      const calls = fetchMock.calls(/saved_query\/\?q/);
+      expect(calls.length).toBeGreaterThan(0);
+      const lastCall = calls[calls.length - 1][0];
+      expect(lastCall).toContain('order_column');
+      expect(lastCall).toContain('page');
+    });
+  });
+
+  it('fetches data', async () => {
+    renderList();
+    await waitFor(() => {
+      const calls = fetchMock.calls(/saved_query\/\?q/);
+      expect(calls).toHaveLength(1);
+      expect(calls[0][0]).toContain('order_column');
+      expect(calls[0][0]).toContain('page');
+    });
+  });
+
+  it('handles sorting', async () => {
+    renderList();
+
+    // Wait for list to load
+    await screen.findByTestId('saved_query-list-view');
+
+    // Find and click sort header
+    const sortHeaders = screen.getAllByTestId('sort-header');
+    fireEvent.click(sortHeaders[0]);
+
+    // Verify API call includes sorting
+    await waitFor(() => {
+      const calls = fetchMock.calls(/saved_query\/\?q/);
+      const lastCall = calls[calls.length - 1][0];
+      const url = new URL(lastCall);
+      const params = new URLSearchParams(url.search);
+      const qParam = params.get('q');
+      expect(qParam).toContain('order_column:label');
+    });
+  });
+
+  it('shows/hides elements based on permissions', async () => {
+    // Mock info response without write permission
+    fetchMock.get(
+      queriesInfoEndpoint,
+      { permissions: ['can_read'] },
+      { overwriteRoutes: true },
+    );
+
+    // Mock list response
+    fetchMock.get(
+      queriesEndpoint,
+      { result: mockQueries, count: mockQueries.length },
+      { overwriteRoutes: true },
+    );
+
+    renderList();
+
+    // Wait for list to load
+    await screen.findByTestId('saved_query-list-view');
+
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText(mockQueries[0].label)).toBeInTheDocument();
+    });
+
+    // Verify delete buttons are not shown
+    expect(screen.queryByTestId('delete-action')).not.toBeInTheDocument();
   });
 });

@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { IconTooltip } from 'src/components/IconTooltip';
 import ModalTrigger from 'src/components/ModalTrigger';
+import { Icons } from 'src/components/Icons';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 
@@ -29,21 +29,24 @@ interface ShowSQLProps {
   sql: string;
   title: string;
   tooltipText: string;
+  triggerNode?: React.ReactNode;
 }
 
 export default function ShowSQL({
   tooltipText,
   title,
   sql: sqlString,
+  triggerNode,
 }: ShowSQLProps) {
   return (
     <ModalTrigger
       modalTitle={title}
       triggerNode={
-        <IconTooltip
-          className="fa fa-eye pull-left m-l-2"
-          tooltip={tooltipText}
-        />
+        triggerNode || (
+          <IconTooltip className="pull-left m-l-2" tooltip={tooltipText}>
+            <Icons.EyeOutlined iconSize="s" />
+          </IconTooltip>
+        )
       }
       modalBody={
         <div>

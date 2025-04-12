@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 """Contains the logic to create cohesive forms on the explore view"""
-import json
-import os
+
 from typing import Any, Optional
 
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
-from flask_babel import gettext as _
-from wtforms import Field, ValidationError
+from wtforms import Field
+
+from superset.utils import json
 
 
 class JsonListField(Field):
@@ -53,27 +53,6 @@ class CommaSeparatedListField(Field):
             self.data = [x.strip() for x in valuelist[0].split(",")]
         else:
             self.data = []
-
-
-class FileSizeLimit:  # pylint: disable=too-few-public-methods
-    """Imposes an optional maximum filesize limit for uploaded files"""
-
-    def __init__(self, max_size: Optional[int]):
-        self.max_size = max_size
-
-    def __call__(self, form: dict[str, Any], field: Any) -> None:
-        if self.max_size is None:
-            return
-
-        field.data.flush()
-        size = os.fstat(field.data.fileno()).st_size
-        if size > self.max_size:
-            raise ValidationError(
-                _(
-                    "File size must be less than or equal to %(max_size)s bytes",
-                    max_size=self.max_size,
-                )
-            )
 
 
 def filter_not_empty_values(values: Optional[list[Any]]) -> Optional[list[Any]]:

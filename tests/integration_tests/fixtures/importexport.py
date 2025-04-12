@@ -44,7 +44,7 @@ dataset_ui_export: list[dict[str, Any]] = [
             },
             {"expression": "SUM(num)", "metric_name": "sum__num"},
         ],
-        "params": '{"remote_id": 3, "database_name": "examples", "import_time": 1604342885}',
+        "params": '{"remote_id": 3, "database_name": "examples", "import_time": 1604342885}',  # noqa: E501
         "table_name": "birth_names_2",
     }
 ]
@@ -67,8 +67,8 @@ dashboard_export: dict[str, Any] = {
                 "css": "",
                 "dashboard_title": "Births 2",
                 "description": None,
-                "json_metadata": '{"timed_refresh_immune_slices": [], "expanded_slices": {}, "refresh_frequency": 0, "default_filters": "{}", "color_scheme": null, "remote_id": 1}',
-                "position_json": '{"CHART--jvaBFZx78":{"children":[],"id":"CHART--jvaBFZx78","meta":{"chartId":83,"height":50,"sliceName":"Number of California Births","uuid":"c77bb4b3-09f4-4d9a-a9e2-66a627c64343","width":4},"parents":["ROOT_ID","GRID_ID","ROW-se_5H8KNiO"],"type":"CHART"},"DASHBOARD_VERSION_KEY":"v2","GRID_ID":{"children":["ROW-se_5H8KNiO"],"id":"GRID_ID","parents":["ROOT_ID"],"type":"GRID"},"HEADER_ID":{"id":"HEADER_ID","meta":{"text":"Births"},"type":"HEADER"},"ROOT_ID":{"children":["GRID_ID"],"id":"ROOT_ID","type":"ROOT"},"ROW-se_5H8KNiO":{"children":["CHART--jvaBFZx78"],"id":"ROW-se_5H8KNiO","meta":{"background":"BACKGROUND_TRANSPARENT"},"parents":["ROOT_ID","GRID_ID"],"type":"ROW"}}',
+                "json_metadata": '{"timed_refresh_immune_slices": [], "expanded_slices": {}, "refresh_frequency": 0, "default_filters": "{}", "color_scheme": null, "remote_id": 1}',  # noqa: E501
+                "position_json": '{"CHART--jvaBFZx78":{"children":[],"id":"CHART--jvaBFZx78","meta":{"chartId":83,"height":50,"sliceName":"Number of California Births","uuid":"c77bb4b3-09f4-4d9a-a9e2-66a627c64343","width":4},"parents":["ROOT_ID","GRID_ID","ROW-se_5H8KNiO"],"type":"CHART"},"DASHBOARD_VERSION_KEY":"v2","GRID_ID":{"children":["ROW-se_5H8KNiO"],"id":"GRID_ID","parents":["ROOT_ID"],"type":"GRID"},"HEADER_ID":{"id":"HEADER_ID","meta":{"text":"Births"},"type":"HEADER"},"ROOT_ID":{"children":["GRID_ID"],"id":"ROOT_ID","type":"ROOT"},"ROW-se_5H8KNiO":{"children":["CHART--jvaBFZx78"],"id":"ROW-se_5H8KNiO","meta":{"background":"BACKGROUND_TRANSPARENT"},"parents":["ROOT_ID","GRID_ID"],"type":"ROW"}}',  # noqa: E501
                 "slices": [
                     {
                         "__Slice__": {
@@ -76,7 +76,7 @@ dashboard_export: dict[str, Any] = {
                             "datasource_name": "birth_names_2",
                             "datasource_type": "table",
                             "id": 83,
-                            "params": '{"adhoc_filters": [], "datasource": "3__table", "granularity_sqla": "ds", "header_font_size": 0.4, "metric": {"aggregate": "SUM", "column": {"column_name": "num_california", "expression": "CASE WHEN state = \'CA\' THEN num ELSE 0 END"}, "expressionType": "SIMPLE", "label": "SUM(num_california)"}, "slice_id": 83, "subheader_font_size": 0.15, "time_range": "100 years ago : now", "url_params": {}, "viz_type": "big_number_total", "y_axis_format": "SMART_NUMBER", "remote_id": 83, "datasource_name": "birth_names_2", "schema": null, "database_name": "examples"}',
+                            "params": '{"adhoc_filters": [], "datasource": "3__table", "granularity_sqla": "ds", "header_font_size": 0.4, "metric": {"aggregate": "SUM", "column": {"column_name": "num_california", "expression": "CASE WHEN state = \'CA\' THEN num ELSE 0 END"}, "expressionType": "SIMPLE", "label": "SUM(num_california)"}, "slice_id": 83, "subheader_font_size": 0.15, "time_range": "100 years ago : now", "url_params": {}, "viz_type": "big_number_total", "y_axis_format": "SMART_NUMBER", "remote_id": 83, "datasource_name": "birth_names_2", "schema": null, "database_name": "examples"}',  # noqa: E501
                             "slice_name": "Number of California Births",
                             "viz_type": "big_number_total",
                         }
@@ -308,7 +308,7 @@ dashboard_export: dict[str, Any] = {
                     },
                 ],
                 "offset": 0,
-                "params": '{"remote_id": 3, "database_name": "examples", "import_time": 1604342885}',
+                "params": '{"remote_id": 3, "database_name": "examples", "import_time": 1604342885}',  # noqa: E501
                 "schema": None,
                 "sql": None,
                 "table_name": "birth_names_2",
@@ -374,8 +374,22 @@ database_config: dict[str, Any] = {
     "database_name": "imported_database",
     "expose_in_sqllab": True,
     "extra": {},
-    "sqlalchemy_uri": "someengine://user:pass@host1",
+    "sqlalchemy_uri": "postgresql://user:pass@host1",
     "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "version": "1.0.0",
+}
+database_config_no_creds: dict[str, Any] = {
+    "allow_csv_upload": False,
+    "allow_ctas": False,
+    "allow_cvas": False,
+    "allow_dml": False,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database_no_creds",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "bigquery://test-db/",
+    "uuid": "2ff17edc-f3fa-4609-a5ac-b484281225bc",
     "version": "1.0.0",
 }
 
@@ -389,7 +403,7 @@ database_with_ssh_tunnel_config_private_key: dict[str, Any] = {
     "database_name": "imported_database",
     "expose_in_sqllab": True,
     "extra": {},
-    "sqlalchemy_uri": "someengine://user:pass@host1",
+    "sqlalchemy_uri": "postgresql://user:pass@host1",
     "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
     "ssh_tunnel": {
         "server_address": "localhost",
@@ -411,7 +425,7 @@ database_with_ssh_tunnel_config_password: dict[str, Any] = {
     "database_name": "imported_database",
     "expose_in_sqllab": True,
     "extra": {},
-    "sqlalchemy_uri": "someengine://user:pass@host1",
+    "sqlalchemy_uri": "postgresql://user:pass@host1",
     "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
     "ssh_tunnel": {
         "server_address": "localhost",
@@ -494,6 +508,7 @@ dataset_config: dict[str, Any] = {
     "offset": 66,
     "cache_timeout": 55,
     "schema": "",
+    "catalog": "default",
     "sql": "",
     "params": None,
     "template_params": {},
@@ -501,7 +516,7 @@ dataset_config: dict[str, Any] = {
     "always_filter_main_dttm": False,
     "filter_select_enabled": True,
     "fetch_values_predicate": None,
-    "extra": '{ "certification": { "certified_by": "Data Platform Team", "details": "This table is the source of truth." }, "warning_markdown": "This is a warning." }',
+    "extra": '{ "certification": { "certified_by": "Data Platform Team", "details": "This table is the source of truth." }, "warning_markdown": "This is a warning." }',  # noqa: E501
     "metrics": [
         {
             "metric_name": "count",
@@ -540,7 +555,7 @@ chart_config: dict[str, Any] = {
         "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
         "datasource": "12__table",
         "js_columns": ["color"],
-        "js_data_mutator": r"data => data.map(d => ({\n    ...d,\n    color: colors.hexToRGB(d.extraProps.color)\n}));",
+        "js_data_mutator": r"data => data.map(d => ({\n    ...d,\n    color: colors.hexToRGB(d.extraProps.color)\n}));",  # noqa: E501
         "js_onclick_href": "",
         "js_tooltip": "",
         "line_column": "path_json",
@@ -570,7 +585,7 @@ chart_config: dict[str, Any] = {
         },
         "viz_type": "deck_path",
     },
-    "query_context": '{"datasource":{"id":12,"type":"table"},"force":false,"queries":[{"time_range":" : ","filters":[],"extras":{"time_grain_sqla":null,"having":"","where":""},"applied_time_extras":{},"columns":[],"metrics":[],"annotation_layers":[],"row_limit":5000,"timeseries_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"result_format":"json","result_type":"full"}',
+    "query_context": '{"datasource":{"id":12,"type":"table"},"force":false,"queries":[{"time_range":" : ","filters":[],"extras":{"time_grain_sqla":null,"having":"","where":""},"applied_time_extras":{},"columns":[],"metrics":[],"annotation_layers":[],"row_limit":5000,"timeseries_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"result_format":"json","result_type":"full"}',  # noqa: E501
     "cache_timeout": None,
     "uuid": "0c23747a-6528-4629-97bf-e4b78d3b9df1",
     "version": "1.0.0",
@@ -670,8 +685,9 @@ saved_queries_config = {
     "schema": "public",
     "label": "Test Saved Query",
     "description": None,
-    "sql": "-- Note: Unless you save your query, these tabs will NOT persist if you clear\nyour cookies or change browsers.\n\n\nSELECT * from birth_names",
+    "sql": "-- Note: Unless you save your query, these tabs will NOT persist if you clear\nyour cookies or change browsers.\n\n\nSELECT * from birth_names",  # noqa: E501
     "uuid": "05b679b5-8eaf-452c-b874-a7a774cfa4e9",
     "version": "1.0.0",
     "database_uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "catalog": "default",
 }

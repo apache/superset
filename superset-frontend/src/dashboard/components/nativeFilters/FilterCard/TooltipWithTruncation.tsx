@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { TooltipProps } from 'antd/lib/tooltip';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip, TooltipProps } from 'src/components/Tooltip';
 import { TooltipTrigger } from './Styles';
 
 export const TooltipWithTruncation = ({

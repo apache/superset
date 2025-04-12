@@ -22,11 +22,13 @@ from urllib import parse
 
 from flask_babel import gettext as __
 from sqlalchemy import Float, Integer, Numeric, String, TEXT, types
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
 
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import SupersetErrorType
+from superset.models.core import Database
 from superset.utils.core import GenericDataType
 
 # Regular expressions to catch custom errors
@@ -111,6 +113,7 @@ class DorisEngineSpec(MySQLEngineSpec):
     )
     encryption_parameters = {"ssl": "0"}
     supports_dynamic_schema = True
+    supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
 
     column_type_mappings = (  # type: ignore
         (
@@ -245,16 +248,44 @@ class DorisEngineSpec(MySQLEngineSpec):
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> tuple[URL, dict[str, Any]]:
-        database = uri.database
-        if schema and database:
-            schema = parse.quote(schema, safe="")
-            if "." in database:
-                database = database.split(".")[0] + "." + schema
-            else:
-                database = "internal." + schema
-            uri = uri.set(database=database)
+        if catalog:
+            pass
+        elif uri.database and "." in uri.database:
+            catalog, _ = uri.database.split(".", 1)
+        else:
+            catalog = "internal"
 
+        # In Apache Doris, each catalog has an information_schema for BI tool
+        # compatibility. See: https://github.com/apache/doris/pull/28919
+        schema = schema or "information_schema"
+        database = ".".join([catalog or "", schema])
+        uri = uri.set(database=database)
         return uri, connect_args
+
+    @classmethod
+    def get_default_catalog(cls, database: Database) -> Optional[str]:
+        """
+        Return the default catalog.
+        """
+        if database.url_object.database is None:
+            return None
+
+        return database.url_object.database.split(".")[0]
+
+    @classmethod
+    def get_catalog_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+    ) -> set[str]:
+        """
+        Get all catalogs.
+        For Doris, the SHOW CATALOGS command returns multiple columns:
+        CatalogId, CatalogName, Type, IsCurrent, CreateTime, LastUpdateTime, Comment
+        We need to extract just the CatalogName column.
+        """
+        result = inspector.bind.execute("SHOW CATALOGS")
+        return {row.CatalogName for row in result}
 
     @classmethod
     def get_schema_from_engine_params(

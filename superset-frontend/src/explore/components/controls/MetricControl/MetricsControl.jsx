@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { ensureIsArray, t, useTheme, usePrevious } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import {
   AddIconButton,
   AddControlLabel,
@@ -317,8 +317,8 @@ const MetricsControl = ({
             disabled={isAddNewMetricDisabled()}
             data-test="add-metric-button"
           >
-            <Icons.PlusLarge
-              iconSize="s"
+            <Icons.PlusOutlined
+              iconSize="m"
               iconColor={theme.colors.grayscale.light5}
             />
           </AddIconButton>,
@@ -329,7 +329,10 @@ const MetricsControl = ({
           ? value.map((value, index) => valueRenderer(value, index))
           : addNewMetricPopoverTrigger(
               <AddControlLabel>
-                <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
+                <Icons.PlusOutlined
+                  iconSize="m"
+                  iconColor={theme.colors.grayscale.light1}
+                />
                 {t('Add metric')}
               </AddControlLabel>,
             )}

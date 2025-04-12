@@ -16,35 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'src/components/Tooltip';
-import {
-  CategoricalColorNamespace,
-  css,
-  logging,
-  SupersetClient,
-  t,
-  tn,
-} from '@superset-ui/core';
+import { css, logging, SupersetClient, t, useTheme } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
+import { applyColors, resetColors } from 'src/utils/colorScheme';
+import ReportModal from 'src/features/reports/ReportModal';
+import DeleteModal from 'src/components/DeleteModal';
+import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
+import { useExploreMetadataBar } from './useExploreMetadataBar';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
   canOverwrite: PropTypes.bool.isRequired,
   canDownload: PropTypes.bool.isRequired,
   dashboardId: PropTypes.number,
+  colorScheme: PropTypes.string,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
   sliceName: PropTypes.string,
@@ -74,6 +72,7 @@ const additionalItemsStyles = theme => css`
 
 export const ExploreChartHeader = ({
   dashboardId,
+  colorScheme: dashboardColorScheme,
   slice,
   actions,
   formData,
@@ -87,14 +86,22 @@ export const ExploreChartHeader = ({
   saveDisabled,
   metadata,
 }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
-
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
   const updateCategoricalNamespace = async () => {
     const { dashboards } = metadata || {};
     const dashboard =
       dashboardId && dashboards && dashboards.find(d => d.id === dashboardId);
+
+    if (!dashboard || !dashboardColorScheme) {
+      // clean up color namespace and shared color maps
+      // to avoid colors spill outside of dashboard context
+      resetColors(metadata?.color_namespace);
+    }
 
     if (dashboard) {
       try {
@@ -106,23 +113,9 @@ export const ExploreChartHeader = ({
         const result = response?.json?.result;
 
         // setting the chart to use the dashboard custom label colors if any
-        const metadata = JSON.parse(result.json_metadata);
-        const sharedLabelColors = metadata.shared_label_colors || {};
-        const customLabelColors = metadata.label_colors || {};
-        const mergedLabelColors = {
-          ...sharedLabelColors,
-          ...customLabelColors,
-        };
-
-        const categoricalNamespace = CategoricalColorNamespace.getNamespace();
-
-        Object.keys(mergedLabelColors).forEach(label => {
-          categoricalNamespace.setColor(
-            label,
-            mergedLabelColors[label],
-            metadata.color_scheme,
-          );
-        });
+        const dashboardMetadata = JSON.parse(result.json_metadata);
+        // ensure consistency with the dashboard
+        applyColors(dashboardMetadata);
       } catch (error) {
         logging.info(t('Unable to retrieve dashboard colors'));
       }
@@ -130,7 +123,7 @@ export const ExploreChartHeader = ({
   };
 
   useEffect(() => {
-    if (dashboardId) updateCategoricalNamespace();
+    updateCategoricalNamespace();
   }, []);
 
   const openPropertiesModal = () => {
@@ -139,6 +132,14 @@ export const ExploreChartHeader = ({
 
   const closePropertiesModal = () => {
     setIsPropertiesModalOpen(false);
+  };
+
+  const showReportModal = () => {
+    setIsReportModalOpen(true);
+  };
+
+  const closeReportModal = () => {
+    setIsReportModalOpen(false);
   };
 
   const showModal = useCallback(() => {
@@ -151,6 +152,11 @@ export const ExploreChartHeader = ({
     },
     [dispatch],
   );
+
+  const handleReportDelete = async report => {
+    await dispatch(deleteActiveReport(report));
+    setCurrentReportDeleting(null);
+  };
 
   const history = useHistory();
   const { redirectSQLLab } = actions;
@@ -171,57 +177,18 @@ export const ExploreChartHeader = ({
       openPropertiesModal,
       ownState,
       metadata?.dashboards,
+      showReportModal,
+      setCurrentReportDeleting,
     );
 
-  const metadataBar = useMemo(() => {
-    if (!metadata) {
-      return null;
-    }
-    const items = [];
-    items.push({
-      type: MetadataType.Dashboards,
-      title:
-        metadata.dashboards.length > 0
-          ? tn(
-              'Added to 1 dashboard',
-              'Added to %s dashboards',
-              metadata.dashboards.length,
-              metadata.dashboards.length,
-            )
-          : t('Not added to any dashboard'),
-      description:
-        metadata.dashboards.length > 0
-          ? t(
-              'You can preview the list of dashboards in the chart settings dropdown.',
-            )
-          : undefined,
-    });
-    items.push({
-      type: MetadataType.LastModified,
-      value: metadata.changed_on_humanized,
-      modifiedBy: metadata.changed_by || t('Not available'),
-    });
-    items.push({
-      type: MetadataType.Owner,
-      createdBy: metadata.created_by || t('Not available'),
-      owners: metadata.owners.length > 0 ? metadata.owners : t('None'),
-      createdOn: metadata.created_on_humanized,
-    });
-    if (slice?.description) {
-      items.push({
-        type: MetadataType.Description,
-        value: slice?.description,
-      });
-    }
-    return <MetadataBar items={items} tooltipPlacement="bottom" />;
-  }, [metadata, slice?.description]);
+  const metadataBar = useExploreMetadataBar(metadata, slice);
 
   const oldSliceName = slice?.slice_name;
   return (
     <>
       <PageHeaderWithActions
         editableTitleProps={{
-          title: sliceName,
+          title: sliceName ?? '',
           canEdit:
             !slice ||
             canOverwrite ||
@@ -275,7 +242,10 @@ export const ExploreChartHeader = ({
                 data-test="query-save-button"
                 css={saveButtonStyles}
               >
-                <Icons.SaveOutlined iconSize="l" />
+                <Icons.SaveOutlined
+                  iconSize="l"
+                  iconColor={theme.colors.primary.dark2}
+                />
                 {t('Save')}
               </Button>
             </div>
@@ -283,8 +253,8 @@ export const ExploreChartHeader = ({
         }
         additionalActionsMenu={menu}
         menuDropdownProps={{
-          visible: isDropdownVisible,
-          onVisibleChange: setIsDropdownVisible,
+          open: isDropdownVisible,
+          onOpenChange: setIsDropdownVisible,
         }}
       />
       {isPropertiesModalOpen && (
@@ -293,6 +263,33 @@ export const ExploreChartHeader = ({
           onHide={closePropertiesModal}
           onSave={updateSlice}
           slice={slice}
+        />
+      )}
+
+      <ReportModal
+        userId={user.userId}
+        show={isReportModalOpen}
+        onHide={closeReportModal}
+        userEmail={user.email}
+        dashboardId={dashboardId}
+        chart={chart}
+        creationMethod="charts"
+      />
+
+      {currentReportDeleting && (
+        <DeleteModal
+          description={t(
+            'This action will permanently delete %s.',
+            currentReportDeleting?.name,
+          )}
+          onConfirm={() => {
+            if (currentReportDeleting) {
+              handleReportDelete(currentReportDeleting);
+            }
+          }}
+          onHide={() => setCurrentReportDeleting(null)}
+          open
+          title={t('Delete Report?')}
         />
       )}
     </>

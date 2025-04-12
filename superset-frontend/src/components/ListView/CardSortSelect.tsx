@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
@@ -86,6 +86,7 @@ export const CardSortSelect = ({
         options={formattedOptions}
         showSearch
         value={value}
+        data-test="card-sort-select"
       />
     </SortContainer>
   );

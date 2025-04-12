@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
@@ -90,9 +89,9 @@ const controlPanel: ControlPanelConfig = {
           {
             name: 'metric',
             config: {
-              ...optionalEntity,
-              type: 'DndMetricSelect',
-              label: t('Metric'),
+              ...sharedControls.metric,
+              clearable: true,
+              validators: [],
               description: t('Metric for node values'),
             },
           },

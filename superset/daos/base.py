@@ -21,13 +21,8 @@ from typing import Any, Generic, get_args, TypeVar
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy.exc import SQLAlchemyError, StatementError
+from sqlalchemy.exc import StatementError
 
-from superset.daos.exceptions import (
-    DAOCreateFailedError,
-    DAODeleteFailedError,
-    DAOUpdateFailedError,
-)
 from superset.extensions import db
 
 T = TypeVar("T", bound=Model)
@@ -49,7 +44,7 @@ class BaseDAO(Generic[T]):
     """
     id_column_name = "id"
 
-    def __init_subclass__(cls) -> None:  # pylint: disable=arguments-differ
+    def __init_subclass__(cls) -> None:
         cls.model_cls = get_args(
             cls.__orig_bases__[0]  # type: ignore  # pylint: disable=no-member
         )[0]
@@ -127,15 +122,12 @@ class BaseDAO(Generic[T]):
         cls,
         item: T | None = None,
         attributes: dict[str, Any] | None = None,
-        commit: bool = True,
     ) -> T:
         """
         Create an object from the specified item and/or attributes.
 
         :param item: The object to create
         :param attributes: The attributes associated with the object to create
-        :param commit: Whether to commit the transaction
-        :raises DAOCreateFailedError: If the creation failed
         """
 
         if not item:
@@ -145,15 +137,7 @@ class BaseDAO(Generic[T]):
             for key, value in attributes.items():
                 setattr(item, key, value)
 
-        try:
-            db.session.add(item)
-
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:  # pragma: no cover
-            db.session.rollback()
-            raise DAOCreateFailedError(exception=ex) from ex
-
+        db.session.add(item)
         return item  # type: ignore
 
     @classmethod
@@ -161,15 +145,12 @@ class BaseDAO(Generic[T]):
         cls,
         item: T | None = None,
         attributes: dict[str, Any] | None = None,
-        commit: bool = True,
     ) -> T:
         """
         Update an object from the specified item and/or attributes.
 
         :param item: The object to update
         :param attributes: The attributes associated with the object to update
-        :param commit: Whether to commit the transaction
-        :raises DAOUpdateFailedError: If the updating failed
         """
 
         if not item:
@@ -179,19 +160,13 @@ class BaseDAO(Generic[T]):
             for key, value in attributes.items():
                 setattr(item, key, value)
 
-        try:
-            db.session.merge(item)
-
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:  # pragma: no cover
-            db.session.rollback()
-            raise DAOUpdateFailedError(exception=ex) from ex
+        if item not in db.session:
+            return db.session.merge(item)
 
         return item  # type: ignore
 
     @classmethod
-    def delete(cls, items: list[T], commit: bool = True) -> None:
+    def delete(cls, items: list[T]) -> None:
         """
         Delete the specified items including their associated relationships.
 
@@ -204,17 +179,8 @@ class BaseDAO(Generic[T]):
         post-deletion logic.
 
         :param items: The items to delete
-        :param commit: Whether to commit the transaction
-        :raises DAODeleteFailedError: If the deletion failed
         :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
         """
 
-        try:
-            for item in items:
-                db.session.delete(item)
-
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise DAODeleteFailedError(exception=ex) from ex
+        for item in items:
+            db.session.delete(item)

@@ -16,76 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
-import Button from 'src/components/Button';
-import { FilterConfiguration, styled } from '@superset-ui/core';
-import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
+import { ReactNode, FC, memo } from 'react';
+
 import { getFilterBarTestId } from '../utils';
 
 export interface FCBProps {
-  createNewOnOpen?: boolean;
-  dashboardId?: number;
-  initialFilterId?: string;
   onClick?: () => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
-const HeaderButton = styled(Button)`
-  padding: 0;
-`;
-
-export const FilterConfigurationLink: React.FC<FCBProps> = ({
-  createNewOnOpen,
-  dashboardId,
-  initialFilterId,
+export const FilterConfigurationLink: FC<FCBProps> = ({
   onClick,
   children,
-}) => {
-  const dispatch = useDispatch();
-  const [isOpen, setOpen] = useState(false);
+}) => (
+  <div
+    {...getFilterBarTestId('create-filter')}
+    onClick={onClick}
+    role="button"
+    tabIndex={0}
+  >
+    {children}
+  </div>
+);
 
-  const close = useCallback(() => {
-    setOpen(false);
-  }, [setOpen]);
-
-  const submit = useCallback(
-    async (filterConfig: FilterConfiguration) => {
-      dispatch(await setFilterConfiguration(filterConfig));
-      close();
-    },
-    [dispatch, close],
-  );
-
-  const handleClick = useCallback(() => {
-    setOpen(true);
-    if (onClick) {
-      onClick();
-    }
-  }, [setOpen, onClick]);
-
-  return (
-    <>
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-      <HeaderButton
-        {...getFilterBarTestId('create-filter')}
-        buttonStyle="link"
-        buttonSize="xsmall"
-        onClick={handleClick}
-      >
-        {children}
-      </HeaderButton>
-      <FiltersConfigModal
-        isOpen={isOpen}
-        onSave={submit}
-        onCancel={close}
-        initialFilterId={initialFilterId}
-        createNewOnOpen={createNewOnOpen}
-        key={`filters-for-${dashboardId}`}
-      />
-    </>
-  );
-};
-
-export default React.memo(FilterConfigurationLink);
+export default memo(FilterConfigurationLink);

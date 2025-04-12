@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useDispatch } from 'react-redux';
-import { styled, useTheme, t } from '@superset-ui/core';
-import { AntdDropdown } from 'src/components';
+import { t } from '@superset-ui/core';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import Button from 'src/components/Button';
 
 export interface QueryLimitSelectProps {
   queryEditorId: string;
@@ -34,28 +34,6 @@ export interface QueryLimitSelectProps {
 export function convertToNumWithSpaces(num: number) {
   return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
 }
-
-const LimitSelectStyled = styled.span`
-  ${({ theme }) => `
-    .ant-dropdown-trigger {
-      align-items: center;
-      color: ${theme.colors.grayscale.dark2};
-      display: flex;
-      font-size: 12px;
-      margin-right: ${theme.gridUnit * 2}px;
-      text-decoration: none;
-      border: 0;
-      background: transparent;
-      span {
-        display: inline-block;
-        margin-right: ${theme.gridUnit * 2}px;
-        &:last-of-type: {
-          margin-right: ${theme.gridUnit * 4}px;
-        }
-      }
-    }
-  `}
-`;
 
 function renderQueryLimit(
   maxRow: number,
@@ -86,7 +64,6 @@ const QueryLimitSelect = ({
   maxRow,
   defaultQueryLimit,
 }: QueryLimitSelectProps) => {
-  const theme = useTheme();
   const dispatch = useDispatch();
 
   const queryEditor = useQueryEditor(queryEditorId, ['id', 'queryLimit']);
@@ -95,20 +72,18 @@ const QueryLimitSelect = ({
     dispatch(queryEditorSetQueryLimit(queryEditor, updatedQueryLimit));
 
   return (
-    <LimitSelectStyled>
-      <AntdDropdown
-        overlay={renderQueryLimit(maxRow, setQueryLimit)}
-        trigger={['click']}
-      >
-        <button type="button" onClick={e => e.preventDefault()}>
-          <span>{t('LIMIT')}:</span>
-          <span className="limitDropdown">
-            {convertToNumWithSpaces(queryLimit)}
-          </span>
-          <Icons.TriangleDown iconColor={theme.colors.grayscale.base} />
-        </button>
-      </AntdDropdown>
-    </LimitSelectStyled>
+    <Dropdown
+      dropdownRender={() => renderQueryLimit(maxRow, setQueryLimit)}
+      trigger={['click']}
+    >
+      <Button size="small" showMarginRight={false} type="link">
+        <span>{t('LIMIT')}:</span>
+        <span className="limitDropdown">
+          {convertToNumWithSpaces(queryLimit)}
+        </span>
+        <Icons.CaretDownOutlined iconSize="m" />
+      </Button>
+    </Dropdown>
   );
 };
 

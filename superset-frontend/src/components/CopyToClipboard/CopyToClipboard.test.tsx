@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import CopyToClipboard from '.';
 
 test('renders with default props', () => {
@@ -65,7 +68,7 @@ test('not renders tooltip on hover with hideTooltip props', async () => {
   });
   userEvent.hover(screen.getByText('Copy'));
   const tooltip = screen.queryByRole('tooltip');
-  expect(tooltip).toBe(null);
+  expect(tooltip).not.toBeInTheDocument();
 });
 
 test('triggers onCopyEnd', async () => {

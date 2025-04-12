@@ -16,16 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   useState,
   useMemo,
   forwardRef,
   useImperativeHandle,
+  RefObject,
 } from 'react';
-import moment, { Moment } from 'moment';
+
 import { styled, t } from '@superset-ui/core';
 import { RangePicker } from 'src/components/DatePicker';
 import { FormLabel } from 'src/components/Form';
+import { extendedDayjs } from 'src/utils/dates';
+import { Dayjs } from 'dayjs';
+import Loading from 'src/components/Loading';
+import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
+import { useLocale } from 'src/hooks/useLocale';
 import { BaseFilter, FilterHandler } from './Base';
 
 interface DateRangeFilterProps extends BaseFilter {
@@ -45,13 +51,15 @@ const RangeFilterContainer = styled.div`
 
 function DateRangeFilter(
   { Header, initialValue, onSubmit }: DateRangeFilterProps,
-  ref: React.RefObject<FilterHandler>,
+  ref: RefObject<FilterHandler>,
 ) {
   const [value, setValue] = useState<ValueState | null>(initialValue ?? null);
-  const momentValue = useMemo((): [Moment, Moment] | null => {
+  const dayjsValue = useMemo((): [Dayjs, Dayjs] | null => {
     if (!value || (Array.isArray(value) && !value.length)) return null;
-    return [moment(value[0]), moment(value[1])];
+    return [extendedDayjs(value[0]), extendedDayjs(value[1])];
   }, [value]);
+
+  const locale = useLocale();
 
   useImperativeHandle(ref, () => ({
     clearFilter: () => {
@@ -60,28 +68,33 @@ function DateRangeFilter(
     },
   }));
 
+  if (locale === null) {
+    return <Loading position="inline-centered" />;
+  }
   return (
-    <RangeFilterContainer>
-      <FormLabel>{Header}</FormLabel>
-      <RangePicker
-        placeholder={[t('Start date'), t('End date')]}
-        showTime
-        value={momentValue}
-        onChange={momentRange => {
-          if (!momentRange) {
-            setValue(null);
-            onSubmit([]);
-            return;
-          }
-          const changeValue = [
-            momentRange[0]?.valueOf() ?? 0,
-            momentRange[1]?.valueOf() ?? 0,
-          ] as ValueState;
-          setValue(changeValue);
-          onSubmit(changeValue);
-        }}
-      />
-    </RangeFilterContainer>
+    <AntdThemeProvider locale={locale}>
+      <RangeFilterContainer>
+        <FormLabel>{Header}</FormLabel>
+        <RangePicker
+          placeholder={[t('Start date'), t('End date')]}
+          showTime
+          value={dayjsValue}
+          onCalendarChange={(dayjsRange: [Dayjs, Dayjs]) => {
+            if (!dayjsRange?.[0]?.valueOf() || !dayjsRange?.[1]?.valueOf()) {
+              setValue(null);
+              onSubmit([]);
+              return;
+            }
+            const changeValue = [
+              dayjsRange[0]?.valueOf() ?? 0,
+              dayjsRange[1]?.valueOf() ?? 0,
+            ] as ValueState;
+            setValue(changeValue);
+            onSubmit(changeValue);
+          }}
+        />
+      </RangeFilterContainer>
+    </AntdThemeProvider>
   );
 }
 

@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any
+from typing import Any, Optional
 
 from marshmallow import Schema
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.exceptions import DatasetImportError
@@ -30,7 +30,6 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 
 
 class ImportDatasetsCommand(ImportModelsCommand):
-
     """Import datasets"""
 
     dao = DatasetDAO
@@ -43,7 +42,13 @@ class ImportDatasetsCommand(ImportModelsCommand):
     import_error = DatasetImportError
 
     @staticmethod
-    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
+    def _import(
+        configs: dict[str, Any],
+        overwrite: bool = False,
+        contents: Optional[dict[str, Any]] = None,
+    ) -> None:
+        if contents is None:
+            contents = {}
         # discover databases associated with datasets
         database_uuids: set[str] = set()
         for file_name, config in configs.items():

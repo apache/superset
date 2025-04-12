@@ -18,13 +18,13 @@
  */
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
-import moment from 'moment';
 import {
   FeatureFlag,
   isDefined,
   SupersetClient,
   t,
   isFeatureEnabled,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import { getControlsState } from 'src/explore/store';
 import {
@@ -38,11 +38,12 @@ import {
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { safeStringify } from 'src/utils/safeStringify';
+import { extendedDayjs } from 'src/utils/dates';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -248,17 +249,20 @@ export async function getChartDataRequest({
 
 export function runAnnotationQuery({
   annotation,
-  timeout = 60,
-  formData = null,
+  timeout,
+  formData,
   key,
   isDashboardRequest = false,
   force = false,
 }) {
   return function (dispatch, getState) {
-    const sliceKey = key || Object.keys(getState().charts)[0];
+    const { charts, common } = getState();
+    const sliceKey = key || Object.keys(charts)[0];
+    const queryTimeout = timeout || common.conf.SUPERSET_WEBSERVER_TIMEOUT;
+
     // make a copy of formData, not modifying original formData
     const fd = {
-      ...(formData || getState().charts[sliceKey].latestQueryFormData),
+      ...(formData || charts[sliceKey].latestQueryFormData),
     };
 
     if (!annotation.sourceType) {
@@ -309,7 +313,7 @@ export function runAnnotationQuery({
     return SupersetClient.post({
       url,
       signal,
-      timeout: timeout * 1000,
+      timeout: queryTimeout * 1000,
       headers: { 'Content-Type': 'application/json' },
       jsonPayload: buildV1ChartDataPayload({
         formData: fd,
@@ -396,18 +400,20 @@ export function handleChartDataResponse(response, json, useLegacyApi) {
 export function exploreJSON(
   formData,
   force = false,
-  timeout = 60,
+  timeout,
   key,
   dashboardId,
   ownState,
 ) {
-  return async dispatch => {
+  return async (dispatch, getState) => {
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
+    const queryTimeout =
+      timeout || getState().common.conf.SUPERSET_WEBSERVER_TIMEOUT;
 
     const requestParams = {
       signal: controller.signal,
-      timeout: timeout * 1000,
+      timeout: queryTimeout * 1000,
     };
     if (dashboardId) requestParams.dashboard_id = dashboardId;
 
@@ -449,7 +455,9 @@ export function exploreJSON(
                 formData.extra_filters && formData.extra_filters.length > 0,
               viz_type: formData.viz_type,
               data_age: resultItem.is_cached
-                ? moment(new Date()).diff(moment.utc(resultItem.cached_dttm))
+                ? extendedDayjs(new Date()).diff(
+                    extendedDayjs.utc(resultItem.cached_dttm),
+                  )
                 : null,
             }),
           ),
@@ -519,7 +527,7 @@ export const POST_CHART_FORM_DATA = 'POST_CHART_FORM_DATA';
 export function postChartFormData(
   formData,
   force = false,
-  timeout = 60,
+  timeout,
   key,
   dashboardId,
   ownState,
@@ -544,7 +552,7 @@ export function redirectSQLLab(formData, history) {
             },
           });
         } else {
-          SupersetClient.postForm(redirectUrl, {
+          SupersetClient.postForm(ensureAppRoot(redirectUrl), {
             form_data: safeStringify(payload),
           });
         }
@@ -604,6 +612,7 @@ export const getDatasourceSamples = async (
       endpoint: '/datasource/samples',
       jsonPayload,
       searchParams,
+      parseMethod: 'json-bigint',
     });
 
     return response.json.result;

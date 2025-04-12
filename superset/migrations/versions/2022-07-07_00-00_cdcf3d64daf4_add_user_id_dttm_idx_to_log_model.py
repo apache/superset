@@ -27,7 +27,7 @@ revision = "cdcf3d64daf4"
 down_revision = "7fb8bca906d2"
 
 
-from alembic import op
+from alembic import op  # noqa: E402
 
 
 def upgrade():

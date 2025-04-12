@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { styled, css, t, useTheme } from '@superset-ui/core';
 import { Comparator } from '@superset-ui/chart-controls';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { FormattingPopover } from './FormattingPopover';
 import {
@@ -71,6 +71,7 @@ const ConditionalFormattingControl = ({
   columnOptions,
   verboseMap,
   removeIrrelevantConditions,
+  extraColorChoices,
   ...props
 }: ConditionalFormattingControlProps) => {
   const theme = useTheme();
@@ -145,7 +146,10 @@ const ConditionalFormattingControl = ({
         {conditionalFormattingConfigs.map((config, index) => (
           <FormatterContainer key={index}>
             <CloseButton onClick={() => onDelete(index)}>
-              <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
+              <Icons.CloseOutlined
+                iconSize="m"
+                iconColor={theme.colors.grayscale.light1}
+              />
             </CloseButton>
             <FormattingPopover
               title={t('Edit formatter')}
@@ -155,11 +159,18 @@ const ConditionalFormattingControl = ({
                 onEdit(newConfig, index)
               }
               destroyTooltipOnHide
+              extraColorChoices={extraColorChoices}
             >
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
                 <CaretContainer>
-                  <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
+                  <Icons.RightOutlined
+                    iconSize="m"
+                    css={css`
+                      margin-top: ${theme.gridUnit}px;
+                    `}
+                    iconColor={theme.colors.grayscale.light1}
+                  />
                 </CaretContainer>
               </OptionControlContainer>
             </FormattingPopover>
@@ -170,9 +181,17 @@ const ConditionalFormattingControl = ({
           columns={columnOptions}
           onChange={onSave}
           destroyTooltipOnHide
+          extraColorChoices={extraColorChoices}
         >
           <AddControlLabel>
-            <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
+            <Icons.PlusOutlined
+              iconSize="m"
+              iconColor={theme.colors.grayscale.light1}
+              css={theme => ({
+                margin: `auto ${theme.gridUnit}px auto 0`,
+                verticalAlign: 'baseline',
+              })}
+            />
             {t('Add new color formatter')}
           </AddControlLabel>
         </FormattingPopover>

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
@@ -63,11 +62,11 @@ describe('CssTemplateModal', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(CssTemplateModal)).toExist();
+    expect(wrapper.find(CssTemplateModal)).toBeTruthy();
   });
 
   it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toExist();
+    expect(wrapper.find(Modal)).toBeTruthy();
   });
 
   it('renders add header when no css template is included', async () => {
@@ -84,10 +83,10 @@ describe('CssTemplateModal', () => {
   });
 
   it('renders input elements for template name', () => {
-    expect(wrapper.find('input[name="template_name"]')).toExist();
+    expect(wrapper.find('input[name="template_name"]')).toBeTruthy();
   });
 
   it('renders css editor for css', () => {
-    expect(wrapper.find(CssEditor)).toExist();
+    expect(wrapper.find(CssEditor)).toBeTruthy();
   });
 });

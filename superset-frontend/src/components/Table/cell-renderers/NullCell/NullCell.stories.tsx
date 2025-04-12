@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { StoryFn, Meta } from '@storybook/react';
 import NullCell from '.';
 
 export default {
   title: 'Design System/Components/Table/Cell Renderers/NullCell',
   component: NullCell,
-} as ComponentMeta<typeof NullCell>;
+} as Meta<typeof NullCell>;
 
-export const Basic: ComponentStory<typeof NullCell> = () => <NullCell />;
+export const Basic: StoryFn<typeof NullCell> = () => <NullCell />;

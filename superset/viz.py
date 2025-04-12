@@ -20,13 +20,13 @@
 These objects represent the backend of all the visualizations that
 Superset can render.
 """
+
 from __future__ import annotations
 
 import copy
 import dataclasses
 import logging
 import math
-import re
 from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
 from itertools import product
@@ -36,7 +36,6 @@ import geohash
 import numpy as np
 import pandas as pd
 import polyline
-import simplejson as json
 from dateutil import relativedelta as rdelta
 from deprecation import deprecated
 from flask import request
@@ -46,7 +45,6 @@ from pandas.tseries.frequencies import to_offset
 
 from superset import app
 from superset.common.db_query_status import QueryStatus
-from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
@@ -65,7 +63,7 @@ from superset.superset_typing import (
     VizData,
     VizPayload,
 )
-from superset.utils import core as utils, csv
+from superset.utils import core as utils, csv, json
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     apply_max_row_limit,
@@ -84,7 +82,6 @@ from superset.utils.geopy_extensions import LngLatPoint
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
-    from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.sqla.models import BaseDatasource
 
 config = app.config
@@ -106,7 +103,6 @@ METRIC_KEYS = [
 
 
 class BaseViz:  # pylint: disable=too-many-public-methods
-
     """All visualizations derive this base class"""
 
     viz_type: str | None = None
@@ -181,7 +177,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     @staticmethod
     @deprecated(deprecated_in="3.0")
     def handle_js_int_overflow(
-        data: dict[str, list[dict[str, Any]]]
+        data: dict[str, list[dict[str, Any]]],
     ) -> dict[str, list[dict[str, Any]]]:
         for record in data.get("records", {}):
             for k, v in list(record.items()):
@@ -263,6 +259,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "data": payload["df"].to_dict(orient="records"),
             "colnames": payload.get("colnames"),
             "coltypes": payload.get("coltypes"),
+            "rowcount": payload.get("rowcount"),
+            "sql_rowcount": payload.get("sql_rowcount"),
         }
 
     @deprecated(deprecated_in="3.0")
@@ -298,7 +296,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         if not df.empty:
             utils.normalize_dttm_col(
                 df=df,
-                dttm_cols=tuple(
+                dttm_cols=tuple(  # noqa: C409
                     [
                         DateColumn.get_legacy_time_column(
                             timestamp_format=timestamp_format,
@@ -441,7 +439,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     @deprecated(deprecated_in="3.0")
     def get_json(self) -> str:
         return json.dumps(
-            self.get_payload(), default=utils.json_int_dttm_ser, ignore_nan=True
+            self.get_payload(), default=json.json_int_dttm_ser, ignore_nan=True
         )
 
     @deprecated(deprecated_in="3.0")
@@ -515,7 +513,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         return payload
 
     @deprecated(deprecated_in="3.0")
-    def get_df_payload(  # pylint: disable=too-many-statements
+    def get_df_payload(  # pylint: disable=too-many-statements  # noqa: C901
         self, query_obj: QueryObjectDict | None = None, **kwargs: Any
     ) -> dict[str, Any]:
         """Handles caching around the df payload retrieval"""
@@ -633,9 +631,11 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "stacktrace": stacktrace,
             "rowcount": len(df.index) if df is not None else 0,
             "colnames": list(df.columns) if df is not None else None,
-            "coltypes": utils.extract_dataframe_dtypes(df, self.datasource)
-            if df is not None
-            else None,
+            "coltypes": (
+                utils.extract_dataframe_dtypes(df, self.datasource)
+                if df is not None
+                else None
+            ),
         }
 
     @staticmethod
@@ -643,7 +643,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     def json_dumps(query_obj: Any, sort_keys: bool = False) -> str:
         return json.dumps(
             query_obj,
-            default=utils.json_int_dttm_ser,
+            default=json.json_int_dttm_ser,
             ignore_nan=True,
             sort_keys=sort_keys,
         )
@@ -700,7 +700,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
 
 class TimeTableViz(BaseViz):
-
     """A data table with rich time-series related columns"""
 
     viz_type = "time_table"
@@ -747,7 +746,6 @@ class TimeTableViz(BaseViz):
 
 
 class CalHeatmapViz(BaseViz):
-
     """Calendar heatmap."""
 
     viz_type = "cal_heatmap"
@@ -756,7 +754,7 @@ class CalHeatmapViz(BaseViz):
     is_timeseries = True
 
     @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:  # pylint: disable=too-many-locals
+    def get_data(self, df: pd.DataFrame) -> VizData:  # pylint: disable=too-many-locals  # noqa: C901
         if df.empty:
             return None
 
@@ -828,7 +826,6 @@ class CalHeatmapViz(BaseViz):
 
 
 class NVD3Viz(BaseViz):
-
     """Base class for all nvd3 vizs"""
 
     credits = '<a href="http://nvd3.org/">NVD3.org</a>'
@@ -838,7 +835,6 @@ class NVD3Viz(BaseViz):
 
 
 class BubbleViz(NVD3Viz):
-
     """Based on the NVD3 bubble chart"""
 
     viz_type = "bubble"
@@ -891,7 +887,6 @@ class BubbleViz(NVD3Viz):
 
 
 class BulletViz(NVD3Viz):
-
     """Based on the NVD3 bullet chart"""
 
     viz_type = "bullet"
@@ -923,7 +918,6 @@ class BulletViz(NVD3Viz):
 
 
 class NVD3TimeSeriesViz(NVD3Viz):
-
     """A rich line chart component with tons of options"""
 
     viz_type = "line"
@@ -947,7 +941,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         return query_obj
 
     @deprecated(deprecated_in="3.0")
-    def to_series(  # pylint: disable=too-many-branches
+    def to_series(  # pylint: disable=too-many-branches  # noqa: C901
         self, df: pd.DataFrame, classed: str = "", title_suffix: str = ""
     ) -> list[dict[str, Any]]:
         cols = []
@@ -1128,17 +1122,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         return chart_data
 
 
-class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
-
-    """A bar chart where the x axis is time"""
-
-    viz_type = "bar"
-    sort_series = True
-    verbose_name = _("Time Series - Bar Chart")
-
-
 class NVD3TimePivotViz(NVD3TimeSeriesViz):
-
     """Time Series - Periodicity Pivot"""
 
     viz_type = "time_pivot"
@@ -1187,248 +1171,13 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
 
 
 class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
-
     """A line chart component where you can compare the % change over time"""
 
     viz_type = "compare"
     verbose_name = _("Time Series - Percent Change")
 
 
-class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
-
-    """A rich stack area chart"""
-
-    viz_type = "area"
-    verbose_name = _("Time Series - Stacked")
-    sort_series = True
-    pivot_fill_value = 0
-
-
-class HistogramViz(BaseViz):
-
-    """Histogram"""
-
-    viz_type = "histogram"
-    verbose_name = _("Histogram")
-    is_timeseries = False
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        """Returns the query object for this visualization"""
-        query_obj = super().query_obj()
-        numeric_columns = self.form_data.get("all_columns_x")
-        if numeric_columns is None:
-            raise QueryObjectValidationError(
-                _("Must have at least one numeric column specified")
-            )
-        self.columns = (  #  pylint: disable=attribute-defined-outside-init
-            numeric_columns
-        )
-        query_obj["columns"] = numeric_columns + self.groupby
-        # override groupby entry to avoid aggregation
-        query_obj["groupby"] = None
-        query_obj["metrics"] = None
-        return query_obj
-
-    @deprecated(deprecated_in="3.0")
-    def labelify(self, keys: list[str] | str, column: str) -> str:
-        if isinstance(keys, str):
-            keys = [keys]
-        # removing undesirable characters
-        labels = [re.sub(r"\W+", r"_", k) for k in keys]
-        if len(self.columns) > 1 or not self.groupby:
-            # Only show numeric column in label if there are many
-            labels = [column] + labels
-        return "__".join(labels)
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        """Returns the chart data"""
-        if df.empty:
-            return None
-
-        chart_data = []
-        if len(self.groupby) > 0:
-            groups = df.groupby(get_column_names(self.groupby))
-        else:
-            groups = [((), df)]
-        for keys, data in groups:
-            chart_data.extend(
-                [
-                    {
-                        "key": self.labelify(keys, get_column_name(column)),
-                        "values": data[get_column_name(column)].tolist(),
-                    }
-                    for column in self.columns
-                ]
-            )
-        return chart_data
-
-
-class DistributionBarViz(BaseViz):
-
-    """A good old bar chart"""
-
-    viz_type = "dist_bar"
-    verbose_name = _("Distribution - Bar Chart")
-    is_timeseries = False
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        query_obj = super().query_obj()
-        if len(query_obj["groupby"]) < len(self.form_data.get("groupby") or []) + len(
-            self.form_data.get("columns") or []
-        ):
-            raise QueryObjectValidationError(
-                _("Can't have overlap between Series and Breakdowns")
-            )
-        if not self.form_data.get("metrics"):
-            raise QueryObjectValidationError(_("Pick at least one metric"))
-        if not self.form_data.get("groupby"):
-            raise QueryObjectValidationError(_("Pick at least one field for [Series]"))
-
-        if sort_by := self.form_data.get("timeseries_limit_metric"):
-            sort_by_label = utils.get_metric_name(sort_by)
-            if sort_by_label not in utils.get_metric_names(query_obj["metrics"]):
-                query_obj["metrics"].append(sort_by)
-            query_obj["orderby"] = [
-                (sort_by, not self.form_data.get("order_desc", True))
-            ]
-        elif query_obj["metrics"]:
-            # Legacy behavior of sorting by first metric by default
-            first_metric = query_obj["metrics"][0]
-            query_obj["orderby"] = [
-                (first_metric, not self.form_data.get("order_desc", True))
-            ]
-
-        return query_obj
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:  # pylint: disable=too-many-locals
-        if df.empty:
-            return None
-
-        metrics = self.metric_labels
-        columns = get_column_names(self.form_data.get("columns"))
-        groupby = get_column_names(self.groupby)
-
-        # pandas will throw away nulls when grouping/pivoting,
-        # so we substitute NULL_STRING for any nulls in the necessary columns
-        filled_cols = groupby + columns
-        df = df.copy()
-        df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
-
-        sortby = utils.get_metric_name(
-            self.form_data.get("timeseries_limit_metric") or metrics[0]
-        )
-        row = df.groupby(groupby)[sortby].sum().copy()
-        is_asc = not self.form_data.get("order_desc")
-        row.sort_values(ascending=is_asc, inplace=True)
-        pt = df.pivot_table(index=groupby, columns=columns, values=metrics)
-        if self.form_data.get("contribution"):
-            pt = pt.T
-            pt = (pt / pt.sum()).T
-        pt = pt.reindex(row.index)
-
-        # Re-order the columns adhering to the metric ordering.
-        pt = pt[metrics]
-        chart_data = []
-        for name, ys in pt.items():
-            if pt[name].dtype.kind not in "biufc" or name in groupby:
-                continue
-            if isinstance(name, str):
-                series_title = name
-            else:
-                offset = 0 if len(metrics) > 1 else 1
-                series_title = ", ".join([str(s) for s in name[offset:]])
-            values = []
-            for i, v in ys.items():
-                x = i
-                if isinstance(x, (tuple, list)):
-                    x = ", ".join([str(s) for s in x])
-                else:
-                    x = str(x)
-                values.append({"x": x, "y": v})
-            chart_data.append({"key": series_title, "values": values})
-        return chart_data
-
-
-class SankeyViz(BaseViz):
-
-    """A Sankey diagram that requires a parent-child dataset"""
-
-    viz_type = "sankey"
-    verbose_name = _("Sankey")
-    is_timeseries = False
-    credits = '<a href="https://www.npmjs.com/package/d3-sankey">d3-sankey on npm</a>'
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        query_obj = super().query_obj()
-        if len(query_obj["groupby"]) != 2:
-            raise QueryObjectValidationError(
-                _("Pick exactly 2 columns as [Source / Target]")
-            )
-        query_obj["metrics"] = [self.form_data["metric"]]
-        if self.form_data.get("sort_by_metric", False):
-            query_obj["orderby"] = [(query_obj["metrics"][0], False)]
-        return query_obj
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        if df.empty:
-            return None
-        source, target = get_column_names(self.groupby)
-        (value,) = self.metric_labels
-        df.rename(
-            columns={
-                source: "source",
-                target: "target",
-                value: "value",
-            },
-            inplace=True,
-        )
-        df["source"] = df["source"].astype(str)
-        df["target"] = df["target"].astype(str)
-        recs = df.to_dict(orient="records")
-
-        hierarchy: dict[str, set[str]] = defaultdict(set)
-        for row in recs:
-            hierarchy[row["source"]].add(row["target"])
-
-        @deprecated(deprecated_in="3.0")
-        def find_cycle(graph: dict[str, set[str]]) -> tuple[str, str] | None:
-            """Whether there's a cycle in a directed graph"""
-            path = set()
-
-            @deprecated(deprecated_in="3.0")
-            def visit(vertex: str) -> tuple[str, str] | None:
-                path.add(vertex)
-                for neighbour in graph.get(vertex, ()):
-                    if neighbour in path or visit(neighbour):
-                        return (vertex, neighbour)
-                path.remove(vertex)
-                return None
-
-            for vertex in graph:
-                cycle = visit(vertex)
-                if cycle:
-                    return cycle
-            return None
-
-        cycle = find_cycle(hierarchy)
-        if cycle:
-            raise QueryObjectValidationError(
-                _(
-                    "There's a loop in your Sankey, please provide a tree. "
-                    "Here's a faulty link: {}"
-                ).format(cycle)
-            )
-        return recs
-
-
 class ChordViz(BaseViz):
-
     """A Chord diagram"""
 
     viz_type = "chord"
@@ -1469,7 +1218,6 @@ class ChordViz(BaseViz):
 
 
 class CountryMapViz(BaseViz):
-
     """A country centric"""
 
     viz_type = "country_map"
@@ -1506,7 +1254,6 @@ class CountryMapViz(BaseViz):
 
 
 class WorldMapViz(BaseViz):
-
     """A country centric world map"""
 
     viz_type = "world_map"
@@ -1570,7 +1317,6 @@ class WorldMapViz(BaseViz):
 
 
 class ParallelCoordinatesViz(BaseViz):
-
     """Interactive parallel coordinate implementation
 
     Uses this amazing javascript library
@@ -1604,68 +1350,7 @@ class ParallelCoordinatesViz(BaseViz):
         return df.to_dict(orient="records")
 
 
-class HeatmapViz(BaseViz):
-
-    """A nice heatmap visualization that support high density through canvas"""
-
-    viz_type = "heatmap"
-    verbose_name = _("Heatmap")
-    is_timeseries = False
-    credits = (
-        'inspired from mbostock @<a href="http://bl.ocks.org/mbostock/3074470">'
-        "bl.ocks.org</a>"
-    )
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        query_obj = super().query_obj()
-        query_obj["metrics"] = [self.form_data.get("metric")]
-        query_obj["groupby"] = [
-            self.form_data.get("all_columns_x"),
-            self.form_data.get("all_columns_y"),
-        ]
-
-        if self.form_data.get("sort_by_metric", False):
-            query_obj["orderby"] = [(query_obj["metrics"][0], False)]
-
-        return query_obj
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        if df.empty:
-            return None
-
-        x = get_column_name(self.form_data.get("all_columns_x"))  # type: ignore
-        y = get_column_name(self.form_data.get("all_columns_y"))  # type: ignore
-        v = self.metric_labels[0]
-        if x == y:
-            df.columns = ["x", "y", "v"]
-        else:
-            df = df[[x, y, v]]
-            df.columns = ["x", "y", "v"]
-        norm = self.form_data.get("normalize_across")
-        overall = False
-        max_ = df.v.max()
-        min_ = df.v.min()
-        if norm == "heatmap":
-            overall = True
-        else:
-            gb = df.groupby(norm, group_keys=False)
-            if len(gb) <= 1:
-                overall = True
-            else:
-                df["perc"] = gb.apply(
-                    lambda x: (x.v - x.v.min()) / (x.v.max() - x.v.min())
-                )
-                df["rank"] = gb.apply(lambda x: x.v.rank(pct=True))
-        if overall:
-            df["perc"] = (df.v - min_) / (max_ - min_)
-            df["rank"] = df.v.rank(pct=True)
-        return {"records": df.to_dict(orient="records"), "extents": [min_, max_]}
-
-
 class HorizonViz(NVD3TimeSeriesViz):
-
     """Horizon chart
 
     https://www.npmjs.com/package/d3-horizon-chart
@@ -1674,13 +1359,11 @@ class HorizonViz(NVD3TimeSeriesViz):
     viz_type = "horizon"
     verbose_name = _("Horizon Charts")
     credits = (
-        '<a href="https://www.npmjs.com/package/d3-horizon-chart">'
-        "d3-horizon-chart</a>"
+        '<a href="https://www.npmjs.com/package/d3-horizon-chart">d3-horizon-chart</a>'
     )
 
 
 class MapboxViz(BaseViz):
-
     """Rich maps made with Mapbox"""
 
     viz_type = "mapbox"
@@ -1800,6 +1483,7 @@ class MapboxViz(BaseViz):
                     df[self.form_data.get("all_columns_y")],
                     metric_col,
                     point_radius_col,
+                    strict=False,
                 )
             ],
         }
@@ -1828,7 +1512,6 @@ class MapboxViz(BaseViz):
 
 
 class DeckGLMultiLayer(BaseViz):
-
     """Pile on multiple DeckGL layers"""
 
     viz_type = "deck_multi"
@@ -1857,7 +1540,6 @@ class DeckGLMultiLayer(BaseViz):
 
 
 class BaseDeckGLViz(BaseViz):
-
     """Base class for deck.gl visualizations"""
 
     is_timeseries = False
@@ -1932,6 +1614,7 @@ class BaseDeckGLViz(BaseViz):
                 zip(
                     pd.to_numeric(df[spatial.get("lonCol")], errors="coerce"),
                     pd.to_numeric(df[spatial.get("latCol")], errors="coerce"),
+                    strict=False,
                 )
             )
         elif spatial.get("type") == "delimited":
@@ -2045,7 +1728,6 @@ class BaseDeckGLViz(BaseViz):
 
 
 class DeckScatterViz(BaseDeckGLViz):
-
     """deck.gl's ScatterLayer"""
 
     viz_type = "deck_scatter"
@@ -2076,11 +1758,13 @@ class DeckScatterViz(BaseDeckGLViz):
     def get_properties(self, data: dict[str, Any]) -> dict[str, Any]:
         return {
             "metric": data.get(self.metric_label) if self.metric_label else None,
-            "radius": self.fixed_value
-            if self.fixed_value
-            else data.get(self.metric_label)
-            if self.metric_label
-            else None,
+            "radius": (
+                self.fixed_value
+                if self.fixed_value
+                else data.get(self.metric_label)
+                if self.metric_label
+                else None
+            ),
             "cat_color": data.get(self.dim) if self.dim else None,
             "position": data.get("spatial"),
             DTTM_ALIAS: data.get(DTTM_ALIAS),
@@ -2099,7 +1783,6 @@ class DeckScatterViz(BaseDeckGLViz):
 
 
 class DeckScreengrid(BaseDeckGLViz):
-
     """deck.gl's ScreenGridLayer"""
 
     viz_type = "deck_screengrid"
@@ -2129,7 +1812,6 @@ class DeckScreengrid(BaseDeckGLViz):
 
 
 class DeckGrid(BaseDeckGLViz):
-
     """deck.gl's DeckLayer"""
 
     viz_type = "deck_grid"
@@ -2164,7 +1846,6 @@ def geohash_to_json(geohash_code: str) -> list[list[float]]:
 
 
 class DeckPathViz(BaseDeckGLViz):
-
     """deck.gl's PathLayer"""
 
     viz_type = "deck_path"
@@ -2215,7 +1896,6 @@ class DeckPathViz(BaseDeckGLViz):
 
 
 class DeckPolygon(DeckPathViz):
-
     """deck.gl's Polygon Layer"""
 
     viz_type = "deck_polygon"
@@ -2252,7 +1932,6 @@ class DeckPolygon(DeckPathViz):
 
 
 class DeckHex(BaseDeckGLViz):
-
     """deck.gl's DeckLayer"""
 
     viz_type = "deck_hex"
@@ -2275,7 +1954,6 @@ class DeckHex(BaseDeckGLViz):
 
 
 class DeckHeatmap(BaseDeckGLViz):
-
     """deck.gl's HeatmapLayer"""
 
     viz_type = "deck_heatmap"
@@ -2296,7 +1974,6 @@ class DeckHeatmap(BaseDeckGLViz):
 
 
 class DeckContour(BaseDeckGLViz):
-
     """deck.gl's ContourLayer"""
 
     viz_type = "deck_contour"
@@ -2317,7 +1994,6 @@ class DeckContour(BaseDeckGLViz):
 
 
 class DeckGeoJson(BaseDeckGLViz):
-
     """deck.gl's GeoJSONLayer"""
 
     viz_type = "deck_geojson"
@@ -2338,7 +2014,6 @@ class DeckGeoJson(BaseDeckGLViz):
 
 
 class DeckArc(BaseDeckGLViz):
-
     """deck.gl's Arc Layer"""
 
     viz_type = "deck_arc"
@@ -2373,7 +2048,6 @@ class DeckArc(BaseDeckGLViz):
 
 
 class EventFlowViz(BaseViz):
-
     """A visualization to explore patterns in event sequences"""
 
     viz_type = "event_flow"
@@ -2407,7 +2081,6 @@ class EventFlowViz(BaseViz):
 
 
 class PairedTTestViz(BaseViz):
-
     """A table displaying paired t-test values"""
 
     viz_type = "paired_ttest"
@@ -2504,7 +2177,7 @@ class RoseViz(NVD3TimeSeriesViz):
                 result[timestamp].append(
                     {
                         "key": key,
-                        "value": value,
+                        "value": value,  # type: ignore
                         "name": ", ".join(key) if isinstance(key, list) else key,
                         "time": val["x"],
                     }
@@ -2513,7 +2186,6 @@ class RoseViz(NVD3TimeSeriesViz):
 
 
 class PartitionViz(NVD3TimeSeriesViz):
-
     """
     A hierarchical data visualization with support for time series.
     """
@@ -2632,10 +2304,16 @@ class PartitionViz(NVD3TimeSeriesViz):
             ]
         if level >= len(levels):
             return []
-        dim_level = levels[level][metric][[dims[0]]]
+
+        dim_level = levels[level][metric]
+        for d in dims:
+            if d not in dim_level:
+                return []
+            dim_level = dim_level[d]
+
         return [
             {
-                "name": i,
+                "name": [*dims, i],
                 "val": dim_level[i],
                 "children": self.nest_values(levels, level + 1, metric, dims + [i]),
             }

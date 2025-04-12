@@ -27,6 +27,7 @@ const {
   enableEmptyFilter,
   inverseSelection,
   multiSelect,
+  creatable,
   defaultToFirstItem,
   searchAllOptions,
   sortAscending,
@@ -63,6 +64,19 @@ const config: ControlPanelConfig = {
               label: t('Sort ascending'),
               default: sortAscending,
               description: t('Check for sorting ascending'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'creatable',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Allow creation of new values'),
+              default: creatable,
+              resetConfig: true,
+              affectsDataMask: true,
+              renderTrigger: true,
             },
           },
         ],
@@ -105,7 +119,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               requiredFirst: true,
               description: t(
-                'When using this option, default value can’t be set',
+                'When using this option, default value can’t be set. Using this option may impact the load times for your dashboard.',
               ),
             },
           },

@@ -26,10 +26,11 @@ from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import FavStar
 from superset.models.slice import Slice
+from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
-from superset.views.base_api import BaseFavoriteFilter, BaseTagFilter
+from superset.views.base_api import BaseFavoriteFilter
 
 
 class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -60,12 +61,24 @@ class ChartFavoriteFilter(BaseFavoriteFilter):  # pylint: disable=too-few-public
     model = Slice
 
 
-class ChartTagFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
+class ChartTagNameFilter(BaseTagNameFilter):  # pylint: disable=too-few-public-methods
     """
-    Custom filter for the GET list that filters all dashboards that a user has favored
+    Custom filter for the GET list that filters all charts associated with
+    a certain tag (by its name).
     """
 
     arg_name = "chart_tags"
+    class_name = "slice"
+    model = Slice
+
+
+class ChartTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all charts associated with
+    a certain tag (by its ID).
+    """
+
+    arg_name = "chart_tag_id"
     class_name = "slice"
     model = Slice
 
@@ -130,9 +143,7 @@ class ChartCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         )
 
 
-class ChartOwnedCreatedFavoredByMeFilter(
-    BaseFilter
-):  # pylint: disable=too-few-public-methods
+class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET chart that filters all charts the user
     owns, created, changed or favored.

@@ -44,7 +44,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
     def __init__(self) -> None:
         self._query_object_factory = create_query_object_factory()
 
-    def create(
+    def create(  # pylint: disable=too-many-arguments
         self,
         *,
         datasource: DatasourceDict,
@@ -112,7 +112,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         self._apply_filters(query_object)
         return query_object
 
-    def _apply_granularity(
+    def _apply_granularity(  # noqa: C901
         self,
         query_object: QueryObject,
         form_data: dict[str, Any] | None,

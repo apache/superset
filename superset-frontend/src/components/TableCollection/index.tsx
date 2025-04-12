@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { memo } from 'react';
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
 import { styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 interface TableCollectionProps {
   getTableProps: (userProps?: any) => any;
@@ -203,7 +203,7 @@ export const Table = styled.table`
 
 Table.displayName = 'table';
 
-export default React.memo(
+export default memo(
   ({
     getTableProps,
     getTableBodyProps,

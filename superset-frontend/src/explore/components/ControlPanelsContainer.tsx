@@ -17,7 +17,8 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, {
+import {
+  isValidElement,
   ReactNode,
   useCallback,
   useContext,
@@ -47,12 +48,13 @@ import {
   CustomControlItem,
   Dataset,
   ExpandedControlItem,
+  isCustomControlItem,
   isTemporalColumn,
   sections,
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
 import { rgba } from 'emotion-rgba';
-import { kebabCase } from 'lodash';
+import { kebabCase, isEqual } from 'lodash';
 
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';
@@ -64,13 +66,14 @@ import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
 import { Operators } from '../constants';
 import { Clauses } from './controls/FilterControl/types';
+import StashFormDataContainer from './StashFormDataContainer';
 
 const { confirm } = Modal;
 
@@ -283,7 +286,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   >(state => state.explore.controlsTransferred);
 
   const defaultTimeFilter = useSelector<ExplorePageState>(
-    state => state.common?.conf?.DEFAULT_TIME_FILTER,
+    state => state.common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE,
   );
 
   const { form_data, actions } = props;
@@ -317,7 +320,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                 clause: Clauses.Where,
                 subject: x_axis,
                 operator: Operators.TemporalRange,
-                comparator: defaultTimeFilter || NO_TIME_RANGE,
+                comparator: defaultTimeFilter,
                 expressionType: 'SIMPLE',
               },
             ]);
@@ -446,13 +449,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const renderControl = ({ name, config }: CustomControlItem) => {
     const { controls, chart, exploreState } = props;
-    const { visibility } = config;
+    const { visibility, hidden, disableStash, ...restConfig } = config;
 
     // If the control item is not an object, we have to look up the control data from
     // the centralized controls file.
     // When it is an object we read control data straight from `config` instead
     const controlData = {
-      ...config,
+      ...restConfig,
       ...controls[name],
       ...(shouldRecalculateControlState({ name, config })
         ? config?.mapStateToProps?.(exploreState, controls[name], chart)
@@ -474,6 +477,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       ? visibility.call(config, props, controlData)
       : undefined;
 
+    const isHidden =
+      typeof hidden === 'function'
+        ? hidden.call(config, props, controlData)
+        : hidden;
+
     const label =
       typeof baseLabel === 'function'
         ? baseLabel(exploreState, controls[name], chart)
@@ -484,7 +492,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         ? baseDescription(exploreState, controls[name], chart)
         : baseDescription;
 
-    if (name === 'adhoc_filters') {
+    if (name.includes('adhoc_filters')) {
       restProps.canDelete = (
         valueToBeDeleted: Record<string, any>,
         values: Record<string, any>[],
@@ -494,9 +502,26 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         if (!controls?.time_range?.value && isTemporalRange(valueToBeDeleted)) {
           const count = values.filter(isTemporalRange).length;
           if (count === 1) {
-            return t(
-              `You cannot delete the last temporal filter as it's used for time range filters in dashboards.`,
+            // if temporal filter's value is "No filter", prevent deletion
+            // otherwise reset the value to "No filter"
+            if (valueToBeDeleted.comparator === defaultTimeFilter) {
+              return t(
+                `You cannot delete the last temporal filter as it's used for time range filters in dashboards.`,
+              );
+            }
+            props.actions.setControlValue(
+              name,
+              values.map(val => {
+                if (isEqual(val, valueToBeDeleted)) {
+                  return {
+                    ...val,
+                    comparator: defaultTimeFilter,
+                  };
+                }
+                return val;
+              }),
             );
+            return false;
           }
         }
         return true;
@@ -504,16 +529,23 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     }
 
     return (
-      <Control
-        key={`control-${name}`}
-        name={name}
-        label={label}
-        description={description}
-        validationErrors={validationErrors}
-        actions={props.actions}
-        isVisible={isVisible}
-        {...restProps}
-      />
+      <StashFormDataContainer
+        shouldStash={isVisible === false && disableStash !== true}
+        fieldNames={[name]}
+        key={`control-container-${name}`}
+      >
+        <Control
+          key={`control-${name}`}
+          name={name}
+          label={label}
+          description={description}
+          validationErrors={validationErrors}
+          actions={props.actions}
+          isVisible={isVisible}
+          hidden={isHidden}
+          {...restProps}
+        />
+      </StashFormDataContainer>
     );
   };
 
@@ -526,13 +558,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     section: ExpandedControlPanelSectionConfig,
   ) => {
     const { controls } = props;
-    const { label, description } = section;
+    const { label, description, visibility } = section;
 
     // Section label can be a ReactNode but in some places we want to
     // have a string ID. Using forced type conversion for now,
     // should probably add a `id` field to sections in the future.
     const sectionId = String(label);
-
+    const isVisible = visibility?.call(this, props, controls) !== false;
     const hasErrors = section.controlSetRows.some(rows =>
       rows.some(item => {
         const controlName =
@@ -556,7 +588,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     const errorColor = sectionHasHadNoErrors.current[sectionId]
       ? colors.error.base
-      : colors.alert.base;
+      : colors.warning.base;
 
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
@@ -564,6 +596,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           css={(theme: SupersetTheme) => css`
             font-size: ${theme.typography.sizes.m}px;
             line-height: 1.3;
+            font-weight: ${theme.typography.weights.medium};
           `}
         >
           {label}
@@ -590,67 +623,84 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
 
     return (
-      <Collapse.Panel
-        css={theme => css`
-          margin-bottom: 0;
-          box-shadow: none;
+      <>
+        <StashFormDataContainer
+          key={`sectionId-${sectionId}`}
+          shouldStash={!isVisible}
+          fieldNames={section.controlSetRows
+            .flat()
+            .map(item =>
+              item && typeof item === 'object'
+                ? 'name' in item
+                  ? item.name
+                  : ''
+                : String(item || ''),
+            )
+            .filter(Boolean)}
+        />
+        {isVisible && (
+          <Collapse.Panel
+            css={theme => css`
+              margin-bottom: 0;
+              box-shadow: none;
 
-          &:last-child {
-            padding-bottom: ${theme.gridUnit * 16}px;
-            border-bottom: 0;
-          }
+              &:last-child {
+                padding-bottom: ${theme.gridUnit * 16}px;
+                border-bottom: 0;
+              }
 
-          .panel-body {
-            margin-left: ${theme.gridUnit * 4}px;
-            padding-bottom: 0;
-          }
+              .panel-body {
+                margin-left: ${theme.gridUnit * 4}px;
+                padding-bottom: 0;
+              }
 
-          span.label {
-            display: inline-block;
+              span.label {
+                display: inline-block;
+              }
+              ${!section.label &&
+              `
+          .ant-collapse-header {
+            display: none;
           }
-          ${!section.label &&
-          `
-            .ant-collapse-header {
-              display: none;
-            }
-          `}
         `}
-        header={<PanelHeader />}
-        key={sectionId}
-      >
-        {section.controlSetRows.map((controlSets, i) => {
-          const renderedControls = controlSets
-            .map(controlItem => {
-              if (!controlItem) {
-                // When the item is invalid
+            `}
+            header={<PanelHeader />}
+            key={sectionId}
+          >
+            {section.controlSetRows.map((controlSets, i) => {
+              const renderedControls = controlSets
+                .map(controlItem => {
+                  if (!controlItem) {
+                    // When the item is invalid
+                    return null;
+                  }
+                  if (isValidElement(controlItem)) {
+                    // When the item is a React element
+                    return controlItem;
+                  }
+                  if (
+                    isCustomControlItem(controlItem) &&
+                    controlItem.name !== 'datasource'
+                  ) {
+                    return renderControl(controlItem);
+                  }
+                  return null;
+                })
+                .filter(x => x !== null);
+              // don't show the row if it is empty
+              if (renderedControls.length === 0) {
                 return null;
               }
-              if (React.isValidElement(controlItem)) {
-                // When the item is a React element
-                return controlItem;
-              }
-              if (
-                controlItem.name &&
-                controlItem.config &&
-                controlItem.name !== 'datasource'
-              ) {
-                return renderControl(controlItem);
-              }
-              return null;
-            })
-            .filter(x => x !== null);
-          // don't show the row if it is empty
-          if (renderedControls.length === 0) {
-            return null;
-          }
-          return (
-            <ControlRow
-              key={`controlsetrow-${i}`}
-              controls={renderedControls}
-            />
-          );
-        })}
-      </Collapse.Panel>
+              return (
+                <ControlRow
+                  key={`controlsetrow-${i}`}
+                  controls={renderedControls}
+                />
+              );
+            })}
+          </Collapse.Panel>
+        )}
+      </>
     );
   };
 
@@ -697,7 +747,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     const errorColor = dataTabHasHadNoErrors.current
       ? colors.error.base
-      : colors.alert.base;
+      : colors.warning.base;
 
     return (
       <>
@@ -727,7 +777,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
   }, [
     colors.error.base,
-    colors.alert.base,
+    colors.warning.base,
     dataTabHasHadNoErrors,
     props.errorMessage,
   ]);

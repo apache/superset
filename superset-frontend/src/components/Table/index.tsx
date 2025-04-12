@@ -16,15 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef, ReactElement } from 'react';
+import { useState, useEffect, useRef, Key } from 'react';
+
+// eslint-disable-next-line no-restricted-imports
 import AntTable, {
   ColumnsType,
   TableProps as AntTableProps,
-} from 'antd/lib/table';
-import ConfigProvider from 'antd/lib/config-provider';
-import { PaginationProps } from 'antd/lib/pagination';
+} from 'antd/lib/table'; // TODO: Remove antd
+// eslint-disable-next-line no-restricted-imports
+import { PaginationProps } from 'antd/lib/pagination'; // TODO: Remove antd
 import { t, useTheme, logging, styled } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
+// eslint-disable-next-line no-restricted-imports
+import { RowSelectionType } from 'antd/lib/table/interface'; // TODO: Remove antd
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
 import VirtualTable from './VirtualTable';
 
@@ -69,11 +73,11 @@ export interface TableProps<RecordType> {
   /**
    * Array of row keys to represent list of selected rows.
    */
-  selectedRows?: React.Key[];
+  selectedRows?: Key[];
   /**
    * Callback function invoked when a row is selected by user.
    */
-  handleRowSelection?: (newSelectedRowKeys: React.Key[]) => void;
+  handleRowSelection?: (newSelectedRowKeys: Key[]) => void;
   /**
    * Controls the size of the table.
    */
@@ -116,10 +120,6 @@ export interface TableProps<RecordType> {
    */
   hideData?: boolean;
   /**
-   * emptyComponent
-   */
-  emptyComponent?: ReactElement;
-  /**
    * Enables setting the text displayed in various components and tooltips within the Table UI.
    */
   locale?: Partial<AntTableProps<RecordType>['locale']>;
@@ -158,7 +158,7 @@ export interface TableProps<RecordType> {
   childrenColumnName?: string;
 }
 
-const defaultRowSelection: React.Key[] = [];
+const defaultRowSelection: Key[] = [];
 
 const PAGINATION_HEIGHT = 40;
 const HEADER_HEIGHT = 68;
@@ -173,14 +173,12 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
     th.ant-table-cell {
       font-weight: ${theme.typography.weights.bold};
       color: ${theme.colors.grayscale.dark1};
-      user-select: none;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .ant-table-tbody > tr > td {
-      user-select: none;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -232,11 +230,12 @@ const defaultLocale = {
   cancelSort: t('Click to cancel sorting'),
 };
 
-const selectionMap = {};
+const selectionMap = {
+  [SelectionType.Multi]: 'checkbox',
+  [SelectionType.Single]: 'radio',
+  [SelectionType.Disabled]: null,
+};
 const noop = () => {};
-selectionMap[SelectionType.Multi] = 'checkbox';
-selectionMap[SelectionType.Single] = 'radio';
-selectionMap[SelectionType.Disabled] = null;
 
 export function Table<RecordType extends object>(
   props: TableProps<RecordType>,
@@ -257,7 +256,6 @@ export function Table<RecordType extends object>(
     defaultPageSize = 15,
     pageSizeOptions = ['5', '15', '25', '50', '100'],
     hideData = false,
-    emptyComponent,
     locale,
     height,
     virtualize = false,
@@ -274,24 +272,20 @@ export function Table<RecordType extends object>(
   const [mergedLocale, setMergedLocale] = useState<
     Required<AntTableProps<RecordType>>['locale']
   >({ ...defaultLocale });
-  const [selectedRowKeys, setSelectedRowKeys] =
-    useState<React.Key[]>(selectedRows);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>(selectedRows);
   const interactiveTableUtils = useRef<InteractiveTableUtils | null>(null);
 
-  const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
+  const onSelectChange = (newSelectedRowKeys: Key[]) => {
     setSelectedRowKeys(newSelectedRowKeys);
     handleRowSelection?.(newSelectedRowKeys);
   };
 
   const selectionTypeValue = selectionMap[selectionType];
   const rowSelection = {
-    type: selectionTypeValue,
+    type: selectionMap[selectionType] as RowSelectionType,
     selectedRowKeys,
     onChange: onSelectChange,
   };
-
-  const renderEmpty = () =>
-    emptyComponent ?? <div>{mergedLocale.emptyText}</div>;
 
   // Log use of experimental features
   useEffect(() => {
@@ -405,31 +399,29 @@ export function Table<RecordType extends object>(
   };
 
   return (
-    <ConfigProvider renderEmpty={renderEmpty}>
-      <div ref={wrapperRef}>
-        {!virtualize && (
-          <StyledTable
-            {...sharedProps}
-            rowSelection={selectionTypeValue ? rowSelection : undefined}
-            sticky={sticky}
-          />
-        )}
-        {virtualize && (
-          <StyledVirtualTable
-            {...sharedProps}
-            scroll={{
-              y: 300,
-              x: '100vw',
-              // To avoid jest failure by scrollTo
-              ...(process.env.WEBPACK_MODE === 'test' && {
-                scrollToFirstRowOnChange: false,
-              }),
-            }}
-            allowHTML={allowHTML}
-          />
-        )}
-      </div>
-    </ConfigProvider>
+    <div ref={wrapperRef}>
+      {!virtualize && (
+        <StyledTable
+          {...sharedProps}
+          rowSelection={selectionTypeValue !== null ? rowSelection : undefined}
+          sticky={sticky}
+        />
+      )}
+      {virtualize && (
+        <StyledVirtualTable
+          {...sharedProps}
+          scroll={{
+            y: 300,
+            x: '100vw',
+            // To avoid jest failure by scrollTo
+            ...(process.env.WEBPACK_MODE === 'test' && {
+              scrollToFirstRowOnChange: false,
+            }),
+          }}
+          allowHTML={allowHTML}
+        />
+      )}
+    </div>
   );
 }
 

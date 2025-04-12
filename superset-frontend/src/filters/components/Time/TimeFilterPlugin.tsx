@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled, NO_TIME_RANGE } from '@superset-ui/core';
-import React, { useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { PluginFilterTimeProps } from './types';
 import { FilterPluginStyle } from '../common';
@@ -94,7 +94,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
       >
         <DateFilterControl
           value={filterState.value || NO_TIME_RANGE}
-          name="time_range"
+          name={props.formData.nativeFilterId || 'time_range'}
           onChange={handleTimeRangeChange}
           onOpenPopover={() => setFilterActive(true)}
           onClosePopover={() => {

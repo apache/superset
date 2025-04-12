@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { IndicatorStatus } from '../../selectors';
@@ -65,7 +64,7 @@ test('Column and value should be visible', () => {
 
 test('Tag should be closable', () => {
   setup(mockedProps);
-  expect(screen.getByRole('img', { name: 'close' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'close' })).toBeInTheDocument();
 });
 
 test('Divider should not be visible', () => {

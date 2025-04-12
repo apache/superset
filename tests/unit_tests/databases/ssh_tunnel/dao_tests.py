@@ -16,12 +16,8 @@
 # under the License.
 
 
-import pytest
-from sqlalchemy.orm.session import Session
-
-
 def test_create_ssh_tunnel():
-    from superset.daos.database import DatabaseDAO, SSHTunnelDAO
+    from superset.daos.database import SSHTunnelDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
@@ -35,7 +31,6 @@ def test_create_ssh_tunnel():
             "username": "foo",
             "password": "bar",
         },
-        commit=False,
     )
 
     assert result is not None

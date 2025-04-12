@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from importlib import import_module
+
+from superset.utils import json
 
 rm_time_range_endpoints_from_qc_3 = import_module(
     "superset.migrations.versions."
@@ -133,4 +134,4 @@ def test_upgrade():
 def test_upgrade_bad_json():
     slc = Slice(slice_name="FOO", query_context="abc")
 
-    assert None == upgrade_slice(slc)
+    assert None is upgrade_slice(slc)  # noqa: E711

@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { ContentType, MetadataType } from '.';
 
 const Header = styled.div`
@@ -114,7 +113,7 @@ const config = (contentType: ContentType) => {
 
     case MetadataType.Table:
       return {
-        icon: Icons.Table,
+        icon: Icons.InsertRowAboveOutlined,
         title: contentType.title,
         tooltip: contentType.title,
       };

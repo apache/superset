@@ -23,9 +23,9 @@ from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import SqlaTable
-from superset.daos.exceptions import DAOCreateFailedError
 from superset.daos.security import RLSDAO
 from superset.extensions import db
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -36,13 +36,10 @@ class CreateRLSRuleCommand(BaseCommand):
         self._tables = self._properties.get("tables", [])
         self._roles = self._properties.get("roles", [])
 
+    @transaction()
     def run(self) -> Any:
         self.validate()
-        try:
-            return RLSDAO.create(attributes=self._properties)
-        except DAOCreateFailedError as ex:
-            logger.exception(ex.exception)
-            raise ex
+        return RLSDAO.create(attributes=self._properties)
 
     def validate(self) -> None:
         roles = populate_roles(self._roles)

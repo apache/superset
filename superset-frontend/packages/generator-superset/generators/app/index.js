@@ -17,13 +17,13 @@
  * under the License.
  */
 
-/* eslint-disable sort-keys */
+import chalk from 'chalk';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+import yosay from 'yosay';
+import Generator from 'yeoman-generator';
 
-const Generator = require('yeoman-generator');
-const chalk = require('chalk');
-const yosay = require('yosay');
-
-module.exports = class extends Generator {
+export default class extends Generator {
   async prompting() {
     // Have Yeoman greet the user.
     this.log(
@@ -33,7 +33,10 @@ module.exports = class extends Generator {
     this.option('skipInstall');
   }
 
-  configuring() {
-    this.composeWith(require.resolve(`../plugin-chart`));
+  async configuring() {
+    const generatorDirname = dirname(fileURLToPath(import.meta.url));
+    await this.composeWith(
+      resolve(generatorDirname, `../plugin-chart/index.js`),
+    );
   }
-};
+}

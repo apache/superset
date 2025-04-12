@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useCallback, ReactElement } from 'react';
+import { useMemo, useState, useCallback, ReactElement } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import {
+  css,
   QueryState,
   styled,
   SupersetClient,
   t,
   useTheme,
 } from '@superset-ui/core';
-import moment from 'moment';
 import {
   createFetchRelated,
   createFetchDistinct,
@@ -50,10 +50,11 @@ import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import getOwnerName from 'src/utils/getOwnerName';
+import { extendedDayjs } from 'src/utils/dates';
 
 const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;
@@ -159,7 +160,13 @@ function QueryList({ addDangerToast }: QueryListProps) {
           };
           if (status === QueryState.Success) {
             statusConfig.name = (
-              <Icons.Check iconColor={theme.colors.success.base} />
+              <Icons.CheckOutlined
+                iconSize="m"
+                iconColor={theme.colors.success.base}
+                css={css`
+                  vertical-align: -webkit-baseline-middle;
+                `}
+              />
             );
             statusConfig.label = t('Success');
           } else if (
@@ -167,7 +174,8 @@ function QueryList({ addDangerToast }: QueryListProps) {
             status === QueryState.Stopped
           ) {
             statusConfig.name = (
-              <Icons.XSmall
+              <Icons.CloseOutlined
+                iconSize="xs"
                 iconColor={
                   status === QueryState.Failed
                     ? theme.colors.error.base
@@ -183,16 +191,14 @@ function QueryList({ addDangerToast }: QueryListProps) {
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
-              <Icons.Offline iconColor={theme.colors.grayscale.light1} />
+              <Icons.CircleSolid iconColor={theme.colors.grayscale.light1} />
             );
             statusConfig.label = t('Offline');
           } else if (
             status === QueryState.Scheduled ||
             status === QueryState.Pending
           ) {
-            statusConfig.name = (
-              <Icons.Queued iconColor={theme.colors.grayscale.base} />
-            );
+            statusConfig.name = <Icons.Queued />;
             statusConfig.label = t('Scheduled');
           }
           return (
@@ -214,8 +220,8 @@ function QueryList({ addDangerToast }: QueryListProps) {
             original: { start_time },
           },
         }: any) => {
-          const startMoment = moment.utc(start_time).local();
-          const formattedStartTimeData = startMoment
+          const start = extendedDayjs.utc(start_time).local();
+          const formattedStartTimeData = start
             .format(DATETIME_WITH_TIME_ZONE)
             .split(' ');
 
@@ -238,7 +244,9 @@ function QueryList({ addDangerToast }: QueryListProps) {
         }: any) => {
           const timerType = status === QueryState.Failed ? 'danger' : status;
           const timerTime = end_time
-            ? moment(moment.utc(end_time - start_time)).format(TIME_WITH_MS)
+            ? extendedDayjs(extendedDayjs.utc(end_time - start_time)).format(
+                TIME_WITH_MS,
+              )
             : '00:00:00.000';
           return (
             <TimerLabel type={timerType} role="timer">
@@ -350,7 +358,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
             <Link to={`/sqllab?queryId=${id}`}>
-              <Icons.Full iconColor={theme.colors.grayscale.base} />
+              <Icons.Full iconSize="l" />
             </Link>
           </Tooltip>
         ),

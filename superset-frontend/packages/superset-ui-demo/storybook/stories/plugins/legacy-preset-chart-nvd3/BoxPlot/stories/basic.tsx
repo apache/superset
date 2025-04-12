@@ -17,21 +17,20 @@
  * under the License.
  */
 
-import React from 'react';
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
 
 export const basic = () => (
   <SuperChart
     chartType="box-plot"
-    width={400}
-    height={400}
+    width={800}
+    height={600}
     datasource={dummyDatasource}
     queriesData={[{ data }]}
     formData={{
       colorScheme: 'd3Category10',
-      vizType: 'box_plot',
+      vizType: VizType.BoxPlot,
       whiskerOptions: 'Min/max (no outliers)',
     }}
   />

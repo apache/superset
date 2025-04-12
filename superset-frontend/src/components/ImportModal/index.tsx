@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useEffect, useState } from 'react';
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
+import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
+
+// eslint-disable-next-line no-restricted-imports
+import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import { styled, t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
@@ -262,7 +264,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     return false;
   };
 
-  const confirmOverwrite = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const confirmOverwrite = (event: ChangeEvent<HTMLInputElement>) => {
     const targetValue = (event.currentTarget?.value as string) ?? '';
     setConfirmedOverwrite(targetValue.toUpperCase() === t('OVERWRITE'));
   };

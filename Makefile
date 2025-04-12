@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 
-# Python version installed; we need 3.9-3.11
-PYTHON=`command -v python3.11 || command -v python3.10 || command -v python3.9`
+# Python version installed; we need 3.10-3.11
+PYTHON=`command -v python3.11 || command -v python3.10`
 
 .PHONY: install superset venv pre-commit
 
@@ -70,7 +70,7 @@ update-js:
 
 venv:
 	# Create a virtual environment and activate it (recommended)
-	if ! [ -x "${PYTHON}" ]; then echo "You need Python 3.9, 3.10 or 3.11 installed"; exit 1; fi
+	if ! [ -x "${PYTHON}" ]; then echo "You need Python 3.10 or 3.11 installed"; exit 1; fi
 	test -d venv || ${PYTHON} -m venv venv # setup a python3 virtualenv
 	. venv/bin/activate
 
@@ -86,9 +86,6 @@ format: py-format js-format
 
 py-format: pre-commit
 	pre-commit run black --all-files
-
-py-lint: pre-commit
-	pylint -j 0 superset
 
 js-format:
 	cd superset-frontend; npm run prettier

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Row, Col } from 'src/components';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
@@ -198,7 +198,9 @@ const ContourPopoverControl = ({
 
   const containsErrors = () => {
     const keys = Object.keys(validationErrors);
-    return keys.some(key => validationErrors[key].length > 0);
+    return keys.some(
+      key => validationErrors[key as keyof ErrorMapType].length > 0,
+    );
   };
 
   const handleSave = () => {

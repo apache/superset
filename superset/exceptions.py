@@ -14,6 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 from collections import defaultdict
 from typing import Any, Optional
 
@@ -23,7 +26,7 @@ from marshmallow import ValidationError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
 
-class SupersetException(Exception):
+class SupersetException(Exception):  # noqa: N818
     status = 500
     message = ""
 
@@ -304,11 +307,128 @@ class SupersetParseError(SupersetErrorException):
 
     status = 422
 
-    def __init__(self, sql: str, engine: Optional[str] = None):
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        sql: str,
+        engine: Optional[str] = None,
+        message: Optional[str] = None,
+        highlight: Optional[str] = None,
+        line: Optional[int] = None,
+        column: Optional[int] = None,
+    ):
+        if message is None:
+            parts = [_("Error parsing")]
+            if highlight:
+                parts.append(_(" near '%(highlight)s'", highlight=highlight))
+            if line:
+                parts.append(_(" at line %(line)d", line=line))
+                if column:
+                    parts.append(f":{column}")
+            message = "".join(parts)
+
         error = SupersetError(
-            message=_("The SQL is invalid and cannot be parsed."),
+            message=message,
             error_type=SupersetErrorType.INVALID_SQL_ERROR,
             level=ErrorLevel.ERROR,
-            extra={"sql": sql, "engine": engine},
+            extra={"sql": sql, "engine": engine, "line": line, "column": column},
         )
         super().__init__(error)
+
+
+class OAuth2RedirectError(SupersetErrorException):
+    """
+    Exception used to start OAuth2 dance for personal tokens.
+
+    The exception requires 3 parameters:
+
+    - The URL that starts the OAuth2 dance.
+    - The UUID of the browser tab where OAuth2 started, so that the newly opened tab
+      where OAuth2 happens can communicate with the original tab to inform that OAuth2
+      was successful (or not).
+    - The redirect URL, so that the original tab can validate that the message from the
+      second tab is coming from a valid origin.
+
+    See the `OAuth2RedirectMessage.tsx` component for more details of how this
+    information is handled.
+
+    TODO (betodealmeida): change status to 403.
+    """
+
+    def __init__(self, url: str, tab_id: str, redirect_uri: str):
+        super().__init__(
+            SupersetError(
+                message="You don't have permission to access the data.",
+                error_type=SupersetErrorType.OAUTH2_REDIRECT,
+                level=ErrorLevel.WARNING,
+                extra={"url": url, "tab_id": tab_id, "redirect_uri": redirect_uri},
+            )
+        )
+
+
+class OAuth2Error(SupersetErrorException):
+    """
+    Exception for when OAuth2 goes wrong.
+    """
+
+    def __init__(self, error: str):
+        super().__init__(
+            SupersetError(
+                message="Something went wrong while doing OAuth2",
+                error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={"error": error},
+            )
+        )
+
+
+class DisallowedSQLFunction(SupersetErrorException):
+    """
+    Disallowed function found on SQL statement
+    """
+
+    def __init__(self, functions: set[str]):
+        super().__init__(
+            SupersetError(
+                message=f"SQL statement contains disallowed function(s): {functions}",
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+
+class CreateKeyValueDistributedLockFailedException(Exception):  # noqa: N818
+    """
+    Exception to signalize failure to acquire lock.
+    """
+
+
+class DeleteKeyValueDistributedLockFailedException(Exception):  # noqa: N818
+    """
+    Exception to signalize failure to delete lock.
+    """
+
+
+class DatabaseNotFoundException(SupersetErrorException):
+    status = 404
+
+    def __init__(self, message: str):
+        super().__init__(
+            SupersetError(
+                message=message,
+                error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+
+class TableNotFoundException(SupersetErrorException):
+    status = 404
+
+    def __init__(self, message: str):
+        super().__init__(
+            SupersetError(
+                message=message,
+                error_type=SupersetErrorType.TABLE_NOT_FOUND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )

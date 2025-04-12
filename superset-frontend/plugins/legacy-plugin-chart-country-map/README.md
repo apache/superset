@@ -19,8 +19,8 @@ under the License.
 
 ## @superset-ui/legacy-plugin-chart-country-map
 
-[![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-country-map.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/legacy-plugin-chart-country-map)
-[![David (path)](https://img.shields.io/david/apache-superset/superset-ui-plugins.svg?path=packages%2Fsuperset-ui-legacy-plugin-chart-country-map&style=flat-square)](https://david-dm.org/apache-superset/superset-ui-plugins?path=packages/superset-ui-legacy-plugin-chart-country-map)
+[![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-country-map.svg?style=flat)](https://www.npmjs.com/package/@superset-ui/legacy-plugin-chart-country-map)
+[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Flegacy-plugin-chart-country-map?style=flat)](https://libraries.io/npm/@superset-ui%2Flegacy-plugin-chart-country-map)
 
 This plugin provides Country Map for Superset.
 
@@ -57,6 +57,6 @@ To update the country maps or add a new country, run scripts in the Jupyter note
 `scripts/Country Map GeoJSON Generator.ipynb`.
 
 ```bash
-pip install jupyter notebook
+pip install geopandas shapely matplotlib notebook
 jupyter notebook
 ```

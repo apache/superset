@@ -38,7 +38,7 @@ ENERGY_USAGE_TBL_NAME = "energy_usage"
 def load_energy_table_data():
     with app.app_context():
         database = get_example_database()
-        with database.get_sqla_engine_with_context() as engine:
+        with database.get_sqla_engine() as engine:
             df = _get_dataframe()
             df.to_sql(
                 ENERGY_USAGE_TBL_NAME,
@@ -52,11 +52,11 @@ def load_energy_table_data():
             )
     yield
     with app.app_context():
-        with get_example_database().get_sqla_engine_with_context() as engine:
+        with get_example_database().get_sqla_engine() as engine:
             engine.execute("DROP TABLE IF EXISTS energy_usage")
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_energy_table_with_slice(load_energy_table_data):
     with app.app_context():
         slices = _create_energy_table()
@@ -135,7 +135,7 @@ def _get_energy_data():
             {
                 "source": f"energy_source{i}",
                 "target": f"energy_target{i}",
-                "value": random.uniform(0.1, 11.0),
+                "value": random.uniform(0.1, 11.0),  # noqa: S311
             }
         )
     return data
@@ -186,6 +186,6 @@ def _get_energy_slices():
                 "xscale_interval": "1",
                 "yscale_interval": "1",
             },
-            "query_context": '{"datasource":{"id":12,"type":"table"},"force":false,"queries":[{"time_range":" : ","filters":[],"extras":{"time_grain_sqla":null,"having":"","where":""},"applied_time_extras":{},"columns":[],"metrics":[],"annotation_layers":[],"row_limit":5000,"timeseries_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"result_format":"json","result_type":"full"}',
+            "query_context": '{"datasource":{"id":12,"type":"table"},"force":false,"queries":[{"time_range":" : ","filters":[],"extras":{"time_grain_sqla":null,"having":"","where":""},"applied_time_extras":{},"columns":[],"metrics":[],"annotation_layers":[],"row_limit":5000,"timeseries_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"result_format":"json","result_type":"full"}',  # noqa: E501
         },
     ]
