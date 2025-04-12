@@ -349,8 +349,8 @@ OAUTH_PROVIDERS = [
         'token_key': 'access_token',  # Name of the token in the response
         'icon': 'fa-key',  # Icon for the provider button
         'remote_app': {
-            'client_id': 'your_client_id',  # Replace with your actual client ID
-            'client_secret': 'your_client_secret',  # Replace with your actual client secret
+            'client_id': '9457f4a9-b8f7-45f6-a3db-50e94019c600',  # Replace with your actual client ID
+            'client_secret': 'e3da967e-6ab0-4b6c-85d6-150fabd09e7d',  # Replace with your actual client secret
             'client_kwargs': {
                 'scope': 'openid profile roles'  # Scopes from your configuration
             },
