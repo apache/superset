@@ -368,7 +368,7 @@ AUTH_TYPE = AUTH_OAUTH
 
 OAUTH_PROVIDERS = [
     {
-        'name': 'pesapal',
+        'name': 'pesapalsso',
         'token_key': 'access_token',
         'icon': 'fa-key',
         'remote_app': {
@@ -384,10 +384,10 @@ OAUTH_PROVIDERS = [
 ]
 
 # Uncomment to setup Full admin role name
-AUTH_ROLE_ADMIN = 'Admin'
+# AUTH_ROLE_ADMIN = 'Admin'
 
 # Uncomment to setup Public role name, no authentication needed
-AUTH_ROLE_PUBLIC = 'Public'
+# AUTH_ROLE_PUBLIC = 'Public'
 
 # Will allow user self registration
 AUTH_USER_REGISTRATION = True
