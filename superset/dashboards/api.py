@@ -1303,6 +1303,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 current_user=current_user,
                 dashboard_id=dashboard.id,
                 force=False,
+                cache_key=cache_key,
             )
             return self.response(
                 202,
