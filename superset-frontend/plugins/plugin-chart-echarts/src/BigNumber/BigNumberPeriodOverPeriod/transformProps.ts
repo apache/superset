@@ -101,7 +101,7 @@ export default function transformProps(chartProps: ChartProps) {
   const { data: dataA = [] } = queriesData[0];
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
-  const showMetricName = chartProps.rawFormData?.show_metric_name ?? true;
+  const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(

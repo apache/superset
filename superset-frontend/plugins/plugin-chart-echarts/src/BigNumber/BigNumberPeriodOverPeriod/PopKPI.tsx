@@ -39,7 +39,7 @@ import { useOverflowDetection } from './useOverflowDetection';
 const MetricNameContainer = styled.div<{ metricNameFontSize?: number }>`
   ${({ theme, metricNameFontSize }) => `
     font-weight: ${theme.typography.weights.normal};
-    font-size: ${metricNameFontSize || 24}px;
+    font-size: ${metricNameFontSize || theme.typography.sizes.s * 2}px;
     text-align: center;
     margin-bottom: ${theme.gridUnit * 3}px;
   `}

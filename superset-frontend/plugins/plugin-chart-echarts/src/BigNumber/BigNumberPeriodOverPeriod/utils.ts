@@ -23,8 +23,7 @@ import {
 } from '../sharedControls';
 
 const headerFontSizes = [16, 20, 30, 48, 60];
-const comparisonFontSizes = [16, 20, 26, 32, 40];
-const metricNameFontSizes = [12, 16, 20, 24, 28];
+const sharedFontSizes = [16, 20, 26, 32, 40];
 
 const metricNameProportionValues =
   metricNameFontSize.config.options.map(
@@ -52,7 +51,7 @@ const getFontSizeMapping = (
 
 const metricNameFontSizesMapping = getFontSizeMapping(
   metricNameProportionValues,
-  metricNameFontSizes,
+  sharedFontSizes,
 );
 const headerFontSizesMapping = getFontSizeMapping(
   headerProportionValues,
@@ -61,12 +60,12 @@ const headerFontSizesMapping = getFontSizeMapping(
 
 const comparisonFontSizesMapping = getFontSizeMapping(
   subheaderProportionValues,
-  comparisonFontSizes,
+  sharedFontSizes,
 );
 
 export const getMetricNameFontSize = (proportionValue: number) =>
   metricNameFontSizesMapping[proportionValue] ??
-  metricNameFontSizes[metricNameFontSizes.length - 1];
+  sharedFontSizes[sharedFontSizes.length - 1];
 
 export const getHeaderFontSize = (proportionValue: number) =>
   headerFontSizesMapping[proportionValue] ??
@@ -74,4 +73,4 @@ export const getHeaderFontSize = (proportionValue: number) =>
 
 export const getComparisonFontSize = (proportionValue: number) =>
   comparisonFontSizesMapping[proportionValue] ??
-  comparisonFontSizes[comparisonFontSizes.length - 1];
+  sharedFontSizes[sharedFontSizes.length - 1];
