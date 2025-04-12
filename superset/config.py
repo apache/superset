@@ -41,7 +41,7 @@ from typing import Any, Callable, Iterator, Literal, TYPE_CHECKING, TypedDict
 import click
 from celery.schedules import crontab
 from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB
+from flask_appbuilder.security.manager import AUTH_DB,AUTH_OAUTH
 from flask_caching.backends.base import BaseCache
 from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES
@@ -52,6 +52,7 @@ from superset.advanced_data_type.plugins.internet_address import internet_addres
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.custom_sso_security_manager import CustomSsoSecurityManager
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
@@ -180,7 +181,10 @@ SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
-CUSTOM_SECURITY_MANAGER = None
+
+
+
+CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
@@ -337,19 +341,42 @@ FAB_API_SWAGGER_UI = True
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
-AUTH_TYPE = AUTH_DB
+AUTH_TYPE = AUTH_OAUTH
+
+OAUTH_PROVIDERS = [
+    {
+        'name': 'pesapal',  # Name for your identity provider
+        'token_key': 'access_token',  # Name of the token in the response
+        'icon': 'fa-key',  # Icon for the provider button
+        'remote_app': {
+            'client_id': 'your_client_id',  # Replace with your actual client ID
+            'client_secret': 'your_client_secret',  # Replace with your actual client secret
+            'client_kwargs': {
+                'scope': 'openid profile roles'  # Scopes from your configuration
+            },
+            'api_base_url': 'https://cybqa.pesapal.com/pesapalsso',
+            'access_token_url': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/token',
+            'authorize_url': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/authorize',
+            'jwks_uri': 'https://cybqa.pesapal.com/pesapalsso/.well-known/jwks',
+            'userinfo_endpoint': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/userinfo',
+            'access_token_method': 'POST',
+            'token_endpoint_auth_method': 'client_secret_post'  # From your supported methods
+        }
+    }
+]
+
 
 # Uncomment to setup Full admin role name
-# AUTH_ROLE_ADMIN = 'Admin'
+AUTH_ROLE_ADMIN = 'Admin'
 
 # Uncomment to setup Public role name, no authentication needed
-# AUTH_ROLE_PUBLIC = 'Public'
+AUTH_ROLE_PUBLIC = 'Public'
 
 # Will allow user self registration
-# AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION = True
 
 # The default user self registration role
-# AUTH_USER_REGISTRATION_ROLE = "Public"
+AUTH_USER_REGISTRATION_ROLE = "Public"
 
 # When using LDAP Auth, setup the LDAP server
 # AUTH_LDAP_SERVER = "ldap://ldapserver.new"
