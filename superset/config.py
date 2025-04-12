@@ -378,7 +378,9 @@ OAUTH_PROVIDERS = [
                 'scope': 'openid profile roles offline_access' , # Scopes from your configuration
                 'code_challenge_method': 'S256'
             },
-            'server_metadata_url': 'https://cybqa.pesapal.com/pesapalsso/.well-known/openid-configuration'
+            'server_metadata_url': 'https://cybqa.pesapal.com/pesapalsso/.well-known/openid-configuration',
+            'redirect_uri': 'http://185.191.3.19:9004/signin-oidc'
+
         }
     }
 ]
