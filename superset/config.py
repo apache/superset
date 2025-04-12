@@ -368,7 +368,7 @@ AUTH_TYPE = AUTH_OAUTH
 
 OAUTH_PROVIDERS = [
     {
-        'name': '',
+        'name': 'Microsoft',
         'token_key': 'access_token',
         'icon': 'fa-key',
         'remote_app': {
