@@ -140,7 +140,7 @@ def main(event_type: str, sha: str, repo: str) -> None:
             # trigger all checks. This is a workaround for the GitHub API limit of 100
             # files. Using >= 99 because off-by-one errors are not uncommon
             if changed or len(files) >= 99:
-                print(f"{check}={str(changed).lower()}", file=f)
+                print(f"{check}=true", file=f)
                 print(f"Triggering group: {check}")
 
 
