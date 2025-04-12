@@ -241,8 +241,7 @@ const Select = forwardRef(
       const selectedValues = ensureIsArray(selectValue);
       const selectable = visibleOptions.filter(
         option =>
-          !option.disabled &&
-          !hasOption(option.value, selectedValues) &&
+          (!option.disabled || hasOption(option.value, selectedValues)) &&
           !option.isNewOption,
       ).length;
       const deselectable = visibleOptions.filter(
@@ -373,6 +372,7 @@ const Select = forwardRef(
       if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
         if (!isEqual(initialOptionsSorted, selectOptions)) {
           setSelectOptions(initialOptionsSorted);
+          setVisibleOptions(initialOptionsSorted);
         }
       }
       if (onDropdownVisibleChange) {
