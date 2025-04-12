@@ -245,7 +245,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
           className="subtitle-line"
           style={{
             fontSize,
-            height: maxHeight,
+            height: 'auto',
           }}
         >
           {subtitle}
@@ -404,12 +404,12 @@ export default styled(BigNumberVis)`
 
     .subheader-line {
       line-height: 1em;
-      padding-bottom: 0.3em;
+      margin-bottom: ${theme.gridUnit * 2}px;
     }
 
     .subtitle-line {
       line-height: 1em;
-      padding-top: 0.3em;
+      white-space: nowrap;
     }
 
     &.is-fallback-value {
