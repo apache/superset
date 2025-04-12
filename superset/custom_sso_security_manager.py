@@ -3,7 +3,7 @@ from superset import SupersetSecurityManager
 
 class CustomSsoSecurityManager(SupersetSecurityManager):
     def oauth_user_info(self, provider, response=None):
-        if provider == 'SSO Demo':
+        if provider == '':
             # Get user info from the userinfo endpoint
             me = self.appbuilder.sm.oauth_remotes[provider].get(
                 'v2/connect/userinfo').data
