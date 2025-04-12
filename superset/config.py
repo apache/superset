@@ -368,9 +368,9 @@ AUTH_TYPE = AUTH_OAUTH
 
 OAUTH_PROVIDERS = [
     {
-        'name': 'Microsoft',
+        'name': 'azure',
         'token_key': 'access_token',
-        'icon': 'fa-key',
+        'icon': 'fa-windows',
         'remote_app': {
             'client_id': '9457f4a9-b8f7-45f6-a3db-50e94019c600',
             'client_secret': 'e3da967e-6ab0-4b6c-85d6-150fabd09e7d',  # Replace with your actual client secret
