@@ -352,7 +352,8 @@ OAUTH_PROVIDERS = [
             'client_id': '9457f4a9-b8f7-45f6-a3db-50e94019c600',  # Replace with your actual client ID
             'client_secret': 'e3da967e-6ab0-4b6c-85d6-150fabd09e7d',  # Replace with your actual client secret
             'client_kwargs': {
-                'scope': 'openid profile roles'  # Scopes from your configuration
+                'scope': 'openid profile roles' , # Scopes from your configuration
+                'code_challenge_method': 'S256'
             },
             'api_base_url': 'https://cybqa.pesapal.com/pesapalsso',
             'access_token_url': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/token',
