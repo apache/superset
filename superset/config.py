@@ -368,7 +368,7 @@ AUTH_TYPE = AUTH_OAUTH
 
 OAUTH_PROVIDERS = [
     {
-        'name': 'azure',
+        'name': 'signin-oidc',
         'token_key': 'access_token',
         'icon': 'fa-windows',
         'remote_app': {
