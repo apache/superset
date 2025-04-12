@@ -32,7 +32,7 @@ import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDashboardComponents';
 import { User } from './types/bootstrapTypes';
-import getBootstrapData from './utils/getBootstrapData';
+import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
 
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
@@ -53,7 +53,7 @@ if (typeof window !== 'undefined') {
 initFeatureFlags(bootstrapData.common.feature_flags);
 
 // Setup SupersetClient
-setupClient();
+setupClient({ appRoot: applicationRoot() });
 
 setupColors(
   bootstrapData.common.extra_categorical_color_schemes,

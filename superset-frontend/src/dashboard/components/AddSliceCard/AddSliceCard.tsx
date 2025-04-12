@@ -36,9 +36,12 @@ import {
   usePluginContext,
   ImageLoader,
 } from 'src/components';
+import { assetUrl } from 'src/utils/assetUrl';
 import { Theme } from '@emotion/react';
 
-const FALLBACK_THUMBNAIL_URL = '/static/assets/images/chart-card-fallback.svg';
+const FALLBACK_THUMBNAIL_URL = assetUrl(
+  '/static/assets/images/chart-card-fallback.svg',
+);
 
 const TruncatedTextWithTooltip = ({
   children,

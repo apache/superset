@@ -563,6 +563,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # This is used for development to expose what is dynamic (css-in-js) vs
     # what is managed by `.less` files.
     "DARK_THEME_SWITCH": False,
+    # Allow users to optionally specify date formats in email subjects, which will be parsed if enabled. # noqa: E501
+    "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
+    # Allow metrics and columns to be grouped into (potentially nested) folders in the
+    # chart builder
+    "DATASET_FOLDERS": False,
 }
 
 # ------------------------------

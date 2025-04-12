@@ -101,6 +101,7 @@ Join our growing community!
 - [ELMO Cloud HR & Payroll](https://elmosoftware.com.au/)
 - [Endress+Hauser](https://www.endress.com/) [@rumbin]
 - [FBK - ICT center](https://ict.fbk.eu)
+- [Formbricks](https://formbricks.com)
 - [Gavagai](https://gavagai.io) [@gavagai-corp]
 - [GfK Data Lab](https://www.gfk.com/home) [@mherr]
 - [Hydrolix](https://www.hydrolix.io/)
@@ -216,6 +217,7 @@ Join our growing community!
 - [Increff](https://www.increff.com/) [@ishansinghania]
 - [komoot](https://www.komoot.com/) [@christophlingg]
 - [Let's Roam](https://www.letsroam.com/)
+- [Machrent SA](https://www.machrent.com/)
 - [Onebeat](https://1beat.com/) [@GuyAttia]
 - [X](https://x.com/)
 - [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]

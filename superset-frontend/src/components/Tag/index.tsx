@@ -18,6 +18,7 @@
  */
 
 import { styled } from '@superset-ui/core';
+import { Link } from 'react-router-dom';
 import TagType from 'src/types/TagType';
 import { Tag as AntdTag } from 'antd-v5';
 import type { TagProps } from 'antd-v5/es';
@@ -80,13 +81,13 @@ const SupersetTag = ({
           >
             {' '}
             {id ? (
-              <a
-                href={`/superset/all_entities/?id=${id}`}
+              <Link
+                to={`/superset/all_entities/?id=${id}`}
                 target="_blank"
                 rel="noreferrer"
               >
                 {children || tagDisplay}
-              </a>
+              </Link>
             ) : (
               children || tagDisplay
             )}

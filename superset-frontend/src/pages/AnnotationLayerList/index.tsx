@@ -41,6 +41,7 @@ import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerM
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from 'src/components/Icons';
+import { navigateTo } from 'src/utils/navigationUtils';
 
 const PAGE_SIZE = 25;
 
@@ -299,7 +300,7 @@ function AnnotationLayersList({
   };
 
   const onLayerAdd = (id?: number) => {
-    window.location.href = `/annotationlayer/${id}/annotation`;
+    navigateTo(`/annotationlayer/${id}/annotation`);
   };
 
   const onModalHide = () => {
