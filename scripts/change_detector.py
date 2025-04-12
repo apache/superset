@@ -134,7 +134,7 @@ def main(event_type: str, sha: str, repo: str) -> None:
     with open(output_path, "a") as f:
         for check, changed in changes_detected.items():
             if changed:
-                print(f"{check}={str(changed).lower()}", file=f)
+                print(f"{check}=true", file=f)
                 print(f"Triggering group: {check}")
 
 
