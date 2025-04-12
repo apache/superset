@@ -658,41 +658,57 @@ export function setDirectPathToChild(path) {
 }
 
 export const SET_ACTIVE_TAB = 'SET_ACTIVE_TAB';
+
+function findTabsToRestore(tabId, prevTabId, dashboardState, dashboardLayout) {
+  const { activeTabs: prevActiveTabs, inactiveTabs: prevInactiveTabs } =
+    dashboardState;
+  const { present: currentLayout } = dashboardLayout;
+  const restoredTabs = [];
+  const queue = [tabId];
+  const visited = new Set();
+  while (queue.length > 0) {
+    const seek = queue.shift();
+    if (!visited.has(seek)) {
+      visited.add(seek);
+      const found =
+        prevInactiveTabs?.filter(inactiveTabId =>
+          currentLayout[inactiveTabId]?.parents
+            .filter(id => id.startsWith('TAB-'))
+            .slice(-1)
+            .includes(seek),
+        ) ?? [];
+      restoredTabs.push(...found);
+      queue.push(...found);
+    }
+  }
+  const activeTabs = restoredTabs ? [tabId].concat(restoredTabs) : [tabId];
+  const tabChanged = Boolean(prevTabId) && tabId !== prevTabId;
+  const inactiveTabs = tabChanged
+    ? prevActiveTabs.filter(
+        activeTabId =>
+          activeTabId !== prevTabId &&
+          currentLayout[activeTabId]?.parents.includes(prevTabId),
+      )
+    : [];
+  return {
+    activeTabs,
+    inactiveTabs,
+  };
+}
+
 export function setActiveTab(tabId, prevTabId) {
   return (dispatch, getState) => {
     const { dashboardLayout, dashboardState } = getState();
-    const { activeTabs, inactiveTabs: prevInactiveTabs } = dashboardState;
-    const { present: currentLayout } = dashboardLayout;
-    const restoredTabs = [];
-    const queue = [tabId];
-    const visited = new Set();
-    while (queue.length > 0) {
-      const seek = queue.shift();
-      if (!visited.has(seek)) {
-        visited.add(seek);
-        const found =
-          prevInactiveTabs?.filter(inactiveTabId =>
-            currentLayout[inactiveTabId]?.parents
-              .filter(id => id.startsWith('TAB-'))
-              .slice(-1)
-              .includes(seek),
-          ) ?? [];
-        restoredTabs.push(...found);
-        queue.push(...found);
-      }
-    }
-    const tabIds = restoredTabs ? [tabId].concat(restoredTabs) : [tabId];
-    const inactiveTabs =
-      Boolean(prevTabId) && tabId !== prevTabId
-        ? activeTabs.filter(
-            activeTabId =>
-              activeTabId !== prevTabId &&
-              currentLayout[activeTabId]?.parents.includes(prevTabId),
-          )
-        : [];
+    const { activeTabs, inactiveTabs } = findTabsToRestore(
+      tabId,
+      prevTabId,
+      dashboardState,
+      dashboardLayout,
+    );
+
     return dispatch({
       type: SET_ACTIVE_TAB,
-      tabIds,
+      activeTabs,
       prevTabId,
       inactiveTabs,
     });

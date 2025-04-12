@@ -213,13 +213,13 @@ export default function dashboardStateReducer(state = {}, action) {
         new Set(action.inactiveTabs.concat(action.prevTabId)),
       );
       const newInactiveTabs = new Set(state.inactiveTabs)
-        .difference(new Set(action.tabIds))
+        .difference(new Set(action.activeTabs))
         .union(new Set(action.inactiveTabs));
 
       return {
         ...state,
         inactiveTabs: Array.from(newInactiveTabs),
-        activeTabs: Array.from(newActiveTabs.union(new Set(action.tabIds))),
+        activeTabs: Array.from(newActiveTabs.union(new Set(action.activeTabs))),
       };
     },
     [SET_ACTIVE_TABS]() {
