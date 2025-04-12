@@ -345,7 +345,7 @@ AUTH_TYPE = AUTH_OAUTH
 
 OAUTH_PROVIDERS = [
     {
-        'name': 'pesapal',  # Name for your identity provider
+        'name': 'Pesapal Datawarehouse Dashboard',  # Name for your identity provider
         'token_key': 'access_token',  # Name of the token in the response
         'icon': 'fa-key',  # Icon for the provider button
         'remote_app': {
