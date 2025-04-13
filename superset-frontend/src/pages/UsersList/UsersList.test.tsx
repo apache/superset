@@ -90,19 +90,14 @@ const mockUser = {
   ],
 };
 
-describe('RolesList', () => {
+describe('UsersList', () => {
   async function renderAndWait() {
     const mounted = act(async () => {
       const mockedProps = {};
       render(
         <MemoryRouter>
           <QueryParamProvider>
-            <UsersList
-              user={mockUser}
-              addDangerToast={() => {}}
-              addSuccessToast={() => {}}
-              {...mockedProps}
-            />
+            <UsersList user={mockUser} {...mockedProps} />
           </QueryParamProvider>
         </MemoryRouter>,
         { useRedux: true, store },

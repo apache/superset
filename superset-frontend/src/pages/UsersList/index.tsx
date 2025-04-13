@@ -30,7 +30,7 @@ import ListView, {
 import DeleteModal from 'src/components/DeleteModal';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import {
   UserListAddModal,
   UserListEditModal,
@@ -120,6 +120,24 @@ function UsersList({ user }: UsersListProps) {
     useState<UserObject | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [roles, setRoles] = useState<Role[]>([]);
+  const loginCountStats = useMemo(() => {
+    if (!users || users.length === 0) return { min: 0, max: 0 };
+
+    const loginCounts = users.map(user => user.login_count);
+    return {
+      min: Math.min(...loginCounts),
+      max: Math.max(...loginCounts),
+    };
+  }, [users]);
+  const failLoginCountStats = useMemo(() => {
+    if (!users || users.length === 0) return { min: 0, max: 0 };
+
+    const failLoginCounts = users.map(user => user.fail_login_count);
+    return {
+      min: Math.min(...failLoginCounts),
+      max: Math.max(...failLoginCounts),
+    };
+  }, [users]);
 
   const isAdmin = useMemo(() => isUserAdmin(user), [user]);
 
@@ -129,7 +147,7 @@ function UsersList({ user }: UsersListProps) {
 
       const fetchPage = async (pageIndex: number) => {
         const response = await SupersetClient.get({
-          endpoint: `api/v1/security/roles/?q={"page_size":${pageSize},"page":${pageIndex}}`,
+          endpoint: `api/v1/security/roles/?q=(page_size:${pageSize},page:${pageIndex})`,
         });
         return response.json;
       };
@@ -457,18 +475,20 @@ function UsersList({ user }: UsersListProps) {
         Header: t('Login count'),
         key: 'login_count',
         id: 'login_count',
-        input: 'search',
-        operator: FilterOperator.Equals,
+        input: 'numerical_range',
+        operator: FilterOperator.Between,
+        min: loginCountStats.min,
+        max: loginCountStats.max,
       },
       {
         Header: t('Fail login count'),
         key: 'fail_login_count',
         id: 'fail_login_count',
-        input: 'search',
-        operator: FilterOperator.Equals,
+        input: 'numerical_range',
+        operator: FilterOperator.Between,
       },
     ],
-    [isLoading, roles],
+    [isLoading, roles, loginCountStats, failLoginCountStats],
   );
 
   const emptyState = {

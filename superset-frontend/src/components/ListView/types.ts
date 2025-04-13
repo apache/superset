@@ -48,7 +48,8 @@ export interface Filter {
     | 'select'
     | 'checkbox'
     | 'search'
-    | 'datetime_range';
+    | 'datetime_range'
+    | 'numerical_range';
   unfilteredLabel?: string;
   selects?: SelectOption[];
   onFilterOpen?: () => void;
@@ -61,6 +62,8 @@ export interface Filter {
   paginate?: boolean;
   loading?: boolean;
   dateFilterValueType?: 'unix' | 'iso';
+  min?: number;
+  max?: number;
 }
 
 export type Filters = Filter[];
@@ -75,7 +78,8 @@ export type InnerFilterValue =
   | undefined
   | string[]
   | number[]
-  | { label: string; value: string | number };
+  | { label: string; value: string | number }
+  | [number | null, number | null];
 
 export interface FilterValue {
   id: string;

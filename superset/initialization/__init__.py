@@ -281,6 +281,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
 
         appbuilder.add_view(
+            UsersListView,
+            "List Users",
+            label=__("List Users"),
+            category="Security",
+            category_label=__("Security"),
+        )
+
+        appbuilder.add_view(
             DynamicPluginsView,
             "Plugins",
             label=__("Plugins"),
@@ -407,14 +415,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
-        )
-
-        appbuilder.add_view(
-            UsersListView,
-            "Users",
-            label=__("Users"),
-            category="Security",
-            category_label=__("Security"),
         )
 
     def init_app_in_ctx(self) -> None:

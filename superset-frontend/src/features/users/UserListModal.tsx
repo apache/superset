@@ -25,7 +25,6 @@ import Checkbox from 'src/components/Checkbox';
 import Select from 'src/components/Select/Select';
 import { Role, UserObject } from 'src/pages/UsersList';
 import { FormInstance } from 'src/components';
-import Icons from 'src/components/Icons';
 import { BaseUserListModalProps, FormValues } from './types';
 import { createUser, updateUser } from './utils';
 
@@ -45,6 +44,33 @@ function UserListModal({
 }: UserModalProps) {
   const { addDangerToast, addSuccessToast } = useToasts();
   const handleFormSubmit = async (values: FormValues) => {
+    const handleError = async (err: any, action: 'create' | 'update') => {
+      let errorMessage =
+        action === 'create'
+          ? t('Error while adding user!')
+          : t('Error while updating user!');
+
+      if (err.status === 422) {
+        const errorData = await err.json();
+        const detail = errorData?.message || '';
+
+        if (detail.includes('duplicate key value')) {
+          if (detail.includes('ab_user_username_key')) {
+            errorMessage = t(
+              'This username is already taken. Please choose another one.',
+            );
+          } else if (detail.includes('ab_user_email_key')) {
+            errorMessage = t(
+              'This email is already associated with an account.',
+            );
+          }
+        }
+      }
+
+      addDangerToast(errorMessage);
+      throw err;
+    };
+
     if (isEditMode) {
       if (!user) {
         throw new Error('User is required in edit mode');
@@ -53,16 +79,14 @@ function UserListModal({
         await updateUser(user.id, values);
         addSuccessToast(t('User was successfully updated!'));
       } catch (err) {
-        addDangerToast(t('Error while updating user!'));
-        throw err;
+        await handleError(err, 'update');
       }
     } else {
       try {
         await createUser(values);
         addSuccessToast(t('User was successfully created!'));
       } catch (err) {
-        addDangerToast(t('Error while adding user!'));
-        throw err;
+        await handleError(err, 'create');
       }
     }
   };
@@ -88,17 +112,7 @@ function UserListModal({
     <FormModal
       show={show}
       onHide={onHide}
-      title={
-        isEditMode ? (
-          <>
-            <Icons.EditOutlined iconSize="l" /> {t('Edit User')}
-          </>
-        ) : (
-          <>
-            <Icons.PlusOutlined iconSize="l" /> {t('Add User')}
-          </>
-        )
-      }
+      title={isEditMode ? t('Edit User') : t('Add User')}
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       requiredFields={requiredFields}
