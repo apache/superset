@@ -194,20 +194,3 @@ export const xAxisForceCategoricalControl = {
     shouldMapStateToProps: () => true,
   },
 };
-
-export const xAxisSortSeriesAscendingControl = {
-  name: 'x_axis_sort_series_ascending',
-  config: {
-    type: 'CheckboxControl',
-    label: (state: ControlPanelState) =>
-      state.form_data?.orientation === 'horizontal'
-        ? t('Y-Axis Sort Ascending')
-        : t('X-Axis Sort Ascending'),
-    default: DEFAULT_XAXIS_SORT_SERIES_DATA.sort_series_ascending,
-    description: t('Whether to sort ascending or descending on the base Axis.'),
-    renderTrigger: true,
-    visibility: ({ controls }: { controls: ControlStateMapping }) =>
-      controls?.x_axis_sort_series?.value !== undefined &&
-      xAxisMultiSortVisibility({ controls }),
-  },
-};
