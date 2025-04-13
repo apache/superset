@@ -83,7 +83,7 @@ export const userReducer = (
   }
   return user;
 };
-
+const x:number=5;
 const getMiddleware: ConfigureStoreOptions['middleware'] =
   getDefaultMiddleware =>
     process.env.REDUX_DEFAULT_MIDDLEWARE
