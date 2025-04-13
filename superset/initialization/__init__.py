@@ -226,6 +226,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Setup regular views
         #
         app_root = appbuilder.app.config["APPLICATION_ROOT"]
+        if app_root.endswith("/"):
+            app_root = app_root.rstrip("/")
+
         appbuilder.add_link(
             "Home",
             label=__("Home"),
