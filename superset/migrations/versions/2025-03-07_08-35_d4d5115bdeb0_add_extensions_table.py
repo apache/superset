@@ -17,14 +17,14 @@
 """add extensions table
 
 Revision ID: d4d5115bdeb0
-Revises: 74ad1125881c
+Revises: 32bf93dfe2a4
 Create Date: 2025-03-07 08:35:14.112691
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "d4d5115bdeb0"
-down_revision = "74ad1125881c"
+down_revision = "32bf93dfe2a4"
 
 from uuid import uuid4  # noqa: E402
 
@@ -46,7 +46,8 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(255), nullable=False),
         sa.Column("manifest", sa.Text(), nullable=False),
-        sa.Column("bundle", sa.Text(), nullable=False),
+        sa.Column("frontend", sa.Text(), nullable=False),
+        sa.Column("backend", sa.Text(), nullable=False),
         sa.Column("enabled", sa.Boolean(), nullable=False),
         sa.Column("uuid", UUIDType(binary=True), default=uuid4),
         sa.Column("created_on", sa.DateTime(), nullable=True),

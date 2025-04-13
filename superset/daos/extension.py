@@ -36,20 +36,24 @@ class ExtensionDAO(BaseDAO[Extension]):
     def upsert(
         name: str,
         manifest: dict[str, Any],
-        bundle: dict[str, Any],
+        frontend: dict[str, Any],
+        backend: dict[str, Any],
         enabled: bool,
     ) -> Extension:
         manifest_str = json.dumps(manifest)
-        bundle_str = json.dumps(bundle)
+        frontend_str = json.dumps(frontend) if frontend else None
+        backend_str = json.dumps(backend) if backend else None
         if extension := ExtensionDAO.get_by_name(name):
             extension.manifest = manifest_str
-            extension.bundle = bundle_str
+            extension.frontend = frontend_str
+            extension.backend = backend_str
             return extension
 
         extension = Extension(
             name=name,
             manifest=manifest_str,
-            bundle=bundle_str,
+            frontend=frontend_str,
+            backend=backend_str,
             enabled=enabled,
         )
         return ExtensionDAO.create(extension)

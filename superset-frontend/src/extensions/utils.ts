@@ -18,9 +18,8 @@
  */
 import { Disposable } from '@apache-superset/primitives';
 import { AnyAction } from 'redux';
-import { listenerMiddleware, RootState } from 'src/views/store';
-import { Contributions, Extension } from './useExtensions';
-import { store } from 'src/views/store';
+import { listenerMiddleware, RootState, store } from 'src/views/store';
+// import { Contributions, Extension } from './useExtensions';
 
 export function createActionListener<V>(
   actionType: string,
@@ -46,8 +45,8 @@ export function createActionListener<V>(
 }
 
 export function getContribution(
-  extensions: Extension[],
-  type: keyof Contributions,
+  extensions: any[],
+  type: keyof any,
   key: string,
 ): any[] {
   const results: any[] = [];

@@ -31,7 +31,8 @@ from superset.extensions.types import Manifest
 from superset.utils.core import check_is_safe_zip
 from superset.views.base_api import BaseSupersetApi, requires_form_data, statsd_metrics
 
-BUNDLE_REGEX = re.compile(r"^dist/([^/]+)$")
+FRONTEND_REGEX = re.compile(r"^frontend/dist/([^/]+)$")
+BACKEND_REGEX = re.compile(r"^backend/dist/([^/]+)$")
 
 
 class ExtensionsRestApi(BaseSupersetApi):
@@ -74,10 +75,10 @@ class ExtensionsRestApi(BaseSupersetApi):
     @expose("/<name>/<file>", methods=("GET",))
     @permission_name("read")
     def content(self, name: str, file: str) -> Response:
-        """Get a chunk file of an extension.
+        """Get a frontend chunk of an extension.
         ---
         get:
-          summary: Get a chunk file of an extension.
+          summary: Get a frontend chunk of an extension.
           parameters:
           - in: path
             schema:
@@ -175,7 +176,8 @@ class ExtensionsRestApi(BaseSupersetApi):
         if not upload or not is_zipfile(upload):
             return self.response_400(message="Missing extensions bundle")
 
-        bundle: dict[str, str] = {}
+        frontend: dict[str, str] = {}
+        backend: dict[str, str] = {}
         with ZipFile(upload) as uploaded_file:
             check_is_safe_zip(uploaded_file)
             for filename in uploaded_file.namelist():
@@ -188,21 +190,24 @@ class ExtensionsRestApi(BaseSupersetApi):
                         name = manifest["name"]
                     except Exception:
                         return self.response_400(message="unable to parse manifest")
-                elif match := BUNDLE_REGEX.match(filename):
-                    bundle[match.group(1)] = content
+                elif match := FRONTEND_REGEX.match(filename):
+                    frontend[match.group(1)] = content
+                elif match := BACKEND_REGEX.match(filename):
+                    backend[match.group(1)] = content
                 else:
                     self.response_400(message=f"Unexpected file in bundle: {filename}")
 
         if not manifest:
             return self.response_400(message="Missing manifest.json")
 
-        if not bundle:
-            return self.response_400(message="Missing bundle (no dist directory")
+        if not frontend and not backend:
+            return self.response_400(message="Missing frontend and backend files")
 
         ExtensionDAO.upsert(
             name=name,
             manifest=manifest,
-            bundle=bundle,
+            frontend=frontend,
+            backend=backend,
             enabled=True,
         )
         db.session.commit()
