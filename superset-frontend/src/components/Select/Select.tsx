@@ -239,19 +239,27 @@ const Select = forwardRef(
 
     useEffect(() => {
       const selectedValues = ensureIsArray(selectValue);
-      const selectable = visibleOptions.filter(
-        option =>
-          (!option.disabled || hasOption(option.value, selectedValues)) &&
-          !option.isNewOption,
-      ).length;
-      const deselectable = visibleOptions.filter(
-        option => !option.disabled && hasOption(option.value, selectedValues),
-      ).length;
+      const selectedValuesSet = new Set(selectedValues.map(getValue));
+      const counts = visibleOptions.reduce(
+        (acc, option) => {
+          const isSelected = selectedValuesSet.has(option.value);
+          const isDisabled = option.disabled;
+          const isNew = option.isNewOption;
 
-      setBulkSelectCounts({
-        selectable,
-        deselectable,
-      });
+          if ((!isDisabled || isSelected) && !isNew) {
+            acc.selectable += 1;
+          }
+
+          if (isSelected && !isDisabled) {
+            acc.deselectable += 1;
+          }
+
+          return acc;
+        },
+        { selectable: 0, deselectable: 0 }, // Initial accumulator
+      );
+
+      setBulkSelectCounts(counts);
     }, [visibleOptions, selectValue]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
