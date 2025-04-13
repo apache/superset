@@ -17,9 +17,8 @@
  * under the License.
  */
 import { styled, t } from '@superset-ui/core';
-import ReactCronPicker, { Locale, CronProps } from 'react-js-cron';
-
-export * from 'react-js-cron';
+import ReactCronPicker from 'react-js-cron';
+import type { Locale, CronProps } from './types';
 
 export const LOCALE: Locale = {
   everyText: t('every'),
@@ -200,3 +199,5 @@ export const CronPicker = styled((props: CronProps) => (
     }
   `}
 `;
+
+export type { CronError } from './types';

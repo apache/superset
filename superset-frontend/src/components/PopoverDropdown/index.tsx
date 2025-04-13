@@ -19,9 +19,9 @@
 import { Key } from 'react';
 import cx from 'classnames';
 import { styled, useTheme } from '@superset-ui/core';
-import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import { Icons } from 'src/components/Icons';
+import { Dropdown } from '../Dropdown';
 
 export interface OptionProps {
   value: string;

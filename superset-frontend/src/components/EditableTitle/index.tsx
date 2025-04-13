@@ -16,37 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { css, styled, SupersetTheme, t } from '@superset-ui/core';
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import cx from 'classnames';
-import { css, styled, SupersetTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
+import { CertifiedBadge } from 'src/components/CertifiedBadge';
 import { Input, TextAreaRef } from 'src/components/Input';
-import CertifiedBadge from '../CertifiedBadge';
-
-export interface EditableTitleProps {
-  canEdit?: boolean;
-  editing?: boolean;
-  emptyText?: string;
-  extraClasses?: Array<string> | string;
-  multiLine?: boolean;
-  noPermitTooltip?: string;
-  onSaveTitle: (arg0: string) => void;
-  showTooltip?: boolean;
-  style?: object;
-  title?: string;
-  defaultTitle?: string;
-  placeholder?: string;
-  certifiedBy?: string;
-  certificationDetails?: string;
-  url?: string;
-}
+import cx from 'classnames';
+import type { EditableTitleProps } from './types';
 
 const StyledCertifiedBadge = styled(CertifiedBadge)`
   vertical-align: middle;
 `;
 
-export default function EditableTitle({
+export function EditableTitle({
   canEdit = false,
   editing = false,
   extraClasses,
@@ -233,3 +216,5 @@ export default function EditableTitle({
     </span>
   );
 }
+
+export type { EditableTitleProps };

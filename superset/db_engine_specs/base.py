@@ -428,6 +428,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Can the catalog be changed on a per-query basis?
     supports_dynamic_catalog = False
 
+    # Does the DB engine spec support cross-catalog queries?
+    supports_cross_catalog_queries = False
+
     # Does the engine supports OAuth 2.0? This requires logic to be added to one of the
     # the user impersonation methods to handle personal tokens.
     supports_oauth2 = False

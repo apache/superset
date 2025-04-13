@@ -16,20 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ReactElement,
-  ReactNode,
-  FocusEvent,
-  KeyboardEvent,
-  cloneElement,
-} from 'react';
+import { ReactElement, cloneElement } from 'react';
 
-import {
-  Dropdown as AntdDropdown,
-  DropdownProps as AntdDropdownProps,
-} from 'antd-v5';
+import { Dropdown as AntdDropdown, DropdownProps } from 'antd-v5';
 import { styled } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
+import {
+  IconOrientation,
+  type NoAnimationDropdownProps,
+  type MenuDotsDropdownProps,
+} from './types';
 
 const MenuDots = styled.div`
   width: ${({ theme }) => theme.sizeUnit * 0.75}px;
@@ -76,16 +72,6 @@ const MenuDotsWrapper = styled.div`
   padding-left: ${({ theme }) => theme.sizeUnit}px;
 `;
 
-export enum IconOrientation {
-  Vertical = 'vertical',
-  Horizontal = 'horizontal',
-}
-
-export interface MenuDotsDropdownProps extends AntdDropdownProps {
-  overlay?: ReactElement;
-  iconOrientation?: IconOrientation;
-}
-
 const RenderIcon = (
   iconOrientation: IconOrientation = IconOrientation.Vertical,
 ) => {
@@ -110,12 +96,6 @@ export const MenuDotsDropdown = ({
   </AntdDropdown>
 );
 
-export interface NoAnimationDropdownProps extends AntdDropdownProps {
-  children: ReactNode;
-  onBlur?: (e: FocusEvent<HTMLDivElement>) => void;
-  onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
-}
-
 export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   const { children, onBlur, onKeyDown, ...rest } = props;
   const childrenWithProps = cloneElement(children as ReactElement, {
@@ -130,7 +110,8 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   );
 };
 
-export type DropdownProps = AntdDropdownProps;
 export const Dropdown = (props: DropdownProps) => (
   <AntdDropdown autoFocus {...props} />
 );
+
+export type { DropdownProps, NoAnimationDropdownProps, MenuDotsDropdownProps };

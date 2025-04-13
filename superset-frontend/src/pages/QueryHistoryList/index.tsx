@@ -34,16 +34,17 @@ import {
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import Label from 'src/components/Label';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import Popover from 'src/components/Popover';
 import { commonMenuData } from 'src/features/home/commonMenuData';
-import ListView, {
-  Filters,
-  FilterOperator,
-  ListViewProps,
-} from 'src/components/ListView';
-import { Tooltip } from 'src/components/Tooltip';
+import {
+  Label,
+  Tooltip,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewProps,
+  type ListViewFilters,
+} from 'src/components';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
@@ -379,7 +380,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
     [],
   );
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Database'),

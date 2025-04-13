@@ -16,25 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// eslint-disable-next-line no-restricted-imports
 import { Tooltip as AntdTooltip } from 'antd-v5';
-import type { TooltipProps } from 'antd-v5';
-
-// Re-export the types
-export type { TooltipProps };
-export type TooltipPlacement =
-  | 'top'
-  | 'left'
-  | 'right'
-  | 'bottom'
-  | 'topLeft'
-  | 'topRight'
-  | 'bottomLeft'
-  | 'bottomRight'
-  | 'leftTop'
-  | 'leftBottom'
-  | 'rightTop'
-  | 'rightBottom';
+import type { TooltipProps } from './types';
 
 export const Tooltip = ({ overlayStyle, ...props }: TooltipProps) => (
   <AntdTooltip
@@ -45,3 +28,5 @@ export const Tooltip = ({ overlayStyle, ...props }: TooltipProps) => (
     {...props}
   />
 );
+
+export type { TooltipProps };

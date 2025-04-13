@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Loading, { Props, PositionOption } from './index';
+import type { LoadingProps, PositionOption } from './types';
+import { Loading } from '.';
 
 export default {
-  title: 'Loading',
+  title: 'Components/Loading',
   component: Loading,
   includeStories: ['LoadingGallery', 'InteractiveLoading'],
 };
@@ -54,7 +55,7 @@ LoadingGallery.parameters = {
   },
 };
 
-export const InteractiveLoading = (args: Props) => <Loading {...args} />;
+export const InteractiveLoading = (args: LoadingProps) => <Loading {...args} />;
 
 InteractiveLoading.args = {
   image: '',

@@ -19,7 +19,7 @@
 import TableControls, { TableControlsProps } from './DrillDetailTableControls';
 
 export default {
-  title: 'DrillDetailTableControls',
+  title: 'Components/Chart/DrillDetail/DrillDetailTableControls',
   component: TableControls,
 };
 

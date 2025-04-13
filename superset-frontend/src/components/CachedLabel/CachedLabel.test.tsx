@@ -19,7 +19,8 @@
 
 import { isValidElement } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import CachedLabel, { CacheLabelProps } from '.';
+import { CachedLabel } from '.';
+import type { CacheLabelProps } from './types';
 
 const defaultProps = {
   onClick: () => {},

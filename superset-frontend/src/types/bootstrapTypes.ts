@@ -10,7 +10,7 @@ import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
 import { isPlainObject } from 'lodash';
 import { Languages } from 'src/features/home/LanguagePicker';
-import { FlashMessage } from '../components/FlashProvider';
+import type { FlashMessage } from 'src/components';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -143,6 +143,8 @@ export interface MenuData {
 }
 
 export interface CommonBootstrapData {
+  application_root: string;
+  static_assets_prefix: string;
   flash_messages: FlashMessage[];
   conf: JsonObject;
   locale: Locale;

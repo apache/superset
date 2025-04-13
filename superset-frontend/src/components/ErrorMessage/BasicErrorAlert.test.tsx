@@ -19,7 +19,7 @@
 
 import { render, screen } from 'spec/helpers/testing-library';
 import { ErrorLevel, supersetTheme } from '@superset-ui/core';
-import BasicErrorAlert from './BasicErrorAlert';
+import { BasicErrorAlert } from './BasicErrorAlert';
 
 jest.mock(
   'src/components/Icons/AsyncIcon',

@@ -28,9 +28,20 @@ import {
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { pick } from 'lodash';
-import ButtonGroup from 'src/components/ButtonGroup';
-import Alert from 'src/components/Alert';
-import Button from 'src/components/Button';
+import {
+  Alert,
+  Button,
+  ButtonGroup,
+  Tooltip,
+  Card,
+  CopyToClipboard,
+  ErrorMessageWithStackTrace,
+  Modal,
+  FilterableTable,
+  Input,
+  Label,
+  Loading,
+} from 'src/components';
 import { nanoid } from 'nanoid';
 import {
   QueryState,
@@ -44,7 +55,6 @@ import {
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
   ISaveableDatasource,
   ISimpleColumn,
@@ -54,17 +64,9 @@ import { EXPLORE_CHART_DEFAULT, SqlLabRootState } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
-import Loading from 'src/components/Loading';
-import Card from 'src/components/Card';
-import Label from 'src/components/Label';
-import { Input } from 'src/components/Input';
-import { Tooltip } from 'src/components/Tooltip';
-import FilterableTable from 'src/components/FilterableTable';
-import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-import Modal from 'src/components/Modal';
 import {
   addQueryEditor,
   clearQueryResults,

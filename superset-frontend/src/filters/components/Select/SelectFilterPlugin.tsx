@@ -30,14 +30,12 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-import { LabeledValue as AntdLabeledValue } from 'src/components/Select';
 import { debounce } from 'lodash';
 import { useImmerReducer } from 'use-immer';
-import { Select } from 'src/components';
+import { Select, FormItem, type LabeledValue } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { FormItem } from 'src/components/Form';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { FilterPluginStyle, StatusMessage } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -100,6 +98,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   } = props;
   const {
     enableEmptyFilter,
+    creatable,
     multiSelect,
     showSearch,
     inverseSelection,
@@ -243,7 +242,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [multiSelect, search, uniqueOptions]);
 
   const sortComparator = useCallback(
-    (a: AntdLabeledValue, b: AntdLabeledValue) => {
+    (a: LabeledValue, b: LabeledValue) => {
       const labelComparator = propertyComparator('label');
       if (formData.sortAscending) {
         return labelComparator(a, b);
@@ -296,7 +295,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         <Select
           name={formData.nativeFilterId}
           allowClear
-          allowNewOptions={!searchAllOptions}
+          allowNewOptions={!searchAllOptions && creatable !== false}
           allowSelectAll={!searchAllOptions}
           // @ts-ignore
           value={filterState.value || []}

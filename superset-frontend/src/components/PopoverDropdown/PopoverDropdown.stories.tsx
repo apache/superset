@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import Button from 'src/components/Button';
+import { Button } from 'src/components';
 import PopoverDropdown, { PopoverDropdownProps, OptionProps } from '.';
 
 const OPTIONS: OptionProps[] = [
@@ -77,7 +77,7 @@ InteractivePopoverDropdown.argTypes = {
 };
 
 export default {
-  title: 'PopoverDropdown',
+  title: 'Components/PopoverDropdown',
   includeStories: ['InteractivePopoverDropdown'],
   args: {
     value: OPTIONS[0].value,

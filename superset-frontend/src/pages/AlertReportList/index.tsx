@@ -29,23 +29,26 @@ import {
   getExtensionsRegistry,
 } from '@superset-ui/core';
 import { extendedDayjs } from 'src/utils/dates';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import FacePile from 'src/components/FacePile';
-import { Tooltip } from 'src/components/Tooltip';
-import ListView, {
-  FilterOperator,
-  Filters,
-  ListViewProps,
-} from 'src/components/ListView';
+import {
+  FacePile,
+  Tooltip,
+  ModifiedInfo,
+  ConfirmStatusChange,
+  DeleteModal,
+  LastUpdated,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  ListViewActionsBar,
+  type ListViewActionProps,
+  type ListViewProps,
+  type ListViewFilters,
+} from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { Switch } from 'src/components/Switch';
 import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import AlertStatusIcon from 'src/features/alerts/components/AlertStatusIcon';
 import RecipientIcon from 'src/features/alerts/components/RecipientIcon';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import DeleteModal from 'src/components/DeleteModal';
-import LastUpdated from 'src/components/LastUpdated';
 import {
   useListViewResource,
   useSingleViewResource,
@@ -55,7 +58,6 @@ import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import Owner from 'src/types/Owner';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from 'src/components/Icons';
 
@@ -405,7 +407,9 @@ function AlertList({
               : null,
           ].filter(item => item !== null);
 
-          return <ActionsBar actions={actions as ActionProps[]} />;
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
         },
         Header: t('Actions'),
         id: 'actions',
@@ -474,7 +478,7 @@ function AlertList({
     ) : null,
   };
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Name'),

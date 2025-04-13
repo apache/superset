@@ -27,8 +27,9 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
-import DatabaseSelector, { DatabaseSelectorProps } from '.';
 import { EmptyState } from '../EmptyState';
+import { DatabaseSelector } from '.';
+import type { DatabaseSelectorProps } from './types';
 
 const createProps = (): DatabaseSelectorProps => ({
   db: {

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useTheme } from '@superset-ui/core';
-import { ListItemProps, List } from 'src/components/List';
+import { List, type ListItemProps } from 'src/components';
 
 export interface CustomListItemProps extends ListItemProps {
   selectable: boolean;

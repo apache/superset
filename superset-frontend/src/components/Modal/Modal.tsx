@@ -16,73 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  isValidElement,
-  cloneElement,
-  CSSProperties,
-  ReactNode,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { isValidElement, cloneElement, useMemo, useRef, useState } from 'react';
 import { isNil } from 'lodash';
 import { css, styled, t } from '@superset-ui/core';
-import {
-  Modal as AntdModal,
-  ModalProps as AntdModalProps,
-  ModalFuncProps,
-} from 'antd-v5';
-import Button from 'src/components/Button';
-import { Resizable, ResizableProps } from 're-resizable';
+import { Modal as AntdModal, ModalProps as AntdModalProps } from 'antd-v5';
+import { Resizable } from 're-resizable';
 import Draggable, {
   DraggableBounds,
   DraggableData,
   DraggableEvent,
-  DraggableProps,
 } from 'react-draggable';
-
-export interface ModalProps {
-  className?: string;
-  children: ReactNode;
-  disablePrimaryButton?: boolean;
-  primaryTooltipMessage?: ReactNode;
-  primaryButtonLoading?: boolean;
-  onHide: () => void;
-  onHandledPrimaryAction?: () => void;
-  primaryButtonName?: string;
-  primaryButtonType?: 'primary' | 'danger';
-  show: boolean;
-  name?: string;
-  title: ReactNode;
-  width?: string;
-  maxWidth?: string;
-  responsive?: boolean;
-  hideFooter?: boolean;
-  centered?: boolean;
-  footer?: ReactNode;
-  wrapProps?: object;
-  height?: string;
-  closable?: boolean;
-  resizable?: boolean;
-  resizableConfig?: ResizableProps;
-  draggable?: boolean;
-  draggableConfig?: DraggableProps;
-  destroyOnClose?: boolean;
-  maskClosable?: boolean;
-  zIndex?: number;
-  bodyStyle?: CSSProperties;
-}
-
-interface StyledModalProps {
-  maxWidth?: string;
-  responsive?: boolean;
-  height?: string;
-  hideFooter?: boolean;
-  draggable?: boolean;
-  resizable?: boolean;
-}
-
-export type { ModalFuncProps };
+import { Button } from '../Button';
+import type { ModalProps, StyledModalProps } from './types';
 
 const MODAL_HEADER_HEIGHT = 55;
 const MODAL_MIN_CONTENT_HEIGHT = 54;
@@ -392,11 +337,9 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
-const Modal = Object.assign(CustomModal, {
+export const Modal = Object.assign(CustomModal, {
   error: AntdModal.error,
   warning: AntdModal.warning,
   confirm: AntdModal.confirm,
   useModal: AntdModal.useModal,
 });
-
-export default Modal;

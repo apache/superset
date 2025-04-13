@@ -25,11 +25,9 @@ import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { LoadingCards } from 'src/pages/Home';
 import { TableTab } from 'src/views/CRUD/types';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Dropdown } from 'src/components/Dropdown';
+import { Dropdown, DeleteModal, Button, ListViewCard } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
-import ListViewCard from 'src/components/ListViewCard';
-import DeleteModal from 'src/components/DeleteModal';
 import { Icons } from 'src/components/Icons';
 import { User } from 'src/types/bootstrapTypes';
 import {
@@ -39,7 +37,9 @@ import {
   PAGE_SIZE,
   shortenSQL,
 } from 'src/views/CRUD/utils';
-import Button from 'src/components/Button';
+import { assetUrl } from 'src/utils/assetUrl';
+import { ensureAppRoot } from 'src/utils/pathUtils';
+import { navigateTo } from 'src/utils/navigationUtils';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
@@ -291,7 +291,7 @@ export const SavedQueries = ({
             name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = '/savedqueryview/list';
+              navigateTo('/savedqueryview/list');
             },
           },
         ]}
@@ -302,9 +302,11 @@ export const SavedQueries = ({
             <CardStyles key={q.id}>
               <ListViewCard
                 imgURL=""
-                url={`/sqllab?savedQueryId=${q.id}`}
+                url={ensureAppRoot(`/sqllab?savedQueryId=${q.id}`)}
                 title={q.label}
-                imgFallbackURL="/static/assets/images/empty-query.svg"
+                imgFallbackURL={assetUrl(
+                  '/static/assets/images/empty-query.svg',
+                )}
                 description={t('Modified %s', q.changed_on_delta_humanized)}
                 cover={
                   q?.sql?.length && showThumbnails && featureFlag ? (

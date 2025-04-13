@@ -40,7 +40,7 @@ import {
 import { Icons } from 'src/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
-import Badge from 'src/components/Badge';
+import { Badge } from 'src/components';
 import DetailsPanelPopover from './DetailsPanel';
 import {
   Indicator,

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode, useState, useCallback, useRef, useMemo } from 'react';
-import Button from 'src/components/Button';
+import { Button } from '../Button';
 import {
   AsyncSelectProps,
   AsyncSelectRef,
@@ -26,7 +26,7 @@ import {
 import { AsyncSelect } from '.';
 
 export default {
-  title: 'AsyncSelect',
+  title: 'Components/Select/AsyncSelect',
   component: AsyncSelect,
 };
 

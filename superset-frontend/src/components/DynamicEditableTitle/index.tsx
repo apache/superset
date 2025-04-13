@@ -29,14 +29,7 @@ import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { useResizeDetector } from 'react-resize-detector';
 import { Input } from 'src/components/Input';
-
-export type DynamicEditableTitleProps = {
-  title: string;
-  placeholder: string;
-  onSave: (title: string) => void;
-  canEdit: boolean;
-  label: string | undefined;
-};
+import type { DynamicEditableTitleProps } from './types';
 
 const titleStyles = (theme: SupersetTheme) => css`
   display: flex;
@@ -73,7 +66,7 @@ const titleStyles = (theme: SupersetTheme) => css`
   }
 `;
 
-const DynamicEditableTitle = memo(
+export const DynamicEditableTitle = memo(
   ({
     title,
     placeholder,
@@ -209,5 +202,4 @@ const DynamicEditableTitle = memo(
     );
   },
 );
-
-export default DynamicEditableTitle;
+export type { DynamicEditableTitleProps } from './types';

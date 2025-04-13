@@ -23,7 +23,7 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { RefObject } from 'react';
-import { RefSelectProps } from 'src/components/Select/types';
+import type { RefSelectProps } from 'src/components';
 import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeColumnCustomizeProps {

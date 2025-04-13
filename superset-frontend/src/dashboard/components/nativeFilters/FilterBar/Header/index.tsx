@@ -20,7 +20,7 @@
 import { css, styled, t } from '@superset-ui/core';
 import { memo, FC } from 'react';
 import { Icons } from 'src/components/Icons';
-import Button from 'src/components/Button';
+import { Button } from 'src/components';
 import { getFilterBarTestId } from '../utils';
 import FilterBarSettings from '../FilterBarSettings';
 

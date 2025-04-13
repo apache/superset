@@ -21,8 +21,9 @@ import { withTheme } from '@emotion/react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { addAlpha, css, styled, t } from '@superset-ui/core';
-import { EmptyState } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components';
 import { Icons } from 'src/components/Icons';
+import { navigateTo } from 'src/utils/navigationUtils';
 import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
 import { Droppable } from './dnd/DragDroppable';
@@ -217,11 +218,9 @@ class DashboardGrid extends PureComponent {
           </>
         }
         buttonAction={() => {
-          window.open(
-            `/chart/add?dashboard_id=${dashboardId}`,
-            '_blank',
-            'noopener noreferrer',
-          );
+          navigateTo(`/chart/add?dashboard_id=${dashboardId}`, {
+            newWindow: true,
+          });
         }}
         image="chart.svg"
       />
@@ -244,11 +243,9 @@ class DashboardGrid extends PureComponent {
           </>
         }
         buttonAction={() => {
-          window.open(
-            `/chart/add?dashboard_id=${dashboardId}`,
-            '_blank',
-            'noopener noreferrer',
-          );
+          navigateTo(`/chart/add?dashboard_id=${dashboardId}`, {
+            newWindow: true,
+          });
         }}
         image="chart.svg"
       />

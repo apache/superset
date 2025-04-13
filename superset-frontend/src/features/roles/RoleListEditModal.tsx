@@ -28,7 +28,7 @@ import {
   UserObject,
 } from 'src/features/roles/types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import FormModal from 'src/components/Modal/FormModal';
+import { FormModal } from 'src/components';
 import { PermissionsField, RoleNameField, UsersField } from './RoleFormItems';
 import {
   updateRoleName,

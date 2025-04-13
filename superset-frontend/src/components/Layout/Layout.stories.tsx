@@ -17,14 +17,15 @@
  * under the License.
  */
 import { Meta, StoryObj } from '@storybook/react';
-import Layout, { LayoutProps, SiderProps } from 'src/components/Layout';
-import { Menu } from 'src/components/Menu';
 import { Icons } from 'src/components/Icons';
+import { Menu } from '../Menu';
+import type { LayoutProps, SiderProps } from './types';
+import { Layout } from '.';
 
 const { Header, Footer, Sider, Content } = Layout;
 
 export default {
-  title: 'Components/Layout',
+  title: 'Design System/Components/Layout',
   component: Layout,
   subcomponents: { Header, Footer, Sider, Content },
   argTypes: {

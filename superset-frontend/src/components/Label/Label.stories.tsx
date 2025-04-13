@@ -18,17 +18,18 @@
  */
 import { action } from '@storybook/addon-actions';
 import { Meta, StoryFn } from '@storybook/react';
-import Label, { Type, DatasetTypeLabel, PublishedLabel } from './index';
+import type { LabelType } from './types';
+import { Label, DatasetTypeLabel, PublishedLabel } from '.';
 
 // Define the default export with Storybook configuration
 export default {
-  title: 'Label',
+  title: 'Components/Label',
   component: Label,
   excludeStories: ['options'],
 } as Meta<typeof Label>;
 
 // Explicitly type the options array as an array of `Type`
-export const options: Type[] = [
+export const options: LabelType[] = [
   'default',
   'info',
   'success',
@@ -52,14 +53,14 @@ export const LabelGallery: StoryFn<LabelGalleryProps> = (
   return (
     <>
       <h4>Non-interactive</h4>
-      {options.map((opt: Type) => (
+      {options.map((opt: LabelType) => (
         <Label key={opt} type={opt}>
           {`style: "${opt}"`}
         </Label>
       ))}
       <br />
       <h4>Interactive</h4>
-      {options.map((opt: Type) => (
+      {options.map((opt: LabelType) => (
         <Label key={opt} type={opt} {...props} onClick={onClick}>
           {`style: "${opt}"`}
         </Label>

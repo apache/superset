@@ -18,8 +18,8 @@
  */
 import { useState } from 'react';
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import Layout from 'src/components/Layout';
-import Button from 'src/components/Button';
+import { Layout } from '.';
+import { Button } from '../Button';
 
 describe('Layout Component', () => {
   test('renders Layout with Header, Content, and Footer', () => {

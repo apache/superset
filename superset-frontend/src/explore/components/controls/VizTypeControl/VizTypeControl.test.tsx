@@ -26,7 +26,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
-import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
+import { DynamicPluginProvider } from 'src/components';
 import { testWithId } from 'src/utils/testUtils';
 import {
   BigNumberTotalChartPlugin,

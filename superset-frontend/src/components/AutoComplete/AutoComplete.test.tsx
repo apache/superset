@@ -23,7 +23,8 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { AutoComplete, Input } from 'antd';
+import { Input } from '../Input';
+import { AutoComplete } from '.';
 
 const searchResult = (query: string): Array<{ value: string; label: string }> =>
   Array.from({ length: 3 }).map((_, idx) => ({

@@ -26,11 +26,10 @@ import {
   t,
 } from '@superset-ui/core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { InputNumber } from 'src/components/Input';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import Metadata from 'src/components/Metadata';
 import { isNumber } from 'lodash';
-import { FormItem } from 'src/components/Form';
+import { FormItem, InputNumber } from 'src/components';
 import { PluginFilterRangeProps } from './types';
 import { StatusMessage, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';

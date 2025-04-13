@@ -20,7 +20,7 @@ import { useMemo, FC } from 'react';
 
 import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import { MenuDotsDropdown } from 'src/components/Dropdown';
+import { MenuDotsDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import {
   styled,
@@ -38,7 +38,8 @@ import {
   toggleLeftBar,
 } from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import { Icons, IconType } from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
+import type { IconType } from 'src/components/Icons/types';
 
 const TabTitleWrapper = styled.div`
   display: flex;
@@ -212,12 +213,12 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
           </Menu>
         }
       />
-      <TabTitle>{qe.name}</TabTitle>
+      <TabTitle>{qe.name}</TabTitle>{' '}
       <StatusIcon
         className="status-icon"
         iconSize="xs"
         iconColor={getStatusColor(queryState, theme)}
-      />
+      />{' '}
     </TabTitleWrapper>
   );
 };

@@ -22,10 +22,8 @@ import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import { Icons } from 'src/components/Icons';
-import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Input } from 'src/components/Input';
-import { CssEditor } from 'src/components/AsyncAceEditor';
+import { Input, CssEditor, Modal } from 'src/components';
 
 import { OnlyKeyWithType } from 'src/utils/types';
 import { TemplateObject } from './types';

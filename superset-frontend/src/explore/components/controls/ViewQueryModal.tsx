@@ -24,7 +24,7 @@ import {
   t,
   getClientErrorObject,
 } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
+import { Loading } from 'src/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 

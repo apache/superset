@@ -19,3 +19,4 @@
 
 export { Input, InputNumber, InputRef } from 'antd-v5';
 export { TextAreaRef } from 'antd-v5/es/input/TextArea';
+export type { InputProps, TextAreaProps, InputNumberProps } from './types';

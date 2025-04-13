@@ -16,20 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Modal, { ModalProps } from 'src/components/Modal';
-import Button from 'src/components/Button';
-import { Form } from 'src/components/Form';
 import { useState, useCallback } from 'react';
 import { t } from '@superset-ui/core';
+import { Button } from '../Button';
+import { Form } from '../Form';
+import { Modal } from './Modal';
+import type { FormModalProps } from './types';
 
-export interface FormModalProps extends ModalProps {
-  initialValues: Object;
-  formSubmitHandler: (values: Object) => Promise<void>;
-  onSave: () => void;
-  requiredFields: string[];
-}
-
-function FormModal({
+export function FormModal({
   show,
   onHide,
   title,
@@ -122,5 +116,3 @@ function FormModal({
     </Modal>
   );
 }
-
-export default FormModal;

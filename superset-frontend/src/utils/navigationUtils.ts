@@ -16,39 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import TextControl from 'src/explore/components/controls/TextControl';
-import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
-import FormRow from '.';
+import { ensureAppRoot } from './pathUtils';
 
-export default {
-  title: 'FormRow',
+export const navigateTo = (
+  url: string,
+  options?: { newWindow?: boolean; assign?: boolean },
+) => {
+  if (options?.newWindow) {
+    window.open(ensureAppRoot(url), '_blank', 'noopener noreferrer');
+  } else if (options?.assign) {
+    window.location.assign(ensureAppRoot(url));
+  } else {
+    window.location.href = ensureAppRoot(url);
+  }
 };
 
-export const InteractiveFormRow = ({ isCheckbox, ...rest }: any) => {
-  const control = isCheckbox ? (
-    <CheckboxControl label="Checkbox" />
-  ) : (
-    <TextControl />
-  );
-  return (
-    <div style={{ width: 300 }}>
-      <FormRow {...rest} control={control} isCheckbox={isCheckbox} />
-    </div>
-  );
-};
-
-InteractiveFormRow.args = {
-  label: 'Label',
-  tooltip: 'Tooltip',
-  control: <TextControl />,
-  isCheckbox: false,
-};
-
-InteractiveFormRow.argTypes = {
-  control: {
-    defaultValue: <TextControl />,
-    table: {
-      disable: true,
-    },
-  },
+export const navigateWithState = (
+  url: string,
+  state: Record<string, unknown>,
+  options?: { replace?: boolean },
+) => {
+  if (options?.replace) {
+    window.history.replaceState(state, '', ensureAppRoot(url));
+  } else {
+    window.history.pushState(state, '', ensureAppRoot(url));
+  }
 };

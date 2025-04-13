@@ -17,8 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { Tooltip } from 'src/components/Tooltip';
-import Button from 'src/components/Button';
+import { Tooltip, Button } from 'src/components';
+import type { IconTooltipProps } from './types';
 
 export interface Props {
   children?: ReactNode;
@@ -41,14 +41,14 @@ export interface Props {
   tooltip?: string | null;
 }
 
-const IconTooltip = ({
+export const IconTooltip = ({
   children = null,
   className = '',
   onClick = () => undefined,
   placement = 'top',
   style = {},
   tooltip = null,
-}: Props) => {
+}: IconTooltipProps) => {
   const iconTooltip = (
     <Button
       onClick={onClick}
@@ -78,4 +78,4 @@ const IconTooltip = ({
   return iconTooltip;
 };
 
-export { IconTooltip };
+export type { IconTooltipProps };

@@ -18,8 +18,7 @@
  */
 
 import { css, styled, SupersetTheme } from '@superset-ui/core';
-import { JsonEditor } from 'src/components/AsyncAceEditor';
-import Button from 'src/components/Button';
+import { Button, JsonEditor } from 'src/components';
 
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 108;
 const EXPOSE_IN_SQLLAB_FORM_HEIGHT = CTAS_CVAS_SCHEMA_FORM_HEIGHT + 153;

@@ -18,7 +18,7 @@
  */
 import { FC, ChangeEvent, useEffect, useState } from 'react';
 
-import { Select } from 'src/components';
+import { Input, Select, Tooltip } from 'src/components';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -40,8 +40,6 @@ import {
 } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { Tooltip } from 'src/components/Tooltip';
-import { Input } from 'src/components/Input';
 import { optionLabel } from 'src/utils/common';
 import {
   ColumnMeta,

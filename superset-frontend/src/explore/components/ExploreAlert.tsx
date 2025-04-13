@@ -18,8 +18,7 @@
  */
 
 import { forwardRef, RefObject, MouseEvent } from 'react';
-import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
-import Button from 'src/components/Button';
+import { Button, ErrorAlert } from 'src/components';
 
 interface ControlPanelAlertProps {
   title: string;

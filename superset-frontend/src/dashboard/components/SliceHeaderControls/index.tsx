@@ -42,11 +42,10 @@ import {
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { Menu } from 'src/components/Menu';
-import { NoAnimationDropdown } from 'src/components/Dropdown';
+import { NoAnimationDropdown, Tooltip, Button } from 'src/components';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
-import { Tooltip } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
@@ -56,7 +55,6 @@ import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { usePermissions } from 'src/hooks/usePermissions';
-import Button from 'src/components/Button';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 

@@ -17,16 +17,11 @@
  * under the License.
  */
 import { t, useTheme } from '@superset-ui/core';
-import { Icons, IconType } from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from 'src/components/Icons';
+import { Tooltip } from '../Tooltip';
+import type { CertifiedBadgeProps } from './types';
 
-export interface CertifiedBadgeProps {
-  certifiedBy?: string;
-  details?: string;
-  size?: IconType['iconSize'];
-}
-
-function CertifiedBadge({
+export function CertifiedBadge({
   certifiedBy,
   details,
   size = 'l',
@@ -51,5 +46,3 @@ function CertifiedBadge({
     </Tooltip>
   );
 }
-
-export default CertifiedBadge;

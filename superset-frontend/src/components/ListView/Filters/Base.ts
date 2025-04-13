@@ -18,7 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { styled } from '@superset-ui/core';
-import { SELECT_WIDTH } from 'src/components/ListView/utils';
+import { SELECT_WIDTH } from '../utils';
 
 export interface BaseFilter {
   Header: ReactNode;

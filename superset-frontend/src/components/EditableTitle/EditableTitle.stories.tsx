@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import EditableTitle, { EditableTitleProps } from '.';
+import { EditableTitle } from '.';
+import type { EditableTitleProps } from './types';
 
 export default {
-  title: 'EditableTitle',
+  title: 'Components/EditableTitle',
   component: EditableTitle,
 };
 

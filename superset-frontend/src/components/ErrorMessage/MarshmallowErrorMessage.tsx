@@ -20,8 +20,8 @@ import { JSONTree } from 'react-json-tree';
 import { styled, t } from '@superset-ui/core';
 
 import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
-import Collapse from 'src/components/Collapse';
-import { ErrorMessageComponentProps } from './types';
+import { Collapse } from '../Collapse';
+import type { ErrorMessageComponentProps } from './types';
 
 interface MarshmallowErrorExtra {
   messages: object;
@@ -64,7 +64,7 @@ const extractInvalidValues = (messages: object, payload: object): string[] => {
   return invalidValues;
 };
 
-export default function MarshmallowErrorMessage({
+export function MarshmallowErrorMessage({
   error,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   source = 'crud',

@@ -26,7 +26,7 @@
 import { Space, SpaceProps } from 'src/components/Space';
 
 export default {
-  title: 'Space',
+  title: 'Design System/Components/Space',
   component: Space,
 };
 
