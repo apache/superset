@@ -60,7 +60,7 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
     for slc in paginated_update(
-        session.query(Slice).filter(Slice.viz_type in timeseries_charts)
+        session.query(Slice).filter(Slice.viz_type.in_(timeseries_charts))
     ):
         try:
             params = json.loads(slc.params)
@@ -88,7 +88,7 @@ def downgrade():
     session = db.Session(bind=bind)
 
     for slc in paginated_update(
-        session.query(Slice).filter(Slice.viz_type in timeseries_charts)
+        session.query(Slice).filter(Slice.viz_type.in_(timeseries_charts))
     ):
         try:
             params = json.loads(slc.params)

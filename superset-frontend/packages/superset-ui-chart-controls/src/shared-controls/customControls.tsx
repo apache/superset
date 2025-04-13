@@ -85,15 +85,6 @@ export const aggregationControl = {
   },
 };
 
-const xAxisMultiSortVisibility = ({
-  controls,
-}: {
-  controls: ControlStateMapping;
-}) =>
-  isSortable(controls) &&
-  (!!ensureIsArray(controls?.groupby?.value).length ||
-    ensureIsArray(controls?.metrics?.value).length > 1);
-
 export const xAxisSortControl = {
   name: 'x_axis_sort',
   config: {
