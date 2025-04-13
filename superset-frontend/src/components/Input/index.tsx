@@ -17,4 +17,5 @@
  * under the License.
  */
 
-export { Input, InputRef, InputNumber } from 'antd-v5';
+export { Input, InputNumber, InputRef } from 'antd-v5';
+export { TextAreaRef } from 'antd-v5/es/input/TextArea';
