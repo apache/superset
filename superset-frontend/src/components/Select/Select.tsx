@@ -256,7 +256,7 @@ const Select = forwardRef(
 
           return acc;
         },
-        { selectable: 0, deselectable: 0 }, // Initial accumulator
+        { selectable: 0, deselectable: 0 },
       );
 
       setBulkSelectCounts(counts);
