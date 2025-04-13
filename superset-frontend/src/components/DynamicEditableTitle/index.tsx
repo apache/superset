@@ -96,7 +96,6 @@ const DynamicEditableTitle = memo(
     }, [title]);
     useEffect(() => {
       if (isEditing && sizerRef?.current) {
-        sizerRef.current.focus();
         // move cursor and scroll to the end
         if (sizerRef.current.setSelectionRange) {
           const { length } = sizerRef.current.value;
