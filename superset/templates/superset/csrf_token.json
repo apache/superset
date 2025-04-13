@@ -1,3 +1,0 @@
-{
-    "csrf_token": "{{ csrf_token() if csrf_token else '' }}"
-}
