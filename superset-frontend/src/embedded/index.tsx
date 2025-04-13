@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import 'src/public-path';
+
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
@@ -24,6 +26,7 @@ import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
 import setupPlugins from 'src/setup/setupPlugins';
+import { useUiConfig } from 'src/components/UiConfigContext';
 import { RootContextProviders } from 'src/views/RootContextProviders';
 import { store, USER_LOADED } from 'src/views/store';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -32,6 +35,7 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { embeddedApi } from './api';
+import { getDataMaskChangeTrigger } from './utils';
 
 setupPlugins();
 
@@ -51,11 +55,38 @@ const LazyDashboardPage = lazy(
     ),
 );
 
+const EmbededLazyDashboardPage = () => {
+  const uiConfig = useUiConfig();
+
+  // Emit data mask changes to the parent window
+  if (uiConfig?.emitDataMasks) {
+    log('setting up Switchboard event emitter');
+
+    let previousDataMask = store.getState().dataMask;
+
+    store.subscribe(() => {
+      const currentState = store.getState();
+      const currentDataMask = currentState.dataMask;
+
+      // Only emit if the dataMask has changed
+      if (previousDataMask !== currentDataMask) {
+        Switchboard.emit('observeDataMask', {
+          ...currentDataMask,
+          ...getDataMaskChangeTrigger(currentDataMask, previousDataMask),
+        });
+        previousDataMask = currentDataMask;
+      }
+    });
+  }
+
+  return <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />;
+};
+
 const EmbeddedRoute = () => (
   <Suspense fallback={<Loading />}>
     <RootContextProviders>
       <ErrorBoundary>
-        <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />
+        <EmbededLazyDashboardPage />
       </ErrorBoundary>
       <ToastContainer position="top" />
     </RootContextProviders>
@@ -209,6 +240,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       embeddedApi.getDashboardPermalink,
     );
     Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
+    Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
     Switchboard.start();
   }
 });

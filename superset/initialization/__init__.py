@@ -24,7 +24,7 @@ from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
 from deprecation import deprecated
-from flask import Flask, redirect
+from flask import Flask, redirect, url_for
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __
 from flask_compress import Compress
@@ -153,7 +153,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.row_level_security.api import RLSRestApi
-        from superset.security.api import SecurityRestApi
+        from superset.security.api import RoleRestAPI, SecurityRestApi
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
@@ -175,6 +175,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.explore import ExplorePermalinkView, ExploreView
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
+        from superset.views.roles import RolesListView
         from superset.views.sql_lab.views import (
             SavedQueryView,
             TableSchemaView,
@@ -225,6 +226,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Setup regular views
         #
+        app_root = appbuilder.app.config["APPLICATION_ROOT"]
+        if app_root.endswith("/"):
+            app_root = app_root.rstrip("/")
+
         appbuilder.add_link(
             "Home",
             label=__("Home"),
@@ -260,10 +265,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Datasets",
             label=__("Datasets"),
-            href="/tablemodelview/list/",
+            href=f"{app_root}/tablemodelview/list/",
             icon="fa-table",
             category="",
             category_icon="",
+        )
+
+        appbuilder.add_view(
+            RolesListView,
+            "List Roles",
+            label=__("List Roles"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-lock",
         )
 
         appbuilder.add_view(
@@ -306,6 +320,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
+        appbuilder.add_view_no_menu(RoleRestAPI)
 
         #
         # Add links
@@ -313,7 +328,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "SQL Editor",
             label=__("SQL Lab"),
-            href="/sqllab/",
+            href=f"{app_root}/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
@@ -322,7 +337,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Saved Queries",
             label=__("Saved Queries"),
-            href="/savedqueryview/list/",
+            href=f"{app_root}/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
             category_label=__("SQL"),
@@ -330,7 +345,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Query Search",
             label=__("Query History"),
-            href="/sqllab/history/",
+            href=f"{app_root}/sqllab/history/",
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
@@ -377,7 +392,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             AnnotationLayerView,
             "Annotation Layers",
             label=__("Annotation Layers"),
-            href="/annotationlayer/list/",
+            href="AnnotationLayerView.list",
             icon="fa-comment",
             category_icon="",
             category="Manage",
@@ -387,7 +402,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             RowLevelSecurityView,
             "Row Level Security",
-            href="/rowlevelsecurity/list/",
+            href="RowLevelSecurityView.list",
             label=__("Row Level Security"),
             category="Security",
             category_label=__("Security"),
@@ -701,4 +716,4 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 class SupersetIndexView(IndexView):
     @expose("/")
     def index(self) -> FlaskResponse:
-        return redirect("/superset/welcome/")
+        return redirect(url_for("Superset.welcome"))

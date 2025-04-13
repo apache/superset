@@ -25,7 +25,7 @@ import {
 } from './utils';
 
 function interceptSamples() {
-  cy.intercept(`/datasource/samples*`).as('samples');
+  cy.intercept(`**/datasource/samples*`).as('samples');
 }
 
 function openModalFromMenu(chartType: string) {
@@ -434,7 +434,7 @@ describe('Drill to detail modal', () => {
       SUPPORTED_TIER2_CHARTS.forEach(waitForChartLoad);
     });
 
-    describe.only('Modal actions', () => {
+    describe('Modal actions', () => {
       it('clears filters', () => {
         interceptSamples();
 

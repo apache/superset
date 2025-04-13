@@ -23,10 +23,11 @@ import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListViewCard from 'src/components/ListViewCard';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Tag } from 'src/views/CRUD/types';
 import { deleteTags } from 'src/features/tags/tags';
 import { Button } from 'src/components';
+import { assetUrl } from 'src/utils/assetUrl';
 
 interface TagCardProps {
   tag: Tag;
@@ -99,7 +100,9 @@ function TagCard({
         }
         url={undefined}
         linkComponent={Link}
-        imgFallbackURL="/static/assets/images/dashboard-card-fallback.svg"
+        imgFallbackURL={assetUrl(
+          '/static/assets/images/dashboard-card-fallback.svg',
+        )}
         description={t('Modified %s', tag.changed_on_delta_humanized)}
         actions={
           <ListViewCard.Actions

@@ -161,7 +161,7 @@ class TestCore(SupersetTestCase):
             role = security_manager.find_role(role_name)
             view_menus = [p.view_menu.name for p in role.permissions]
             assert_func("ResetPasswordView", view_menus)
-            assert_func("RoleModelView", view_menus)
+            assert_func("RoleRestAPI", view_menus)
             assert_func("Security", view_menus)
             assert_func("SQL Lab", view_menus)
 
@@ -866,7 +866,7 @@ class TestCore(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         resp = self.client.get("superset/dashboard/p/123/")
 
-        expected_url = "/superset/dashboard/1?permalink_key=123&standalone=3"
+        expected_url = "/superset/dashboard/1/?permalink_key=123&standalone=3"
 
         assert resp.headers["Location"] == expected_url
         assert resp.status_code == 302

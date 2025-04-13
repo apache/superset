@@ -38,7 +38,7 @@ import {
   toggleLeftBar,
 } from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import Icons, { IconType } from 'src/components/Icons';
+import { Icons, IconType } from 'src/components/Icons';
 
 const TabTitleWrapper = styled.div`
   display: flex;
@@ -212,12 +212,12 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
           </Menu>
         }
       />
-      <TabTitle>{qe.name}</TabTitle>
+      <TabTitle>{qe.name}</TabTitle>{' '}
       <StatusIcon
         className="status-icon"
         iconSize="xs"
         iconColor={getStatusColor(queryState, theme)}
-      />
+      />{' '}
     </TabTitleWrapper>
   );
 };

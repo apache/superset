@@ -76,6 +76,7 @@ function UIFilters(
             toolTipDescription,
             onFilterUpdate,
             dateFilterValueType,
+            loading,
           },
           index,
         ) => {
@@ -104,6 +105,7 @@ function UIFilters(
                 }}
                 paginate={paginate}
                 selects={selects}
+                loading={loading ?? false}
               />
             );
           }

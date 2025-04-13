@@ -18,11 +18,12 @@
  */
 
 import { styled } from '@superset-ui/core';
+import { Link } from 'react-router-dom';
 import TagType from 'src/types/TagType';
 import { Tag as AntdTag } from 'antd-v5';
 import { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
@@ -80,13 +81,13 @@ const Tag = ({
           >
             {' '}
             {id ? (
-              <a
-                href={`/superset/all_entities/?id=${id}`}
+              <Link
+                to={`/superset/all_entities/?id=${id}`}
                 target="_blank"
                 rel="noreferrer"
               >
                 {children || tagDisplay}
-              </a>
+              </Link>
             ) : (
               children || tagDisplay
             )}

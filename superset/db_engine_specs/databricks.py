@@ -353,7 +353,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
 
 class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine = "databricks"
-    engine_name = "Databricks"
+    engine_name = "Databricks (legacy)"
     drivers = {"connector": "Native all-purpose driver"}
     default_driver = "connector"
 
@@ -373,7 +373,10 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         "extra",
     }
 
-    supports_dynamic_schema = supports_catalog = supports_dynamic_catalog = True
+    supports_dynamic_schema = True
+    supports_catalog = True
+    supports_dynamic_catalog = True
+    supports_cross_catalog_queries = True
 
     @classmethod
     def build_sqlalchemy_uri(  # type: ignore
@@ -433,10 +436,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         return spec.to_dict()["components"]["schemas"][cls.__name__]
 
     @classmethod
-    def get_default_catalog(
-        cls,
-        database: Database,
-    ) -> str | None:
+    def get_default_catalog(cls, database: Database) -> str:
         """
         Return the default catalog.
 
@@ -485,7 +485,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
 
 class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine = "databricks"
-    engine_name = "Databricks Python Connector"
+    engine_name = "Databricks"
     default_driver = "databricks-sql-python"
     drivers = {"databricks-sql-python": "Databricks SQL Python"}
 

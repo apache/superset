@@ -45,13 +45,13 @@ import { AntdSelect, Upload } from 'src/components';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
-import IconButton from 'src/components/IconButton';
+import { IconButton } from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import ErrorAlert from 'src/components/ImportModal/ErrorAlert';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import {
   testDatabaseConnection,
   useSingleViewResource,
