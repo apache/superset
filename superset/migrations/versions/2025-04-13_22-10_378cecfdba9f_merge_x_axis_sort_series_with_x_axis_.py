@@ -65,14 +65,20 @@ def upgrade():
         try:
             params = json.loads(slc.params)
 
+            # x_axis_sort_series only appears when there are multiple metrics or groupby
+            if not (
+                ("metrics" in params and len(params["metrics"]) > 1)
+                or ("groupby" in params and len(params["groupby"]) > 0)
+            ):
+                continue
+
             if "x_axis_sort_series" in params:
                 if params["x_axis_sort_series"]:
                     params["x_axis_sort"] = params["x_axis_sort_series"]
 
                 del params["x_axis_sort_series"]
             if "x_axis_sort_series_ascending" in params:
-                if params["x_axis_sort_series_ascending"]:
-                    params["x_axis_sort_asc"] = params["x_axis_sort_series_ascending"]
+                params["x_axis_sort_asc"] = params["x_axis_sort_series_ascending"]
                 del params["x_axis_sort_series_ascending"]
 
             slc.params = json.dumps(params, sort_keys=True)
@@ -92,19 +98,21 @@ def downgrade():
     ):
         try:
             params = json.loads(slc.params)
-
             # x_axis_sort_series only appears when there are multiple metrics or groupby
-            if ("metrics" in params and len(params["metrics"]) > 1) or (
-                "groupby" in params and len(params["groupby"]) > 0
+            if not (
+                ("metrics" in params and len(params["metrics"]) > 1)
+                or ("groupby" in params and len(params["groupby"]) > 0)
             ):
-                if "x_axis_sort" in params:
-                    params["x_axis_sort_series"] = params["x_axis_sort"]
-                    del params["x_axis_sort"]
-                if "x_axis_sort_asc" in params:
-                    params["x_axis_sort_series_ascending"] = params["x_axis_sort_asc"]
-                    del params["x_axis_sort_asc"]
+                continue
 
-                slc.params = json.dumps(params, sort_keys=True)
+            if "x_axis_sort" in params:
+                params["x_axis_sort_series"] = params["x_axis_sort"]
+                del params["x_axis_sort"]
+            if "x_axis_sort_asc" in params:
+                params["x_axis_sort_series_ascending"] = params["x_axis_sort_asc"]
+                del params["x_axis_sort_asc"]
+
+            slc.params = json.dumps(params, sort_keys=True)
         except Exception:  # noqa: S110
             pass
 
