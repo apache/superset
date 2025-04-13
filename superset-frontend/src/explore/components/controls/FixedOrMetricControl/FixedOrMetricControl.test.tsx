@@ -81,7 +81,7 @@ test('renders with metric type', () => {
   expect(screen.getByText('Metric A')).toBeInTheDocument();
 });
 
-test('triggers onChange', () => {
+test('triggers onChange', async () => {
   const onChange = jest.fn();
   render(
     <FixedOrMetricControl
@@ -92,7 +92,10 @@ test('triggers onChange', () => {
   );
   userEvent.click(screen.getByText('10'));
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.type(screen.getByRole('textbox'), '20');
+  // Type in the textbox and wait for debounce
+  await userEvent.type(screen.getByRole('textbox'), '20');
+  // Wait for debounced onChange to be called
+  await new Promise(resolve => setTimeout(resolve, 300)); // Wait longer than FAST_DEBOUNCE
   expect(onChange).toHaveBeenCalled();
 });
 
