@@ -359,6 +359,19 @@ const Chart = props => {
         slice_id: slice.slice_id,
         is_cached: props.isCached,
       });
+      
+      // Need to handle server pagination for full exports
+      let ownStateToUse = props.ownState;
+      
+      // For full CSV exports with server-side pagination, remove pagination parameters
+      if (isFullCSV && formData.server_pagination) {
+        // Create a new object without the pagination parameters
+        ownStateToUse = props.ownState ? { ...props.ownState } : {};
+        // Remove pagination related properties to get a full export
+        delete ownStateToUse.pageSize;
+        delete ownStateToUse.currentPage;
+      }
+      
       exportChart({
         formData: isFullCSV
           ? { ...formData, row_limit: props.maxRows }
@@ -366,7 +379,7 @@ const Chart = props => {
         resultType: isPivot ? 'post_processed' : 'full',
         resultFormat: format,
         force: true,
-        ownState: props.ownState,
+        ownState: ownStateToUse,
       });
     },
     [

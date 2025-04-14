@@ -36,6 +36,12 @@ import { isEmpty } from 'lodash';
 import { TableChartFormData } from './types';
 import { updateExternalFormData } from './DataTable/utils/externalAPIs';
 
+// Extend the TableChartFormData interface to include the new properties
+interface ExtendedTableChartFormData extends TableChartFormData {
+  result_format?: string;
+  is_rowcount?: boolean;
+}
+
 /**
  * Infer query mode from form data. If `all_columns` is set, then raw records mode,
  * otherwise defaults to aggregation mode.
@@ -65,13 +71,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   const time_grain_sqla =
     extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
-  let formDataCopy = formData;
+  let formDataCopy = formData as ExtendedTableChartFormData;
   // never include time in raw records mode
   if (queryMode === QueryMode.Raw) {
     formDataCopy = {
       ...formData,
       include_time: false,
-    };
+    } as ExtendedTableChartFormData;
   }
 
   const addComparisonPercentMetrics = (metrics: string[], suffixes: string[]) =>
@@ -191,7 +197,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
-    if (formDataCopy.server_pagination) {
+    // Only apply server pagination if this is not a full export 
+    // (checking for parameters that indicate we're doing a full export)
+    const isFullExport = 
+      formDataCopy.result_format === 'csv' && 
+      (formDataCopy.row_limit === 0 || formDataCopy.is_rowcount === undefined);
+      
+    if (formDataCopy.server_pagination && !isFullExport) {
       moreProps.row_limit =
         ownState.pageSize ?? formDataCopy.server_page_length;
       moreProps.row_offset =
