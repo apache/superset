@@ -189,15 +189,11 @@ const DropdownContainer = forwardRef(
         recalculateItemWidths();
       });
 
-      for (const child of childrenArray) {
-        resizeObserver.observe(child);
-      }
+      childrenArray.map(child => resizeObserver.observe(child));
 
       // eslint-disable-next-line consistent-return
       return () => {
-        for (const child of childrenArray) {
-          resizeObserver.unobserve(child);
-        }
+        childrenArray.map(child => resizeObserver.unobserve(child));
         resizeObserver.disconnect();
       };
     }, [current, items.length]);
