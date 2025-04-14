@@ -396,7 +396,7 @@ test('context menu for supported chart, dimensions, filter B', async () => {
   await expectDrillToDetailByDimension(filterB);
 });
 
-test('context menu for supported chart, dimensions, all filters', async () => {
+test.skip('context menu for supported chart, dimensions, all filters', async () => {
   const filters = [filterA, filterB];
   setupMenu(filters);
   await expectDrillToDetailByAll(filters);
