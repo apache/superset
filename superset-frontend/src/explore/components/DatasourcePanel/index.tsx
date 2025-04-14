@@ -236,7 +236,13 @@ export default function DataSourcePanel({
 
   const folders = useMemo(
     () =>
-      transformDatasourceWithFolders(filteredMetrics, sortedColumns, _folders),
+      transformDatasourceWithFolders(
+        filteredMetrics,
+        sortedColumns,
+        _folders,
+        allowedMetrics,
+        allowedColumns,
+      ),
     [_folders, filteredMetrics, sortedColumns],
   );
 

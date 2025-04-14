@@ -38,6 +38,8 @@ test('transforms data into default folders when no folder config is provided', (
     mockMetrics,
     mockColumns,
     undefined,
+    mockMetrics,
+    mockColumns,
   );
 
   expect(result).toHaveLength(2);
@@ -79,6 +81,8 @@ test('transforms data according to folder configuration', () => {
     mockMetrics,
     mockColumns,
     folderConfig,
+    mockMetrics,
+    mockColumns,
   );
 
   // We expect 4 folders:
@@ -129,6 +133,8 @@ test('handles nested folder structures', () => {
     mockMetrics,
     mockColumns,
     folderConfig,
+    mockMetrics,
+    mockColumns,
   );
 
   expect(result[0].id).toBe('parent-folder');
@@ -157,6 +163,8 @@ test('handles empty children arrays', () => {
     mockMetrics,
     mockColumns,
     folderConfig,
+    mockMetrics,
+    mockColumns,
   );
 
   expect(result[0].id).toBe('empty-folder');
@@ -190,6 +198,8 @@ test('handles non-existent metric and column UUIDs in folder config', () => {
     mockMetrics,
     mockColumns,
     folderConfig,
+    mockMetrics,
+    mockColumns,
   );
 
   expect(result[0].id).toBe('folder1');

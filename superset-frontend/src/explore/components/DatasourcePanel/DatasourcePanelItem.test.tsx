@@ -55,6 +55,8 @@ const mockData: DatasourcePanelItemProps['data'] = {
         isCollapsed: false,
         name: 'Metrics',
         items: metrics.map(m => ({ ...m, type: 'metric' })),
+        totalItems: metrics.length,
+        showingItems: metrics.length,
       },
     ],
     [
@@ -64,6 +66,8 @@ const mockData: DatasourcePanelItemProps['data'] = {
         isCollapsed: false,
         name: 'Columns',
         items: columns.map(c => ({ ...c, type: 'column' })),
+        totalItems: columns.length,
+        showingItems: columns.length,
       },
     ],
   ]),
