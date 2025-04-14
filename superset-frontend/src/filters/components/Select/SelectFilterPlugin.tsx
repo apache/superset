@@ -35,7 +35,7 @@ import {
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
 import { debounce, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
-import { Select, Select as AntSelect } from 'src/components';
+import { Select } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
@@ -82,15 +82,11 @@ function reducer(draft: DataMask, action: DataMaskAction) {
   }
 }
 
-const AntSelectWrapper = styled.div`
+const SelectWrapper = styled.div`
   .select-container {
     width: ${({ theme }) => theme.gridUnit * 20}px !important;
     margin-right: 8px;
   }
-`;
-
-const StyledAntSelect = styled(AntSelect)`
-  margin-right: 8px;
 `;
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
@@ -343,8 +339,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         extra={formItemExtra}
       >
         {inverseSelection && (
-          <AntSelectWrapper>
-            <StyledAntSelect
+          <SelectWrapper>
+            <Select
               value={`${excludeFilterValues}`}
               options={[
                 { value: 'true', label: 'is not' },
@@ -352,7 +348,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               ]}
               onChange={handleIsNotChange}
             />
-          </AntSelectWrapper>
+          </SelectWrapper>
         )}
 
         <Select
