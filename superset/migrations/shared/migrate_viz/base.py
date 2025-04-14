@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import copy
+import logging
 from typing import Any
 
 from sqlalchemy import and_, Column, Integer, String, Text
@@ -25,6 +26,8 @@ from superset import conf
 from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
 from superset.utils import json
+
+logger = logging.getLogger("alembic")
 
 Base = declarative_base()
 
@@ -142,7 +145,7 @@ class MigrateViz:
                 query_context["form_data"] = clz.data
                 slc.query_context = json.dumps(query_context)
         except Exception as e:
-            print(f"Failed to migrate slice {slc.id}: {e}")
+            logger.warning(f"Failed to migrate slice {slc.id}: {e}")
 
     @classmethod
     def downgrade_slice(cls, slc: Slice) -> None:
@@ -158,14 +161,14 @@ class MigrateViz:
                     query_context["form_data"] = form_data_bak
                     slc.query_context = json.dumps(query_context)
         except Exception as e:
-            print(f"Failed to downgrade slice {slc.id}: {e}")
+            logger.warning(f"Failed to downgrade slice {slc.id}: {e}")
 
     @classmethod
     def upgrade(cls, session: Session) -> None:
         slices = session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
         for slc in paginated_update(
             slices,
-            lambda current, total: print(f"Upgraded {current}/{total} charts"),
+            lambda current, total: logger.info(f"Upgraded {current}/{total} charts"),
         ):
             cls.upgrade_slice(slc)
 
@@ -179,6 +182,6 @@ class MigrateViz:
         )
         for slc in paginated_update(
             slices,
-            lambda current, total: print(f"Downgraded {current}/{total} charts"),
+            lambda current, total: logger.info(f"Downgraded {current}/{total} charts"),
         ):
             cls.downgrade_slice(slc)
