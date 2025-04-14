@@ -449,6 +449,35 @@ describe('sqlLabReducer', () => {
       expect(newState.queries.abcd.endDttm).toBe(Number(endDttmInStr));
       expect(newState.queriesLastUpdate).toBe(CHANGED_ON_TIMESTAMP);
     });
+    it('should skip refreshing queries when polling contains existing results', () => {
+      const completedQuery = {
+        ...query,
+        extra: {
+          columns: [],
+          progress: null,
+        },
+      };
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: { abcd: query, def: completedQuery },
+        },
+        actions.refreshQueries({
+          abcd: {
+            ...query,
+          },
+          def: {
+            ...completedQuery,
+            extra: {
+              columns: [],
+              progress: null,
+            },
+          },
+        }),
+      );
+      expect(newState.queries.abcd).toBe(query);
+      expect(newState.queries.def).toBe(completedQuery);
+    });
     it('should refresh queries when polling returns empty', () => {
       newState = sqlLabReducer(newState, actions.refreshQueries({}));
     });

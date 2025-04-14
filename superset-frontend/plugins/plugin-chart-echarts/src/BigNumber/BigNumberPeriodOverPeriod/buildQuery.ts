@@ -21,9 +21,6 @@ import {
   QueryFormData,
   PostProcessingRule,
   ensureIsArray,
-  SimpleAdhocFilter,
-  getTimeOffset,
-  parseDttmToDate,
 } from '@superset-ui/core';
 import {
   isTimeComparison,
@@ -37,43 +34,30 @@ export default function buildQuery(formData: QueryFormData) {
   const queryContextA = buildQueryContext(formData, baseQueryObject => {
     const postProcessing: PostProcessingRule[] = [];
     postProcessing.push(timeCompareOperator(formData, baseQueryObject));
-    const TimeRangeFilters =
-      formData.adhoc_filters?.filter(
-        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-      ) || [];
 
-    // In case the viz is using all version of controls, we try to load them
-    const previousCustomTimeRangeFilters: any =
-      formData.adhoc_custom?.filter(
-        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-      ) || [];
+    const nonCustomNorInheritShifts = ensureIsArray(
+      formData.time_compare,
+    ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
+    const customOrInheritShifts = ensureIsArray(formData.time_compare).filter(
+      (shift: string) => shift === 'custom' || shift === 'inherit',
+    );
 
-    let previousCustomStartDate = '';
-    if (
-      !isEmpty(previousCustomTimeRangeFilters) &&
-      previousCustomTimeRangeFilters[0]?.comparator !== 'No Filter'
-    ) {
-      previousCustomStartDate =
-        previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
+    let timeOffsets: string[] = [];
+
+    // Shifts for non-custom or non inherit time comparison
+    if (!isEmpty(nonCustomNorInheritShifts)) {
+      timeOffsets = nonCustomNorInheritShifts;
     }
 
-    const timeOffsets = ensureIsArray(
-      isTimeComparison(formData, baseQueryObject)
-        ? getTimeOffset({
-            timeRangeFilter: {
-              ...TimeRangeFilters[0],
-              comparator:
-                baseQueryObject?.time_range ??
-                (TimeRangeFilters[0] as any)?.comparator,
-            },
-            shifts: formData.time_compare,
-            startDate:
-              previousCustomStartDate && !formData.start_date_offset
-                ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
-                : formData.start_date_offset,
-          })
-        : [],
-    );
+    // Shifts for custom or inherit time comparison
+    if (!isEmpty(customOrInheritShifts)) {
+      if (customOrInheritShifts.includes('custom')) {
+        timeOffsets = timeOffsets.concat([formData.start_date_offset]);
+      }
+      if (customOrInheritShifts.includes('inherit')) {
+        timeOffsets = timeOffsets.concat(['inherit']);
+      }
+    }
     return [
       {
         ...baseQueryObject,

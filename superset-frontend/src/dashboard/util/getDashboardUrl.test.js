@@ -89,7 +89,7 @@ describe('getChartIdsFromLayout', () => {
     windowSpy.mockImplementation(() => ({
       location: {
         origin: 'https://localhost',
-        search: '?unkown_param=value',
+        search: '?unknown_param=value',
       },
     }));
     const urlWithStandalone = getDashboardUrl({
@@ -97,7 +97,7 @@ describe('getChartIdsFromLayout', () => {
       standalone: DashboardStandaloneMode.HideNav,
     });
     expect(urlWithStandalone).toBe(
-      `path?unkown_param=value&standalone=${DashboardStandaloneMode.HideNav}`,
+      `path?unknown_param=value&standalone=${DashboardStandaloneMode.HideNav}`,
     );
     windowSpy.mockRestore();
   });

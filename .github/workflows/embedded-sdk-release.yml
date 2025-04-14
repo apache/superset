@@ -8,7 +8,7 @@ on:
 
 jobs:
   config:
-    runs-on: "ubuntu-22.04"
+    runs-on: ubuntu-24.04
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -23,7 +23,7 @@ jobs:
   build:
     needs: config
     if: needs.config.outputs.has-secrets
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: superset-embedded-sdk
@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version-file: './superset-embedded-sdk/.nvmrc'
           registry-url: 'https://registry.npmjs.org'
       - run: npm ci
       - run: npm run ci:release

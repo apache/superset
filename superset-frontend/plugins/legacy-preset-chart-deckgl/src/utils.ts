@@ -25,7 +25,6 @@ import {
   QueryFormData,
   SequentialScheme,
 } from '@superset-ui/core';
-import { isNumber } from 'lodash';
 import { hexToRGB } from './utils/colors';
 
 const DEFAULT_NUM_BUCKETS = 10;
@@ -140,7 +139,7 @@ export function getBreakPointColorScaler(
   } else {
     // interpolate colors linearly
     const linearScaleDomain = extent(features, accessor);
-    if (!linearScaleDomain.some(isNumber)) {
+    if (!linearScaleDomain.some(i => typeof i === 'number')) {
       scaler = colorScheme.createLinearScale();
     } else {
       scaler = colorScheme.createLinearScale(
@@ -173,8 +172,11 @@ export function getBuckets(
 ) {
   const breakPoints = getBreakPoints(fd, features, accessor);
   const colorScaler = getBreakPointColorScaler(fd, features, accessor);
-  const buckets = {};
-  breakPoints.slice(1).forEach((value, i) => {
+  const buckets: Record<
+    string,
+    { color: [number, number, number, number] | undefined; enabled: boolean }
+  > = {};
+  breakPoints.slice(1).forEach((_, i) => {
     const range = `${breakPoints[i]} - ${breakPoints[i + 1]}`;
     const mid =
       0.5 * (parseFloat(breakPoints[i]) + parseFloat(breakPoints[i + 1]));

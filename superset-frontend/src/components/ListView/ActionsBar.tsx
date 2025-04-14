@@ -18,9 +18,8 @@
  */
 import { ReactElement } from 'react';
 import { styled } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
-import { TooltipPlacement } from 'antd/lib/tooltip';
+import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
+import { Icons, IconNameType } from 'src/components/Icons';
 
 export type ActionProps = {
   label: string;
@@ -57,7 +56,7 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
   return (
     <StyledActions className="actions">
       {actions.map((action, index) => {
-        const ActionIcon = Icons[action.icon];
+        const ActionIcon = Icons[action.icon as IconNameType];
         if (action.tooltip) {
           return (
             <Tooltip
@@ -73,7 +72,7 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
                 data-test={action.label}
                 onClick={action.onClick}
               >
-                <ActionIcon />
+                <ActionIcon iconSize="l" />
               </ActionWrapper>
             </Tooltip>
           );

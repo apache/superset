@@ -18,6 +18,7 @@
  */
 import { SMART_DATE_ID, t } from '@superset-ui/core';
 import {
+  aggregationControl,
   ControlPanelConfig,
   ControlSubSectionHeader,
   D3_FORMAT_DOCS,
@@ -25,7 +26,12 @@ import {
   getStandardizedControls,
   temporalColumnMixin,
 } from '@superset-ui/chart-controls';
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  subtitleFontSize,
+  subtitleControl,
+} from '../sharedControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -35,6 +41,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['x_axis'],
         ['time_grain_sqla'],
+        [aggregationControl],
         ['metric'],
         ['adhoc_filters'],
       ],
@@ -132,6 +139,8 @@ const config: ControlPanelConfig = {
         ['color_picker', null],
         [headerFontSize],
         [subheaderFontSize],
+        [subtitleControl],
+        [subtitleFontSize],
         ['y_axis_format'],
         ['currency_format'],
         [

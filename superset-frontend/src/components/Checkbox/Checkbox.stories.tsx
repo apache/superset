@@ -34,10 +34,10 @@ export const CheckboxGallery = () =>
     <div style={{ marginBottom: '16px' }} key={status}>
       <Checkbox
         onChange={() => {}}
-        checked={STATUSES[status]}
+        checked={STATUSES[status as keyof typeof STATUSES]}
         style={{ marginRight: '8px' }}
       />
-      {`I'm a${STATUSES[status] ? '' : 'n'} ${status} checkbox`}
+      {`I'm a${STATUSES[status as keyof typeof STATUSES] ? '' : 'n'} ${status} checkbox`}
     </div>
   ));
 

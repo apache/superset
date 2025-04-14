@@ -23,17 +23,18 @@ import {
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
   ExtraFormData,
-  isFeatureEnabled,
-  FeatureFlag,
   Filter,
   getChartMetadataRegistry,
   QueryFormData,
   t,
+  ExtraFormDataOverride,
+  TimeGranularity,
+  ExtraFormDataAppend,
 } from '@superset-ui/core';
-import { DashboardLayout } from 'src/dashboard/types';
+import { LayoutItem } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
-import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
-import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
+import { isIterable, OnlyKeyWithType } from 'src/utils/types';
+import { TAB_TYPE } from '../../util/componentTypes';
 import getBootstrapData from '../../../utils/getBootstrapData';
 
 const getDefaultRowLimit = (): number => {
@@ -106,22 +107,26 @@ export function mergeExtraFormData(
 ): ExtraFormData {
   const mergedExtra: ExtraFormData = {};
   EXTRA_FORM_DATA_APPEND_KEYS.forEach((key: string) => {
+    const originalExtraData = originalExtra[key as keyof ExtraFormDataAppend];
+    const newExtraData = newExtra[key as keyof ExtraFormDataAppend];
     const mergedValues = [
-      ...(originalExtra[key] || []),
-      ...(newExtra[key] || []),
+      ...(isIterable(originalExtraData) ? originalExtraData : []),
+      ...(isIterable(newExtraData) ? newExtraData : []),
     ];
     if (mergedValues.length) {
-      mergedExtra[key] = mergedValues;
+      mergedExtra[key as OnlyKeyWithType<ExtraFormData, any[]>] = mergedValues;
     }
   });
   EXTRA_FORM_DATA_OVERRIDE_KEYS.forEach((key: string) => {
-    const originalValue = originalExtra[key];
+    const originalValue = originalExtra[key as keyof ExtraFormDataOverride];
     if (originalValue !== undefined) {
-      mergedExtra[key] = originalValue;
+      mergedExtra[key as OnlyKeyWithType<ExtraFormData, typeof originalValue>] =
+        originalValue as TimeGranularity;
     }
-    const newValue = newExtra[key];
+    const newValue = newExtra[key as keyof ExtraFormDataOverride];
     if (newValue !== undefined) {
-      mergedExtra[key] = newValue;
+      mergedExtra[key as OnlyKeyWithType<ExtraFormData, typeof newValue>] =
+        newValue as TimeGranularity;
     }
   });
   return mergedExtra;
@@ -151,89 +156,24 @@ export function getExtraFormData(
 export function nativeFilterGate(behaviors: Behavior[]): boolean {
   return (
     !behaviors.includes(Behavior.NativeFilter) ||
-    (isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
-      behaviors.includes(Behavior.InteractiveChart))
+    behaviors.includes(Behavior.InteractiveChart)
   );
 }
 
-const isComponentATab = (
-  dashboardLayout: DashboardLayout,
-  componentId: string,
-) => dashboardLayout?.[componentId]?.type === TAB_TYPE;
-
-const findTabsWithChartsInScopeHelper = (
-  dashboardLayout: DashboardLayout,
-  chartsInScope: number[],
-  componentId: string,
-  tabIds: string[],
-  tabsToHighlight: Set<string>,
-  visited: Set<string>,
-) => {
-  if (visited.has(componentId)) {
-    return;
-  }
-  visited.add(componentId);
-  if (
-    dashboardLayout?.[componentId]?.type === CHART_TYPE &&
-    chartsInScope.includes(dashboardLayout[componentId]?.meta?.chartId)
-  ) {
-    tabIds.forEach(tabsToHighlight.add, tabsToHighlight);
-  }
-  if (
-    dashboardLayout?.[componentId]?.children?.length === 0 ||
-    (isComponentATab(dashboardLayout, componentId) &&
-      tabsToHighlight.has(componentId))
-  ) {
-    return;
-  }
-  dashboardLayout[componentId]?.children.forEach(childId =>
-    findTabsWithChartsInScopeHelper(
-      dashboardLayout,
-      chartsInScope,
-      childId,
-      isComponentATab(dashboardLayout, childId) ? [...tabIds, childId] : tabIds,
-      tabsToHighlight,
-      visited,
-    ),
-  );
-};
-
 export const findTabsWithChartsInScope = (
-  dashboardLayout: DashboardLayout,
+  chartLayoutItems: LayoutItem[],
   chartsInScope: number[],
-) => {
-  const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
-  const rootChildId = dashboardRoot.children[0];
-  const hasTopLevelTabs = rootChildId !== DASHBOARD_GRID_ID;
-  const tabsInScope = new Set<string>();
-  const visited = new Set<string>();
-  if (hasTopLevelTabs) {
-    dashboardLayout[rootChildId]?.children?.forEach(tabId =>
-      findTabsWithChartsInScopeHelper(
-        dashboardLayout,
-        chartsInScope,
-        tabId,
-        [tabId],
-        tabsInScope,
-        visited,
-      ),
-    );
-  } else {
-    Object.values(dashboardLayout)
-      .filter(element => element?.type === TAB_TYPE)
-      .forEach(element =>
-        findTabsWithChartsInScopeHelper(
-          dashboardLayout,
-          chartsInScope,
-          element.id,
-          [element.id],
-          tabsInScope,
-          visited,
-        ),
-      );
-  }
-  return tabsInScope;
-};
+) =>
+  new Set<string>(
+    chartsInScope
+      .map(chartId =>
+        chartLayoutItems
+          .find(item => item?.meta?.chartId === chartId)
+          ?.parents?.filter(parent => parent.startsWith(`${TAB_TYPE}-`)),
+      )
+      .filter(id => id !== undefined)
+      .flat() as string[],
+  );
 
 export const getFilterValueForDisplay = (
   value?: string[] | null | string | number | object,

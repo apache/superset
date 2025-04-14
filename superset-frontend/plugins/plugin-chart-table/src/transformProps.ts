@@ -35,9 +35,6 @@ import {
   SMART_DATE_ID,
   TimeFormats,
   TimeFormatter,
-  SimpleAdhocFilter,
-  getTimeOffset,
-  parseDttmToDate,
 } from '@superset-ui/core';
 import {
   ColorFormatters,
@@ -350,6 +347,7 @@ const processComparisonColumns = (
       } = props;
       const savedFormat = columnFormats?.[col.key];
       const savedCurrency = currencyFormats?.[col.key];
+      const originalLabel = col.label;
       if (
         (col.isMetric || col.isPercentMetric) &&
         !col.key.includes(comparisonSuffix) &&
@@ -358,6 +356,7 @@ const processComparisonColumns = (
         return [
           {
             ...col,
+            originalLabel,
             label: t('Main'),
             key: `${t('Main')} ${col.key}`,
             config: getComparisonColConfig(t('Main'), col.key, columnConfig),
@@ -371,6 +370,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
+            originalLabel,
             label: `#`,
             key: `# ${col.key}`,
             config: getComparisonColConfig(`#`, col.key, columnConfig),
@@ -384,6 +384,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
+            originalLabel,
             label: `△`,
             key: `△ ${col.key}`,
             config: getComparisonColConfig(`△`, col.key, columnConfig),
@@ -397,6 +398,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
+            originalLabel,
             label: `%`,
             key: `% ${col.key}`,
             config: getComparisonColConfig(`%`, col.key, columnConfig),
@@ -597,37 +599,29 @@ const transformProps = (
   };
 
   const timeGrain = extractTimegrain(formData);
-  const TimeRangeFilters =
-    chartProps.rawFormData?.adhoc_filters?.filter(
-      (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-    ) || [];
-  const previousCustomTimeRangeFilters: any =
-    chartProps.rawFormData?.adhoc_custom?.filter(
-      (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-    ) || [];
 
-  let previousCustomStartDate = '';
-  if (
-    !isEmpty(previousCustomTimeRangeFilters) &&
-    previousCustomTimeRangeFilters[0]?.comparator !== 'No Filter'
-  ) {
-    previousCustomStartDate =
-      previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
+  const nonCustomNorInheritShifts = ensureIsArray(formData.time_compare).filter(
+    (shift: string) => shift !== 'custom' && shift !== 'inherit',
+  );
+  const customOrInheritShifts = ensureIsArray(formData.time_compare).filter(
+    (shift: string) => shift === 'custom' || shift === 'inherit',
+  );
+
+  let timeOffsets: string[] = [];
+
+  if (isUsingTimeComparison && !isEmpty(nonCustomNorInheritShifts)) {
+    timeOffsets = nonCustomNorInheritShifts;
   }
 
-  const timeOffsets = getTimeOffset({
-    timeRangeFilter: {
-      ...TimeRangeFilters[0],
-      comparator:
-        formData?.extra_form_data?.time_range ??
-        (TimeRangeFilters[0] as any)?.comparator,
-    },
-    shifts: formData.time_compare,
-    startDate:
-      previousCustomStartDate && !formData.start_date_offset
-        ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
-        : formData.start_date_offset,
-  });
+  // Shifts for custom or inherit time comparison
+  if (isUsingTimeComparison && !isEmpty(customOrInheritShifts)) {
+    if (customOrInheritShifts.includes('custom')) {
+      timeOffsets = timeOffsets.concat([formData.start_date_offset]);
+    }
+    if (customOrInheritShifts.includes('inherit')) {
+      timeOffsets = timeOffsets.concat(['inherit']);
+    }
+  }
   const comparisonSuffix = isUsingTimeComparison
     ? ensureIsArray(timeOffsets)[0]
     : '';

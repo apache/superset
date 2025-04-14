@@ -19,12 +19,27 @@ import uuid
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import pytest
 from slack_sdk.errors import SlackApiError
 
 from superset.reports.notifications.slackv2 import SlackV2Notification
+from superset.utils.core import HeaderDataType
 
 
-def test_get_channel_with_multi_recipients() -> None:
+@pytest.fixture
+def mock_header_data() -> HeaderDataType:
+    return {
+        "notification_format": "PNG",
+        "notification_type": "Alert",
+        "owners": [1],
+        "notification_source": None,
+        "chart_id": None,
+        "dashboard_id": None,
+        "slack_channels": ["some_channel"],
+    }
+
+
+def test_get_channel_with_multi_recipients(mock_header_data) -> None:
     """
     Test the _get_channel function to ensure it will return a string
     with recipients separated by commas without interstitial spacing
@@ -35,14 +50,7 @@ def test_get_channel_with_multi_recipients() -> None:
 
     content = NotificationContent(
         name="test alert",
-        header_data={
-            "notification_format": "PNG",
-            "notification_type": "Alert",
-            "owners": [1],
-            "notification_source": None,
-            "chart_id": None,
-            "dashboard_id": None,
-        },
+        header_data=mock_header_data,
         embedded_data=pd.DataFrame(
             {
                 "A": [1, 2, 3],
@@ -55,7 +63,7 @@ def test_get_channel_with_multi_recipients() -> None:
     slack_notification = SlackNotification(
         recipient=ReportRecipients(
             type=ReportRecipientType.SLACK,
-            recipient_config_json='{"target": "some_channel; second_channel, third_channel"}',
+            recipient_config_json='{"target": "some_channel; second_channel, third_channel"}',  # noqa: E501
         ),
         content=content,
     )
@@ -64,27 +72,20 @@ def test_get_channel_with_multi_recipients() -> None:
 
     assert result == "some_channel,second_channel,third_channel"
 
-    # Test if the recipient configuration JSON is valid when using a SlackV2 recipient type
+    # Test if the recipient configuration JSON is valid when using a SlackV2 recipient type  # noqa: E501
 
 
-def test_valid_recipient_config_json_slackv2() -> None:
+def test_valid_recipient_config_json_slackv2(mock_header_data) -> None:
     """
     Test if the recipient configuration JSON is valid when using a SlackV2 recipient type
-    """
+    """  # noqa: E501
     from superset.reports.models import ReportRecipients, ReportRecipientType
     from superset.reports.notifications.base import NotificationContent
     from superset.reports.notifications.slack import SlackNotification
 
     content = NotificationContent(
         name="test alert",
-        header_data={
-            "notification_format": "PNG",
-            "notification_type": "Alert",
-            "owners": [1],
-            "notification_source": None,
-            "chart_id": None,
-            "dashboard_id": None,
-        },
+        header_data=mock_header_data,
         embedded_data=pd.DataFrame(
             {
                 "A": [1, 2, 3],
@@ -106,10 +107,10 @@ def test_valid_recipient_config_json_slackv2() -> None:
 
     assert result == '{"target": "some_channel"}'
 
-    # Ensure _get_inline_files function returns the correct tuple when content has screenshots
+    # Ensure _get_inline_files function returns the correct tuple when content has screenshots  # noqa: E501
 
 
-def test_get_inline_files_with_screenshots() -> None:
+def test_get_inline_files_with_screenshots(mock_header_data) -> None:
     """
     Test the _get_inline_files function to ensure it will return the correct tuple
     when content has screenshots
@@ -120,14 +121,7 @@ def test_get_inline_files_with_screenshots() -> None:
 
     content = NotificationContent(
         name="test alert",
-        header_data={
-            "notification_format": "PNG",
-            "notification_type": "Alert",
-            "owners": [1],
-            "notification_source": None,
-            "chart_id": None,
-            "dashboard_id": None,
-        },
+        header_data=mock_header_data,
         embedded_data=pd.DataFrame(
             {
                 "A": [1, 2, 3],
@@ -150,10 +144,10 @@ def test_get_inline_files_with_screenshots() -> None:
 
     assert result == ("png", [b"screenshot1", b"screenshot2"])
 
-    # Ensure _get_inline_files function returns None when content has no screenshots or csv
+    # Ensure _get_inline_files function returns None when content has no screenshots or csv  # noqa: E501
 
 
-def test_get_inline_files_with_no_screenshots_or_csv() -> None:
+def test_get_inline_files_with_no_screenshots_or_csv(mock_header_data) -> None:
     """
     Test the _get_inline_files function to ensure it will return None
     when content has no screenshots or csv
@@ -164,14 +158,7 @@ def test_get_inline_files_with_no_screenshots_or_csv() -> None:
 
     content = NotificationContent(
         name="test alert",
-        header_data={
-            "notification_format": "PNG",
-            "notification_type": "Alert",
-            "owners": [1],
-            "notification_source": None,
-            "chart_id": None,
-            "dashboard_id": None,
-        },
+        header_data=mock_header_data,
         embedded_data=pd.DataFrame(
             {
                 "A": [1, 2, 3],
@@ -201,6 +188,7 @@ def test_send_slackv2(
     slack_client_mock: MagicMock,
     logger_mock: MagicMock,
     flask_global_mock: MagicMock,
+    mock_header_data,
 ) -> None:
     # `superset.models.helpers`, a dependency of following imports,
     # requires app context
@@ -212,14 +200,7 @@ def test_send_slackv2(
     slack_client_mock.return_value.chat_postMessage.return_value = {"ok": True}
     content = NotificationContent(
         name="test alert",
-        header_data={
-            "notification_format": "PNG",
-            "notification_type": "Alert",
-            "owners": [1],
-            "notification_source": None,
-            "chart_id": None,
-            "dashboard_id": None,
-        },
+        header_data=mock_header_data,
         embedded_data=pd.DataFrame(
             {
                 "A": [1, 2, 3],
@@ -269,6 +250,7 @@ def test_send_slack(
     slack_client_mock_util: MagicMock,
     logger_mock: MagicMock,
     flask_global_mock: MagicMock,
+    mock_header_data,
 ) -> None:
     # `superset.models.helpers`, a dependency of following imports,
     # requires app context
@@ -285,14 +267,7 @@ def test_send_slack(
 
     content = NotificationContent(
         name="test alert",
-        header_data={
-            "notification_format": "PNG",
-            "notification_type": "Alert",
-            "owners": [1],
-            "notification_source": None,
-            "chart_id": None,
-            "dashboard_id": None,
-        },
+        header_data=mock_header_data,
         embedded_data=pd.DataFrame(
             {
                 "A": [1, 2, 3],
@@ -343,6 +318,7 @@ def test_send_slack_no_feature_flag(
     slack_client_mock_util: MagicMock,
     logger_mock: MagicMock,
     flask_global_mock: MagicMock,
+    mock_header_data,
 ) -> None:
     # `superset.models.helpers`, a dependency of following imports,
     # requires app context
@@ -360,14 +336,7 @@ def test_send_slack_no_feature_flag(
 
     content = NotificationContent(
         name="test alert",
-        header_data={
-            "notification_format": "PNG",
-            "notification_type": "Alert",
-            "owners": [1],
-            "notification_source": None,
-            "chart_id": None,
-            "dashboard_id": None,
-        },
+        header_data=mock_header_data,
         embedded_data=pd.DataFrame(
             {
                 "A": [1, 2, 3],

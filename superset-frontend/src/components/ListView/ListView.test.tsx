@@ -61,7 +61,7 @@ test('redirects to first page when page index is invalid', async () => {
   });
   await waitFor(() => {
     expect(window.location.search).toEqual('?pageIndex=0');
-    expect(fetchData).toBeCalledTimes(2);
+    expect(fetchData).toHaveBeenCalledTimes(2);
     expect(fetchData).toHaveBeenCalledWith(
       expect.objectContaining({ pageIndex: 9 }),
     );

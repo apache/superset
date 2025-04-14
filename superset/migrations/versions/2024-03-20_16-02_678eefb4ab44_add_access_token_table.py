@@ -30,7 +30,7 @@ import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
 from sqlalchemy_utils import EncryptedType  # noqa: E402
 
-from superset.migrations.shared.constraints import drop_fks_for_table  # noqa: E402
+from superset.migrations.shared.utils import drop_fks_for_table  # noqa: E402
 
 
 def upgrade():

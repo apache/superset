@@ -25,7 +25,8 @@ import {
 } from '@superset-ui/core';
 import { useEffect, useState } from 'react';
 import { Select } from 'src/components';
-import { FormItemProps } from 'antd/lib/form';
+// eslint-disable-next-line no-restricted-imports
+import { FormItemProps } from 'antd/lib/form'; // TODO: Remove antd
 import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterTimeColumnProps } from './types';
 
@@ -111,6 +112,7 @@ export default function PluginFilterTimeColumn(
         {...formItemData}
       >
         <Select
+          name={formData.nativeFilterId}
           allowClear
           value={value}
           placeholder={placeholderText}

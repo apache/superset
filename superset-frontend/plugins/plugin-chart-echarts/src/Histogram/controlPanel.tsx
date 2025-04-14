@@ -27,6 +27,9 @@ import {
   formatSelectOptionsForRange,
   dndGroupByControl,
   columnsByType,
+  D3_FORMAT_OPTIONS,
+  D3_FORMAT_DOCS,
+  D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
 } from '@superset-ui/chart-controls';
 import { showLegendControl, showValueControl } from '../controls';
 
@@ -119,6 +122,21 @@ const config: ControlPanelConfig = {
               label: t('X Axis Title'),
               renderTrigger: true,
               default: '',
+              description: t('Changing this control takes effect instantly'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_axis_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('X Axis Format'),
+              renderTrigger: true,
+              default: 'SMART_NUMBER',
+              choices: D3_FORMAT_OPTIONS,
+              description: `${D3_FORMAT_DOCS} ${D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT}`,
             },
           },
         ],
@@ -130,6 +148,21 @@ const config: ControlPanelConfig = {
               label: t('Y Axis Title'),
               renderTrigger: true,
               default: '',
+              description: t('Changing this control takes effect instantly'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'y_axis_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Y Axis Format'),
+              renderTrigger: true,
+              default: 'SMART_NUMBER',
+              choices: D3_FORMAT_OPTIONS,
+              description: `${D3_FORMAT_DOCS} ${D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT}`,
             },
           },
         ],

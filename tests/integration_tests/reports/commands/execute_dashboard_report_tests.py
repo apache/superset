@@ -112,4 +112,4 @@ def test_report_with_header_data(
         assert header_data.get("notification_format") == report_schedule.report_format
         assert header_data.get("notification_source") == ReportSourceFormat.DASHBOARD
         assert header_data.get("notification_type") == report_schedule.type
-        assert len(send_email_smtp_mock.call_args.kwargs["header_data"]) == 6
+        assert len(send_email_smtp_mock.call_args.kwargs["header_data"]) == 7

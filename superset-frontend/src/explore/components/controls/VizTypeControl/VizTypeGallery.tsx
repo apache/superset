@@ -44,7 +44,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { Input } from 'src/components/Input';
 import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import scrollIntoView from 'scroll-into-view-if-needed';
 
@@ -143,7 +143,7 @@ const SearchWrapper = styled.div`
     margin-bottom: ${theme.gridUnit}px;
     margin-left: ${theme.gridUnit * 3}px;
     margin-right: ${theme.gridUnit * 3}px;
-    .ant-input-affix-wrapper {
+    .antd5-input-affix-wrapper {
       padding-left: ${theme.gridUnit * 2}px;
     }
   `}
@@ -618,7 +618,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       },
       [Sections.Tags]: {
         title: t('Tags'),
-        icon: <Icons.Tags iconSize="m" />,
+        icon: <Icons.NumberOutlined iconSize="m" />,
         selectors: tags,
       },
     }),
@@ -699,7 +699,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           defaultActiveKey={Sections.Category}
         >
           {Object.keys(sectionMap).map(sectionId => {
-            const section = sectionMap[sectionId];
+            const section = sectionMap[sectionId as keyof typeof sectionMap];
 
             return (
               <AntdCollapse.Panel
@@ -737,13 +737,13 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
           prefix={
             <InputIconAlignment>
-              <Icons.Search iconSize="m" />
+              <Icons.SearchOutlined iconSize="m" />
             </InputIconAlignment>
           }
           suffix={
             <InputIconAlignment>
               {searchInputValue && (
-                <Icons.XLarge iconSize="m" onClick={stopSearching} />
+                <Icons.CloseOutlined iconSize="m" onClick={stopSearching} />
               )}
             </InputIconAlignment>
           }
@@ -793,7 +793,14 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             </SectionTitle>
             <TagsWrapper>
               {selectedVizMetadata?.tags.map(tag => (
-                <Label key={tag}>{tag}</Label>
+                <Label
+                  key={tag}
+                  css={({ gridUnit }) => css`
+                    margin-bottom: ${gridUnit * 2}px;
+                  `}
+                >
+                  {tag}
+                </Label>
               ))}
             </TagsWrapper>
             <Description>

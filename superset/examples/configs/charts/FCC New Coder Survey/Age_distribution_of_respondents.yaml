@@ -15,26 +15,21 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Age distribution of respondents
-viz_type: histogram
+viz_type: histogram_v2
 params:
   adhoc_filters: []
-  all_columns_x:
-  - age
+  column: age
   color_scheme: supersetColors
   datasource: 42__table
-  granularity_sqla: time_start
-  groupby: null
+  groupby: []
   label_colors: {}
-  link_length: '25'
-  queryFields:
-    groupby: groupby
+  link_length: "25"
   row_limit: 10000
   slice_id: 1380
-  time_range: No filter
   url_params: {}
-  viz_type: histogram
-  x_axis_label: age
-  y_axis_label: count
+  viz_type: histogram_v2
+  x_axis_title: age
+  y_axis_title: count
 cache_timeout: null
 uuid: 5f1ea868-604e-f69d-a241-5daa83ff33be
 version: 1.0.0

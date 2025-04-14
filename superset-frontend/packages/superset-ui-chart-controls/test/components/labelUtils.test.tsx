@@ -90,7 +90,7 @@ test('should get column datatype rendered as tooltip when column has a type', ()
     </>,
   );
 
-  expect(screen.getByText('Column datatype')).toBeVisible();
+  expect(screen.getByText('Column type')).toBeVisible();
   expect(screen.getByText('text')).toBeVisible();
 });
 

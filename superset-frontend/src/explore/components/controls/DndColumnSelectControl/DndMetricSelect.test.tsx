@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import {
+  fireEvent,
   render,
   screen,
   within,
-  fireEvent,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
@@ -92,13 +92,13 @@ test('render selected metrics correctly', () => {
   expect(screen.getByText('SUM(Column B)')).toBeVisible();
 });
 
-test('remove selected custom metric when metric gets removed from dataset', () => {
+test('warn selected custom metric when metric gets removed from dataset', async () => {
   let metricValues = ['metric_a', 'metric_b', adhocMetricA, adhocMetricB];
   const onChange = (val: any[]) => {
     metricValues = val;
   };
 
-  const { rerender } = render(
+  const { rerender, container } = render(
     <DndMetricSelect
       {...defaultProps}
       value={metricValues}
@@ -129,19 +129,28 @@ test('remove selected custom metric when metric gets removed from dataset', () =
   );
   expect(screen.getByText('metric_a')).toBeVisible();
   expect(screen.queryByText('Metric B')).not.toBeInTheDocument();
-  expect(screen.queryByText('metric_b')).not.toBeInTheDocument();
+  expect(screen.queryByText('metric_b')).toBeInTheDocument();
+  const warningIcon = within(
+    screen.getByText('metric_b').parentElement ?? container,
+  ).getByRole('button');
+  expect(warningIcon).toBeInTheDocument();
+  userEvent.hover(warningIcon);
+  const warningTooltip = await screen.findByText(
+    'This metric might be incompatible with current dataset',
+  );
+  expect(warningTooltip).toBeInTheDocument();
   expect(screen.getByText('SUM(column_a)')).toBeVisible();
   expect(screen.getByText('SUM(Column B)')).toBeVisible();
 });
 
-test('remove selected custom metric when metric gets removed from dataset for single-select metric control', () => {
+test('warn selected custom metric when metric gets removed from dataset for single-select metric control', async () => {
   let metricValue = 'metric_b';
 
   const onChange = (val: any) => {
     metricValue = val;
   };
 
-  const { rerender } = render(
+  const { rerender, container } = render(
     <DndMetricSelect
       {...defaultProps}
       value={metricValue}
@@ -178,7 +187,19 @@ test('remove selected custom metric when metric gets removed from dataset for si
   );
 
   expect(screen.queryByText('Metric B')).not.toBeInTheDocument();
-  expect(screen.getByText('Drop a column/metric here or click')).toBeVisible();
+  expect(
+    screen.queryByText('Drop a column/metric here or click'),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText('metric_b')).toBeInTheDocument();
+  const warningIcon = within(
+    screen.getByText('metric_b').parentElement ?? container,
+  ).getByRole('button');
+  expect(warningIcon).toBeInTheDocument();
+  userEvent.hover(warningIcon);
+  const warningTooltip = await screen.findByText(
+    'This metric might be incompatible with current dataset',
+  );
+  expect(warningTooltip).toBeInTheDocument();
 });
 
 test('remove selected adhoc metric when column gets removed from dataset', async () => {
@@ -313,7 +334,7 @@ test('cannot drop a duplicated item', () => {
   const { getByTestId } = render(
     <>
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_a' }}
+        value={{ metric_name: 'metric_a', uuid: '1' }}
         type={DndItemType.Metric}
       />
       <DndMetricSelect {...defaultProps} value={metricValues} multi />
@@ -341,7 +362,7 @@ test('can drop a saved metric when disallow_adhoc_metrics', () => {
   const { getByTestId } = render(
     <>
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_a' }}
+        value={{ metric_name: 'metric_a', uuid: '1' }}
         type={DndItemType.Metric}
       />
       <DndMetricSelect
@@ -374,15 +395,15 @@ test('cannot drop non-saved metrics when disallow_adhoc_metrics', () => {
   const { getByTestId, getAllByTestId } = render(
     <>
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_a' }}
+        value={{ metric_name: 'metric_a', uuid: '1' }}
         type={DndItemType.Metric}
       />
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_c' }}
+        value={{ metric_name: 'metric_c', uuid: '2' }}
         type={DndItemType.Metric}
       />
       <DatasourcePanelDragOption
-        value={{ column_name: 'column_1' }}
+        value={{ column_name: 'column_1', uuid: '3' }}
         type={DndItemType.Column}
       />
       <DndMetricSelect

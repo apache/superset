@@ -23,8 +23,9 @@ import {
   getNumberFormatter,
   getTimeFormatter,
 } from '@superset-ui/core';
-import { EChartsCoreOption, BoxplotSeriesOption } from 'echarts';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { BoxplotSeriesOption } from 'echarts/charts';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   BoxPlotChartTransformedProps,
   BoxPlotQueryFormData,
@@ -108,9 +109,9 @@ export default function transformProps(
             datum[`${metric}__outliers`],
           ],
           itemStyle: {
-            color: colorFn(groupbyLabel, sliceId, colorScheme),
+            color: colorFn(groupbyLabel, sliceId),
             opacity: isFiltered ? OpacityEnum.SemiTransparent : 0.6,
-            borderColor: colorFn(groupbyLabel, sliceId, colorScheme),
+            borderColor: colorFn(groupbyLabel, sliceId),
           },
         };
       });
@@ -149,7 +150,7 @@ export default function transformProps(
             },
           },
           itemStyle: {
-            color: colorFn(groupbyLabel, sliceId, colorScheme),
+            color: colorFn(groupbyLabel, sliceId),
             opacity: isFiltered
               ? OpacityEnum.SemiTransparent
               : OpacityEnum.NonTransparent,
@@ -228,10 +229,10 @@ export default function transformProps(
             `Median: ${numberFormatter(value[3])}`,
             `1st Quartile: ${numberFormatter(value[2])}`,
             `Min: ${numberFormatter(value[1])}`,
-            `# Observations: ${numberFormatter(value[7])}`,
+            `# Observations: ${value[7]}`,
           ];
           if (value[8].length > 0) {
-            stats.push(`# Outliers: ${numberFormatter(value[8].length)}`);
+            stats.push(`# Outliers: ${value[8].length}`);
           }
           return headline + stats.join('<br/>');
         },

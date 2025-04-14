@@ -585,7 +585,7 @@ msgstr ""
 msgid "A Big Number"
 msgstr ""
 
-msgid "A comma separated list of columns that should be parsed as dates"
+msgid "Select column names from a dropdown list that should be parsed as dates."
 msgstr ""
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
@@ -5498,7 +5498,7 @@ msgstr ""
 msgid "Intervals"
 msgstr ""
 
-msgid "Intesity"
+msgid "Intensity"
 msgstr ""
 
 msgid ""
@@ -6974,7 +6974,7 @@ msgstr ""
 msgid "One or more parameters specified in the query are missing."
 msgstr ""
 
-msgid "One ore more annotation layers failed loading."
+msgid "One or more annotation layers failed loading."
 msgstr ""
 
 msgid "Only SELECT statements are allowed against this database."
@@ -11210,7 +11210,7 @@ msgstr ""
 
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
-" applicable for numercal X axis."
+" applicable for numerical X axis."
 msgstr ""
 
 msgid "Truncate Y Axis"
@@ -12155,7 +12155,7 @@ msgstr ""
 
 msgid ""
 "Whether to show extra controls or not. Extra controls include things like"
-" making mulitBar charts stacked or side by side."
+" making multiBar charts stacked or side by side."
 msgstr ""
 
 msgid "Whether to show minor ticks on the axis"

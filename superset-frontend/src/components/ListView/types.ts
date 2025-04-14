@@ -59,25 +59,28 @@ export interface Filter {
     pageSize: number,
   ) => Promise<{ data: SelectOption[]; totalCount: number }>;
   paginate?: boolean;
+  loading?: boolean;
 }
 
 export type Filters = Filter[];
 
 export type ViewModeType = 'card' | 'table';
 
+export type InnerFilterValue =
+  | string
+  | boolean
+  | number
+  | null
+  | undefined
+  | string[]
+  | number[]
+  | { label: string; value: string | number };
+
 export interface FilterValue {
   id: string;
   urlDisplay?: string;
   operator?: string;
-  value:
-    | string
-    | boolean
-    | number
-    | null
-    | undefined
-    | string[]
-    | number[]
-    | { label: string; value: string | number };
+  value: InnerFilterValue;
 }
 
 export interface FetchDataConfig {

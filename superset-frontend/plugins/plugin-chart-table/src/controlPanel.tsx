@@ -18,34 +18,36 @@
  * under the License.
  */
 import {
-  ensureIsArray,
-  GenericDataType,
-  isAdhocColumn,
-  isPhysicalColumn,
-  QueryFormColumn,
-  QueryMode,
-  SMART_DATE_ID,
-  t,
-} from '@superset-ui/core';
-import {
+  ColumnMeta,
   ColumnOption,
   ControlConfig,
   ControlPanelConfig,
   ControlPanelsContainerProps,
-  ControlStateMapping,
-  D3_TIME_FORMAT_OPTIONS,
-  QueryModeLabel,
-  sharedControls,
   ControlPanelState,
   ControlState,
+  ControlStateMapping,
+  D3_TIME_FORMAT_OPTIONS,
   Dataset,
-  ColumnMeta,
   defineSavedMetrics,
   getStandardizedControls,
+  QueryModeLabel,
   sections,
+  sharedControls,
 } from '@superset-ui/chart-controls';
+import {
+  ensureIsArray,
+  GenericDataType,
+  getMetricLabel,
+  isAdhocColumn,
+  isPhysicalColumn,
+  QueryFormColumn,
+  QueryFormMetric,
+  QueryMode,
+  SMART_DATE_ID,
+  t,
+} from '@superset-ui/core';
 
-import { isEmpty } from 'lodash';
+import { isEmpty, last } from 'lodash';
 import { PAGE_SIZE_OPTIONS } from './consts';
 import { ColorSchemeEnum } from './types';
 
@@ -466,7 +468,9 @@ const config: ControlPanelConfig = {
               label: t('Render columns in HTML format'),
               renderTrigger: true,
               default: true,
-              description: t('Render data in HTML format if applicable.'),
+              description: t(
+                'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
+              ),
             },
           },
         ],
@@ -484,37 +488,69 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
-                const timeComparisonStatus =
-                  !!explore?.controls?.time_compare?.value;
-
+                const timeComparisonValue =
+                  explore?.controls?.time_compare?.value;
                 const { colnames: _colnames, coltypes: _coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
                 let colnames: string[] = _colnames || [];
                 let coltypes: GenericDataType[] = _coltypes || [];
+                const childColumnMap: Record<string, boolean> = {};
+                const timeComparisonColumnMap: Record<string, boolean> = {};
 
-                if (timeComparisonStatus) {
+                if (!isEmpty(timeComparisonValue)) {
                   /**
                    * Replace numeric columns with sets of comparison columns.
                    */
                   const updatedColnames: string[] = [];
                   const updatedColtypes: GenericDataType[] = [];
-                  colnames.forEach((colname, index) => {
-                    if (coltypes[index] === GenericDataType.Numeric) {
-                      updatedColnames.push(
-                        ...generateComparisonColumns(colname),
-                      );
-                      updatedColtypes.push(...generateComparisonColumnTypes(4));
-                    } else {
-                      updatedColnames.push(colname);
-                      updatedColtypes.push(coltypes[index]);
-                    }
-                  });
+
+                  colnames
+                    .filter(
+                      colname =>
+                        last(colname.split('__')) !== timeComparisonValue,
+                    )
+                    .forEach((colname, index) => {
+                      if (
+                        explore.form_data.metrics?.some(
+                          metric => getMetricLabel(metric) === colname,
+                        ) ||
+                        explore.form_data.percent_metrics?.some(
+                          (metric: QueryFormMetric) =>
+                            getMetricLabel(metric) === colname,
+                        )
+                      ) {
+                        const comparisonColumns =
+                          generateComparisonColumns(colname);
+                        comparisonColumns.forEach((name, idx) => {
+                          updatedColnames.push(name);
+                          updatedColtypes.push(
+                            ...generateComparisonColumnTypes(4),
+                          );
+                          timeComparisonColumnMap[name] = true;
+                          if (idx === 0 && name.startsWith('Main ')) {
+                            childColumnMap[name] = false;
+                          } else {
+                            childColumnMap[name] = true;
+                          }
+                        });
+                      } else {
+                        updatedColnames.push(colname);
+                        updatedColtypes.push(coltypes[index]);
+                        childColumnMap[colname] = false;
+                        timeComparisonColumnMap[colname] = false;
+                      }
+                    });
 
                   colnames = updatedColnames;
                   coltypes = updatedColtypes;
                 }
                 return {
-                  columnsPropsObject: { colnames, coltypes },
+                  columnsPropsObject: {
+                    colnames,
+                    coltypes,
+                    childColumnMap,
+                    timeComparisonColumnMap,
+                  },
                 };
               },
             },
@@ -636,7 +672,7 @@ const config: ControlPanelConfig = {
                   'verbose_map',
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
-                  : explore?.datasource?.columns ?? {};
+                  : (explore?.datasource?.columns ?? {});
                 const chartStatus = chart?.chartStatus;
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
@@ -647,9 +683,11 @@ const config: ControlPanelConfig = {
                           (colname: string, index: number) =>
                             coltypes[index] === GenericDataType.Numeric,
                         )
-                        .map(colname => ({
+                        .map((colname: string) => ({
                           value: colname,
-                          label: verboseMap[colname] ?? colname,
+                          label: Array.isArray(verboseMap)
+                            ? colname
+                            : (verboseMap[colname] ?? colname),
                         }))
                     : [];
                 const columnOptions = explore?.controls?.time_compare?.value

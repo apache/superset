@@ -117,8 +117,9 @@ def create_report_notification(
     extra: Optional[dict[str, Any]] = None,
     force_screenshot: bool = False,
     owners: Optional[list[User]] = None,
-    ccTarget: Optional[str] = None,
-    bccTarget: Optional[str] = None,
+    ccTarget: Optional[str] = None,  # noqa: N803
+    bccTarget: Optional[str] = None,  # noqa: N803
+    use_slack_v2: bool = False,
 ) -> ReportSchedule:
     if not owners:
         owners = [
@@ -130,8 +131,11 @@ def create_report_notification(
         ]
 
     if slack_channel:
+        type = (
+            ReportRecipientType.SLACKV2 if use_slack_v2 else ReportRecipientType.SLACK
+        )
         recipient = ReportRecipients(
-            type=ReportRecipientType.SLACK,
+            type=type,
             recipient_config_json=json.dumps(
                 {
                     "target": slack_channel,
@@ -170,15 +174,19 @@ def create_report_notification(
     return report_schedule
 
 
-def cleanup_report_schedule(report_schedule: ReportSchedule) -> None:
-    db.session.query(ReportExecutionLog).filter(
-        ReportExecutionLog.report_schedule == report_schedule
-    ).delete()
-    db.session.query(ReportRecipients).filter(
-        ReportRecipients.report_schedule == report_schedule
-    ).delete()
-
-    db.session.delete(report_schedule)
+def cleanup_report_schedule(report_schedule: Optional[ReportSchedule] = None) -> None:
+    if report_schedule:
+        db.session.query(ReportExecutionLog).filter(
+            ReportExecutionLog.report_schedule == report_schedule
+        ).delete()
+        db.session.query(ReportRecipients).filter(
+            ReportRecipients.report_schedule == report_schedule
+        ).delete()
+        db.session.delete(report_schedule)
+    else:
+        db.session.query(ReportExecutionLog).delete()
+        db.session.query(ReportRecipients).delete()
+        db.session.query(ReportSchedule).delete()
     db.session.commit()
 
 

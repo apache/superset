@@ -43,10 +43,11 @@ import {
   Select,
   Upload,
 } from 'src/components';
-import { UploadOutlined } from '@ant-design/icons';
+import { Icons } from 'src/components/Icons';
 import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
+// eslint-disable-next-line no-restricted-imports
+import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   antdCollapseStyles,
@@ -137,11 +138,6 @@ interface UploadInfo {
   column_data_types: string;
 }
 
-interface SheetColumnNames {
-  sheet_name: string;
-  column_names: string[];
-}
-
 const defaultUploadInfo: UploadInfo = {
   table_name: '',
   schema: '',
@@ -173,6 +169,12 @@ const allowedExtensionsToAccept = {
   columnar: '.parquet, .zip',
 };
 
+const extensionsToLabel: Record<UploadType, string> = {
+  csv: 'CSV',
+  excel: 'Excel',
+  columnar: 'Columnar',
+};
+
 export const validateUploadFileExtension = (
   file: UploadFile<any>,
   allowedExtensions: string[],
@@ -182,8 +184,11 @@ export const validateUploadFileExtension = (
     return false;
   }
 
-  const fileType = extensionMatch[1];
-  return allowedExtensions.includes(fileType);
+  const fileType = extensionMatch[1].toLowerCase();
+  const lowerCaseAllowedExtensions = allowedExtensions.map(ext =>
+    ext.toLowerCase(),
+  );
+  return lowerCaseAllowedExtensions.includes(fileType);
 };
 
 interface StyledSwitchContainerProps extends SwitchProps {
@@ -219,8 +224,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [columns, setColumns] = useState<string[]>([]);
   const [sheetNames, setSheetNames] = useState<string[]>([]);
   const [sheetsColumnNames, setSheetsColumnNames] = useState<
-    SheetColumnNames[]
-  >([]);
+    Record<string, string[]>
+  >({});
   const [delimiter, setDelimiter] = useState<string>(',');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentSchema, setCurrentSchema] = useState<string | undefined>();
@@ -229,19 +234,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [previewUploadedFile, setPreviewUploadedFile] = useState<boolean>(true);
   const [fileLoading, setFileLoading] = useState<boolean>(false);
 
-  const createTypeToEndpointMap = (
-    databaseId: number,
-  ): { [key: string]: string } => ({
-    csv: `/api/v1/database/${databaseId}/csv_upload/`,
-    excel: `/api/v1/database/${databaseId}/excel_upload/`,
-    columnar: `/api/v1/database/${databaseId}/columnar_upload/`,
-  });
-
-  const typeToFileMetadataEndpoint = {
-    csv: '/api/v1/database/csv_metadata/',
-    excel: '/api/v1/database/excel_metadata/',
-    columnar: '/api/v1/database/columnar_metadata/',
-  };
+  const createTypeToEndpointMap = (databaseId: number) =>
+    `/api/v1/database/${databaseId}/upload/`;
 
   const nullValuesOptions = [
     {
@@ -328,7 +322,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     setDelimiter(',');
     setPreviewUploadedFile(true);
     setFileLoading(false);
-    setSheetsColumnNames([]);
+    setSheetsColumnNames({});
     form.resetFields();
   };
 
@@ -368,7 +362,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
           return Promise.resolve({ data: [], totalCount: 0 });
         }
         return SupersetClient.get({
-          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/`,
+          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/?q=(upload_allowed:!t)`,
         }).then(response => {
           const list = response.json.result.map((item: string) => ({
             value: item,
@@ -388,9 +382,10 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     if (type === 'csv') {
       formData.append('delimiter', mergedValues.delimiter);
     }
+    formData.append('type', type);
     setFileLoading(true);
     return SupersetClient.post({
-      endpoint: typeToFileMetadataEndpoint[type],
+      endpoint: '/api/v1/database/upload_metadata/',
       body: formData,
       headers: { Accept: 'application/json' },
     })
@@ -402,10 +397,10 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
           const { allSheetNames, sheetColumnNamesMap } = items.reduce(
             (
               acc: {
-                allSheetNames: any[];
+                allSheetNames: string[];
                 sheetColumnNamesMap: Record<string, string[]>;
               },
-              item: { sheet_name: any; column_names: any },
+              item: { sheet_name: string; column_names: string[] },
             ) => {
               acc.allSheetNames.push(item.sheet_name);
               acc.sheetColumnNamesMap[item.sheet_name] = item.column_names;
@@ -471,14 +466,15 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
     appendFormData(formData, mergedValues);
     setIsLoading(true);
-    const endpoint = createTypeToEndpointMap(currentDatabaseId)[type];
+    const endpoint = createTypeToEndpointMap(currentDatabaseId);
+    formData.append('type', type);
     return SupersetClient.post({
       endpoint,
       body: formData,
       headers: { Accept: 'application/json' },
     })
       .then(() => {
-        addSuccessToast(t('Data Imported'));
+        addSuccessToast(t('Data imported'));
         setIsLoading(false);
         onClose();
       })
@@ -565,9 +561,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   };
 
   const uploadTitles = {
-    csv: t('CSV Upload'),
-    excel: t('Excel Upload'),
-    columnar: t('Columnar Upload'),
+    csv: t('CSV upload'),
+    excel: t('Excel upload'),
+    columnar: t('Columnar upload'),
   };
 
   const UploadTitle: FC = () => {
@@ -616,9 +612,11 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
             key="general"
           >
             <Row>
-              <Col span={12}>
+              <Col span={24}>
                 <StyledFormItem
-                  label={t('%(type)s File', { type })}
+                  label={t('%(label)s file', {
+                    label: extensionsToLabel[type],
+                  })}
                   name="file"
                   required
                   rules={[{ validator: validateUpload }]}
@@ -636,7 +634,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                   >
                     <Button
                       aria-label={t('Select')}
-                      icon={<UploadOutlined />}
+                      icon={<Icons.UploadOutlined />}
                       loading={fileLoading}
                     >
                       {t('Select')}
@@ -644,7 +642,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                   </Upload>
                 </StyledFormItem>
               </Col>
-              <Col span={12}>
+            </Row>
+            <Row>
+              <Col span={24}>
                 <StyledFormItem>
                   <SwitchContainer
                     label={t('Preview uploaded file')}
@@ -698,7 +698,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
             <Row>
               <Col span={24}>
                 <StyledFormItem
-                  label={t('Table Name')}
+                  label={t('Table name')}
                   name="table_name"
                   required
                   rules={[
@@ -754,7 +754,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
           <Collapse.Panel
             header={
               <div>
-                <h4>{t('File Settings')}</h4>
+                <h4>{t('File settings')}</h4>
                 <p className="helper">
                   {t(
                     'Adjust how spaces, blank lines, null values are handled and other file wide settings.',
@@ -767,7 +767,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
             <Row>
               <Col span={24}>
                 <StyledFormItemWithTip
-                  label={t('If Table Already Exists')}
+                  label={t('If table already exists')}
                   tip={t('What should happen if the table already exists')}
                   name="already_exists"
                 >
@@ -783,7 +783,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
               <Row>
                 <Col span={24}>
                   <StyledFormItem
-                    label={t('Columns To Be Parsed as Dates')}
+                    label={t('Columns to be parsed as dates')}
                     name="column_dates"
                   >
                     <Select
@@ -793,7 +793,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                       allowClear
                       allowNewOptions
                       placeholder={t(
-                        'A comma separated list of columns that should be parsed as dates',
+                        'Select column names from a dropdown list that should be parsed as dates.',
                       )}
                     />
                   </StyledFormItem>
@@ -804,7 +804,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
               <Row>
                 <Col span={24}>
                   <StyledFormItemWithTip
-                    label={t('Decimal Character')}
+                    label={t('Decimal character')}
                     tip={t('Character to interpret as decimal point')}
                     name="decimal_character"
                   >
@@ -890,7 +890,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
             <Row>
               <Col span={24}>
                 <StyledFormItem
-                  label={t('Columns To Read')}
+                  label={t('Columns to read')}
                   name="columns_read"
                 >
                   <Select
@@ -910,7 +910,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
               <Row>
                 <Col span={24}>
                   <StyledFormItemWithTip
-                    label={t('Column Data Types')}
+                    label={t('Column data types')}
                     tip={t(
                       'A dictionary with column names and their data types if you need to change the defaults. Example: {"user_id":"int"}. Check Python\'s Pandas library for supported data types.',
                     )}
@@ -937,7 +937,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                 <Row>
                   <Col span={24}>
                     <StyledFormItemWithTip
-                      label={t('Index Column')}
+                      label={t('Index column')}
                       tip={t(
                         'Column to use as the index of the dataframe. If None is given, Index label is used.',
                       )}
@@ -960,7 +960,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
               <Row>
                 <Col span={24}>
                   <StyledFormItemWithTip
-                    label={t('Index Label')}
+                    label={t('Index label')}
                     tip={t(
                       "Label for the index column. Don't use an existing column name.",
                     )}
@@ -991,7 +991,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                 <Row>
                   <Col span={8}>
                     <StyledFormItemWithTip
-                      label={t('Header Row')}
+                      label={t('Header row')}
                       tip={t(
                         'Row containing the headers to use as column names (0 is first line of data).',
                       )}
@@ -1009,7 +1009,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                   </Col>
                   <Col span={8}>
                     <StyledFormItemWithTip
-                      label={t('Rows to Read')}
+                      label={t('Rows to read')}
                       tip={t(
                         'Number of rows of file to read. Leave empty (default) to read all rows',
                       )}
@@ -1020,7 +1020,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                   </Col>
                   <Col span={8}>
                     <StyledFormItemWithTip
-                      label={t('Skip Rows')}
+                      label={t('Skip rows')}
                       tip={t('Number of rows to skip at start of file.')}
                       name="skip_rows"
                       rules={[

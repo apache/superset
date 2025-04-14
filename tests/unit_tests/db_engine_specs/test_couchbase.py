@@ -16,7 +16,7 @@
 # under the License.
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import pytest
 from sqlalchemy import types
@@ -33,18 +33,18 @@ def test_epoch_to_dttm() -> None:
     """
     DB Eng Specs (couchbase): Test epoch to dttm
     """
-    from superset.db_engine_specs.couchbasedb import CouchbaseDbEngineSpec
+    from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
 
-    assert CouchbaseDbEngineSpec.epoch_to_dttm() == "MILLIS_TO_STR({col} * 1000)"
+    assert CouchbaseEngineSpec.epoch_to_dttm() == "MILLIS_TO_STR({col} * 1000)"
 
 
 def test_epoch_ms_to_dttm() -> None:
     """
     DB Eng Specs (couchbase): Test epoch ms to dttm
     """
-    from superset.db_engine_specs.couchbasedb import CouchbaseDbEngineSpec
+    from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
 
-    assert CouchbaseDbEngineSpec.epoch_ms_to_dttm() == "MILLIS_TO_STR({col})"
+    assert CouchbaseEngineSpec.epoch_ms_to_dttm() == "MILLIS_TO_STR({col})"
 
 
 @pytest.mark.parametrize(
@@ -62,7 +62,9 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.couchbasedb import CouchbaseDbEngineSpec as spec
+    from superset.db_engine_specs.couchbase import (
+        CouchbaseEngineSpec as spec,  # noqa: N813
+    )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -84,10 +86,12 @@ def test_convert_dttm(
 def test_get_column_spec(
     native_type: str,
     sqla_type: type[types.TypeEngine],
-    attrs: dict[str, Any] | None,
+    attrs: Union[dict[str, Any], None],
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.couchbasedb import CouchbaseDbEngineSpec as spec
+    from superset.db_engine_specs.couchbase import (
+        CouchbaseEngineSpec as spec,  # noqa: N813
+    )
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)

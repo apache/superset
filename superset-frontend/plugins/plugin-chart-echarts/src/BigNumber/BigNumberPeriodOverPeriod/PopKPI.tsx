@@ -26,7 +26,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Tooltip } from '@superset-ui/chart-controls';
+import { DEFAULT_DATE_PATTERN, Tooltip } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import {
   ColorSchemeEnum,
@@ -81,6 +81,8 @@ export default function PopKPI(props: PopKPIProps) {
     currentTimeRangeFilter,
     startDateOffset,
     shift,
+    subtitle,
+    subtitleFontSize,
     dashboardTimeRange,
   } = props;
 
@@ -90,27 +92,33 @@ export default function PopKPI(props: PopKPIProps) {
     if (!currentTimeRangeFilter || (!shift && !startDateOffset)) {
       setComparisonRange('');
     } else if (!isEmpty(shift) || startDateOffset) {
-      const newShift = getTimeOffset({
-        timeRangeFilter: {
-          ...currentTimeRangeFilter,
-          comparator:
-            dashboardTimeRange ?? (currentTimeRangeFilter as any).comparator,
-        },
-        shifts: ensureIsArray(shift),
-        startDate: startDateOffset || '',
-      });
       const promise: any = fetchTimeRange(
         dashboardTimeRange ?? (currentTimeRangeFilter as any).comparator,
         currentTimeRangeFilter.subject,
-        newShift || [],
       );
       Promise.resolve(promise).then((res: any) => {
-        const response: string[] = ensureIsArray(res.value);
-        const firstRange: string = response.flat()[0];
-        const rangeText = firstRange.split('vs\n');
-        setComparisonRange(
-          rangeText.length > 1 ? rangeText[1].trim() : rangeText[0],
-        );
+        const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
+        const [parsedStartDate, parsedEndDate] = dates ?? [];
+        const newShift = getTimeOffset({
+          timeRangeFilter: {
+            ...currentTimeRangeFilter,
+            comparator: `${parsedStartDate} : ${parsedEndDate}`,
+          },
+          shifts: ensureIsArray(shift),
+          startDate: startDateOffset || '',
+        });
+        fetchTimeRange(
+          dashboardTimeRange ?? (currentTimeRangeFilter as any).comparator,
+          currentTimeRangeFilter.subject,
+          ensureIsArray(newShift),
+        ).then(res => {
+          const response: string[] = ensureIsArray(res.value);
+          const firstRange: string = response.flat()[0];
+          const rangeText = firstRange.split('vs\n');
+          setComparisonRange(
+            rangeText.length > 1 ? rangeText[1].trim() : rangeText[0],
+          );
+        });
       });
     }
   }, [currentTimeRangeFilter, shift, startDateOffset, dashboardTimeRange]);
@@ -132,6 +140,16 @@ export default function PopKPI(props: PopKPIProps) {
     font-weight: ${theme.typography.weights.normal};
     text-align: center;
     margin-bottom: ${theme.gridUnit * 4}px;
+  `;
+
+  const SubtitleText = styled.div`
+    ${({ theme }) => `
+    font-family: ${theme.typography.families.sansSerif};
+    font-weight: ${theme.typography.weights.medium};
+    text-align: center;
+    margin-top: -10px;
+    margin-bottom: ${theme.gridUnit * 4}px;
+  `}
   `;
 
   const getArrowIndicatorColor = () => {
@@ -189,29 +207,45 @@ export default function PopKPI(props: PopKPIProps) {
   ]);
 
   const SYMBOLS_WITH_VALUES = useMemo(
-    () => [
-      {
-        symbol: '#',
-        value: prevNumber,
-        tooltipText: t('Data for %s', comparisonRange || 'previous range'),
-      },
-      {
-        symbol: '△',
-        value: valueDifference,
-        tooltipText: t('Value difference between the time periods'),
-      },
-      {
-        symbol: '%',
-        value: percentDifferenceFormattedString,
-        tooltipText: t('Percentage difference between the time periods'),
-      },
-    ],
+    () =>
+      [
+        {
+          defaultSymbol: '#',
+          value: prevNumber,
+          tooltipText: t('Data for %s', comparisonRange || 'previous range'),
+          columnKey: 'Previous value',
+        },
+        {
+          defaultSymbol: '△',
+          value: valueDifference,
+          tooltipText: t('Value difference between the time periods'),
+          columnKey: 'Delta',
+        },
+        {
+          defaultSymbol: '%',
+          value: percentDifferenceFormattedString,
+          tooltipText: t('Percentage difference between the time periods'),
+          columnKey: 'Percent change',
+        },
+      ].map(item => {
+        const config = props.columnConfig?.[item.columnKey];
+        return {
+          ...item,
+          symbol: config?.displayTypeIcon === false ? '' : item.defaultSymbol,
+          label: config?.customColumnName || item.columnKey,
+        };
+      }),
     [
       comparisonRange,
       prevNumber,
       valueDifference,
       percentDifferenceFormattedString,
+      props.columnConfig,
     ],
+  );
+
+  const visibleSymbols = SYMBOLS_WITH_VALUES.filter(
+    symbol => props.columnConfig?.[symbol.columnKey]?.visible !== false,
   );
 
   const { isOverflowing, symbolContainerRef, wrapperRef } =
@@ -237,52 +271,67 @@ export default function PopKPI(props: PopKPIProps) {
             </span>
           )}
         </div>
+        {subtitle && (
+          <SubtitleText
+            style={{
+              fontSize: `${subtitleFontSize * height * 0.4}px`,
+            }}
+          >
+            {subtitle}
+          </SubtitleText>
+        )}
 
-        <div
-          css={[
-            css`
-              display: flex;
-              justify-content: space-around;
-              gap: ${flexGap}px;
-              min-width: 0;
-              flex-shrink: 1;
-            `,
-            isOverflowing
-              ? css`
-                  flex-direction: column;
-                  align-items: flex-start;
-                  width: fit-content;
-                `
-              : css`
-                  align-items: center;
-                  width: 100%;
-                `,
-          ]}
-          ref={symbolContainerRef}
-        >
-          {SYMBOLS_WITH_VALUES.map((symbol_with_value, index) => (
-            <ComparisonValue
-              key={`comparison-symbol-${symbol_with_value.symbol}`}
-              subheaderFontSize={subheaderFontSize}
-            >
-              <Tooltip
-                id="tooltip"
-                placement="top"
-                title={symbol_with_value.tooltipText}
+        {visibleSymbols.length > 0 && (
+          <div
+            css={[
+              css`
+                display: flex;
+                justify-content: space-around;
+                gap: ${flexGap}px;
+                min-width: 0;
+                flex-shrink: 1;
+              `,
+              isOverflowing
+                ? css`
+                    flex-direction: column;
+                    align-items: flex-start;
+                    width: fit-content;
+                  `
+                : css`
+                    align-items: center;
+                    width: 100%;
+                  `,
+            ]}
+            ref={symbolContainerRef}
+          >
+            {visibleSymbols.map((symbol_with_value, index) => (
+              <ComparisonValue
+                key={`comparison-symbol-${symbol_with_value.columnKey}`}
+                subheaderFontSize={subheaderFontSize}
               >
-                <SymbolWrapper
-                  backgroundColor={
-                    index > 0 ? backgroundColor : defaultBackgroundColor
-                  }
-                  textColor={index > 0 ? textColor : defaultTextColor}
+                <Tooltip
+                  id="tooltip"
+                  placement="top"
+                  title={symbol_with_value.tooltipText}
                 >
-                  {symbol_with_value.symbol}
-                </SymbolWrapper>
-                {symbol_with_value.value}
-              </Tooltip>
-            </ComparisonValue>
-          ))}
-        </div>
+                  {symbol_with_value.symbol && (
+                    <SymbolWrapper
+                      backgroundColor={
+                        index > 0 ? backgroundColor : defaultBackgroundColor
+                      }
+                      textColor={index > 0 ? textColor : defaultTextColor}
+                    >
+                      {symbol_with_value.symbol}
+                    </SymbolWrapper>
+                  )}
+                  {symbol_with_value.value}{' '}
+                  {props.columnConfig?.[symbol_with_value.columnKey]
+                    ?.customColumnName || ''}
+                </Tooltip>
+              </ComparisonValue>
+            ))}
+          </div>
+        )}
       </NumbersContainer>
     </div>
   );

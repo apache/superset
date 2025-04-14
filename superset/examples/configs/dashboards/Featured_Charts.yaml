@@ -261,20 +261,6 @@ position:
       - GRID_ID
       - ROW-LIWnqpnIk5
     type: CHART
-  CHART-aAhaxRYu_t:
-    children: []
-    id: CHART-aAhaxRYu_t
-    meta:
-      chartId: 116
-      height: 50
-      sliceName: World Map
-      uuid: f0606234-1644-426f-8fc6-3eaf8e77fd58
-      width: 4
-    parents:
-      - ROOT_ID
-      - GRID_ID
-      - ROW-we3i1eOT75
-    type: CHART
   CHART-gfrGP3BD76:
     children: []
     id: CHART-gfrGP3BD76
@@ -384,7 +370,6 @@ position:
       - ROW-Jq9auQfs6-
       - ROW-3XARWMYOfz
       - ROW-ux6j1ePT8I
-      - ROW-we3i1eOT75
     id: GRID_ID
     parents:
       - ROOT_ID
@@ -489,16 +474,6 @@ position:
       - CHART-XwFZukVv8E
       - CHART-KE7lk61Tbt
     id: ROW-ux6j1ePT8I
-    meta:
-      background: BACKGROUND_TRANSPARENT
-    parents:
-      - ROOT_ID
-      - GRID_ID
-    type: ROW
-  ROW-we3i1eOT75:
-    children:
-      - CHART-aAhaxRYu_t
-    id: ROW-we3i1eOT75
     meta:
       background: BACKGROUND_TRANSPARENT
     parents:

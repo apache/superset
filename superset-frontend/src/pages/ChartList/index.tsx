@@ -24,6 +24,8 @@ import {
   styled,
   SupersetClient,
   t,
+  useTheme,
+  css,
 } from '@superset-ui/core';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
@@ -60,7 +62,7 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import Tag from 'src/types/TagType';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
@@ -157,6 +159,7 @@ const StyledActions = styled.div`
 `;
 
 function ChartList(props: ChartListProps) {
+  const theme = useTheme();
   const {
     addDangerToast,
     addSuccessToast,
@@ -378,7 +381,11 @@ function ChartList(props: ChartListProps) {
               datasource_url: dsUrl,
             },
           },
-        }: any) => <GenericLink to={dsUrl}>{dsNameTxt}</GenericLink>,
+        }: any) => (
+          <Tooltip title={dsNameTxt} placement="top">
+            <GenericLink to={dsUrl}>{dsNameTxt?.split('.')[1]}</GenericLink>
+          </Tooltip>
+        ),
         Header: t('Dataset'),
         accessor: 'datasource_id',
         disableSortBy: true,
@@ -475,13 +482,12 @@ function ChartList(props: ChartListProps) {
                       placement="bottom"
                     >
                       <span
-                        data-test="trash"
                         role="button"
                         tabIndex={0}
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.Trash />
+                        <Icons.DeleteOutlined iconSize="l" />
                       </span>
                     </Tooltip>
                   )}
@@ -499,7 +505,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share />
+                    <Icons.UploadOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -515,7 +521,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={openEditModal}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -756,7 +762,14 @@ function ChartList(props: ChartListProps) {
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Chart')}
+          <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
+            iconSize="m"
+            css={css`
+              vertical-align: text-top;
+            `}
+          />
+          <span>{t('Chart')}</span>
         </>
       ),
       buttonStyle: 'primary',
@@ -772,7 +785,10 @@ function ChartList(props: ChartListProps) {
           title={t('Import charts')}
           placement="bottomRight"
         >
-          <Icons.Import data-test="import-button" />
+          <Icons.DownloadOutlined
+            data-test="import-button"
+            iconColor={theme.colors.primary.dark1}
+          />
         </Tooltip>
       ),
       buttonStyle: 'link',
@@ -783,12 +799,14 @@ function ChartList(props: ChartListProps) {
   return (
     <>
       <SubMenu name={t('Charts')} buttons={subMenuButtons} />
-      <PropertiesModal
-        onHide={closeChartEditModal}
-        onSave={handleChartUpdated}
-        show={!!sliceCurrentlyEditing}
-        slice={sliceCurrentlyEditing}
-      />
+      {sliceCurrentlyEditing && (
+        <PropertiesModal
+          onHide={closeChartEditModal}
+          onSave={handleChartUpdated}
+          show
+          slice={sliceCurrentlyEditing}
+        />
+      )}
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t('Are you sure you want to delete the selected charts?')}

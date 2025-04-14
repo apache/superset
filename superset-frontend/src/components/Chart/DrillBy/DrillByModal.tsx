@@ -28,6 +28,7 @@ import {
   t,
   useTheme,
   ContextMenuFilters,
+  AdhocFilter,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -189,8 +190,8 @@ export default function DrillByModal({
   const initialGroupbyColumns = useMemo(
     () =>
       ensureIsArray(formData[groupbyFieldName])
-        .map(
-          colName => dataset.columns?.find(col => col.column_name === colName),
+        .map(colName =>
+          dataset.columns?.find(col => col.column_name === colName),
         )
         .filter(isDefined),
     [dataset.columns, formData, groupbyFieldName],
@@ -224,14 +225,14 @@ export default function DrillByModal({
 
   const getFormDataChangesFromConfigs = useCallback(
     (configs: DrillByConfigs) =>
-      configs.reduce(
+      configs.reduce<Record<string, any>>(
         (acc, config) => {
           if (config?.groupbyFieldName && config.column) {
             acc.formData[config.groupbyFieldName] = getNewGroupby(
               config.column,
               config.groupbyFieldName,
             );
-            acc.overridenGroupbyFields.add(config.groupbyFieldName);
+            acc.overriddenGroupbyFields.add(config.groupbyFieldName);
           }
           const adhocFilterFieldName =
             config?.adhocFilterFieldName || DEFAULT_ADHOC_FILTER_FIELD_NAME;
@@ -241,14 +242,14 @@ export default function DrillByModal({
               simpleFilterToAdhoc(filter),
             ),
           ];
-          acc.overridenAdhocFilterFields.add(adhocFilterFieldName);
+          acc.overriddenAdhocFilterFields.add(adhocFilterFieldName);
 
           return acc;
         },
         {
-          formData: {},
-          overridenGroupbyFields: new Set<string>(),
-          overridenAdhocFilterFields: new Set<string>(),
+          formData: {} as Record<string, string | string[] | Set<string>>,
+          overriddenGroupbyFields: new Set<string>(),
+          overriddenAdhocFilterFields: new Set<string>(),
         },
       ),
     [getNewGroupby],
@@ -256,7 +257,7 @@ export default function DrillByModal({
 
   const getFiltersFromConfigsByFieldName = useCallback(
     () =>
-      drillByConfigs.reduce((acc, config) => {
+      drillByConfigs.reduce<Record<string, AdhocFilter[]>>((acc, config) => {
         const adhocFilterFieldName =
           config.adhocFilterFieldName || DEFAULT_ADHOC_FILTER_FIELD_NAME;
         acc[adhocFilterFieldName] = [
@@ -288,14 +289,14 @@ export default function DrillByModal({
         if (index === 0) {
           return formData;
         }
-        const { formData: overrideFormData, overridenAdhocFilterFields } =
+        const { formData: overrideFormData, overriddenAdhocFilterFields } =
           getFormDataChangesFromConfigs(drillByConfigs.slice(0, index));
 
         const newFormData = {
           ...formData,
           ...overrideFormData,
         };
-        overridenAdhocFilterFields.forEach(adhocFilterField => ({
+        overriddenAdhocFilterFields.forEach((adhocFilterField: string) => ({
           ...newFormData,
           [adhocFilterField]: [
             ...formData[adhocFilterField],
@@ -428,7 +429,7 @@ export default function DrillByModal({
   return (
     <Modal
       css={css`
-        .ant-modal-footer {
+        .antd5-modal-footer {
           border-top: none;
         }
       `}
