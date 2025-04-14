@@ -16,6 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Typography } from 'antd-v5';
-
-export default Typography;
+export { Typography } from 'antd-v5';
+export type { TypographyProps } from 'antd-v5';

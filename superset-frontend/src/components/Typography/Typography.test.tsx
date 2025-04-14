@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import '@testing-library/jest-dom';
-import Typography from 'src/components/Typography';
+import { Typography } from 'src/components/Typography';
 
 describe('Typography Component', () => {
   test('renders Text component', () => {

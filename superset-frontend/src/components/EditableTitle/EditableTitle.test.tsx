@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, getByRole, render } from 'spec/helpers/testing-library';
+import { fireEvent, render } from 'spec/helpers/testing-library';
 import { EditableTitle } from '.';
 
 const mockEvent = {
@@ -39,7 +39,7 @@ test('should render title', () => {
 });
 
 test('should not render an input if it is not editable', () => {
-  const { queryByTestId, queryByRole } = render(
+  const { queryByTestId } = render(
     <EditableTitle title="my title" onSaveTitle={jest.fn()} />,
   );
   expect(
@@ -60,9 +60,7 @@ describe('should handle click', () => {
 
 describe('should handle change', () => {
   test('should change title', () => {
-    const { getByTestId, container } = render(
-      <EditableTitle {...mockProps} editing />,
-    );
+    const { getByTestId } = render(<EditableTitle {...mockProps} editing />);
     const textarea = getByTestId('textarea-editable-title-input');
     fireEvent.change(textarea, mockEvent);
     expect(textarea).toHaveValue('new title');
@@ -78,7 +76,7 @@ describe('should handle blur', () => {
 
   test('should trigger callback', () => {
     const callback = jest.fn();
-    const { getByTestId, container } = setup({ onSaveTitle: callback });
+    const { getByTestId } = setup({ onSaveTitle: callback });
     fireEvent.change(getByTestId('textarea-editable-title-input'), mockEvent);
     fireEvent.blur(getByTestId('textarea-editable-title-input'));
     expect(callback).toHaveBeenCalledTimes(1);
@@ -87,7 +85,7 @@ describe('should handle blur', () => {
 
   test('should not trigger callback', () => {
     const callback = jest.fn();
-    const { getByTestId, container } = setup({ onSaveTitle: callback });
+    const { getByTestId } = setup({ onSaveTitle: callback });
     fireEvent.blur(getByTestId('textarea-editable-title-input'));
     // no change
     expect(callback).not.toHaveBeenCalled();
@@ -95,7 +93,7 @@ describe('should handle blur', () => {
 
   test('should not save empty title', () => {
     const callback = jest.fn();
-    const { getByTestId, container } = setup({ onSaveTitle: callback });
+    const { getByTestId } = setup({ onSaveTitle: callback });
     const textarea = getByTestId('textarea-editable-title-input');
     fireEvent.blur(textarea);
 
