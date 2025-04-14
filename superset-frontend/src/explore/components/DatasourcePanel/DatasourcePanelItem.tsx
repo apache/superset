@@ -206,6 +206,26 @@ const DatasourcePanelItem = ({
         </SectionHeaderButton>
       )}
 
+      {item.type === 'subtitle' && (
+        <div
+          css={css`
+            display: flex;
+            gap: ${theme.gridUnit * 2}px;
+            justify-content: space-between;
+            align-items: baseline;
+          `}
+        >
+          <div
+            className="field-length"
+            css={css`
+              flex-shrink: 0;
+            `}
+          >
+            {t(`Showing %s of %s items`, item.showingItems, item.totalItems)}
+          </div>
+        </div>
+      )}
+
       {item.type === 'item' && item.item && (
         <LabelWrapper
           key={

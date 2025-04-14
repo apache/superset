@@ -26,21 +26,25 @@ import {
 } from './types';
 
 const transformToFolderStructure = (
-  metrics: MetricItem[],
-  columns: ColumnItem[],
+  metricsToDisplay: MetricItem[],
+  columnsToDisplay: ColumnItem[],
   folderConfig: DatasourceFolder[] | undefined,
+  allMetrics: Metric[],
+  allColumns: DatasourcePanelColumn[],
 ): Folder[] => {
   const metricsMap = new Map<string, MetricItem>();
   const columnsMap = new Map<string, ColumnItem>();
 
-  metrics.forEach(metric => {
+  metricsToDisplay.forEach(metric => {
     metricsMap.set(metric.uuid, metric);
   });
 
-  columns.forEach(column => {
+  columnsToDisplay.forEach(column => {
     columnsMap.set(column.uuid, column);
   });
 
+  let metricsInFolders = 0;
+  let columnsInFolders = 0;
   const processFolder = (
     datasourceFolder: DatasourceFolder,
     parentId?: string,
@@ -51,6 +55,8 @@ const transformToFolderStructure = (
       description: datasourceFolder.description,
       isCollapsed: false,
       items: [],
+      totalItems: 0,
+      showingItems: 0,
       parentId,
     };
 
@@ -61,20 +67,27 @@ const transformToFolderStructure = (
 
       datasourceFolder.children.forEach(child => {
         if (child.type === 'folder') {
-          folder.subFolders!.push(
-            processFolder(child as DatasourceFolder, folder.id),
-          );
+          const subFolder = processFolder(child as DatasourceFolder, folder.id);
+          folder.subFolders!.push(subFolder);
+          folder.totalItems += subFolder.totalItems;
+          folder.showingItems += subFolder.showingItems;
         } else if (child.type === 'metric') {
+          folder.totalItems += 1;
+          metricsInFolders += 1;
           const metric = metricsMap.get(child.uuid);
           if (metric) {
             folder.items.push(metric);
             metricsMap.delete(metric.uuid);
+            folder.showingItems += 1;
           }
         } else if (child.type === 'column') {
+          folder.totalItems += 1;
+          columnsInFolders += 1;
           const column = columnsMap.get(child.uuid);
           if (column) {
             folder.items.push(column);
             columnsMap.delete(column.uuid);
+            folder.showingItems += 1;
           }
         }
       });
@@ -89,23 +102,27 @@ const transformToFolderStructure = (
         id: 'metrics-default',
         name: t('Metrics'),
         isCollapsed: false,
-        items: metrics,
+        items: metricsToDisplay,
+        totalItems: allMetrics.length,
+        showingItems: metricsToDisplay.length,
       },
       {
         id: 'columns-default',
         name: t('Columns'),
         isCollapsed: false,
-        items: columns,
+        items: columnsToDisplay,
+        totalItems: allColumns.length,
+        showingItems: columnsToDisplay.length,
       },
     ];
   }
 
   const folders = folderConfig.map(config => processFolder(config));
 
-  const unassignedMetrics = metrics.filter(metric =>
+  const unassignedMetrics = metricsToDisplay.filter(metric =>
     metricsMap.has(metric.uuid),
   );
-  const unassignedColumns = columns.filter(column =>
+  const unassignedColumns = columnsToDisplay.filter(column =>
     columnsMap.has(column.uuid),
   );
 
@@ -115,6 +132,8 @@ const transformToFolderStructure = (
       name: t('Metrics'),
       isCollapsed: false,
       items: unassignedMetrics,
+      totalItems: allMetrics.length - metricsInFolders,
+      showingItems: unassignedMetrics.length,
     });
   }
 
@@ -124,6 +143,8 @@ const transformToFolderStructure = (
       name: t('Columns'),
       isCollapsed: false,
       items: unassignedColumns,
+      totalItems: allColumns.length - columnsInFolders,
+      showingItems: unassignedColumns.length,
     });
   }
 
@@ -131,15 +152,17 @@ const transformToFolderStructure = (
 };
 
 export const transformDatasourceWithFolders = (
-  metrics: Metric[],
-  columns: DatasourcePanelColumn[],
+  metricsToDisplay: Metric[],
+  columnsToDisplay: DatasourcePanelColumn[],
   folderConfig: DatasourceFolder[] | undefined,
+  allMetrics: Metric[],
+  allColumns: DatasourcePanelColumn[],
 ): Folder[] => {
-  const metricsWithType: MetricItem[] = metrics.map(metric => ({
+  const metricsWithType: MetricItem[] = metricsToDisplay.map(metric => ({
     ...metric,
     type: 'metric',
   }));
-  const columnsWithType: ColumnItem[] = columns.map(column => ({
+  const columnsWithType: ColumnItem[] = columnsToDisplay.map(column => ({
     ...column,
     type: 'column',
   }));
@@ -148,5 +171,7 @@ export const transformDatasourceWithFolders = (
     metricsWithType,
     columnsWithType,
     folderConfig,
+    allMetrics,
+    allColumns,
   );
 };

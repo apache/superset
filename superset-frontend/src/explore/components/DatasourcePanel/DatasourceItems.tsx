@@ -24,6 +24,7 @@ import DatasourcePanelItem from './DatasourcePanelItem';
 const BORDER_WIDTH = 2;
 const HEADER_ITEM_HEIGHT = 50;
 const METRIC_OR_COLUMN_ITEM_HEIGHT = 32;
+const SUBTITLE_ITEM_HEIGHT = 32;
 const DIVIDER_ITEM_HEIGHT = 16;
 
 const flattenFolderStructure = (
@@ -45,6 +46,14 @@ const flattenFolderStructure = (
     });
 
     if (!collapsedFolderIds.has(folder.id)) {
+      flattenedItems.push({
+        type: 'subtitle',
+        folderId: folder.id,
+        depth,
+        height: SUBTITLE_ITEM_HEIGHT,
+        totalItems: folder.totalItems,
+        showingItems: folder.showingItems,
+      });
       folder.items.forEach(item => {
         flattenedItems.push({
           type: 'item',

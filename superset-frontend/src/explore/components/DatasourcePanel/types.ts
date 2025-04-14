@@ -78,12 +78,16 @@ export interface Folder {
   items: FolderItem[];
   subFolders?: Folder[];
   parentId?: string;
+  totalItems: number;
+  showingItems: number; // items shown after filtering
 }
 
 export interface FlattenedItem {
-  type: 'header' | 'item' | 'divider';
+  type: 'header' | 'item' | 'divider' | 'subtitle';
   folderId: string;
   depth: number;
   item?: FolderItem;
   height: number;
+  totalItems?: number;
+  showingItems?: number;
 }
