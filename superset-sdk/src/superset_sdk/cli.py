@@ -2,7 +2,7 @@ import json
 import zipfile
 from pathlib import Path
 from typing import Any
-
+from tempfile import TemporaryDirectory
 import typer
 
 from superset_sdk.utils import read_json, read_toml
@@ -24,12 +24,13 @@ def bundle() -> None:
     """
     Bundle extension files into a zip file: {name}-{version}.zip
     """
-    package = read_json(Path("frontend") / "package.json")
-    input_manifest = read_json(Path("manifest.json"))
-    pyproject = read_toml(Path("backend") / "pyproject.toml")
+    current_execution_path = Path.cwd()
+    package = read_json(current_execution_path / "frontend" / "package.json")
+    input_manifest = read_json(current_execution_path / "manifest.json")
+    # pyproject = read_toml(Path("backend") / "pyproject.toml")
     output_manifest: dict[str, Any] = {}
 
-    assert pyproject
+    # assert pyproject
 
     if not input_manifest:
         typer.secho("❌ manifest.json not found.", err=True, fg=typer.colors.RED)
@@ -37,21 +38,29 @@ def bundle() -> None:
 
     output_manifest["name"] = name = input_manifest["name"]
     output_manifest["version"] = version = input_manifest["version"]
-    output_manifest["foo"] = "bar"
+    output_manifest["contributions"] = input_manifest.get("contributions", [])
+    output_manifest["extensionDependencies"] = input_manifest.get(
+        "extensionDependencies", []
+    )
+    output_manifest["moduleFederation"] = input_manifest.get("moduleFederation", {})
 
     zip_name = f"{name}-{version}.zip"
 
     try:
-        with zipfile.ZipFile(zip_name, "w", zipfile.ZIP_DEFLATED) as zipf:
-            zipf.write("manifest.json", json.dumps(output_manifest, indent=2))
+        with TemporaryDirectory() as temp_dir:
+            temp_manifest_path = Path(temp_dir) / "manifest.json"
+            temp_manifest_path.write_text(json.dumps(output_manifest, indent=2))
 
-            # bundle frontend assets
-            if package:
-                dist_path = Path("frontend") / "dist"
-                for file in dist_path.rglob("*"):
-                    if file.is_file():
-                        arcname = file.relative_to(Path.cwd())
-                        zipf.write(file, arcname)
+            with zipfile.ZipFile(zip_name, "w", zipfile.ZIP_DEFLATED) as zipf:
+                zipf.write(temp_manifest_path, "manifest.json")
+
+                # bundle frontend assets
+                if package:
+                    dist_path = current_execution_path / "frontend" / "dist"
+                    for file in dist_path.rglob("*"):
+                        if file.is_file():
+                            arcname = file.relative_to(Path.cwd())
+                            zipf.write(file, arcname)
 
     except Exception as ex:
         typer.secho(f"❌ Failed to create bundle: {ex}", err=True, fg=typer.colors.RED)

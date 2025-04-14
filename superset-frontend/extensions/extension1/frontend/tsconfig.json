@@ -8,8 +8,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@apache-superset/primitives": ["../../packages/superset-primitives/src"],
-      "@apache-superset/types": ["../../packages/superset-types/src"]
+      "@apache-superset/primitives": [
+        "../../../packages/superset-primitives/src"
+      ],
+      "@apache-superset/types": ["../../../packages/superset-types/src"]
     }
   },
   "include": ["src"]

@@ -49,13 +49,9 @@ class ExtensionsRestApi(BaseSupersetApi):
         extensions = ExtensionDAO.find_all()
         for extension in extensions:
             manifest: Manifest = json.loads(extension.manifest)
-            files = list(json.loads(extension.bundle))
+            files = list(json.loads(extension.frontend))
             remote_entry_url = f"http://localhost:9000/api/v1/extensions/{extension.name}/remoteEntry.js"
-            exposed_modules = [
-                exposed_module
-                for module in manifest.get("moduleFederation", {})
-                for exposed_module in module.get("exposes", [])
-            ]
+            exposed_modules = manifest.get("moduleFederation", {}).get("exposes", [])
             extension_data = {
                 "name": extension.name,
                 "remoteEntry": remote_entry_url,
@@ -114,7 +110,7 @@ class ExtensionsRestApi(BaseSupersetApi):
         if not extension:
             return self.response_404()
 
-        chunk = json.loads(extension.bundle).get(file)
+        chunk = json.loads(extension.frontend).get(file)
         if not chunk:
             return self.response_404()
 
