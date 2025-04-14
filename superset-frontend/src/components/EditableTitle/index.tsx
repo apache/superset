@@ -139,7 +139,7 @@ export function EditableTitle({
 
   let titleComponent = (
     <Input.TextArea
-      data-test="editable-title-input"
+      data-test="textarea-editable-title-input"
       ref={contentRef}
       value={value}
       className={!title ? 'text-muted' : undefined}
@@ -175,7 +175,7 @@ export function EditableTitle({
     titleComponent = url ? (
       <Link
         to={url}
-        data-test="editable-title-input"
+        data-test="link-title"
         css={(theme: SupersetTheme) => css`
           color: ${theme.colorText};
           text-decoration: none;
@@ -188,7 +188,7 @@ export function EditableTitle({
         {value}
       </Link>
     ) : (
-      <span data-test="editable-title-input">{value}</span>
+      <span data-test="span-title">{value}</span>
     );
   }
   return (
