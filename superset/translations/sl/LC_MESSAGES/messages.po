@@ -8814,7 +8814,7 @@ msgstr "Omejitev števila vrstic"
 msgid "Rows"
 msgstr "Vrstice"
 
-msgid "Rows per page, 0 means no pagination"
+msgid "Rows per page, All means no pagination"
 msgstr "Vrstic na stran (0 pomeni brez številčenja strani)"
 
 msgid "Rows subtotal position"

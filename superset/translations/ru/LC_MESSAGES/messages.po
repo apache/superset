@@ -8823,7 +8823,7 @@ msgstr "Лимит строк"
 msgid "Rows"
 msgstr "Строки"
 
-msgid "Rows per page, 0 means no pagination"
+msgid "Rows per page, All means no pagination"
 msgstr "Строчек на странице, 0 означает все строки"
 
 msgid "Rows subtotal position"
