@@ -72,14 +72,10 @@ def upgrade():
             ):
                 continue
 
-            if "x_axis_sort_series" in params:
-                if params["x_axis_sort_series"]:
-                    params["x_axis_sort"] = params["x_axis_sort_series"]
-
-                del params["x_axis_sort_series"]
-            if "x_axis_sort_series_ascending" in params:
-                params["x_axis_sort_asc"] = params["x_axis_sort_series_ascending"]
-                del params["x_axis_sort_series_ascending"]
+            if val := params.pop("x_axis_sort_series", None):
+                params["x_axis_sort"] = val
+            if val := params.pop("x_axis_sort_series_ascending", None):
+                params["x_axis_sort_asc"] = val
 
             slc.params = json.dumps(params, sort_keys=True)
         except Exception:  # noqa: S110
@@ -105,12 +101,10 @@ def downgrade():
             ):
                 continue
 
-            if "x_axis_sort" in params:
-                params["x_axis_sort_series"] = params["x_axis_sort"]
-                del params["x_axis_sort"]
-            if "x_axis_sort_asc" in params:
-                params["x_axis_sort_series_ascending"] = params["x_axis_sort_asc"]
-                del params["x_axis_sort_asc"]
+            if val := params.pop("x_axis_sort", None):
+                params["x_axis_sort_series"] = val
+            if val := params.pop("x_axis_sort_asc", None):
+                params["x_axis_sort_series_ascending"] = val
 
             slc.params = json.dumps(params, sort_keys=True)
         except Exception:  # noqa: S110
