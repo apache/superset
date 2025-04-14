@@ -43,7 +43,6 @@ import { useSelector } from 'react-redux';
 import { Menu } from 'src/components/Menu';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
-import downloadAsImage from 'src/utils/downloadAsImage';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Tooltip } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
@@ -58,11 +57,12 @@ import { usePermissions } from 'src/hooks/usePermissions';
 import Button from 'src/components/Button';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
+import downloadAsPdf from '../../../utils/downloadAsPdf';
 
 // TODO: replace 3 dots with an icon
 const VerticalDotsContainer = styled.div`
   padding: ${({ theme }) => theme.gridUnit / 4}px
-    ${({ theme }) => theme.gridUnit * 1.5}px;
+  ${({ theme }) => theme.gridUnit * 1.5}px;
 
   .dot {
     display: block;
@@ -91,8 +91,8 @@ const RefreshTooltip = styled.div`
   justify-content: flex-start;
 `;
 
-const getScreenshotNodeSelector = (chartId: string | number) =>
-  `.dashboard-chart-id-${chartId}`;
+// const getScreenshotNodeSelector = (chartId: string | number) =>
+//   `.dashboard-chart-id-${chartId}`;
 
 const VerticalDotsTrigger = () => (
   <VerticalDotsContainer>
@@ -189,9 +189,9 @@ const SliceHeaderControls = (
   };
 
   const handleMenuClick = ({
-    key,
-    domEvent,
-  }: {
+                             key,
+                             domEvent,
+                           }: {
     key: Key;
     domEvent: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>;
   }) => {
@@ -246,8 +246,8 @@ const SliceHeaderControls = (
         if (menu) {
           menu.style.visibility = 'hidden';
         }
-        downloadAsImage(
-          getScreenshotNodeSelector(props.slice.slice_id),
+        downloadAsPdf(
+          '.dashboard',
           props.slice.slice_name,
           true,
           // @ts-ignore
@@ -497,7 +497,7 @@ const SliceHeaderControls = (
             key={MenuKeys.DownloadAsImage}
             icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
           >
-            {t('Download as image')}
+            {t('Download as PDF')}
           </Menu.Item>
         </Menu.SubMenu>
       )}
