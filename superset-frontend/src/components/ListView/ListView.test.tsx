@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, waitFor } from 'spec/helpers/testing-library';
-import ListView from './ListView';
+import { ListView } from './ListView';
 
 const mockedProps = {
   title: 'Data Table',

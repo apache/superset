@@ -58,18 +58,22 @@ import rison from 'rison';
 import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/types';
 import { useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import { Input } from 'src/components/Input';
-import { Select } from 'src/components';
-import Collapse from 'src/components/Collapse';
-import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import { FormItem, FormInstance } from 'src/components/Form';
+import {
+  BasicErrorAlert,
+  ErrorMessageWithStackTrace,
+  FormItem,
+  type FormInstance,
+  Collapse,
+  Select,
+  Tooltip,
+  Flex,
+  Input,
+  Loading,
+} from 'src/components';
 import { Icons } from 'src/components/Icons';
-import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { Radio } from 'src/components/Radio';
 import Tabs from 'src/components/Tabs';
-import { Tooltip } from 'src/components/Tooltip';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
   Chart,
@@ -86,7 +90,6 @@ import {
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
-import { Flex } from 'src/components/Flex';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -129,6 +132,7 @@ type ControlKey = keyof PluginFilterSelectCustomizeProps;
 const controlsOrder: ControlKey[] = [
   'enableEmptyFilter',
   'defaultToFirstItem',
+  'creatable',
   'multiSelect',
   'searchAllOptions',
   'inverseSelection',

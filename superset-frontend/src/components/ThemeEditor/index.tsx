@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Modal, Tooltip, Flex, Select } from 'antd-v5';
-import Button from 'src/components/Button';
+import { Button, JsonEditor } from 'src/components';
 import {
   themeObject,
   exampleThemes,
@@ -26,7 +26,6 @@ import {
 } from '@superset-ui/core';
 import { useState } from 'react';
 import { Icons } from 'src/components/Icons';
-import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 interface ThemeEditorProps {
   initialTheme?: SupersetTheme;

@@ -18,18 +18,16 @@
  */
 /* eslint-env browser */
 import { createRef, PureComponent } from 'react';
-import { Radio } from 'src/components/Radio';
-import { RadioChangeEvent } from 'src/components';
-import { Input } from 'src/components/Input';
-import Button from 'src/components/Button';
+import { Radio, RadioChangeEvent } from 'src/components/Radio';
+import { Button, Checkbox, Input } from 'src/components';
 import { t, JsonResponse } from '@superset-ui/core';
 
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
-import Checkbox from 'src/components/Checkbox';
 import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_NEWDASHBOARD,
 } from 'src/dashboard/util/constants';
+import { navigateTo } from 'src/utils/navigationUtils';
 
 type SaveType = typeof SAVE_TYPE_OVERWRITE | typeof SAVE_TYPE_NEWDASHBOARD;
 
@@ -154,7 +152,7 @@ class SaveModal extends PureComponent<SaveModalProps, SaveModalState> {
     } else {
       this.onSave(data, dashboardId, saveType).then((resp: JsonResponse) => {
         if (saveType === SAVE_TYPE_NEWDASHBOARD && resp.json?.result?.id) {
-          window.location.href = `/superset/dashboard/${resp.json.result.id}/`;
+          navigateTo(`/superset/dashboard/${resp.json.result.id}/`);
         }
       });
       this.modal?.current?.close?.();

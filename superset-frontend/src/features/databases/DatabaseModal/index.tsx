@@ -35,22 +35,25 @@ import {
   useCallback,
   ChangeEvent,
 } from 'react';
-import { CheckboxChangeEvent } from 'src/components/Checkbox';
+import { CheckboxChangeEvent } from 'src/components/Checkbox/types';
 
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import Tabs from 'src/components/Tabs';
-import { Select } from 'src/components';
+import {
+  Alert,
+  Button,
+  ErrorMessageWithStackTrace,
+  LabeledErrorBoundInput as ValidatedInput,
+  Modal,
+  Select,
+  IconButton,
+  InfoTooltip,
+  Loading,
+} from 'src/components';
 import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
-import Alert from 'src/components/Alert';
-import Modal from 'src/components/Modal';
-import Button from 'src/components/Button';
-import { IconButton } from 'src/components/IconButton';
-import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import ErrorAlert from 'src/components/ImportModal/ErrorAlert';
+import { ErrorAlert } from 'src/components/ImportModal/ErrorAlert';
 import { Icons } from 'src/components/Icons';
 import {
   testDatabaseConnection,
@@ -62,7 +65,6 @@ import {
   useImportResource,
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/features/databases/state';
-import Loading from 'src/components/Loading';
 import { isEmpty, pick } from 'lodash';
 import { OnlyKeyWithType } from 'src/utils/types';
 import {

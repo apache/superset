@@ -16,12 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Checkbox as AntCheckbox } from 'antd-v5';
-import type {
-  CheckboxProps as AntCheckboxProps,
-  CheckboxChangeEvent as AntCheckboxChangeEvent,
-} from 'antd-v5/es/checkbox';
+import type { ReactNode } from 'react';
 
-export type CheckboxProps = AntCheckboxProps;
-export type CheckboxChangeEvent = AntCheckboxChangeEvent;
-export default AntCheckbox;
+export interface CopyToClipboardProps {
+  copyNode?: ReactNode;
+  getText?: (callback: (data: string) => void) => void;
+  onCopyEnd?: () => void;
+  shouldShowText?: boolean;
+  text?: string;
+  wrapped?: boolean;
+  tooltipText?: string;
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+  hideTooltip?: boolean;
+}

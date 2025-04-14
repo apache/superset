@@ -16,58 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { forwardRef, useEffect, ComponentType } from 'react';
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { forwardRef, useEffect } from 'react';
 
-import type {
-  Editor as OrigEditor,
-  IEditSession,
-  Position,
-  TextMode as OrigTextMode,
-} from 'brace';
+import type { IEditSession, Position } from 'brace';
 import type AceEditor from 'react-ace';
-import type { IAceEditorProps } from 'react-ace';
 
-import AsyncEsmComponent, {
-  PlaceholderProps,
-} from 'src/components/AsyncEsmComponent';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { useTheme, css } from '@superset-ui/core';
 import { Global } from '@emotion/react';
+import { AsyncEsmComponent } from '../AsyncEsmComponent';
+import type {
+  AceCompleterKeyword,
+  AceModule,
+  AsyncAceEditorOptions,
+  AsyncAceEditorProps,
+  TextMode,
+  Editor,
+} from './types';
 
 export { getTooltipHTML } from './Tooltip';
-
-export interface AceCompleterKeywordData {
-  name: string;
-  value: string;
-  score: number;
-  meta: string;
-  docText?: string;
-  docHTML?: string;
-}
-
-export type TextMode = OrigTextMode & { $id: string };
-
-export interface AceCompleter {
-  insertMatch: (
-    data?: Editor | { value: string } | string,
-    options?: AceCompleterKeywordData,
-  ) => void;
-}
-
-export type Editor = OrigEditor & {
-  completer: AceCompleter;
-  completers: AceCompleter[];
-};
-
-export interface AceCompleterKeyword extends AceCompleterKeywordData {
-  completer?: AceCompleter;
-}
 
 /**
  * Async loaders to import brace modules. Must manually create call `import(...)`
  * promises because webpack can only analyze async imports statically.
  */
-const aceModuleLoaders = {
+export const aceModuleLoaders = {
   'mode/sql': () => import('brace/mode/sql'),
   'mode/markdown': () => import('brace/mode/markdown'),
   'mode/css': () => import('brace/mode/css'),
@@ -81,28 +72,10 @@ const aceModuleLoaders = {
   'ext/searchbox': () => import('brace/ext/searchbox'),
 };
 
-export type AceModule = keyof typeof aceModuleLoaders;
-
-export type AsyncAceEditorProps = IAceEditorProps & {
-  keywords?: AceCompleterKeyword[];
-};
-
-export type AceEditorMode = 'sql';
-export type AceEditorTheme = 'textmate' | 'github';
-export type AsyncAceEditorOptions = {
-  defaultMode?: AceEditorMode;
-  defaultTheme?: AceEditorTheme;
-  defaultTabSize?: number;
-  fontFamily?: string;
-  placeholder?: ComponentType<
-    PlaceholderProps & Partial<IAceEditorProps>
-  > | null;
-};
-
 /**
  * Get an async AceEditor with automatical loading of specified ace modules.
  */
-export default function AsyncAceEditor(
+export function AsyncAceEditor(
   aceModules: AceModule[],
   {
     defaultMode,
@@ -408,3 +381,5 @@ export const ConfigEditor = AsyncAceEditor([
   'mode/yaml',
   'theme/github',
 ]);
+
+export type { AsyncAceEditorProps, Editor };

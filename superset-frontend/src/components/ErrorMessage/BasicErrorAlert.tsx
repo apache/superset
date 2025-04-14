@@ -36,7 +36,7 @@ interface BasicErrorAlertProps {
   level?: ErrorLevel;
 }
 
-export default function BasicErrorAlert({
+export function BasicErrorAlert({
   body,
   level = 'error',
   title,

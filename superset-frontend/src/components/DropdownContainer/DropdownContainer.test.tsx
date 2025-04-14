@@ -17,9 +17,9 @@
  * under the License.
  */
 import { screen, render, userEvent } from 'spec/helpers/testing-library';
-import Button from '../Button';
-import { Icons } from '../Icons';
-import DropdownContainer from '.';
+import { Icons } from 'src/components/Icons';
+import { Button } from '../Button';
+import { DropdownContainer } from '.';
 
 const generateItems = (n: number) =>
   Array.from({ length: n }).map((_, i) => ({

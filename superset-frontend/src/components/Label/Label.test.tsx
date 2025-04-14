@@ -18,7 +18,7 @@
  */
 import { fireEvent, render } from 'spec/helpers/testing-library';
 
-import Label from '.';
+import { Label } from '.';
 import { LabelGallery, options } from './Label.stories';
 
 // test the basic component

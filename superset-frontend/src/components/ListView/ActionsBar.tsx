@@ -18,8 +18,9 @@
  */
 import { ReactElement } from 'react';
 import { styled } from '@superset-ui/core';
-import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
 import { Icons, IconNameType } from 'src/components/Icons';
+import { Tooltip } from '../Tooltip';
+import { TooltipPlacement } from '../Tooltip/types';
 
 export type ActionProps = {
   label: string;
@@ -52,7 +53,7 @@ const ActionWrapper = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-export default function ActionsBar({ actions }: ActionsBarProps) {
+export function ActionsBar({ actions }: ActionsBarProps) {
   return (
     <StyledActions className="actions">
       {actions.map((action, index) => {

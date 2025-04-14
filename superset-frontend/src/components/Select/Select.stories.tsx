@@ -22,7 +22,7 @@ import { SelectOptionsType, SelectProps } from './types';
 import { Select } from '.';
 
 export default {
-  title: 'Select',
+  title: 'Components/Select',
   component: Select,
 };
 

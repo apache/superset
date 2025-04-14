@@ -24,7 +24,7 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 
 // Only import components that are directly referenced in tests
-import ListView from 'src/components/ListView/ListView';
+import { ListView } from './ListView';
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);

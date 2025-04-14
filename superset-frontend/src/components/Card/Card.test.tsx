@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, waitFor } from 'spec/helpers/testing-library';
-import Card from '.';
+import { Card } from '.';
 
 afterEach(async () => {
   // Wait for any pending effects to complete

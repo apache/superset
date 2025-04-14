@@ -18,7 +18,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { Col, Row } from './index';
+import { Col, Row } from '.';
 
 describe('Grid Component', () => {
   it('should render the grid with rows and columns', async () => {

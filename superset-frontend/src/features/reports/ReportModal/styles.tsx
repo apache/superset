@@ -18,10 +18,8 @@
  */
 
 import { styled, css, SupersetTheme } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
-import Button from 'src/components/Button';
+import { Button, CronPicker, Modal } from 'src/components';
 import { Radio } from 'src/components/Radio';
-import { CronPicker } from 'src/components/CronPicker';
 
 export const StyledModal = styled(Modal)`
   .antd5-modal-body {

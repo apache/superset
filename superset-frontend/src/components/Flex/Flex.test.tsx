@@ -18,7 +18,7 @@
  */
 
 import { render } from 'spec/helpers/testing-library';
-import { Flex } from 'src/components/Flex';
+import { Flex } from '.';
 
 test('should render', () => {
   const { container } = render(

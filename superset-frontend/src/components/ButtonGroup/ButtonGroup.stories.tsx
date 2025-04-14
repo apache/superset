@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Button, { ButtonProps } from 'src/components/Button';
-import { STYLES, SIZES } from 'src/components/Button/Button.stories';
-import ButtonGroup from './index';
+import { Button } from '../Button';
+import type { ButtonProps } from '../Button/types';
+import { STYLES, SIZES } from '../Button/Button.stories';
+import { ButtonGroup } from '.';
 
 export default {
-  title: 'ButtonGroup',
+  title: 'Components/ButtonGroup',
   component: ButtonGroup,
 };
 

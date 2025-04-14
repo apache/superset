@@ -19,7 +19,7 @@
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import FrontendNetworkErrorMessage from './FrontendNetworkErrorMessage';
+import { FrontendNetworkErrorMessage } from './FrontendNetworkErrorMessage';
 
 jest.mock(
   'src/components/Icons/AsyncIcon',

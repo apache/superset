@@ -37,13 +37,16 @@ import {
 } from '@superset-ui/core';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
 import Tabs from 'src/components/Tabs';
-import Button from 'src/components/Button';
-import { Select } from 'src/components';
+import {
+  Button,
+  Form,
+  FormItem,
+  Select,
+  SQLEditor,
+  EmptyState,
+} from 'src/components';
 
-import { Form, FormItem } from 'src/components/Form';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
-import { SQLEditor } from 'src/components/AsyncAceEditor';
-import { EmptyState } from 'src/components/EmptyState';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import {

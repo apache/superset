@@ -17,8 +17,8 @@
  * under the License.
  */
 import { Icons } from 'src/components/Icons';
-import Label from 'src/components/Label';
 import { t, useTheme } from '@superset-ui/core';
+import { Label } from '..';
 
 // Define props for the PublishedLabel component
 interface PublishedLabelProps {
@@ -26,7 +26,7 @@ interface PublishedLabelProps {
   onClick?: () => void; // Optional click handler
 }
 
-const PublishedLabel: React.FC<PublishedLabelProps> = ({
+export const PublishedLabel: React.FC<PublishedLabelProps> = ({
   isPublished,
   onClick,
 }) => {
@@ -45,5 +45,3 @@ const PublishedLabel: React.FC<PublishedLabelProps> = ({
     </Label>
   );
 };
-
-export default PublishedLabel;

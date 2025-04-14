@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Global } from '@emotion/react';
 import { css, useTheme } from '@superset-ui/core';
 
@@ -27,61 +27,20 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 import copyTextToClipboard from 'src/utils/copy';
-import ErrorBoundary from 'src/components/ErrorBoundary';
+import { ErrorBoundary } from '../ErrorBoundary';
 
 import { PIVOT_COL_ID, GridSize } from './constants';
-import Header from './Header';
+import { Header } from './Header';
+import type { TableProps } from './types';
 
 const gridComponents = {
   agColumnHeader: Header,
 };
 
-export { GridSize };
-
-export type ColDef = {
-  type: string;
-  field: string;
-};
-
-export interface TableProps<RecordType> {
-  /**
-   * Data that will populate the each row and map to the column key.
-   */
-  data: RecordType[];
-  /**
-   * Table column definitions.
-   */
-  columns: {
-    label: string;
-    headerName?: string;
-    width?: number;
-    comparator?: (valueA: string | number, valueB: string | number) => number;
-    render?: (value: any) => ReactNode;
-  }[];
-
-  size?: GridSize;
-
-  externalFilter?: AgGridReactProps['doesExternalFilterPass'];
-
-  height: number;
-
-  columnReorderable?: boolean;
-
-  sortable?: boolean;
-
-  enableActions?: boolean;
-
-  showRowNumber?: boolean;
-
-  usePagination?: boolean;
-
-  striped?: boolean;
-}
-
 const onSortChanged: AgGridReactProps['onSortChanged'] = ({ api }) =>
   api.refreshCells();
 
-function GridTable<RecordType extends object>({
+export function GridTable<RecordType extends object>({
   data,
   columns,
   sortable = true,
@@ -261,4 +220,4 @@ function GridTable<RecordType extends object>({
   );
 }
 
-export default GridTable;
+export type { TableProps };

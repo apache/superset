@@ -80,7 +80,7 @@ InteractivePopoverDropdown.argTypes = {
 };
 
 export default {
-  title: 'PopoverDropdown',
+  title: 'Components/PopoverDropdown',
   includeStories: ['InteractivePopoverDropdown'],
   args: {
     value: OPTIONS[0].value,

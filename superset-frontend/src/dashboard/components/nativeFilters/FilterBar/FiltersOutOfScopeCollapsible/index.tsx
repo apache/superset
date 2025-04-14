@@ -18,7 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { css, Divider, Filter, SupersetTheme, t } from '@superset-ui/core';
-import Collapse from 'src/components/Collapse';
+import { Collapse } from 'src/components';
 
 export interface FiltersOutOfScopeCollapsibleProps {
   filtersOutOfScope: (Filter | Divider)[];

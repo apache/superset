@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip } from 'src/components';
 import { styled, t } from '@superset-ui/core';
 
 type Database = {

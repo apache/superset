@@ -18,15 +18,17 @@
  */
 import { ReactNode, ReactElement } from 'react';
 import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
-import { Dropdown, DropdownProps } from 'src/components/Dropdown';
-import { TooltipPlacement } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
-import DynamicEditableTitle, {
-  DynamicEditableTitleProps,
-} from '../DynamicEditableTitle';
-import CertifiedBadge, { CertifiedBadgeProps } from '../CertifiedBadge';
-import FaveStar, { FaveStarProps } from '../FaveStar';
-import Button from '../Button';
+import type { DropdownProps } from '../Dropdown/types';
+import type { TooltipPlacement } from '../Tooltip/types';
+import type { CertifiedBadgeProps } from '../CertifiedBadge/types';
+import type { DynamicEditableTitleProps } from '../DynamicEditableTitle/types';
+import type { FaveStarProps } from '../FaveStar/types';
+import { FaveStar } from '../FaveStar';
+import { DynamicEditableTitle } from '../DynamicEditableTitle';
+import { Dropdown } from '../Dropdown';
+import { CertifiedBadge } from '../CertifiedBadge';
+import { Button } from '../Button';
 
 export const menuTriggerStyles = (theme: SupersetTheme) => css`
   width: ${theme.sizeUnit * 8}px;

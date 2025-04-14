@@ -17,8 +17,8 @@
  * under the License.
  */
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
-import Button from 'src/components/Button';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import { Button } from '../Button';
+import { ConfirmStatusChange } from '.';
 
 const mockedProps = {
   title: 'please confirm',

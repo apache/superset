@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, SupersetTheme, useTheme } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip } from 'src/components';
 import { Icons } from 'src/components/Icons';
 import { AlertState } from '../types';
 

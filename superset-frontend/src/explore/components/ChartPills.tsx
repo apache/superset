@@ -19,14 +19,13 @@
 import { forwardRef, RefObject } from 'react';
 import { css, QueryData, SupersetTheme } from '@superset-ui/core';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
-import CachedLabel from 'src/components/CachedLabel';
+import { CachedLabel, type LabelType } from 'src/components';
 import Timer from 'src/components/Timer';
-import { Type } from 'src/components/Label';
 
 const CHART_STATUS_MAP = {
-  failed: 'danger' as Type,
-  loading: 'warning' as Type,
-  success: 'success' as Type,
+  failed: 'danger' as LabelType,
+  loading: 'warning' as LabelType,
+  success: 'success' as LabelType,
 };
 
 export type ChartPillsProps = {

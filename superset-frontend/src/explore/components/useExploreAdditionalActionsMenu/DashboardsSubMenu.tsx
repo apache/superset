@@ -18,7 +18,7 @@
  */
 import { useState } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
-import { Input } from 'src/components/Input';
+import { Input } from 'src/components';
 import { Icons } from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
 import { Link } from 'react-router-dom';

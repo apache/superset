@@ -22,8 +22,7 @@ import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { styled, t } from '@superset-ui/core';
 
-import { EmptyState } from 'src/components/EmptyState';
-import EditableTitle from 'src/components/EditableTitle';
+import { EditableTitle, EmptyState } from 'src/components';
 import { setEditMode } from 'src/dashboard/actions/dashboardState';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';

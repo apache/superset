@@ -27,9 +27,7 @@ import {
   saveCrossFiltersSetting,
 } from 'src/dashboard/actions/dashboardInfo';
 import { Icons } from 'src/components/Icons';
-import Checkbox from 'src/components/Checkbox';
-import { Dropdown } from 'src/components/Dropdown';
-import Button from 'src/components/Button';
+import { Button, Checkbox, Dropdown } from 'src/components';
 import { Space } from 'src/components/Space';
 import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';

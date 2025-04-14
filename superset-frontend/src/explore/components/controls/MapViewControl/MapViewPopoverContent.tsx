@@ -17,8 +17,7 @@
  * under the License.
  */
 import { css, styled, t } from '@superset-ui/core';
-import { Form } from 'src/components/Form';
-import Button from 'src/components/Button';
+import { Button, Form } from 'src/components';
 import { FC, useEffect, useState } from 'react';
 import { mix } from 'polished';
 import { MapViewConfigs, MapViewPopoverContentProps } from './types';

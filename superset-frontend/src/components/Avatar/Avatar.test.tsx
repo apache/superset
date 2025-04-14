@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
-import { Avatar } from 'src/components/Avatar';
+import { Avatar } from '.';
 
 test('renders with default props', async () => {
   const { container } = render(<Avatar />);

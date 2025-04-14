@@ -17,12 +17,13 @@
  * under the License.
  */
 import { configure as configureTranslation } from '@superset-ui/core';
-import CertifiedBadge, { CertifiedBadgeProps } from '.';
+import { CertifiedBadge } from '.';
+import type { CertifiedBadgeProps } from './types';
 
 configureTranslation();
 
 export default {
-  title: 'CertifiedBadgeWithTooltip',
+  title: 'Components/CertifiedBadgeWithTooltip',
 };
 
 export const InteractiveIcon = (args: CertifiedBadgeProps) => (

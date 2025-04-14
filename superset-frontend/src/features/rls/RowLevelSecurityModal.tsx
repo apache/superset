@@ -18,14 +18,17 @@
  */
 
 import { css, styled, SupersetClient, useTheme, t } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Icons } from 'src/components/Icons';
-import { Select, AsyncSelect } from 'src/components';
-import { Input } from 'src/components/Input';
+import {
+  Modal,
+  Select,
+  AsyncSelect,
+  InfoTooltip,
+  LabeledErrorBoundInput,
+  Input,
+} from 'src/components';
 import rison from 'rison';
-import { LabeledErrorBoundInput } from 'src/components/Form';
-import InfoTooltip from 'src/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { FILTER_OPTIONS } from './constants';
 import { FilterType, RLSObject, RoleObject, TableObject } from './types';

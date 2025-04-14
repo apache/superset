@@ -28,7 +28,7 @@ import {
 import { useSelector } from 'react-redux';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { Icons } from 'src/components/Icons';
-import Button from 'src/components/Button';
+import { Button } from 'src/components';
 import { FilterTitle } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitleContainer';
 import { NEW_CHART_SCOPING_ID } from './constants';
 

@@ -20,16 +20,9 @@
 import { useCallback, useEffect, MouseEvent } from 'react';
 
 import { css, t, styled, useTheme } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
-
-export interface FaveStarProps {
-  itemId: number;
-  isStarred?: boolean;
-  showTooltip?: boolean;
-  saveFaveStar(id: number, isStarred: boolean): any;
-  fetchFaveStar?: (id: number) => void;
-}
+import { Tooltip } from '../Tooltip';
+import type { FaveStarProps } from './types';
 
 const StyledLink = styled.a`
   ${({ theme }) => css`
@@ -39,7 +32,7 @@ const StyledLink = styled.a`
   `};
 `;
 
-const FaveStar = ({
+export const FaveStar = ({
   itemId,
   isStarred,
   showTooltip,
@@ -96,4 +89,5 @@ const FaveStar = ({
 
   return content;
 };
-export default FaveStar;
+
+export type { FaveStarProps };
