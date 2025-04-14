@@ -45,11 +45,7 @@ const titleStyles = (theme: SupersetTheme) => css`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  & .dynamic-title-input {
-    border: none;
     padding: 0;
-    outline: none;
     color: ${theme.colorText};
     background-color: ${theme.colorBgContainer};
 
