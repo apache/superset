@@ -99,7 +99,6 @@ const Select = forwardRef(
       headerPosition = 'top',
       helperText,
       invertSelection = false,
-      showExcludeSelection = false,
       labelInValue = false,
       loading,
       mode = 'single',

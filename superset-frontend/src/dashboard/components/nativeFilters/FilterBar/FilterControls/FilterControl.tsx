@@ -109,7 +109,9 @@ const HorizontalOverflowFilterControlContainer = styled(
   }
 `;
 
-const VerticalFormItem = styled(StyledFormItem)`
+const VerticalFormItem = styled(StyledFormItem)<{
+  inverseSelection: boolean;
+}>`
   .ant-form-item-label {
     overflow: visible;
     label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
@@ -118,10 +120,18 @@ const VerticalFormItem = styled(StyledFormItem)`
       }
     }
   }
+
+  .ant-form-item-control-input-content {
+    ${({ inverseSelection }) => inverseSelection && 'display: flex;'}
+  }
+
+  .select-container {
+    width: ${({ theme }) => theme.gridUnit * 35}px;
+  }
 `;
 
 const HorizontalFormItem = styled(StyledFormItem)<{
-  showExcludeSelection: boolean;
+  inverseSelection: boolean;
 }>`
   && {
     margin-bottom: 0;
@@ -144,17 +154,17 @@ const HorizontalFormItem = styled(StyledFormItem)<{
   }
 
   .ant-form-item-control {
-    width: ${({ theme, showExcludeSelection }) =>
-      showExcludeSelection ? theme.gridUnit * 41 * 2 : theme.gridUnit * 41}px;
+    width: ${({ theme, inverseSelection }) =>
+      inverseSelection ? theme.gridUnit * 41 * 1.6 : theme.gridUnit * 41}px;
   }
 
   .ant-form-item-control-input-content {
-    ${({ showExcludeSelection }) => showExcludeSelection && 'display: flex;'}
+    ${({ inverseSelection }) => inverseSelection && 'display: flex;'}
   }
 
   .select-container {
-    ${({ showExcludeSelection, theme }) =>
-      showExcludeSelection &&
+    ${({ inverseSelection, theme }) =>
+      inverseSelection &&
       `
       width: ${theme.gridUnit * 41}px;
     `}
@@ -170,14 +180,20 @@ const HorizontalOverflowFormItem = VerticalFormItem;
 const useFilterControlDisplay = (
   orientation: FilterBarOrientation,
   overflow: boolean,
-  showExcludeSelection: boolean,
+  inverseSelection: boolean,
 ) =>
   useMemo(() => {
     if (orientation === FilterBarOrientation.Horizontal) {
       if (overflow) {
         return {
           FilterControlContainer: HorizontalOverflowFilterControlContainer,
-          FormItem: HorizontalOverflowFormItem,
+          // FormItem: HorizontalOverflowFormItem,
+          FormItem: (props: any) => (
+            <HorizontalOverflowFormItem
+              {...props}
+              inverseSelection={inverseSelection}
+            />
+          ),
           FilterControlTitleBox: HorizontalOverflowFilterControlTitleBox,
           FilterControlTitle: HorizontalOverflowFilterControlTitle,
         };
@@ -185,10 +201,7 @@ const useFilterControlDisplay = (
       return {
         FilterControlContainer: HorizontalFilterControlContainer,
         FormItem: (props: any) => (
-          <HorizontalFormItem
-            {...props}
-            showExcludeSelection={showExcludeSelection}
-          />
+          <HorizontalFormItem {...props} inverseSelection={inverseSelection} />
         ),
         FilterControlTitleBox: HorizontalFilterControlTitleBox,
         FilterControlTitle: HorizontalFilterControlTitle,
@@ -196,11 +209,13 @@ const useFilterControlDisplay = (
     }
     return {
       FilterControlContainer: VerticalFilterControlContainer,
-      FormItem: VerticalFormItem,
+      FormItem: (props: any) => (
+        <VerticalFormItem {...props} inverseSelection={inverseSelection} />
+      ),
       FilterControlTitleBox: VerticalFilterControlTitleBox,
       FilterControlTitle: VerticalFilterControlTitle,
     };
-  }, [orientation, overflow, showExcludeSelection]);
+  }, [orientation, overflow, inverseSelection]);
 
 const ToolTipContainer = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.m}px;
@@ -268,14 +283,14 @@ const FilterControl = ({
     checkIsMissingRequiredValue(filter, filter.dataMask?.filterState);
   const validateStatus = isMissingRequiredValue ? 'error' : undefined;
   const isRequired = !!filter.controlValues?.enableEmptyFilter;
-  const showExcludeSelection = !!filter.controlValues?.showExcludeSelection;
+  const inverseSelection = !!filter.controlValues?.inverseSelection;
 
   const {
     FilterControlContainer,
     FormItem,
     FilterControlTitleBox,
     FilterControlTitle,
-  } = useFilterControlDisplay(orientation, overflow, showExcludeSelection);
+  } = useFilterControlDisplay(orientation, overflow, inverseSelection);
 
   const label = useMemo(
     () => (

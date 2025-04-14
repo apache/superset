@@ -30,30 +30,18 @@ import {
   t,
   tn,
   styled,
-  css,
 } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
-import { debounce } from 'lodash';
+import { debounce, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
-import { Select } from 'src/components';
+import { Select, Select as AntSelect } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import Checkbox from 'src/components/Checkbox/Checkbox';
-import { Tooltip } from 'src/components/Tooltip';
-import { Icons } from 'src/components/Icons';
-import { useSelector } from 'react-redux';
-import { RootState } from 'src/views/store';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
 import { PluginFilterSelectProps, SelectValue } from './types';
-
-const EXCLUDE_FILTER_VALUES_TOOLTIP = (filterName: string) =>
-  t(
-    'Check this box to exclude the selected %s values from the results instead of filtering them',
-    filterName,
-  );
 
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
@@ -94,31 +82,15 @@ function reducer(draft: DataMask, action: DataMaskAction) {
   }
 }
 
-const CheckBoxControlWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  margin-left: 8px;
-  margin-top: 8px;
-
-  [role='checkbox'] {
-    margin-top: 4px;
-  }
-
-  span[data-test='exclude-filter-label'] {
-    font-size: 12px;
+const AntSelectWrapper = styled.div`
+  .select-container {
+    width: ${({ theme }) => theme.gridUnit * 20}px !important;
+    margin-right: 8px;
   }
 `;
 
-const iconStyles = css`
-  &.anticon {
-    font-size: unset;
-    .anticon {
-      line-height: unset;
-      vertical-align: unset;
-    }
-  }
+const StyledAntSelect = styled(AntSelect)`
+  margin-right: 8px;
 `;
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
@@ -149,15 +121,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     inverseSelection,
     defaultToFirstItem,
     searchAllOptions,
-    showExcludeSelection,
   } = formData;
-  const filterName = useSelector(({ nativeFilters }: RootState) => {
-    const filterId = formData?.nativeFilterId;
-    if (!filterId || !nativeFilters?.filters) {
-      return '';
-    }
-    return nativeFilters.filters[filterId]?.name ?? '';
-  });
 
   const groupby = useMemo(
     () => ensureIsArray(formData.groupby).map(getColumnLabel),
@@ -179,7 +143,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [data, col],
   );
   const [excludeFilterValues, setExcludeFilterValues] = useState(
-    !!filterState?.excludeFilterValues,
+    isUndefined(filterState?.excludeFilterValues)
+      ? true
+      : filterState?.excludeFilterValues,
   );
 
   const updateDataMask = useCallback(
@@ -194,7 +160,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           col,
           values,
           emptyFilter,
-          excludeFilterValues || inverseSelection,
+          excludeFilterValues && inverseSelection,
         ),
         filterState: {
           ...filterState,
@@ -346,10 +312,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
 
-  const handleExcludeCheckboxChange = (checked: boolean) => {
-    setExcludeFilterValues(checked);
-  };
-
   useEffect(() => {
     dispatchDataMask({
       type: 'filterState',
@@ -357,7 +319,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         col,
         filterState.value,
         !filterState.value?.length,
-        excludeFilterValues,
+        excludeFilterValues && inverseSelection,
       ),
       filterState: {
         ...(filterState as {
@@ -370,12 +332,29 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     });
   }, [excludeFilterValues]);
 
+  const handleIsNotChange = useCallback((value: string) => {
+    setExcludeFilterValues(value === 'true');
+  }, []);
+
   return (
     <FilterPluginStyle height={height} width={width}>
       <StyledFormItem
         validateStatus={filterState.validateStatus}
         extra={formItemExtra}
       >
+        {inverseSelection && (
+          <AntSelectWrapper>
+            <StyledAntSelect
+              value={`${excludeFilterValues}`}
+              options={[
+                { value: 'true', label: 'is not' },
+                { value: 'false', label: 'is' },
+              ]}
+              onChange={handleIsNotChange}
+            />
+          </AntSelectWrapper>
+        )}
+
         <Select
           name={formData.nativeFilterId}
           allowClear
@@ -403,40 +382,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           ref={inputRef}
           loading={isRefreshing}
           oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
-          invertSelection={inverseSelection}
-          showExcludeSelection={showExcludeSelection}
+          invertSelection={inverseSelection && excludeFilterValues}
           options={options}
           sortComparator={sortComparator}
           onDropdownVisibleChange={setFilterActive}
         />
-        {showExcludeSelection && (
-          <CheckBoxControlWrapper
-            className="exclude-filter"
-            onClick={() => handleExcludeCheckboxChange(!excludeFilterValues)}
-            data-test="exclude-filter-wrapper"
-          >
-            <Checkbox
-              dataTestAttribute="exclude-filter-checkbox"
-              checked={excludeFilterValues}
-              onChange={handleExcludeCheckboxChange}
-            />
-            <span data-test="exclude-filter-label">
-              {filterBarOrientation === FilterBarOrientation.Horizontal
-                ? t('Exclude Values')
-                : t('Exclude Filter Values')}
-            </span>
-            <Tooltip
-              id="exclude-filter-tooltip"
-              title={EXCLUDE_FILTER_VALUES_TOOLTIP(filterName)}
-              placement="top"
-            >
-              <Icons.InfoCircleOutlined
-                css={iconStyles}
-                data-test="info-circle"
-              />
-            </Tooltip>
-          </CheckBoxControlWrapper>
-        )}
       </StyledFormItem>
     </FilterPluginStyle>
   );
