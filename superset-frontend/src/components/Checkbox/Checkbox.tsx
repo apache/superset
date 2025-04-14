@@ -25,7 +25,6 @@ export interface CheckboxProps {
   onChange: (val?: boolean) => void;
   style?: CSSProperties;
   className?: string;
-  dataTestAttribute?: string;
 }
 
 const Styles = styled.span`
@@ -40,7 +39,6 @@ export default function Checkbox({
   onChange,
   style,
   className,
-  dataTestAttribute,
 }: CheckboxProps) {
   return (
     <Styles
@@ -53,7 +51,6 @@ export default function Checkbox({
       aria-checked={checked}
       aria-label="Checkbox"
       className={className || ''}
-      data-test={dataTestAttribute}
     >
       {checked ? <CheckboxChecked /> : <CheckboxUnchecked />}
     </Styles>

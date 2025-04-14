@@ -135,12 +135,10 @@ export interface BaseSelectProps extends AntdExposedProps {
    * False by default.
    */
   invertSelection?: boolean;
-
   /**
    * Customize how filtered options are sorted while users search.
    * Will not apply to predefined `options` array when users are not searching.
    */
-
   sortComparator?: (
     a: AntdLabeledValue,
     b: AntdLabeledValue,
