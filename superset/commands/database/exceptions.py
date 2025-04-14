@@ -138,6 +138,15 @@ class DatabaseConnectionFailedError(  # pylint: disable=too-many-ancestors
     message = _("Connection failed, please check your connection settings")
 
 
+class MissingOAuth2TokenError(DatabaseUpdateFailedError):
+    """
+    Exception for when the connection is missing an OAuth2 token
+    and it's not possible to initiate an OAuth2 dance.
+    """
+
+    message = _("Missing OAuth2 token")
+
+
 class DatabaseDeleteDatasetsExistFailedError(DeleteFailedError):
     message = _("Cannot delete a database that has datasets attached")
 
