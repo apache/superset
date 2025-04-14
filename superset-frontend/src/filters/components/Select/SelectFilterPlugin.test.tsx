@@ -106,7 +106,7 @@ describe('SelectFilterPlugin', () => {
               filterState: {
                 value: ['boy'],
                 label: 'boy',
-                excludeFilterValues: false,
+                excludeFilterValues: true,
               },
             },
           },
@@ -133,10 +133,12 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: 'boy',
         value: ['boy'],
-        excludeFilterValues: false,
+        excludeFilterValues: true,
       },
     });
-    userEvent.click(screen.getByRole('combobox'));
+
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
     userEvent.click(screen.getByTitle('girl'));
     expect(await screen.findByTitle(/girl/i)).toBeInTheDocument();
     expect(setDataMask).toHaveBeenCalledWith({
@@ -152,7 +154,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: 'boy, girl',
         value: ['boy', 'girl'],
-        excludeFilterValues: false,
+        excludeFilterValues: true,
       },
     });
   });
@@ -178,7 +180,7 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: undefined,
         value: null,
-        excludeFilterValues: false,
+        excludeFilterValues: true,
       },
     });
   });
@@ -196,14 +198,18 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: undefined,
         value: null,
-        excludeFilterValues: false,
+        excludeFilterValues: true,
       },
     });
   });
 
   test('Select single values with inverse', async () => {
     getWrapper({ multiSelect: false, inverseSelection: true });
-    userEvent.click(screen.getByRole('combobox'));
+
+    // Get the main filter select (second combobox)
+    const filterSelect = screen.getAllByRole('combobox')[1];
+    userEvent.click(filterSelect);
+
     expect(await screen.findByTitle('girl')).toBeInTheDocument();
     userEvent.click(screen.getByTitle('girl'));
     expect(setDataMask).toHaveBeenCalledWith({
@@ -219,14 +225,15 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: 'girl (excluded)',
         value: ['girl'],
-        excludeFilterValues: false,
+        excludeFilterValues: true,
       },
     });
   });
 
   test('Select single null (empty) value', async () => {
     getWrapper();
-    userEvent.click(screen.getByRole('combobox'));
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     userEvent.click(screen.getByTitle(NULL_STRING));
     expect(setDataMask).toHaveBeenLastCalledWith({
@@ -242,14 +249,15 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: `boy, ${NULL_STRING}`,
         value: ['boy', null],
-        excludeFilterValues: false,
+        excludeFilterValues: true,
       },
     });
   });
 
   test('receives the correct filter when search all options', async () => {
     getWrapper({ searchAllOptions: true, multiSelect: false });
-    userEvent.click(screen.getByRole('combobox'));
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     userEvent.click(screen.getByTitle('girl'));
     expect(setDataMask).toHaveBeenLastCalledWith(
@@ -266,14 +274,14 @@ describe('SelectFilterPlugin', () => {
       }),
     );
   });
+
   test('number of fired queries when searching', async () => {
     getWrapper({ searchAllOptions: true });
-    userEvent.click(screen.getByRole('combobox'));
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     await userEvent.type(screen.getByRole('combobox'), 'a');
-    // Closes the select
     userEvent.tab();
-    // One call for the search term and other for the empty search
     expect(setDataMask).toHaveBeenCalledTimes(2);
   });
 
@@ -308,88 +316,49 @@ describe('SelectFilterPlugin', () => {
               filterState: {
                 value: [],
                 label: '',
-                excludeFilterValues: false,
+                excludeFilterValues: true,
               },
             },
           },
         },
       },
     );
-    userEvent.click(screen.getByRole('combobox'));
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     await userEvent.type(screen.getByRole('combobox'), '1');
     expect(screen.queryByLabelText(String(bigValue))).toBeInTheDocument();
   });
 
-  test('Exclude filter checkbox is not visible when showExcludeSelection is false', () => {
-    getWrapper({ showExcludeSelection: false });
-    expect(
-      screen.queryByTestId('exclude-filter-checkbox'),
-    ).not.toBeInTheDocument();
+  test('Is/Is Not select is visible when inverseSelection is true', () => {
+    getWrapper({ inverseSelection: true });
+    expect(screen.getByText('is not')).toBeInTheDocument();
   });
 
-  test('Exclude filter checkbox is visible when showExcludeSelection is true', () => {
-    getWrapper({ showExcludeSelection: true });
-    expect(screen.getByTestId('exclude-filter-checkbox')).toBeInTheDocument();
+  test('Is/Is Not select is not visible when inverseSelection is false', () => {
+    getWrapper({ inverseSelection: false });
+    expect(screen.queryByText('is not')).not.toBeInTheDocument();
   });
 
-  test('Exclude filter checkbox toggles correctly', async () => {
-    getWrapper({ showExcludeSelection: true });
-    const checkbox = screen.getByTestId('exclude-filter-checkbox');
-    expect(checkbox).not.toBeChecked();
+  test('Is/Is Not select toggles correctly', async () => {
+    getWrapper({ inverseSelection: true });
 
-    userEvent.click(checkbox);
-    expect(checkbox).toBeChecked();
+    const isNotSelect = screen.getByText('is not');
+    expect(isNotSelect).toBeInTheDocument();
 
-    userEvent.click(checkbox);
-    expect(checkbox).not.toBeChecked();
-  });
+    // Click to open dropdown
+    userEvent.click(isNotSelect);
 
-  test('Exclude filter checkbox updates data mask when toggled', async () => {
-    getWrapper({
-      showExcludeSelection: true,
-      filterState: { value: ['boy'] },
-    });
+    // Click "is" option
+    userEvent.click(screen.getByText('is'));
 
-    const checkbox = screen.getByTestId('exclude-filter-checkbox');
-    userEvent.click(checkbox);
-
-    expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {
-        filters: [
-          {
-            col: 'gender',
-            op: 'NOT IN',
-            val: ['boy'],
-          },
-        ],
-      },
-      filterState: {
-        label: 'boy',
-        value: ['boy'],
-        excludeFilterValues: true,
-      },
-    });
-  });
-
-  test('Exclude filter checkbox shows correct tooltip', async () => {
-    getWrapper({
-      showExcludeSelection: true,
-      formData: {
-        ...selectMultipleProps.formData,
-        nativeFilterId: 'test-filter',
-      },
-    });
-
-    const tooltipIcon = screen.getByTestId('info-circle');
-    expect(tooltipIcon).toBeInTheDocument();
-
-    userEvent.hover(tooltipIcon);
-
-    const tooltip = await screen.findByRole('tooltip');
-    expect(tooltip).toBeInTheDocument();
-    expect(tooltip).toHaveTextContent(
-      'Check this box to exclude the selected Test Filter values from the results instead of filtering them',
+    // Should update excludeFilterValues to false
+    expect(setDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({
+          excludeFilterValues: false,
+        }),
+      }),
     );
   });
 });
