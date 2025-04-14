@@ -25,6 +25,8 @@ import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
 
+const DEFAULT_BACKGROUND_COLOR = 'rgb(255, 255, 255)';
+
 describe('plugin-chart-table', () => {
   describe('transformProps', () => {
     it('should parse pageLength to pageSize', () => {
@@ -447,7 +449,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           'rgba(172, 225, 196, 1)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          DEFAULT_BACKGROUND_COLOR,
+        );
       });
 
       it('render cell without color', () => {
@@ -487,9 +491,11 @@ describe('plugin-chart-table', () => {
           'rgba(172, 225, 196, 0.812)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          '',
+          DEFAULT_BACKGROUND_COLOR,
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+          DEFAULT_BACKGROUND_COLOR,
+        );
       });
       it('should display originalLabel in grouped headers', () => {
         const props = transformProps(testData.comparison);
