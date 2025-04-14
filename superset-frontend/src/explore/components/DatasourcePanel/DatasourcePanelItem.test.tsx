@@ -69,6 +69,7 @@ const mockData: DatasourcePanelItemProps['data'] = {
   ]),
   width: 300,
   onToggleCollapse: jest.fn(),
+  collapsedFolderIds: new Set(),
 };
 
 const setup = (data: DatasourcePanelItemProps['data'] = mockData) =>

@@ -399,7 +399,7 @@ test('Collapse folders', () => {
     },
   );
 
-  userEvent.click(screen.getAllByRole('button')[0]);
+  userEvent.click(screen.getByText('Test folder'));
 
   expect(screen.getByText('Test folder')).toBeInTheDocument();
   expect(screen.queryByText('Test nested folder')).not.toBeInTheDocument();
@@ -409,7 +409,7 @@ test('Collapse folders', () => {
 
   expect(screen.queryByText(metrics[0].metric_name)).not.toBeInTheDocument();
 
-  userEvent.click(screen.getAllByRole('button')[0]);
+  userEvent.click(screen.getByText('Test folder'));
 
   expect(screen.getByText('Test folder')).toBeInTheDocument();
   expect(screen.getByText('Test nested folder')).toBeInTheDocument();

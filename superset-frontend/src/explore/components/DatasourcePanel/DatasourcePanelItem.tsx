@@ -16,11 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CSSProperties } from 'react';
+import { CSSProperties, ReactNode, useCallback } from 'react';
 
-import { css, styled, useTheme } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  t,
+  useCSSTextTruncation,
+  useTheme,
+} from '@superset-ui/core';
 
 import { Icons } from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { DndItemValue, FlattenedItem, Folder } from './types';
@@ -70,14 +77,18 @@ const LabelWrapper = styled.div`
 `;
 
 const SectionHeaderButton = styled.button`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   border: none;
   background: transparent;
   width: 100%;
   height: 100%;
   padding-inline: 0;
+`;
+
+const SectionHeaderTextContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 `;
 
 const SectionHeader = styled.span`
@@ -86,6 +97,12 @@ const SectionHeader = styled.span`
     font-size: ${theme.typography.sizes.m}px;
     font-weight: ${theme.typography.weights.medium};
     line-height: 1.3;
+    text-align: left;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
   `}
 `;
 
@@ -122,6 +139,42 @@ const DatasourcePanelItem = ({
   } = data;
   const item = flattenedItems[index];
   const theme = useTheme();
+  const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>({
+    isVertical: true,
+    isHorizontal: false,
+  });
+
+  const getTooltipNode = useCallback(
+    (folder: Folder) => {
+      let tooltipNode: ReactNode | null = null;
+      if (labelIsTruncated) {
+        tooltipNode = (
+          <div>
+            <b>{t('Name')}:</b> {folder.name}
+          </div>
+        );
+      }
+      if (folder.description) {
+        tooltipNode = (
+          <div>
+            {tooltipNode}
+            <div
+              css={
+                tooltipNode &&
+                css`
+                  margin-top: ${theme.gridUnit}px;
+                `
+              }
+            >
+              <b>{t('Description')}:</b> {folder.description}
+            </div>
+          </div>
+        );
+      }
+      return tooltipNode;
+    },
+    [labelIsTruncated],
+  );
 
   if (!item) return null;
 
@@ -140,12 +193,16 @@ const DatasourcePanelItem = ({
     >
       {item.type === 'header' && (
         <SectionHeaderButton onClick={() => onToggleCollapse(folder.id)}>
-          <SectionHeader>{folder.name}</SectionHeader>
-          {collapsedFolderIds.has(folder.id) ? (
-            <Icons.DownOutlined iconSize="s" />
-          ) : (
-            <Icons.UpOutlined iconSize="s" />
-          )}
+          <Tooltip title={getTooltipNode(folder)}>
+            <SectionHeaderTextContainer>
+              <SectionHeader ref={labelRef}>{folder.name}</SectionHeader>
+              {collapsedFolderIds.has(folder.id) ? (
+                <Icons.DownOutlined iconSize="s" />
+              ) : (
+                <Icons.UpOutlined iconSize="s" />
+              )}
+            </SectionHeaderTextContainer>
+          </Tooltip>
         </SectionHeaderButton>
       )}
 
