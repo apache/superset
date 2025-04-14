@@ -132,11 +132,6 @@ const Select = forwardRef(
     );
     const [onChangeCount, setOnChangeCount] = useState(0);
     const previousChangeCount = usePrevious(onChangeCount, 0);
-    const [bulkSelectCounts, setBulkSelectCounts] = useState({
-      selectable: 0,
-      deselectable: 0,
-    });
-
     const fireOnChange = useCallback(
       () => setOnChangeCount(onChangeCount + 1),
       [onChangeCount],
@@ -237,10 +232,11 @@ const Select = forwardRef(
       [selectValue, selectAllEligible],
     );
 
-    useEffect(() => {
-      const selectedValues = ensureIsArray(selectValue);
-      const selectedValuesSet = new Set(selectedValues.map(getValue));
-      const counts = visibleOptions.reduce(
+    const bulkSelectCounts = useMemo(() => {
+      const selectedValuesSet = new Set(
+        ensureIsArray(selectValue).map(getValue),
+      );
+      return visibleOptions.reduce(
         (acc, option) => {
           const isSelected = selectedValuesSet.has(option.value);
           const isDisabled = option.disabled;
@@ -249,17 +245,13 @@ const Select = forwardRef(
           if ((!isDisabled || isSelected) && !isNew) {
             acc.selectable += 1;
           }
-
           if (isSelected && !isDisabled) {
             acc.deselectable += 1;
           }
-
           return acc;
         },
         { selectable: 0, deselectable: 0 },
       );
-
-      setBulkSelectCounts(counts);
     }, [visibleOptions, selectValue]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
