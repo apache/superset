@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { VariableSizeList as List } from 'react-window';
 import { FlattenedItem, Folder } from './types';
 import DatasourcePanelItem from './DatasourcePanelItem';
@@ -89,6 +89,7 @@ export const DatasourceItems = ({
   height,
   folders,
 }: DatasourceItemsProps) => {
+  const listRef = useRef<List>(null);
   const [collapsedFolderIds, setCollapsedFolderIds] = useState<Set<string>>(
     new Set(
       folders.filter(folder => folder.isCollapsed).map(folder => folder.id),
@@ -111,6 +112,11 @@ export const DatasourceItems = ({
       return newIds;
     });
   }, []);
+
+  useEffect(() => {
+    // reset the list cache when flattenedItems length changes to recalculate the heights
+    listRef.current?.resetAfterIndex(0);
+  }, [flattenedItems]);
 
   const getItemSize = useCallback(
     (index: number) => flattenedItems[index].height,
@@ -136,6 +142,7 @@ export const DatasourceItems = ({
 
   return (
     <List
+      ref={listRef}
       width={width - BORDER_WIDTH}
       height={height}
       itemSize={getItemSize}
