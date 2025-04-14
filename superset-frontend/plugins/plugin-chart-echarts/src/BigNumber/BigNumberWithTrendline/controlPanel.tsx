@@ -138,11 +138,32 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_picker', null],
-        [metricNameFontSize],
         [headerFontSize],
         [subheaderFontSize],
         [subtitleControl],
         [subtitleFontSize],
+        [
+          {
+            name: 'show_metric_name',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Metric Name'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to display the metric name'),
+            },
+          },
+        ],
+        [
+          {
+            ...metricNameFontSize,
+            config: {
+              ...metricNameFontSize.config,
+              visibility: ({ controls }) =>
+                controls?.show_metric_name?.value === true,
+            },
+          },
+        ],
         ['y_axis_format'],
         ['currency_format'],
         [

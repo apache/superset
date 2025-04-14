@@ -112,6 +112,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     });
     container.remove();
 
+    if (!showMetricName || !metricName) return null;
+
     return (
       <div
         className="metric-name"

@@ -42,10 +42,31 @@ export default {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        [metricNameFontSize],
         [headerFontSize],
         [subtitleControl],
         [subtitleFontSize],
+        [
+          {
+            name: 'show_metric_name',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Metric Name'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to display the metric name'),
+            },
+          },
+        ],
+        [
+          {
+            ...metricNameFontSize,
+            config: {
+              ...metricNameFontSize.config,
+              visibility: ({ controls }) =>
+                controls?.show_metric_name?.value === true,
+            },
+          },
+        ],
         ['y_axis_format'],
         ['currency_format'],
         [

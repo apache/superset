@@ -97,6 +97,7 @@ export default function transformProps(
   const aggregatedData = hasAggregatedData ? aggregatedQueryData.data[0] : null;
   const refs: Refs = {};
   const metricName = getMetricLabel(metric);
+  const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
 
@@ -305,6 +306,7 @@ export default function transformProps(
     formatTime,
     formData,
     metricName,
+    showMetricName,
     metricNameFontSize,
     headerFontSize,
     subtitleFontSize,

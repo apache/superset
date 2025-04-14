@@ -62,10 +62,9 @@ export default function transformProps(
   const { data = [], coltypes = [] } = queriesData[0];
   const granularity = extractTimegrain(rawFormData as QueryFormData);
   const metricName = getMetricLabel(metric);
-  const formattedSubtitle = subtitle?.trim() ? subtitle : subheader || '';
-  const formattedSubtitleFontSize = subtitle?.trim()
-    ? (subtitleFontSize ?? 1)
-    : (subheaderFontSize ?? 1);
+  const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
+  const formattedSubtitle = subtitle || subheader || '';
+  const formattedSubtitleFontSize = subheaderFontSize || subtitleFontSize;
   const bigNumber =
     data.length === 0 ? null : parseMetricValue(data[0][metricName]);
 
@@ -117,6 +116,7 @@ export default function transformProps(
     refs,
     colorThresholdFormatters,
     metricName,
+    showMetricName,
     metricNameFontSize,
   };
 }
