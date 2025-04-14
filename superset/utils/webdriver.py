@@ -275,6 +275,10 @@ class WebDriverSelenium(WebDriverProxy):
         # Add additional configured webdriver options
         webdriver_conf = dict(current_app.config["WEBDRIVER_CONFIGURATION"])
 
+        # Set the binary location if provided
+        # We need to pop it from the dict due to selenium_version < 4.10.0
+        options.binary_location = webdriver_conf.pop("binary_location", "")
+
         if version.parse(selenium_version) < version.parse("4.10.0"):
             kwargs |= webdriver_conf
         else:
