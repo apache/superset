@@ -19,7 +19,6 @@
 import { Disposable } from '@apache-superset/primitives';
 import { AnyAction } from 'redux';
 import { listenerMiddleware, RootState, store } from 'src/views/store';
-// import { Contributions, Extension } from './useExtensions';
 
 export function createActionListener<V>(
   actionType: string,
@@ -42,21 +41,4 @@ export function createActionListener<V>(
       unsubscribe();
     },
   };
-}
-
-export function getContribution(
-  extensions: any[],
-  type: keyof any,
-  key: string,
-): any[] {
-  const results: any[] = [];
-  extensions.forEach(extension => {
-    const { contributions } = extension;
-    if (contributions[type]) {
-      if (contributions[type][key]) {
-        results.push(...contributions[type][key]);
-      }
-    }
-  });
-  return results;
 }
