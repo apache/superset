@@ -135,7 +135,7 @@ const RolesList = lazy(
 );
 
 const UsersList: LazyExoticComponent<any> = lazy(
-  () => import(/* webpackChunkName: "RolesList" */ 'src/pages/UsersList'),
+  () => import(/* webpackChunkName: "UsersList" */ 'src/pages/UsersList'),
 );
 
 type Routes = {
