@@ -25,6 +25,7 @@ from superset import db
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseNotFoundError,
+    MissingOAuth2TokenError,
     UserNotFoundInSessionError,
 )
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
@@ -146,14 +147,18 @@ def test_sync_permissions_command_passing_all_values(
 
 
 @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
-def test_sync_permissions_command_raise(mocker: MockerFixture):
+def test_sync_permissions_command_raise(
+    mocker: MockerFixture,
+    database_without_catalog: MagicMock,
+    database_needs_oauth2: MagicMock,
+):
     """
     Test ``SyncPermissionsCommand`` when an exception is raised.
     """
     mock_database_dao = mocker.patch(
         "superset.commands.database.sync_permissions.DatabaseDAO"
     )
-    mock_database_dao.find_by_id.return_value = mocker.MagicMock()
+    mock_database_dao.find_by_id.return_value = database_without_catalog
     mock_database_dao.get_ssh_tunnel.return_value = mocker.MagicMock()
     mock_user = mocker.patch(
         "superset.commands.database.sync_permissions.security_manager.get_user_by_username"
@@ -168,6 +173,11 @@ def test_sync_permissions_command_raise(mocker: MockerFixture):
     mock_ping.reset_mock()
     mock_ping.side_effect = Exception
     with pytest.raises(DatabaseConnectionFailedError):
+        SyncPermissionsCommand(1, "admin").run()
+    # OAuth2 error
+    mock_database_dao.find_by_id.reset_mock()
+    mock_database_dao.find_by_id.return_value = database_needs_oauth2
+    with pytest.raises(MissingOAuth2TokenError):
         SyncPermissionsCommand(1, "admin").run()
 
     # User not found in session
