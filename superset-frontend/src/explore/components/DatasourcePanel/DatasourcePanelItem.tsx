@@ -104,6 +104,7 @@ export interface DatasourcePanelItemProps {
     folderMap: Map<string, Folder>;
     width: number;
     onToggleCollapse: (folderId: string) => void;
+    collapsedFolderIds: Set<string>;
   };
 }
 
@@ -112,7 +113,13 @@ const DatasourcePanelItem = ({
   style,
   data,
 }: DatasourcePanelItemProps) => {
-  const { flattenedItems, folderMap, width, onToggleCollapse } = data;
+  const {
+    flattenedItems,
+    folderMap,
+    width,
+    onToggleCollapse,
+    collapsedFolderIds,
+  } = data;
   const item = flattenedItems[index];
   const theme = useTheme();
 
@@ -134,7 +141,7 @@ const DatasourcePanelItem = ({
       {item.type === 'header' && (
         <SectionHeaderButton onClick={() => onToggleCollapse(folder.id)}>
           <SectionHeader>{folder.name}</SectionHeader>
-          {folder.isCollapsed ? (
+          {collapsedFolderIds.has(folder.id) ? (
             <Icons.DownOutlined iconSize="s" />
           ) : (
             <Icons.UpOutlined iconSize="s" />

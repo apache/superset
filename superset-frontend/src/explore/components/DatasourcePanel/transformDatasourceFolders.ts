@@ -33,9 +33,6 @@ const transformToFolderStructure = (
   const metricsMap = new Map<string, MetricItem>();
   const columnsMap = new Map<string, ColumnItem>();
 
-  const assignedMetricUuids = new Set<string>();
-  const assignedColumnUuids = new Set<string>();
-
   metrics.forEach(metric => {
     metricsMap.set(metric.uuid, metric);
   });
@@ -71,13 +68,13 @@ const transformToFolderStructure = (
           const metric = metricsMap.get(child.uuid);
           if (metric) {
             folder.items.push(metric);
-            assignedMetricUuids.add(metric.uuid);
+            metricsMap.delete(metric.uuid);
           }
         } else if (child.type === 'column') {
           const column = columnsMap.get(child.uuid);
           if (column) {
             folder.items.push(column);
-            assignedColumnUuids.add(column.uuid);
+            columnsMap.delete(column.uuid);
           }
         }
       });
@@ -105,11 +102,11 @@ const transformToFolderStructure = (
 
   const folders = folderConfig.map(config => processFolder(config));
 
-  const unassignedMetrics = metrics.filter(
-    metric => !assignedMetricUuids.has(metric.uuid),
+  const unassignedMetrics = metrics.filter(metric =>
+    metricsMap.has(metric.uuid),
   );
-  const unassignedColumns = columns.filter(
-    column => !assignedColumnUuids.has(column.uuid),
+  const unassignedColumns = columns.filter(column =>
+    columnsMap.has(column.uuid),
   );
 
   if (unassignedMetrics.length > 0) {

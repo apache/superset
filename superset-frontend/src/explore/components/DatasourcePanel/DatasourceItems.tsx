@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { VariableSizeList as List } from 'react-window';
-import { cloneDeep } from 'lodash';
 import { FlattenedItem, Folder } from './types';
 import DatasourcePanelItem from './DatasourcePanelItem';
 
@@ -28,13 +27,14 @@ const METRIC_OR_COLUMN_ITEM_HEIGHT = 32;
 const DIVIDER_ITEM_HEIGHT = 16;
 
 const flattenFolderStructure = (
-  folders: Folder[],
+  foldersToFlatten: Folder[],
+  collapsedFolderIds: Set<string>,
   depth = 0,
   folderMap: Map<string, Folder> = new Map(),
 ): { flattenedItems: FlattenedItem[]; folderMap: Map<string, Folder> } => {
   const flattenedItems: FlattenedItem[] = [];
 
-  folders.forEach((folder, idx) => {
+  foldersToFlatten.forEach((folder, idx) => {
     folderMap.set(folder.id, folder);
 
     flattenedItems.push({
@@ -44,7 +44,7 @@ const flattenFolderStructure = (
       height: HEADER_ITEM_HEIGHT,
     });
 
-    if (!folder.isCollapsed) {
+    if (!collapsedFolderIds.has(folder.id)) {
       folder.items.forEach(item => {
         flattenedItems.push({
           type: 'item',
@@ -58,6 +58,7 @@ const flattenFolderStructure = (
       if (folder.subFolders && folder.subFolders.length > 0) {
         const { flattenedItems: subItems } = flattenFolderStructure(
           folder.subFolders,
+          collapsedFolderIds,
           depth + 1,
           folderMap,
         );
@@ -65,7 +66,7 @@ const flattenFolderStructure = (
         flattenedItems.push(...subItems);
       }
     }
-    if (depth === 0 && idx !== folders.length - 1) {
+    if (depth === 0 && idx !== foldersToFlatten.length - 1) {
       flattenedItems.push({
         type: 'divider',
         folderId: folder.id,
@@ -88,41 +89,26 @@ export const DatasourceItems = ({
   height,
   folders,
 }: DatasourceItemsProps) => {
-  const [folderStructure, setFolderStructure] = useState<Folder[]>(folders);
-
-  useEffect(() => {
-    setFolderStructure(prev => (prev !== folders ? folders : prev));
-  }, [folders]);
+  const [collapsedFolderIds, setCollapsedFolderIds] = useState<Set<string>>(
+    new Set(
+      folders.filter(folder => folder.isCollapsed).map(folder => folder.id),
+    ),
+  );
 
   const { flattenedItems, folderMap } = useMemo(
-    () => flattenFolderStructure(folderStructure),
-    [folderStructure],
+    () => flattenFolderStructure(folders, collapsedFolderIds),
+    [folders, collapsedFolderIds],
   );
 
   const handleToggleCollapse = useCallback((folderId: string) => {
-    setFolderStructure(prevFolders => {
-      const updatedFolders = cloneDeep(prevFolders);
-
-      const updateFolder = (folders: Folder[] | undefined): boolean => {
-        if (!folders) {
-          return false;
-        }
-        for (let i = 0; i < folders.length; i += 1) {
-          if (folders[i].id === folderId) {
-            // eslint-disable-next-line no-param-reassign
-            folders[i].isCollapsed = !folders[i].isCollapsed;
-            return true;
-          }
-
-          if (folders[i].subFolders && updateFolder(folders[i].subFolders)) {
-            return true;
-          }
-        }
-        return false;
-      };
-
-      updateFolder(updatedFolders);
-      return updatedFolders;
+    setCollapsedFolderIds(prevIds => {
+      const newIds = new Set(prevIds);
+      if (newIds.has(folderId)) {
+        newIds.delete(folderId);
+      } else {
+        newIds.add(folderId);
+      }
+      return newIds;
     });
   }, []);
 
@@ -131,18 +117,30 @@ export const DatasourceItems = ({
     [flattenedItems],
   );
 
+  const itemData = useMemo(
+    () => ({
+      flattenedItems,
+      folderMap,
+      width,
+      onToggleCollapse: handleToggleCollapse,
+      collapsedFolderIds,
+    }),
+    [
+      flattenedItems,
+      folderMap,
+      width,
+      handleToggleCollapse,
+      collapsedFolderIds,
+    ],
+  );
+
   return (
     <List
       width={width - BORDER_WIDTH}
       height={height}
       itemSize={getItemSize}
       itemCount={flattenedItems.length}
-      itemData={{
-        flattenedItems,
-        folderMap,
-        width,
-        onToggleCollapse: handleToggleCollapse,
-      }}
+      itemData={itemData}
       overscanCount={5}
     >
       {DatasourcePanelItem}
