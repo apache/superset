@@ -60,12 +60,13 @@ class ValidateSQLCommand(BaseCommand):
         if not self._validator or not self._model:
             raise ValidatorSQLUnexpectedError()
         sql = self._properties["sql"]
+        catalog = self._properties.get("catalog")
         schema = self._properties.get("schema")
         try:
             timeout = current_app.config["SQLLAB_VALIDATION_TIMEOUT"]
             timeout_msg = f"The query exceeded the {timeout} seconds timeout."
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
-                errors = self._validator.validate(sql, schema, self._model)
+                errors = self._validator.validate(sql, catalog, schema, self._model)
             return [err.to_dict() for err in errors]
         except Exception as ex:
             logger.exception(ex)
@@ -97,7 +98,10 @@ class ValidateSQLCommand(BaseCommand):
         if not validators_by_engine or spec.engine not in validators_by_engine:
             raise NoValidatorConfigFoundError(
                 SupersetError(
-                    message=__(f"no SQL validator is configured for {spec.engine}"),
+                    message=__(
+                        "no SQL validator is configured for %(engine_spec)s",
+                        engine_spec=spec.engine,
+                    ),
                     error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
                     level=ErrorLevel.ERROR,
                 ),
@@ -108,8 +112,10 @@ class ValidateSQLCommand(BaseCommand):
             raise NoValidatorFoundError(
                 SupersetError(
                     message=__(
-                        f"No validator named {validator_name} found "
-                        f"(configured for the {spec.engine} engine)"
+                        "No validator named %(validator_name)s found "
+                        "(configured for the %(engine_spec)s engine)",
+                        validator_name=validator_name,
+                        engine_spec=spec.engine,
                     ),
                     error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
                     level=ErrorLevel.ERROR,

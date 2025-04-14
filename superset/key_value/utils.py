@@ -25,17 +25,23 @@ import hashids
 from flask_babel import gettext as _
 
 from superset.key_value.exceptions import KeyValueParseKeyError
-from superset.key_value.types import KeyValueFilter, KeyValueResource
-from superset.utils.core import json_dumps_w_dates
+from superset.key_value.types import Key, KeyValueFilter, KeyValueResource
+from superset.utils.json import json_dumps_w_dates
 
 HASHIDS_MIN_LENGTH = 11
 
 
-def random_key() -> str:
-    return token_urlsafe(48)
+def random_key(nbytes: int = 8) -> str:
+    """
+    Generate a random URL-safe string.
+
+    Args:
+        nbytes (int): Number of bytes to use for generating the key. Default is 8.
+    """
+    return token_urlsafe(nbytes)
 
 
-def get_filter(resource: KeyValueResource, key: int | UUID) -> KeyValueFilter:
+def get_filter(resource: KeyValueResource, key: Key) -> KeyValueFilter:
     try:
         filter_: KeyValueFilter = {"resource": resource.value}
         if isinstance(key, UUID):
@@ -61,7 +67,7 @@ def decode_permalink_id(key: str, salt: str) -> int:
 
 
 def get_uuid_namespace(seed: str) -> UUID:
-    md5_obj = md5()
+    md5_obj = md5()  # noqa: S324
     md5_obj.update(seed.encode("utf-8"))
     return UUID(md5_obj.hexdigest())
 

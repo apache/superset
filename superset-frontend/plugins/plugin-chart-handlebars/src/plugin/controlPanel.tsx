@@ -19,7 +19,6 @@
 import {
   ControlPanelConfig,
   getStandardizedControls,
-  sections,
 } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import { allColumnsControlSetItem } from './controls/columns';
@@ -48,7 +47,6 @@ import { styleControlSetItem } from './controls/style';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
     {
       label: t('Query'),
       expanded: true,

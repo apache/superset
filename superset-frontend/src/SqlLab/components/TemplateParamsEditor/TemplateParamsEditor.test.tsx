@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { Store } from 'redux';
@@ -33,9 +32,6 @@ import TemplateParamsEditor, {
   TemplateParamsEditorProps,
 } from 'src/SqlLab/components/TemplateParamsEditor';
 
-jest.mock('src/components/DeprecatedSelect', () => () => (
-  <div data-test="mock-deprecated-select" />
-));
 jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));

@@ -15,14 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 import logging
 import time
 from contextlib import closing
-from typing import Any, Optional
+from typing import Any, cast
 
-from superset import app, security_manager
+from superset import app
 from superset.models.core import Database
-from superset.sql_parse import ParsedQuery
+from superset.sql.parse import SQLScript, SQLStatement
 from superset.sql_validators.base import BaseSQLValidator, SQLValidationAnnotation
 from superset.utils.core import QuerySource
 
@@ -44,22 +46,15 @@ class PrestoDBSQLValidator(BaseSQLValidator):
     @classmethod
     def validate_statement(
         cls,
-        statement: str,
+        statement: SQLStatement,
         database: Database,
         cursor: Any,
-    ) -> Optional[SQLValidationAnnotation]:
+    ) -> SQLValidationAnnotation | None:
         # pylint: disable=too-many-locals
         db_engine_spec = database.db_engine_spec
-        parsed_query = ParsedQuery(statement)
-        sql = parsed_query.stripped()
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
-        if sql_query_mutator := config["SQL_QUERY_MUTATOR"]:
-            sql = sql_query_mutator(
-                sql,
-                security_manager=security_manager,
-                database=database,
-            )
+        sql = database.mutate_sql_based_on_config(str(statement))
 
         # Transform the final statement to an explain call before sending it on
         # to presto to validate
@@ -73,7 +68,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         from pyhive.exc import DatabaseError
 
         try:
-            db_engine_spec.execute(cursor, sql)
+            db_engine_spec.execute(cursor, sql, database)
             polled = cursor.poll()
             while polled:
                 logger.info("polling presto for validation progress")
@@ -141,11 +136,15 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             )
         except Exception as ex:
             logger.exception("Unexpected error running validation query: %s", str(ex))
-            raise ex
+            raise
 
     @classmethod
     def validate(
-        cls, sql: str, schema: Optional[str], database: Database
+        cls,
+        sql: str,
+        catalog: str | None,
+        schema: str | None,
+        database: Database,
     ) -> list[SQLValidationAnnotation]:
         """
         Presto supports query-validation queries by running them with a
@@ -154,22 +153,27 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         For example, "SELECT 1 FROM default.mytable" becomes "EXPLAIN (TYPE
         VALIDATE) SELECT 1 FROM default.mytable.
         """
-        parsed_query = ParsedQuery(sql)
-        statements = parsed_query.get_statements()
+        parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)
 
-        logger.info("Validating %i statement(s)", len(statements))
+        logger.info("Validating %i statement(s)", len(parsed_script.statements))
         # todo(hughhh): update this to use new database.get_raw_connection()
         # this function keeps stalling CI
-        with database.get_sqla_engine_with_context(
-            schema, source=QuerySource.SQL_LAB
+        with database.get_sqla_engine(
+            catalog=catalog,
+            schema=schema,
+            source=QuerySource.SQL_LAB,
         ) as engine:
             # Sharing a single connection and cursor across the
             # execution of all statements (if many)
             annotations: list[SQLValidationAnnotation] = []
             with closing(engine.raw_connection()) as conn:
                 cursor = conn.cursor()
-                for statement in parsed_query.get_statements():
-                    annotation = cls.validate_statement(statement, database, cursor)
+                for statement in parsed_script.statements:
+                    annotation = cls.validate_statement(
+                        cast(SQLStatement, statement),
+                        database,
+                        cursor,
+                    )
                     if annotation:
                         annotations.append(annotation)
             logger.debug("Validation found %i error(s)", len(annotations))

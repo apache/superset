@@ -2,13 +2,7 @@
 
 # https://github.com/apache/superset/issues/13351
 
-/superset/migrations/ @apache/superset-committers
-
-# Notify Preset team when ephemeral env settings are changed
-
-.github/workflows/ecs-task-definition.json @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch
-.github/workflows/docker-ephemeral-env.yml @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch
-.github/workflows/ephemeral*.yml @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch
+/superset/migrations/ @mistercrunch @michael-s-molina @betodealmeida @eschutho
 
 # Notify some committers of changes in the components
 
@@ -18,12 +12,21 @@
 
 # Notify Helm Chart maintainers about changes in it
 
-/helm/superset/ @craig-rueda @dpgaspar @villebro
+/helm/superset/ @craig-rueda @dpgaspar @villebro @nytai @michael-s-molina @mistercrunch @rusackas @Antonio-RiveroMartnez
 
 # Notify E2E test maintainers of changes
 
-/superset-frontend/cypress-base/ @jinghua-qa @geido @eschutho @rusackas @betodealmeida
+/superset-frontend/cypress-base/ @sadpandajoe @geido @eschutho @rusackas @betodealmeida @mistercrunch
 
 # Notify PMC members of changes to GitHub Actions
 
-/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @john-bodley @kgabryje
+/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar
+
+# Notify PMC members of changes to required GitHub Actions
+
+/.asf.yaml @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar @Antonio-RiveroMartnez
+
+# Maps are a finicky contribution process we care about
+
+**/*.geojson @villebro @rusackas
+/superset-frontend/plugins/legacy-plugin-chart-country-map/ @villebro @rusackas

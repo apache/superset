@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import IndeterminateCheckbox, { IndeterminateCheckboxProps } from '.';
 
 export default {
@@ -34,12 +33,4 @@ InteractiveIndeterminateCheckbox.args = {
   indeterminate: false,
   title: 'Checkbox title',
   onChange: () => null,
-};
-
-InteractiveIndeterminateCheckbox.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
 };

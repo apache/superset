@@ -17,6 +17,7 @@
 
 from collections.abc import Iterator
 from datetime import datetime, timezone
+from typing import Callable
 
 import yaml
 
@@ -36,13 +37,13 @@ class ExportAssetsCommand(BaseCommand):
     Command that exports all databases, datasets, charts, dashboards and saved queries.
     """
 
-    def run(self) -> Iterator[tuple[str, str]]:
+    def run(self) -> Iterator[tuple[str, Callable[[], str]]]:
         metadata = {
             "version": EXPORT_VERSION,
             "type": "assets",
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
         }
-        yield METADATA_FILE_NAME, yaml.safe_dump(metadata, sort_keys=False)
+        yield METADATA_FILE_NAME, lambda: yaml.safe_dump(metadata, sort_keys=False)
         seen = {METADATA_FILE_NAME}
 
         commands = [
@@ -52,6 +53,7 @@ class ExportAssetsCommand(BaseCommand):
             ExportDashboardsCommand,
             ExportSavedQueriesCommand,
         ]
+
         for command in commands:
             ids = [model.id for model in command.dao.find_all()]
             for file_name, file_content in command(ids, export_related=False).run():

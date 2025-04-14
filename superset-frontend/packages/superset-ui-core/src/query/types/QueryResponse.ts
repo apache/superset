@@ -24,16 +24,16 @@ import { AnnotationData } from './AnnotationLayer';
  * Generic data types, see enum of the same name in superset/utils/core.py.
  */
 export enum GenericDataType {
-  NUMERIC = 0,
-  STRING = 1,
-  TEMPORAL = 2,
-  BOOLEAN = 3,
+  Numeric = 0,
+  String = 1,
+  Temporal = 2,
+  Boolean = 3,
 }
 
 /**
  * Primitive types for data field values.
  */
-export type DataRecordValue = number | string | boolean | Date | null;
+export type DataRecordValue = number | string | boolean | Date | null | bigint;
 
 export interface DataRecord {
   [key: string]: DataRecordValue;
@@ -67,6 +67,7 @@ export interface ChartDataResponseResult {
   is_cached: boolean;
   query: string;
   rowcount: number;
+  sql_rowcount: number;
   stacktrace: string | null;
   status:
     | 'stopped'
@@ -78,6 +79,9 @@ export interface ChartDataResponseResult {
     | 'timed_out';
   from_dttm: number | null;
   to_dttm: number | null;
+  // TODO(hainenber): define proper type for below attributes
+  rejected_filters?: any[];
+  applied_filters?: any[];
 }
 
 export interface TimeseriesChartDataResponseResult

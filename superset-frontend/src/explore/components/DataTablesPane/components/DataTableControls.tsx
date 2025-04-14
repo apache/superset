@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { zip } from 'lodash';
 import { css, GenericDataType, styled } from '@superset-ui/core';
 import {
   CopyToClipboardButton,
   FilterInput,
-  RowCount,
 } from 'src/explore/components/DataTableControl';
 import { applyFormattingToTabularData } from 'src/utils/common';
 import { getTimeColumns } from 'src/explore/components/DataTableControl/utils';
+import RowCountLabel from 'src/explore/components/RowCountLabel';
 import { TableControlsProps } from '../types';
 
 export const TableControlsWrapper = styled.div`
@@ -47,7 +47,9 @@ export const TableControls = ({
   onInputChange,
   columnNames,
   columnTypes,
+  rowcount,
   isLoading,
+  canDownload,
 }: TableControlsProps) => {
   const originalTimeColumns = getTimeColumns(datasourceId);
   const formattedTimeColumns = zip<string, GenericDataType>(
@@ -56,7 +58,7 @@ export const TableControls = ({
   )
     .filter(
       ([name, type]) =>
-        type === GenericDataType.TEMPORAL &&
+        type === GenericDataType.Temporal &&
         name &&
         !originalTimeColumns.includes(name),
     )
@@ -67,15 +69,17 @@ export const TableControls = ({
   );
   return (
     <TableControlsWrapper>
-      <FilterInput onChangeHandler={onInputChange} />
+      <FilterInput onChangeHandler={onInputChange} shouldFocus />
       <div
         css={css`
           display: flex;
           align-items: center;
         `}
       >
-        <RowCount data={data} loading={isLoading} />
-        <CopyToClipboardButton data={formattedData} columns={columnNames} />
+        <RowCountLabel rowcount={rowcount} loading={isLoading} />
+        {canDownload && (
+          <CopyToClipboardButton data={formattedData} columns={columnNames} />
+        )}
       </div>
     </TableControlsWrapper>
   );

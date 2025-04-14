@@ -102,8 +102,8 @@ export default class AdhocMetric {
         params.useVerboseName && this.column?.verbose_name
           ? `(${this.column.verbose_name})`
           : this.column?.column_name
-          ? `(${this.column.column_name})`
-          : '';
+            ? `(${this.column.column_name})`
+            : '';
       // transform from `count_distinct(column)` to `count(distinct column)`
       if (
         params.transformCountDistinct &&

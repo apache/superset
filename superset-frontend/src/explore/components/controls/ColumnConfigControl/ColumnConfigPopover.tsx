@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { GenericDataType } from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
 import {
@@ -54,8 +53,8 @@ export default function ColumnConfigPopover({
           typeof meta === 'string'
             ? {}
             : 'override' in meta
-            ? meta.override
-            : meta.config;
+              ? meta.override
+              : meta.config;
         const props = {
           ...(key in SHARED_COLUMN_CONFIG_PROPS
             ? SHARED_COLUMN_CONFIG_PROPS[key as SharedColumnConfigProp]
@@ -69,7 +68,7 @@ export default function ColumnConfigPopover({
 
   const layout =
     configFormLayout[
-      column.type === undefined ? GenericDataType.STRING : column.type
+      column.type === undefined ? GenericDataType.String : column.type
     ];
 
   if (isTabLayoutItem(layout[0])) {

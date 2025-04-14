@@ -28,13 +28,11 @@ from superset.utils.core import (
     DatasourceDict,
     DatasourceType,
     FilterOperator,
-    get_xaxis_label,
+    get_x_axis_label,
     QueryObjectFilterClause,
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import sessionmaker
-
     from superset.connectors.sqla.models import BaseDatasource
     from superset.daos.datasource import DatasourceDAO
 
@@ -42,17 +40,14 @@ if TYPE_CHECKING:
 class QueryObjectFactory:  # pylint: disable=too-few-public-methods
     _config: dict[str, Any]
     _datasource_dao: DatasourceDAO
-    _session_maker: sessionmaker
 
     def __init__(
         self,
         app_configurations: dict[str, Any],
         _datasource_dao: DatasourceDAO,
-        session_maker: sessionmaker,
     ):
         self._config = app_configurations
         self._datasource_dao = _datasource_dao
-        self._session_maker = session_maker
 
     def create(  # pylint: disable=too-many-arguments
         self,
@@ -91,7 +86,6 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         return self._datasource_dao.get_datasource(
             datasource_type=DatasourceType(datasource["type"]),
             datasource_id=int(datasource["id"]),
-            session=self._session_maker(),
         )
 
     def _process_extras(
@@ -128,9 +122,9 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
                 # Use the temporal filter as the time range.
                 # if the temporal filters uses x-axis as the temporal filter
                 # then use it or use the first temporal filter
-                xaxis_label = get_xaxis_label(columns or [])
+                x_axis_label = get_x_axis_label(columns)
                 match_flt = [
-                    flt for flt in temporal_flt if flt.get("col") == xaxis_label
+                    flt for flt in temporal_flt if flt.get("col") == x_axis_label
                 ]
                 if match_flt:
                     time_range = cast(str, match_flt[0].get("val"))

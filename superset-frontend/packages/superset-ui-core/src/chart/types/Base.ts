@@ -23,15 +23,15 @@ import { JsonObject } from '../..';
 export type HandlerFunction = (...args: unknown[]) => void;
 
 export enum Behavior {
-  INTERACTIVE_CHART = 'INTERACTIVE_CHART',
-  NATIVE_FILTER = 'NATIVE_FILTER',
+  InteractiveChart = 'INTERACTIVE_CHART',
+  NativeFilter = 'NATIVE_FILTER',
 
   /**
    * Include `DRILL_TO_DETAIL` behavior if plugin handles `contextmenu` event
    * when dimensions are right-clicked on.
    */
-  DRILL_TO_DETAIL = 'DRILL_TO_DETAIL',
-  DRILL_BY = 'DRILL_BY',
+  DrillToDetail = 'DRILL_TO_DETAIL',
+  DrillBy = 'DRILL_BY',
 }
 
 export interface ContextMenuFilters {
@@ -48,11 +48,11 @@ export interface ContextMenuFilters {
 }
 
 export enum AppSection {
-  EXPLORE = 'EXPLORE',
-  DASHBOARD = 'DASHBOARD',
-  FILTER_BAR = 'FILTER_BAR',
-  FILTER_CONFIG_MODAL = 'FILTER_CONFIG_MODAL',
-  EMBEDDED = 'EMBEDDED',
+  Explore = 'EXPLORE',
+  Dashboard = 'DASHBOARD',
+  FilterBar = 'FILTER_BAR',
+  FilterConfigModal = 'FILTER_CONFIG_MODAL',
+  Embedded = 'EMBEDDED',
 }
 
 export type FilterState = { value?: any; [key: string]: any };
@@ -73,31 +73,31 @@ export interface PlainObject {
 }
 
 export enum ChartLabel {
-  DEPRECATED = 'DEPRECATED',
-  FEATURED = 'FEATURED',
+  Deprecated = 'DEPRECATED',
+  Featured = 'FEATURED',
 }
 
 export const chartLabelExplanations: Record<ChartLabel, string> = {
-  [ChartLabel.DEPRECATED]:
+  [ChartLabel.Deprecated]:
     'This chart uses features or modules which are no longer actively maintained. It will eventually be replaced or removed.',
-  [ChartLabel.FEATURED]:
+  [ChartLabel.Featured]:
     'This chart was tested and verified, so the overall experience should be stable.',
 };
 
 export const chartLabelWeight: Record<ChartLabel, { weight: number }> = {
-  [ChartLabel.DEPRECATED]: {
+  [ChartLabel.Deprecated]: {
     weight: -0.1,
   },
-  [ChartLabel.FEATURED]: {
+  [ChartLabel.Featured]: {
     weight: 0.1,
   },
 };
 
 export enum AxisType {
-  category = 'category',
-  value = 'value',
-  time = 'time',
-  log = 'log',
+  Category = 'category',
+  Value = 'value',
+  Time = 'time',
+  Log = 'log',
 }
 
 export interface LegendState {

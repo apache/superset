@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag } from '@superset-ui/core';
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import {
   DndColumnSelect,
   DndColumnSelectProps,
@@ -31,14 +34,6 @@ const defaultProps: DndColumnSelectProps = {
   options: [{ column_name: 'Column A' }],
   actions: { setControlValue: jest.fn() },
 };
-
-beforeAll(() => {
-  window.featureFlags = { [FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP]: true };
-});
-
-afterAll(() => {
-  window.featureFlags = {};
-});
 
 test('renders with default props', async () => {
   render(<DndColumnSelect {...defaultProps} />, {
@@ -72,4 +67,53 @@ test('renders adhoc column', async () => {
   );
   expect(await screen.findByText('adhoc column')).toBeVisible();
   expect(screen.getByLabelText('calculator')).toBeVisible();
+});
+
+test('warn selected custom metric when metric gets removed from dataset', async () => {
+  const columnValues = ['column1', 'column2'];
+
+  const { rerender, container } = render(
+    <DndColumnSelect
+      {...defaultProps}
+      options={[
+        {
+          column_name: 'column1',
+        },
+        {
+          column_name: 'column2',
+        },
+      ]}
+      value={columnValues}
+    />,
+    {
+      useDnd: true,
+      useRedux: true,
+    },
+  );
+
+  rerender(
+    <DndColumnSelect
+      {...defaultProps}
+      options={[
+        {
+          column_name: 'column3',
+        },
+        {
+          column_name: 'column2',
+        },
+      ]}
+      value={columnValues}
+    />,
+  );
+  expect(screen.getByText('column2')).toBeVisible();
+  expect(screen.queryByText('column1')).toBeInTheDocument();
+  const warningIcon = within(
+    screen.getByText('column1').parentElement ?? container,
+  ).getByRole('button');
+  expect(warningIcon).toBeInTheDocument();
+  userEvent.hover(warningIcon);
+  const warningTooltip = await screen.findByText(
+    'This column might be incompatible with current dataset',
+  );
+  expect(warningTooltip).toBeInTheDocument();
 });

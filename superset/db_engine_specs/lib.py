@@ -63,7 +63,7 @@ BASIC_FEATURES = {
 NICE_TO_HAVE_FEATURES = {
     "user_impersonation": "Supports user impersonation",
     "file_upload": "Support file upload",
-    "extra_table_metadata": "Returns extra table metadata",
+    "get_extra_table_metadata": "Returns extra table metadata",
     "dbapi_exception_mapping": "Maps driver exceptions to Superset exceptions",
     "custom_errors": "Parses error messages and returns Superset errors",
     "dynamic_schema": "Supports changing the schema per-query",
@@ -140,9 +140,12 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
             "user_impersonation": (
                 has_custom_method(spec, "update_impersonation_config")
                 or has_custom_method(spec, "get_url_for_impersonation")
+                or has_custom_method(spec, "impersonate_user")
             ),
             "file_upload": spec.supports_file_upload,
-            "extra_table_metadata": has_custom_method(spec, "extra_table_metadata"),
+            "get_extra_table_metadata": has_custom_method(
+                spec, "get_extra_table_metadata"
+            ),
             "dbapi_exception_mapping": has_custom_method(
                 spec, "get_dbapi_exception_mapping"
             ),
@@ -177,7 +180,7 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
     nice_to_have = [
         "user_impersonation",
         "file_upload",
-        "extra_table_metadata",
+        "get_extra_table_metadata",
         "dbapi_exception_mapping",
         "custom_errors",
         "dynamic_schema",
@@ -220,7 +223,7 @@ def generate_table() -> list[list[Any]]:
 
     rows = []  # pylint: disable=redefined-outer-name
     rows.append(["Feature"] + list(info))  # header row
-    rows.append(["Module"] + list(db_info["module"] for db_info in info.values()))
+    rows.append(["Module"] + list(db_info["module"] for db_info in info.values()))  # noqa: C400
 
     # descriptive
     keys = [
@@ -241,14 +244,14 @@ def generate_table() -> list[list[Any]]:
     ]
     for key in keys:
         rows.append(
-            [DATABASE_DETAILS[key]] + list(db_info[key] for db_info in info.values())
+            [DATABASE_DETAILS[key]] + list(db_info[key] for db_info in info.values())  # noqa: C400
         )
 
     # basic
     for time_grain in TimeGrain:
         rows.append(
             [f"Has time grain {time_grain.name}"]
-            + list(db_info["time_grains"][time_grain.name] for db_info in info.values())
+            + list(db_info["time_grains"][time_grain.name] for db_info in info.values())  # noqa: C400
         )
     keys = [
         "masked_encrypted_extra",
@@ -257,14 +260,14 @@ def generate_table() -> list[list[Any]]:
     ]
     for key in keys:
         rows.append(
-            [BASIC_FEATURES[key]] + list(db_info[key] for db_info in info.values())
+            [BASIC_FEATURES[key]] + list(db_info[key] for db_info in info.values())  # noqa: C400
         )
 
     # nice to have
     keys = [
         "user_impersonation",
         "file_upload",
-        "extra_table_metadata",
+        "get_extra_table_metadata",
         "dbapi_exception_mapping",
         "custom_errors",
         "dynamic_schema",
@@ -278,7 +281,7 @@ def generate_table() -> list[list[Any]]:
     for key in keys:
         rows.append(
             [NICE_TO_HAVE_FEATURES[key]]
-            + list(db_info[key] for db_info in info.values())
+            + list(db_info[key] for db_info in info.values())  # noqa: C400
         )
 
     # advanced
@@ -289,10 +292,10 @@ def generate_table() -> list[list[Any]]:
     ]
     for key in keys:
         rows.append(
-            [ADVANCED_FEATURES[key]] + list(db_info[key] for db_info in info.values())
+            [ADVANCED_FEATURES[key]] + list(db_info[key] for db_info in info.values())  # noqa: C400
         )
 
-    rows.append(["Score"] + list(db_info["score"] for db_info in info.values()))
+    rows.append(["Score"] + list(db_info["score"] for db_info in info.values()))  # noqa: C400
 
     return rows
 

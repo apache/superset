@@ -16,29 +16,50 @@
 # under the License.
 
 import copy
-import json
 from inspect import isclass
 from typing import Any
 
-from flask import g
-from sqlalchemy.orm import Session
-
-from superset import security_manager
+from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
 from superset.models.slice import Slice
+from superset.utils import json
+from superset.utils.core import AnnotationType, get_user
+
+
+def filter_chart_annotations(chart_config: dict[str, Any]) -> None:
+    """
+    Mutating the chart's config params to keep only the annotations of
+    type FORMULA.
+    TODO:
+      handle annotation dependencies on either other charts or
+      annotation layers objects.
+    """
+    params = chart_config.get("params", {})
+    als = params.get("annotation_layers", [])
+    params["annotation_layers"] = [
+        al for al in als if al.get("annotationType") == AnnotationType.FORMULA
+    ]
 
 
 def import_chart(
-    session: Session,
     config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
 ) -> Slice:
     can_write = ignore_permissions or security_manager.can_access("can_write", "Chart")
-    existing = session.query(Slice).filter_by(uuid=config["uuid"]).first()
+    existing = db.session.query(Slice).filter_by(uuid=config["uuid"]).first()
+    user = get_user()
     if existing:
+        if overwrite and can_write and user:
+            if not security_manager.can_access_chart(existing) or (
+                user not in existing.owners and not security_manager.is_admin()
+            ):
+                raise ImportFailedError(
+                    "A chart already exists and user doesn't "
+                    "have permissions to overwrite it"
+                )
         if not overwrite or not can_write:
             return existing
         config["id"] = existing.id
@@ -47,20 +68,20 @@ def import_chart(
             "Chart doesn't exist and user doesn't have permission to create charts"
         )
 
+    filter_chart_annotations(config)
+
     # TODO (betodealmeida): move this logic to import_from_dict
     config["params"] = json.dumps(config["params"])
 
     # migrate old viz types to new ones
     config = migrate_chart(config)
 
-    chart = Slice.import_from_dict(
-        session, config, recursive=False, allow_reparenting=True
-    )
+    chart = Slice.import_from_dict(config, recursive=False, allow_reparenting=True)
     if chart.id is None:
-        session.flush()
+        db.session.flush()
 
-    if hasattr(g, "user") and g.user:
-        chart.owners.append(g.user)
+    if (user := get_user()) and user not in chart.owners:
+        chart.owners.append(user)
 
     return chart
 
@@ -99,7 +120,7 @@ def migrate_chart(config: dict[str, Any]) -> dict[str, Any]:
     # also update `query_context`
     try:
         query_context = json.loads(output.get("query_context") or "{}")
-    except (json.decoder.JSONDecodeError, TypeError):
+    except (json.JSONDecodeError, TypeError):
         query_context = {}
     if "form_data" in query_context:
         query_context["form_data"] = output["params"]

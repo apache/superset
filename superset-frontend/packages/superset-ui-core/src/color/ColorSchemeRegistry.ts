@@ -23,7 +23,7 @@ export default class ColorSchemeRegistry<T> extends RegistryWithDefaultKey<T> {
   constructor() {
     super({
       name: 'ColorScheme',
-      overwritePolicy: OverwritePolicy.WARN,
+      overwritePolicy: OverwritePolicy.Warn,
       setFirstItemAsDefault: true,
     });
   }
@@ -31,7 +31,7 @@ export default class ColorSchemeRegistry<T> extends RegistryWithDefaultKey<T> {
   get(key?: string, strict = false) {
     const target = super.get(key) as T | undefined;
 
-    // fallsback to default scheme if any
+    // falls back to default scheme if any
     if (!strict && !target) {
       const defaultKey = super.getDefaultKey();
       if (defaultKey) {

@@ -17,8 +17,10 @@
  * under the License.
  */
 
+import { TimeLocaleDefinition } from 'd3-time-format';
 import { TimeFormats, TimeFormatter, PREVIEW_TIME } from '@superset-ui/core';
 import TimeFormatterRegistry from '../../src/time-format/TimeFormatterRegistry';
+import { DEFAULT_D3_TIME_FORMAT } from '../../src/time-format';
 
 describe('TimeFormatterRegistry', () => {
   let registry: TimeFormatterRegistry;
@@ -76,6 +78,110 @@ describe('TimeFormatterRegistry', () => {
       expect(registry.format(undefined, PREVIEW_TIME)).toEqual(
         '2017-02-14 11:22:33',
       );
+    });
+  });
+  describe('.setD3Format(d3Format)', () => {
+    describe('when partial value is specified', () => {
+      const timeFormat: Partial<TimeLocaleDefinition> = {
+        days: [
+          'Domingo',
+          'Segunda',
+          'Terça',
+          'Quarta',
+          'Quinta',
+          'Sexta',
+          'Sábado',
+        ],
+      };
+
+      beforeEach(() => {
+        registry.setD3Format(timeFormat);
+      });
+
+      it('sets the specified value and default', () => {
+        expect(registry.d3Format).toEqual({
+          ...DEFAULT_D3_TIME_FORMAT,
+          ...timeFormat,
+        });
+      });
+
+      it('does not change short days of week name format', () => {
+        expect(registry.format('%a', PREVIEW_TIME)).toEqual('Tue');
+      });
+
+      it('changes full days of week name format', () => {
+        expect(registry.format('%A', PREVIEW_TIME)).toEqual('Terça');
+      });
+
+      it('does not change months format', () => {
+        expect(registry.format('%b', PREVIEW_TIME)).toEqual('Feb');
+        expect(registry.format('%B', PREVIEW_TIME)).toEqual('February');
+      });
+    });
+
+    describe('when full value is specified', () => {
+      const timeFormat: TimeLocaleDefinition = {
+        dateTime: '%A, %e de %B de %Y. %X',
+        date: '%d/%m/%Y',
+        time: '%H:%M:%S',
+        periods: ['AM', 'PM'],
+        days: [
+          'Domingo',
+          'Segunda',
+          'Terça',
+          'Quarta',
+          'Quinta',
+          'Sexta',
+          'Sábado',
+        ],
+        shortDays: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+        months: [
+          'Janeiro',
+          'Fevereiro',
+          'Março',
+          'Abril',
+          'Maio',
+          'Junho',
+          'Julho',
+          'Agosto',
+          'Setembro',
+          'Outubro',
+          'Novembro',
+          'Dezembro',
+        ],
+        shortMonths: [
+          'Jan',
+          'Fev',
+          'Mar',
+          'Abr',
+          'Mai',
+          'Jun',
+          'Jul',
+          'Ago',
+          'Set',
+          'Out',
+          'Nov',
+          'Dez',
+        ],
+      };
+
+      beforeEach(() => {
+        registry.setD3Format(timeFormat);
+      });
+
+      it('sets the specified value ignoring default', () => {
+        expect(registry.d3Format).toEqual(timeFormat);
+      });
+
+      it('changes days of week format', () => {
+        expect(registry.format('%a', PREVIEW_TIME)).toEqual('Ter');
+        expect(registry.format('%A', PREVIEW_TIME)).toEqual('Terça');
+      });
+
+      it('changes months format', () => {
+        expect(registry.format('%b', PREVIEW_TIME)).toEqual('Fev');
+        expect(registry.format('%B', PREVIEW_TIME)).toEqual('Fevereiro');
+      });
     });
   });
 });

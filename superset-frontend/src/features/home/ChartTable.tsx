@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
-import { t } from '@superset-ui/core';
-import { filter } from 'lodash';
+import { useEffect, useMemo, useState } from 'react';
+import { t, useTheme } from '@superset-ui/core';
 import {
   useChartEditModal,
   useFavoriteStatus,
@@ -45,6 +44,8 @@ import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
+import { Icons } from 'src/components/Icons';
+import { navigateTo } from 'src/utils/navigationUtils';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
 import SubMenu from './SubMenu';
@@ -70,13 +71,14 @@ function ChartTable({
   otherTabFilters,
   otherTabTitle,
 }: ChartTableProps) {
+  const theme = useTheme();
   const history = useHistory();
   const initialTab = getItem(
-    LocalStorageKeys.homepage_chart_filter,
+    LocalStorageKeys.HomepageChartFilter,
     TableTab.Other,
   );
 
-  const filteredOtherTabData = filter(otherTabData, obj => 'viz_type' in obj);
+  const filteredOtherTabData = otherTabData?.filter(obj => 'viz_type' in obj);
 
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
@@ -145,7 +147,7 @@ function ChartTable({
       label: t('Favorite'),
       onClick: () => {
         setActiveTab(TableTab.Favorite);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Favorite);
+        setItem(LocalStorageKeys.HomepageChartFilter, TableTab.Favorite);
       },
     },
     {
@@ -153,7 +155,7 @@ function ChartTable({
       label: t('Mine'),
       onClick: () => {
         setActiveTab(TableTab.Mine);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Mine);
+        setItem(LocalStorageKeys.HomepageChartFilter, TableTab.Mine);
       },
     },
   ];
@@ -163,7 +165,7 @@ function ChartTable({
       label: otherTabTitle,
       onClick: () => {
         setActiveTab(TableTab.Other);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Other);
+        setItem(LocalStorageKeys.HomepageChartFilter, TableTab.Other);
       },
     });
   }
@@ -187,13 +189,17 @@ function ChartTable({
           {
             name: (
               <>
-                <i className="fa fa-plus" />
+                <Icons.PlusOutlined
+                  iconColor={theme.colors.primary.dark1}
+                  iconSize="m"
+                  data-test="add-annotation-layer-button"
+                />
                 {t('Chart')}
               </>
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.assign('/chart/add');
+              navigateTo('/chart/add', { assign: true });
             },
           },
           {

@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import {
   t,
   css,
@@ -27,7 +26,7 @@ import {
 } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { ellipsisCss } from './styles';
 
 const StyledCrossFilterTitle = styled.div`
@@ -68,7 +67,7 @@ const CrossFilterChartTitle = (props: {
       <Tooltip title={titleIsTruncated ? title : null}>
         <span
           css={css`
-            max-width: ${orientation === FilterBarOrientation.VERTICAL
+            max-width: ${orientation === FilterBarOrientation.Vertical
               ? `${theme.gridUnit * 45}px`
               : `${theme.gridUnit * 15}px`};
             line-height: 1.4;

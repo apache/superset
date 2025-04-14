@@ -75,6 +75,25 @@ describe('sqlLabReducer', () => {
         initialState.queryEditors.length,
       );
     });
+    it('should select the latest query editor when tabHistory is empty', () => {
+      const currentQE = newState.queryEditors[0];
+      newState = {
+        ...initialState,
+        tabHistory: [initialState.queryEditors[0]],
+      };
+      const action = {
+        type: actions.REMOVE_QUERY_EDITOR,
+        queryEditor: currentQE,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.queryEditors).toHaveLength(
+        initialState.queryEditors.length - 1,
+      );
+      expect(newState.queryEditors.map(qe => qe.id)).not.toContainEqual(
+        currentQE.id,
+      );
+      expect(newState.tabHistory).toEqual([initialState.queryEditors[2].id]);
+    });
     it('should remove a query editor including unsaved changes', () => {
       expect(newState.queryEditors).toHaveLength(
         initialState.queryEditors.length + 1,
@@ -219,6 +238,51 @@ describe('sqlLabReducer', () => {
       expect(newState.queryEditors[0].northPercent).toBe(
         interceptedAction.northPercent,
       );
+    });
+    it('should migrate query editor by new query editor id', () => {
+      const index = newState.queryEditors.findIndex(({ id }) => id === qe.id);
+      const newQueryEditor = {
+        ...qe,
+        id: 'updatedNewId',
+        schema: 'updatedSchema',
+      };
+      const action = {
+        type: actions.MIGRATE_QUERY_EDITOR,
+        oldQueryEditor: qe,
+        newQueryEditor,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.queryEditors[index].id).toEqual('updatedNewId');
+      expect(newState.queryEditors[index]).toEqual(newQueryEditor);
+    });
+    it('should migrate tab history by new query editor id', () => {
+      expect(newState.tabHistory).toContain(qe.id);
+      const action = {
+        type: actions.MIGRATE_TAB_HISTORY,
+        oldId: qe.id,
+        newId: 'updatedNewId',
+      };
+      newState = sqlLabReducer(newState, action);
+
+      expect(newState.tabHistory).toContain('updatedNewId');
+      expect(newState.tabHistory).not.toContain(qe.id);
+    });
+    it('should clear the destroyed query editors', () => {
+      const expectedQEId = '1233289';
+      const action = {
+        type: actions.CLEAR_DESTROYED_QUERY_EDITOR,
+        queryEditorId: expectedQEId,
+      };
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          destroyedQueryEditors: {
+            [expectedQEId]: Date.now(),
+          },
+        },
+        action,
+      );
+      expect(newState.destroyedQueryEditors).toEqual({});
     });
   });
   describe('Tables', () => {
@@ -385,6 +449,35 @@ describe('sqlLabReducer', () => {
       expect(newState.queries.abcd.endDttm).toBe(Number(endDttmInStr));
       expect(newState.queriesLastUpdate).toBe(CHANGED_ON_TIMESTAMP);
     });
+    it('should skip refreshing queries when polling contains existing results', () => {
+      const completedQuery = {
+        ...query,
+        extra: {
+          columns: [],
+          progress: null,
+        },
+      };
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: { abcd: query, def: completedQuery },
+        },
+        actions.refreshQueries({
+          abcd: {
+            ...query,
+          },
+          def: {
+            ...completedQuery,
+            extra: {
+              columns: [],
+              progress: null,
+            },
+          },
+        }),
+      );
+      expect(newState.queries.abcd).toBe(query);
+      expect(newState.queries.def).toBe(completedQuery);
+    });
     it('should refresh queries when polling returns empty', () => {
       newState = sqlLabReducer(newState, actions.refreshQueries({}));
     });
@@ -397,7 +490,7 @@ describe('sqlLabReducer', () => {
         id: 'abcd',
         changed_on: Date.now(),
         startDttm: Date.now(),
-        state: QueryState.FETCHING,
+        state: QueryState.Fetching,
         progress: 100,
         resultsKey: 'fa3dccc4-c549-4fbf-93c8-b4fb5a6fb8b7',
         cached: false,
@@ -412,7 +505,7 @@ describe('sqlLabReducer', () => {
               ...query,
               results: {
                 query_id: 1234,
-                status: QueryState.SUCCESS,
+                status: QueryState.Success,
                 data: [],
               },
             },
@@ -420,7 +513,7 @@ describe('sqlLabReducer', () => {
         },
         actions.clearInactiveQueries(Date.now()),
       );
-      expect(newState.queries.abcd.state).toBe(QueryState.SUCCESS);
+      expect(newState.queries.abcd.state).toBe(QueryState.Success);
     });
   });
 });

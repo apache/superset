@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ScatterplotLayer } from 'deck.gl/typed';
-import React from 'react';
+import { ScatterplotLayer } from '@deck.gl/layers';
 import {
   Datasource,
   getMetricLabel,
@@ -48,17 +47,17 @@ function setTooltipContent(
         <TooltipRow
           // eslint-disable-next-line prefer-template
           label={t('Longitude and Latitude') + ': '}
-          value={`${o.object.position[0]}, ${o.object.position[1]}`}
+          value={`${o.object?.position?.[0]}, ${o.object?.position?.[1]}`}
         />
-        {o.object.cat_color && (
+        {o.object?.cat_color && (
           <TooltipRow
             // eslint-disable-next-line prefer-template
             label={t('Category') + ': '}
-            value={`${o.object.cat_color}`}
+            value={`${o.object?.cat_color}`}
           />
         )}
-        {o.object.metric && (
-          <TooltipRow label={`${label}: `} value={`${o.object.metric}`} />
+        {o.object?.metric && (
+          <TooltipRow label={`${label}: `} value={`${o.object?.metric}`} />
         )}
       </div>
     );
@@ -91,8 +90,8 @@ export function getLayer(
     id: `scatter-layer-${fd.slice_id}` as const,
     data: dataWithRadius,
     fp64: true,
-    getFillColor: d => d.color,
-    getRadius: d => d.radius,
+    getFillColor: (d: any) => d.color,
+    getRadius: (d: any) => d.radius,
     radiusMinPixels: Number(fd.min_radius) || undefined,
     radiusMaxPixels: Number(fd.max_radius) || undefined,
     stroked: false,

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { css, useTheme } from '@superset-ui/core';
 import { CrossFilterIndicator } from 'src/dashboard/components/nativeFilters/selectors';
 import { useDispatch } from 'react-redux';
@@ -63,7 +63,7 @@ const CrossFilter = (props: {
     <div
       key={`${filter.name}${filter.emitterId}`}
       css={css`
-        ${orientation === FilterBarOrientation.VERTICAL
+        ${orientation === FilterBarOrientation.Vertical
           ? `
             display: block;
             margin-bottom: ${theme.gridUnit * 4}px;
@@ -75,7 +75,7 @@ const CrossFilter = (props: {
     >
       <CrossFilterTitle
         title={filter.name}
-        orientation={orientation || FilterBarOrientation.HORIZONTAL}
+        orientation={orientation || FilterBarOrientation.Horizontal}
         onHighlightFilterSource={() => handleHighlightFilterSource(filter.path)}
       />
       {(filter.column || filter.value) && (
@@ -89,7 +89,7 @@ const CrossFilter = (props: {
         <span
           data-test="cross-filters-divider"
           css={css`
-            ${orientation === FilterBarOrientation.HORIZONTAL
+            ${orientation === FilterBarOrientation.Horizontal
               ? `
                 width: 1px;
                 height: 22px;

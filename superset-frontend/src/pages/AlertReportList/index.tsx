@@ -17,16 +17,18 @@
  * under the License.
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   t,
+  css,
+  useTheme,
   SupersetClient,
   makeApi,
   styled,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import moment from 'moment';
+import { extendedDayjs } from 'src/utils/dates';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import FacePile from 'src/components/FacePile';
 import { Tooltip } from 'src/components/Tooltip';
@@ -55,6 +57,7 @@ import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import { Icons } from 'src/components/Icons';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -109,14 +112,15 @@ function AlertList({
   user,
   addSuccessToast,
 }: AlertListProps) {
-  const title = isReportEnabled ? t('report') : t('alert');
+  const theme = useTheme();
+  const title = isReportEnabled ? t('Report') : t('Alert');
   const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
   const initialFilters = useMemo(
     () => [
       {
         id: 'type',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         value: isReportEnabled ? 'Report' : 'Alert',
       },
     ],
@@ -137,7 +141,7 @@ function AlertList({
     toggleBulkSelect,
   } = useListViewResource<AlertObject>(
     'report',
-    t('reports'),
+    t('report'),
     addDangerToast,
     true,
     undefined,
@@ -263,7 +267,10 @@ function AlertList({
           },
         }: any) =>
           lastEvalDttm
-            ? moment.utc(lastEvalDttm).local().format(DATETIME_WITH_TIME_ZONE)
+            ? extendedDayjs
+                .utc(lastEvalDttm)
+                .local()
+                .format(DATETIME_WITH_TIME_ZONE)
             : '',
         accessor: 'last_eval_dttm',
         Header: t('Last run'),
@@ -368,7 +375,7 @@ function AlertList({
                   label: 'execution-log-action',
                   tooltip: t('Execution log'),
                   placement: 'bottom',
-                  icon: 'Note',
+                  icon: 'FileTextOutlined',
                   onClick: handleGotoExecutionLog,
                 }
               : null,
@@ -377,7 +384,7 @@ function AlertList({
                   label: allowEdit ? 'edit-action' : 'preview-action',
                   tooltip: allowEdit ? t('Edit') : t('View'),
                   placement: 'bottom',
-                  icon: allowEdit ? 'Edit' : 'Binoculars',
+                  icon: allowEdit ? 'EditOutlined' : 'Binoculars',
                   onClick: handleEdit,
                 }
               : null,
@@ -386,7 +393,7 @@ function AlertList({
                   label: 'delete-action',
                   tooltip: t('Delete'),
                   placement: 'bottom',
-                  icon: 'Trash',
+                  icon: 'DeleteOutlined',
                   onClick: handleDelete,
                 }
               : null,
@@ -401,7 +408,7 @@ function AlertList({
         size: 'xl',
       },
       {
-        accessor: QueryObjectColumns.changed_by,
+        accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
       },
     ],
@@ -414,7 +421,15 @@ function AlertList({
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {title}
+          <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
+            iconSize="m"
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+              vertical-align: text-top;
+            `}
+          />
+          {title}
         </>
       ),
       buttonStyle: 'primary',
@@ -438,7 +453,16 @@ function AlertList({
     buttonAction: () => handleAlertEdit(null),
     buttonText: canCreate ? (
       <>
-        <i className="fa fa-plus" /> {title}{' '}
+        <Icons.PlusOutlined
+          iconColor={theme.colors.primary.light5}
+          iconSize="m"
+          css={css`
+            margin: auto ${theme.gridUnit * 2}px auto 0;
+            vertical-align: text-top;
+          `}
+          data-test="add-annotation-layer-button"
+        />
+        {title}{' '}
       </>
     ) : null,
   };
@@ -450,14 +474,14 @@ function AlertList({
         key: 'search',
         id: 'name',
         input: 'search',
-        operator: FilterOperator.contains,
+        operator: FilterOperator.Contains,
       },
       {
         Header: t('Owner'),
         key: 'owner',
         id: 'owners',
         input: 'select',
-        operator: FilterOperator.relationManyMany,
+        operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'report',
@@ -474,7 +498,7 @@ function AlertList({
         key: 'status',
         id: 'last_state',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: 'Any',
         selects: [
           {
@@ -495,7 +519,7 @@ function AlertList({
         key: 'changed_by',
         id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'report',

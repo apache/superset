@@ -24,16 +24,10 @@ import {
   DataMaskWithId,
   Filter,
   Filters,
-  FilterSets as FilterSetsType,
 } from '@superset-ui/core';
 import { useEffect, useMemo, useState } from 'react';
 import { ChartsState, RootState } from 'src/dashboard/types';
 import { NATIVE_FILTER_PREFIX } from '../FiltersConfigModal/utils';
-
-export const useFilterSets = () =>
-  useSelector<any, FilterSetsType>(
-    state => state.nativeFilters.filterSets || {},
-  );
 
 export const useFilters = () => {
   const preselectedNativeFilters = useSelector<any, Filters>(

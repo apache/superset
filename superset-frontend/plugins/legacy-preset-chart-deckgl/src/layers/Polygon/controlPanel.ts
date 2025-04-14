@@ -19,9 +19,8 @@
 import {
   ControlPanelConfig,
   getStandardizedControls,
-  sections,
 } from '@superset-ui/chart-controls';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import { formatSelectOptions } from '../../utilities/utils';
 import {
@@ -33,7 +32,6 @@ import {
   jsOnclickHref,
   legendFormat,
   legendPosition,
-  lineColumn,
   fillColorPicker,
   strokeColorPicker,
   filled,
@@ -49,22 +47,17 @@ import {
 } from '../../utilities/Shared_DeckGL';
 import { dndLineColumn } from '../../utilities/sharedDndControls';
 
-const lines = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-  ? dndLineColumn
-  : lineColumn;
-
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
         [
           {
-            ...lines,
+            ...dndLineColumn,
             config: {
-              ...lines.config,
+              ...dndLineColumn.config,
               label: t('Polygon Column'),
             },
           },

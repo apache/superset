@@ -15,17 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset import db
 from superset.commands.dashboard.permalink.base import BaseDashboardPermalinkCommand
-from superset.commands.key_value.upsert import UpsertKeyValueCommand
 from superset.daos.dashboard import DashboardDAO
+from superset.daos.key_value import KeyValueDAO
 from superset.dashboards.permalink.exceptions import DashboardPermalinkCreateFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkState
-from superset.key_value.exceptions import KeyValueCodecEncodeException
+from superset.key_value.exceptions import (
+    KeyValueCodecEncodeException,
+    KeyValueUpsertFailedError,
+)
 from superset.key_value.utils import encode_permalink_key, get_deterministic_uuid
 from superset.utils.core import get_user_id
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -46,28 +52,34 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
         self.dashboard_id = dashboard_id
         self.state = state
 
+    @transaction(
+        on_error=partial(
+            on_error,
+            catches=(
+                KeyValueCodecEncodeException,
+                KeyValueUpsertFailedError,
+                SQLAlchemyError,
+            ),
+            reraise=DashboardPermalinkCreateFailedError,
+        ),
+    )
     def run(self) -> str:
         self.validate()
-        try:
-            dashboard = DashboardDAO.get_by_id_or_slug(self.dashboard_id)
-            value = {
-                "dashboardId": str(dashboard.uuid),
-                "state": self.state,
-            }
-            user_id = get_user_id()
-            key = UpsertKeyValueCommand(
-                resource=self.resource,
-                key=get_deterministic_uuid(self.salt, (user_id, value)),
-                value=value,
-                codec=self.codec,
-            ).run()
-            assert key.id  # for type checks
-            return encode_permalink_key(key=key.id, salt=self.salt)
-        except KeyValueCodecEncodeException as ex:
-            raise DashboardPermalinkCreateFailedError(str(ex)) from ex
-        except SQLAlchemyError as ex:
-            logger.exception("Error running create command")
-            raise DashboardPermalinkCreateFailedError() from ex
+        dashboard = DashboardDAO.get_by_id_or_slug(self.dashboard_id)
+        value = {
+            "dashboardId": str(dashboard.uuid),
+            "state": self.state,
+        }
+        user_id = get_user_id()
+        entry = KeyValueDAO.upsert_entry(
+            resource=self.resource,
+            key=get_deterministic_uuid(self.salt, (user_id, value)),
+            value=value,
+            codec=self.codec,
+        )
+        db.session.flush()
+        assert entry.id  # for type checks
+        return encode_permalink_key(key=entry.id, salt=self.salt)
 
     def validate(self) -> None:
         pass

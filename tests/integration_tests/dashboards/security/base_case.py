@@ -16,8 +16,7 @@
 # under the License.
 from typing import Optional
 
-import pytest
-from flask import escape, Response
+from flask import Response
 
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.dashboards.base_case import DashboardTestCase
@@ -26,6 +25,7 @@ from tests.integration_tests.dashboards.base_case import DashboardTestCase
 class BaseTestDashboardSecurity(DashboardTestCase):
     def tearDown(self) -> None:
         self.clean_created_objects()
+        super().tearDown()
 
     def assert_dashboard_api_response(
         self, response: Response, dashboard_to_access: Dashboard
@@ -43,7 +43,7 @@ class BaseTestDashboardSecurity(DashboardTestCase):
         self.assert200(response)
         response_data = response.json
         assert response_data["count"] == expected_counts
-        response_dashboards_url = set(
+        response_dashboards_url = set(  # noqa: C417
             map(lambda dash: dash["url"], response_data["result"])
         )
         expected_dashboards = expected_dashboards or []

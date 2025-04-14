@@ -100,7 +100,7 @@ describe('Visualization > Table', () => {
     });
     cy.verifySliceSuccess({
       waitAlias: '@chartData',
-      querySubstring: /group by.*name/i,
+      querySubstring: /GROUP BY.*name/i,
       chartSelector: 'table',
     });
   });
@@ -126,7 +126,8 @@ describe('Visualization > Table', () => {
     // should handle frontend sorting correctly
     cy.get('.chart-container th').contains('name').click();
     cy.get('.chart-container td:nth-child(2):eq(0)').contains('Adam');
-    cy.get('.chart-container th').contains('ds').click().click();
+    cy.get('.chart-container th').contains('ds').click();
+    cy.get('.chart-container th').contains('ds').click();
     cy.get('.chart-container td:nth-child(1):eq(0)').contains('2008');
   });
 
@@ -246,7 +247,7 @@ describe('Visualization > Table', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({
       waitAlias: '@chartData',
-      querySubstring: /group by.*state/i,
+      querySubstring: /GROUP BY.*state/i,
       chartSelector: 'table',
     });
     cy.get('td').contains(/\d*%/);

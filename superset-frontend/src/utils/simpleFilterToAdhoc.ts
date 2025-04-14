@@ -23,15 +23,15 @@ import {
   SimpleAdhocFilter,
 } from '@superset-ui/core';
 import {
-  CLAUSES,
-  EXPRESSION_TYPES,
+  Clauses,
+  ExpressionTypes,
 } from '../explore/components/controls/FilterControl/types';
 import { OPERATOR_ENUM_TO_OPERATOR_TYPE } from '../explore/constants';
 import { translateToSql } from '../explore/components/controls/FilterControl/utils/translateToSQL';
 
 export const simpleFilterToAdhoc = (
   filterClause: QueryObjectFilterClause,
-  clause: CLAUSES = CLAUSES.WHERE,
+  clause: Clauses = Clauses.Where,
 ) => {
   let result: AdhocFilter;
   if (isAdhocColumn(filterClause.col)) {
@@ -39,7 +39,7 @@ export const simpleFilterToAdhoc = (
       expressionType: 'SQL',
       clause,
       sqlExpression: translateToSql({
-        expressionType: EXPRESSION_TYPES.SIMPLE,
+        expressionType: ExpressionTypes.Simple,
         subject: `(${filterClause.col.sqlExpression})`,
         operator: filterClause.op,
         comparator: 'val' in filterClause ? filterClause.val : undefined,

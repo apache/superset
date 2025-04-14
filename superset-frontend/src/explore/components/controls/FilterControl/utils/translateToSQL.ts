@@ -64,9 +64,13 @@ export const translateToSql = (
       operator &&
       // 'LATEST PARTITION' supported callback only
       operator ===
-        OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.LATEST_PARTITION].operation
-        ? OPERATORS_TO_SQL[operator](adhocFilter)
-        : OPERATORS_TO_SQL[operator];
+        OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.LatestPartition].operation
+        ? // @ts-ignore TODO: fix missing operator type `NOT LIKE` and `TEMPORAL RANGE`
+          // Also to fix type incompability between AdhocFilter and Latest Partition callback args.
+          OPERATORS_TO_SQL[operator](adhocFilter)
+        : // @ts-ignore
+          // @ts-ignore TODO: fix missing operator type `NOT LIKE` and `TEMPORAL RANGE`.
+          OPERATORS_TO_SQL[operator];
     return getSimpleSQLExpression(subject, op, comparator);
   }
   if (isFreeFormAdhocFilter(adhocFilter)) {

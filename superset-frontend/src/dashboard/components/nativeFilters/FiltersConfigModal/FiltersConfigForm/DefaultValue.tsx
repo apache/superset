@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC } from 'react';
+import { FC } from 'react';
 import {
   Behavior,
   SetDataMaskHook,
@@ -69,8 +69,8 @@ const DefaultValue: FC<DefaultValueProps> = ({
           ? TIME_FILTER_INPUT_WIDTH
           : INPUT_WIDTH
       }
-      appSection={AppSection.FILTER_CONFIG_MODAL}
-      behaviors={[Behavior.NATIVE_FILTER]}
+      appSection={AppSection.FilterConfigModal}
+      behaviors={[Behavior.NativeFilter]}
       formData={formData}
       // For charts that don't have datasource we need workaround for empty placeholder
       queriesData={

@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  AnnotationType,
-  Behavior,
-  hasGenericChartAxes,
-  t,
-} from '@superset-ui/core';
+import { AnnotationType, Behavior, t } from '@superset-ui/core';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
@@ -55,19 +50,15 @@ export default class EchartsTimeseriesLineChartPlugin extends EchartsChartPlugin
       loadChart: () => import('../../EchartsTimeseries'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: hasGenericChartAxes
-          ? t(
-              'Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.',
-            )
-          : t(
-              'Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.',
-            ),
+        description: t(
+          'Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.',
+        ),
         exampleGallery: [{ url: example1 }, { url: example2 }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
@@ -75,16 +66,13 @@ export default class EchartsTimeseriesLineChartPlugin extends EchartsChartPlugin
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: hasGenericChartAxes
-          ? t('Line Chart')
-          : t('Time-series Line Chart'),
+        name: t('Line Chart'),
         tags: [
           t('ECharts'),
           t('Predictive'),
           t('Advanced-Analytics'),
-          t('Aesthetic'),
           t('Line'),
-          t('Popular'),
+          t('Featured'),
         ],
         thumbnail,
       },

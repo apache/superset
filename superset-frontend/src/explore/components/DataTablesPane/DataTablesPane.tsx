@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  MouseEvent,
-} from 'react';
+import { useCallback, useEffect, useMemo, useState, MouseEvent } from 'react';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -30,7 +24,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Tabs from 'src/components/Tabs';
 import {
   getItem,
@@ -94,6 +88,7 @@ export const DataTablesPane = ({
   ownState,
   errorMessage,
   actions,
+  canDownload,
 }: DataTablesPaneProps) => {
   const theme = useTheme();
   const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.Results);
@@ -102,14 +97,14 @@ export const DataTablesPane = ({
     samples: false,
   });
   const [panelOpen, setPanelOpen] = useState(
-    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+    isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
       ? false
-      : getItem(LocalStorageKeys.is_datapanel_open, false),
+      : getItem(LocalStorageKeys.IsDatapanelOpen, false),
   );
 
   useEffect(() => {
-    if (!isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT))
-      setItem(LocalStorageKeys.is_datapanel_open, panelOpen);
+    if (!isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault))
+      setItem(LocalStorageKeys.IsDatapanelOpen, panelOpen);
   }, [panelOpen]);
 
   useEffect(() => {
@@ -123,7 +118,8 @@ export const DataTablesPane = ({
     if (
       panelOpen &&
       activeTabKey.startsWith(ResultTypes.Results) &&
-      chartStatus === 'rendered'
+      chartStatus &&
+      chartStatus !== 'loading'
     ) {
       setIsRequest({
         results: true,
@@ -162,15 +158,12 @@ export const DataTablesPane = ({
 
   const CollapseButton = useMemo(() => {
     const caretIcon = panelOpen ? (
-      <Icons.CaretUp
-        iconColor={theme.colors.grayscale.base}
+      <Icons.CaretUpOutlined
+        iconSize="l"
         aria-label={t('Collapse data panel')}
       />
     ) : (
-      <Icons.CaretDown
-        iconColor={theme.colors.grayscale.base}
-        aria-label={t('Expand data panel')}
-      />
+      <Icons.DownOutlined iconSize="l" aria-label={t('Expand data panel')} />
     );
     return (
       <TableControlsWrapper>
@@ -203,6 +196,7 @@ export const DataTablesPane = ({
     isRequest: isRequest.results,
     actions,
     isVisible: ResultTypes.Results === activeTabKey,
+    canDownload,
   }).map((pane, idx) => {
     if (idx === 0) {
       return (
@@ -240,6 +234,7 @@ export const DataTablesPane = ({
             isRequest={isRequest.samples}
             actions={actions}
             isVisible={ResultTypes.Samples === activeTabKey}
+            canDownload={canDownload}
           />
         </Tabs.TabPane>
       </Tabs>

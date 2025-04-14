@@ -31,7 +31,7 @@ const metadata = new ChartMetadata({
   ),
   exampleGallery: [{ url: example1 }, { url: example2 }],
   name: t('Parallel Coordinates'),
-  tags: [t('Coordinates'), t('Directional'), t('Legacy'), t('Relational')],
+  tags: [t('Directional'), t('Legacy'), t('Relational')],
   thumbnail,
   useLegacyApi: true,
 });

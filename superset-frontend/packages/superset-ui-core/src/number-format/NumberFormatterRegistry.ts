@@ -33,7 +33,7 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
   constructor() {
     super({
       name: 'NumberFormatter',
-      overwritePolicy: OverwritePolicy.WARN,
+      overwritePolicy: OverwritePolicy.Warn,
     });
 
     this.registerValue(

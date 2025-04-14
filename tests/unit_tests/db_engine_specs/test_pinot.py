@@ -26,7 +26,7 @@ from sqlalchemy import column
         ("PT1S", "CAST(DATE_TRUNC('second', CAST(col AS TIMESTAMP)) AS TIMESTAMP)"),
         (
             "PT5M",
-            "CAST(ROUND(DATE_TRUNC('minute', CAST(col AS TIMESTAMP)), 300000) AS TIMESTAMP)",
+            "CAST(ROUND(DATE_TRUNC('minute', CAST(col AS TIMESTAMP)), 300000) AS TIMESTAMP)",  # noqa: E501
         ),
         ("P1W", "CAST(DATE_TRUNC('week', CAST(col AS TIMESTAMP)) AS TIMESTAMP)"),
         ("P1M", "CAST(DATE_TRUNC('month', CAST(col AS TIMESTAMP)) AS TIMESTAMP)"),
@@ -38,7 +38,7 @@ def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
     """
     DB Eng Specs (pinot): Test time grain expressions
     """
-    from superset.db_engine_specs.pinot import PinotEngineSpec as spec
+    from superset.db_engine_specs.pinot import PinotEngineSpec as spec  # noqa: N813
 
     actual = str(
         spec.get_timestamp_expr(col=column("col"), pdf=None, time_grain=time_grain)
@@ -47,11 +47,11 @@ def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
 
 
 def test_extras_without_ssl() -> None:
-    from superset.db_engine_specs.pinot import PinotEngineSpec as spec
+    from superset.db_engine_specs.pinot import PinotEngineSpec as spec  # noqa: N813
     from tests.integration_tests.fixtures.database import default_db_extra
 
-    db = mock.Mock()
-    db.extra = default_db_extra
-    db.server_cert = None
-    extras = spec.get_extra_params(db)
+    database = mock.Mock()
+    database.extra = default_db_extra
+    database.server_cert = None
+    extras = spec.get_extra_params(database)
     assert "connect_args" not in extras["engine_params"]

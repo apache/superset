@@ -17,9 +17,8 @@
  * under the License.
  */
 
-import React, { useState } from 'react';
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { useState } from 'react';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import DrillDetailModal from './DrillDetailModal';
@@ -35,9 +34,16 @@ jest.mock('react-router-dom', () => ({
 
 const { id: chartId, form_data: formData } = chartQueries[sliceId];
 const { slice_name: chartName } = formData;
+const store = getMockStoreWithNativeFilters();
+const drillToDetailModalState = {
+  ...store.getState(),
+  user: {
+    ...store.getState().user,
+    roles: { Admin: [['can_explore', 'Superset']] },
+  },
+};
 
-const renderModal = async () => {
-  const store = getMockStoreWithNativeFilters();
+const renderModal = async (overrideState: Record<string, any> = {}) => {
   const DrillDetailModalWrapper = () => {
     const [showModal, setShowModal] = useState(false);
     return (
@@ -59,7 +65,10 @@ const renderModal = async () => {
   render(<DrillDetailModalWrapper />, {
     useRouter: true,
     useRedux: true,
-    store,
+    initialState: {
+      ...drillToDetailModalState,
+      ...overrideState,
+    },
   });
 
   userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
@@ -92,4 +101,14 @@ test('should forward to Explore', async () => {
   expect(mockHistoryPush).toHaveBeenCalledWith(
     `/explore/?dashboard_page_id=&slice_id=${sliceId}`,
   );
+});
+
+test('should render "Edit chart" as disabled without can_explore permission', async () => {
+  await renderModal({
+    user: {
+      ...drillToDetailModalState.user,
+      roles: { Admin: [['invalid_permission', 'Superset']] },
+    },
+  });
+  expect(screen.getByRole('button', { name: 'Edit chart' })).toBeDisabled();
 });

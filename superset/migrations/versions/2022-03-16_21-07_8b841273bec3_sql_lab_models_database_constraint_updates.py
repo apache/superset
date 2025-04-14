@@ -26,10 +26,10 @@ Create Date: 2022-03-16 21:07:48.768425
 revision = "8b841273bec3"
 down_revision = "2ed890b36b94"
 
-import sqlalchemy as sa
-from alembic import op
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
 
-from superset.utils.core import generic_find_fk_constraint_name
+from superset.utils.core import generic_find_fk_constraint_name  # noqa: E402
 
 
 def upgrade():

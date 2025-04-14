@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask import current_app
@@ -33,14 +34,18 @@ from superset.commands.database.exceptions import (
 from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelCreateFailedError,
+    SSHTunnelDatabasePortError,
     SSHTunnelingNotEnabledError,
     SSHTunnelInvalidError,
 )
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
+from superset.commands.database.utils import add_permissions
 from superset.daos.database import DatabaseDAO
-from superset.daos.exceptions import DAOCreateFailedError
-from superset.exceptions import SupersetErrorsException
-from superset.extensions import db, event_logger, security_manager
+from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.exceptions import OAuth2RedirectError, SupersetErrorsException
+from superset.extensions import event_logger
+from superset.models.core import Database
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 stats_logger = current_app.config["STATS_LOGGER"]
@@ -50,19 +55,29 @@ class CreateDatabaseCommand(BaseCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
+    @transaction(on_error=partial(on_error, reraise=DatabaseCreateFailedError))
     def run(self) -> Model:
         self.validate()
 
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
-        except (SupersetErrorsException, SSHTunnelingNotEnabledError) as ex:
+        except OAuth2RedirectError:
+            # If we can't connect to the database due to an OAuth2 error we can still
+            # save the database. Later, the user can sync permissions when setting up
+            # data access rules.
+            return self._create_database()
+        except (
+            SupersetErrorsException,
+            SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
+        ) as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
             )
             # So we can show the original message
-            raise ex
+            raise
         except Exception as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
@@ -70,52 +85,37 @@ class CreateDatabaseCommand(BaseCommand):
             )
             raise DatabaseConnectionFailedError() from ex
 
-        # when creating a new database we don't need to unmask encrypted extra
-        self._properties["encrypted_extra"] = self._properties.pop(
-            "masked_encrypted_extra",
-            "{}",
-        )
+        ssh_tunnel: Optional[SSHTunnel] = None
 
         try:
-            database = DatabaseDAO.create(attributes=self._properties, commit=False)
-            database.set_sqlalchemy_uri(database.sqlalchemy_uri)
+            database = self._create_database()
 
-            ssh_tunnel = None
             if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
                 if not is_feature_enabled("SSH_TUNNELING"):
-                    db.session.rollback()
                     raise SSHTunnelingNotEnabledError()
-                try:
-                    # So database.id is not None
-                    db.session.flush()
-                    ssh_tunnel = CreateSSHTunnelCommand(
-                        database.id, ssh_tunnel_properties
-                    ).run()
-                except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
-                    event_logger.log_with_context(
-                        action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
-                        engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
-                    )
-                    # So we can show the original message
-                    raise ex
-                except Exception as ex:
-                    event_logger.log_with_context(
-                        action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
-                        engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
-                    )
-                    raise DatabaseCreateFailedError() from ex
 
-            # adding a new database we always want to force refresh schema list
-            schemas = database.get_all_schema_names(cache=False, ssh_tunnel=ssh_tunnel)
-            for schema in schemas:
-                security_manager.add_permission_view_menu(
-                    "schema_access", security_manager.get_schema_perm(database, schema)
-                )
+                ssh_tunnel = CreateSSHTunnelCommand(
+                    database, ssh_tunnel_properties
+                ).run()
 
-            db.session.commit()
-
-        except DAOCreateFailedError as ex:
-            db.session.rollback()
+            # add catalog/schema permissions
+            add_permissions(database, ssh_tunnel)
+        except (
+            SSHTunnelInvalidError,
+            SSHTunnelCreateFailedError,
+            SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
+        ) as ex:
+            event_logger.log_with_context(
+                action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
+                engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
+            )
+            # So we can show the original message
+            raise
+        except (
+            DatabaseInvalidError,
+            Exception,
+        ) as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,
@@ -139,6 +139,7 @@ class CreateDatabaseCommand(BaseCommand):
             # Check database_name uniqueness
             if not DatabaseDAO.validate_uniqueness(database_name):
                 exceptions.append(DatabaseExistsValidationError())
+
         if exceptions:
             exception = DatabaseInvalidError()
             exception.extend(exceptions)
@@ -150,3 +151,14 @@ class CreateDatabaseCommand(BaseCommand):
                 )
             )
             raise exception
+
+    def _create_database(self) -> Database:
+        # when creating a new database we don't need to unmask encrypted extra
+        self._properties["encrypted_extra"] = self._properties.pop(
+            "masked_encrypted_extra",
+            "{}",
+        )
+
+        database = DatabaseDAO.create(attributes=self._properties)
+        database.set_sqlalchemy_uri(database.sqlalchemy_uri)
+        return database

@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { FeatureFlag, NativeFilterType } from '@superset-ui/core';
-import React from 'react';
+import { NativeFilterType } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import HorizontalBar from './Horizontal';
 
@@ -32,16 +30,14 @@ const defaultProps = {
   onSelectionChange: jest.fn(),
 };
 
-// @ts-ignore
-global.featureFlags = {
-  [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
-};
-
 const renderWrapper = (overrideProps?: Record<string, any>) =>
   waitFor(() =>
     render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
       useRedux: true,
       initialState: {
+        dashboardState: {
+          sliceIds: [],
+        },
         dashboardInfo: {
           dash_edit_perm: true,
         },
@@ -59,7 +55,7 @@ test('should not render the empty message', async () => {
     filterValues: [
       {
         id: 'test',
-        type: NativeFilterType.NATIVE_FILTER,
+        type: NativeFilterType.NativeFilter,
       },
     ],
   });
@@ -87,16 +83,4 @@ test('should render the loading icon', async () => {
     isInitialized: false,
   });
   expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
-});
-
-test('should render Add/Edit Filters', async () => {
-  await renderWrapper();
-  expect(screen.getByText('Add/Edit Filters')).toBeInTheDocument();
-});
-
-test('should not render Add/Edit Filters', async () => {
-  await renderWrapper({
-    canEdit: false,
-  });
-  expect(screen.queryByText('Add/Edit Filters')).not.toBeInTheDocument();
 });

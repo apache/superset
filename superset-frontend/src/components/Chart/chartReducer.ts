@@ -195,7 +195,7 @@ export default function chartReducer(
   if (action.type === HYDRATE_DASHBOARD || action.type === HYDRATE_EXPLORE) {
     return { ...action.data.charts };
   }
-  if (action.type === DatasourcesAction.SET_DATASOURCES) {
+  if (action.type === DatasourcesAction.SetDatasources) {
     return Object.fromEntries(
       Object.entries(charts).map(([chartId, chart]) => [
         chartId,

@@ -1,0 +1,966 @@
+---
+title: Setting up a Development Environment
+sidebar_position: 3
+version: 1
+---
+# Setting up a Development Environment
+
+The documentation in this section is a bit of a patchwork of knowledge representing the
+multitude of ways that exist to run Superset (`docker compose`, just "docker", on "metal", using
+a Makefile).
+
+:::note
+Now we have evolved to recommend and support `docker compose` more actively as the main way
+to run Superset for development and preserve your sanity. **Most people should stick to
+the first few sections - ("Fork & Clone", "docker compose" and "Installing Dev Tools")**
+:::
+
+## Fork and Clone
+
+First, [fork the repository on GitHub](https://help.github.com/articles/about-forks/),
+then clone it.
+
+Second, you can clone the main repository directly, but you won't be able to send pull requests.
+
+```bash
+git clone git@github.com:your-username/superset.git
+cd superset
+```
+
+## docker compose (recommended!)
+
+Setting things up to squeeze a "hello world" into any part of Superset should be as simple as
+
+```bash
+# getting docker compose to fire up services, and rebuilding if some docker layers have changed
+# using the `--build` suffix may be slower and optional if layers like py dependencies haven't changed
+docker compose up --build
+```
+
+Note that:
+
+- this will pull/build docker images and run a cluster of services, including:
+  - A Superset **Flask web server**, mounting the local python repo/code
+  - A Superset **Celery worker**, also mounting the local python repo/code
+  - A Superset **Node service**, mounting, compiling and bundling the JS/TS assets
+  - A Superset **Node websocket service** to power the async backend
+  - **Postgres** as the metadata database and to store example datasets, charts and dashboards which
+    should be populated upon startup
+  - **Redis** as the message queue for our async backend and caching backend
+- It'll load up examples into the database upon the first startup
+- all other details and pointers available in
+  [docker-compose.yml](https://github.com/apache/superset/blob/master/docker-compose.yml)
+- The local repository is mounted within the services, meaning updating
+  the code on the host will be reflected in the docker images
+- Superset is served at localhost:9000/
+- You can login with admin/admin
+
+:::note
+Installing and building Node modules for Apache Superset inside `superset-node` can take a
+significant amount of time. This is normal due to the size of the dependencies. Please be
+patient while the process completes, as long wait times do not indicate an issue with your setup.
+If delays seem excessive, check your internet connection or system resources.
+:::
+
+:::caution
+Since `docker compose` is primarily designed to run a set of containers on **a single host**
+and can't credibly support **high availability** as a result, we do not support nor recommend
+using our `docker compose` constructs to support production-type use-cases. For single host
+environments, we recommend using [minikube](https://minikube.sigs.k8s.io/docs/start/) along
+our [installing on k8s](https://superset.apache.org/docs/installation/running-on-kubernetes)
+documentation.
+configured to be secure.
+:::
+
+### Supported environment variables
+
+Affecting the Docker build process:
+
+- **SUPERSET_BUILD_TARGET (default=dev):** which --target to build, either `lean` or `dev` are commonly used
+- **INCLUDE_FIREFOX (default=false):** whether to include the Firefox headless browser in the build
+- **INCLUDE_CHROMIUM (default=false):** whether to include the Firefox headless browser in the build
+- **BUILD_TRANSLATIONS(default=false):** whether to compile the translations from the .po files available
+- **SUPERSET_LOAD_EXAMPLES (default=yes):** whether to load the examples into the database upon startup,
+  save some precious time on startup by `SUPERSET_LOAD_EXAMPLES=no docker compose up`
+- **SUPERSET_LOG_LEVEL (default=info)**: Can be set to debug, info, warning, error, critical
+  for more verbose logging
+
+For more env vars that affect your configuration, see this
+[superset_config.py](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py)
+used in the `docker compose` context to assign env vars to the superset configuration.
+
+### Accessing the postgres database
+
+Sometimes it's useful to access the database in the docker container directly.
+You can enter a `psql` shell (the official Postgres client) by running the following command:
+
+```bash
+docker compose exec db psql -U superset
+```
+
+Also note that the database is exposed on port 5432, so you can connect to it using your favorite
+Postgres client or even SQL Lab itselft directly in Superset by creating a new database connection
+to `localhost:5432`.
+
+### Nuking the postgres database
+
+At times, it's possible to end up with your development database in a bad state, it's
+common while switching branches that contain migrations for instance, where the database
+version stamp that `alembic` manages is no longer available after switching branch.
+
+In that case, the easy solution is to nuke the postgres db and start fresh. Note that the full
+state of the database will be gone after doing this, so be cautious.
+
+```bash
+# first stop docker-compose if it's running
+docker-compose down
+# delete the volume containing the database
+docker volume rm superset_db_home
+# restart docker-compose, which will init a fresh database and load examples
+docker-compose up
+```
+
+## Installing Development Tools
+
+:::note
+While `docker compose` simplifies a lot of the setup, there are still
+many things you'll want to set up locally to power your IDE, and things like
+**commit hooks**, **linters**, and **test-runners**. Note that you can do these
+things inside docker images with commands like `docker compose exec superset_app bash` for
+instance, but many people like to run that tooling from their host.
+:::
+
+### Python environment
+
+Assuming you already have a way to setup your python environments
+like `pyenv`, `virtualenv` or something else, all you should have to
+do is to install our dev, pinned python requirements bundle, after installing
+the prerequisites mentioned in [OS Dependencies](https://superset.apache.org/docs/installation/pypi/#os-dependencies)
+
+```bash
+pip install -r requirements/development.txt
+```
+
+### Git Hooks
+
+Superset uses Git pre-commit hooks courtesy of [pre-commit](https://pre-commit.com/).
+To install run the following:
+
+```bash
+pre-commit install
+```
+
+This will install the hooks in your local repository. From now on, a series of checks will
+automatically run whenever you make a Git commit.
+
+#### Running Pre-commit Manually
+
+You can also run the pre-commit checks manually in various ways:
+
+- **Run pre-commit on all files (same as CI):**
+
+  To run the pre-commit checks across all files in your repository, use the following command:
+
+  ```bash
+  pre-commit run --all-files
+  ```
+
+  This is the same set of checks that will run during CI, ensuring your changes meet the project's standards.
+
+- **Run pre-commit on a specific file:**
+
+  If you want to check or fix a specific file, you can do so by specifying the file path:
+
+  ```bash
+  pre-commit run --files path/to/your/file.py
+  ```
+
+  This will only run the checks on the file(s) you specify.
+
+- **Run a specific pre-commit check:**
+
+  To run a specific check (hook) across all files or a particular file, use the following command:
+
+  ```bash
+  pre-commit run <hook_id> --all-files
+  ```
+
+  Or for a specific file:
+
+  ```bash
+  pre-commit run <hook_id> --files path/to/your/file.py
+  ```
+
+  Replace `<hook_id>` with the ID of the specific hook you want to run. You can find the list
+  of available hooks in the `.pre-commit-config.yaml` file.
+
+## Alternatives to `docker compose`
+
+:::caution
+This part of the documentation is a patchwork of information related to setting up
+development environments without `docker compose` and is documented/supported to varying
+degrees. It's been difficult to maintain this wide array of methods and insure they're
+functioning across environments.
+:::
+
+### Flask server
+
+#### OS Dependencies
+
+Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/pypi#os-dependencies) before following these steps.
+You also need to install MySQL.
+
+Ensure that you are using Python version 3.9, 3.10 or 3.11, then proceed with:
+
+```bash
+# Create a virtual environment and activate it (recommended)
+python3 -m venv venv # setup a python3 virtualenv
+source venv/bin/activate
+
+# Install external dependencies
+pip install -r requirements/development.txt
+
+# Install Superset in editable (development) mode
+pip install -e .
+
+# Initialize the database
+superset db upgrade
+
+# Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
+superset fab create-admin
+
+# Create default roles and permissions
+superset init
+
+# Load some data to play with.
+# Note: you MUST have previously created an admin user with the username `admin` for this command to work.
+superset load-examples
+
+# Start the Flask dev web server from inside your virtualenv.
+# Note that your page may not have CSS at this point.
+# See instructions below on how to build the front-end assets.
+superset run -p 8088 --with-threads --reload --debugger --debug
+```
+
+Or you can install it via our Makefile
+
+```bash
+# Create a virtual environment and activate it (recommended)
+$ python3 -m venv venv # setup a python3 virtualenv
+$ source venv/bin/activate
+
+# install pip packages + pre-commit
+$ make install
+
+# Install superset pip packages and setup env only
+$ make superset
+
+# Setup pre-commit only
+$ make pre-commit
+```
+
+**Note: the FLASK_APP env var should not need to be set, as it's currently controlled
+via `.flaskenv`, however, if needed, it should be set to `superset.app:create_app()`**
+
+If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
+`superset run -p 8088 --reload --debugger --debug`
+
+#### Dependencies
+
+If you add a new requirement or update an existing requirement (per the `install_requires` section in `setup.py`) you must recompile (freeze) the Python dependencies to ensure that for CI, testing, etc. the build is deterministic. This can be achieved via,
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+python3 -m pip install -r requirements/development.txt
+./scripts/uv-pip-compile.sh
+```
+
+When upgrading the version number of a single package, you should run `./scripts/uv-pip-compile.sh` with the `-P` flag:
+
+```bash
+./scripts/uv-pip-compile.sh -P some-package-to-upgrade
+```
+
+To bring all dependencies up to date as per the restrictions defined in `setup.py` and `requirements/*.in`, run `./scripts/uv-pip-compile.sh --upgrade`
+
+```bash
+./scripts/uv-pip-compile.sh --upgrade
+```
+
+This should be done periodically, but it is recommended to do thorough manual testing of the application to ensure no breaking changes have been introduced that aren't caught by the unit and integration tests.
+
+#### Logging to the browser console
+
+This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console using the [ConsoleLog](https://github.com/betodealmeida/consolelog) package. You need to mutate the app, by adding the following to your `config.py` or `superset_config.py`:
+
+```python
+from console_log import ConsoleLog
+
+def FLASK_APP_MUTATOR(app):
+    app.wsgi_app = ConsoleLog(app.wsgi_app, app.logger)
+```
+
+Then make sure you run your WSGI server using the right worker type:
+
+```bash
+gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
+```
+
+You can log anything to the browser console, including objects:
+
+```python
+from superset import app
+app.logger.error('An exception occurred!')
+app.logger.info(form_data)
+```
+
+### Frontend
+
+Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset-frontend` directory contains all NPM-managed frontend assets. Note that for some legacy pages there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap). These are not managed by NPM and may be phased out in the future.
+
+#### Prerequisite
+
+##### nvm and node
+
+First, be sure you are using the following versions of Node.js and npm:
+
+- `Node.js`: Version 20
+- `npm`: Version 10
+
+We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
+
+in case it shows '-bash: nvm: command not found'
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+cd superset-frontend
+nvm install --lts
+nvm use --lts
+```
+
+Or if you use the default macOS starting with Catalina shell `zsh`, try:
+
+```zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh)"
+```
+
+For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
+
+#### Install dependencies
+
+Install third-party dependencies listed in `package.json` via:
+
+```bash
+# From the root of the repository
+cd superset-frontend
+
+# Install dependencies from `package-lock.json`
+npm ci
+```
+
+Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` environment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
+
+```json
+// your-package/package.json
+{
+  // ...
+  "scarfSettings": {
+    "enabled": false
+  }
+  // ...
+}
+```
+
+#### Build assets
+
+There are three types of assets you can build:
+
+1. `npm run build`: the production assets, CSS/JSS minified and optimized
+2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
+3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
+
+If while using the above commands you encounter an error related to the limit of file watchers:
+
+```bash
+Error: ENOSPC: System limit for number of file watchers reached
+```
+
+The error is thrown because the number of files monitored by the system has reached the limit.
+You can address this error by increasing the number of inotify watchers.
+
+The current value of max watches can be checked with:
+
+```bash
+cat /proc/sys/fs/inotify/max_user_watches
+```
+
+Edit the file `/etc/sysctl.conf` to increase this value.
+The value needs to be decided based on the system memory [(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux).
+
+Open the file in an editor and add a line at the bottom specifying the max watches values.
+
+```bash
+fs.inotify.max_user_watches=524288
+```
+
+Save the file and exit the editor.
+To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from `sysctl.conf`:
+
+```bash
+sudo sysctl -p
+```
+
+#### Webpack dev server
+
+The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`.
+
+So a typical development workflow is the following:
+
+1. [run Superset locally](#flask-server) using Flask, on port `8088` — but don't access it directly,<br/>
+
+   ```bash
+   # Install Superset and dependencies, plus load your virtual environment first, as detailed above.
+   superset run -p 8088 --with-threads --reload --debugger --debug
+   ```
+
+2. in parallel, run the Webpack dev server locally on port `9000`,<br/>
+
+   ```bash
+   npm run dev-server
+   ```
+
+3. access `http://localhost:9000` (the Webpack server, _not_ Flask) in your web browser. This will use the hot-reloading front-end assets from the Webpack development server while redirecting back-end queries to Flask/Superset: your changes on Superset codebase — either front or back-end — will then be reflected live in the browser.
+
+It's possible to change the Webpack server settings:
+
+```bash
+# Start the dev server at http://localhost:9000
+npm run dev-server
+
+# Run the dev server on a non-default port
+npm run dev-server -- --port=9001
+
+# Proxy backend requests to a Flask server running on a non-default port
+npm run dev-server -- --env=--supersetPort=8081
+
+# Proxy to a remote backend but serve local assets
+npm run dev-server -- --env=--superset=https://superset-dev.example.com
+```
+
+The `--superset=` option is useful in case you want to debug a production issue or have to setup Superset behind a firewall. It allows you to run Flask server in another environment while keep assets building locally for the best developer experience.
+
+#### Other npm commands
+
+Alternatively, there are other NPM commands you may find useful:
+
+1. `npm run build-dev`: build assets in development mode.
+2. `npm run dev`: built dev assets in watch mode, will automatically rebuild when a file changes
+
+#### Docker (docker compose)
+
+See docs [here](https://superset.apache.org/docs/installation/docker-compose)
+
+#### Updating NPM packages
+
+Use npm in the prescribed way, making sure that
+`superset-frontend/package-lock.json` is updated according to `npm`-prescribed
+best practices.
+
+#### Feature flags
+
+Superset supports a server-wide feature flag system, which eases the incremental development of features. To add a new feature flag, simply modify `superset_config.py` with something like the following:
+
+```python
+FEATURE_FLAGS = {
+    'SCOPED_FILTER': True,
+}
+```
+
+If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in [@superset-ui/core](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts). For example,
+
+```typescript
+export enum FeatureFlag {
+  SCOPED_FILTER = "SCOPED_FILTER",
+}
+```
+
+`superset/config.py` contains `DEFAULT_FEATURE_FLAGS` which will be overwritten by
+those specified under FEATURE_FLAGS in `superset_config.py`. For example, `DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False }` in `superset/config.py` and `FEATURE_FLAGS = { 'BAR': True, 'BAZ': True }` in `superset_config.py` will result
+in combined feature flags of `{ 'FOO': True, 'BAR': True, 'BAZ': True }`.
+
+The current status of the usability of each flag (stable vs testing, etc) can be found in `RESOURCES/FEATURE_FLAGS.md`.
+
+## Git Hooks
+
+Superset uses Git pre-commit hooks courtesy of [pre-commit](https://pre-commit.com/). To install run the following:
+
+```bash
+pip3 install -r requirements/development.txt
+pre-commit install
+```
+
+A series of checks will now run when you make a git commit.
+
+## Linting
+
+See [how tos](/docs/contributing/howtos#linting)
+
+## GitHub Actions and `act`
+
+:::tip
+`act` compatibility of Superset's GHAs is not fully tested. Running `act` locally may or may not
+work for different actions, and may require fine tunning and local secret-handling.
+For those more intricate GHAs that are tricky to run locally, we recommend iterating
+directly on GHA's infrastructure, by pushing directly on a branch and monitoring GHA logs.
+For more targetted iteration, see the `gh workflow run --ref {BRANCH}` subcommand of the GitHub CLI.
+:::
+
+For automation and CI/CD, Superset makes extensive use of GitHub Actions (GHA). You
+can find all of the workflows and other assets under the `.github/` folder. This includes:
+
+- running the backend unit test suites (`tests/`)
+- running the frontend test suites (`superset-frontend/src/**.*.test.*`)
+- running our Cypress end-to-end tests (`superset-frontend/cypress-base/`)
+- linting the codebase, including all Python, Typescript and Javascript, yaml and beyond
+- checking for all sorts of other rules conventions
+
+When you open a pull request (PR), the appropriate GitHub Actions (GHA) workflows will
+automatically run depending on the changes in your branch. It's perfectly reasonable
+(and required!) to rely on this automation. However, the downside is that it's mostly an
+all-or-nothing approach and doesn't provide much control to target specific tests or
+iterate quickly.
+
+At times, it may be more convenient to run GHA workflows locally. For that purpose
+we use [act](https://github.com/nektos/act), a tool that allows you to run GitHub Actions (GHA)
+workflows locally. It simulates the GitHub Actions environment, enabling developers to
+test and debug workflows on their local machines before pushing changes to the repository. More
+on how to use it in the next section.
+
+:::note
+In both GHA and `act`, we can run a more complex matrix for our tests, executing against different
+database engines (PostgreSQL, MySQL, SQLite) and different versions of Python.
+This enables us to ensure compatibility and stability across various environments.
+:::
+
+### Using `act`
+
+First, install `act` -> https://nektosact.com/
+
+To list the workflows, simply:
+
+```bash
+act --list
+```
+
+To run a specific workflow:
+
+```bash
+act pull_request --job {workflow_name} --secret GITHUB_TOKEN=$GITHUB_TOKEN --container-architecture linux/amd64
+```
+
+In the example above, notice that:
+
+- we target a specific workflow, using `--job`
+- we pass a secret using `--secret`, as many jobs require read access (public) to the repo
+- we simulate a `pull_request` event by specifying it as the first arg,
+  similarly, we could simulate a `push` event or something else
+- we specify `--container-architecture`, which tends to emulate GHA more reliably
+
+:::note
+`act` is a rich tool that offers all sorts of features, allowing you to simulate different
+events (pull_request, push, ...), semantics around passing secrets where required and much
+more. For more information, refer to [act's documentation](https://nektosact.com/)
+:::
+
+:::note
+Some jobs require secrets to interact with external systems and accounts that you may
+not have in your possession. In those cases you may have to rely on remote CI or parameterize the
+job further to target a different environment/sandbox or your own alongside the related
+secrets.
+:::
+
+---
+
+## Testing
+
+### Python Testing
+
+#### Unit Tests
+
+For unit tests located in `tests/unit_tests/`, it's usually easy to simply run the script locally using:
+
+```bash
+pytest tests/unit_tests/*
+```
+
+#### Integration Tests
+
+For more complex pytest-defined integration tests (not to be confused with our end-to-end Cypress tests), many tests will require having a working test environment. Some tests require a database, Celery, and potentially other services or libraries installed.
+
+### Running Tests with `act`
+
+To run integration tests locally using `act`, ensure you have followed the setup instructions from the [GitHub Actions and `act`](#github-actions-and-act) section. You can run specific workflows or jobs that include integration tests. For example:
+
+```bash
+act --job test-python-38 --secret GITHUB_TOKEN=$GITHUB_TOKEN --event pull_request --container-architecture linux/amd64
+```
+
+#### Running locally using a test script
+
+There is also a utility script included in the Superset codebase to run Python integration tests. The [readme can be found here](https://github.com/apache/superset/tree/master/scripts/tests).
+
+There is also a utility script included in the Superset codebase to run python integration tests. The [readme can be
+found here](https://github.com/apache/superset/tree/master/scripts/tests)
+
+To run all integration tests, for example, run this script from the root directory:
+
+```bash
+scripts/tests/run.sh
+```
+
+You can run unit tests found in `./tests/unit_tests` with pytest. It is a simple way to run an isolated test that doesn't need any database setup:
+
+```bash
+pytest ./link_to_test.py
+```
+
+### Frontend Testing
+
+We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test TypeScript/JavaScript. Tests can be run with:
+
+```bash
+cd superset-frontend
+npm run test
+```
+
+To run a single test file:
+
+```bash
+npm run test -- path/to/file.js
+```
+
+### Debugging Server App
+
+#### Local
+
+For debugging locally using VSCode, you can configure a launch configuration file .vscode/launch.json such as
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Flask",
+      "type": "python",
+      "request": "launch",
+      "module": "flask",
+      "env": {
+        "FLASK_APP": "superset",
+        "SUPERSET_ENV": "development"
+      },
+      "args": ["run", "-p 8088", "--with-threads", "--reload", "--debugger"],
+      "jinja": true,
+      "justMyCode": true
+    }
+  ]
+}
+```
+
+#### Raw Docker (without `docker compose`)
+
+Follow these instructions to debug the Flask app running inside a docker container. Note that
+this will run a barebones Superset web server,
+
+First, add the following to the ./docker-compose.yaml file
+
+```diff
+superset:
+    env_file: docker/.env
+    image: *superset-image
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app"]
+    restart: unless-stopped
++   cap_add:
++     - SYS_PTRACE
+    ports:
+      - 8088:8088
++     - 5678:5678
+    user: "root"
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+```
+
+Start Superset as usual
+
+```bash
+docker compose up --build
+```
+
+Install the required libraries and packages to the docker container
+
+Enter the superset_app container
+
+```bash
+docker exec -it superset_app /bin/bash
+root@39ce8cf9d6ab:/app#
+```
+
+Run the following commands inside the container
+
+```bash
+apt update
+apt install -y gdb
+apt install -y net-tools
+pip install debugpy
+```
+
+Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process every time you change any of the python code. So it's important to use the first PID.
+
+```bash
+ps -ef
+
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 14:09 ?        00:00:00 bash /app/docker/docker-bootstrap.sh app
+root         6     1  4 14:09 ?        00:00:04 /usr/local/bin/python /usr/bin/flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+root        10     6  7 14:09 ?        00:00:07 /usr/local/bin/python /usr/bin/flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+```
+
+Inject debugpy into the running Flask process. In this case PID 6.
+
+```bash
+python3 -m debugpy --listen 0.0.0.0:5678 --pid 6
+```
+
+Verify that debugpy is listening on port 5678
+
+```bash
+netstat -tunap
+
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:5678            0.0.0.0:*               LISTEN      462/python
+tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      6/python
+```
+
+You are now ready to attach a debugger to the process. Using VSCode you can configure a launch configuration file .vscode/launch.json like so.
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to Superset App in Docker Container",
+      "type": "python",
+      "request": "attach",
+      "connect": {
+        "host": "127.0.0.1",
+        "port": 5678
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/app"
+        }
+      ]
+    }
+  ]
+}
+```
+
+VSCode will not stop on breakpoints right away. We've attached to PID 6 however it does not yet know of any sub-processes. In order to "wake up" the debugger you need to modify a python file. This will trigger Flask to reload the code and create a new sub-process. This new sub-process will be detected by VSCode and breakpoints will be activated.
+
+### Debugging Server App in Kubernetes Environment
+
+To debug Flask running in POD inside a kubernetes cluster, you'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
+
+```yaml
+  securityContext:
+    capabilities:
+      add: ["SYS_PTRACE"]
+```
+
+See [set capabilities for a container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) for more details.
+
+Once the pod is running as root and has the SYS_PTRACE capability it will be able to debug the Flask app.
+
+You can follow the same instructions as in `docker compose`. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
+
+Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
+
+```bash
+kubectl port-forward  pod/superset-<some random id> 5678:5678
+```
+
+You can now launch your VSCode debugger with the same config as above. VSCode will connect to 127.0.0.1:5678 which is forwarded by kubectl to your remote kubernetes POD.
+
+### Storybook
+
+Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components and variations thereof. To open and view the Storybook:
+
+```bash
+cd superset-frontend
+npm run storybook
+```
+
+When contributing new React components to Superset, please try to add a Story alongside the component's `jsx/tsx` file.
+
+## Tips
+
+### Adding a new datasource
+
+1. Create Models and Views for the datasource, add them under superset folder, like a new my_models.py
+   with models for cluster, datasources, columns and metrics and my_views.py with clustermodelview
+   and datasourcemodelview.
+
+1. Create DB migration files for the new models
+
+1. Specify this variable to add the datasource model and from which module it is from in config.py:
+
+   For example:
+
+   ```python
+   ADDITIONAL_MODULE_DS_MAP = {'superset.my_models': ['MyDatasource', 'MyOtherDatasource']}
+   ```
+
+   This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.
+
+### Visualization Plugins
+
+The topic of authoring new plugins, whether you'd like to contribute
+it back or not has been well documented in the
+[the documentation](https://superset.apache.org/docs/contributing/creating-viz-plugins), and in [this blog post](https://preset.io/blog/building-custom-viz-plugins-in-superset-v2).
+
+To contribute a plugin to Superset, your plugin must meet the following criteria:
+
+- The plugin should be applicable to the community at large, not a particularly specialized use case
+- The plugin should be written with TypeScript
+- The plugin should contain sufficient unit/e2e tests
+- The plugin should use appropriate namespacing, e.g. a folder name of `plugin-chart-whatever` and a package name of `@superset-ui/plugin-chart-whatever`
+- The plugin should use theme variables via Emotion, as passed in by the ThemeProvider
+- The plugin should provide adequate error handling (no data returned, malformed data, invalid controls, etc.)
+- The plugin should contain documentation in the form of a populated `README.md` file
+- The plugin should have a meaningful and unique icon
+- Above all else, the plugin should come with a _commitment to maintenance_ from the original author(s)
+
+Submissions will be considered for submission (or removal) on a case-by-case basis.
+
+### Adding a DB migration
+
+1. Alter the model you want to change. This example will add a `Column` Annotations model.
+
+   [Example commit](https://github.com/apache/superset/commit/6c25f549384d7c2fc288451222e50493a7b14104)
+
+1. Generate the migration file
+
+   ```bash
+   superset db migrate -m 'add_metadata_column_to_annotation_model'
+   ```
+
+   This will generate a file in `migrations/version/{SHA}_this_will_be_in_the_migration_filename.py`.
+
+   [Example commit](https://github.com/apache/superset/commit/d3e83b0fd572c9d6c1297543d415a332858e262)
+
+1. Upgrade the DB
+
+   ```bash
+   superset db upgrade
+   ```
+
+   The output should look like this:
+
+   ```log
+   INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+   INFO  [alembic.runtime.migration] Will assume transactional DDL.
+   INFO  [alembic.runtime.migration] Running upgrade 1a1d627ebd8e -> 40a0a483dd12, add_metadata_column_to_annotation_model.py
+   ```
+
+1. Add column to view
+
+   Since there is a new column, we need to add it to the AppBuilder Model view.
+
+   [Example commit](https://github.com/apache/superset/pull/5745/commits/6220966e2a0a0cf3e6d87925491f8920fe8a3458)
+
+1. Test the migration's `down` method
+
+   ```bash
+   superset db downgrade
+   ```
+
+   The output should look like this:
+
+   ```log
+   INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+   INFO  [alembic.runtime.migration] Will assume transactional DDL.
+   INFO  [alembic.runtime.migration] Running downgrade 40a0a483dd12 -> 1a1d627ebd8e, add_metadata_column_to_annotation_model.py
+   ```
+
+### Merging DB migrations
+
+When two DB migrations collide, you'll get an error message like this one:
+
+```text
+alembic.util.exc.CommandError: Multiple head revisions are present for
+given argument 'head'; please specify a specific target
+revision, '<branchname>@head' to narrow to a specific head,
+or 'heads' for all heads`
+```
+
+To fix it:
+
+1. Get the migration heads
+
+   ```bash
+   superset db heads
+   ```
+
+   This should list two or more migration hashes. E.g.
+
+   ```bash
+   1412ec1e5a7b (head)
+   67da9ef1ef9c (head)
+   ```
+
+2. Pick one of them as the parent revision, open the script for the other revision
+   and update `Revises` and `down_revision` to the new parent revision. E.g.:
+
+   ```diff
+   --- a/67da9ef1ef9c_add_hide_left_bar_to_tabstate.py
+   +++ b/67da9ef1ef9c_add_hide_left_bar_to_tabstate.py
+   @@ -17,14 +17,14 @@
+   """add hide_left_bar to tabstate
+
+   Revision ID: 67da9ef1ef9c
+   -Revises: c501b7c653a3
+   +Revises: 1412ec1e5a7b
+   Create Date: 2021-02-22 11:22:10.156942
+
+   """
+
+   # revision identifiers, used by Alembic.
+   revision = "67da9ef1ef9c"
+   -down_revision = "c501b7c653a3"
+   +down_revision = "1412ec1e5a7b"
+
+   import sqlalchemy as sa
+   from alembic import op
+   ```
+
+   Alternatively, you may also run `superset db merge` to create a migration script
+   just for merging the heads.
+
+   ```bash
+   superset db merge {HASH1} {HASH2}
+   ```
+
+3. Upgrade the DB to the new checkpoint
+
+   ```bash
+   superset db upgrade
+   ```

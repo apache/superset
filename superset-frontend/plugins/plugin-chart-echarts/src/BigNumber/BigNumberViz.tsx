@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { MouseEvent } from 'react';
+import { PureComponent, MouseEvent } from 'react';
 import {
   t,
   getNumberFormatter,
-  smartDateVerboseFormatter,
+  getTimeFormatter,
+  SMART_DATE_VERBOSE_ID,
   computeMaxFontSize,
   BRAND_COLOR,
   styled,
@@ -41,11 +42,11 @@ const PROPORTION = {
   TRENDLINE: 0.3,
 };
 
-class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
+class BigNumberVis extends PureComponent<BigNumberVizProps> {
   static defaultProps = {
     className: '',
     headerFormatter: defaultNumberFormatter,
-    formatTime: smartDateVerboseFormatter,
+    formatTime: getTimeFormatter(SMART_DATE_VERBOSE_ID),
     headerFontSize: PROPORTION.HEADER,
     kickerFontSize: PROPORTION.KICKER,
     mainColor: BRAND_COLOR,
@@ -97,6 +98,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
       !formatTime ||
       !showTimestamp ||
       typeof timestamp === 'string' ||
+      typeof timestamp === 'bigint' ||
       typeof timestamp === 'boolean'
     )
       return null;
@@ -119,7 +121,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
         className="kicker"
         style={{
           fontSize,
-          height: maxHeight,
+          height: 'auto',
         }}
       >
         {text}
@@ -155,7 +157,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     document.body.append(container);
     const fontSize = computeMaxFontSize({
       text,
-      maxWidth: width - 8, // Decrease 8px for more precise font size
+      maxWidth: width * 0.9, // reduced it's max width
       maxHeight,
       className: 'header-line',
       container,
@@ -173,8 +175,10 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
       <div
         className="header-line"
         style={{
+          display: 'flex',
+          alignItems: 'center',
           fontSize,
-          height: maxHeight,
+          height: 'auto',
           color: numberColor,
         }}
         onContextMenu={onContextMenu}
@@ -203,7 +207,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
       document.body.append(container);
       fontSize = computeMaxFontSize({
         text,
-        maxWidth: width,
+        maxWidth: width * 0.9, // max width reduced
         maxHeight,
         className: 'subheader-line',
         container,
@@ -219,6 +223,40 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
           }}
         >
           {text}
+        </div>
+      );
+    }
+    return null;
+  }
+
+  renderSubtitle(maxHeight: number) {
+    const { subtitle, width } = this.props;
+    let fontSize = 0;
+
+    if (subtitle) {
+      const container = this.createTemporaryContainer();
+      document.body.append(container);
+      try {
+        fontSize = computeMaxFontSize({
+          text: subtitle,
+          maxWidth: width * 0.9,
+          maxHeight,
+          className: 'subtitle-line',
+          container,
+        });
+      } finally {
+        container.remove();
+      }
+
+      return (
+        <div
+          className="subtitle-line"
+          style={{
+            fontSize,
+            height: maxHeight,
+          }}
+        >
+          {subtitle}
         </div>
       );
     }
@@ -278,6 +316,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
       kickerFontSize,
       headerFontSize,
       subheaderFontSize,
+      subtitleFontSize,
     } = this.props;
     const className = this.getClassName();
 
@@ -302,6 +341,9 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
                 subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
               ),
             )}
+            {this.renderSubtitle(
+              Math.ceil(subtitleFontSize * (1 - PROPORTION.TRENDLINE) * height),
+            )}
           </div>
           {this.renderTrendline(chartHeight)}
         </div>
@@ -314,6 +356,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
         {this.renderKicker((kickerFontSize || 0) * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}
         {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
+        {this.renderSubtitle(Math.ceil(subtitleFontSize * height))}
       </div>
     );
   }
@@ -354,6 +397,8 @@ export default styled(BigNumberVis)`
     .header-line {
       position: relative;
       line-height: 1em;
+      white-space: nowrap;
+      margin-bottom:${theme.gridUnit * 2}px;
       span {
         position: absolute;
         bottom: 0;
@@ -362,7 +407,12 @@ export default styled(BigNumberVis)`
 
     .subheader-line {
       line-height: 1em;
-      padding-bottom: 0;
+      padding-bottom: 0.3em;
+    }
+
+    .subtitle-line {
+      line-height: 1em;
+      padding-top: 0.3em;
     }
 
     &.is-fallback-value {

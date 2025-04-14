@@ -55,14 +55,14 @@ class ImportChartsCommand(BaseCommand):
                 return
             except IncorrectVersionError:
                 logger.debug("File not handled by command, skipping")
-            except (CommandInvalidError, ValidationError) as exc:
+            except (CommandInvalidError, ValidationError):
                 # found right version, but file is invalid
                 logger.info("Command failed validation")
-                raise exc
-            except Exception as exc:
+                raise
+            except Exception:
                 # validation succeeded but something went wrong
                 logger.exception("Error running import command")
-                raise exc
+                raise
 
         raise CommandInvalidError("Could not find a valid command to import file")
 

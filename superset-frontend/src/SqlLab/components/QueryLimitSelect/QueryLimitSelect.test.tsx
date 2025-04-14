@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { Store } from 'redux';
 
-import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  fireEvent,
+  render,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import QueryLimitSelect, {
   QueryLimitSelectProps,
@@ -32,9 +35,6 @@ import QueryLimitSelect, {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('src/components/DeprecatedSelect', () => () => (
-  <div data-test="mock-deprecated-select" />
-));
 jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));

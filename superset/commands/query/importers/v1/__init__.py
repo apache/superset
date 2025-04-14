@@ -15,16 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any
+from typing import Any, Optional
 
 from marshmallow import Schema
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.commands.query.exceptions import SavedQueryImportError
 from superset.commands.query.importers.v1.utils import import_saved_query
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable  # noqa: F401
 from superset.daos.query import SavedQueryDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
@@ -44,7 +44,9 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session, configs: dict[str, Any], overwrite: bool = False
+        configs: dict[str, Any],
+        overwrite: bool = False,
+        contents: Optional[dict[str, Any]] = None,
     ) -> None:
         # discover databases associated with saved queries
         database_uuids: set[str] = set()
@@ -56,7 +58,7 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(session, config, overwrite=False)
+                database = import_database(config, overwrite=False)
                 database_ids[str(database.uuid)] = database.id
 
         # import saved queries with the correct parent ref
@@ -66,4 +68,4 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["db_id"] = database_ids[config["database_uuid"]]
-                import_saved_query(session, config, overwrite=overwrite)
+                import_saved_query(config, overwrite=overwrite)

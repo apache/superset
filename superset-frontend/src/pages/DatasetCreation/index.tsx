@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useReducer, Reducer, useEffect, useState } from 'react';
+import { useReducer, Reducer, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import useDatasetsList from 'src/features/datasets/hooks/useDatasetLists';
 import Header from 'src/features/datasets/AddDataset/Header';
@@ -44,25 +44,33 @@ export function datasetReducer(
   };
 
   switch (action.type) {
-    case DatasetActionType.selectDatabase:
+    case DatasetActionType.SelectDatabase:
       return {
         ...trimmedState,
         ...action.payload,
+        catalog: null,
         schema: null,
         table_name: null,
       };
-    case DatasetActionType.selectSchema:
+    case DatasetActionType.SelectCatalog:
+      return {
+        ...trimmedState,
+        [action.payload.name]: action.payload.value,
+        schema: null,
+        table_name: null,
+      };
+    case DatasetActionType.SelectSchema:
       return {
         ...trimmedState,
         [action.payload.name]: action.payload.value,
         table_name: null,
       };
-    case DatasetActionType.selectTable:
+    case DatasetActionType.SelectTable:
       return {
         ...trimmedState,
         [action.payload.name]: action.payload.value,
       };
-    case DatasetActionType.changeDataset:
+    case DatasetActionType.ChangeDataset:
       return {
         ...trimmedState,
         [action.payload.name]: action.payload.value,
@@ -112,6 +120,7 @@ export default function AddDataset() {
     <DatasetPanel
       tableName={dataset?.table_name}
       dbId={dataset?.db?.id}
+      catalog={dataset?.catalog}
       schema={dataset?.schema}
       setHasColumns={setHasColumns}
       datasets={datasets}

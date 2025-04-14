@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { createRef, Component } from 'react';
 import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
 import { styled, t } from '@superset-ui/core';
@@ -32,7 +32,7 @@ import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
-import { EXPRESSION_TYPES } from '../types';
+import { ExpressionTypes } from '../types';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -73,11 +73,12 @@ const FilterPopoverContentContainer = styled.div`
 
   .filter-edit-clause-info {
     font-size: ${({ theme }) => theme.typography.sizes.xs}px;
-    padding-left: ${({ theme }) => theme.gridUnit}px;
   }
 
   .filter-edit-clause-section {
-    display: inline-flex;
+    display: flex;
+    flex-direction: row;
+    gap: ${({ theme }) => theme.gridUnit * 5}px;
   }
 
   .adhoc-filter-simple-column-dropdown {
@@ -89,7 +90,7 @@ const FilterActionsContainer = styled.div`
   margin-top: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-export default class AdhocFilterEditPopover extends React.Component {
+export default class AdhocFilterEditPopover extends Component {
   constructor(props) {
     super(props);
     this.onSave = this.onSave.bind(this);
@@ -109,7 +110,7 @@ export default class AdhocFilterEditPopover extends React.Component {
       isSimpleTabValid: true,
     };
 
-    this.popoverContentRef = React.createRef();
+    this.popoverContentRef = createRef();
   }
 
   componentDidMount() {
@@ -208,7 +209,7 @@ export default class AdhocFilterEditPopover extends React.Component {
         >
           <Tabs.TabPane
             className="adhoc-filter-edit-tab"
-            key={EXPRESSION_TYPES.SIMPLE}
+            key={ExpressionTypes.Simple}
             tab={t('Simple')}
           >
             <ErrorBoundary>
@@ -227,7 +228,7 @@ export default class AdhocFilterEditPopover extends React.Component {
           </Tabs.TabPane>
           <Tabs.TabPane
             className="adhoc-filter-edit-tab"
-            key={EXPRESSION_TYPES.SQL}
+            key={ExpressionTypes.Sql}
             tab={t('Custom SQL')}
           >
             <ErrorBoundary>

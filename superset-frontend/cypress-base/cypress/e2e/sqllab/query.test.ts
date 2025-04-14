@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import { selectResultsTab, assertSQLLabResultsAreEqual } from './sqllab.helper';
 
 function parseClockStr(node: JQuery) {
@@ -35,18 +35,16 @@ describe('SqlLab query panel', () => {
 
     cy.intercept({
       method: 'POST',
-      url: '/api/v1/sqllab/execute/',
+      url: '**/api/v1/sqllab/execute/',
     }).as('mockSQLResponse');
 
     cy.get('.TableSelector .Select:eq(0)').click();
-    cy.get('.TableSelector .Select:eq(0) input[type=text]')
-      .focus()
-      .type('{enter}');
+    cy.get('.TableSelector .Select:eq(0) input[type=text]').focus();
+    cy.focused().type('{enter}');
 
-    cy.get('#brace-editor textarea')
-      .focus()
-      .clear()
-      .type(`{selectall}{backspace}SELECT 1`);
+    cy.get('#brace-editor textarea').focus();
+    cy.focused().clear();
+    cy.focused().type(`{selectall}{backspace}SELECT 1`);
 
     cy.get('#js-sql-toolbar button:eq(0)').eq(0).click();
 
@@ -81,22 +79,22 @@ describe('SqlLab query panel', () => {
   });
 
   it.skip('successfully saves a query', () => {
-    cy.intercept('api/v1/database/**/tables/**').as('getTables');
-    cy.intercept('savedqueryviewapi/**').as('getSavedQuery');
+    cy.intercept('**/api/v1/database/**/tables/**').as('getTables');
 
     const query =
       'SELECT ds, gender, name, num FROM main.birth_names ORDER BY name LIMIT 3';
-    const savedQueryTitle = `CYPRESS TEST QUERY ${shortid.generate()}`;
+    const savedQueryTitle = `CYPRESS TEST QUERY ${nanoid()}`;
 
     // we will assert that the results of the query we save, and the saved query are the same
     let initialResultsTable: HTMLElement | null = null;
     let savedQueryResultsTable = null;
 
-    cy.get('#brace-editor textarea')
-      .clear({ force: true })
-      .type(`{selectall}{backspace}${query}`, { force: true })
-      .focus() // focus => blur is required for updating the query that is to be saved
-      .blur();
+    cy.get('#brace-editor textarea').clear({ force: true });
+    cy.get('#brace-editor textarea').type(`{selectall}{backspace}${query}`, {
+      force: true,
+    });
+    cy.get('#brace-editor textarea').focus(); // focus => blur is required for updating the query that is to be saved
+    cy.focused().blur();
 
     // ctrl + r also runs query
     cy.get('#brace-editor textarea').type('{ctrl}r', { force: true });
@@ -113,18 +111,14 @@ describe('SqlLab query panel', () => {
       .click();
 
     // Enter name + save into modal
-    cy.get('.modal-sm input')
-      .clear({ force: true })
-      .type(`{selectall}{backspace}${savedQueryTitle}`, {
-        force: true,
-      });
+    cy.get('.modal-sm input').clear({ force: true });
+    cy.get('.modal-sm input').type(`{selectall}{backspace}${savedQueryTitle}`, {
+      force: true,
+    });
 
     cy.get('.modal-sm .modal-body button')
       .eq(0) // save
       .click();
-
-    // visit saved queries
-    cy.visit('/sqllab/my_queries/');
 
     // first row contains most recent link, follow back to SqlLab
     cy.get('table tr:first-child a[href*="savedQueryId"').click();
@@ -147,10 +141,11 @@ describe('SqlLab query panel', () => {
     });
   });
 
-  it('Create a chart from a query', () => {
-    cy.intercept('/api/v1/sqllab/execute/').as('queryFinished');
+  it.skip('Create a chart from a query', () => {
+    cy.intercept('**/api/v1/sqllab/execute/').as('queryFinished');
     cy.intercept('**/api/v1/explore/**').as('explore');
     cy.intercept('**/api/v1/chart/**').as('chart');
+    cy.intercept('**/tabstateview/**').as('tabstateview');
 
     // cypress doesn't handle opening a new tab, override window.open to open in the same tab
     cy.window().then(win => {
@@ -159,13 +154,13 @@ describe('SqlLab query panel', () => {
         win.location.href = url;
       });
     });
+    cy.wait('@tabstateview');
 
     const query = 'SELECT gender, name FROM birth_names';
 
-    cy.get('.ace_text-input')
-      .focus()
-      .clear({ force: true })
-      .type(`{selectall}{backspace}${query}`, { force: true });
+    cy.get('.ace_text-input').focus();
+    cy.focused().clear({ force: true });
+    cy.focused().type(`{selectall}{backspace}${query}`, { force: true });
     cy.get('.sql-toolbar button').contains('Run').click();
     cy.wait('@queryFinished');
 

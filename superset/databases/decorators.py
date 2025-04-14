@@ -30,9 +30,9 @@ from superset.views.base_api import BaseSupersetModelRestApi
 logger = logging.getLogger(__name__)
 
 
-def check_datasource_access(f: Callable[..., Any]) -> Callable[..., Any]:
+def check_table_access(f: Callable[..., Any]) -> Callable[..., Any]:
     """
-    A Decorator that checks if a user has datasource access
+    A Decorator that checks if a user has access to a table in a database.
     """
 
     def wraps(

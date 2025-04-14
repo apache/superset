@@ -17,12 +17,16 @@
  * under the License.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import fetchMock from 'fetch-mock';
-import { omit, isUndefined, omitBy } from 'lodash';
-import userEvent from '@testing-library/user-event';
-import { waitFor, within } from '@testing-library/react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { omit, omitBy } from 'lodash';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import mockState from 'spec/fixtures/mockState';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
@@ -68,7 +72,10 @@ const dataset = {
   ],
 };
 
-const renderModal = async (modalProps: Partial<DrillByModalProps> = {}) => {
+const renderModal = async (
+  modalProps: Partial<DrillByModalProps> = {},
+  overrideState: Record<string, any> = {},
+) => {
   const DrillByModalWrapper = () => {
     const [showModal, setShowModal] = useState(false);
 
@@ -83,6 +90,7 @@ const renderModal = async (modalProps: Partial<DrillByModalProps> = {}) => {
             onHideModal={() => setShowModal(false)}
             dataset={dataset}
             drillByConfig={{ groupbyFieldName: 'groupby', filters: [] }}
+            canDownload
             {...modalProps}
           />
         )}
@@ -93,7 +101,10 @@ const renderModal = async (modalProps: Partial<DrillByModalProps> = {}) => {
     useDnd: true,
     useRedux: true,
     useRouter: true,
-    initialState: drillByModalState,
+    initialState: {
+      ...drillByModalState,
+      ...overrideState,
+    },
   });
 
   userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
@@ -159,7 +170,7 @@ test('should generate Explore url', async () => {
     form_data: {
       ...omitBy(
         omit(formData, ['slice_id', 'slice_name', 'dashboards']),
-        isUndefined,
+        i => i === undefined,
       ),
       groupby: ['name'],
       adhoc_filters: [
@@ -232,4 +243,30 @@ test('render breadcrumbs', async () => {
   // eslint-disable-next-line jest-dom/prefer-in-document
   expect(newBreadcrumbItems).toHaveLength(1);
   expect(within(breadcrumbItems[0]).getByText('gender')).toBeInTheDocument();
+});
+
+test('should render "Edit chart" as disabled without can_explore permission', async () => {
+  await renderModal(
+    {},
+    {
+      user: {
+        ...drillByModalState.user,
+        roles: { Admin: [['invalid_permission', 'Superset']] },
+      },
+    },
+  );
+  expect(screen.getByRole('button', { name: 'Edit chart' })).toBeDisabled();
+});
+
+test('should render "Edit chart" enabled with can_explore permission', async () => {
+  await renderModal(
+    {},
+    {
+      user: {
+        ...drillByModalState.user,
+        roles: { Admin: [['can_explore', 'Superset']] },
+      },
+    },
+  );
+  expect(screen.getByRole('button', { name: 'Edit chart' })).toBeEnabled();
 });

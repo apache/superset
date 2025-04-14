@@ -16,24 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+
 import { Provider } from 'react-redux';
-import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import sinon from 'sinon';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-
-import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
-import EditableTitle from 'src/components/EditableTitle';
-import Tab, {
-  RENDER_TAB,
-  RENDER_TAB_CONTENT,
-} from 'src/dashboard/components/gridComponents/Tab';
+import Tab, { RENDER_TAB } from 'src/dashboard/components/gridComponents/Tab';
 import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';
 import { getMockStore } from 'spec/fixtures/mockStore';
-import { initialState } from 'src/SqlLab/fixtures';
 
+// TODO: rewrite to RTL
 describe('Tabs', () => {
   const props = {
     id: 'TAB_ID',
@@ -45,6 +38,7 @@ describe('Tabs', () => {
     editMode: false,
     renderType: RENDER_TAB,
     filters: {},
+    dashboardId: 123,
     setDirectPathToChild: jest.fn(),
     onDropOnTab() {},
     onDeleteTab() {},
@@ -58,58 +52,88 @@ describe('Tabs', () => {
     onChangeTab() {},
     deleteComponent() {},
     updateComponents() {},
+    dropToChild: false,
+    maxChildrenHeight: 100,
+    shouldDropToChild: () => false, // Add this prop
   };
 
-  function setup(overrideProps) {
-    // We have to wrap provide DragDropContext for the underlying DragDroppable
-    // otherwise we cannot assert on DragDroppable children
-    const mockStore = getMockStore({
-      ...initialState,
-      dashboardLayout: dashboardLayoutWithTabs,
-      dashboardFilters: {},
-    });
-    const wrapper = mount(
-      <Provider store={mockStore}>
+  function setup(overrideProps = {}) {
+    return render(
+      <Provider
+        store={getMockStore({
+          dashboardLayout: dashboardLayoutWithTabs,
+        })}
+      >
         <DndProvider backend={HTML5Backend}>
           <Tab {...props} {...overrideProps} />
         </DndProvider>
       </Provider>,
     );
-    return wrapper;
   }
 
   describe('renderType=RENDER_TAB', () => {
     it('should render a DragDroppable', () => {
-      const wrapper = setup();
-      expect(wrapper.find(DragDroppable)).toExist();
+      setup();
+      expect(screen.getByTestId('dragdroppable-object')).toBeInTheDocument();
     });
 
     it('should render an EditableTitle with meta.text', () => {
-      const wrapper = setup();
-      const title = wrapper.find(EditableTitle);
-      expect(title).toHaveLength(1);
-      expect(title.find('.editable-title')).toHaveText(
-        props.component.meta.defaultText,
+      setup();
+      const titleElement = screen.getByTestId('editable-title');
+      expect(titleElement).toBeInTheDocument();
+      expect(titleElement).toHaveTextContent(
+        props.component.meta.defaultText || '',
       );
     });
 
-    it('should call updateComponents when EditableTitle changes', () => {
-      const updateComponents = sinon.spy();
-      const wrapper = setup({ editMode: true, updateComponents });
-      wrapper.find(EditableTitle).prop('onSaveTitle')('New title');
+    it('should call updateComponents when EditableTitle changes', async () => {
+      const updateComponents = jest.fn();
+      setup({
+        editMode: true,
+        updateComponents,
+        component: {
+          ...dashboardLayoutWithTabs.present.TAB_ID,
+          meta: {
+            text: 'Original Title',
+            defaultText: 'Original Title', // Add defaultText to match component
+          },
+        },
+        isFocused: true,
+      });
 
-      expect(updateComponents.callCount).toBe(1);
-      expect(updateComponents.getCall(0).args[0].TAB_ID.meta.text).toBe(
-        'New title',
-      );
+      const titleElement = screen.getByTestId('editable-title');
+      fireEvent.click(titleElement);
+
+      const titleInput = await screen.findByTestId('editable-title-input');
+      fireEvent.change(titleInput, { target: { value: 'New title' } });
+      fireEvent.blur(titleInput);
+
+      expect(updateComponents).toHaveBeenCalledWith({
+        TAB_ID: {
+          ...dashboardLayoutWithTabs.present.TAB_ID,
+          meta: {
+            ...dashboardLayoutWithTabs.present.TAB_ID.meta,
+            text: 'New title',
+            defaultText: 'Original Title', // Keep the original defaultText
+          },
+        },
+      });
     });
   });
 
   describe('renderType=RENDER_TAB_CONTENT', () => {
-    it('should render a DashboardComponent', () => {
-      const wrapper = setup({ renderType: RENDER_TAB_CONTENT });
-      // We expect 2 because this Tab has a Row child and the row has a Chart
-      expect(wrapper.find(DashboardComponent)).toHaveLength(2);
+    it('should render DashboardComponents', () => {
+      setup({
+        renderType: 'RENDER_TAB_CONTENT',
+        component: {
+          ...dashboardLayoutWithTabs.present.TAB_ID,
+          children: ['ROW_ID'],
+        },
+      });
+
+      expect(
+        screen.getByTestId('dashboard-component-chart-holder'),
+      ).toBeInTheDocument();
     });
   });
 });

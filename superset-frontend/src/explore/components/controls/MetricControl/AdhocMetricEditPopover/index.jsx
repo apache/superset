@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import {
   isDefined,
@@ -30,7 +30,7 @@ import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { Form, FormItem } from 'src/components/Form';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
@@ -49,6 +49,7 @@ import {
   StyledMetricOption,
   StyledColumnOption,
 } from 'src/explore/components/optionRenderers';
+import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 
 const propTypes = {
   onChange: PropTypes.func.isRequired,
@@ -85,7 +86,7 @@ const StyledSelect = styled(Select)`
 
 export const SAVED_TAB_KEY = 'SAVED';
 
-export default class AdhocMetricEditPopover extends React.PureComponent {
+export default class AdhocMetricEditPopover extends PureComponent {
   // "Saved" is a default tab unless there are no saved metrics for dataset
   defaultActiveTabKey = this.getDefaultTab();
 
@@ -272,7 +273,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
   refreshAceEditor() {
     setTimeout(() => {
       if (this.aceEditorRef) {
-        this.aceEditorRef.editor.resize();
+        this.aceEditorRef.editor?.resize?.();
       }
     }, 0);
   }
@@ -304,14 +305,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       ...popoverProps
     } = this.props;
     const { adhocMetric, savedMetric } = this.state;
-    const keywords = sqlKeywords.concat(
-      columns.map(column => ({
-        name: column.column_name,
-        value: column.column_name,
-        score: 50,
-        meta: 'column',
-      })),
-    );
+    const keywords = sqlKeywords.concat(getColumnKeywords(columns));
 
     const columnValue =
       (adhocMetric.column && adhocMetric.column.column_name) ||
@@ -395,16 +389,18 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                 />
               </FormItem>
             ) : datasource.type === DatasourceType.Table ? (
-              <EmptyStateSmall
+              <EmptyState
                 image="empty.svg"
+                size="small"
                 title={t('No saved metrics found')}
                 description={t(
                   'Add metrics to dataset in "Edit datasource" modal',
                 )}
               />
             ) : (
-              <EmptyStateSmall
+              <EmptyState
                 image="empty.svg"
+                size="small"
                 title={t('No saved metrics found')}
                 description={
                   <>
@@ -520,6 +516,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           >
             {t('Save')}
           </Button>
+          {/* TODO: Remove fa-icon */}
+          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
           <i
             role="button"
             aria-label="Resize"

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { styled } from '@superset-ui/core';
 import { ToastMeta } from 'src/components/MessageToasts/types';
 import Toast from './Toast';
@@ -32,7 +31,7 @@ const StyledToastPresenter = styled.div<VisualProps>`
   right: 0px;
   margin-right: 50px;
   margin-bottom: 50px;
-  z-index: ${({ theme }) => theme.zIndex.max};
+  z-index: ${({ theme }) => theme.zIndex.max + 1};
   word-break: break-word;
 
   .toast {
@@ -49,7 +48,8 @@ const StyledToastPresenter = styled.div<VisualProps>`
     transform: translateY(-100%);
     white-space: pre-line;
     will-change: transform, opacity;
-    transition: transform ${({ theme }) => theme.transitionTiming}s,
+    transition:
+      transform ${({ theme }) => theme.transitionTiming}s,
       opacity ${({ theme }) => theme.transitionTiming}s;
 
     &:after {

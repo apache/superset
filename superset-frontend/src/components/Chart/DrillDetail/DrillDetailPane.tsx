@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
+  cloneElement,
   ReactElement,
   useCallback,
   useEffect,
@@ -40,7 +41,7 @@ import Loading from 'src/components/Loading';
 import BooleanCell from 'src/components/Table/cell-renderers/BooleanCell';
 import NullCell from 'src/components/Table/cell-renderers/NullCell';
 import TimeCell from 'src/components/Table/cell-renderers/TimeCell';
-import { EmptyStateMedium } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
 import HeaderWithRadioGroup from 'src/components/Table/header-renderers/HeaderWithRadioGroup';
@@ -63,7 +64,7 @@ function Resizable({ children }: { children: ReactElement }) {
   const { ref, height } = useResizeDetector();
   return (
     <div ref={ref} css={{ flex: 1 }}>
-      {React.cloneElement(children, { height })}
+      {cloneElement(children, { height })}
     </div>
   );
 }
@@ -89,7 +90,9 @@ export default function DrillDetailPane({
   const [resultsPages, setResultsPages] = useState<Map<number, ResultsPage>>(
     new Map(),
   );
-  const [timeFormatting, setTimeFormatting] = useState({});
+  const [timeFormatting, setTimeFormatting] = useState<
+    Record<string, TimeFormatting>
+  >({});
 
   const SAMPLES_ROW_LIMIT = useSelector(
     (state: { common: { conf: JsonObject } }) =>
@@ -122,7 +125,7 @@ export default function DrillDetailPane({
         key: column,
         dataIndex: column,
         title:
-          resultsPage?.colTypes[index] === GenericDataType.TEMPORAL ? (
+          resultsPage?.colTypes[index] === GenericDataType.Temporal ? (
             <HeaderWithRadioGroup
               headerTitle={column}
               groupTitle={t('Formatting')}
@@ -139,7 +142,10 @@ export default function DrillDetailPane({
                   : TimeFormatting.Formatted
               }
               onChange={value =>
-                setTimeFormatting(state => ({ ...state, [column]: value }))
+                setTimeFormatting(state => ({
+                  ...state,
+                  [column]: parseInt(value, 10) as TimeFormatting,
+                }))
               }
             />
           ) : (
@@ -153,7 +159,7 @@ export default function DrillDetailPane({
             return <NullCell />;
           }
           if (
-            resultsPage?.colTypes[index] === GenericDataType.TEMPORAL &&
+            resultsPage?.colTypes[index] === GenericDataType.Temporal &&
             timeFormatting[column] !== TimeFormatting.Original &&
             (typeof value === 'number' || value instanceof Date)
           ) {
@@ -262,7 +268,9 @@ export default function DrillDetailPane({
 
   const bootstrapping =
     (!responseError && !resultsPages.size) ||
-    metadataBarStatus === ResourceStatus.LOADING;
+    metadataBarStatus === ResourceStatus.Loading;
+
+  const allowHTML = formData.allow_render_html ?? true;
 
   let tableContent = null;
   if (responseError) {
@@ -282,7 +290,7 @@ export default function DrillDetailPane({
   } else if (resultsPage?.total === 0) {
     // Render empty state if no results are returned for page
     const title = t('No rows were returned for this dataset');
-    tableContent = <EmptyStateMedium image="document.svg" title={title} />;
+    tableContent = <EmptyState image="document.svg" title={title} />;
   } else {
     // Render table if at least one page has successfully loaded
     tableContent = (
@@ -290,7 +298,7 @@ export default function DrillDetailPane({
         <Table
           data={data}
           columns={mappedColumns}
-          size={TableSize.SMALL}
+          size={TableSize.Small}
           defaultPageSize={PAGE_SIZE}
           recordCount={resultsPage?.total}
           usePagination
@@ -300,7 +308,7 @@ export default function DrillDetailPane({
           }
           resizable
           virtualize
-          allowHTML
+          allowHTML={allowHTML}
         />
       </Resizable>
     );

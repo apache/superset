@@ -17,11 +17,11 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
 import Alert from 'src/components/Alert';
 import cx from 'classnames';
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Pagination from 'src/components/Pagination';
 import TableCollection from 'src/components/TableCollection';
@@ -37,7 +37,7 @@ import {
   ViewModeType,
 } from './types';
 import { ListViewError, useListViewState } from './utils';
-import { EmptyStateBig, EmptyStateProps } from '../EmptyState';
+import { EmptyState, EmptyStateProps } from '../EmptyState';
 
 const ListViewStyles = styled.div`
   text-align: center;
@@ -67,8 +67,8 @@ const ListViewStyles = styled.div`
       overflow-x: auto;
     }
 
-    .ant-empty {
-      .ant-empty-image {
+    .antd5-empty {
+      .antd5-empty-image {
         height: auto;
       }
     }
@@ -130,6 +130,7 @@ const bulkSelectColumnConfig = {
     <IndeterminateCheckbox
       {...getToggleAllRowsSelectedProps()}
       id="header-toggle-all"
+      data-test="header-toggle-all"
     />
   ),
   id: 'selection',
@@ -186,7 +187,7 @@ const ViewModeToggle = ({
       }}
       className={cx('toggle-button', { active: mode === 'card' })}
     >
-      <Icons.CardView />
+      <Icons.AppstoreOutlined iconSize="xl" />
     </div>
     <div
       role="button"
@@ -197,7 +198,7 @@ const ViewModeToggle = ({
       }}
       className={cx('toggle-button', { active: mode === 'table' })}
     >
-      <Icons.ListView />
+      <Icons.UnorderedListOutlined iconSize="xl" />
     </div>
   </ViewModeContainer>
 );
@@ -217,14 +218,14 @@ export interface ListViewProps<T extends object = any> {
   filters?: Filters;
   bulkActions?: Array<{
     key: string;
-    name: React.ReactNode;
+    name: ReactNode;
     onSelect: (rows: any[]) => any;
     type?: 'primary' | 'secondary' | 'danger';
   }>;
   bulkSelectEnabled?: boolean;
   disableBulkSelect?: () => void;
-  renderBulkSelectCopy?: (selects: any[]) => React.ReactNode;
-  renderCard?: (row: T & { loading: boolean }) => React.ReactNode;
+  renderBulkSelectCopy?: (selects: any[]) => ReactNode;
+  renderCard?: (row: T & { loading: boolean }) => ReactNode;
   cardSortSelectOptions?: Array<CardSortSelectOption>;
   defaultViewMode?: ViewModeType;
   highlightRowId?: number;
@@ -271,10 +272,11 @@ function ListView<T extends object = any>({
     pageCount = 1,
     gotoPage,
     applyFilterValue,
+    setSortBy,
     selectedFlatRows,
     toggleAllRowsSelected,
     setViewMode,
-    state: { pageIndex, pageSize, internalFilters, viewMode },
+    state: { pageIndex, pageSize, internalFilters, sortBy, viewMode },
     query,
   } = useListViewState({
     bulkSelectColumnConfig,
@@ -321,6 +323,12 @@ function ListView<T extends object = any>({
     if (!bulkSelectEnabled) toggleAllRowsSelected(false);
   }, [bulkSelectEnabled, toggleAllRowsSelected]);
 
+  useEffect(() => {
+    if (!loading && pageIndex > pageCount - 1 && pageCount > 0) {
+      gotoPage(0);
+    }
+  }, [gotoPage, loading, pageCount, pageIndex]);
+
   return (
     <ListViewStyles>
       {allowBulkTagActions && (
@@ -339,7 +347,7 @@ function ListView<T extends object = any>({
           {cardViewEnabled && (
             <ViewModeToggle mode={viewMode} setMode={setViewMode} />
           )}
-          <div className="controls">
+          <div className="controls" data-test="filters-select">
             {filterable && (
               <FilterControls
                 ref={filterControlsRef}
@@ -350,11 +358,9 @@ function ListView<T extends object = any>({
             )}
             {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect
-                initialSort={initialSort}
-                onChange={fetchData}
+                initialSort={sortBy}
+                onChange={(value: SortColumn[]) => setSortBy(value)}
                 options={cardSortSelectOptions}
-                pageIndex={pageIndex}
-                pageSize={pageSize}
               />
             )}
           </div>
@@ -440,19 +446,21 @@ function ListView<T extends object = any>({
             />
           )}
           {!loading && rows.length === 0 && (
-            <EmptyWrapper className={viewMode}>
+            <EmptyWrapper className={viewMode} data-test="empty-state">
               {query.filters ? (
-                <EmptyStateBig
+                <EmptyState
                   title={t('No results match your filter criteria')}
                   description={t('Try different criteria to display results.')}
+                  size="large"
                   image="filter-results.svg"
                   buttonAction={() => handleClearFilterControls()}
                   buttonText={t('clear all filters')}
                 />
               ) : (
-                <EmptyStateBig
+                <EmptyState
                   {...emptyState}
                   title={emptyState?.title || t('No Data')}
+                  size="large"
                   image={emptyState?.image || 'filter-results.svg'}
                 />
               )}
@@ -464,7 +472,7 @@ function ListView<T extends object = any>({
         <div className="pagination-container">
           <Pagination
             totalPages={pageCount || 0}
-            currentPage={pageCount ? pageIndex + 1 : 0}
+            currentPage={pageCount && pageIndex < pageCount ? pageIndex + 1 : 0}
             onChange={(p: number) => gotoPage(p - 1)}
             hideFirstAndLastPageLinks
           />

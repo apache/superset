@@ -82,7 +82,7 @@ test('supersetClientQuery should return error when unsuccessful', async () => {
     getBaseQueryApiMock(store),
     {},
   );
-  expect(result.error).toEqual({ error: expectedError });
+  expect(result.error).toEqual({ error: expectedError, errors: [] });
 });
 
 test('supersetClientQuery should return parsed response by parseMethod', async () => {

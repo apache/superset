@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactNode } from 'react';
 import styled from '@emotion/styled';
 import { mq } from '../utils';
 
@@ -94,9 +94,9 @@ const StyledSectionHeaderH2 = styled(StyledSectionHeader)`
 `;
 
 interface SectionHeaderProps {
-  level: any;
+  level: 'h1' | 'h2';
   title: string;
-  subtitle?: string;
+  subtitle?: string | ReactNode;
   dark?: boolean;
 }
 
@@ -115,7 +115,7 @@ const SectionHeader = ({
     <StyledRoot dark={!!dark}>
       <Heading className="title">{title}</Heading>
       <img className="line" src="/img/community/line.png" alt="line" />
-      {subtitle && <p className="subtitle">{subtitle}</p>}
+      {subtitle && <div className="subtitle">{subtitle}</div>}
     </StyledRoot>
   );
 };

@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ChangeEvent, EventHandler } from 'react';
+import { ChangeEvent, EventHandler } from 'react';
 import cx from 'classnames';
 import {
   t,
-  SupersetTheme,
   DatabaseConnectionExtension,
+  isFeatureEnabled,
+  SupersetTheme,
+  useTheme,
+  FeatureFlag,
 } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
@@ -56,6 +59,8 @@ const ExtraOptions = ({
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
   const isFileUploadSupportedByEngine =
     db?.engine_information?.supports_file_upload;
+  const supportsDynamicCatalog =
+    db?.engine_information?.supports_dynamic_catalog;
 
   // JSON.parse will deep parse engine_params
   // if it's an object, and we want to keep it a string
@@ -66,10 +71,16 @@ const ExtraOptions = ({
     }
     return value;
   });
-
+  const theme = useTheme();
   const ExtraExtensionComponent = extraExtension?.component;
   const ExtraExtensionLogo = extraExtension?.logo;
   const ExtensionDescription = extraExtension?.description;
+  const allowRunAsync = isFeatureEnabled(FeatureFlag.ForceSqlLabRunAsync)
+    ? true
+    : !!db?.allow_run_async;
+  const isAllowRunAsyncDisabled = isFeatureEnabled(
+    FeatureFlag.ForceSqlLabRunAsync,
+  );
 
   return (
     <Collapse
@@ -161,11 +172,11 @@ const ExtraOptions = ({
                   indeterminate={false}
                   checked={!!db?.allow_dml}
                   onChange={onInputChange}
-                  labelText={t('Allow DML')}
+                  labelText={t('Allow DDL and DML')}
                 />
                 <InfoTooltip
                   tooltip={t(
-                    'Allow manipulation of the database using non-SELECT statements such as UPDATE, DELETE, CREATE, etc.',
+                    'Allow the execution of DDL (Data Definition Language: CREATE, DROP, TRUNCATE, etc.) and DML (Data Modification Language: INSERT, UPDATE, DELETE, etc)',
                   )}
                 />
               </div>
@@ -191,7 +202,8 @@ const ExtraOptions = ({
                 <IndeterminateCheckbox
                   id="allows_virtual_table_explore"
                   indeterminate={false}
-                  checked={!!extraJson?.allows_virtual_table_explore}
+                  // when `allows_virtual_table_explore` is not present in `extra` it defaults to true
+                  checked={extraJson?.allows_virtual_table_explore !== false}
                   onChange={onExtraInputChange}
                   labelText={t('Allow this database to be explored')}
                 />
@@ -316,7 +328,7 @@ const ExtraOptions = ({
             <IndeterminateCheckbox
               id="allow_run_async"
               indeterminate={false}
-              checked={!!db?.allow_run_async}
+              checked={allowRunAsync}
               onChange={onInputChange}
               labelText={t('Asynchronous query execution')}
             />
@@ -328,6 +340,14 @@ const ExtraOptions = ({
                   'backend. Refer to the installation docs for more information.',
               )}
             />
+            {isAllowRunAsyncDisabled && (
+              <InfoTooltip
+                iconStyle={{ color: theme.colors.error.base }}
+                tooltip={t(
+                  'This option has been disabled by the administrator.',
+                )}
+              />
+            )}
           </div>
         </StyledInputContainer>
         <StyledInputContainer css={{ no_margin_bottom }}>
@@ -571,6 +591,40 @@ const ExtraOptions = ({
             )}
           </div>
         </StyledInputContainer>
+        <StyledInputContainer css={no_margin_bottom}>
+          <div className="input-container">
+            <IndeterminateCheckbox
+              id="disable_drill_to_detail"
+              indeterminate={false}
+              checked={!!extraJson?.disable_drill_to_detail}
+              onChange={onExtraInputChange}
+              labelText={t('Disable drill to detail')}
+            />
+            <InfoTooltip
+              tooltip={t(
+                'Disables the drill to detail feature for this database.',
+              )}
+            />
+          </div>
+        </StyledInputContainer>
+        {supportsDynamicCatalog && (
+          <StyledInputContainer css={no_margin_bottom}>
+            <div className="input-container">
+              <IndeterminateCheckbox
+                id="allow_multi_catalog"
+                indeterminate={false}
+                checked={!!extraJson?.allow_multi_catalog}
+                onChange={onExtraInputChange}
+                labelText={t('Allow changing catalogs')}
+              />
+              <InfoTooltip
+                tooltip={t(
+                  'Give access to multiple catalogs in a single database connection.',
+                )}
+              />
+            </div>
+          </StyledInputContainer>
+        )}
       </Collapse.Panel>
     </Collapse>
   );

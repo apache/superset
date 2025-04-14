@@ -22,12 +22,12 @@ from enum import Enum
 
 from superset.utils.backports import StrEnum
 
-USER_AGENT = "Apache Superset"
+DEFAULT_USER_AGENT = "Apache Superset"
 
 NULL_STRING = "<NULL>"
 EMPTY_STRING = "<empty string>"
 
-CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"
+CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"  # noqa: S105
 
 # UUID for the examples database
 EXAMPLES_DB_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
@@ -40,6 +40,14 @@ QUERY_CANCEL_KEY = "cancel_query"
 QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
 
 LRU_CACHE_MAX_SIZE = 256
+
+
+# Used when calculating the time shift for time comparison
+class InstantTimeComparison(StrEnum):
+    INHERITED = "r"
+    YEAR = "y"
+    MONTH = "m"
+    WEEK = "w"
 
 
 class RouteMethod:  # pylint: disable=too-few-public-methods
@@ -124,9 +132,12 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "related_objects": "read",
     "tables": "read",
     "schemas": "read",
+    "catalogs": "read",
     "select_star": "read",
     "table_metadata": "read",
+    "table_metadata_deprecated": "read",
     "table_extra_metadata": "read",
+    "table_extra_metadata_deprecated": "read",
     "test_connection": "write",
     "validate_parameters": "write",
     "favorite_status": "read",
@@ -141,6 +152,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "data_from_cache": "read",
     "get_charts": "read",
     "get_datasets": "read",
+    "get_tabs": "read",
     "function_names": "read",
     "available": "read",
     "validate_sql": "read",
@@ -157,6 +169,11 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "delete_object": "write",
     "copy_dash": "write",
     "get_connection": "write",
+    "upload_metadata": "upload",
+    "slack_channels": "write",
+    "put_filters": "write",
+    "put_colors": "write",
+    "sync_permissions": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

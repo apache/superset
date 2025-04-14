@@ -17,10 +17,13 @@
  * under the License.
  */
 
-import React from 'react';
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { ChartListChart, getMockChart } from 'spec/fixtures/mockCharts';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import DatasetUsage from '.';
@@ -103,7 +106,9 @@ test('shows loading state', async () => {
     name: /loading/i,
   });
 
-  expect(loadingIndicator).toBeVisible();
+  await waitFor(() => {
+    expect(loadingIndicator).toBeVisible();
+  });
 });
 
 test('shows error state', async () => {

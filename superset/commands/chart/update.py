@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
+from functools import partial
 from typing import Any, Optional
 
 from flask import g
@@ -32,12 +33,13 @@ from superset.commands.chart.exceptions import (
     DashboardsNotFoundValidationError,
     DatasourceTypeUpdateRequiredValidationError,
 )
-from superset.commands.utils import get_datasource_by_id
+from superset.commands.utils import get_datasource_by_id, update_tags, validate_tags
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
-from superset.daos.exceptions import DAOUpdateFailedError
 from superset.exceptions import SupersetSecurityException
 from superset.models.slice import Slice
+from superset.tags.models import ObjectType
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -54,24 +56,26 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         self._properties = data.copy()
         self._model: Optional[Slice] = None
 
+    @transaction(on_error=partial(on_error, reraise=ChartUpdateFailedError))
     def run(self) -> Model:
         self.validate()
         assert self._model
 
-        try:
-            if self._properties.get("query_context_generation") is None:
-                self._properties["last_saved_at"] = datetime.now()
-                self._properties["last_saved_by"] = g.user
-            chart = ChartDAO.update(self._model, self._properties)
-        except DAOUpdateFailedError as ex:
-            logger.exception(ex.exception)
-            raise ChartUpdateFailedError() from ex
-        return chart
+        # Update tags
+        if (tags := self._properties.pop("tags", None)) is not None:
+            update_tags(ObjectType.chart, self._model.id, self._model.tags, tags)
 
-    def validate(self) -> None:
+        if self._properties.get("query_context_generation") is None:
+            self._properties["last_saved_at"] = datetime.now()
+            self._properties["last_saved_by"] = g.user
+
+        return ChartDAO.update(self._model, self._properties)
+
+    def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []
         dashboard_ids = self._properties.get("dashboards")
         owner_ids: Optional[list[int]] = self._properties.get("owners")
+        tag_ids: Optional[list[int]] = self._properties.get("tags")
 
         # Validate if datasource_id is provided datasource_type is required
         datasource_id = self._properties.get("datasource_id")
@@ -90,12 +94,21 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         if not is_query_context_update(self._properties):
             try:
                 security_manager.raise_for_ownership(self._model)
-                owners = self.populate_owners(owner_ids)
+                owners = self.compute_owners(
+                    self._model.owners,
+                    owner_ids,
+                )
                 self._properties["owners"] = owners
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex
             except ValidationError as ex:
                 exceptions.append(ex)
+
+        # validate tags
+        try:
+            validate_tags(ObjectType.chart, self._model.tags, tag_ids)
+        except ValidationError as ex:
+            exceptions.append(ex)
 
         # Validate/Populate datasource
         if datasource_id is not None:

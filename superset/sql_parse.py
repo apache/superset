@@ -14,18 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+# pylint: disable=too-many-lines
+
+from __future__ import annotations
+
 import logging
 import re
 from collections.abc import Iterator
-from dataclasses import dataclass
-from typing import Any, cast, Optional
-from urllib import parse
+from typing import Any, cast, TYPE_CHECKING
 
 import sqlparse
+from flask_babel import gettext as __
+from jinja2 import nodes, Template
 from sqlalchemy import and_
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
 from sqlparse.sql import (
+    Function,
     Identifier,
     IdentifierList,
     Parenthesis,
@@ -48,13 +54,28 @@ from sqlparse.tokens import (
 )
 from sqlparse.utils import imt
 
-from superset.exceptions import QueryClauseValidationException
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import (
+    QueryClauseValidationException,
+    SupersetParseError,
+    SupersetSecurityException,
+)
+from superset.sql.parse import (
+    extract_tables_from_statement,
+    SQLGLOT_DIALECTS,
+    SQLScript,
+    SQLStatement,
+    Table,
+)
 from superset.utils.backports import StrEnum
 
 try:
     from sqloxide import parse_sql as sqloxide_parse
-except:  # pylint: disable=bare-except
+except (ImportError, ModuleNotFoundError):
     sqloxide_parse = None
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
 ON_KEYWORD = "ON"
@@ -77,7 +98,7 @@ class CtasMethod(StrEnum):
     VIEW = "VIEW"
 
 
-def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
+def _extract_limit_from_query(statement: TokenList) -> int | None:
     """
     Extract limit clause from SQL statement.
 
@@ -98,9 +119,7 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
     return None
 
 
-def extract_top_from_query(
-    statement: TokenList, top_keywords: set[str]
-) -> Optional[int]:
+def extract_top_from_query(statement: TokenList, top_keywords: set[str]) -> int | None:
     """
     Extract top clause value from SQL statement.
 
@@ -124,7 +143,7 @@ def extract_top_from_query(
     return top
 
 
-def get_cte_remainder_query(sql: str) -> tuple[Optional[str], str]:
+def get_cte_remainder_query(sql: str) -> tuple[str | None, str]:
     """
     parse the SQL and return the CTE and rest of the block to the caller
 
@@ -132,7 +151,7 @@ def get_cte_remainder_query(sql: str) -> tuple[Optional[str], str]:
     :return: CTE and remainder block to the caller
 
     """
-    cte: Optional[str] = None
+    cte: str | None = None
     remainder = sql
     stmt = sqlparse.parse(sql)[0]
 
@@ -150,7 +169,22 @@ def get_cte_remainder_query(sql: str) -> tuple[Optional[str], str]:
     return cte, remainder
 
 
-def strip_comments_from_sql(statement: str) -> str:
+def check_sql_functions_exist(
+    sql: str,
+    function_list: set[str],
+    engine: str = "base",
+) -> bool:
+    """
+    Check if the SQL statement contains any of the specified functions.
+
+    :param sql: The SQL statement
+    :param function_list: The list of functions to search for
+    :param engine: The engine to use for parsing the SQL statement
+    """
+    return ParsedQuery(sql, engine=engine).check_functions_exist(function_list)
+
+
+def strip_comments_from_sql(statement: str, engine: str = "base") -> str:
     """
     Strips comments from a SQL statement, does a simple test first
     to avoid always instantiating the expensive ParsedQuery constructor
@@ -160,43 +194,29 @@ def strip_comments_from_sql(statement: str) -> str:
     :param statement: A string with the SQL statement
     :return: SQL statement without comments
     """
-    return ParsedQuery(statement).strip_comments() if "--" in statement else statement
-
-
-@dataclass(eq=True, frozen=True)
-class Table:
-    """
-    A fully qualified SQL table conforming to [[catalog.]schema.]table.
-    """
-
-    table: str
-    schema: Optional[str] = None
-    catalog: Optional[str] = None
-
-    def __str__(self) -> str:
-        """
-        Return the fully qualified SQL table name.
-        """
-
-        return ".".join(
-            parse.quote(part, safe="").replace(".", "%2E")
-            for part in [self.catalog, self.schema, self.table]
-            if part
-        )
-
-    def __eq__(self, __o: object) -> bool:
-        return str(self) == str(__o)
+    return (
+        ParsedQuery(statement, engine=engine).strip_comments()
+        if "--" in statement
+        else statement
+    )
 
 
 class ParsedQuery:
-    def __init__(self, sql_statement: str, strip_comments: bool = False):
+    def __init__(
+        self,
+        sql_statement: str,
+        strip_comments: bool = False,
+        engine: str = "base",
+    ):
         if strip_comments:
             sql_statement = sqlparse.format(sql_statement, strip_comments=True)
 
         self.sql: str = sql_statement
+        self._engine = engine
+        self._dialect = SQLGLOT_DIALECTS.get(engine) if engine else None
         self._tables: set[Table] = set()
         self._alias_names: set[str] = set()
-        self._limit: Optional[int] = None
+        self._limit: int | None = None
 
         logger.debug("Parsing with sqlparse statement: %s", self.sql)
         self._parsed = sqlparse.parse(self.stripped())
@@ -206,16 +226,69 @@ class ParsedQuery:
     @property
     def tables(self) -> set[Table]:
         if not self._tables:
-            for statement in self._parsed:
-                self._extract_from_token(statement)
-
-            self._tables = {
-                table for table in self._tables if str(table) not in self._alias_names
-            }
+            self._tables = self._extract_tables_from_sql()
         return self._tables
 
+    def _check_functions_exist_in_token(
+        self, token: Token, functions: set[str]
+    ) -> bool:
+        if (
+            isinstance(token, Function)
+            and token.get_name() is not None
+            and token.get_name().lower() in functions
+        ):
+            return True
+        if hasattr(token, "tokens"):
+            for inner_token in token.tokens:
+                if self._check_functions_exist_in_token(inner_token, functions):
+                    return True
+        return False
+
+    def check_functions_exist(self, functions: set[str]) -> bool:
+        """
+        Check if the SQL statement contains any of the specified functions.
+
+        :param functions: A set of functions to search for
+        :return: True if the statement contains any of the specified functions
+        """
+        for statement in self._parsed:
+            for token in statement.tokens:
+                if self._check_functions_exist_in_token(token, functions):
+                    return True
+        return False
+
+    def _extract_tables_from_sql(self) -> set[Table]:
+        """
+        Extract all table references in a query.
+
+        Note: this uses sqlglot, since it's better at catching more edge cases.
+        """
+        try:
+            statements = [
+                statement._parsed  # pylint: disable=protected-access
+                for statement in SQLScript(self.stripped(), self._engine).statements
+            ]
+        except SupersetParseError as ex:
+            logger.warning("Unable to parse SQL (%s): %s", self._dialect, self.sql)
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                    message=__(
+                        "You may have an error in your SQL statement. {message}"
+                    ).format(message=ex.error.message),
+                    level=ErrorLevel.ERROR,
+                )
+            ) from ex
+
+        return {
+            table
+            for statement in statements
+            for table in extract_tables_from_statement(statement, self._dialect)
+            if statement
+        }
+
     @property
-    def limit(self) -> Optional[int]:
+    def limit(self) -> int | None:
         return self._limit
 
     def _get_cte_tables(self, parsed: dict[str, Any]) -> list[dict[str, Any]]:
@@ -245,9 +318,10 @@ class ParsedQuery:
                     return False
         return True
 
-    def is_select(self) -> bool:
+    def is_select(self) -> bool:  # noqa: C901
         # make sure we strip comments; prevents a bug with comments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
+        seen_select = False
 
         for statement in parsed:
             # Check if this is a CTE
@@ -259,7 +333,7 @@ class ParsedQuery:
                         ):
                             return False
                     except ValueError:
-                        # sqloxide was not able to parse the query, so let's continue with
+                        # sqloxide was not able to parse the query, so let's continue with  # noqa: E501
                         # sqlparse
                         pass
                 inner_cte = self.get_inner_cte_expression(statement.tokens) or []
@@ -271,6 +345,7 @@ class ParsedQuery:
                     return False
 
             if statement.get_type() == "SELECT":
+                seen_select = True
                 continue
 
             if statement.get_type() != "UNKNOWN":
@@ -284,8 +359,11 @@ class ParsedQuery:
             ):
                 return False
 
+            if imt(statement.tokens[0], m=(Keyword, "USE")):
+                continue
+
             # return false on `EXPLAIN`, `SET`, `SHOW`, etc.
-            if statement[0].ttype == Keyword:
+            if imt(statement.tokens[0], t=Keyword):
                 return False
 
             if not any(
@@ -294,9 +372,9 @@ class ParsedQuery:
             ):
                 return False
 
-        return True
+        return seen_select
 
-    def get_inner_cte_expression(self, tokens: TokenList) -> Optional[TokenList]:
+    def get_inner_cte_expression(self, tokens: TokenList) -> TokenList | None:
         for token in tokens:
             if self._is_identifier(token):
                 for identifier_token in token.tokens:
@@ -344,7 +422,7 @@ class ParsedQuery:
         return self._parsed[0].get_type() == "UNKNOWN"
 
     def stripped(self) -> str:
-        return self.sql.strip(" \t\n;")
+        return self.sql.strip(" \t\r\n;")
 
     def strip_comments(self) -> str:
         return sqlparse.format(self.stripped(), strip_comments=True)
@@ -360,7 +438,7 @@ class ParsedQuery:
         return statements
 
     @staticmethod
-    def get_table(tlist: TokenList) -> Optional[Table]:
+    def get_table(tlist: TokenList) -> Table | None:
         """
         Return the table if valid, i.e., conforms to the [[catalog.]schema.]table
         construct.
@@ -393,32 +471,10 @@ class ParsedQuery:
     def _is_identifier(token: Token) -> bool:
         return isinstance(token, (IdentifierList, Identifier))
 
-    def _process_tokenlist(self, token_list: TokenList) -> None:
-        """
-        Add table names to table set
-
-        :param token_list: TokenList to be processed
-        """
-        # exclude subselects
-        if "(" not in str(token_list):
-            table = self.get_table(token_list)
-            if table and not table.table.startswith(CTE_PREFIX):
-                self._tables.add(table)
-            return
-
-        # store aliases
-        if token_list.has_alias():
-            self._alias_names.add(token_list.get_alias())
-
-        # some aliases are not parsed properly
-        if token_list.tokens[0].ttype == Name:
-            self._alias_names.add(token_list.tokens[0].value)
-        self._extract_from_token(token_list)
-
     def as_create_table(
         self,
         table_name: str,
-        schema_name: Optional[str] = None,
+        schema_name: str | None = None,
         overwrite: bool = False,
         method: CtasMethod = CtasMethod.TABLE,
     ) -> str:
@@ -440,50 +496,6 @@ class ParsedQuery:
             exec_sql = f"DROP {method} IF EXISTS {full_table_name};\n"
         exec_sql += f"CREATE {method} {full_table_name} AS \n{sql}"
         return exec_sql
-
-    def _extract_from_token(self, token: Token) -> None:
-        """
-        <Identifier> store a list of subtokens and <IdentifierList> store lists of
-        subtoken list.
-
-        It extracts <IdentifierList> and <Identifier> from :param token: and loops
-        through all subtokens recursively. It finds table_name_preceding_token and
-        passes <IdentifierList> and <Identifier> to self._process_tokenlist to populate
-        self._tables.
-
-        :param token: instance of Token or child class, e.g. TokenList, to be processed
-        """
-        if not hasattr(token, "tokens"):
-            return
-
-        table_name_preceding_token = False
-
-        for item in token.tokens:
-            if item.is_group and (
-                not self._is_identifier(item) or isinstance(item.tokens[0], Parenthesis)
-            ):
-                self._extract_from_token(item)
-
-            if item.ttype in Keyword and (
-                item.normalized in PRECEDES_TABLE_NAME
-                or item.normalized.endswith(" JOIN")
-            ):
-                table_name_preceding_token = True
-                continue
-
-            if item.ttype in Keyword:
-                table_name_preceding_token = False
-                continue
-            if table_name_preceding_token:
-                if isinstance(item, Identifier):
-                    self._process_tokenlist(item)
-                elif isinstance(item, IdentifierList):
-                    for token2 in item.get_identifiers():
-                        if isinstance(token2, TokenList):
-                            self._process_tokenlist(token2)
-            elif isinstance(item, IdentifierList):
-                if any(not self._is_identifier(token2) for token2 in item.tokens):
-                    self._extract_from_token(item)
 
     def set_or_update_query_limit(self, new_limit: int, force: bool = False) -> str:
         """Returns the query with the specified limit.
@@ -559,46 +571,31 @@ class InsertRLSState(StrEnum):
     FOUND_TABLE = "FOUND_TABLE"
 
 
-def has_table_query(token_list: TokenList) -> bool:
+def has_table_query(expression: str, engine: str) -> bool:
     """
     Return if a statement has a query reading from a table.
 
-        >>> has_table_query(sqlparse.parse("COUNT(*)")[0])
+        >>> has_table_query("COUNT(*)", "postgresql")
         False
-        >>> has_table_query(sqlparse.parse("SELECT * FROM table")[0])
+        >>> has_table_query("SELECT * FROM table", "postgresql")
         True
 
     Note that queries reading from constant values return false:
 
-        >>> has_table_query(sqlparse.parse("SELECT * FROM (SELECT 1)")[0])
+        >>> has_table_query("SELECT * FROM (SELECT 1)", "postgresql")
         False
 
     """
-    state = InsertRLSState.SCANNING
-    for token in token_list.tokens:
-        # Ignore comments
-        if isinstance(token, sqlparse.sql.Comment):
-            continue
+    # Remove trailing semicolon.
+    expression = expression.strip().rstrip(";")
 
-        # Recurse into child token list
-        if isinstance(token, TokenList) and has_table_query(token):
-            return True
+    # Wrap the expression in parentheses if it's not already.
+    if not expression.startswith("("):
+        expression = f"({expression})"
 
-        # Found a source keyword (FROM/JOIN)
-        if imt(token, m=[(Keyword, "FROM"), (Keyword, "JOIN")]):
-            state = InsertRLSState.SEEN_SOURCE
-
-        # Found identifier/keyword after FROM/JOIN
-        elif state == InsertRLSState.SEEN_SOURCE and (
-            isinstance(token, sqlparse.sql.Identifier) or token.ttype == Keyword
-        ):
-            return True
-
-        # Found nothing, leaving source
-        elif state == InsertRLSState.SEEN_SOURCE and token.ttype != Whitespace:
-            state = InsertRLSState.SCANNING
-
-    return False
+    sql = f"SELECT {expression}"
+    statement = SQLStatement(sql, engine)
+    return any(statement.tables)
 
 
 def add_table_name(rls: TokenList, table: str) -> None:
@@ -622,8 +619,8 @@ def add_table_name(rls: TokenList, table: str) -> None:
 def get_rls_for_table(
     candidate: Token,
     database_id: int,
-    default_schema: Optional[str],
-) -> Optional[TokenList]:
+    default_schema: str | None,
+) -> TokenList | None:
     """
     Given a table name, return any associated RLS predicates.
     """
@@ -652,10 +649,8 @@ def get_rls_for_table(
     if not dataset:
         return None
 
-    template_processor = dataset.get_template_processor()
     predicate = " AND ".join(
-        str(filter_)
-        for filter_ in dataset.get_sqla_row_level_filters(template_processor)
+        str(filter_) for filter_ in dataset.get_sqla_row_level_filters()
     )
     if not predicate:
         return None
@@ -669,7 +664,7 @@ def get_rls_for_table(
 def insert_rls_as_subquery(
     token_list: TokenList,
     database_id: int,
-    default_schema: Optional[str],
+    default_schema: str | None,
 ) -> TokenList:
     """
     Update a statement inplace applying any associated RLS predicates.
@@ -685,7 +680,7 @@ def insert_rls_as_subquery(
     This method is safer than ``insert_rls_in_predicate``, but doesn't work in all
     databases.
     """
-    rls: Optional[TokenList] = None
+    rls: TokenList | None = None
     state = InsertRLSState.SCANNING
     for token in token_list.tokens:
         # Recurse into child token list
@@ -758,10 +753,10 @@ def insert_rls_as_subquery(
     return token_list
 
 
-def insert_rls_in_predicate(
+def insert_rls_in_predicate(  # noqa: C901
     token_list: TokenList,
     database_id: int,
-    default_schema: Optional[str],
+    default_schema: str | None,
 ) -> TokenList:
     """
     Update a statement inplace applying any associated RLS predicates.
@@ -772,7 +767,7 @@ def insert_rls_in_predicate(
         after:  SELECT * FROM some_table WHERE ( 1=1) AND some_table.id=42
 
     """
-    rls: Optional[TokenList] = None
+    rls: TokenList | None = None
     state = InsertRLSState.SCANNING
     for token in token_list.tokens:
         # Recurse into child token list
@@ -812,7 +807,7 @@ def insert_rls_in_predicate(
             )
             state = InsertRLSState.SCANNING
 
-        # Found ON clause, insert RLS. The logic for ON is more complicated than the logic
+        # Found ON clause, insert RLS. The logic for ON is more complicated than the logic  # noqa: E501
         # for WHERE because in the former the comparisons are siblings, while on the
         # latter they are children.
         elif (
@@ -881,7 +876,7 @@ def insert_rls_in_predicate(
 
 
 # mapping between sqloxide and SQLAlchemy dialects
-SQLOXITE_DIALECTS = {
+SQLOXIDE_DIALECTS = {
     "ansi": {"trino", "trinonative", "presto"},
     "hive": {"hive", "databricks"},
     "ms": {"mssql"},
@@ -904,9 +899,9 @@ RE_JINJA_VAR = re.compile(r"\{\{[^\{\}]+\}\}")
 RE_JINJA_BLOCK = re.compile(r"\{[%#][^\{\}%#]+[%#]\}")
 
 
-def extract_table_references(
+def extract_table_references(  # noqa: C901
     sql_text: str, sqla_dialect: str, show_warning: bool = True
-) -> set["Table"]:
+) -> set[Table]:
     """
     Return all the dependencies from a SQL sql_text.
     """
@@ -914,7 +909,7 @@ def extract_table_references(
     tree = None
 
     if sqloxide_parse:
-        for dialect, sqla_dialects in SQLOXITE_DIALECTS.items():
+        for dialect, sqla_dialects in SQLOXIDE_DIALECTS.items():  # noqa: B007
             if sqla_dialect in sqla_dialects:
                 break
         sql_text = RE_JINJA_BLOCK.sub(" ", sql_text)
@@ -950,3 +945,67 @@ def extract_table_references(
         Table(*[part["value"] for part in table["name"][::-1]])
         for table in find_nodes_by_key(tree, "Table")
     }
+
+
+def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
+    """
+    Extract all table references in the Jinjafied SQL statement.
+
+    Due to Jinja templating, a multiphase approach is necessary as the Jinjafied SQL
+    statement may represent invalid SQL which is non-parsable by SQLGlot.
+
+    Firstly, we extract any tables referenced within the confines of specific Jinja
+    macros. Secondly, we replace these non-SQL Jinja calls with a pseudo-benign SQL
+    expression to help ensure that the resulting SQL statements are parsable by
+    SQLGlot.
+
+    :param sql: The Jinjafied SQL statement
+    :param database: The database associated with the SQL statement
+    :returns: The set of tables referenced in the SQL statement
+    :raises SupersetSecurityException: If SQLGlot is unable to parse the SQL statement
+    :raises jinja2.exceptions.TemplateError: If the Jinjafied SQL could not be rendered
+    """
+
+    from superset.jinja_context import (  # pylint: disable=import-outside-toplevel
+        get_template_processor,
+    )
+
+    processor = get_template_processor(database)
+    template = processor.env.parse(sql)
+
+    tables = set()
+
+    for node in template.find_all(nodes.Call):
+        if isinstance(node.node, nodes.Getattr) and node.node.attr in (
+            "latest_partition",
+            "latest_sub_partition",
+        ):
+            # Try to extract the table referenced in the macro.
+            try:
+                tables.add(
+                    Table(
+                        *[
+                            remove_quotes(part.strip())
+                            for part in node.args[0].as_const().split(".")[::-1]
+                            if len(node.args) == 1
+                        ]
+                    )
+                )
+            except nodes.Impossible:
+                pass
+
+            # Replace the potentially problematic Jinja macro with some benign SQL.
+            node.__class__ = nodes.TemplateData
+            node.fields = nodes.TemplateData.fields
+            node.data = "NULL"
+
+    # re-render template back into a string
+    rendered_template = Template(template).render()
+
+    return (
+        tables
+        | ParsedQuery(
+            sql_statement=processor.process_template(rendered_template),
+            engine=database.db_engine_spec.engine,
+        ).tables
+    )

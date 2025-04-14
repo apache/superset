@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import React, { useMemo, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { useMemo, useState } from 'react';
+import { t, SupersetClient, useTheme, css } from '@superset-ui/core';
 
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -37,6 +37,7 @@ import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import { Icons } from 'src/components/Icons';
 
 const PAGE_SIZE = 25;
 
@@ -55,6 +56,7 @@ function CssTemplatesList({
   addSuccessToast,
   user,
 }: CssTemplatesListProps) {
+  const theme = useTheme();
   const {
     state: {
       loading,
@@ -155,7 +157,7 @@ function CssTemplatesList({
                   label: 'edit-action',
                   tooltip: t('Edit template'),
                   placement: 'bottom',
-                  icon: 'Edit',
+                  icon: 'EditOutlined',
                   onClick: handleEdit,
                 }
               : null,
@@ -164,7 +166,7 @@ function CssTemplatesList({
                   label: 'delete-action',
                   tooltip: t('Delete template'),
                   placement: 'bottom',
-                  icon: 'Trash',
+                  icon: 'DeleteOutlined',
                   onClick: handleDelete,
                 }
               : null,
@@ -179,7 +181,7 @@ function CssTemplatesList({
         size: 'xl',
       },
       {
-        accessor: QueryObjectColumns.changed_by,
+        accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
       },
     ],
@@ -196,7 +198,15 @@ function CssTemplatesList({
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('CSS template')}
+          <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
+            iconSize="m"
+            css={css`
+              margin: 'auto ${theme.gridUnit * 2}px auto 0';
+              vertical-align: text-top;
+            `}
+          />
+          {t('CSS template')}
         </>
       ),
       buttonStyle: 'primary',
@@ -224,14 +234,14 @@ function CssTemplatesList({
         key: 'search',
         id: 'template_name',
         input: 'search',
-        operator: FilterOperator.contains,
+        operator: FilterOperator.Contains,
       },
       {
         Header: t('Modified by'),
         key: 'changed_by',
         id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'css_template',

@@ -21,6 +21,7 @@ Revises: 5e4a03ef0bf0
 Create Date: 2016-09-22 11:31:50.543820
 
 """
+
 from alembic import op
 from sqlalchemy import Boolean, Column, Integer
 from sqlalchemy.ext.declarative import declarative_base
@@ -35,7 +36,6 @@ Base = declarative_base()
 
 
 class Database(Base):
-
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"

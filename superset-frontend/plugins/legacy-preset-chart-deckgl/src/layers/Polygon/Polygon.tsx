@@ -21,7 +21,7 @@
  */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   HandlerFunction,
   JsonObject,
@@ -30,7 +30,7 @@ import {
   t,
 } from '@superset-ui/core';
 
-import { PolygonLayer } from 'deck.gl/typed';
+import { PolygonLayer } from '@deck.gl/layers';
 
 import Legend from '../../components/Legend';
 import TooltipRow from '../../TooltipRow';
@@ -62,27 +62,27 @@ function getElevation(
 
 function setTooltipContent(formData: PolygonFormData) {
   return (o: JsonObject) => {
-    const metricLabel = formData.metric.label || formData.metric;
+    const metricLabel = formData?.metric?.label || formData?.metric;
 
     return (
       <div className="deckgl-tooltip">
-        {o.object.name && (
+        {o.object?.name && (
           <TooltipRow
             // eslint-disable-next-line prefer-template
             label={t('name') + ': '}
             value={`${o.object.name}`}
           />
         )}
-        {o.object[formData.line_column] && (
+        {o.object?.[formData?.line_column] && (
           <TooltipRow
             label={`${formData.line_column}: `}
             value={`${o.object[formData.line_column]}`}
           />
         )}
-        {formData.metric && (
+        {formData?.metric && (
           <TooltipRow
             label={`${metricLabel}: `}
-            value={`${o.object[metricLabel]}`}
+            value={`${o.object?.[metricLabel]}`}
           />
         )}
       </div>
@@ -150,7 +150,7 @@ export function getLayer(
     getLineWidth: fd.line_width,
     extruded: fd.extruded,
     lineWidthUnits: fd.line_width_unit,
-    getElevation: d => getElevation(d, colorScaler),
+    getElevation: (d: any) => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,
     ...commonLayerProps(fd, setTooltip, tooltipContentGenerator, onSelect),

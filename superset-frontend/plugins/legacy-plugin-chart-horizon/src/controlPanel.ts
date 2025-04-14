@@ -20,12 +20,16 @@ import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   formatSelectOptions,
-  sections,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
+    {
+      label: t('Time'),
+      expanded: true,
+      description: t('Time related form attributes'),
+      controlSetRows: [['granularity_sqla'], ['time_range']],
+    },
     {
       label: t('Query'),
       expanded: true,

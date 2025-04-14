@@ -26,8 +26,8 @@ class SupersetErrorType(StrEnum):
     """
     Types of errors that can exist within Superset.
 
-    Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
-    """
+    Keep in sync with superset-frontend/packages/superset-ui-core/src/query/types/Query.ts
+    """  # noqa: E501
 
     # Frontend errors
     FRONTEND_CSRF_ERROR = "FRONTEND_CSRF_ERROR"
@@ -40,7 +40,7 @@ class SupersetErrorType(StrEnum):
     TABLE_DOES_NOT_EXIST_ERROR = "TABLE_DOES_NOT_EXIST_ERROR"
     SCHEMA_DOES_NOT_EXIST_ERROR = "SCHEMA_DOES_NOT_EXIST_ERROR"
     CONNECTION_INVALID_USERNAME_ERROR = "CONNECTION_INVALID_USERNAME_ERROR"
-    CONNECTION_INVALID_PASSWORD_ERROR = "CONNECTION_INVALID_PASSWORD_ERROR"
+    CONNECTION_INVALID_PASSWORD_ERROR = "CONNECTION_INVALID_PASSWORD_ERROR"  # noqa: S105
     CONNECTION_INVALID_HOSTNAME_ERROR = "CONNECTION_INVALID_HOSTNAME_ERROR"
     CONNECTION_PORT_CLOSED_ERROR = "CONNECTION_PORT_CLOSED_ERROR"
     CONNECTION_INVALID_PORT_ERROR = "CONNECTION_INVALID_PORT_ERROR"
@@ -66,10 +66,14 @@ class SupersetErrorType(StrEnum):
     MISSING_OWNERSHIP_ERROR = "MISSING_OWNERSHIP_ERROR"
     USER_ACTIVITY_SECURITY_ACCESS_ERROR = "USER_ACTIVITY_SECURITY_ACCESS_ERROR"
     DASHBOARD_SECURITY_ACCESS_ERROR = "DASHBOARD_SECURITY_ACCESS_ERROR"
+    CHART_SECURITY_ACCESS_ERROR = "CHART_SECURITY_ACCESS_ERROR"
+    OAUTH2_REDIRECT = "OAUTH2_REDIRECT"
+    OAUTH2_REDIRECT_ERROR = "OAUTH2_REDIRECT_ERROR"
 
     # Other errors
     BACKEND_TIMEOUT_ERROR = "BACKEND_TIMEOUT_ERROR"
     DATABASE_NOT_FOUND_ERROR = "DATABASE_NOT_FOUND_ERROR"
+    TABLE_NOT_FOUND_ERROR = "TABLE_NOT_FOUND_ERROR"
 
     # Sql Lab errors
     MISSING_TEMPLATE_PARAMS_ERROR = "MISSING_TEMPLATE_PARAMS_ERROR"
@@ -82,6 +86,8 @@ class SupersetErrorType(StrEnum):
     RESULTS_BACKEND_ERROR = "RESULTS_BACKEND_ERROR"
     ASYNC_WORKERS_ERROR = "ASYNC_WORKERS_ERROR"
     ADHOC_SUBQUERY_NOT_ALLOWED_ERROR = "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR"
+    INVALID_SQL_ERROR = "INVALID_SQL_ERROR"
+    RESULT_TOO_LARGE_ERROR = "RESULT_TOO_LARGE_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -146,6 +152,7 @@ ISSUE_CODES = {
     1036: _("The database was deleted."),
     1037: _("Custom SQL fields cannot contain sub-queries."),
     1040: _("The submitted payload failed validation."),
+    1041: _("The result size exceeds the allowed limit."),
 }
 
 
@@ -175,6 +182,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR: [1020],
     SupersetErrorType.INVALID_CTAS_QUERY_ERROR: [1023],
     SupersetErrorType.INVALID_CVAS_QUERY_ERROR: [1024, 1025],
+    SupersetErrorType.INVALID_SQL_ERROR: [1003],
     SupersetErrorType.SQLLAB_TIMEOUT_ERROR: [1026, 1027],
     SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR: [1029],
     SupersetErrorType.SYNTAX_ERROR: [1030],
@@ -184,6 +192,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     SupersetErrorType.DATABASE_NOT_FOUND_ERROR: [1011, 1036],
     SupersetErrorType.CONNECTION_DATABASE_TIMEOUT: [1001, 1009],
     SupersetErrorType.MARSHMALLOW_ERROR: [1040],
+    SupersetErrorType.RESULT_TOO_LARGE_ERROR: [1041],
 }
 
 
@@ -191,8 +200,8 @@ class ErrorLevel(StrEnum):
     """
     Levels of errors that can exist within Superset.
 
-    Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
-    """
+    Keep in sync with superset-frontend/packages/superset-ui-core/src/query/types/Query.ts
+    """  # noqa: E501
 
     INFO = "info"
     WARNING = "warning"

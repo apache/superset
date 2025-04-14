@@ -17,13 +17,12 @@
  * under the License.
  */
 import rison from 'rison';
-import React, { useCallback } from 'react';
+import { PureComponent, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Radio } from 'src/components/Radio';
 import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
-import shortid from 'shortid';
 import {
   css,
   isFeatureEnabled,
@@ -34,6 +33,7 @@ import {
   SupersetClient,
   t,
   withTheme,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import { Select, AsyncSelect, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
@@ -46,17 +46,17 @@ import Label from 'src/components/Label';
 import Loading from 'src/components/Loading';
 import TableSelector from 'src/components/TableSelector';
 import EditableTitle from 'src/components/EditableTitle';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
+import { fetchSyncedColumns, updateColumns } from './utils';
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -94,7 +94,7 @@ const StyledTableTabs = styled(Tabs)`
 `;
 
 const StyledBadge = styled(Badge)`
-  .ant-badge-count {
+  .antd5-badge-count {
     line-height: ${({ theme }) => theme.gridUnit * 4}px;
     height: ${({ theme }) => theme.gridUnit * 4}px;
     margin-left: ${({ theme }) => theme.gridUnit}px;
@@ -137,8 +137,19 @@ const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
     margin-top: ${theme.gridUnit * 3}px;
     margin-left: ${theme.gridUnit * 3}px;
+    button>span>:first-of-type {
+      margin-right: 0;
+    }
   `}
 `;
+
+const sqlTooltipOptions = {
+  placement: 'topRight',
+  title: t(
+    'If changes are made to your SQL query, ' +
+      'columns in your dataset will be synced when saving the dataset.',
+  ),
+};
 
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
@@ -191,7 +202,7 @@ function ColumnCollectionTable({
   return (
     <CollectionTable
       tableColumns={
-        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? [
               'column_name',
               'advanced_data_type',
@@ -211,7 +222,7 @@ function ColumnCollectionTable({
             ]
       }
       sortColumns={
-        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? [
               'column_name',
               'advanced_data_type',
@@ -287,7 +298,7 @@ function ColumnCollectionTable({
                 }
               />
             )}
-            {isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES) ? (
+            {isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes) ? (
               <Field
                 fieldKey="advanced_data_type"
                 label={t('Advanced data type')}
@@ -329,7 +340,7 @@ function ColumnCollectionTable({
               control={
                 <TextControl
                   controlId="python_date_format"
-                  placeholder="%Y/%m/%d"
+                  placeholder="%Y-%m-%d"
                 />
               }
             />
@@ -359,7 +370,7 @@ function ColumnCollectionTable({
         </FormContainer>
       }
       columnLabels={
-        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? {
               column_name: t('Column'),
               advanced_data_type: t('Advanced data type'),
@@ -380,7 +391,7 @@ function ColumnCollectionTable({
       }
       onChange={onColumnsChange}
       itemRenderers={
-        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? {
               column_name: (v, onItemChange, _, record) =>
                 editableColumnName ? (
@@ -576,7 +587,7 @@ function OwnersSelector({ datasource, onChange }) {
   );
 }
 
-class DatasourceEditor extends React.PureComponent {
+class DatasourceEditor extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -629,9 +640,6 @@ class DatasourceEditor extends React.PureComponent {
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
     this.handleTabSelect = this.handleTabSelect.bind(this);
-    this.allowEditSource = !isFeatureEnabled(
-      FeatureFlag.DISABLE_DATASET_SOURCE_EDIT,
-    );
     this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
       value: currencyCode,
       label: `${getCurrencySymbol({
@@ -697,115 +705,31 @@ class DatasourceEditor extends React.PureComponent {
     });
   }
 
-  updateColumns(cols) {
-    // cols: Array<{column_name: string; is_dttm: boolean; type: string;}>
-    const { databaseColumns } = this.state;
-    const databaseColumnNames = cols.map(col => col.column_name);
-    const currentCols = databaseColumns.reduce(
-      (agg, col) => ({
-        ...agg,
-        [col.column_name]: col,
-      }),
-      {},
-    );
-    const finalColumns = [];
-    const results = {
-      added: [],
-      modified: [],
-      removed: databaseColumns
-        .map(col => col.column_name)
-        .filter(col => !databaseColumnNames.includes(col)),
-    };
-    cols.forEach(col => {
-      const currentCol = currentCols[col.column_name];
-      if (!currentCol) {
-        // new column
-        finalColumns.push({
-          id: shortid.generate(),
-          column_name: col.column_name,
-          type: col.type,
-          groupby: true,
-          filterable: true,
-          is_dttm: col.is_dttm,
-        });
-        results.added.push(col.column_name);
-      } else if (
-        currentCol.type !== col.type ||
-        (!currentCol.is_dttm && col.is_dttm)
-      ) {
-        // modified column
-        finalColumns.push({
-          ...currentCol,
-          type: col.type,
-          is_dttm: currentCol.is_dttm || col.is_dttm,
-        });
-        results.modified.push(col.column_name);
-      } else {
-        // unchanged
-        finalColumns.push(currentCol);
-      }
-    });
-    if (
-      results.added.length ||
-      results.modified.length ||
-      results.removed.length
-    ) {
-      this.setColumns({ databaseColumns: finalColumns });
-    }
-    return results;
-  }
-
-  syncMetadata() {
+  async syncMetadata() {
     const { datasource } = this.state;
-    const params = {
-      datasource_type: datasource.type || datasource.datasource_type,
-      database_name:
-        datasource.database.database_name || datasource.database.name,
-      schema_name: datasource.schema,
-      table_name: datasource.table_name,
-      normalize_columns: datasource.normalize_columns,
-      always_filter_main_dttm: datasource.always_filter_main_dttm,
-    };
-    Object.entries(params).forEach(([key, value]) => {
-      // rison can't encode the undefined value
-      if (value === undefined) {
-        params[key] = null;
-      }
-    });
-    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode_uri(
-      params,
-    )}`;
     this.setState({ metadataLoading: true });
-
-    SupersetClient.get({ endpoint })
-      .then(({ json }) => {
-        const results = this.updateColumns(json);
-        if (results.modified.length) {
-          this.props.addSuccessToast(
-            t('Modified columns: %s', results.modified.join(', ')),
-          );
-        }
-        if (results.removed.length) {
-          this.props.addSuccessToast(
-            t('Removed columns: %s', results.removed.join(', ')),
-          );
-        }
-        if (results.added.length) {
-          this.props.addSuccessToast(
-            t('New columns added: %s', results.added.join(', ')),
-          );
-        }
-        this.props.addSuccessToast(t('Metadata has been synced'));
-        this.setState({ metadataLoading: false });
-      })
-      .catch(response =>
-        getClientErrorObject(response).then(({ error, statusText }) => {
-          this.props.addDangerToast(
-            error || statusText || t('An error has occurred'),
-          );
-          this.setState({ metadataLoading: false });
-        }),
+    try {
+      const newCols = await fetchSyncedColumns(datasource);
+      const columnChanges = updateColumns(
+        datasource.columns,
+        newCols,
+        this.props.addSuccessToast,
       );
+      this.setColumns({
+        databaseColumns: columnChanges.finalColumns.filter(
+          col => !col.expression, // remove calculated columns
+        ),
+      });
+      this.props.addSuccessToast(t('Metadata has been synced'));
+      this.setState({ metadataLoading: false });
+    } catch (error) {
+      const { error: clientError, statusText } =
+        await getClientErrorObject(error);
+      this.props.addDangerToast(
+        clientError || statusText || t('An error has occurred'),
+      );
+      this.setState({ metadataLoading: false });
+    }
   }
 
   findDuplicates(arr, accessor) {
@@ -897,7 +821,8 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="default_endpoint"
           label={t('Default URL')}
           description={t(
-            'Default URL to redirect to when accessing from the dataset list page',
+            `Default URL to redirect to when accessing from the dataset list page.
+            Accepts relative URLs such as <span style=„white-space: nowrap;”>/superset/dashboard/{id}/</span>`,
           )}
           control={<TextControl controlId="default_endpoint" />}
         />
@@ -1046,27 +971,35 @@ class DatasourceEditor extends React.PureComponent {
     );
   }
 
-  renderSourceFieldset(theme) {
+  renderSourceFieldset() {
     const { datasource } = this.state;
     return (
       <div>
-        {this.allowEditSource && (
-          <EditLockContainer>
-            <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
-              {this.state.isEditMode ? (
-                <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
-              ) : (
-                <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
-              )}
-            </span>
-            {!this.state.isEditMode && (
-              <div>{t('Click the lock to make changes.')}</div>
+        <EditLockContainer>
+          <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
+            {this.state.isEditMode ? (
+              <Icons.UnlockOutlined
+                iconSize="xl"
+                css={theme => css`
+                  margin: auto ${theme.gridUnit}px auto 0;
+                `}
+              />
+            ) : (
+              <Icons.LockOutlined
+                iconSize="xl"
+                css={theme => ({
+                  margin: `auto ${theme.gridUnit}px auto 0`,
+                })}
+              />
             )}
-            {this.state.isEditMode && (
-              <div>{t('Click the lock to prevent further changes.')}</div>
-            )}
-          </EditLockContainer>
-        )}
+          </span>
+          {!this.state.isEditMode && (
+            <div>{t('Click the lock to make changes.')}</div>
+          )}
+          {this.state.isEditMode && (
+            <div>{t('Click the lock to prevent further changes.')}</div>
+          )}
+        </EditLockContainer>
         <div className="m-l-10 m-t-20 m-b-10">
           {DATASOURCE_TYPES_ARR.map(type => (
             <Radio
@@ -1090,12 +1023,17 @@ class DatasourceEditor extends React.PureComponent {
                   <Col xs={24} md={12}>
                     <Field
                       fieldKey="databaseSelector"
-                      label={t('virtual')}
+                      label={t('Virtual')}
                       control={
                         <div css={{ marginTop: 8 }}>
                           <DatabaseSelector
                             db={datasource?.database}
+                            catalog={datasource.catalog}
                             schema={datasource.schema}
+                            onCatalogChange={catalog =>
+                              this.state.isEditMode &&
+                              this.onDatasourcePropChange('catalog', catalog)
+                            }
                             onSchemaChange={schema =>
                               this.state.isEditMode &&
                               this.onDatasourcePropChange('schema', schema)
@@ -1144,6 +1082,7 @@ class DatasourceEditor extends React.PureComponent {
                         maxLines={Infinity}
                         readOnly={!this.state.isEditMode}
                         resize="both"
+                        tooltipOptions={sqlTooltipOptions}
                       />
                     }
                   />
@@ -1169,9 +1108,16 @@ class DatasourceEditor extends React.PureComponent {
                         }}
                         dbId={datasource.database?.id}
                         handleError={this.props.addDangerToast}
+                        catalog={datasource.catalog}
                         schema={datasource.schema}
                         sqlLabMode={false}
                         tableValue={datasource.table_name}
+                        onCatalogChange={
+                          this.state.isEditMode
+                            ? catalog =>
+                                this.onDatasourcePropChange('catalog', catalog)
+                            : undefined
+                        }
                         onSchemaChange={
                           this.state.isEditMode
                             ? schema =>
@@ -1451,7 +1397,7 @@ class DatasourceEditor extends React.PureComponent {
                     className="sync-from-source"
                     disabled={this.state.isEditMode}
                   >
-                    <i className="fa fa-database" />{' '}
+                    <Icons.DatabaseOutlined iconSize="m" />
                     {t('Sync columns from source')}
                   </Button>
                 </StyledButtonWrapper>

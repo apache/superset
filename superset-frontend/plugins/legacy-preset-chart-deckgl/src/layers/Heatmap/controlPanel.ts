@@ -18,7 +18,6 @@
  */
 import {
   ControlPanelConfig,
-  sections,
   formatSelectOptions,
 } from '@superset-ui/chart-controls';
 import {
@@ -50,7 +49,6 @@ const RADIUS_PIXEL_OPTIONS = Array.from(
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -65,7 +63,7 @@ const config: ControlPanelConfig = {
             name: 'intensity',
             config: {
               type: 'SelectControl',
-              label: t('Intesity'),
+              label: t('Intensity'),
               description: t(
                 'Intensity is the value multiplied by the weight to obtain the final weight',
               ),

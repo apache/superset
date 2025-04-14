@@ -22,9 +22,11 @@ import {
   styled,
   SupersetClient,
   t,
+  css,
+  useTheme,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import React, { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
 import {
@@ -34,6 +36,7 @@ import {
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import { PublishedLabel } from 'src/components/Label';
 import { TagsList } from 'src/components/Tags';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
@@ -49,7 +52,7 @@ import Owner from 'src/types/Owner';
 import Tag from 'src/types/TagType';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import FacePile from 'src/components/FacePile';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import DeleteModal from 'src/components/DeleteModal';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -68,6 +71,7 @@ import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { ModifiedInfo } from 'src/components/AuditInfo';
+import { navigateTo } from 'src/utils/navigationUtils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -111,9 +115,33 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+const DASHBOARD_COLUMNS_TO_FETCH = [
+  'id',
+  'dashboard_title',
+  'published',
+  'url',
+  'slug',
+  'changed_by',
+  'changed_by.id',
+  'changed_by.first_name',
+  'changed_by.last_name',
+  'changed_on_delta_humanized',
+  'owners',
+  'owners.id',
+  'owners.first_name',
+  'owners.last_name',
+  'tags.id',
+  'tags.name',
+  'tags.type',
+  'status',
+  'certified_by',
+  'certification_details',
+  'changed_on',
+];
+
 function DashboardList(props: DashboardListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
-
+  const theme = useTheme();
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -135,6 +163,11 @@ function DashboardList(props: DashboardListProps) {
     'dashboard',
     t('dashboard'),
     addDangerToast,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    DASHBOARD_COLUMNS_TO_FETCH,
   );
   const dashboardIds = useMemo(() => dashboards.map(d => d.id), [dashboards]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
@@ -183,8 +216,7 @@ function DashboardList(props: DashboardListProps) {
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
-  const canExport =
-    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+  const canExport = hasPerm('can_export');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -298,7 +330,7 @@ function DashboardList(props: DashboardListProps) {
             },
           },
         }: any) => (
-          <Link to={url}>
+          <Link to={url} title={dashboardTitle}>
             {certifiedBy && (
               <>
                 <CertifiedBadge
@@ -318,8 +350,9 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: { status },
           },
-        }: any) =>
-          status === DashboardStatus.PUBLISHED ? t('Published') : t('Draft'),
+        }: any) => (
+          <PublishedLabel isPublished={status === DashboardStatus.PUBLISHED} />
+        ),
         Header: t('Status'),
         accessor: 'published',
         size: 'xl',
@@ -347,7 +380,7 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
-        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
+        hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
       },
       {
         Cell: ({
@@ -410,7 +443,10 @@ function DashboardList(props: DashboardListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.Trash data-test="dashboard-list-trash-icon" />
+                        <Icons.DeleteOutlined
+                          iconSize="l"
+                          data-test="dashboard-list-trash-icon"
+                        />
                       </span>
                     </Tooltip>
                   )}
@@ -428,7 +464,7 @@ function DashboardList(props: DashboardListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share />
+                    <Icons.UploadOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -444,7 +480,7 @@ function DashboardList(props: DashboardListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -457,7 +493,7 @@ function DashboardList(props: DashboardListProps) {
         disableSortBy: true,
       },
       {
-        accessor: QueryObjectColumns.changed_by,
+        accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
       },
     ],
@@ -481,7 +517,7 @@ function DashboardList(props: DashboardListProps) {
       id: 'id',
       urlDisplay: 'favorite',
       input: 'select',
-      operator: FilterOperator.dashboardIsFav,
+      operator: FilterOperator.DashboardIsFav,
       unfilteredLabel: t('Any'),
       selects: [
         { label: t('Yes'), value: true },
@@ -498,28 +534,28 @@ function DashboardList(props: DashboardListProps) {
         key: 'search',
         id: 'dashboard_title',
         input: 'search',
-        operator: FilterOperator.titleOrSlug,
+        operator: FilterOperator.TitleOrSlug,
       },
       {
         Header: t('Status'),
         key: 'published',
         id: 'published',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: t('Any'),
         selects: [
           { label: t('Published'), value: true },
           { label: t('Draft'), value: false },
         ],
       },
-      ...(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
+      ...(isFeatureEnabled(FeatureFlag.TaggingSystem) && canReadTag
         ? [
             {
               Header: t('Tag'),
               key: 'tags',
               id: 'tags',
               input: 'select',
-              operator: FilterOperator.dashboardTags,
+              operator: FilterOperator.DashboardTagById,
               unfilteredLabel: t('All'),
               fetchSelects: loadTags,
             },
@@ -530,7 +566,7 @@ function DashboardList(props: DashboardListProps) {
         key: 'owner',
         id: 'owners',
         input: 'select',
-        operator: FilterOperator.relationManyMany,
+        operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'dashboard',
@@ -554,7 +590,7 @@ function DashboardList(props: DashboardListProps) {
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
-        operator: FilterOperator.dashboardIsCertified,
+        operator: FilterOperator.DashboardIsCertified,
         unfilteredLabel: t('Any'),
         selects: [
           { label: t('Yes'), value: true },
@@ -566,7 +602,7 @@ function DashboardList(props: DashboardListProps) {
         key: 'changed_by',
         id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'dashboard',
@@ -615,7 +651,7 @@ function DashboardList(props: DashboardListProps) {
         showThumbnails={
           userKey
             ? userKey.thumbnails
-            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+            : isFeatureEnabled(FeatureFlag.Thumbnails)
         }
         userId={user?.userId}
         loading={loading}
@@ -650,30 +686,36 @@ function DashboardList(props: DashboardListProps) {
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Dashboard')}
+          <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
+            iconSize="m"
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+              vertical-align: text-top;
+            `}
+          />
+          {t('Dashboard')}
         </>
       ),
       buttonStyle: 'primary',
       onClick: () => {
-        window.location.assign('/dashboard/new');
+        navigateTo('/dashboard/new', { assign: true });
       },
     });
 
-    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
-      subMenuButtons.push({
-        name: (
-          <Tooltip
-            id="import-tooltip"
-            title={t('Import dashboards')}
-            placement="bottomRight"
-          >
-            <Icons.Import data-test="import-button" />
-          </Tooltip>
-        ),
-        buttonStyle: 'link',
-        onClick: openDashboardImportModal,
-      });
-    }
+    subMenuButtons.push({
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import dashboards')}
+          placement="bottomRight"
+        >
+          <Icons.DownloadOutlined data-test="import-button" />
+        </Tooltip>
+      ),
+      buttonStyle: 'link',
+      onClick: openDashboardImportModal,
+    });
   }
   return (
     <>
@@ -757,11 +799,11 @@ function DashboardList(props: DashboardListProps) {
                 showThumbnails={
                   userKey
                     ? userKey.thumbnails
-                    : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+                    : isFeatureEnabled(FeatureFlag.Thumbnails)
                 }
                 renderCard={renderCard}
                 defaultViewMode={
-                  isFeatureEnabled(FeatureFlag.LISTVIEWS_DEFAULT_CARD_VIEW)
+                  isFeatureEnabled(FeatureFlag.ListviewsDefaultCardView)
                     ? 'card'
                     : 'table'
                 }

@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useCallback, ReactElement } from 'react';
+import { useMemo, useState, useCallback, ReactElement } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import {
+  css,
   QueryState,
   styled,
   SupersetClient,
   t,
   useTheme,
 } from '@superset-ui/core';
-import moment from 'moment';
 import {
   createFetchRelated,
   createFetchDistinct,
@@ -50,10 +50,11 @@ import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import getOwnerName from 'src/utils/getOwnerName';
+import { extendedDayjs } from 'src/utils/dates';
 
 const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;
@@ -135,7 +136,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
     ...commonMenuData,
   };
 
-  const initialSort = [{ id: QueryObjectColumns.start_time, desc: true }];
+  const initialSort = [{ id: QueryObjectColumns.StartTime, desc: true }];
   const columns = useMemo(
     () => [
       {
@@ -157,42 +158,47 @@ function QueryList({ addDangerToast }: QueryListProps) {
             name: null,
             label: '',
           };
-          if (status === QueryState.SUCCESS) {
+          if (status === QueryState.Success) {
             statusConfig.name = (
-              <Icons.Check iconColor={theme.colors.success.base} />
+              <Icons.CheckOutlined
+                iconSize="m"
+                iconColor={theme.colors.success.base}
+                css={css`
+                  vertical-align: -webkit-baseline-middle;
+                `}
+              />
             );
             statusConfig.label = t('Success');
           } else if (
-            status === QueryState.FAILED ||
-            status === QueryState.STOPPED
+            status === QueryState.Failed ||
+            status === QueryState.Stopped
           ) {
             statusConfig.name = (
-              <Icons.XSmall
+              <Icons.CloseOutlined
+                iconSize="xs"
                 iconColor={
-                  status === QueryState.FAILED
+                  status === QueryState.Failed
                     ? theme.colors.error.base
                     : theme.colors.grayscale.base
                 }
               />
             );
             statusConfig.label = t('Failed');
-          } else if (status === QueryState.RUNNING) {
+          } else if (status === QueryState.Running) {
             statusConfig.name = (
               <Icons.Running iconColor={theme.colors.primary.base} />
             );
             statusConfig.label = t('Running');
-          } else if (status === QueryState.TIMED_OUT) {
+          } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
-              <Icons.Offline iconColor={theme.colors.grayscale.light1} />
+              <Icons.CircleSolid iconColor={theme.colors.grayscale.light1} />
             );
             statusConfig.label = t('Offline');
           } else if (
-            status === QueryState.SCHEDULED ||
-            status === QueryState.PENDING
+            status === QueryState.Scheduled ||
+            status === QueryState.Pending
           ) {
-            statusConfig.name = (
-              <Icons.Queued iconColor={theme.colors.grayscale.base} />
-            );
+            statusConfig.name = <Icons.Queued />;
             statusConfig.label = t('Scheduled');
           }
           return (
@@ -201,12 +207,12 @@ function QueryList({ addDangerToast }: QueryListProps) {
             </Tooltip>
           );
         },
-        accessor: QueryObjectColumns.status,
+        accessor: QueryObjectColumns.Status,
         size: 'xs',
         disableSortBy: true,
       },
       {
-        accessor: QueryObjectColumns.start_time,
+        accessor: QueryObjectColumns.StartTime,
         Header: t('Time'),
         size: 'xl',
         Cell: ({
@@ -214,8 +220,8 @@ function QueryList({ addDangerToast }: QueryListProps) {
             original: { start_time },
           },
         }: any) => {
-          const startMoment = moment.utc(start_time).local();
-          const formattedStartTimeData = startMoment
+          const start = extendedDayjs.utc(start_time).local();
+          const formattedStartTimeData = start
             .format(DATETIME_WITH_TIME_ZONE)
             .split(' ');
 
@@ -236,9 +242,11 @@ function QueryList({ addDangerToast }: QueryListProps) {
             original: { status, start_time, end_time },
           },
         }: any) => {
-          const timerType = status === QueryState.FAILED ? 'danger' : status;
+          const timerType = status === QueryState.Failed ? 'danger' : status;
           const timerTime = end_time
-            ? moment(moment.utc(end_time - start_time)).format(TIME_WITH_MS)
+            ? extendedDayjs(extendedDayjs.utc(end_time - start_time)).format(
+                TIME_WITH_MS,
+              )
             : '00:00:00.000';
           return (
             <TimerLabel type={timerType} role="timer">
@@ -248,21 +256,21 @@ function QueryList({ addDangerToast }: QueryListProps) {
         },
       },
       {
-        accessor: QueryObjectColumns.tab_name,
+        accessor: QueryObjectColumns.TabName,
         Header: t('Tab name'),
         size: 'xl',
       },
       {
-        accessor: QueryObjectColumns.database_name,
+        accessor: QueryObjectColumns.DatabaseName,
         Header: t('Database'),
         size: 'xl',
       },
       {
-        accessor: QueryObjectColumns.database,
+        accessor: QueryObjectColumns.Database,
         hidden: true,
       },
       {
-        accessor: QueryObjectColumns.schema,
+        accessor: QueryObjectColumns.Schema,
         Header: t('Schema'),
         size: 'xl',
       },
@@ -299,13 +307,13 @@ function QueryList({ addDangerToast }: QueryListProps) {
 
           return main;
         },
-        accessor: QueryObjectColumns.sql_tables,
+        accessor: QueryObjectColumns.SqlTables,
         Header: t('Tables'),
         size: 'xl',
         disableSortBy: true,
       },
       {
-        accessor: QueryObjectColumns.user_first_name,
+        accessor: QueryObjectColumns.UserFirstName,
         Header: t('User'),
         size: 'xl',
         Cell: ({
@@ -315,16 +323,16 @@ function QueryList({ addDangerToast }: QueryListProps) {
         }: any) => getOwnerName(user),
       },
       {
-        accessor: QueryObjectColumns.user,
+        accessor: QueryObjectColumns.User,
         hidden: true,
       },
       {
-        accessor: QueryObjectColumns.rows,
+        accessor: QueryObjectColumns.Rows,
         Header: t('Rows'),
         size: 'md',
       },
       {
-        accessor: QueryObjectColumns.sql,
+        accessor: QueryObjectColumns.Sql,
         Header: t('SQL'),
         Cell: ({ row: { original, id } }: any) => (
           <div
@@ -350,7 +358,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
             <Link to={`/sqllab?queryId=${id}`}>
-              <Icons.Full iconColor={theme.colors.grayscale.base} />
+              <Icons.Full iconSize="l" />
             </Link>
           </Tooltip>
         ),
@@ -366,7 +374,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         key: 'database',
         id: 'database',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'query',
@@ -384,7 +392,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         key: 'state',
         id: 'status',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: 'All',
         fetchSelects: createFetchDistinct(
           'query',
@@ -402,7 +410,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         key: 'user',
         id: 'user',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'query',
@@ -420,14 +428,14 @@ function QueryList({ addDangerToast }: QueryListProps) {
         key: 'start_time',
         id: 'start_time',
         input: 'datetime_range',
-        operator: FilterOperator.between,
+        operator: FilterOperator.Between,
       },
       {
         Header: t('Search by query text'),
         key: 'sql',
         id: 'sql',
         input: 'search',
-        operator: FilterOperator.contains,
+        operator: FilterOperator.Contains,
       },
     ],
     [addDangerToast],

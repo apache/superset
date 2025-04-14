@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { css, SupersetTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 
 export const MenuItemTooltip = ({

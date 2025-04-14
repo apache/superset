@@ -19,7 +19,7 @@
 
 import { t } from '@superset-ui/core';
 
-export const FilterOptions = [
+export const FILTER_OPTIONS = [
   {
     label: t('Regular'),
     value: 'Regular',

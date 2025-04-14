@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import PopoverSection from '.';
 
 export default {
@@ -44,12 +43,4 @@ InteractivePopoverSection.args = {
   title: 'Title',
   isSelected: true,
   info: 'Some description about the content',
-};
-
-InteractivePopoverSection.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
 };

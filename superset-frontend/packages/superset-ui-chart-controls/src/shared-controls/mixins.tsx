@@ -18,13 +18,17 @@
  */
 import {
   ensureIsArray,
-  hasGenericChartAxes,
   NO_TIME_RANGE,
   QueryFormData,
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { BaseControlConfig, ControlPanelState, ControlState } from '../types';
+import {
+  BaseControlConfig,
+  ControlPanelState,
+  ControlState,
+  ExtraControlProps,
+} from '../types';
 import { getTemporalColumns } from '../utils';
 
 const getAxisLabel = (
@@ -42,7 +46,6 @@ export const xAxisMixin = {
   validators: [validateNonEmpty],
   initialValue: (control: ControlState, state: ControlPanelState | null) => {
     if (
-      hasGenericChartAxes &&
       state?.form_data?.granularity_sqla &&
       !state.form_data?.x_axis &&
       !control?.value
@@ -54,14 +57,15 @@ export const xAxisMixin = {
   default: undefined,
 };
 
-export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
+export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> &
+  Partial<ExtraControlProps> = {
+  isTemporal: true,
   mapStateToProps: ({ datasource }) => {
     const payload = getTemporalColumns(datasource);
 
     return {
       options: payload.temporalColumns,
       default: payload.defaultTemporalColumn,
-      isTemporal: true,
     };
   },
 };
@@ -72,11 +76,9 @@ export const datePickerInAdhocFilterMixin: Pick<
 > = {
   initialValue: (control: ControlState, state: ControlPanelState | null) => {
     // skip initialValue if
-    // 1) GENERIC_CHART_AXES is disabled
-    // 2) the time_range control is present (this is the case for legacy charts)
-    // 3) there was a time filter in adhoc filters
+    // 1) the time_range control is present (this is the case for legacy charts)
+    // 2) there was a time filter in adhoc filters
     if (
-      !hasGenericChartAxes ||
       state?.controls?.time_range?.value ||
       ensureIsArray(control.value).findIndex(
         (flt: any) => flt?.operator === 'TEMPORAL_RANGE',
@@ -105,7 +107,7 @@ export const datePickerInAdhocFilterMixin: Pick<
     const temporalColumn =
       state?.datasource &&
       getTemporalColumns(state.datasource).defaultTemporalColumn;
-    if (hasGenericChartAxes && temporalColumn) {
+    if (temporalColumn) {
       return [
         ...ensureIsArray(control.value),
         {

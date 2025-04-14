@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import Button from 'src/components/Button';
@@ -30,7 +30,7 @@ import getKeyForFilterScopeTree from 'src/dashboard/util/getKeyForFilterScopeTre
 import getSelectedChartIdForFilterScopeTree from 'src/dashboard/util/getSelectedChartIdForFilterScopeTree';
 import getFilterScopeFromNodesTree from 'src/dashboard/util/getFilterScopeFromNodesTree';
 import getRevertedFilterScope from 'src/dashboard/util/getRevertedFilterScope';
-import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
+import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import {
   getChartIdAndColumnFromFilterKey,
   getDashboardFilterKey,
@@ -277,12 +277,6 @@ const ScopeSelector = styled.div`
       }
 
       .multi-edit-mode {
-        &.filter-scope-pane {
-          .rct-node.rct-node-leaf .filter-scope-type.filter_box {
-            display: none;
-          }
-        }
-
         .filter-field-item {
           padding: 0 ${theme.gridUnit * 4}px 0 ${theme.gridUnit * 12}px;
           margin-left: ${theme.gridUnit * -12}px;
@@ -330,7 +324,7 @@ const ActionsContainer = styled.div`
   `}
 `;
 
-export default class FilterScopeSelector extends React.PureComponent {
+export default class FilterScopeSelector extends PureComponent {
   constructor(props) {
     super(props);
 
@@ -367,9 +361,8 @@ export default class FilterScopeSelector extends React.PureComponent {
                 selectedChartId: filterId,
               });
               const expanded = getFilterScopeParentNodes(nodes, 1);
-              // force display filter_box chart as unchecked, but show checkbox as disabled
               const chartIdsInFilterScope = (
-                getChartIdsInFilterBoxScope({
+                getChartIdsInFilterScope({
                   filterScope: dashboardFilters[filterId].scopes[columnName],
                 }) || []
               ).filter(id => id !== filterId);

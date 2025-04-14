@@ -17,12 +17,12 @@
  * under the License.
  */
 
-export enum EXPRESSION_TYPES {
-  SIMPLE = 'SIMPLE',
-  SQL = 'SQL',
+export enum ExpressionTypes {
+  Simple = 'SIMPLE',
+  Sql = 'SQL',
 }
 
-export enum CLAUSES {
-  HAVING = 'HAVING',
-  WHERE = 'WHERE',
+export enum Clauses {
+  Having = 'HAVING',
+  Where = 'WHERE',
 }

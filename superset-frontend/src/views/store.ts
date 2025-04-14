@@ -47,7 +47,7 @@ import {
   DatasourcesActionPayload,
   DatasourcesAction,
 } from 'src/dashboard/actions/datasources';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import {
   BootstrapUser,
   UndefinedUser,
@@ -108,7 +108,7 @@ const CombinedDatasourceReducers = (
   datasources: DatasourcesState | undefined | { [key: string]: Dataset },
   action: DatasourcesActionPayload | AnyDatasourcesAction | HydrateExplore,
 ) => {
-  if (action.type === DatasourcesAction.SET_DATASOURCES) {
+  if (action.type === DatasourcesAction.SetDatasources) {
     return dashboardDatasources(
       datasources as DatasourcesState | undefined,
       action as DatasourcesActionPayload,
@@ -126,7 +126,7 @@ const reducers = {
   messageToasts: messageToastReducer,
   common: noopReducer(bootstrapData.common),
   user: userReducer,
-  impressionId: noopReducer(shortid.generate()),
+  impressionId: noopReducer(nanoid()),
   charts,
   datasources: CombinedDatasourceReducers,
   dashboardInfo,
@@ -141,7 +141,7 @@ const reducers = {
   explore,
 };
 
-/* In some cases the jinja template injects two seperate React apps into basic.html
+/* In some cases the jinja template injects two separate React apps into basic.html
  * One for the top navigation Menu and one for the application below the Menu
  * The first app to connect to the Redux debugger wins which is the menu blocking
  * the application from being able to connect to the redux debugger.

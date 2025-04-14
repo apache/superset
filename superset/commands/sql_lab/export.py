@@ -115,7 +115,10 @@ class SqlResultExportCommand(BaseCommand):
                 limit = None
             else:
                 sql = self._query.executed_sql
-                limit = ParsedQuery(sql).limit
+                limit = ParsedQuery(
+                    sql,
+                    engine=self._query.database.db_engine_spec.engine,
+                ).limit
             if limit is not None and self._query.limiting_factor in {
                 LimitingFactor.QUERY,
                 LimitingFactor.DROPDOWN,
@@ -123,7 +126,11 @@ class SqlResultExportCommand(BaseCommand):
             }:
                 # remove extra row from `increased_limit`
                 limit -= 1
-            df = self._query.database.get_df(sql, self._query.schema)[:limit]
+            df = self._query.database.get_df(
+                sql,
+                self._query.catalog,
+                self._query.schema,
+            )[:limit]
 
         csv_data = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
 

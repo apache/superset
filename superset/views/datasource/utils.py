@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any, Optional
 
-from superset import app, db
+from superset import app
 from superset.commands.dataset.exceptions import DatasetSamplesFailedError
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
@@ -52,7 +52,6 @@ def get_samples(  # pylint: disable=too-many-arguments
     payload: Optional[SamplesPayloadSchema] = None,
 ) -> dict[str, Any]:
     datasource = DatasourceDAO.get_datasource(
-        session=db.session,
         datasource_type=datasource_type,
         datasource_id=datasource_id,
     )

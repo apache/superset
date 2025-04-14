@@ -16,17 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useEffect } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
+
+import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { RangePicker } from 'src/components/DatePicker';
-import moment from 'moment';
-import Icons from 'src/components/Icons';
+import { extendedDayjs } from 'src/utils/dates';
+import { Icons } from 'src/components/Icons';
 import Modal from 'src/components/Modal';
-import { StyledIcon } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
+import { OnlyKeyWithType } from 'src/utils/types';
 import { AnnotationObject } from './types';
 
 interface AnnotationModalProps {
@@ -90,6 +91,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   onHide,
   show,
 }) => {
+  const theme = useTheme();
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentAnnotation, setCurrentAnnotation] =
     useState<AnnotationObject | null>(null);
@@ -171,9 +173,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   };
 
   const onAnnotationTextChange = (
-    event:
-      | React.ChangeEvent<HTMLInputElement>
-      | React.ChangeEvent<HTMLTextAreaElement>,
+    event: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLTextAreaElement>,
   ) => {
     const { target } = event;
 
@@ -184,7 +184,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       start_dttm: currentAnnotation ? currentAnnotation.start_dttm : '',
     };
 
-    data[target.name] = target.value;
+    data[target.name as OnlyKeyWithType<typeof data, string>] = target.value;
     setCurrentAnnotation(data);
   };
 
@@ -199,18 +199,23 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     setCurrentAnnotation(data);
   };
 
-  const onDateChange = (value: any, dateString: Array<string>) => {
+  const onDateChange = (dates: any, dateString: Array<string>) => {
+    if (!dates?.[0] || !dates?.[1]) {
+      const data = {
+        ...currentAnnotation,
+        start_dttm: '',
+        end_dttm: '',
+        short_descr: currentAnnotation?.short_descr ?? '',
+      };
+      setCurrentAnnotation(data);
+      return;
+    }
+
     const data = {
       ...currentAnnotation,
-      end_dttm:
-        currentAnnotation && dateString[1].length
-          ? moment(dateString[1]).format('YYYY-MM-DD HH:mm')
-          : '',
-      short_descr: currentAnnotation ? currentAnnotation.short_descr : '',
-      start_dttm:
-        currentAnnotation && dateString[0].length
-          ? moment(dateString[0]).format('YYYY-MM-DD HH:mm')
-          : '',
+      start_dttm: dates[0].format('YYYY-MM-DD HH:mm'),
+      end_dttm: dates[1].format('YYYY-MM-DD HH:mm'),
+      short_descr: currentAnnotation?.short_descr ?? '',
     };
     setCurrentAnnotation(data);
   };
@@ -274,9 +279,19 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       title={
         <h4 data-test="annotation-modal-title">
           {isEditMode ? (
-            <Icons.EditAlt css={StyledIcon} />
+            <Icons.EditOutlined
+              iconSize="l"
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
+            />
           ) : (
-            <Icons.PlusLarge css={StyledIcon} />
+            <Icons.PlusOutlined
+              iconSize="l"
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
+            />
           )}
           {isEditMode ? t('Edit annotation') : t('Add annotation')}
         </h4>
@@ -305,15 +320,15 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         <RangePicker
           placeholder={[t('Start date'), t('End date')]}
           format="YYYY-MM-DD HH:mm"
-          onChange={onDateChange}
+          onCalendarChange={onDateChange}
           showTime={{ format: 'hh:mm a' }}
           use12Hours
           value={
             currentAnnotation?.start_dttm?.length ||
             currentAnnotation?.end_dttm?.length
               ? [
-                  moment(currentAnnotation.start_dttm),
-                  moment(currentAnnotation.end_dttm),
+                  extendedDayjs(currentAnnotation.start_dttm),
+                  extendedDayjs(currentAnnotation.end_dttm),
                 ]
               : null
           }
