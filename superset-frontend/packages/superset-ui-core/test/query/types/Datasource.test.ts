@@ -20,10 +20,10 @@ import { DatasourceType, DEFAULT_METRICS } from '@superset-ui/core';
 
 test('DEFAULT_METRICS', () => {
   expect(DEFAULT_METRICS).toEqual([
-    {
+    expect.objectContaining({
       metric_name: 'COUNT(*)',
       expression: 'COUNT(*)',
-    },
+    }),
   ]);
 });
 

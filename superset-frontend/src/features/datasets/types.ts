@@ -41,7 +41,7 @@ export type ColumnObject = {
 
 type MetricObject = {
   id: number;
-  uuid: number;
+  uuid: string;
   expression?: string;
   description?: string;
   metric_name: string;

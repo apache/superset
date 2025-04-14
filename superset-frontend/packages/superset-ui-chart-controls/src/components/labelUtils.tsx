@@ -97,7 +97,7 @@ export const getColumnTooltipNode = (
   );
 };
 
-type MetricType = Omit<Metric, 'id'> & { label?: string };
+type MetricType = Omit<Metric, 'id' | 'uuid'> & { label?: string };
 
 export const getMetricTooltipNode = (
   metric: MetricType,
