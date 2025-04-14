@@ -21,6 +21,7 @@ import {
   ChartProps,
   convertKeysToCamelCase,
   DataRecord,
+  logging,
 } from '@superset-ui/core';
 import { isObject } from 'lodash';
 import {
@@ -89,7 +90,7 @@ export const groupByLocationGenericX = (
         const labelMap: string[] = queryData.label_map?.[k];
 
         if (!labelMap) {
-          console.log(
+          logging.log(
             'Cannot extract location from queryData. label_map not defined',
           );
           return;
@@ -99,7 +100,7 @@ export const groupByLocationGenericX = (
 
         if (geojsonCols.length > 1) {
           // TODO what should we do, if there is more than one geom column?
-          console.log(
+          logging.log(
             'More than one geometry column detected. Using first found.',
           );
         }

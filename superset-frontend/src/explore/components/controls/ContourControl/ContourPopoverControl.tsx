@@ -267,7 +267,9 @@ const ContourPopoverControl = ({
                   hovered
                 />
                 <ColorPickerControl
-                  value={typeof contour === 'object' && contour?.color}
+                  value={
+                    typeof contour === 'object' ? contour?.color : undefined
+                  }
                   onChange={updateColor}
                 />
               </Col>
@@ -322,7 +324,9 @@ const ContourPopoverControl = ({
                   hovered
                 />
                 <ColorPickerControl
-                  value={contour?.color}
+                  value={
+                    typeof contour === 'object' ? contour?.color : undefined
+                  }
                   onChange={updateColor}
                 />
               </Col>

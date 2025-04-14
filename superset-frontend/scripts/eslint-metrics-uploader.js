@@ -139,6 +139,7 @@ module.exports = async results => {
       eslintBacklogHeaders,
     );
   } catch (error) {
+    /* eslint-disable no-console */
     console.error('Error writing to Google Sheets:', error);
   }
 };

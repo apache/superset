@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component } from 'react';
+import { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { TextArea } from 'src/components/Input';
 import {
@@ -75,50 +75,73 @@ const defaultProps = {
   tooltipOptions: {},
 };
 
-class TextAreaControl extends Component {
-  onControlChange(event) {
-    const { value } = event.target;
-    this.props.onChange(value);
-  }
+const TextAreaControl = props => {
+  const {
+    onChange,
+    initialValue,
+    language,
+    minLines,
+    maxLines,
+    readOnly,
+    name,
+    theme,
+    textAreaStyles,
+    tooltipOptions,
+    height,
+    offerEditInModal,
+    aboveEditorSection,
+    resize,
+  } = props;
 
-  onAreaEditorChange(value) {
-    this.props.onChange(value);
-  }
+  const onControlChange = useCallback(
+    event => {
+      const { value } = event.target;
+      onChange(value);
+    },
+    [onChange],
+  );
 
-  renderEditor(inModal = false) {
-    const minLines = inModal ? 40 : this.props.minLines || 12;
-    if (this.props.language) {
+  const onAreaEditorChange = useCallback(
+    value => {
+      onChange(value);
+    },
+    [onChange],
+  );
+
+  const renderEditor = (inModal = false) => {
+    const editorMinLines = inModal ? 40 : minLines || 12;
+    if (language) {
       const style = {
-        border: `1px solid ${this.props.theme.colors.grayscale.light1}`,
-        minHeight: `${minLines}em`,
+        border: `1px solid ${theme.colors.grayscale.light1}`,
+        minHeight: `${editorMinLines}em`,
         width: 'auto',
-        ...this.props.textAreaStyles,
+        ...textAreaStyles,
       };
-      if (this.props.resize) {
-        style.resize = this.props.resize;
+      if (resize) {
+        style.resize = resize;
       }
-      if (this.props.readOnly) {
+      if (readOnly) {
         style.backgroundColor = '#f2f2f2';
       }
       const codeEditor = (
         <div>
           <TextAreaEditor
-            mode={this.props.language}
+            mode={language}
             style={style}
-            minLines={minLines}
-            maxLines={inModal ? 1000 : this.props.maxLines}
+            minLines={editorMinLines}
+            maxLines={inModal ? 1000 : maxLines}
             editorProps={{ $blockScrolling: true }}
-            defaultValue={this.props.initialValue}
-            readOnly={this.props.readOnly}
-            key={this.props.name}
-            {...this.props}
-            onChange={this.onAreaEditorChange.bind(this)}
+            defaultValue={initialValue}
+            readOnly={readOnly}
+            key={name}
+            {...props}
+            onChange={onAreaEditorChange}
           />
         </div>
       );
 
-      if (this.props.tooltipOptions) {
-        return <Tooltip {...this.props.tooltipOptions}>{codeEditor}</Tooltip>;
+      if (tooltipOptions) {
+        return <Tooltip {...tooltipOptions}>{codeEditor}</Tooltip>;
       }
       return codeEditor;
     }
@@ -127,51 +150,46 @@ class TextAreaControl extends Component {
       <div>
         <TextArea
           placeholder={t('textarea')}
-          onChange={this.onControlChange.bind(this)}
-          defaultValue={this.props.initialValue}
-          disabled={this.props.readOnly}
-          style={{ height: this.props.height }}
+          onChange={onControlChange}
+          defaultValue={initialValue}
+          disabled={readOnly}
+          style={{ height }}
         />
       </div>
     );
-    if (this.props.tooltipOptions) {
-      return <Tooltip {...this.props.tooltipOptions}>{textArea}</Tooltip>;
+    if (tooltipOptions) {
+      return <Tooltip {...tooltipOptions}>{textArea}</Tooltip>;
     }
     return textArea;
-  }
+  };
 
-  renderModalBody() {
-    return (
-      <>
-        <div>{this.props.aboveEditorSection}</div>
-        {this.renderEditor(true)}
-      </>
-    );
-  }
+  const renderModalBody = () => (
+    <>
+      <div>{aboveEditorSection}</div>
+      {renderEditor(true)}
+    </>
+  );
 
-  render() {
-    const controlHeader = <ControlHeader {...this.props} />;
-    return (
-      <div>
-        {controlHeader}
-        {this.renderEditor()}
-        {this.props.offerEditInModal && (
-          <ModalTrigger
-            modalTitle={controlHeader}
-            triggerNode={
-              <Button buttonSize="small" className="m-t-5">
-                {t('Edit')} <strong>{this.props.language}</strong>{' '}
-                {t('in modal')}
-              </Button>
-            }
-            modalBody={this.renderModalBody(true)}
-            responsive
-          />
-        )}
-      </div>
-    );
-  }
-}
+  const controlHeader = <ControlHeader {...props} />;
+  return (
+    <div>
+      {controlHeader}
+      {renderEditor()}
+      {offerEditInModal && (
+        <ModalTrigger
+          modalTitle={controlHeader}
+          triggerNode={
+            <Button buttonSize="small" className="m-t-5">
+              {t('Edit')} <strong>{language}</strong> {t('in modal')}
+            </Button>
+          }
+          modalBody={renderModalBody(true)}
+          responsive
+        />
+      )}
+    </div>
+  );
+};
 
 TextAreaControl.propTypes = propTypes;
 TextAreaControl.defaultProps = defaultProps;

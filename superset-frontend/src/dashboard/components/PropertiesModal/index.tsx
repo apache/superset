@@ -572,7 +572,6 @@ const PropertiesModal = ({
         {
           objectType: OBJECT_TYPES.DASHBOARD,
           objectId: dashboardId,
-          includeTypes: false,
         },
         (tags: TagType[]) => setTags(tags),
         (error: Response) => {

@@ -16,20 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
-import SelectControl from './SelectControl';
-
-export default function XAxisSortControl(props: {
-  onChange: (val: string | undefined) => void;
-  value: string | null;
-  shouldReset: boolean;
-}) {
-  const [value, setValue] = useState(props.value);
-  useEffect(() => {
-    if (props.shouldReset) {
-      props.onChange(undefined);
-      setValue(null);
-    }
-  }, [props.shouldReset, props.value]);
-  return <SelectControl {...props} value={value} name="x_axis_sort" />;
+/**
+ * Type declarations for echarts components that are missing in the official types
+ */
+declare module 'echarts/components' {
+  export const VisualMapComponent: any;
+  export const DataZoomComponent: any;
+  export const ToolboxComponent: any;
+  export const GraphicComponent: any;
+  export const AriaComponent: any;
+  export const MarkAreaComponent: any;
+  export const MarkLineComponent: any;
 }

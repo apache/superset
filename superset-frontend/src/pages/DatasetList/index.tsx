@@ -280,11 +280,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const columns = useMemo(
     () => [
       {
-        Cell: ({
-          row: {
-            original: { kind },
-          },
-        }: any) => null,
+        Cell: () => null,
         accessor: 'kind_icon',
         disableSortBy: true,
         size: 'xs',
@@ -759,10 +755,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     {datasetCurrentlyDeleting.dashboards.result
                       .slice(0, 10)
                       .map(
-                        (
-                          result: { id: Key | null | undefined; title: string },
-                          index: number,
-                        ) => (
+                        (result: {
+                          id: Key | null | undefined;
+                          title: string;
+                        }) => (
                           <li key={result.id}>
                             <a
                               href={`/superset/dashboard/${result.id}`}
@@ -789,24 +785,23 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 <>
                   <h4>{t('Affected Charts')}</h4>
                   <ul>
-                    {datasetCurrentlyDeleting.charts.result.slice(0, 10).map(
-                      (
-                        result: {
+                    {datasetCurrentlyDeleting.charts.result
+                      .slice(0, 10)
+                      .map(
+                        (result: {
                           id: Key | null | undefined;
                           slice_name: string;
-                        },
-                        index: number,
-                      ) => (
-                        <li key={result.id}>
-                          <a
-                            href={`/explore/?slice_id=${result.id}`}
-                            target="_atRiskItem"
-                          >
-                            {result.slice_name}
-                          </a>
-                        </li>
-                      ),
-                    )}
+                        }) => (
+                          <li key={result.id}>
+                            <a
+                              href={`/explore/?slice_id=${result.id}`}
+                              target="_atRiskItem"
+                            >
+                              {result.slice_name}
+                            </a>
+                          </li>
+                        ),
+                      )}
                     {datasetCurrentlyDeleting.charts.result.length > 10 && (
                       <li>
                         {t(

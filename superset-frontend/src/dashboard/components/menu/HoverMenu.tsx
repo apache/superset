@@ -17,15 +17,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject, ReactNode, PureComponent } from 'react';
+import { RefObject, ReactNode, useCallback } from 'react';
 
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 
 interface HoverMenuProps {
-  position: 'left' | 'top';
-  innerRef: RefObject<HTMLDivElement>;
-  children: ReactNode;
+  position?: 'left' | 'top';
+  innerRef?: RefObject<HTMLDivElement>;
+  children?: ReactNode;
   onHover?: (data: { isHovered: boolean }) => void;
 }
 
@@ -66,45 +66,41 @@ const HoverStyleOverrides = styled.div`
   }
 `;
 
-export default class HoverMenu extends PureComponent<HoverMenuProps> {
-  static defaultProps = {
-    position: 'left',
-    innerRef: null,
-    children: null,
-  };
-
-  handleMouseEnter = () => {
-    const { onHover } = this.props;
+const HoverMenu = ({
+  position = 'left',
+  innerRef,
+  children = null,
+  onHover,
+}: HoverMenuProps) => {
+  const handleMouseEnter = useCallback(() => {
     if (onHover) {
       onHover({ isHovered: true });
     }
-  };
+  }, [onHover]);
 
-  handleMouseLeave = () => {
-    const { onHover } = this.props;
+  const handleMouseLeave = useCallback(() => {
     if (onHover) {
       onHover({ isHovered: false });
     }
-  };
+  }, [onHover]);
 
-  render() {
-    const { innerRef, position, children } = this.props;
-    return (
-      <HoverStyleOverrides className="hover-menu-container">
-        <div
-          ref={innerRef}
-          className={cx(
-            'hover-menu',
-            position === 'left' && 'hover-menu--left',
-            position === 'top' && 'hover-menu--top',
-          )}
-          onMouseEnter={this.handleMouseEnter}
-          onMouseLeave={this.handleMouseLeave}
-          data-test="hover-menu"
-        >
-          {children}
-        </div>
-      </HoverStyleOverrides>
-    );
-  }
-}
+  return (
+    <HoverStyleOverrides className="hover-menu-container">
+      <div
+        ref={innerRef}
+        className={cx(
+          'hover-menu',
+          position === 'left' && 'hover-menu--left',
+          position === 'top' && 'hover-menu--top',
+        )}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        data-test="hover-menu"
+      >
+        {children}
+      </div>
+    </HoverStyleOverrides>
+  );
+};
+
+export default HoverMenu;

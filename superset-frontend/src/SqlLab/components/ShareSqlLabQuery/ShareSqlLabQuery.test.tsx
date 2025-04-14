@@ -33,8 +33,9 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
+// eslint-disable-next-line import/no-unresolved
 import { initialState } from 'src/SqlLab/fixtures';
+import ShareSqlLabQuery from '.';
 
 const mockStore = configureStore([thunk]);
 const defaultProps = {
@@ -137,7 +138,8 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
-      const { id: _id, remoteId: _remoteId, ...expected } = mockQueryEditor;
+      // Destructure and ignore id and remoteId as they're not needed in the expected payload
+      const { id, remoteId, ...expected } = mockQueryEditor;
       userEvent.click(button);
       await waitFor(() =>
         expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),
@@ -154,7 +156,8 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
-      const { id: _id, ...expected } = unsavedQueryEditor;
+      // Destructure and ignore id as it's not needed in the expected payload
+      const { id, ...expected } = unsavedQueryEditor;
       userEvent.click(button);
       await waitFor(() =>
         expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),

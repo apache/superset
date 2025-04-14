@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component, ChangeEvent } from 'react';
+import { ChangeEvent, useState, useEffect, useCallback, useRef } from 'react';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { FAST_DEBOUNCE } from 'src/constants';
@@ -38,82 +38,91 @@ export interface TextControlProps<T extends InputValueType = InputValueType> {
   renderTrigger?: boolean;
 }
 
-export interface TextControlState {
-  value: string;
-}
-
 const safeStringify = (value?: InputValueType | null) =>
   value == null ? '' : String(value);
 
-export default class TextControl<
-  T extends InputValueType = InputValueType,
-> extends Component<TextControlProps<T>, TextControlState> {
-  initialValue?: TextControlProps['value'];
+export default function TextControl<T extends InputValueType = InputValueType>(
+  props: TextControlProps<T>,
+) {
+  const {
+    value: propsValue,
+    onChange,
+    isFloat,
+    isInt,
+    onFocus,
+    placeholder,
+    disabled,
+    label,
+  } = props;
 
-  constructor(props: TextControlProps<T>) {
-    super(props);
-    this.initialValue = props.value;
-    this.state = {
-      value: safeStringify(this.initialValue),
-    };
-  }
+  const initialValueRef = useRef(propsValue);
+  const [value, setValue] = useState(safeStringify(initialValueRef.current));
 
-  onChange = (inputValue: string) => {
-    let parsedValue: InputValueType = inputValue;
-    // Validation & casting
-    const errors = [];
-    if (inputValue !== '' && this.props.isFloat) {
-      const error = legacyValidateNumber(inputValue);
-      if (error) {
-        errors.push(error);
-      } else {
-        parsedValue = inputValue.match(/.*([.0])$/g)
-          ? inputValue
-          : parseFloat(inputValue);
+  // Handle value changes from props
+  useEffect(() => {
+    if (initialValueRef.current !== propsValue) {
+      initialValueRef.current = propsValue;
+      setValue(safeStringify(propsValue));
+    }
+  }, [propsValue]);
+
+  const handleChange = useCallback(
+    (inputValue: string) => {
+      let parsedValue: InputValueType = inputValue;
+      // Validation & casting
+      const errors = [];
+      if (inputValue !== '' && isFloat) {
+        const error = legacyValidateNumber(inputValue);
+        if (error) {
+          errors.push(error);
+        } else {
+          parsedValue = inputValue.match(/.*([.0])$/g)
+            ? inputValue
+            : parseFloat(inputValue);
+        }
       }
-    }
-    if (inputValue !== '' && this.props.isInt) {
-      const error = legacyValidateInteger(inputValue);
-      if (error) {
-        errors.push(error);
-      } else {
-        parsedValue = parseInt(inputValue, 10);
+      if (inputValue !== '' && isInt) {
+        const error = legacyValidateInteger(inputValue);
+        if (error) {
+          errors.push(error);
+        } else {
+          parsedValue = parseInt(inputValue, 10);
+        }
       }
-    }
-    this.props.onChange?.(parsedValue as T, errors);
-  };
+      onChange?.(parsedValue as T, errors);
+    },
+    [onChange, isFloat, isInt],
+  );
 
-  debouncedOnChange = debounce((inputValue: string) => {
-    this.onChange(inputValue);
-  }, FAST_DEBOUNCE);
+  const debouncedOnChange = useCallback(
+    debounce((inputValue: string) => {
+      handleChange(inputValue);
+    }, FAST_DEBOUNCE),
+    [handleChange],
+  );
 
-  onChangeWrapper = (event: ChangeEvent<HTMLInputElement>) => {
-    const { value } = event.target;
-    this.setState({ value }, () => {
-      this.debouncedOnChange(value);
-    });
-  };
+  const onChangeWrapper = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const inputValue = event.target.value;
+      setValue(inputValue);
+      debouncedOnChange(inputValue);
+    },
+    [debouncedOnChange],
+  );
 
-  render() {
-    let { value } = this.state;
-    if (this.initialValue !== this.props.value) {
-      this.initialValue = this.props.value;
-      value = safeStringify(this.props.value);
-    }
-    return (
-      <div>
-        <ControlHeader {...this.props} />
-        <Input
-          type="text"
-          data-test="inline-name"
-          placeholder={this.props.placeholder}
-          onChange={this.onChangeWrapper}
-          onFocus={this.props.onFocus}
-          value={value}
-          disabled={this.props.disabled}
-          aria-label={this.props.label}
-        />
-      </div>
-    );
-  }
+  return (
+    <div>
+      <ControlHeader {...props} />
+      <Input
+        type="text"
+        data-test="inline-name"
+        placeholder={placeholder}
+        onChange={onChangeWrapper}
+        onFocus={onFocus}
+        value={value}
+        disabled={disabled}
+        aria-label={label}
+      />
+    </div>
+  );
 }

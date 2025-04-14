@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component } from 'react';
+import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { css, t } from '@superset-ui/core';
 import Label from 'src/components/Label';
@@ -47,146 +47,137 @@ const defaultProps = {
   default: { type: controlTypes.fixed, value: 5 },
 };
 
-export default class FixedOrMetricControl extends Component {
-  constructor(props) {
-    super(props);
-    this.onChange = this.onChange.bind(this);
-    this.setType = this.setType.bind(this);
-    this.setFixedValue = this.setFixedValue.bind(this);
-    this.setMetric = this.setMetric.bind(this);
-    const type =
-      (props.value ? props.value.type : props.default.type) ||
-      controlTypes.fixed;
-    const value =
-      (props.value ? props.value.value : props.default.value) || '100';
-    this.state = {
+const FixedOrMetricControl = props => {
+  const { onChange, value, default: defaultValue, datasource } = props;
+
+  // Initialize state from props
+  const initialType =
+    (value ? value.type : defaultValue.type) || controlTypes.fixed;
+  const initialValue = (value ? value.value : defaultValue.value) || '100';
+
+  const [type, setType] = useState(initialType);
+  const [fixedValue, setFixedValue] = useState(
+    initialType === controlTypes.fixed ? initialValue : '',
+  );
+  const [metricValue, setMetricValue] = useState(
+    initialType === controlTypes.metric ? initialValue : null,
+  );
+
+  const handleChange = () => {
+    onChange({
       type,
-      fixedValue: type === controlTypes.fixed ? value : '',
-      metricValue: type === controlTypes.metric ? value : null,
-    };
-  }
-
-  onChange() {
-    this.props.onChange({
-      type: this.state.type,
-      value:
-        this.state.type === controlTypes.fixed
-          ? this.state.fixedValue
-          : this.state.metricValue,
+      value: type === controlTypes.fixed ? fixedValue : metricValue,
     });
-  }
+  };
 
-  setType(type) {
-    this.setState({ type }, this.onChange);
-  }
+  const handleTypeChange = newType => {
+    setType(newType);
+    // We need to call handleChange after state update, so we use a callback
+    setTimeout(handleChange, 0);
+  };
 
-  setFixedValue(fixedValue) {
-    this.setState({ fixedValue }, this.onChange);
-  }
+  const handleFixedValueChange = newFixedValue => {
+    setFixedValue(newFixedValue);
+    // We need to call handleChange after state update, so we use a callback
+    setTimeout(handleChange, 0);
+  };
 
-  setMetric(metricValue) {
-    this.setState({ metricValue }, this.onChange);
-  }
+  const handleMetricChange = newMetricValue => {
+    setMetricValue(newMetricValue);
+    // We need to call handleChange after state update, so we use a callback
+    setTimeout(handleChange, 0);
+  };
 
-  render() {
-    const value = this.props.value || this.props.default;
-    const type = value.type || controlTypes.fixed;
-    const columns = this.props.datasource
-      ? this.props.datasource.columns
-      : null;
-    const metrics = this.props.datasource
-      ? this.props.datasource.metrics
-      : null;
-    return (
-      <div>
-        <ControlHeader {...this.props} />
-        <Collapse
-          ghost
-          css={theme => css`
-            &.ant-collapse
-              > .ant-collapse-item.ant-collapse-no-arrow
-              > .ant-collapse-header {
-              border: 0px;
-              padding: 0px 0px ${theme.gridUnit * 2}px 0px;
-              display: inline-block;
+  const displayValue = value || defaultValue;
+  const displayType = displayValue.type || controlTypes.fixed;
+  const columns = datasource ? datasource.columns : null;
+  const metrics = datasource ? datasource.metrics : null;
+
+  return (
+    <div>
+      <ControlHeader {...props} />
+      <Collapse
+        ghost
+        css={theme => css`
+          &.ant-collapse
+            > .ant-collapse-item.ant-collapse-no-arrow
+            > .ant-collapse-header {
+            border: 0px;
+            padding: 0px 0px ${theme.gridUnit * 2}px 0px;
+            display: inline-block;
+          }
+          &.ant-collapse-ghost
+            > .ant-collapse-item
+            > .ant-collapse-content
+            > .ant-collapse-content-box {
+            padding: 0px;
+
+            & .well {
+              margin-bottom: 0px;
+              padding: ${theme.gridUnit * 2}px;
             }
-            &.ant-collapse-ghost
-              > .ant-collapse-item
-              > .ant-collapse-content
-              > .ant-collapse-content-box {
-              padding: 0px;
-
-              & .well {
-                margin-bottom: 0px;
-                padding: ${theme.gridUnit * 2}px;
-              }
-            }
-          `}
+          }
+        `}
+      >
+        <Collapse.Panel
+          showArrow={false}
+          header={
+            <Label>
+              {type === controlTypes.fixed && <span>{fixedValue}</span>}
+              {type === controlTypes.metric && (
+                <span>
+                  <span>{t('metric')}: </span>
+                  <strong>{metricValue ? metricValue.label : null}</strong>
+                </span>
+              )}
+            </Label>
+          }
         >
-          <Collapse.Panel
-            showArrow={false}
-            header={
-              <Label>
-                {this.state.type === controlTypes.fixed && (
-                  <span>{this.state.fixedValue}</span>
-                )}
-                {this.state.type === controlTypes.metric && (
-                  <span>
-                    <span>{t('metric')}: </span>
-                    <strong>
-                      {this.state.metricValue
-                        ? this.state.metricValue.label
-                        : null}
-                    </strong>
-                  </span>
-                )}
-              </Label>
-            }
-          >
-            <div className="well">
-              <PopoverSection
-                title={t('Fixed')}
-                isSelected={type === controlTypes.fixed}
-                onSelect={() => {
-                  this.setType(controlTypes.fixed);
+          <div className="well">
+            <PopoverSection
+              title={t('Fixed')}
+              isSelected={displayType === controlTypes.fixed}
+              onSelect={() => {
+                handleTypeChange(controlTypes.fixed);
+              }}
+            >
+              <TextControl
+                isFloat
+                onChange={handleFixedValueChange}
+                onFocus={() => {
+                  handleTypeChange(controlTypes.fixed);
                 }}
-              >
-                <TextControl
-                  isFloat
-                  onChange={this.setFixedValue}
-                  onFocus={() => {
-                    this.setType(controlTypes.fixed);
-                  }}
-                  value={this.state.fixedValue}
-                />
-              </PopoverSection>
-              <PopoverSection
-                title={t('Based on a metric')}
-                isSelected={type === controlTypes.metric}
-                onSelect={() => {
-                  this.setType(controlTypes.metric);
+                value={fixedValue}
+              />
+            </PopoverSection>
+            <PopoverSection
+              title={t('Based on a metric')}
+              isSelected={displayType === controlTypes.metric}
+              onSelect={() => {
+                handleTypeChange(controlTypes.metric);
+              }}
+            >
+              <MetricsControl
+                name="metric"
+                columns={columns}
+                savedMetrics={metrics}
+                multi={false}
+                onFocus={() => {
+                  handleTypeChange(controlTypes.metric);
                 }}
-              >
-                <MetricsControl
-                  name="metric"
-                  columns={columns}
-                  savedMetrics={metrics}
-                  multi={false}
-                  onFocus={() => {
-                    this.setType(controlTypes.metric);
-                  }}
-                  onChange={this.setMetric}
-                  value={this.state.metricValue}
-                  datasource={this.props.datasource}
-                />
-              </PopoverSection>
-            </div>
-          </Collapse.Panel>
-        </Collapse>
-      </div>
-    );
-  }
-}
+                onChange={handleMetricChange}
+                value={metricValue}
+                datasource={datasource}
+              />
+            </PopoverSection>
+          </div>
+        </Collapse.Panel>
+      </Collapse>
+    </div>
+  );
+};
 
 FixedOrMetricControl.propTypes = propTypes;
 FixedOrMetricControl.defaultProps = defaultProps;
+
+export default FixedOrMetricControl;
