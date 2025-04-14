@@ -38,6 +38,7 @@ export type ColumnConfigControlProps<T extends ColumnConfig> =
       colnames: string[];
       coltypes: GenericDataType[];
       childColumnMap?: Record<string, boolean>;
+      timeComparisonColumnMap?: Record<string, boolean>;
     };
     configFormLayout?: ColumnConfigFormLayout;
     appliedColumnNames?: string[];
@@ -87,6 +88,8 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
         type: coltypes?.[idx],
         config: value?.[col] || {},
         isChildColumn: columnsPropsObject?.childColumnMap?.[col] ?? false,
+        isTimeComparisonColumn:
+          columnsPropsObject?.timeComparisonColumnMap?.[col] ?? false,
       };
     });
     return configs;
@@ -136,7 +139,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
             column={col}
             onChange={config => setColumnConfig(col.name, config as T)}
             configFormLayout={
-              col.isChildColumn
+              col.isTimeComparisonColumn
                 ? ({
                     [col.type ?? GenericDataType.String]: [
                       {

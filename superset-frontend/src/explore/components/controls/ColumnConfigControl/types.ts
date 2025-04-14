@@ -41,6 +41,7 @@ export type ColumnConfig = {
  */
 export interface ColumnConfigInfo {
   isChildColumn: boolean;
+  isTimeComparisonColumn: boolean;
   name: string;
   type?: GenericDataType;
   config: JsonObject;
