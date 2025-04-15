@@ -83,8 +83,8 @@ function reducer(draft: DataMask, action: DataMaskAction) {
 }
 
 const SelectWrapper = styled.div`
-  .select-container {
-    width: ${({ theme }) => theme.gridUnit * 20}px;
+  .exclude-select-container {
+    width: 80px;
     margin-right: 8px;
   }
 `;
@@ -342,10 +342,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         {inverseSelection && (
           <SelectWrapper>
             <Select
+              className="exclude-select-container"
               value={`${excludeFilterValues}`}
               options={[
-                { value: 'true', label: 'is not' },
-                { value: 'false', label: 'is' },
+                { value: 'true', label: t('is not') },
+                { value: 'false', label: t('is') },
               ]}
               onChange={handleExclusionToggle}
             />
@@ -383,6 +384,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           options={options}
           sortComparator={sortComparator}
           onDropdownVisibleChange={setFilterActive}
+          className="select-container"
         />
       </StyledFormItem>
     </FilterPluginStyle>

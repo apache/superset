@@ -89,6 +89,7 @@ import { customTagRender } from './CustomTag';
 const Select = forwardRef(
   (
     {
+      className,
       allowClear,
       allowNewOptions = false,
       allowSelectAll = true,
@@ -605,10 +606,7 @@ const Select = forwardRef(
     };
 
     return (
-      <StyledContainer
-        className="select-container"
-        headerPosition={headerPosition}
-      >
+      <StyledContainer className={className} headerPosition={headerPosition}>
         {header && (
           <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
         )}
