@@ -224,6 +224,7 @@ function UsersList({ user }: UsersListProps) {
     () => [
       {
         accessor: 'first_name',
+        id: 'first_name',
         Header: t('First name'),
         Cell: ({
           row: {
@@ -233,6 +234,7 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'last_name',
+        id: 'last_name',
         Header: t('Last name'),
         Cell: ({
           row: {
@@ -242,6 +244,7 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'username',
+        id: 'username',
         Header: t('Username'),
         Cell: ({
           row: {
@@ -251,6 +254,7 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'email',
+        id: 'email',
         Header: t('Email'),
         Cell: ({
           row: {
@@ -260,6 +264,7 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'active',
+        id: 'active',
         Header: t('Is active?'),
         Cell: ({
           row: {
@@ -269,6 +274,7 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'roles',
+        id: 'roles',
         Header: t('Roles'),
         Cell: ({
           row: {
@@ -281,18 +287,21 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'login_count',
+        id: 'login_count',
         Header: t('Login count'),
         hidden: true,
         Cell: ({ row: { original } }: any) => original.login_count,
       },
       {
         accessor: 'fail_login_count',
+        id: 'login_count',
         Header: t('Fail login count'),
         hidden: true,
         Cell: ({ row: { original } }: any) => original.fail_login_count,
       },
       {
         accessor: 'created_on',
+        id: 'created_on',
         Header: t('Created on'),
         hidden: true,
         Cell: ({
@@ -303,6 +312,7 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'changed_on',
+        id: 'changed_on',
         Header: t('Changed on'),
         hidden: true,
         Cell: ({
@@ -313,6 +323,7 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'last_login',
+        id: 'last_login',
         Header: t('Last login'),
         hidden: true,
         Cell: ({
