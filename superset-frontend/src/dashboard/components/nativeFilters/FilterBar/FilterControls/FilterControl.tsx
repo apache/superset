@@ -126,7 +126,11 @@ const VerticalFormItem = styled(StyledFormItem)<{
   }
 
   .select-container {
-    width: ${({ theme }) => theme.gridUnit * 35}px;
+    ${({ inverseSelection, theme }) =>
+      inverseSelection &&
+      `
+      width: ${theme.gridUnit * 35}px;
+    `}
   }
 `;
 
