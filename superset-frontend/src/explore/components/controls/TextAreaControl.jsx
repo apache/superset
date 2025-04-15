@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { Input, Tooltip, Button, TextAreaEditor } from '@superset-ui/core/components';
 import { t, withTheme } from '@superset-ui/core';
 
-import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
+import { ModalTrigger } from '@superset-ui/core/components';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 

@@ -29,7 +29,7 @@ import {
 } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Menu } from '@superset-ui/core/components/Menu';
-import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
+import { ModalTrigger } from '@superset-ui/core/components';
 import { Button } from '@superset-ui/core/components';
 import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';

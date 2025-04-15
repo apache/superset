@@ -33,7 +33,7 @@ import TableView from '@superset-ui/core/components/TableView';
 import { fDuration, extendedDayjs } from 'src/utils/dates';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
-import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
+import { ModalTrigger } from '@superset-ui/core/components';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';

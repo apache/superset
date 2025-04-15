@@ -20,7 +20,7 @@ import { ReactChild, RefObject, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import { css, t, useTheme } from '@superset-ui/core';
 import { Button } from '@superset-ui/core/components';
-import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
+import { ModalTrigger } from '@superset-ui/core/components';
 
 export const ViewResultsModalTrigger = ({
   canExplore,

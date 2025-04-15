@@ -4,10 +4,13 @@ import re
 import subprocess
 from typing import List, Tuple
 
+lib = "RefreshLabel"
 # Define replacement patterns as tuples of (pattern, replacement)
 REPLACE_PATTERNS: List[Tuple[str, str]] = [
     # Example patterns - replace these with your actual patterns
-    (r"'src\/components", "'@superset-ui/core/components"),
+    #(r"'src\/components", "'@superset-ui/core/components"),
+    (f"import {lib} from '@superset-ui\/core\/components\/{lib}';", "import `{ {lib} `} from '@superset-ui/core/components';"),
+    #import RefreshLabel from 'src/components/RefreshLabel';
 ]
 
 
