@@ -187,3 +187,5 @@ export {
   type LabeledValue,
   type RefSelectProps,
 } from './Select';
+
+export { SafeMarkdown } from ./SafeMarkdown';

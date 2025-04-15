@@ -26,6 +26,8 @@
   "dependencies": {
     "@babel/runtime": "^7.25.6",
     "@types/json-bigint": "^1.0.4",
+    "antd": "4.10.3",
+    "antd-v5": "npm:antd@^5.24.6",
     "csstype": "^3.1.3",
     "d3-format": "^1.3.2",
     "d3-interpolate": "^3.0.1",
@@ -70,7 +72,6 @@
     "timezone-mock": "1.3.6"
   },
   "peerDependencies": {
-    "antd-v5": "npm:antd@^5.18.0",
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.3.0",
