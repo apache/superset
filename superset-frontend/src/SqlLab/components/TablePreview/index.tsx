@@ -29,10 +29,8 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
-import AutoSizer from 'react-virtualized-auto-sizer';
-import { Icons } from '@superset-ui/core/components/Icons';
-import type { SqlLabRootState } from 'src/SqlLab/types';
 import {
+  Icons,
   Alert,
   Breadcrumb,
   Button,
@@ -41,6 +39,8 @@ import {
   Dropdown,
   FilterableTable,
 } from '@superset-ui/core/components';
+import AutoSizer from 'react-virtualized-auto-sizer';
+import type { SqlLabRootState } from 'src/SqlLab/types';
 import Skeleton from '@superset-ui/core/components/Skeleton';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {

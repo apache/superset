@@ -50,7 +50,7 @@ export interface ModalTriggerRef {
   };
 }
 
-const ModalTrigger = forwardRef(
+export const ModalTrigger = forwardRef(
   (props: ModalTriggerProps, ref: ModalTriggerRef | null) => {
     const [showModal, setShowModal] = useState(false);
     const {
@@ -128,5 +128,3 @@ const ModalTrigger = forwardRef(
     );
   },
 );
-
-export default ModalTrigger;

@@ -29,6 +29,7 @@ import {
   CopyToClipboard,
   Flex,
   IconTooltip,
+  ModalTrigger,
   Loading,
   type CollapseProps,
 } from '@superset-ui/core/components';
@@ -46,7 +47,6 @@ import {
   useTableExtendedMetadataQuery,
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
-import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { ActionType } from 'src/types/Action';
 import { Icons } from '@superset-ui/core/components/Icons';

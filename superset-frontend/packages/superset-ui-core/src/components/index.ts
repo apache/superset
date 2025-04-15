@@ -49,6 +49,7 @@ export {
   type AvatarProps,
   type AvatarGroupProps,
 } from './Avatar';
+export { ModalTrigger, type ModalTriggerProps } from './ModalTrigger';
 export { Badge, type BadgeProps } from './Badge';
 export { Tooltip, type TooltipProps } from './Tooltip';
 export { Button, type ButtonProps, type OnClickHandler } from './Button';
@@ -93,6 +94,8 @@ export {
   type MenuDotsDropdownProps,
 } from './Dropdown';
 export { DropdownButton, type DropdownButtonProps } from './DropdownButton';
+export { Menu } from './Menu';
+export { Switch } from './Switch';
 export {
   DropdownContainer,
   type DropdownItem,
@@ -139,6 +142,7 @@ export { Grid, Row, Col, type RowProps, type ColProps } from './Grid';
 export { GridTable, type TableProps } from './GridTable';
 export { IconButton, type IconButtonProps } from './IconButton';
 export { IconTooltip, type IconTooltipProps } from './IconTooltip';
+export { Icons } from './Icons';
 export { ImportModal, type ImportModelsModalProps } from './ImportModal';
 export { InfoTooltip, type InfoTooltipProps } from './InfoTooltip';
 export {

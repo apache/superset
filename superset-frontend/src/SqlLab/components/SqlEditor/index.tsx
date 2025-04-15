@@ -42,6 +42,8 @@ import {
   useTheme,
   getExtensionsRegistry,
   QueryResponse,
+  Switch,
+  Menu,
   Query,
 } from '@superset-ui/core';
 import type {
@@ -57,15 +59,13 @@ import {
   Button,
   Alert,
   Dropdown,
+  Icons,
   EmptyState,
   Modal,
 } from '@superset-ui/core/components';
 import Timer from '@superset-ui/core/components/Timer';
 import ResizableSidebar from '@superset-ui/core/components/ResizableSidebar';
 import Skeleton from '@superset-ui/core/components/Skeleton';
-import { Switch } from '@superset-ui/core/components/Switch';
-import { Menu } from '@superset-ui/core/components/Menu';
-import { Icons } from '@superset-ui/core/components/Icons';
 import { detectOS } from 'src/utils/common';
 import {
   addNewQueryEditor,
