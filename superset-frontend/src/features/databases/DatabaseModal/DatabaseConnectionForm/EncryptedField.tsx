@@ -18,10 +18,16 @@
  */
 import { useState, useEffect } from 'react';
 import { SupersetTheme, css, t } from '@superset-ui/core';
-import { Input, Button, FormLabel, Select } from 'src/components';
+import {
+  Input,
+  Button,
+  FormLabel,
+  Select,
+  Upload,
+  type UploadFile,
+} from 'src/components';
 import { Icons } from 'src/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import Upload, { type UploadFile } from 'src/components/Upload';
 import { DatabaseParameters, FieldPropTypes } from '../../types';
 import { infoTooltip, CredentialInfoForm } from '../styles';
 
