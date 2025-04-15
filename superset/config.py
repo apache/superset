@@ -341,7 +341,8 @@ FAB_API_SWAGGER_UI = True
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
-AUTH_TYPE = AUTH_OAUTH
+# AUTH_TYPE = AUTH_OAUTH
+AUTH_TYPE = AUTH_DB
 
 # OAUTH_PROVIDERS = [
 #     {
@@ -366,24 +367,24 @@ AUTH_TYPE = AUTH_OAUTH
 #     }
 # ]
 
-OAUTH_PROVIDERS = [
-    {
-        'name': 'signin-oidc',
-        'token_key': 'access_token',
-        'icon': 'fa-windows',
-        'remote_app': {
-            'client_id': '9457f4a9-b8f7-45f6-a3db-50e94019c600',
-            'client_secret': 'e3da967e-6ab0-4b6c-85d6-150fabd09e7d',  # Replace with your actual client secret
-            'client_kwargs': {
-                'scope': 'openid profile roles offline_access' , # Scopes from your configuration
-                'code_challenge_method': 'S256'
-            },
-            'server_metadata_url': 'https://cybqa.pesapal.com/pesapalsso/.well-known/openid-configuration',
-            'redirect_uri': 'http://185.191.3.19:9004/signin-oidc'
-
-        }
-    }
-]
+# OAUTH_PROVIDERS = [
+#     {
+#         'name': 'signin-oidc',
+#         'token_key': 'access_token',
+#         'icon': 'fa-windows',
+#         'remote_app': {
+#             'client_id': '9457f4a9-b8f7-45f6-a3db-50e94019c600',
+#             'client_secret': 'e3da967e-6ab0-4b6c-85d6-150fabd09e7d',  # Replace with your actual client secret
+#             'client_kwargs': {
+#                 'scope': 'openid profile roles offline_access' , # Scopes from your configuration
+#                 'code_challenge_method': 'S256'
+#             },
+#             'server_metadata_url': 'https://cybqa.pesapal.com/pesapalsso/.well-known/openid-configuration',
+#             'redirect_uri': 'http://185.191.3.19:9004/signin-oidc'
+#
+#         }
+#     }
+# ]
 
 # Uncomment to setup Full admin role name
 # AUTH_ROLE_ADMIN = 'Admin'
