@@ -269,11 +269,11 @@ export function Menu({
           >
             {isFrontendRoute(window.location.pathname) ? (
               <GenericLink className="navbar-brand" to={brand.path}>
-                <img src={assetUrl(brand.icon)} alt={brand.alt} />
+                <img src={brand.icon} alt={brand.alt} />
               </GenericLink>
             ) : (
               <a className="navbar-brand" href={brand.path} tabIndex={-1}>
-                <img src={assetUrl(brand.icon)} alt={brand.alt} />
+                <img src={brand.icon} alt={brand.alt} />
               </a>
             )}
           </Tooltip>
