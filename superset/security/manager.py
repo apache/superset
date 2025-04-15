@@ -25,6 +25,7 @@ from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
+from flask_appbuilder.extensions import db
 from flask_appbuilder.security.sqla.apis import RoleApi
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
@@ -705,7 +706,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.connectors.sqla.models import SqlaTable
 
         user_datasources.update(
-            self.get_session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter(get_dataset_access_filters(SqlaTable))
             .all()
         )
@@ -741,7 +742,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def user_view_menu_names(self, permission_name: str) -> set[str]:
         base_query = (
-            self.get_session.query(self.viewmenu_model.name)
+            db.session.query(self.viewmenu_model.name)
             .join(self.permissionview_model)
             .join(self.permission_model)
             .join(assoc_permissionview_role)
@@ -849,7 +850,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # datasource_access
         if perms := self.user_view_menu_names("datasource_access"):
             tables = (
-                self.get_session.query(SqlaTable.schema)
+                db.session.query(SqlaTable.schema)
                 .filter(SqlaTable.database_id == database.id)
                 .filter(or_(SqlaTable.perm.in_(perms)))
                 .distinct()
@@ -909,7 +910,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # datasource_access
         if perms := self.user_view_menu_names("datasource_access"):
             tables = (
-                self.get_session.query(SqlaTable.schema)
+                db.session.query(SqlaTable.schema)
                 .filter(SqlaTable.database_id == database.id)
                 .filter(or_(SqlaTable.perm.in_(perms)))
                 .distinct()
@@ -1052,7 +1053,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             merge_pv("catalog_access", datasource.get_catalog_perm())
 
         logger.info("Creating missing database permissions.")
-        databases = self.get_session.query(models.Database).all()
+        databases = db.session.query(models.Database).all()
         for database in databases:
             merge_pv("database_access", database.perm)
 
@@ -1062,7 +1063,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         logger.info("Cleaning faulty perms")
-        pvms = self.get_session.query(PermissionView).filter(
+        pvms = db.session.query(PermissionView).filter(
             or_(
                 PermissionView.permission  # pylint: disable=singleton-comparison
                 == None,  # noqa: E711
@@ -1105,7 +1106,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Gets list of all PVM
         """
         pvms = (
-            self.get_session.query(self.permissionview_model)
+            db.session.query(self.permissionview_model)
             .options(
                 eagerload(self.permissionview_model.permission),
                 eagerload(self.permissionview_model.view_menu),
@@ -1120,7 +1121,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         definition
         """
         role_from_permissions_names = self.builtin_roles.get(role_name, [])
-        all_pvms = self.get_session.query(PermissionView).all()
+        all_pvms = db.session.query(PermissionView).all()
         role_from_permissions = []
         for pvm_regex in role_from_permissions_names:
             view_name_regex = pvm_regex[0]
@@ -1137,7 +1138,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
-        query = self.get_session.query(self.role_model).filter(
+        query = db.session.query(self.role_model).filter(
             self.role_model.id.in_(role_ids)
         )
         return query.all()
@@ -1410,7 +1411,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         # Clean database schema permissions
         schema_pvms = (
-            self.get_session.query(self.permissionview_model)
+            db.session.query(self.permissionview_model)
             .join(self.permission_model)
             .join(self.viewmenu_model)
             .filter(
@@ -1509,9 +1510,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         chart_table = Slice.__table__  # pylint: disable=no-member
         new_database_name = target.database_name
         datasets = (
-            self.get_session.query(SqlaTable)
-            .filter(SqlaTable.database_id == target.id)
-            .all()
+            db.session.query(SqlaTable).filter(SqlaTable.database_id == target.id).all()
         )
         updated_view_menus: list[ViewMenu] = []
         for dataset in datasets:
@@ -1588,7 +1587,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             logger.warning(
                 "Dataset has no database will retry with database_id to set permission"
             )
-            database = self.get_session.query(Database).get(target.database_id)
+            database = db.session.query(Database).get(target.database_id)
             dataset_perm = self.get_dataset_perm(
                 target.id, target.table_name, database.database_name
             )
@@ -2220,7 +2219,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 client_id=shortid()[:10],
                 user_id=get_user_id(),
             )
-            self.get_session.expunge(query)
+            db.session.expunge(query)
 
         if database and table or query:
             if query:
@@ -2333,7 +2332,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     form_data
                     and (dashboard_id := form_data.get("dashboardId"))
                     and (
-                        dashboard_ := self.get_session.query(Dashboard)
+                        dashboard_ := db.session.query(Dashboard)
                         .filter(Dashboard.id == dashboard_id)
                         .one_or_none()
                     )
@@ -2366,7 +2365,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             form_data.get("type") != "NATIVE_FILTER"
                             and (slice_id := form_data.get("slice_id"))
                             and (
-                                slc := self.get_session.query(Slice)
+                                slc := db.session.query(Slice)
                                 .filter(Slice.id == slice_id)
                                 .one_or_none()
                             )
@@ -2439,7 +2438,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         need to be scoped
         """
         return (
-            self.get_session.query(self.user_model)
+            db.session.query(self.user_model)
             .filter(self.user_model.username == username)
             .one_or_none()
         )
@@ -2494,7 +2493,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user_roles = [role.id for role in self.get_user_roles(g.user)]
         regular_filter_roles = (
-            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
+            db.session.query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
@@ -2502,18 +2501,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
         base_filter_roles = (
-            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
+            db.session.query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
-        filter_tables = self.get_session.query(RLSFilterTables.c.rls_filter_id).filter(
+        filter_tables = db.session.query(RLSFilterTables.c.rls_filter_id).filter(
             RLSFilterTables.c.table_id == table.id
         )
         query = (
-            self.get_session.query(
+            db.session.query(
                 RowLevelSecurityFilter.id,
                 RowLevelSecurityFilter.group_key,
                 RowLevelSecurityFilter.clause,
@@ -2720,7 +2719,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if self.is_admin():
             return
-        orig_resource = self.get_session.query(resource.__class__).get(resource.id)
+        orig_resource = db.session.query(resource.__class__).get(resource.id)
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:

@@ -24,7 +24,7 @@ from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
 from deprecation import deprecated
-from flask import Flask, redirect, url_for
+from flask import current_app, Flask, redirect, url_for
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __
 from flask_compress import Compress
@@ -233,7 +233,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             "Home",
             label=__("Home"),
             href="/superset/welcome/",
-            cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
+            cond=lambda: bool(current_app.config["LOGO_TARGET_PATH"]),
         )
 
         appbuilder.add_view(
@@ -572,7 +572,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.indexview = SupersetIndexView
         appbuilder.base_template = "superset/base.html"
         appbuilder.security_manager_class = custom_sm
-        appbuilder.init_app(self.superset_app, db.session)
+        appbuilder.init_app(self.superset_app)
 
     def configure_url_map_converters(self) -> None:
         #
