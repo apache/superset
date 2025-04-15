@@ -242,7 +242,10 @@ const Select = forwardRef(
           const isDisabled = option.disabled;
           const isNew = option.isNewOption;
 
-          if ((!isDisabled || isSelected) && !isNew) {
+          if (
+            (!isDisabled || isSelected) &&
+            ((isNew && isSelected) || !isNew)
+          ) {
             acc.selectable += 1;
           }
           if (isSelected && !isDisabled) {
@@ -373,8 +376,10 @@ const Select = forwardRef(
       if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
         if (!isEqual(initialOptionsSorted, selectOptions)) {
           setSelectOptions(initialOptionsSorted);
-          setVisibleOptions(initialOptionsSorted);
         }
+      }
+      if (!isDropdownVisible) {
+        setSelectOptions(initialOptionsSorted);
       }
       if (onDropdownVisibleChange) {
         onDropdownVisibleChange(isDropdownVisible);
@@ -420,12 +425,7 @@ const Select = forwardRef(
     const handleDeselectAll = useCallback(() => {
       if (isSingleMode) return;
 
-      const optionsToDeselect = isSearching
-        ? visibleOptions.filter(option => !option.isNewOption)
-        : enabledOptions;
-      const deselectionValues = new Set(
-        optionsToDeselect.map(opt => opt.value),
-      );
+      const deselectionValues = new Set(enabledOptions.map(opt => opt.value));
 
       const newValues = ensureIsArray(selectValue).filter(item => {
         const itemValue = getValue(item);
@@ -434,14 +434,7 @@ const Select = forwardRef(
 
       setSelectValue(newValues);
       fireOnChange();
-    }, [
-      isSingleMode,
-      isSearching,
-      visibleOptions,
-      enabledOptions,
-      selectValue,
-      fireOnChange,
-    ]);
+    }, [isSingleMode, enabledOptions, selectValue, fireOnChange]);
 
     const bulkSelectComponent = useMemo(
       () => (
