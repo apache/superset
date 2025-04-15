@@ -112,6 +112,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   } = props;
   const {
     enableEmptyFilter,
+    creatable,
     multiSelect,
     showSearch,
     inverseSelection,
@@ -354,7 +355,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         <Select
           name={formData.nativeFilterId}
           allowClear
-          allowNewOptions={!searchAllOptions}
+          allowNewOptions={!searchAllOptions && creatable !== false}
           allowSelectAll={!searchAllOptions}
           value={filterState.value || []}
           disabled={isDisabled}

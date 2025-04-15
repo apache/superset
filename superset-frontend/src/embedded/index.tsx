@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import 'src/public-path';
+
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
