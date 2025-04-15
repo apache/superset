@@ -174,11 +174,17 @@ def convert_uuids(obj: Any) -> Any:
     return obj
 
 
-class ImportExportMixin:
+class UUIDMixin:  # pylint: disable=too-few-public-methods
     uuid = sa.Column(
         UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
     )
 
+    @property
+    def short_uuid(self) -> str:
+        return str(self.uuid)[:8]
+
+
+class ImportExportMixin(UUIDMixin):
     export_parent: Optional[str] = None
     # The name of the attribute
     # with the SQL Alchemy back reference
@@ -329,13 +335,13 @@ class ImportExportMixin:
             is_new_obj = True
             # Create new DB object
             obj = cls(**dict_rep)
-            logger.info("Importing new %s %s", obj.__tablename__, str(obj))
+            logger.debug("Importing new %s %s", obj.__tablename__, str(obj))
             if cls.export_parent and parent:
                 setattr(obj, cls.export_parent, parent)
             db.session.add(obj)
         else:
             is_new_obj = False
-            logger.info("Updating %s %s", obj.__tablename__, str(obj))
+            logger.debug("Updating %s %s", obj.__tablename__, str(obj))
             # Update columns
             for k, v in dict_rep.items():
                 setattr(obj, k, v)
@@ -366,7 +372,7 @@ class ImportExportMixin:
                         db.session.query(child_class).filter(and_(*delete_filters))
                     ).difference(set(added))
                     for o in to_delete:
-                        logger.info("Deleting %s %s", child, str(obj))
+                        logger.debug("Deleting %s %s", child, str(obj))
                         db.session.delete(o)
 
         return obj
@@ -716,6 +722,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     }
     fetch_values_predicate = None
 
+    normalize_columns = False
+
     @property
     def type(self) -> str:
         raise NotImplementedError()
@@ -877,7 +885,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         mutate: bool = True,
     ) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
-        sql = self.database.compile_sqla_query(sqlaq.sqla_query)
+        sql = self.database.compile_sqla_query(
+            sqlaq.sqla_query,
+            catalog=self.catalog,
+            schema=self.schema,
+            is_virtual=bool(self.sql),
+        )
         sql = self._apply_cte(sql, sqlaq.cte)
 
         if mutate:
@@ -1367,7 +1380,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if engine.dialect.identifier_preparer._double_percents:
                 sql = sql.replace("%%", "%")
 
-            df = pd.read_sql_query(sql=sql, con=engine)
+            df = pd.read_sql_query(sql=self.text(sql), con=engine)
             # replace NaN with None to ensure it can be serialized to JSON
             df = df.replace({np.nan: None})
             return df["column_values"].to_list()
@@ -1965,7 +1978,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         self.make_orderby_compatible(select_exprs, orderby_exprs)
 
-        for col, (orig_col, ascending) in zip(orderby_exprs, orderby):  # noqa: B007
+        for col, (_orig_col, ascending) in zip(orderby_exprs, orderby, strict=False):  # noqa: B007
             if not db_engine_spec.allows_alias_in_orderby and isinstance(col, Label):
                 # if engine does not allow using SELECT alias in ORDER BY
                 # revert to the underlying column

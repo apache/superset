@@ -23,7 +23,6 @@ import traceback
 from datetime import datetime
 from typing import Any, Callable
 
-import yaml
 from babel import Locale
 from flask import (
     abort,
@@ -33,17 +32,12 @@ from flask import (
     redirect,
     Response,
     session,
+    url_for,
 )
-from flask_appbuilder import BaseView, expose, Model, ModelView
+from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.baseviews import expose_api
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
-from flask_appbuilder.security.decorators import (
-    has_access,
-    has_access_api,
-    permission_name,
-)
 from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __
@@ -65,7 +59,6 @@ from superset.connectors.sqla import models
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
-from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
@@ -115,6 +108,7 @@ FRONTEND_CONF_KEYS = (
     "PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET",
     "JWT_ACCESS_CSRF_COOKIE_NAME",
     "SQLLAB_QUERY_RESULT_TIMEOUT",
+    "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
 )
 
 logger = logging.getLogger(__name__)
@@ -263,7 +257,8 @@ def menu_data(user: User) -> dict[str, Any]:
     return {
         "menu": appbuilder.menu.get_data(),
         "brand": {
-            "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/superset/welcome/",
+            "path": appbuilder.app.config["LOGO_TARGET_PATH"]
+            or url_for("Superset.welcome"),
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
@@ -326,11 +321,16 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # verify client has google sheets installed
     available_specs = get_available_engine_specs()
-    frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
+    frontend_config["HAS_GSHEETS_INSTALLED"] = (
+        GSheetsEngineSpec in available_specs
+        and bool(available_specs[GSheetsEngineSpec])
+    )
 
     language = locale.language if locale else "en"
 
     bootstrap_data = {
+        "application_root": conf["APPLICATION_ROOT"],
+        "static_assets_prefix": conf["STATIC_ASSETS_PREFIX"],
         "conf": frontend_config,
         "locale": language,
         "language_pack": get_language_pack(language),
@@ -369,65 +369,6 @@ class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     template = "superset/fab_overrides/list.html"
 
 
-class DeprecateModelViewMixin:
-    @expose("/add", methods=["GET", "POST"])
-    @has_access
-    @deprecated(eol_version="5.0.0")
-    def add(self) -> FlaskResponse:
-        return super().add()  # type: ignore
-
-    @expose("/show/<pk>", methods=["GET"])
-    @has_access
-    @deprecated(eol_version="5.0.0")
-    def show(self, pk: int) -> FlaskResponse:
-        return super().show(pk)  # type: ignore
-
-    @expose("/edit/<pk>", methods=["GET", "POST"])
-    @has_access
-    @deprecated(eol_version="5.0.0")
-    def edit(self, pk: int) -> FlaskResponse:
-        return super().edit(pk)  # type: ignore
-
-    @expose("/delete/<pk>", methods=["GET", "POST"])
-    @has_access
-    @deprecated(eol_version="5.0.0")
-    def delete(self, pk: int) -> FlaskResponse:
-        return super().delete(pk)  # type: ignore
-
-    @expose_api(name="read", url="/api/read", methods=["GET"])
-    @has_access_api
-    @permission_name("list")
-    @deprecated(eol_version="5.0.0")
-    def api_read(self) -> FlaskResponse:
-        return super().api_read()  # type: ignore
-
-    @expose_api(name="get", url="/api/get/<pk>", methods=["GET"])
-    @has_access_api
-    @permission_name("show")
-    def api_get(self, pk: int) -> FlaskResponse:
-        return super().api_get(pk)  # type: ignore
-
-    @expose_api(name="create", url="/api/create", methods=["POST"])
-    @has_access_api
-    @permission_name("add")
-    def api_create(self) -> FlaskResponse:
-        return super().api_create()  # type: ignore
-
-    @expose_api(name="update", url="/api/update/<pk>", methods=["PUT"])
-    @has_access_api
-    @permission_name("write")
-    @deprecated(eol_version="5.0.0")
-    def api_update(self, pk: int) -> FlaskResponse:
-        return super().api_update(pk)  # type: ignore
-
-    @expose_api(name="delete", url="/api/delete/<pk>", methods=["DELETE"])
-    @has_access_api
-    @permission_name("delete")
-    @deprecated(eol_version="5.0.0")
-    def api_delete(self, pk: int) -> FlaskResponse:
-        return super().delete(pk)  # type: ignore
-
-
 class SupersetModelView(ModelView):
     page_size = 100
     list_widget = SupersetListWidget
@@ -443,38 +384,6 @@ class SupersetModelView(ModelView):
             bootstrap_data=json.dumps(
                 payload, default=json.pessimistic_json_iso_dttm_ser
             ),
-        )
-
-
-class ListWidgetWithCheckboxes(ListWidget):  # pylint: disable=too-few-public-methods
-    """An alternative to list view that renders Boolean fields as checkboxes
-
-    Works in conjunction with the `checkbox` view."""
-
-    template = "superset/fab_overrides/list_with_checkboxes.html"
-
-
-class YamlExportMixin:  # pylint: disable=too-few-public-methods
-    """
-    Override this if you want a dict response instead, with a certain key.
-    Used on DatabaseView for cli compatibility
-    """
-
-    yaml_dict_key: str | None = None
-
-    @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
-    def yaml_export(
-        self, items: ImportExportMixin | list[ImportExportMixin]
-    ) -> FlaskResponse:
-        if not isinstance(items, list):
-            items = [items]
-
-        data = [t.export_to_dict() for t in items]
-
-        return Response(
-            yaml.safe_dump({self.yaml_dict_key: data} if self.yaml_dict_key else data),
-            headers=generate_download_headers("yaml"),
-            mimetype="application/text",
         )
 
 

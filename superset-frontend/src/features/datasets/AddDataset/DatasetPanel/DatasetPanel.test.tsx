@@ -36,7 +36,7 @@ import {
 } from './MessageContent';
 
 jest.mock(
-  'src/components/Icons/Icon',
+  'src/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />

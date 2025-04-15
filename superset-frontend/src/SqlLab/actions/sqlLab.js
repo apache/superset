@@ -237,7 +237,7 @@ export function clearInactiveQueries(interval) {
   return { type: CLEAR_INACTIVE_QUERIES, interval };
 }
 
-export function startQuery(query) {
+export function startQuery(query, runPreviewOnly) {
   Object.assign(query, {
     id: query.id ? query.id : nanoid(11),
     progress: 0,
@@ -245,35 +245,37 @@ export function startQuery(query) {
     state: query.runAsync ? 'pending' : 'running',
     cached: false,
   });
-  return { type: START_QUERY, query };
+  return { type: START_QUERY, query, runPreviewOnly };
 }
 
 export function querySuccess(query, results) {
   return { type: QUERY_SUCCESS, query, results };
 }
 
-export function queryFailed(query, msg, link, errors) {
+export function logFailedQuery(query, errors) {
   return function (dispatch) {
     const eventData = {
       has_err: true,
       start_offset: query.startDttm,
       ts: new Date().getTime(),
     };
-    errors?.forEach(({ error_type: errorType, extra }) => {
-      const messages = extra?.issue_codes?.map(({ message }) => message) || [
-        errorType,
-      ];
-      messages.forEach(message => {
-        dispatch(
-          logEvent(LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY, {
-            ...eventData,
-            error_type: errorType,
-            error_details: message,
-          }),
-        );
-      });
+    errors?.forEach(({ error_type: errorType, message, extra }) => {
+      const issueCodes = extra?.issue_codes?.map(({ code }) => code) || [-1];
+      dispatch(
+        logEvent(LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY, {
+          ...eventData,
+          error_type: errorType,
+          issue_codes: issueCodes,
+          error_details: message,
+        }),
+      );
     });
+  };
+}
 
+export function queryFailed(query, msg, link, errors) {
+  return function (dispatch) {
+    dispatch(logFailedQuery(query, errors));
     dispatch({ type: QUERY_FAILED, query, msg, link, errors });
   };
 }
@@ -327,9 +329,9 @@ export function fetchQueryResults(query, displayLimit, timeoutInMs) {
   };
 }
 
-export function runQuery(query) {
+export function runQuery(query, runPreviewOnly) {
   return function (dispatch) {
-    dispatch(startQuery(query));
+    dispatch(startQuery(query, runPreviewOnly));
     const postPayload = {
       client_id: query.id,
       database_id: query.dbId,
@@ -947,29 +949,25 @@ export function mergeTable(table, query, prepend) {
 
 export function addTable(queryEditor, tableName, catalogName, schemaName) {
   return function (dispatch, getState) {
-    const query = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
+    const { dbId } = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
     const table = {
-      dbId: query.dbId,
-      queryEditorId: query.id,
+      dbId,
+      queryEditorId: queryEditor.id,
       catalog: catalogName,
       schema: schemaName,
       name: tableName,
     };
     dispatch(
-      mergeTable(
-        {
-          ...table,
-          id: nanoid(11),
-          expanded: true,
-        },
-        null,
-        true,
-      ),
+      mergeTable({
+        ...table,
+        id: nanoid(11),
+        expanded: true,
+      }),
     );
   };
 }
 
-export function runTablePreviewQuery(newTable) {
+export function runTablePreviewQuery(newTable, runPreviewOnly) {
   return function (dispatch, getState) {
     const {
       sqlLab: { databases },
@@ -979,7 +977,7 @@ export function runTablePreviewQuery(newTable) {
 
     if (database && !database.disable_data_preview) {
       const dataPreviewQuery = {
-        id: nanoid(11),
+        id: newTable.previewQueryId ?? nanoid(11),
         dbId,
         catalog,
         schema,
@@ -991,6 +989,9 @@ export function runTablePreviewQuery(newTable) {
         ctas: false,
         isDataPreview: true,
       };
+      if (runPreviewOnly) {
+        return dispatch(runQuery(dataPreviewQuery, runPreviewOnly));
+      }
       return Promise.all([
         dispatch(
           mergeTable(
@@ -1024,7 +1025,7 @@ export function syncTable(table, tableMetadata) {
 
     return sync
       .then(({ json: resultJson }) => {
-        const newTable = { ...table, id: resultJson.id };
+        const newTable = { ...table, id: `${resultJson.id}` };
         dispatch(
           mergeTable({
             ...newTable,
@@ -1032,9 +1033,6 @@ export function syncTable(table, tableMetadata) {
             initialized: true,
           }),
         );
-        if (!table.dataPreviewQueryId) {
-          dispatch(runTablePreviewQuery({ ...tableMetadata, ...newTable }));
-        }
       })
       .catch(() =>
         dispatch(
@@ -1167,9 +1165,31 @@ export function persistEditorHeight(queryEditor, northPercent, southPercent) {
   };
 }
 
+export function popPermalink(key) {
+  return function (dispatch) {
+    return SupersetClient.get({ endpoint: `/api/v1/sqllab/permalink/${key}` })
+      .then(({ json }) =>
+        dispatch(
+          addQueryEditor({
+            name: json.name ? json.name : t('Shared query'),
+            dbId: json.dbId ? parseInt(json.dbId, 10) : null,
+            catalog: json.catalog ? json.catalog : null,
+            schema: json.schema ? json.schema : null,
+            autorun: json.autorun ? json.autorun : false,
+            sql: json.sql ? json.sql : 'SELECT ...',
+            templateParams: json.templateParams,
+          }),
+        ),
+      )
+      .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
+  };
+}
+
 export function popStoredQuery(urlId) {
   return function (dispatch) {
-    return SupersetClient.get({ endpoint: `/kv/${urlId}` })
+    return SupersetClient.get({
+      endpoint: `/api/v1/sqllab/permalink/kv:${urlId}`,
+    })
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
@@ -1204,6 +1224,7 @@ export function popSavedQuery(saveQueryId) {
           schema: queryEditorProps.schema,
           sql: queryEditorProps.sql,
           templateParams: queryEditorProps.templateParams,
+          remoteId: queryEditorProps.remoteId,
         };
         return dispatch(addQueryEditor(tmpAdaptedProps));
       })

@@ -17,7 +17,6 @@
 from unittest import mock
 from unittest.mock import ANY, Mock
 
-import redis
 from flask import g
 from jwt import encode
 from pytest import fixture, mark, raises  # noqa: PT013
@@ -84,7 +83,6 @@ def test_parse_channel_id_from_request_bad_jwt(async_query_manager):
     [
         ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
         ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
-        ("redis.Redis", mock.Mock(spec=redis.Redis)),
     ],
 )
 @mock.patch("superset.is_feature_enabled")
@@ -129,7 +127,6 @@ def test_submit_chart_data_job_as_guest_user(
     [
         ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
         ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
-        ("redis.Redis", mock.Mock(spec=redis.Redis)),
     ],
 )
 @mock.patch("superset.is_feature_enabled")

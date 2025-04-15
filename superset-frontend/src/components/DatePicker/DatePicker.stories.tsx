@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatePickerProps, RangePickerProps } from 'antd/lib/date-picker';
+import { DatePickerProps } from 'antd-v5';
+import { RangePickerProps } from 'antd-v5/es/date-picker';
 import { DatePicker, RangePicker } from '.';
 
 export default {
@@ -24,14 +25,17 @@ export default {
   component: DatePicker,
 };
 
-const commonArgs = {
-  allowClear: true,
+const commonArgs: DatePickerProps = {
+  allowClear: false,
   autoFocus: true,
-  bordered: true,
   disabled: false,
-  inputReadOnly: false,
-  size: 'middle',
   format: 'YYYY-MM-DD hh:mm a',
+  inputReadOnly: false,
+  order: true,
+  picker: 'date',
+  placement: 'bottomLeft',
+  size: 'middle',
+  showNow: true,
   showTime: { format: 'hh:mm a' },
 };
 
@@ -49,30 +53,48 @@ const interactiveTypes = {
     },
     options: ['large', 'middle', 'small'],
   },
+  placement: {
+    control: {
+      type: 'select',
+    },
+    options: ['bottomLeft', 'bottomRight', 'topLeft', 'topRight'],
+  },
+  status: {
+    control: {
+      type: 'select',
+    },
+    options: ['error', 'warning'],
+  },
+
+  variant: {
+    control: {
+      type: 'select',
+    },
+    options: ['outlined', 'borderless', 'filled'],
+  },
 };
 
-export const InteractiveDatePicker = (args: DatePickerProps) => (
+export const InteractiveDatePicker: any = (args: DatePickerProps) => (
   <DatePicker {...args} />
 );
 
 InteractiveDatePicker.args = {
   ...commonArgs,
-  picker: 'date',
   placeholder: 'Placeholder',
   showToday: true,
+  showTime: { format: 'hh:mm a', needConfirm: false },
 };
 
 InteractiveDatePicker.argTypes = interactiveTypes;
 
-export const InteractiveRangePicker = (args: RangePickerProps) => (
+export const InteractiveRangePicker: any = (args: RangePickerProps) => (
   <RangePicker {...args} />
 );
 
 InteractiveRangePicker.args = {
   ...commonArgs,
-  allowEmpty: true,
-  showNow: true,
   separator: '-',
+  showTime: { format: 'hh:mm a', needConfirm: false },
 };
 
 InteractiveRangePicker.argTypes = interactiveTypes;

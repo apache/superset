@@ -134,13 +134,21 @@ export interface SQLFormExtensionProps {
   startQuery: (ctasArg?: any, ctas_method?: any) => void;
 }
 
-export interface SQLResultTableExtentionProps {
+export interface SQLResultTableExtensionProps {
   queryId: string;
   orderedColumnKeys: string[];
   data: Record<string, unknown>[];
   height: number;
   filterText?: string;
   expandedColumns?: string[];
+  allowHTML?: boolean;
+}
+
+export interface SQLTablePreviewExtensionProps {
+  dbId: number;
+  catalog?: string;
+  schema: string;
+  tableName: string;
 }
 
 /**
@@ -223,9 +231,13 @@ export type Extensions = Partial<{
   'database.delete.related': ComponentType<DatabaseDeleteRelatedExtensionProps>;
   'dataset.delete.related': ComponentType<DatasetDeleteRelatedExtensionProps>;
   'sqleditor.extension.form': ComponentType<SQLFormExtensionProps>;
-  'sqleditor.extension.resultTable': ComponentType<SQLResultTableExtentionProps>;
+  'sqleditor.extension.resultTable': ComponentType<SQLResultTableExtensionProps>;
   'dashboard.slice.header': ComponentType<SliceHeaderExtension>;
   'sqleditor.extension.customAutocomplete': (
     args: CustomAutoCompleteArgs,
   ) => CustomAutocomplete[] | undefined;
+  'sqleditor.extension.tablePreview': [
+    string,
+    ComponentType<SQLTablePreviewExtensionProps>,
+  ][];
 }>;

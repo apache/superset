@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// TODO: Remove fa-icon
+/* eslint-disable icons/no-fa-icons-usage */
 import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
 
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
-import { isEmpty } from 'lodash';
+import { get, isEmpty } from 'lodash';
 
 import {
   t,
@@ -33,10 +35,11 @@ import {
   getExtensionsRegistry,
   useTheme,
 } from '@superset-ui/core';
-import { MainNav as Menu } from 'src/components/Menu';
+import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Label from 'src/components/Label';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import {
@@ -65,27 +68,18 @@ const versionInfoStyles = (theme: SupersetTheme) => css`
   font-size: ${theme.typography.sizes.xs}px;
   white-space: nowrap;
 `;
-const StyledI = styled.div`
-  color: ${({ theme }) => theme.colors.primary.dark1};
-`;
 
 const styledDisabled = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light1};
-  .ant-menu-item-active {
-    color: ${theme.colors.grayscale.light1};
-    cursor: default;
-  }
 `;
 
 const StyledDiv = styled.div<{ align: string }>`
   display: flex;
+  height: 100%;
   flex-direction: row;
   justify-content: ${({ align }) => align};
   align-items: center;
   margin-right: ${({ theme }) => theme.gridUnit}px;
-  .ant-menu-submenu-title > svg {
-    top: ${({ theme }) => theme.gridUnit * 5.25}px;
-  }
 `;
 
 const StyledMenuItemWithIcon = styled.div`
@@ -112,6 +106,21 @@ const styledChildMenu = (theme: SupersetTheme) => css`
 `;
 
 const { SubMenu } = Menu;
+
+const StyledSubMenu = styled(SubMenu)`
+  ${({ theme }) => css`
+    [data-icon='caret-down'] {
+      color: ${theme.colors.grayscale.base};
+      font-size: ${theme.typography.sizes.xxs}px;
+      margin-left: ${theme.gridUnit}px;
+    }
+    &.antd5-menu-submenu-active {
+      .antd5-menu-title-content {
+        color: ${theme.colors.primary.base};
+      }
+    }
+  `}
+`;
 
 const RightMenu = ({
   align,
@@ -280,11 +289,8 @@ const RightMenu = ({
     }
   }, [canDatabase, canDataset]);
 
-  const menuIconAndLabel = (menu: MenuObjectProps) => (
-    <>
-      <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
-      {menu.label}
-    </>
+  const menuIcon = (menu: MenuObjectProps) => (
+    <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
   );
 
   const handleMenuSelection = (itemChose: any) => {
@@ -320,7 +326,11 @@ const RightMenu = ({
       </Menu.Item>
     ) : (
       <Menu.Item key={item.name} css={styledChildMenu}>
-        {item.url ? <a href={item.url}> {item.label} </a> : item.label}
+        {item.url ? (
+          <a href={ensureAppRoot(item.url)}> {item.label} </a>
+        ) : (
+          item.label
+        )}
       </Menu.Item>
     );
 
@@ -394,28 +404,35 @@ const RightMenu = ({
           color={
             /^#(?:[0-9a-f]{3}){1,2}$/i.test(environmentTag.color)
               ? environmentTag.color
-              : environmentTag.color
-                  .split('.')
-                  .reduce((o, i) => o[i], theme.colors)
+              : get(theme.colors, environmentTag.color)
           }
         >
           <span css={tagStyles}>{environmentTag.text}</span>
         </Label>
       )}
       <Menu
+        css={css`
+          display: flex;
+          flex-direction: row;
+        `}
         selectable={false}
         mode="horizontal"
         onClick={handleMenuSelection}
         onOpenChange={onMenuOpen}
+        disabledOverflow
       >
         {RightMenuExtension && <RightMenuExtension />}
         {!navbarRight.user_is_anonymous && showActionDropdown && (
-          <SubMenu
+          <StyledSubMenu
+            key="sub1"
             data-test="new-dropdown"
             title={
-              <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
+              <Icons.PlusOutlined
+                iconColor={theme.colors.primary.dark1}
+                data-test="new-dropdown-icon"
+              />
             }
-            icon={<Icons.TriangleDown />}
+            icon={<Icons.CaretDownOutlined iconSize="xs" />}
           >
             {dropdownItems?.map?.(menu => {
               const canShowChild = menu.childs?.some(
@@ -424,10 +441,11 @@ const RightMenu = ({
               if (menu.childs) {
                 if (canShowChild) {
                   return (
-                    <SubMenu
+                    <StyledSubMenu
                       key={`sub2_${menu.label}`}
                       className="data-menu"
-                      title={menuIconAndLabel(menu)}
+                      title={menu.label}
+                      icon={menuIcon(menu)}
                     >
                       {menu?.childs?.map?.((item, idx) =>
                         typeof item !== 'string' && item.name && item.perm ? (
@@ -437,7 +455,7 @@ const RightMenu = ({
                           </Fragment>
                         ) : null,
                       )}
-                    </SubMenu>
+                    </StyledSubMenu>
                   );
                 }
                 if (!menu.url) {
@@ -460,7 +478,7 @@ const RightMenu = ({
                         {menu.label}
                       </Link>
                     ) : (
-                      <a href={menu.url}>
+                      <a href={ensureAppRoot(menu.url || '')}>
                         <i
                           data-test={`menu-item-${menu.label}`}
                           className={`fa ${menu.icon}`}
@@ -472,11 +490,12 @@ const RightMenu = ({
                 )
               );
             })}
-          </SubMenu>
+          </StyledSubMenu>
         )}
-        <SubMenu
+        <StyledSubMenu
+          key="sub3_settings"
           title={t('Settings')}
-          icon={<Icons.TriangleDown iconSize="xl" />}
+          icon={<Icons.CaretDownOutlined iconSize="xs" />}
         >
           {settings?.map?.((section, index) => [
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>
@@ -495,7 +514,7 @@ const RightMenu = ({
                       {isFrontendRoute(child.url) ? (
                         <Link to={child.url || ''}>{menuItemDisplay}</Link>
                       ) : (
-                        <a href={child.url}>{menuItemDisplay}</a>
+                        <a href={child.url || ''}>{menuItemDisplay}</a>
                       )}
                     </Menu.Item>
                   );
@@ -548,7 +567,7 @@ const RightMenu = ({
               </div>
             </Menu.ItemGroup>,
           ]}
-        </SubMenu>
+        </StyledSubMenu>
         {navbarRight.show_language_picker && (
           <LanguagePicker
             locale={navbarRight.locale}

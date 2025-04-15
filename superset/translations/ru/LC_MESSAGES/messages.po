@@ -645,10 +645,10 @@ msgstr ">= (больше или равно)"
 msgid "A Big Number"
 msgstr "Карточка"
 
-msgid "A comma separated list of columns that should be parsed as dates"
+msgid "Select column names from a dropdown list that should be parsed as dates."
 msgstr ""
-"Разделенный запятыми список столбцов, которые должны быть "
-"интерпретированы как даты."
+"Выберите из выпадающего списка имена столбцов, которые должны быть "
+"обработаны как даты"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Разделенный запятыми список схем, в которые можно загружать файлы."
@@ -12187,7 +12187,7 @@ msgstr "Ограничить ось X"
 
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
-" applicable for numercal X axis."
+" applicable for numerical X axis."
 msgstr "Ограничивает ось X. Применимо только к числовой оси."
 
 msgid "Truncate Y Axis"

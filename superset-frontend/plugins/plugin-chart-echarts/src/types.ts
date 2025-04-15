@@ -183,7 +183,7 @@ export class EchartsChartPlugin<
     super({
       ...restProps,
       metadata: new ChartMetadata({
-        parseMethod: 'json',
+        parseMethod: 'json-bigint',
         ...metadata,
       }),
     });

@@ -20,7 +20,6 @@
 from __future__ import annotations
 
 import inspect
-import os
 from pathlib import Path
 from typing import Any, TypedDict
 
@@ -46,6 +45,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelInvalidCredentials,
     SSHTunnelMissingCredentials,
 )
+from superset.commands.database.uploaders.base import UploadFileType
 from superset.constants import PASSWORD_MASK
 from superset.databases.types import (  # pylint:disable=unused-import
     EncryptedDict,  # noqa: F401
@@ -64,6 +64,7 @@ database_schemas_query_schema = {
     "type": "object",
     "properties": {
         "force": {"type": "boolean"},
+        "upload_allowed": {"type": "boolean"},
         "catalog": {"type": "string"},
     },
 }
@@ -106,9 +107,7 @@ allow_file_upload_description = (
 allow_ctas_description = "Allow CREATE TABLE AS option in SQL Lab"
 allow_cvas_description = "Allow CREATE VIEW AS option in SQL Lab"
 allow_dml_description = (
-    "Allow users to run non-SELECT statements "
-    "(UPDATE, DELETE, CREATE, ...) "
-    "in SQL Lab"
+    "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab"
 )
 configuration_method_description = (
     "Configuration_method is used on the frontend to "
@@ -229,7 +228,7 @@ def server_cert_validator(value: str) -> str:
     return value
 
 
-def encrypted_extra_validator(value: str) -> str:
+def encrypted_extra_validator(value: str | None) -> None:
     """
     Validate that encrypted extra is a valid JSON string
     """
@@ -240,7 +239,6 @@ def encrypted_extra_validator(value: str) -> str:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
-    return value
 
 
 def extra_validator(value: str) -> str:
@@ -834,6 +832,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     disable_drill_to_detail = fields.Boolean(required=False)
     allow_multi_catalog = fields.Boolean(required=False)
     version = fields.String(required=False, allow_none=True)
+    schema_options = fields.Dict(keys=fields.Str(), values=fields.Raw())
 
 
 class ImportV1DatabaseSchema(Schema):
@@ -855,6 +854,7 @@ class ImportV1DatabaseSchema(Schema):
     database_name = fields.String(required=True)
     sqlalchemy_uri = fields.String(required=True)
     password = fields.String(allow_none=True)
+    encrypted_extra = fields.String(allow_none=True, validate=encrypted_extra_validator)
     cache_timeout = fields.Integer(allow_none=True)
     expose_in_sqllab = fields.Boolean()
     allow_run_async = fields.Boolean()
@@ -1082,20 +1082,25 @@ class DelimitedListField(fields.List):
             ) from exc
 
 
-class BaseUploadFilePostSchema(Schema):
-    _extension_config_key = ""
-
+class BaseUploadFilePostSchemaMixin(Schema):
     @validates("file")
     def validate_file_extension(self, file: FileStorage) -> None:
-        allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"].intersection(
-            current_app.config[self._extension_config_key]
-        )
+        allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"]
         file_suffix = Path(file.filename).suffix
-        if not file_suffix or file_suffix[1:] not in allowed_extensions:
+        if not file_suffix:
+            raise ValidationError([_("File extension is not allowed.")])
+        # Make case-insensitive comparison
+        if file_suffix[1:].lower() not in [ext.lower() for ext in allowed_extensions]:
             raise ValidationError([_("File extension is not allowed.")])
 
 
-class BaseUploadPostSchema(BaseUploadFilePostSchema):
+class UploadPostSchema(BaseUploadFilePostSchemaMixin):
+    type = fields.Enum(
+        UploadFileType,
+        required=True,
+        by_value=True,
+        metadata={"description": "File type to upload"},
+    )
     already_exists = fields.String(
         load_default="fail",
         validate=OneOf(choices=("fail", "replace", "append")),
@@ -1124,43 +1129,26 @@ class BaseUploadPostSchema(BaseUploadFilePostSchema):
         metadata={"description": "The name of the table to be created/appended"},
     )
 
-
-class ColumnarUploadPostSchema(BaseUploadPostSchema):
-    """
-    Schema for Columnar Upload
-    """
-
-    _extension_config_key = "COLUMNAR_EXTENSIONS"
-
+    # ------------
+    # CSV Schema
+    # ------------
     file = fields.Raw(
         required=True,
         metadata={
-            "description": "The Columnar file to upload",
-            "type": "string",
-            "format": "binary",
-        },
-    )
-
-
-class CSVUploadPostSchema(BaseUploadPostSchema):
-    """
-    Schema for CSV Upload
-    """
-
-    _extension_config_key = "CSV_EXTENSIONS"
-
-    file = fields.Raw(
-        required=True,
-        metadata={
-            "description": "The CSV file to upload",
+            "description": "The file to upload",
             "type": "string",
             "format": "text/csv",
         },
     )
-    delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
+    delimiter = fields.String(
+        metadata={
+            "description": "[CSV only] The character used to separate values in the CSV"
+            " file (e.g., a comma, semicolon, or tab)."
+        }
+    )
     column_data_types = fields.String(
         metadata={
-            "description": "A dictionary with column names and "
+            "description": "[CSV only] A dictionary with column names and "
             "their data types if you need to change "
             "the defaults. Example: {'user_id':'int'}. "
             "Check Python Pandas library for supported data types"
@@ -1168,57 +1156,69 @@ class CSVUploadPostSchema(BaseUploadPostSchema):
     )
     day_first = fields.Boolean(
         metadata={
-            "description": "DD/MM format dates, international and European format"
+            "description": "[CSV only] DD/MM format dates, international and European"
+            " format"
         }
     )
     skip_blank_lines = fields.Boolean(
-        metadata={"description": "Skip blank lines in the CSV file."}
+        metadata={"description": "[CSV only] Skip blank lines in the CSV file."}
     )
     skip_initial_space = fields.Boolean(
-        metadata={"description": "Skip spaces after delimiter."}
+        metadata={"description": "[CSV only] Skip spaces after delimiter."}
     )
     column_dates = DelimitedListField(
         fields.String(),
         metadata={
-            "description": "A list of column names that should be "
+            "description": "[CSV and Excel only] A list of column names that should be "
             "parsed as dates. Example: date,timestamp"
         },
     )
     decimal_character = fields.String(
         metadata={
-            "description": "Character to recognize as decimal point. Default is '.'"
+            "description": "[CSV and Excel only] Character to recognize as decimal"
+            " point. Default is '.'"
         }
     )
     header_row = fields.Integer(
         metadata={
-            "description": "Row containing the headers to use as column names"
-            "(0 is first line of data). Leave empty if there is no header row."
+            "description": "[CSV and Excel only] Row containing the headers to use as"
+            " column names (0 is first line of data). Leave empty if"
+            " there is no header row."
         }
     )
     index_column = fields.String(
         metadata={
-            "description": "Column to use as the row labels of the dataframe. "
-            "Leave empty if no index column"
+            "description": "[CSV and Excel only] Column to use as the row labels of the"
+            " dataframe. Leave empty if no index column"
         }
     )
     null_values = DelimitedListField(
         fields.String(),
         metadata={
-            "description": "A list of strings that should be treated as null. "
-            "Examples: '' for empty strings, 'None', 'N/A',"
-            "Warning: Hive database supports only a single value"
+            "description": "[CSV and Excel only] A list of strings that should be "
+            "treated as null. Examples: '' for empty strings, 'None',"
+            " 'N/A', Warning: Hive database supports only a single value"
         },
     )
     rows_to_read = fields.Integer(
         metadata={
-            "description": "Number of rows to read from the file. "
+            "description": "[CSV and Excel only] Number of rows to read from the file. "
             "If None, reads all rows."
         },
         allow_none=True,
         validate=Range(min=1),
     )
     skip_rows = fields.Integer(
-        metadata={"description": "Number of rows to skip at start of file."}
+        metadata={
+            "description": "[CSV and Excel only] Number of rows to skip at start"
+            " of file."
+        }
+    )
+    sheet_name = fields.String(
+        metadata={
+            "description": "[Excel only]] Strings used for sheet names "
+            "(default is the first sheet)."
+        }
     )
 
     @post_load
@@ -1234,90 +1234,18 @@ class CSVUploadPostSchema(BaseUploadPostSchema):
                 ) from ex
         return data
 
-    @validates("file")
-    def validate_file_size(self, file: FileStorage) -> None:
-        file.flush()
-        size = os.fstat(file.fileno()).st_size
-        if (
-            current_app.config["CSV_UPLOAD_MAX_SIZE"] is not None
-            and size > current_app.config["CSV_UPLOAD_MAX_SIZE"]
-        ):
-            raise ValidationError([_("File size exceeds the maximum allowed size.")])
 
-
-class ExcelUploadPostSchema(BaseUploadPostSchema):
+class UploadFileMetadataPostSchema(BaseUploadFilePostSchemaMixin):
     """
-    Schema for Excel Upload
+    Schema for Upload file metadata.
     """
 
-    _extension_config_key = "EXCEL_EXTENSIONS"
-
-    file = fields.Raw(
+    type = fields.Enum(
+        UploadFileType,
         required=True,
-        metadata={
-            "description": "The Excel file to upload",
-            "type": "string",
-            "format": "binary",
-        },
+        by_value=True,
+        metadata={"description": "File type to upload"},
     )
-    sheet_name = fields.String(
-        metadata={
-            "description": "Strings used for sheet names "
-            "(default is the first sheet)."
-        }
-    )
-    column_dates = DelimitedListField(
-        fields.String(),
-        metadata={
-            "description": "A list of column names that should be "
-            "parsed as dates. Example: date,timestamp"
-        },
-    )
-    decimal_character = fields.String(
-        metadata={
-            "description": "Character to recognize as decimal point. Default is '.'"
-        }
-    )
-    header_row = fields.Integer(
-        metadata={
-            "description": "Row containing the headers to use as column names"
-            "(0 is first line of data). Leave empty if there is no header row."
-        }
-    )
-    index_column = fields.String(
-        metadata={
-            "description": "Column to use as the row labels of the dataframe. "
-            "Leave empty if no index column"
-        }
-    )
-    null_values = DelimitedListField(
-        fields.String(),
-        metadata={
-            "description": "A list of strings that should be treated as null. "
-            "Examples: '' for empty strings, 'None', 'N/A',"
-            "Warning: Hive database supports only a single value"
-        },
-    )
-    rows_to_read = fields.Integer(
-        metadata={
-            "description": "Number of rows to read from the file. "
-            "If None, reads all rows."
-        },
-        allow_none=True,
-        validate=Range(min=1),
-    )
-    skip_rows = fields.Integer(
-        metadata={"description": "Number of rows to skip at start of file."}
-    )
-
-
-class CSVMetadataUploadFilePostSchema(BaseUploadFilePostSchema):
-    """
-    Schema for CSV metadata.
-    """
-
-    _extension_config_key = "CSV_EXTENSIONS"
-
     file = fields.Raw(
         required=True,
         metadata={
@@ -1326,52 +1254,17 @@ class CSVMetadataUploadFilePostSchema(BaseUploadFilePostSchema):
             "format": "binary",
         },
     )
-    delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
-    header_row = fields.Integer(
+    delimiter = fields.String(
         metadata={
-            "description": "Row containing the headers to use as column names"
-            "(0 is first line of data). Leave empty if there is no header row."
+            "description": "The character used to separate values in the CSV file"
+            " (e.g., a comma, semicolon, or tab)."
         }
-    )
-
-
-class ExcelMetadataUploadFilePostSchema(BaseUploadFilePostSchema):
-    """
-    Schema for CSV metadata.
-    """
-
-    _extension_config_key = "EXCEL_EXTENSIONS"
-
-    file = fields.Raw(
-        required=True,
-        metadata={
-            "description": "The file to upload",
-            "type": "string",
-            "format": "binary",
-        },
     )
     header_row = fields.Integer(
         metadata={
             "description": "Row containing the headers to use as column names"
             "(0 is first line of data). Leave empty if there is no header row."
         }
-    )
-
-
-class ColumnarMetadataUploadFilePostSchema(BaseUploadFilePostSchema):
-    """
-    Schema for CSV metadata.
-    """
-
-    _extension_config_key = "COLUMNAR_EXTENSIONS"
-
-    file = fields.Raw(
-        required=True,
-        metadata={
-            "description": "The file to upload",
-            "type": "string",
-            "format": "binary",
-        },
     )
 
 

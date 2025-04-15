@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import {
   getChartMetadataRegistry,
   ChartMetadata,
@@ -46,7 +50,7 @@ const withIdResult = {
         groupby: ['country'],
       },
     }),
-    viz_type: VizType.LegacyLine,
+    viz_type: VizType.Line,
   },
 };
 

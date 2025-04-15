@@ -17,8 +17,12 @@
  * under the License.
  */
 import * as redux from 'redux';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  fireEvent,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
@@ -134,7 +138,7 @@ function setup(overrideState: JsonObject = {}) {
 }
 
 async function openActionsDropdown() {
-  const btn = screen.getByRole('img', { name: 'more-horiz' });
+  const btn = screen.getByRole('img', { name: 'ellipsis' });
   userEvent.click(btn);
   expect(await screen.findByTestId('header-actions-menu')).toBeInTheDocument();
 }
@@ -191,6 +195,10 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+});
+
+beforeEach(() => {
+  window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
 });
 
 test('should render', () => {
@@ -333,9 +341,7 @@ test('should NOT render the "Draft" status', () => {
 test('should render the unselected fave icon', () => {
   setup();
   expect(fetchFaveStar).toHaveBeenCalled();
-  expect(
-    screen.getByRole('img', { name: 'favorite-unselected' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'unstarred' })).toBeInTheDocument();
 });
 
 test('should render the selected fave icon', () => {
@@ -346,9 +352,7 @@ test('should render the selected fave icon', () => {
     },
   };
   setup(favedState);
-  expect(
-    screen.getByRole('img', { name: 'favorite-selected' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'starred' })).toBeInTheDocument();
 });
 
 test('should NOT render the fave icon on anonymous user', () => {
@@ -356,17 +360,17 @@ test('should NOT render the fave icon on anonymous user', () => {
     user: undefined,
   };
   setup(anonymousUserState);
-  expect(() =>
-    screen.getByRole('img', { name: 'favorite-unselected' }),
-  ).toThrow('Unable to find');
-  expect(() => screen.getByRole('img', { name: 'favorite-selected' })).toThrow(
+  expect(() => screen.getByRole('img', { name: 'unstarred' })).toThrow(
+    'Unable to find',
+  );
+  expect(() => screen.getByRole('img', { name: 'starred' })).toThrow(
     'Unable to find',
   );
 });
 
 test('should fave', async () => {
   setup();
-  const fave = screen.getByRole('img', { name: 'favorite-unselected' });
+  const fave = screen.getByRole('img', { name: 'unstarred' });
   expect(saveFaveStar).not.toHaveBeenCalled();
   userEvent.click(fave);
   expect(saveFaveStar).toHaveBeenCalledTimes(1);
@@ -388,7 +392,7 @@ test('should toggle the edit mode', () => {
 
 test('should render the dropdown icon', () => {
   setup();
-  expect(screen.getByRole('img', { name: 'more-horiz' })).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'ellipsis' })).toBeInTheDocument();
 });
 
 test('should refresh the charts', async () => {
@@ -436,6 +440,36 @@ test('should NOT render MetadataBar when embedded', () => {
   expect(
     screen.queryByText(state.dashboardInfo.changed_on_delta_humanized),
   ).not.toBeInTheDocument();
+});
+
+test('should hide edit button and navbar, and show Exit fullscreen when in fullscreen mode', () => {
+  const fullscreenState = {
+    ...initialState,
+    dashboardState: {
+      ...initialState.dashboardState,
+      isFullscreenMode: true,
+    },
+  };
+
+  setup(fullscreenState);
+  expect(screen.queryByTestId('edit-dashboard-button')).not.toBeInTheDocument();
+  expect(screen.getByTestId('actions-trigger')).toBeInTheDocument();
+  expect(screen.queryByTestId('main-navigation')).not.toBeInTheDocument();
+});
+
+test('should show Exit fullscreen when in fullscreen mode', async () => {
+  setup();
+
+  fireEvent.click(screen.getByTestId('actions-trigger'));
+
+  expect(await screen.findByText('Exit fullscreen')).toBeInTheDocument();
+});
+
+test('should have fullscreen option in dropdown', async () => {
+  setup();
+  await openActionsDropdown();
+  expect(screen.getByText('Exit fullscreen')).toBeInTheDocument();
+  expect(screen.queryByText('Enter fullscreen')).not.toBeInTheDocument();
 });
 
 test('should render MetadataBar when not in edit mode and not embedded', () => {

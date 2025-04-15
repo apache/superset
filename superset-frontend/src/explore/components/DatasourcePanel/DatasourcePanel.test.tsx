@@ -17,8 +17,14 @@
  * under the License.
  */
 import { ReactChild } from 'react';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import DatasourcePanel, {
   IDatasource,
   Props as DatasourcePanelProps,
@@ -53,6 +59,48 @@ const datasource: IDatasource = {
   datasource_name: 'table1',
 };
 
+const datasourceWithFolders: IDatasource = {
+  ...datasource,
+  folders: [
+    {
+      name: 'Test folder',
+      type: 'folder',
+      uuid: '1',
+      children: [
+        {
+          name: 'Test nested folder',
+          type: 'folder',
+          uuid: '1.1',
+          children: [
+            {
+              type: 'metric',
+              uuid: metrics[0].uuid,
+              name: metrics[0].metric_name,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'Second test folder',
+      type: 'folder',
+      uuid: '2',
+      children: [
+        {
+          type: 'column',
+          uuid: columns[0].uuid,
+          name: columns[0].column_name,
+        },
+        {
+          type: 'column',
+          uuid: columns[1].uuid,
+          name: columns[1].column_name,
+        },
+      ],
+    },
+  ],
+};
+
 const mockUser = {
   createdOn: '2021-04-27T18:12:38.952304',
   email: 'admin',
@@ -84,6 +132,18 @@ const props: DatasourcePanelProps = {
   width: 300,
 };
 
+const propsWithFolders = {
+  ...props,
+  datasource: datasourceWithFolders,
+  controls: {
+    ...props.controls,
+    datasource: {
+      ...props.controls.datasource,
+      datasource: datasourceWithFolders,
+    },
+  },
+};
+
 const metricProps = {
   savedMetrics: [],
   columns: [],
@@ -111,6 +171,7 @@ test('should display items in controls', async () => {
 });
 
 test('should render the metrics', async () => {
+  jest.setTimeout(10000);
   render(
     <ExploreContainer>
       <DatasourcePanel {...props} />
@@ -118,13 +179,9 @@ test('should render the metrics', async () => {
     </ExploreContainer>,
     { useRedux: true, useDnd: true },
   );
-  const metricsNum = metrics.length;
   metrics.forEach(metric =>
     expect(screen.getByText(metric.metric_name)).toBeInTheDocument(),
   );
-  expect(
-    await screen.findByText(`Showing ${metricsNum} of ${metricsNum}`),
-  ).toBeInTheDocument();
 });
 
 test('should render the columns', async () => {
@@ -135,39 +192,50 @@ test('should render the columns', async () => {
     </ExploreContainer>,
     { useRedux: true, useDnd: true },
   );
-  const columnsNum = columns.length;
   columns.forEach(col =>
     expect(screen.getByText(col.column_name)).toBeInTheDocument(),
   );
-  expect(
-    await screen.findByText(`Showing ${columnsNum} of ${columnsNum}`),
-  ).toBeInTheDocument();
 });
 
-test('should render 0 search results', async () => {
-  render(<DatasourcePanel {...props} />, { useRedux: true, useDnd: true });
-  const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
-
-  search('nothing', searchInput);
-  expect(await screen.findAllByText('Showing 0 of 0')).toHaveLength(2);
-});
-
-test('should search and render matching columns', async () => {
-  render(
-    <ExploreContainer>
-      <DatasourcePanel {...props} />
-      <DndMetricSelect {...metricProps} />
-    </ExploreContainer>,
-    { useRedux: true, useDnd: true },
-  );
-  const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
-
-  search(columns[0].column_name, searchInput);
-
-  await waitFor(() => {
-    expect(screen.getByText(columns[0].column_name)).toBeInTheDocument();
-    expect(screen.queryByText(columns[1].column_name)).not.toBeInTheDocument();
+describe('DatasourcePanel', () => {
+  beforeAll(() => {
+    jest.setTimeout(30000);
   });
+
+  afterEach(async () => {
+    cleanup();
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
+  test('should search and render matching columns', async () => {
+    const { unmount } = render(
+      <ExploreContainer>
+        <DatasourcePanel {...props} />
+        <DndMetricSelect {...metricProps} />
+      </ExploreContainer>,
+      { useRedux: true, useDnd: true },
+    );
+
+    const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
+
+    await waitFor(() => {
+      expect(searchInput).toBeInTheDocument();
+    });
+
+    search(columns[0].column_name, searchInput);
+
+    await waitFor(
+      () => {
+        expect(screen.getByText(columns[0].column_name)).toBeInTheDocument();
+        expect(
+          screen.queryByText(columns[1].column_name),
+        ).not.toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
+
+    unmount();
+  }, 15000);
 });
 
 test('should search and render matching metrics', async () => {
@@ -206,7 +274,7 @@ test('should render a warning', async () => {
   };
   render(<DatasourcePanel {...newProps} />, { useRedux: true, useDnd: true });
   expect(
-    await screen.findByRole('img', { name: 'alert-solid' }),
+    await screen.findByRole('img', { name: 'warning' }),
   ).toBeInTheDocument();
 });
 
@@ -261,7 +329,7 @@ test('should render only droppable metrics and columns', async () => {
     ],
     actions: { setControlValue: jest.fn() },
   };
-  const { getByTestId } = render(
+  const { getByTestId, unmount } = render(
     <ExploreContainer>
       <DatasourcePanel {...props} />
       <DndColumnSelect {...column1FilterProps} />
@@ -269,14 +337,158 @@ test('should render only droppable metrics and columns', async () => {
     </ExploreContainer>,
     { useRedux: true, useDnd: true },
   );
-  const selections = getByTestId('fieldSelections');
-  expect(
-    within(selections).queryByText(columns[0].column_name),
-  ).not.toBeInTheDocument();
-  expect(
-    within(selections).queryByText(columns[1].column_name),
-  ).toBeInTheDocument();
-  expect(
-    within(selections).queryByText(columns[2].column_name),
-  ).toBeInTheDocument();
+
+  await waitFor(
+    () => {
+      const selections = getByTestId('fieldSelections');
+      expect(
+        within(selections).queryByText(columns[0].column_name),
+      ).not.toBeInTheDocument();
+      expect(
+        within(selections).getByText(columns[1].column_name),
+      ).toBeInTheDocument();
+      expect(
+        within(selections).getByText(columns[2].column_name),
+      ).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
+
+  unmount();
+});
+
+test('Renders with custom folders', () => {
+  render(
+    <ExploreContainer>
+      <DatasourcePanel {...propsWithFolders} />
+      <DndMetricSelect {...metricProps} />
+    </ExploreContainer>,
+    {
+      useRedux: true,
+      useDnd: true,
+    },
+  );
+
+  expect(screen.getByText('Test folder')).toBeInTheDocument();
+  expect(screen.getByText('Test nested folder')).toBeInTheDocument();
+  expect(screen.getByText('Second test folder')).toBeInTheDocument();
+  expect(screen.getByText('Metrics')).toBeInTheDocument();
+  expect(screen.getByText('Columns')).toBeInTheDocument();
+
+  columns.forEach(col => {
+    expect(screen.getByText(col.column_name)).toBeInTheDocument();
+  });
+
+  metrics.forEach(metric => {
+    expect(screen.getByText(metric.metric_name)).toBeInTheDocument();
+  });
+
+  expect(screen.getAllByTestId('DatasourcePanelDragOption').length).toEqual(5);
+  expect(screen.getAllByTestId('datasource-panel-divider').length).toEqual(3);
+});
+
+test('Collapse folders', () => {
+  render(
+    <ExploreContainer>
+      <DatasourcePanel {...propsWithFolders} />
+      <DndMetricSelect {...metricProps} />
+    </ExploreContainer>,
+    {
+      useRedux: true,
+      useDnd: true,
+    },
+  );
+
+  userEvent.click(screen.getByText('Test folder'));
+
+  expect(screen.getByText('Test folder')).toBeInTheDocument();
+  expect(screen.queryByText('Test nested folder')).not.toBeInTheDocument();
+  expect(screen.getByText('Second test folder')).toBeInTheDocument();
+  expect(screen.getByText('Metrics')).toBeInTheDocument();
+  expect(screen.getByText('Columns')).toBeInTheDocument();
+
+  expect(screen.queryByText(metrics[0].metric_name)).not.toBeInTheDocument();
+
+  userEvent.click(screen.getByText('Test folder'));
+
+  expect(screen.getByText('Test folder')).toBeInTheDocument();
+  expect(screen.getByText('Test nested folder')).toBeInTheDocument();
+  expect(screen.getByText('Second test folder')).toBeInTheDocument();
+  expect(screen.getByText('Metrics')).toBeInTheDocument();
+  expect(screen.getByText('Columns')).toBeInTheDocument();
+
+  expect(screen.getByText(metrics[0].metric_name)).toBeInTheDocument();
+});
+
+test('Default Metrics and Columns folders dont render when all metrics and columns are assigned to custom folders', () => {
+  const datasourceWithFullFolders: IDatasource = {
+    ...datasource,
+    folders: [
+      {
+        name: 'Test folder',
+        type: 'folder',
+        uuid: '1',
+        children: [
+          {
+            name: 'Test nested folder',
+            type: 'folder',
+            uuid: '1.1',
+            children: metrics.map(m => ({
+              type: 'metric' as const,
+              uuid: m.uuid,
+              name: m.metric_name,
+            })),
+          },
+        ],
+      },
+      {
+        name: 'Second test folder',
+        type: 'folder',
+        uuid: '2',
+        children: columns.map(c => ({
+          type: 'column',
+          uuid: c.uuid,
+          name: c.column_name,
+        })),
+      },
+    ],
+  };
+  const propsWithFullFolders = {
+    ...props,
+    datasource: datasourceWithFullFolders,
+    controls: {
+      ...props.controls,
+      datasource: {
+        ...props.controls.datasource,
+        datasource: datasourceWithFullFolders,
+      },
+    },
+  };
+  render(
+    <ExploreContainer>
+      <DatasourcePanel {...propsWithFullFolders} />
+      <DndMetricSelect {...metricProps} />
+    </ExploreContainer>,
+    {
+      useRedux: true,
+      useDnd: true,
+    },
+  );
+
+  expect(screen.getByText('Test folder')).toBeInTheDocument();
+  expect(screen.getByText('Test nested folder')).toBeInTheDocument();
+  expect(screen.getByText('Second test folder')).toBeInTheDocument();
+  expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+  expect(screen.queryByText('Columns')).not.toBeInTheDocument();
+
+  columns.forEach(col => {
+    expect(screen.getByText(col.column_name)).toBeInTheDocument();
+  });
+
+  metrics.forEach(metric => {
+    expect(screen.getByText(metric.metric_name)).toBeInTheDocument();
+  });
+
+  expect(screen.getAllByTestId('DatasourcePanelDragOption').length).toEqual(5);
+  expect(screen.getAllByTestId('datasource-panel-divider').length).toEqual(1);
 });

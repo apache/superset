@@ -22,9 +22,6 @@
 # unique random secure passwords and SECRET_KEY.
 # -----------------------------------------------------------------------
 x-superset-user: &superset-user root
-x-superset-depends-on: &superset-depends-on
-  - db
-  - redis
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
@@ -32,7 +29,6 @@ x-superset-volumes: &superset-volumes
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
   - ./tests:/app/tests
-
 x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
@@ -46,6 +42,11 @@ x-common-build: &common-build
 
 services:
   nginx:
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     image: nginx:latest
     container_name: superset_nginx
     restart: unless-stopped
@@ -55,6 +56,8 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/templates:/etc/nginx/templates:ro
+
   redis:
     image: redis:7
     container_name: superset_cache
@@ -70,7 +73,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:15
+    image: postgres:16
     container_name: superset_db
     restart: unless-stopped
     ports:
@@ -92,13 +95,18 @@ services:
     restart: unless-stopped
     ports:
       - 8088:8088
+      # When in cypress-mode ->
+      - 8081:8081
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user
-    depends_on: *superset-depends-on
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
     volumes: *superset-volumes
     environment:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
+      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
   superset-websocket:
     container_name: superset_websocket
@@ -143,11 +151,17 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    depends_on: *superset-depends-on
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
     user: *superset-user
     volumes: *superset-volumes
     environment:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
+      SUPERSET_LOAD_EXAMPLES: "${SUPERSET_LOAD_EXAMPLES:-yes}"
+      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
     healthcheck:
       disable: true
 
@@ -167,6 +181,10 @@ services:
       BUILD_SUPERSET_FRONTEND_IN_DOCKER: true
       NPM_RUN_PRUNE: false
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
+      # configuring the dev-server to use the host.docker.internal to connect to the backend
+      superset: "http://superset:8088"
+    ports:
+      - "127.0.0.1:9000:9000"  # exposing the dynamic webpack dev server
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
@@ -174,7 +192,6 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    depends_on: *superset-depends-on
     volumes: *superset-volumes
 
   superset-worker:
@@ -189,8 +206,12 @@ services:
         required: false
     environment:
       CELERYD_CONCURRENCY: 2
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
+      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
     restart: unless-stopped
-    depends_on: *superset-depends-on
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
     user: *superset-user
     volumes: *superset-volumes
     extra_hosts:
@@ -212,11 +233,15 @@ services:
       - path: docker/.env-local # optional override
         required: false
     restart: unless-stopped
-    depends_on: *superset-depends-on
+    depends_on:
+      - superset-worker
     user: *superset-user
     volumes: *superset-volumes
     healthcheck:
       disable: true
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
+      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
   superset-tests-worker:
     build:
@@ -237,8 +262,11 @@ services:
       REDIS_RESULTS_DB: 3
       REDIS_HOST: localhost
       CELERYD_CONCURRENCY: 8
+      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
     network_mode: host
-    depends_on: *superset-depends-on
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
     user: *superset-user
     volumes: *superset-volumes
     healthcheck:

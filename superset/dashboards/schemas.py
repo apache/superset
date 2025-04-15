@@ -70,8 +70,7 @@ json_metadata_description = (
     " specific parameters."
 )
 published_description = (
-    "Determines whether or not this dashboard is visible in "
-    "the list of all dashboards."
+    "Determines whether or not this dashboard is visible in the list of all dashboards."
 )
 charts_description = (
     "The names of the dashboard's charts. Names are used for legacy reasons."
@@ -212,7 +211,7 @@ class DashboardGetResponseSchema(Schema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description}
     )
-    thumbnail_url = fields.String()
+    thumbnail_url = fields.String(allow_none=True)
     published = fields.Boolean()
     css = fields.String(metadata={"description": css_description})
     json_metadata = fields.String(metadata={"description": json_metadata_description})
@@ -485,6 +484,7 @@ class ImportV1DashboardSchema(Schema):
     certified_by = fields.String(allow_none=True)
     certification_details = fields.String(allow_none=True)
     published = fields.Boolean(allow_none=True)
+    tags = fields.List(fields.String(), allow_none=True)
 
 
 class EmbeddedDashboardConfigSchema(Schema):
@@ -507,6 +507,12 @@ class DashboardCacheScreenshotResponseSchema(Schema):
     image_url = fields.String(
         metadata={"description": "The url to fetch the screenshot"}
     )
+    task_status = fields.String(
+        metadata={"description": "The status of the async screenshot"}
+    )
+    task_updated_at = fields.String(
+        metadata={"description": "The timestamp of the last change in status"}
+    )
 
 
 class CacheScreenshotSchema(Schema):
@@ -516,3 +522,4 @@ class CacheScreenshotSchema(Schema):
     urlParams = fields.List(  # noqa: N815
         fields.List(fields.Str(), validate=lambda x: len(x) == 2), required=False
     )
+    permalinkKey = fields.Str(required=False)  # noqa: N815

@@ -36,7 +36,7 @@
     "xss": "^1.0.15"
   },
   "peerDependencies": {
-    "@ant-design/icons": "^5.0.1",
+    "@ant-design/icons": "^5.2.6",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "@testing-library/dom": "^8.20.1",
@@ -47,8 +47,8 @@
     "@types/classnames": "*",
     "@types/react": "*",
     "match-sorter": "^6.3.3",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   },
   "publishConfig": {
     "access": "public"

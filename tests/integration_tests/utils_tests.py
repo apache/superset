@@ -15,9 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import uuid
-from datetime import date, datetime, time, timedelta
-from decimal import Decimal
+from datetime import date, datetime
 import os
 import re
 from typing import Any, Optional
@@ -29,7 +27,6 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_data,  # noqa: F401
 )
 
-import numpy as np
 import pandas as pd
 import pytest
 from flask import Flask, g  # noqa: F401
@@ -52,17 +49,12 @@ from superset.utils.core import (
     GenericDataType,
     get_form_data_token,
     as_list,
-    get_email_address_list,
-    get_stacktrace,
+    recipients_string_to_list,
     merge_extra_filters,
     merge_extra_form_data,
-    merge_request_params,
     normalize_dttm_col,
     parse_ssl_cert,
-    parse_js_uri_path_item,
     split,
-    zlib_compress,
-    zlib_decompress,
     DateColumn,
 )
 from superset.utils import json
@@ -81,506 +73,6 @@ from .fixtures.certificates import ssl_certificate
 
 
 class TestUtils(SupersetTestCase):
-    def test_json_int_dttm_ser(self):
-        dttm = datetime(2020, 1, 1)
-        ts = 1577836800000.0
-        assert json.json_int_dttm_ser(dttm) == ts
-        assert json.json_int_dttm_ser(date(2020, 1, 1)) == ts
-        assert json.json_int_dttm_ser(datetime(1970, 1, 1)) == 0
-        assert json.json_int_dttm_ser(date(1970, 1, 1)) == 0
-        assert json.json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
-        assert json.json_int_dttm_ser(np.int64(1)) == 1
-
-        with self.assertRaises(TypeError):  # noqa: PT027
-            json.json_int_dttm_ser(np.datetime64())
-
-    def test_json_iso_dttm_ser(self):
-        dttm = datetime(2020, 1, 1)
-        dt = date(2020, 1, 1)
-        t = time()
-        assert json.json_iso_dttm_ser(dttm) == dttm.isoformat()
-        assert json.json_iso_dttm_ser(dt) == dt.isoformat()
-        assert json.json_iso_dttm_ser(t) == t.isoformat()
-        assert json.json_iso_dttm_ser(np.int64(1)) == 1
-
-        assert (
-            json.json_iso_dttm_ser(np.datetime64(), pessimistic=True)
-            == "Unserializable [<class 'numpy.datetime64'>]"
-        )
-
-        with self.assertRaises(TypeError):  # noqa: PT027
-            json.json_iso_dttm_ser(np.datetime64())
-
-    def test_base_json_conv(self):
-        assert isinstance(json.base_json_conv(np.bool_(1)), bool)
-        assert isinstance(json.base_json_conv(np.int64(1)), int)
-        assert isinstance(json.base_json_conv(np.array([1, 2, 3])), list)
-        assert json.base_json_conv(np.array(None)) is None
-        assert isinstance(json.base_json_conv({1}), list)
-        assert isinstance(json.base_json_conv(Decimal("1.0")), float)
-        assert isinstance(json.base_json_conv(uuid.uuid4()), str)
-        assert isinstance(json.base_json_conv(time()), str)
-        assert isinstance(json.base_json_conv(timedelta(0)), str)
-        assert isinstance(json.base_json_conv(b""), str)
-        assert isinstance(json.base_json_conv(b"\xff\xfe"), str)
-        assert json.base_json_conv(b"\xff") == "[bytes]"
-
-        with pytest.raises(TypeError):
-            json.base_json_conv(np.datetime64())
-
-    def test_zlib_compression(self):
-        json_str = '{"test": 1}'
-        blob = zlib_compress(json_str)
-        got_str = zlib_decompress(blob)
-        assert json_str == got_str
-
-    def test_merge_extra_filters(self):
-        # does nothing if no extra filters
-        form_data = {"A": 1, "B": 2, "c": "test"}
-        expected = {**form_data, "adhoc_filters": [], "applied_time_extras": {}}
-        merge_extra_filters(form_data)
-        assert form_data == expected
-        # empty extra_filters
-        form_data = {"A": 1, "B": 2, "c": "test", "extra_filters": []}
-        expected = {
-            "A": 1,
-            "B": 2,
-            "c": "test",
-            "adhoc_filters": [],
-            "applied_time_extras": {},
-        }
-        merge_extra_filters(form_data)
-        assert form_data == expected
-        # copy over extra filters into empty filters
-        form_data = {
-            "extra_filters": [
-                {"col": "a", "op": "in", "val": "someval"},
-                {"col": "B", "op": "==", "val": ["c1", "c2"]},
-            ]
-        }
-        expected = {
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": "someval",
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "90cfb3c34852eb3bc741b0cc20053b46",
-                    "isExtra": True,
-                    "operator": "in",
-                    "subject": "a",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["c1", "c2"],
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "6c178d069965f1c02640661280415d96",
-                    "isExtra": True,
-                    "operator": "==",
-                    "subject": "B",
-                },
-            ],
-            "applied_time_extras": {},
-        }
-        merge_extra_filters(form_data)
-        assert form_data == expected
-        # adds extra filters to existing filters
-        form_data = {
-            "extra_filters": [
-                {"col": "a", "op": "in", "val": "someval"},
-                {"col": "B", "op": "==", "val": ["c1", "c2"]},
-            ],
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": ["G1", "g2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "!=",
-                    "subject": "D",
-                }
-            ],
-        }
-        expected = {
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": ["G1", "g2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "!=",
-                    "subject": "D",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": "someval",
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "90cfb3c34852eb3bc741b0cc20053b46",
-                    "isExtra": True,
-                    "operator": "in",
-                    "subject": "a",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["c1", "c2"],
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "6c178d069965f1c02640661280415d96",
-                    "isExtra": True,
-                    "operator": "==",
-                    "subject": "B",
-                },
-            ],
-            "applied_time_extras": {},
-        }
-        merge_extra_filters(form_data)
-        assert form_data == expected
-        # adds extra filters to existing filters and sets time options
-        form_data = {
-            "extra_filters": [
-                {"col": "__time_range", "op": "in", "val": "1 year ago :"},
-                {"col": "__time_col", "op": "in", "val": "birth_year"},
-                {"col": "__time_grain", "op": "in", "val": "years"},
-                {"col": "A", "op": "like", "val": "hello"},
-            ]
-        }
-        expected = {
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": "hello",
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "e3cbdd92a2ae23ca92c6d7fca42e36a6",
-                    "isExtra": True,
-                    "operator": "like",
-                    "subject": "A",
-                }
-            ],
-            "time_range": "1 year ago :",
-            "granularity_sqla": "birth_year",
-            "time_grain_sqla": "years",
-            "applied_time_extras": {
-                "__time_range": "1 year ago :",
-                "__time_col": "birth_year",
-                "__time_grain": "years",
-            },
-        }
-        merge_extra_filters(form_data)
-        assert form_data == expected
-
-    def test_merge_extra_filters_ignores_empty_filters(self):
-        form_data = {
-            "extra_filters": [
-                {"col": "a", "op": "in", "val": ""},
-                {"col": "B", "op": "==", "val": []},
-            ]
-        }
-        expected = {"adhoc_filters": [], "applied_time_extras": {}}
-        merge_extra_filters(form_data)
-        assert form_data == expected
-
-    def test_merge_extra_filters_ignores_nones(self):
-        form_data = {
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": "",
-                    "expressionType": "SIMPLE",
-                    "operator": "in",
-                    "subject": None,
-                }
-            ],
-            "extra_filters": [{"col": "B", "op": "==", "val": []}],
-        }
-        expected = {
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": "",
-                    "expressionType": "SIMPLE",
-                    "operator": "in",
-                    "subject": None,
-                }
-            ],
-            "applied_time_extras": {},
-        }
-        merge_extra_filters(form_data)
-        assert form_data == expected
-
-    def test_merge_extra_filters_ignores_equal_filters(self):
-        form_data = {
-            "extra_filters": [
-                {"col": "a", "op": "in", "val": "someval"},
-                {"col": "B", "op": "==", "val": ["c1", "c2"]},
-                {"col": "c", "op": "in", "val": ["c1", 1, None]},
-            ],
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": "someval",
-                    "expressionType": "SIMPLE",
-                    "operator": "in",
-                    "subject": "a",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["c1", "c2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "==",
-                    "subject": "B",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["c1", 1, None],
-                    "expressionType": "SIMPLE",
-                    "operator": "in",
-                    "subject": "c",
-                },
-            ],
-        }
-        expected = {
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": "someval",
-                    "expressionType": "SIMPLE",
-                    "operator": "in",
-                    "subject": "a",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["c1", "c2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "==",
-                    "subject": "B",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["c1", 1, None],
-                    "expressionType": "SIMPLE",
-                    "operator": "in",
-                    "subject": "c",
-                },
-            ],
-            "applied_time_extras": {},
-        }
-        merge_extra_filters(form_data)
-        assert form_data == expected
-
-    def test_merge_extra_filters_merges_different_val_types(self):
-        form_data = {
-            "extra_filters": [
-                {"col": "a", "op": "in", "val": ["g1", "g2"]},
-                {"col": "B", "op": "==", "val": ["c1", "c2"]},
-            ],
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": "someval",
-                    "expressionType": "SIMPLE",
-                    "operator": "in",
-                    "subject": "a",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["c1", "c2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "==",
-                    "subject": "B",
-                },
-            ],
-        }
-        expected = {
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": "someval",
-                    "expressionType": "SIMPLE",
-                    "operator": "in",
-                    "subject": "a",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["c1", "c2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "==",
-                    "subject": "B",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["g1", "g2"],
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "c11969c994b40a83a4ae7d48ff1ea28e",
-                    "isExtra": True,
-                    "operator": "in",
-                    "subject": "a",
-                },
-            ],
-            "applied_time_extras": {},
-        }
-        merge_extra_filters(form_data)
-        assert form_data == expected
-        form_data = {
-            "extra_filters": [
-                {"col": "a", "op": "in", "val": "someval"},
-                {"col": "B", "op": "==", "val": ["c1", "c2"]},
-            ],
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": ["g1", "g2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "in",
-                    "subject": "a",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["c1", "c2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "==",
-                    "subject": "B",
-                },
-            ],
-        }
-        expected = {
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": ["g1", "g2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "in",
-                    "subject": "a",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["c1", "c2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "==",
-                    "subject": "B",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": "someval",
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "90cfb3c34852eb3bc741b0cc20053b46",
-                    "isExtra": True,
-                    "operator": "in",
-                    "subject": "a",
-                },
-            ],
-            "applied_time_extras": {},
-        }
-        merge_extra_filters(form_data)
-        assert form_data == expected
-
-    def test_merge_extra_filters_adds_unequal_lists(self):
-        form_data = {
-            "extra_filters": [
-                {"col": "a", "op": "in", "val": ["g1", "g2", "g3"]},
-                {"col": "B", "op": "==", "val": ["c1", "c2", "c3"]},
-            ],
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": ["g1", "g2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "in",
-                    "subject": "a",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["c1", "c2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "==",
-                    "subject": "B",
-                },
-            ],
-        }
-        expected = {
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": ["g1", "g2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "in",
-                    "subject": "a",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["c1", "c2"],
-                    "expressionType": "SIMPLE",
-                    "operator": "==",
-                    "subject": "B",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["g1", "g2", "g3"],
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "21cbb68af7b17e62b3b2f75e2190bfd7",
-                    "isExtra": True,
-                    "operator": "in",
-                    "subject": "a",
-                },
-                {
-                    "clause": "WHERE",
-                    "comparator": ["c1", "c2", "c3"],
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "0a8dcb928f1f4bba97643c6e68d672f1",
-                    "isExtra": True,
-                    "operator": "==",
-                    "subject": "B",
-                },
-            ],
-            "applied_time_extras": {},
-        }
-        merge_extra_filters(form_data)
-        assert form_data == expected
-
-    def test_merge_extra_filters_when_applied_time_extras_predefined(self):
-        form_data = {"applied_time_extras": {"__time_range": "Last week"}}
-        merge_extra_filters(form_data)
-
-        assert form_data == {
-            "applied_time_extras": {"__time_range": "Last week"},
-            "adhoc_filters": [],
-        }
-
-    def test_merge_request_params_when_url_params_undefined(self):
-        form_data = {"since": "2000", "until": "now"}
-        url_params = {"form_data": form_data, "dashboard_ids": "(1,2,3,4,5)"}
-        merge_request_params(form_data, url_params)
-        assert "url_params" in form_data.keys()
-        assert "dashboard_ids" in form_data["url_params"]
-        assert "form_data" not in form_data.keys()
-
-    def test_merge_request_params_when_url_params_predefined(self):
-        form_data = {
-            "since": "2000",
-            "until": "now",
-            "url_params": {"abc": "123", "dashboard_ids": "(1,2,3)"},
-        }
-        url_params = {"form_data": form_data, "dashboard_ids": "(1,2,3,4,5)"}
-        merge_request_params(form_data, url_params)
-        assert "url_params" in form_data.keys()
-        assert "abc" in form_data["url_params"]
-        assert url_params["dashboard_ids"] == form_data["url_params"]["dashboard_ids"]
-
-    def test_format_timedelta(self):
-        assert json.format_timedelta(timedelta(0)) == "0:00:00"
-        assert json.format_timedelta(timedelta(days=1)) == "1 day, 0:00:00"
-        assert json.format_timedelta(timedelta(minutes=-6)) == "-0:06:00"
-        assert (
-            json.format_timedelta(timedelta(0) - timedelta(days=1, hours=5, minutes=6))
-            == "-1 day, 5:06:00"
-        )
-        assert (
-            json.format_timedelta(timedelta(0) - timedelta(days=16, hours=4, minutes=3))
-            == "-16 days, 4:03:00"
-        )
-
-    def test_validate_json(self):
-        valid = '{"a": 5, "b": [1, 5, ["g", "h"]]}'
-        assert json.validate_json(valid) is None
-        invalid = '{"a": 5, "b": [1, 5, ["g", "h]]}'
-        with self.assertRaises(json.JSONDecodeError):  # noqa: PT027
-            json.validate_json(invalid)
-
     def test_convert_legacy_filters_into_adhoc_where(self):
         form_data = {"where": "a = 1"}
         expected = {
@@ -658,37 +150,6 @@ class TestUtils(SupersetTestCase):
         }
         convert_legacy_filters_into_adhoc(form_data)
         assert form_data == expected
-
-    def test_parse_js_uri_path_items_eval_undefined(self):
-        assert parse_js_uri_path_item("undefined", eval_undefined=True) is None
-        assert parse_js_uri_path_item("null", eval_undefined=True) is None
-        assert "undefined" == parse_js_uri_path_item("undefined")
-        assert "null" == parse_js_uri_path_item("null")
-
-    def test_parse_js_uri_path_items_unquote(self):
-        assert "slashed/name" == parse_js_uri_path_item("slashed%2fname")
-        assert "slashed%2fname" == parse_js_uri_path_item(
-            "slashed%2fname", unquote=False
-        )
-
-    def test_parse_js_uri_path_items_item_optional(self):
-        assert parse_js_uri_path_item(None) is None
-        assert parse_js_uri_path_item("item") is not None
-
-    def test_get_stacktrace(self):
-        app.config["SHOW_STACKTRACE"] = True
-        try:
-            raise Exception("NONONO!")
-        except Exception:
-            stacktrace = get_stacktrace()
-            assert "NONONO" in stacktrace
-
-        app.config["SHOW_STACKTRACE"] = False
-        try:
-            raise Exception("NONONO!")
-        except Exception:
-            stacktrace = get_stacktrace()
-            assert stacktrace is None
 
     def test_split(self):
         assert list(split("a b")) == ["a", "b"]
@@ -809,12 +270,12 @@ class TestUtils(SupersetTestCase):
         assert expected_filename in path
         assert os.path.exists(path)
 
-    def test_get_email_address_list(self):
-        assert get_email_address_list("a@a") == ["a@a"]
-        assert get_email_address_list(" a@a ") == ["a@a"]
-        assert get_email_address_list("a@a\n") == ["a@a"]
-        assert get_email_address_list(",a@a;") == ["a@a"]
-        assert get_email_address_list(",a@a; b@b c@c a-c@c; d@d, f@f") == [
+    def test_recipients_string_to_list(self):
+        assert recipients_string_to_list("a@a") == ["a@a"]
+        assert recipients_string_to_list(" a@a ") == ["a@a"]
+        assert recipients_string_to_list("a@a\n") == ["a@a"]
+        assert recipients_string_to_list(",a@a;") == ["a@a"]
+        assert recipients_string_to_list(",a@a; b@b c@c a-c@c; d@d, f@f") == [
             "a@a",
             "b@b",
             "c@c",
@@ -879,11 +340,11 @@ class TestUtils(SupersetTestCase):
             assert form_data == {}
             assert slc is None
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
         self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Top 10 Girl Name Share")
+        slc = self.get_slice("Life Expectancy VS Rural %")
         dashboard_id = 1
 
         assert slc.viz is not None
@@ -1022,8 +483,3 @@ class TestUtils(SupersetTestCase):
         # test numeric epoch_ms format
         df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
         assert normalize_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
-
-        # test that we raise an error when we can't convert
-        df = pd.DataFrame([{"__timestamp": "1677-09-21 00:00:00", "a": 1}])
-        with pytest.raises(pd.errors.OutOfBoundsDatetime):
-            normalize_col(df, None, 0, None)

@@ -17,7 +17,6 @@
 # isort:skip_file
 from datetime import datetime
 import logging
-from math import nan
 from unittest.mock import Mock, patch
 
 import numpy as np
@@ -27,7 +26,6 @@ import pytest
 import tests.integration_tests.test_app  # noqa: F401
 import superset.viz as viz
 from superset import app
-from superset.constants import NULL_STRING
 from superset.exceptions import QueryObjectValidationError, SpatialException
 from superset.utils.core import DTTM_ALIAS
 
@@ -175,174 +173,6 @@ class TestBaseViz(SupersetTestCase):
         assert app.config["CACHE_DEFAULT_TIMEOUT"] == test_viz.cache_timeout
         # restore DATA_CACHE_CONFIG timeout
         app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"] = data_cache_timeout
-
-
-class TestDistBarViz(SupersetTestCase):
-    def test_groupby_nulls(self):
-        form_data = {
-            "metrics": ["votes"],
-            "adhoc_filters": [],
-            "groupby": ["toppings"],
-            "columns": [],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            {
-                "toppings": ["cheese", "pepperoni", "anchovies", None],
-                "votes": [3, 5, 1, 2],
-            }
-        )
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)[0]
-        assert "votes" == data["key"]
-        expected_values = [
-            {"x": "pepperoni", "y": 5},
-            {"x": "cheese", "y": 3},
-            {"x": NULL_STRING, "y": 2},
-            {"x": "anchovies", "y": 1},
-        ]
-        assert expected_values == data["values"]
-
-    def test_groupby_nans(self):
-        form_data = {
-            "metrics": ["count"],
-            "adhoc_filters": [],
-            "groupby": ["beds"],
-            "columns": [],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame({"beds": [0, 1, nan, 2], "count": [30, 42, 3, 29]})
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)[0]
-        assert "count" == data["key"]
-        expected_values = [
-            {"x": "1.0", "y": 42},
-            {"x": "0.0", "y": 30},
-            {"x": "2.0", "y": 29},
-            {"x": NULL_STRING, "y": 3},
-        ]
-
-        assert expected_values == data["values"]
-
-    def test_column_nulls(self):
-        form_data = {
-            "metrics": ["votes"],
-            "adhoc_filters": [],
-            "groupby": ["toppings"],
-            "columns": ["role"],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            {
-                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
-                "role": ["engineer", "engineer", None, None],
-                "votes": [3, 5, 1, 2],
-            }
-        )
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)
-        expected = [
-            {
-                "key": NULL_STRING,
-                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
-            },
-            {
-                "key": "engineer",
-                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
-            },
-        ]
-        assert expected == data
-
-    def test_column_metrics_in_order(self):
-        form_data = {
-            "metrics": ["z_column", "votes", "a_column"],
-            "adhoc_filters": [],
-            "groupby": ["toppings"],
-            "columns": [],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            {
-                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
-                "role": ["engineer", "engineer", None, None],
-                "votes": [3, 5, 1, 2],
-                "a_column": [3, 5, 1, 2],
-                "z_column": [3, 5, 1, 2],
-            }
-        )
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)
-
-        expected = [
-            {
-                "key": "z_column",
-                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
-            },
-            {
-                "key": "votes",
-                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
-            },
-            {
-                "key": "a_column",
-                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
-            },
-        ]
-
-        assert expected == data
-
-    def test_column_metrics_in_order_with_breakdowns(self):
-        form_data = {
-            "metrics": ["z_column", "votes", "a_column"],
-            "adhoc_filters": [],
-            "groupby": ["toppings"],
-            "columns": ["role"],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            {
-                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
-                "role": ["engineer", "engineer", None, None],
-                "votes": [3, 5, 1, 2],
-                "a_column": [3, 5, 1, 2],
-                "z_column": [3, 5, 1, 2],
-            }
-        )
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)
-
-        expected = [
-            {
-                "key": f"z_column, {NULL_STRING}",
-                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
-            },
-            {
-                "key": "z_column, engineer",
-                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
-            },
-            {
-                "key": f"votes, {NULL_STRING}",
-                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
-            },
-            {
-                "key": "votes, engineer",
-                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
-            },
-            {
-                "key": f"a_column, {NULL_STRING}",
-                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
-            },
-            {
-                "key": "a_column, engineer",
-                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
-            },
-        ]
-
-        assert expected == data
 
 
 class TestPairedTTest(SupersetTestCase):
@@ -611,6 +441,27 @@ class TestPartitionViz(SupersetTestCase):
         assert 3 == len(nest[0]["children"])
         assert 1 == len(nest[0]["children"][0]["children"])
         assert 1 == len(nest[0]["children"][0]["children"][0]["children"])
+
+    def test_nest_values_returns_hierarchy_when_more_dimensions(self):
+        raw = {}
+        raw["category"] = ["a", "a", "a"]
+        raw["subcategory"] = ["a.2", "a.1", "a.2"]
+        raw["sub_subcategory"] = ["a.2.1", "a.1.1", "a.2.2"]
+        raw["metric1"] = [5, 10, 15]
+        raw["metric2"] = [50, 100, 150]
+        raw["metric3"] = [500, 1000, 1500]
+        df = pd.DataFrame(raw)
+        test_viz = viz.PartitionViz(Mock(), {})
+        groups = ["category", "subcategory", "sub_subcategory"]
+        levels = test_viz.levels_for("agg_sum", groups, df)
+        nest = test_viz.nest_values(levels)
+        assert 3 == len(nest)
+        for i in range(0, 3):
+            assert "metric" + str(i + 1) == nest[i]["name"]
+        assert 1 == len(nest[0]["children"])
+        assert 2 == len(nest[0]["children"][0]["children"])
+        assert 1 == len(nest[0]["children"][0]["children"][0]["children"])
+        assert 2 == len(nest[0]["children"][0]["children"][1]["children"])
 
     def test_nest_procs_returns_hierarchy(self):
         raw = {}

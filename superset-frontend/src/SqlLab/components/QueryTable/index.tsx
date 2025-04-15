@@ -32,7 +32,7 @@ import {
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import { fDuration, extendedDayjs } from 'src/utils/dates';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
 import { SqlLabRootState } from 'src/SqlLab/types';
@@ -40,7 +40,7 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
-import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
+import { StaticPosition, StyledTooltip } from './styles';
 
 interface QueryTableQuery
   extends Omit<
@@ -103,7 +103,9 @@ const QueryTable = ({
       columns.map(column => ({
         accessor: column,
         Header:
-          QUERY_HISTORY_TABLE_HEADERS_LOCALIZED[column] || setHeaders(column),
+          QUERY_HISTORY_TABLE_HEADERS_LOCALIZED[
+            column as keyof typeof QUERY_HISTORY_TABLE_HEADERS_LOCALIZED
+          ] || setHeaders(column),
         disableSortBy: true,
       })),
     [columns],
@@ -186,7 +188,10 @@ const QueryTable = ({
       timed_out: {
         config: {
           icon: (
-            <Icons.Clock iconColor={theme.colors.error.base} iconSize="m" />
+            <Icons.ClockCircleOutlined
+              iconColor={theme.colors.error.base}
+              iconSize="m"
+            />
           ),
           label: t('Offline'),
         },
@@ -219,6 +224,17 @@ const QueryTable = ({
             <Icons.Error iconColor={theme.colors.error.base} iconSize="m" />
           ),
           label: t('Unknown Status'),
+        },
+      },
+      started: {
+        config: {
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colors.primary.base}
+              iconSize="m"
+            />
+          ),
+          label: t('Started'),
         },
       },
     };
@@ -264,7 +280,7 @@ const QueryTable = ({
             buttonStyle="link"
             onClick={() => openQuery(q.queryId)}
           >
-            <i className="fa fa-external-link m-r-3" />
+            <Icons.Full iconSize="m" iconColor={theme.colors.primary.dark1} />
             {t('Edit')}
           </Button>
         );
@@ -329,7 +345,7 @@ const QueryTable = ({
               placement="top"
               className="pointer"
             >
-              <Icons.Edit iconSize="xl" />
+              <Icons.EditOutlined iconSize="l" />
             </StyledTooltip>
             <StyledTooltip
               onClick={() => openQueryInNewTab(query)}
@@ -337,7 +353,7 @@ const QueryTable = ({
               placement="top"
               className="pointer"
             >
-              <Icons.PlusCircleOutlined iconSize="xl" css={verticalAlign} />
+              <Icons.PlusCircleOutlined iconSize="l" />
             </StyledTooltip>
             {q.id !== latestQueryId && (
               <StyledTooltip
@@ -345,7 +361,7 @@ const QueryTable = ({
                 onClick={() => dispatch(removeQuery(query))}
                 className="pointer"
               >
-                <Icons.Trash iconSize="xl" />
+                <Icons.DeleteOutlined iconSize="l" />
               </StyledTooltip>
             )}
           </div>

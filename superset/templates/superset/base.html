@@ -30,18 +30,18 @@
       href="{{ "" if favicon.href.startswith("http") else assets_prefix }}{{favicon.href}}"
     >
   {% endfor %}
-  {{ css_bundle("theme") }}
+  {{ css_bundle(assets_prefix, "theme") }}
 {% endblock %}
 
 {% block head_js %}
   {{ super() }}
   {% include "head_custom_extra.html" %}
-  {{ js_bundle("theme") }}
+  {{ js_bundle(assets_prefix, "theme") }}
 {% endblock %}
 
 {% block tail_js %}
   {{ super() }}
-  {{ js_bundle("preamble") }}
-  {{ js_bundle('menu') }}
+  {{ js_bundle(assets_prefix, "preamble") }}
+  {{ js_bundle(assets_prefix, 'menu') }}
   {% include "tail_js_custom_extra.html" %}
 {% endblock %}

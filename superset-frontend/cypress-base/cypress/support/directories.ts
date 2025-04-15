@@ -25,16 +25,16 @@ export function dataTestChartName(chartName: string): string {
 
 export const pageHeader = {
   logo: '.navbar-brand > img',
-  headerNavigationItem: '.ant-menu-submenu-title',
+  headerNavigationItem: '.antd5-menu-submenu-title',
   headerNavigationDropdown: "[aria-label='triangle-down']",
-  headerNavigationItemMenu: '.ant-menu-item-group-list',
-  plusIcon: ':nth-child(2) > .ant-menu-submenu-title',
+  headerNavigationItemMenu: '.antd5-menu-item-group-list',
+  plusIcon: ':nth-child(2) > .antd5-menu-submenu-title',
   plusIconMenuOptions: {
     sqlQueryOption: dataTestLocator('menu-item-SQL query'),
     chartOption: dataTestLocator('menu-item-Chart'),
     dashboardOption: dataTestLocator('menu-item-Dashboard'),
   },
-  plusMenu: '.ant-menu-submenu-popup',
+  plusMenu: '.antd5-menu-submenu-popup',
   barButtons: '[role="presentation"]',
   sqlLabMenu: '[id="item_3$Menu"]',
   dataMenu: '[id="item_4$Menu"]',
@@ -106,7 +106,7 @@ export const databasesPage = {
       alertMessage: '.antd5-alert-message',
       errorField: '[role="alert"]',
       uploadJson: '[title="Upload JSON file"]',
-      chooseFile: '[class="ant-btn input-upload-btn"]',
+      chooseFile: '[class="antd5-btn input-upload-btn"]',
       additionalParameters: '[name="query_input"]',
       sqlAlchemyUriInput: dataTestLocator('sqlalchemy-uri-input'),
       advancedTab: '#rc-tabs-0-tab-2',
@@ -148,7 +148,7 @@ export const sqlLabView = {
   examplesMenuItem: '[title="examples"]',
   tableInput: ':nth-child(4) > .select > :nth-child(1)',
   sqlEditor: '#brace-editor textarea',
-  saveAsButton: '.SaveQuery > .ant-btn',
+  saveAsButton: '.SaveQuery > .antd5-btn',
   saveAsModal: {
     footer: '.antd5-modal-footer',
     queryNameInput: 'input[class^="ant-input"]',
@@ -158,10 +158,10 @@ export const sqlLabView = {
     runButton: '.css-d3dxop',
   },
   rowsLimit: {
-    dropdown: '.ant-dropdown-menu',
-    limitButton: '.ant-dropdown-menu-item',
+    dropdown: '.antd5-dropdown-menu',
+    limitButton: '.antd5-dropdown-menu-item',
     limitButtonText: '.css-151uxnz',
-    limitTextWithValue: '[class="ant-dropdown-trigger"]',
+    limitTextWithValue: '[class="antd5-dropdown-trigger"]',
   },
   renderedTableHeader: '.ReactVirtualized__Table__headerRow',
   renderedTableRow: '.ReactVirtualized__Table__row',
@@ -171,7 +171,7 @@ export const sqlLabView = {
     header: '[role=columnheader]',
     table: '.QueryTable',
     row: dataTestLocator('table-row'),
-    failureMarkIcon: '[aria-label=x-small]',
+    failureMarkIcon: '[aria-label=close]',
     successMarkIcon: '[aria-label=check]',
   },
 };
@@ -195,7 +195,7 @@ export const savedQuery = {
 export const annotationLayersView = {
   emptyDescription: {
     description: '.ant-empty-description',
-    addAnnotationLayerButton: '.ant-empty-footer > .ant-btn',
+    addAnnotationLayerButton: '.ant-empty-footer > .antd5-btn',
   },
   modal: {
     content: {
@@ -252,7 +252,7 @@ export const datasetsList = {
     aceTextInput: '.ace_text-input',
     sourceSQLInput: '.ace_content',
     sourceVirtualSQLRadio: ':nth-child(2) > .ant-radio > .ant-radio-inner',
-    sourcePadlock: '[aria-label=lock-locked]',
+    sourcePadlock: '[aria-label=lock]',
     legacy: {
       panel: '.panel-body',
       sqlInput: '#sql',
@@ -275,8 +275,8 @@ export const chartListView = {
     bulkSelect: dataTestLocator('bulk-select'),
   },
   header: {
-    cardView: '[aria-label="card-view"]',
-    listView: '[aria-label="list-view"]',
+    cardView: '[aria-label="appstore"]',
+    listView: '[aria-label="unordered-list"]',
     sort: '[class="ant-select-selection-search-input"][aria-label="Sort"]',
     sortRecentlyModifiedMenuOption: '[label="Recently modified"]',
     sortAlphabeticalMenuOption: '[label="Alphabetical"]',
@@ -286,8 +286,6 @@ export const chartListView = {
     card: dataTestLocator('styled-card'),
     cardCover: '[class="antd5-card-cover"]',
     cardImage: '[class="gradient-container"]',
-    selectedStarIcon: "[aria-label='favorite-selected']",
-    unselectedStarIcon: "[aria-label='favorite-unselected']",
     starIcon: dataTestLocator('fave-unfave-icon'),
   },
   deleteModal: {
@@ -330,7 +328,7 @@ export const nativeFilters = {
       filterItemsContainer: dataTestLocator('filter-title-container'),
       tabsContainer: '[class="ant-tabs-nav-list"]',
       tab: '.ant-tabs-tab',
-      removeTab: '[aria-label="trash"]',
+      removeTab: '[aria-label="delete"]',
     },
     addFilter: dataTestLocator('add-filter-button'),
     defaultValueCheck: '.ant-checkbox-checked',
@@ -375,7 +373,7 @@ export const nativeFilters = {
     listItemNotActive: '[class="ant-tabs-tab ant-tabs-tab-with-remove"]',
     listItemActive:
       '[class="ant-tabs-tab ant-tabs-tab-with-remove ant-tabs-tab-active"]',
-    removeIcon: '[aria-label="trash"]',
+    removeIcon: '[aria-label="delete"]',
   },
   filterItem: dataTestLocator('form-item-value'),
   filterItemDropdown: '.ant-select-selection-search',
@@ -402,8 +400,8 @@ export const dashboardListView = {
     card: dataTestLocator('styled-card'),
     cardCover: '[class="antd5-card-cover"]',
     cardImage: '[class="gradient-container"]',
-    selectedStarIcon: "[aria-label='favorite-selected']",
-    unselectedStarIcon: "[aria-label='favorite-unselected']",
+    selectedStarIcon: "[aria-label='star']",
+    unselectedStarIcon: "[aria-label='star']",
     starIcon: dataTestLocator('fave-unfave-icon'),
   },
   deleteModal: {
@@ -412,8 +410,8 @@ export const dashboardListView = {
   },
   table: {
     starIcon: dataTestLocator('fave-unfave-icon'),
-    selectedStarIcon: "[aria-label='favorite-selected']",
-    unselectedStarIcon: "[aria-label='favorite-unselected']",
+    selectedStarIcon: "[aria-label='star']",
+    unselectedStarIcon: "[aria-label='star']",
     bulkSelect: {
       checkboxOff: '[aria-label="checkbox-off"]',
       checkboxOn: '[aria-label="checkbox-on"]',
@@ -434,12 +432,12 @@ export const dashboardListView = {
     newDashboardButton: '.css-yff34v',
   },
   importModal: {
-    selectFileButton: '.ant-upload > .ant-btn > span',
+    selectFileButton: '.ant-upload > .antd5-btn > span',
     importButton: dataTestLocator('modal-confirm-button'),
   },
   header: {
-    cardView: '[aria-label="card-view"]',
-    listView: '[aria-label="list-view"]',
+    cardView: '[aria-label="appstore"]',
+    listView: '[aria-label="unordered-list"]',
     sort: dataTestLocator('sort-header'),
     sortDropdown: '.Select__menu',
     statusFilterInput: `${dataTestLocator(
@@ -503,7 +501,7 @@ export const exploreView = {
     optionField: dataTestLocator('option-label'),
     fieldInput: '.Select__control input',
     removeFieldValue: dataTestLocator('remove-control-button'),
-    addFieldValue: '[aria-label="plus-small"]',
+    addFieldValue: '[aria-label="plus"]',
     vizType: dataTestLocator('visualization-type'),
     runButton: dataTestLocator('run-query-button'),
     saveQuery: dataTestLocator('query-save-button'),
@@ -555,7 +553,7 @@ export const exploreView = {
     timeSection: {
       timeRangeFilter: dataTestLocator('time-range-trigger'),
       timeRangeFilterModal: {
-        container: '.ant-popover-content',
+        container: '.antd5-popover-content',
         footer: '.footer',
         cancelButton: dataTestLocator('cancel-button'),
         configureLastTimeRange: {
@@ -588,7 +586,7 @@ export const exploreView = {
       rowsContainer: dataTestLocator('table-content-rows'),
     },
     confirmModal: {
-      okButton: '.antd5-modal-confirm-btns .ant-btn-primary',
+      okButton: '.antd5-modal-confirm-btns .antd5-btn-primary',
     },
   },
   visualizationTypeModal: {
@@ -633,7 +631,7 @@ export const dashboardView = {
     refreshChart: dataTestLocator('refresh-chart-menu-item'),
   },
   threeDotsMenuIcon:
-    '.header-with-actions .right-button-panel .ant-dropdown-trigger',
+    '.header-with-actions .right-button-panel .antd5-dropdown-trigger',
   threeDotsMenuDropdown: dataTestLocator('header-actions-menu'),
   refreshDashboard: dataTestLocator('refresh-dashboard-menu-item'),
   saveAsMenuOption: dataTestLocator('save-as-menu-item'),

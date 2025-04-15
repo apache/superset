@@ -31,6 +31,7 @@ from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
 
+from superset import is_feature_enabled
 from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import db, event_logger, security_manager, stats_logger_manager
 from superset.models.core import FavStar
@@ -128,6 +129,29 @@ def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
         return response
 
     return functools.update_wrapper(wraps, f)
+
+
+def validate_feature_flags(
+    feature_flags: list[str],
+) -> Callable[[Callable[..., Response]], Callable[..., Response]]:
+    """
+    A decorator to check if all given feature flags are enabled.
+
+    :param feature_flags: List of feature flag names to be checked.
+    """
+
+    def decorate(f: Callable[..., Response]) -> Callable[..., Response]:
+        @functools.wraps(f)
+        def wrapper(
+            self: BaseSupersetModelRestApi, *args: Any, **kwargs: Any
+        ) -> Response:
+            if not all(is_feature_enabled(flag) for flag in feature_flags):
+                return self.response_404()
+            return f(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorate
 
 
 class RelatedFieldFilter:

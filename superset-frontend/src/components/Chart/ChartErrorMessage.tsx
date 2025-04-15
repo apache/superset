@@ -26,17 +26,16 @@ import { ChartSource } from 'src/types/ChartSource';
 export type Props = {
   chartId: string;
   error?: SupersetError;
-  subtitle: JSX.Element;
-  copyText: string | undefined;
+  subtitle: React.ReactNode;
   link?: string;
   source: ChartSource;
   stackTrace?: string;
 } & Omit<ClientErrorObject, 'error'>;
 
-/**
- * fetches the chart owners and adds them to the extra data of the error message
- */
+const DEFAULT_CHART_ERROR = 'Data error';
+
 export const ChartErrorMessage: FC<Props> = ({ chartId, error, ...props }) => {
+  // fetches the chart owners and adds them to the extra data of the error message
   const { result: owners } = useChartOwnerNames(chartId);
 
   // don't mutate props
@@ -45,5 +44,11 @@ export const ChartErrorMessage: FC<Props> = ({ chartId, error, ...props }) => {
     extra: { ...error.extra, owners },
   };
 
-  return <ErrorMessageWithStackTrace {...props} error={ownedError} />;
+  return (
+    <ErrorMessageWithStackTrace
+      {...props}
+      error={ownedError}
+      title={DEFAULT_CHART_ERROR}
+    />
+  );
 };

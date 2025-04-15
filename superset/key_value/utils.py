@@ -31,8 +31,14 @@ from superset.utils.json import json_dumps_w_dates
 HASHIDS_MIN_LENGTH = 11
 
 
-def random_key() -> str:
-    return token_urlsafe(48)
+def random_key(nbytes: int = 8) -> str:
+    """
+    Generate a random URL-safe string.
+
+    Args:
+        nbytes (int): Number of bytes to use for generating the key. Default is 8.
+    """
+    return token_urlsafe(nbytes)
 
 
 def get_filter(resource: KeyValueResource, key: Key) -> KeyValueFilter:

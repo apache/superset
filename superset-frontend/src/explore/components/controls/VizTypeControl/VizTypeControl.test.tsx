@@ -21,11 +21,11 @@ import {
   render,
   cleanup,
   screen,
+  userEvent,
   within,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
-import userEvent from '@testing-library/user-event';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import { testWithId } from 'src/utils/testUtils';
 import {
@@ -120,11 +120,11 @@ describe('VizTypeControl', () => {
       isModalOpenInit: false,
     };
     await waitForRenderWrapper(props);
-    expect(screen.getByLabelText('table-chart-tile')).toBeVisible();
-    expect(screen.getByLabelText('big-number-chart-tile')).toBeVisible();
-    expect(screen.getByLabelText('pie-chart-tile')).toBeVisible();
-    expect(screen.getByLabelText('bar-chart-tile')).toBeVisible();
-    expect(screen.getByLabelText('area-chart-tile')).toBeVisible();
+    expect(screen.getByLabelText('table')).toBeVisible();
+    expect(screen.getByLabelText('big-number_chart_tile')).toBeVisible();
+    expect(screen.getByLabelText('pie-chart')).toBeVisible();
+    expect(screen.getByLabelText('bar-chart')).toBeVisible();
+    expect(screen.getByLabelText('area-chart')).toBeVisible();
     expect(screen.queryByLabelText('monitor')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('check-square')).not.toBeInTheDocument();
 
@@ -165,14 +165,14 @@ describe('VizTypeControl', () => {
   it('Render viz tiles when non-featured is rendered', async () => {
     const props = {
       ...defaultProps,
-      value: 'line',
+      value: VizType.Sankey,
       isModalOpenInit: false,
     };
     const state = {
       charts: {
         1: {
           latestQueryFormData: {
-            viz_type: VizType.LegacyLine,
+            viz_type: VizType.Sankey,
           },
         },
       },

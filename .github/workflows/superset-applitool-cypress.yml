@@ -26,7 +26,6 @@ jobs:
       fail-fast: false
       matrix:
         browser: ["chrome"]
-        node: [20]
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -40,7 +39,7 @@ jobs:
       APPLITOOLS_BATCH_NAME: Superset Cypress
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -66,7 +65,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version-file: './superset-frontend/.nvmrc'
       - name: Install npm dependencies
         uses: ./.github/actions/cached-dependencies
         with:

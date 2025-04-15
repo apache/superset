@@ -104,6 +104,7 @@ const TitleLink = styled.span`
 const TitleRight = styled.span`
   position: absolute;
   right: -1px;
+  font-weight: 400;
   bottom: ${({ theme }) => theme.gridUnit}px;
 `;
 
@@ -153,7 +154,7 @@ interface CardProps {
   subtitle?: ReactNode;
   url?: string;
   linkComponent?: ComponentType<LinkProps>;
-  imgURL?: string;
+  imgURL?: string | null;
   imgFallbackURL?: string;
   imgPosition?: BackgroundPosition;
   description: string;

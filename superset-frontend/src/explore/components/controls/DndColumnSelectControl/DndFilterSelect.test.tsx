@@ -202,7 +202,11 @@ test('cannot drop a column that is not part of the simple column selection', () 
         type={DndItemType.Column}
       />
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_a', expression: 'AGG(metric_a)' }}
+        value={{
+          metric_name: 'metric_a',
+          expression: 'AGG(metric_a)',
+          uuid: '1',
+        }}
         type={DndItemType.Metric}
       />
       {setup({
@@ -377,11 +381,11 @@ describe('when disallow_adhoc_metrics is set', () => {
           type={DndItemType.Column}
         />
         <DatasourcePanelDragOption
-          value={{ metric_name: 'metric_a' }}
+          value={{ metric_name: 'metric_a', uuid: '1' }}
           type={DndItemType.Metric}
         />
         <DatasourcePanelDragOption
-          value={{ metric_name: 'avg__num' }}
+          value={{ metric_name: 'avg__num', uuid: '2' }}
           type={DndItemType.AdhocMetricOption}
         />
         {setup({

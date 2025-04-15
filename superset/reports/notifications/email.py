@@ -17,13 +17,15 @@
 import logging
 import textwrap
 from dataclasses import dataclass
+from datetime import datetime
 from email.utils import make_msgid, parseaddr
 from typing import Any, Optional
 
 import nh3
 from flask_babel import gettext as __
+from pytz import timezone
 
-from superset import app
+from superset import app, is_feature_enabled
 from superset.exceptions import SupersetErrorsException
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
@@ -79,6 +81,16 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     """
 
     type = ReportRecipientType.EMAIL
+    now = datetime.now(timezone("UTC"))
+
+    @property
+    def _name(self) -> str:
+        """Include date format in the name if feature flag is enabled"""
+        return (
+            self._parse_name(self._content.name)
+            if is_feature_enabled("DATE_FORMAT_IN_EMAIL_SUBJECT")
+            else self._content.name
+        )
 
     @staticmethod
     def _get_smtp_domain() -> str:
@@ -173,11 +185,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
         csv_data = None
         if self._content.csv:
-            csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
+            csv_data = {__("%(name)s.csv", name=self._name): self._content.csv}
 
         pdf_data = None
         if self._content.pdf:
-            pdf_data = {__("%(name)s.pdf", name=self._content.name): self._content.pdf}
+            pdf_data = {__("%(name)s.pdf", name=self._name): self._content.pdf}
 
         return EmailContent(
             body=body,
@@ -191,8 +203,15 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return __(
             "%(prefix)s %(title)s",
             prefix=app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
-            title=self._content.name,
+            title=self._name,
         )
+
+    def _parse_name(self, name: str) -> str:
+        """If user add a date format to the subject, parse it to the real date
+        This feature is hidden behind a feature flag `DATE_FORMAT_IN_EMAIL_SUBJECT`
+        by default it is disabled
+        """
+        return self.now.strftime(name)
 
     def _get_call_to_action(self) -> str:
         return __(app.config["EMAIL_REPORTS_CTA"])

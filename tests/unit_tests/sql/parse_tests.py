@@ -301,7 +301,7 @@ def test_format_no_dialect() -> None:
     Test format with an engine that has no corresponding dialect.
     """
     assert (
-        SQLScript("SELECT col FROM t WHERE col NOT IN (1, 2)", "firebolt").format()
+        SQLScript("SELECT col FROM t WHERE col NOT IN (1, 2)", "dremio").format()
         == "SELECT col\nFROM t\nWHERE col NOT IN (1,\n                  2)"
     )
 
@@ -311,7 +311,7 @@ def test_split_no_dialect() -> None:
     Test the statement split when the engine has no corresponding dialect.
     """
     sql = "SELECT col FROM t WHERE col NOT IN (1, 2); SELECT * FROM t; SELECT foo"
-    statements = SQLScript(sql, "firebolt").statements
+    statements = SQLScript(sql, "dremio").statements
     assert len(statements) == 3
     assert statements[0]._sql == "SELECT col FROM t WHERE col NOT IN (1, 2)"
     assert statements[1]._sql == "SELECT * FROM t"
@@ -1070,3 +1070,118 @@ def test_is_mutating(engine: str) -> None:
         "with source as ( select 1 as one ) select * from source",
         engine=engine,
     ).is_mutating()
+
+
+def test_optimize() -> None:
+    """
+    Test that the `optimize` method works as expected.
+
+    The SQL optimization only works with engines that have a corresponding dialect.
+    """
+    sql = """
+SELECT anon_1.a, anon_1.b
+FROM (SELECT some_table.a AS a, some_table.b AS b, some_table.c AS c
+FROM some_table) AS anon_1
+WHERE anon_1.a > 1 AND anon_1.b = 2
+    """
+
+    optimized = """SELECT
+  anon_1.a,
+  anon_1.b
+FROM (
+  SELECT
+    some_table.a AS a,
+    some_table.b AS b,
+    some_table.c AS c
+  FROM some_table
+  WHERE
+    some_table.a > 1 AND some_table.b = 2
+) AS anon_1
+WHERE
+  TRUE AND TRUE"""
+
+    not_optimized = """
+SELECT anon_1.a,
+       anon_1.b
+FROM
+  (SELECT some_table.a AS a,
+          some_table.b AS b,
+          some_table.c AS c
+   FROM some_table) AS anon_1
+WHERE anon_1.a > 1
+  AND anon_1.b = 2"""
+
+    assert SQLStatement(sql, "sqlite").optimize().format() == optimized
+    assert SQLStatement(sql, "dremio").optimize().format() == not_optimized
+
+
+def test_firebolt() -> None:
+    """
+    Test that Firebolt 3rd party dialect is registered correctly.
+
+    We need a custom dialect for Firebolt because it parses `NOT col IN (1, 2)` as
+    `(NOT col) IN (1, 2)` instead of `NOT (col IN (1, 2))`, which will fail when `col`
+    is not a boolean.
+
+    Note that `NOT col = 1` works as expected in Firebolt, parsing as `NOT (col = 1)`.
+    """
+    sql = "SELECT col NOT IN (1, 2) FROM tbl"
+    assert (
+        SQLStatement(sql, "firebolt").format()
+        == """
+SELECT
+  NOT (
+    col IN (1, 2)
+  )
+FROM tbl
+    """.strip()
+    )
+
+    sql = "SELECT NOT col = 1 FROM tbl"
+    assert (
+        SQLStatement(sql, "firebolt").format()
+        == """
+SELECT
+  NOT col = 1
+FROM tbl
+    """.strip()
+    )
+
+
+def test_firebolt_old() -> None:
+    """
+    Test the dialect for the old Firebolt syntax.
+    """
+    from superset.sql.dialects import FireboltOld
+    from superset.sql.parse import SQLGLOT_DIALECTS
+
+    SQLGLOT_DIALECTS["firebolt"] = FireboltOld
+
+    sql = "SELECT * FROM t1 UNNEST(col1 AS foo)"
+    assert (
+        SQLStatement(sql, "firebolt").format()
+        == """SELECT
+  *
+FROM t1 UNNEST(col1 AS foo)"""
+    )
+
+
+def test_firebolt_old_escape_string() -> None:
+    """
+    Test the dialect for the old Firebolt syntax.
+    """
+    from superset.sql.dialects import FireboltOld
+    from superset.sql.parse import SQLGLOT_DIALECTS
+
+    SQLGLOT_DIALECTS["firebolt"] = FireboltOld
+
+    # both '' and \' are valid escape sequences
+    sql = r"SELECT 'foo''bar', 'foo\'bar'"
+
+    # but they normalize to ''
+    assert (
+        SQLStatement(sql, "firebolt").format()
+        == """SELECT
+  'foo''bar',
+  'foo''bar'"""
+    )
