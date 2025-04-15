@@ -19,7 +19,6 @@
 import { useState, useEffect } from 'react';
 import { styled, css } from '@superset-ui/core';
 import { debounce } from 'lodash';
-import { assetUrl } from 'src/utils/assetUrl';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { Row, Col, Grid } from 'src/components';
 import { MainNav, MenuMode } from 'src/components/Menu';
