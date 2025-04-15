@@ -331,13 +331,11 @@ test('Should schema select display options', async () => {
   await waitFor(() => {
     expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
   });
-  const publicOption = await screen.findByText('public', {
-    selector: '.ant-select-item-option-content',
-  });
+  const publicOption = await screen.findByRole('option', { name: 'public' });
   expect(publicOption).toBeInTheDocument();
 
-  const infoSchemaOption = await screen.findByText('information_schema', {
-    selector: '.ant-select-item-option-content',
+  const infoSchemaOption = await screen.findByRole('option', {
+    name: 'information_schema',
   });
   expect(infoSchemaOption).toBeInTheDocument();
 });
