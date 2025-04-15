@@ -35,6 +35,7 @@ import {
 import SearchFilter from './Search';
 import SelectFilter from './Select';
 import DateRangeFilter from './DateRange';
+import NumericalRangeFilter from './NumericalRange';
 import { FilterHandler } from './Base';
 
 interface UIFiltersProps {
@@ -76,6 +77,9 @@ function UIFilters(
             toolTipDescription,
             onFilterUpdate,
             loading,
+            dateFilterValueType,
+            min,
+            max,
           },
           index,
         ) => {
@@ -133,6 +137,21 @@ function UIFilters(
                 ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
+                key={key}
+                name={id}
+                onSubmit={value => updateFilterValue(index, value)}
+                dateFilterValueType={dateFilterValueType || 'unix'}
+              />
+            );
+          }
+          if (input === 'numerical_range') {
+            return (
+              <NumericalRangeFilter
+                ref={filterRefs[index]}
+                Header={Header}
+                initialValue={initialValue}
+                min={min}
+                max={max}
                 key={key}
                 name={id}
                 onSubmit={value => updateFilterValue(index, value)}
