@@ -195,8 +195,8 @@ const Select = forwardRef(
         missingValues.length > 0
           ? missingValues.concat(selectOptions)
           : selectOptions;
-      return result;
-    }, [selectOptions, selectValue]);
+      return result.slice().sort(sortSelectedFirst);
+    }, [selectOptions, selectValue, sortSelectedFirst]);
 
     const enabledOptions = useMemo(
       () => visibleOptions.filter(option => !option.disabled),
