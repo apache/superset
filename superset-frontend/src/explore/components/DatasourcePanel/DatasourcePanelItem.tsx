@@ -82,7 +82,7 @@ const LabelWrapper = styled.div`
 
     .metric-option {
       & > svg {
-        min-width: ${theme.sizeUnit * 4}px;
+        min-width: ${theme.gridUnit * 4}px;
       }
       & > .option-label {
         overflow: hidden;
@@ -117,9 +117,9 @@ const SectionHeader = styled.span`
 const Box = styled.div`
   ${({ theme }) => `
     border: 1px ${theme.colors.grayscale.light4} solid;
-    border-radius: ${theme.sizeUnit}px;
+    border-radius: ${theme.gridUnit}px;
     font-size: ${theme.fontSizeSM}px;
-    padding: ${theme.sizeUnit}px;
+    padding: ${theme.gridUnit}px;
     color: ${theme.colors.grayscale.light1};
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -234,7 +234,7 @@ const DatasourcePanelItem = ({
         <div
           css={css`
             display: flex;
-            gap: ${theme.sizeUnit * 2}px;
+            gap: ${theme.gridUnit * 2}px;
             justify-content: space-between;
             align-items: baseline;
           `}
