@@ -97,6 +97,7 @@ export type DashboardState = {
 
 export type ExtraNativeFilter = {
   filterName?: string;
+  filterType?: string;
   columnName?: string;
   columnLabel?: string;
   filterValues?: Array<any> | [];

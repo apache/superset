@@ -89,6 +89,8 @@ import { NotificationMethod } from './components/NotificationMethod';
 import ValidatedPanelHeader from './components/ValidatedPanelHeader';
 import StyledPanel from './components/StyledPanel';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import { set } from 'lodash';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -533,6 +535,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     [
       {
         nativeFilterId: null,
+        filterName: '',
+        filterType: '',
         columnLabel: '',
         columnName: '',
         filterValues: [],
@@ -591,7 +595,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const formatOptionEnabled =
     isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
   const tabsEnabled = isFeatureEnabled(FeatureFlag.AlertReportTabs);
-  const filtersEnabled = isFeatureEnabled(FeatureFlag.AlertReportsFilter);
+  // const filtersEnabled = isFeatureEnabled(FeatureFlag.AlertReportsFilter);
+  const filtersEnabled = true;
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -666,7 +671,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     dashboardId: number,
     columnName: string,
     datasetId: string,
+    vizType = 'filter_select',
   ) => {
+    if (vizType === 'filter_time') {
+      return;
+    }
+
     const filterValues = {
       formData: {
         datasource: `${datasetId}__table`,
@@ -674,18 +684,37 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         metrics: ['count'],
         row_limit: 1000,
         showSearch: true,
-        viz_type: 'filter_select',
+        viz_type: vizType,
         type: 'NATIVE_FILTER',
         dashboardId,
       },
       force: false,
       ownState: {},
     };
+
     const data = await getChartDataRequest(filterValues).then(response =>
-      response.json.result[0].data.map((item: any) => ({
-        value: item[columnName],
-        label: item[columnName],
-      })),
+      response.json.result[0].data.map((item: any) => {
+        console.log(item);
+
+        if (vizType === 'filter_timegrain') {
+          return {
+            value: item.duration,
+            label: item.name,
+          };
+        }
+
+        if (vizType === 'filter_timecolumn') {
+          return {
+            value: item.column_name,
+            label: item.verbose_name || item.column_name,
+          };
+        }
+
+        return {
+          value: item[columnName],
+          label: item[columnName],
+        };
+      }),
     );
 
     return data;
@@ -697,21 +726,36 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       const filter = nativeFilters.filter(
         (f: any) => f.id === nativeFilter.nativeFilterId,
       )[0];
+
+      console.log('filter', filter);
+
       const { datasetId } = filter.targets[0];
-      const columnName = filter.targets[0].column.name;
-      const dashboardId = currentAlert?.dashboard?.value;
       const filterName = filter.name;
+      const columnName = filter.targets[0].column?.name || filterName;
+      const dashboardId = currentAlert?.dashboard?.value;
+      const filterType = filter.filterType;
+
+      console.log(filterType);
+      if (filterType === 'filter_time') {
+        return;
+      }
+
       // eslint-disable-next-line consistent-return
       return fetchDashboardFilterValues(
-        // @ts-ignore
         dashboardId,
         columnName,
         datasetId,
+        filterType,
       ).then(options => {
         setNativeFilterData(prev =>
           prev.map(filter =>
             filter.nativeFilterId === nativeFilter.nativeFilterId
-              ? { ...filter, filterName, optionFilterValues: options }
+              ? {
+                  ...filter,
+                  filterType,
+                  filterName,
+                  optionFilterValues: options,
+                }
               : filter,
           ),
         );
@@ -818,7 +862,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     if (currentAlert?.extra?.dashboard) {
       currentAlert.extra.dashboard.nativeFilters = nativeFilterData.map(
-        ({ columnName, columnLabel, nativeFilterId, filterValues }) => ({
+        ({
+          columnName,
+          columnLabel,
+          nativeFilterId,
+          filterValues,
+          filterType,
+          filterName,
+        }) => ({
+          filterName,
+          filterType,
           columnName,
           columnLabel,
           nativeFilterId,
@@ -1266,15 +1319,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (tabsEnabled) {
       setTabOptions([]);
       setNativeFilterOptions([]);
+      updateAnchorState('');
+    }
+    if (filtersEnabled) {
       setNativeFilterData([
         {
+          filterName: '',
+          filterType: '',
           nativeFilterId: null,
           columnLabel: '',
           columnName: '',
           filterValues: [],
         },
       ]);
-      updateAnchorState('');
     }
   };
 
@@ -1338,7 +1395,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     // find specific filter tied to the selected filter
     const filters = Object.values(tabNativeFilters).flat();
     const filter = filters.filter((f: any) => f.id === nativeFilterId)[0];
-    const filterName = filter.name;
+
+    console.log('filter', filter);
+
+    const { filterType } = filter;
 
     const filterAlreadyExist = nativeFilterData.some(
       filter => filter.nativeFilterId === nativeFilterId,
@@ -1349,8 +1409,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       return;
     }
 
-    const { datasetId } = filter.targets[0];
-    const columnName = filter.targets[0].column.name;
+    const filterName = filter.name;
+
+    let columnName;
+    if (
+      filterType === 'filter_time' ||
+      filterType === 'filter_timecolumn' ||
+      filterType === 'filter_timegrain'
+    ) {
+      columnName = filter.name;
+    } else {
+      columnName = filter.targets[0].column.name;
+    }
+
+    const datasetId = filter.targets[0].datasetId || null;
 
     const columnLabel = nativeFilterOptions.filter(
       // @ts-ignore
@@ -1375,6 +1447,55 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ownState: {},
     };
 
+    // todo(hugh): put this into another function
+    if (
+      filterType === 'filter_time' ||
+      filterType === 'filter_timecolumn' ||
+      filterType === 'filter_timegrain'
+    ) {
+      fetchDashboardFilterValues(
+        dashboardId,
+        columnName,
+        datasetId,
+        filterType,
+      ).then(optionFilterValues => {
+        setNativeFilterData(
+          nativeFilterData.map((filter, index) =>
+            index === idx
+              ? {
+                  ...filter,
+                  filterName,
+                  filterType,
+                  nativeFilterId,
+                  columnLabel,
+                  columnName,
+                  optionFilterValues: optionFilterValues,
+                  filterValues: [], // reset filter values on filter change
+                }
+              : filter,
+          ),
+        );
+      });
+
+      setNativeFilterData(
+        nativeFilterData.map((filter, index) =>
+          index === idx
+            ? {
+                ...filter,
+                filterName,
+                filterType,
+                nativeFilterId,
+                columnLabel,
+                columnName,
+                optionFilterValues: [],
+                filterValues: [], // reset filter values on filter change
+              }
+            : filter,
+        ),
+      );
+      return;
+    }
+
     getChartDataRequest(filterValues).then(response => {
       const newFilterValues = response.json.result[0].data.map((item: any) => ({
         value: item[columnName],
@@ -1387,6 +1508,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             ? {
                 ...filter,
                 filterName,
+                filterType,
                 nativeFilterId,
                 columnLabel,
                 columnName,
@@ -1451,6 +1573,60 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
       return true; // Non-Email methods are considered valid
     });
+  };
+
+  const renderFilterValueSelect = (filter: ExtraNativeFilter, idx: number) => {
+    console.log('filter', filter);
+    if (!filter) return null; // todo(hugh): Fix this..
+    const { filterType } = filter;
+    let mode = 'multiple';
+
+    console.log(filterType);
+
+    if (filterType === 'filter_time') {
+      return (
+        <DateFilterControl
+          name="time_range"
+          onChange={timeRange => {
+            setNativeFilterData(
+              nativeFilterData.map((f: any) =>
+                filter.nativeFilterId === f.nativeFilterId
+                  ? {
+                      ...f,
+                      filterValues: [timeRange],
+                    }
+                  : f,
+              ),
+            );
+          }}
+          value={filter.filterValues[0]} // only showing first value in the array
+          autoAdjustOverflow
+        />
+      );
+    }
+
+    if (
+      filterType === 'filter_timegrain' ||
+      filterType === 'filter_timecolumn'
+    ) {
+      mode = 'single';
+    }
+
+    return (
+      <Select
+        ariaLabel={t('Value')}
+        placeholder={t('Select Value')}
+        disabled={!filter?.optionFilterValues}
+        value={filter?.filterValues}
+        // @ts-ignore
+        options={filter?.optionFilterValues}
+        onChange={value =>
+          // @ts-ignore
+          onChangeDashboardFilterValue(idx, value)
+        }
+        mode={mode}
+      />
+    );
   };
 
   const validateGeneralSection = () => {
@@ -1601,6 +1777,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         // const optionFilterValues = fetch
         // optionFilterValues
         // @ts-ignore
+        console.log('onEdit', resource.extra.dashboard.nativeFilters);
         const filters = resource.extra.dashboard.nativeFilters;
         setNativeFilterData(filters);
       }
@@ -2115,23 +2292,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           </div>
                           <div className="filters-dashvalue-container">
                             <div className="control-label">{t('Value')}</div>
-                            <Select
-                              ariaLabel={t('Value')}
-                              placeholder={t('Select Value')}
-                              disabled={
-                                !nativeFilterData[idx]?.optionFilterValues
-                              }
-                              value={nativeFilterData[idx]?.filterValues}
-                              // @ts-ignore
-                              options={
-                                nativeFilterData[idx]?.optionFilterValues
-                              }
-                              onChange={value =>
-                                // @ts-ignore
-                                onChangeDashboardFilterValue(idx, value)
-                              }
-                              mode="multiple"
-                            />
+                            {renderFilterValueSelect(
+                              nativeFilterData[idx],
+                              idx,
+                            )}
                           </div>
                           {(idx !== 0 || isEditMode) && (
                             <div className="filters-delete">
