@@ -35,11 +35,12 @@ import { useLocale } from 'src/hooks/useLocale';
 import { BaseFilter, FilterHandler } from './Base';
 
 interface DateRangeFilterProps extends BaseFilter {
-  onSubmit: (val: number[]) => void;
+  onSubmit: (val: number[] | string[]) => void;
   name: string;
+  dateFilterValueType?: 'unix' | 'iso';
 }
 
-type ValueState = [number, number];
+type ValueState = [number, number] | [string, string] | null;
 
 const RangeFilterContainer = styled.div`
   display: inline-flex;
@@ -50,7 +51,12 @@ const RangeFilterContainer = styled.div`
 `;
 
 function DateRangeFilter(
-  { Header, initialValue, onSubmit }: DateRangeFilterProps,
+  {
+    Header,
+    initialValue,
+    onSubmit,
+    dateFilterValueType = 'unix',
+  }: DateRangeFilterProps,
   ref: RefObject<FilterHandler>,
 ) {
   const [value, setValue] = useState<ValueState | null>(initialValue ?? null);
@@ -85,11 +91,14 @@ function DateRangeFilter(
               onSubmit([]);
               return;
             }
-            const changeValue = [
-              dayjsRange[0]?.valueOf() ?? 0,
-              dayjsRange[1]?.valueOf() ?? 0,
-            ] as ValueState;
-            setValue(changeValue);
+            const changeValue =
+              dateFilterValueType === 'iso'
+                ? [dayjsRange[0].toISOString(), dayjsRange[1].toISOString()]
+                : [
+                    dayjsRange[0]?.valueOf() ?? 0,
+                    dayjsRange[1]?.valueOf() ?? 0,
+                  ];
+            setValue(changeValue as ValueState);
             onSubmit(changeValue);
           }}
         />

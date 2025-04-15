@@ -17,7 +17,12 @@
  * under the License.
  */
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { lazy, ComponentType, ComponentProps } from 'react';
+import {
+  lazy,
+  ComponentType,
+  ComponentProps,
+  LazyExoticComponent,
+} from 'react';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
@@ -127,6 +132,10 @@ const RowLevelSecurityList = lazy(
 
 const RolesList = lazy(
   () => import(/* webpackChunkName: "RolesList" */ 'src/pages/RolesList'),
+);
+
+const UsersList: LazyExoticComponent<any> = lazy(
+  () => import(/* webpackChunkName: "UsersList" */ 'src/pages/UsersList'),
 );
 
 type Routes = {
@@ -248,10 +257,16 @@ const user = getBootstrapData()?.user;
 const isAdmin = isUserAdmin(user);
 
 if (isAdmin) {
-  routes.push({
-    path: '/roles/',
-    Component: RolesList,
-  });
+  routes.push(
+    {
+      path: '/roles/',
+      Component: RolesList,
+    },
+    {
+      path: '/users/',
+      Component: UsersList,
+    },
+  );
 }
 
 const frontEndRoutes: Record<string, boolean> = routes
