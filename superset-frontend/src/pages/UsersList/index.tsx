@@ -21,14 +21,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { css, t, SupersetClient, useTheme } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ListView, {
+import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
+import {
+  DeleteModal,
+  ListView,
   ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
-import DeleteModal from 'src/components/DeleteModal';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+  ConfirmStatusChange,
+  ListViewFilterOperator,
+  ListViewFilters,
+} from 'src/components';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { Icons } from 'src/components/Icons';
 import {
@@ -369,7 +370,7 @@ function UsersList({ user }: UsersListProps) {
               iconColor={theme.colors.primary.light5}
               iconSize="m"
               css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
                 vertical-align: text-top;
               `}
             />
@@ -391,42 +392,42 @@ function UsersList({ user }: UsersListProps) {
     );
   }
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('First name'),
         key: 'first_name',
         id: 'first_name',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: ListViewFilterOperator.Contains,
       },
       {
         Header: t('Last name'),
         key: 'last_name',
         id: 'last_name',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: ListViewFilterOperator.Contains,
       },
       {
         Header: t('Username'),
         key: 'username',
         id: 'username',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: ListViewFilterOperator.Contains,
       },
       {
         Header: t('Email'),
         key: 'email',
         id: 'email',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: ListViewFilterOperator.Contains,
       },
       {
         Header: t('Is active?'),
         key: 'active',
         id: 'active',
         input: 'select',
-        operator: FilterOperator.Equals,
+        operator: ListViewFilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: isActiveOptions?.map(option => ({
           label: option.label,
@@ -439,7 +440,7 @@ function UsersList({ user }: UsersListProps) {
         key: 'roles',
         id: 'roles',
         input: 'select',
-        operator: FilterOperator.RelationManyMany,
+        operator: ListViewFilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         selects: roles?.map(role => ({
           label: role.name,
@@ -452,7 +453,7 @@ function UsersList({ user }: UsersListProps) {
         key: 'created_on',
         id: 'created_on',
         input: 'datetime_range',
-        operator: FilterOperator.Between,
+        operator: ListViewFilterOperator.Between,
         dateFilterValueType: 'iso',
       },
       {
@@ -460,7 +461,7 @@ function UsersList({ user }: UsersListProps) {
         key: 'changed_on',
         id: 'changed_on',
         input: 'datetime_range',
-        operator: FilterOperator.Between,
+        operator: ListViewFilterOperator.Between,
         dateFilterValueType: 'iso',
       },
       {
@@ -468,7 +469,7 @@ function UsersList({ user }: UsersListProps) {
         key: 'last_login',
         id: 'last_login',
         input: 'datetime_range',
-        operator: FilterOperator.Between,
+        operator: ListViewFilterOperator.Between,
         dateFilterValueType: 'iso',
       },
       {
@@ -476,7 +477,7 @@ function UsersList({ user }: UsersListProps) {
         key: 'login_count',
         id: 'login_count',
         input: 'numerical_range',
-        operator: FilterOperator.Between,
+        operator: ListViewFilterOperator.Between,
         min: loginCountStats.min,
         max: loginCountStats.max,
       },
@@ -485,7 +486,7 @@ function UsersList({ user }: UsersListProps) {
         key: 'fail_login_count',
         id: 'fail_login_count',
         input: 'numerical_range',
-        operator: FilterOperator.Between,
+        operator: ListViewFilterOperator.Between,
       },
     ],
     [isLoading, roles, loginCountStats, failLoginCountStats],
@@ -504,7 +505,7 @@ function UsersList({ user }: UsersListProps) {
             iconColor={theme.colors.primary.light5}
             iconSize="m"
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
               vertical-align: text-top;
             `}
           />

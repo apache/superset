@@ -36,18 +36,6 @@ export const DEFAULT_MAX_COLUMNS_LENGTH = 50;
 export const DEFAULT_MAX_METRICS_LENGTH = 50;
 export const ITEM_HEIGHT = 30;
 
-const Button = styled.button`
-  background: none;
-  border: none;
-  text-decoration: underline;
-  color: ${({ theme }) => theme.colorPrimaryText};
-`;
-
-const ButtonContainer = styled.div`
-  text-align: center;
-  padding-top: 2px;
-`;
-
 const LabelWrapper = styled.div`
   ${({ theme }) => css`
     color: ${theme.colors.grayscale.dark1};
@@ -55,9 +43,9 @@ const LabelWrapper = styled.div`
     text-overflow: ellipsis;
     font-size: ${theme.fontSizeSM}px;
     background-color: ${theme.colors.grayscale.light4};
-    margin: ${theme.gridUnit * 2}px 0;
+    margin: ${theme.sizeUnit * 2}px 0;
     border-radius: ${theme.borderRadius}px;
-    padding: 0 ${theme.gridUnit}px;
+    padding: 0 ${theme.sizeUnit}px;
 
     &:first-of-type {
       margin-top: 0;
@@ -82,7 +70,7 @@ const LabelWrapper = styled.div`
 
     .metric-option {
       & > svg {
-        min-width: ${theme.gridUnit * 4}px;
+        min-width: ${theme.sizeUnit * 4}px;
       }
       & > .option-label {
         overflow: hidden;
@@ -111,22 +99,6 @@ const SectionHeader = styled.span`
   ${({ theme }) => `
     font-size: ${theme.fontSize}px;
     line-height: 1.3;
-  `}
-`;
-
-const Box = styled.div`
-  ${({ theme }) => `
-    border: 1px ${theme.colors.grayscale.light4} solid;
-    border-radius: ${theme.gridUnit}px;
-    font-size: ${theme.fontSizeSM}px;
-    padding: ${theme.gridUnit}px;
-    color: ${theme.colors.grayscale.light1};
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
   `}
 `;
 
@@ -186,7 +158,7 @@ const DatasourcePanelItem = ({
               css={
                 tooltipNode &&
                 css`
-                  margin-top: ${theme.gridUnit}px;
+                  margin-top: ${theme.sizeUnit}px;
                 `
               }
             >
@@ -205,14 +177,14 @@ const DatasourcePanelItem = ({
   const folder = folderMap.get(item.folderId);
   if (!folder) return null;
 
-  const indentation = item.depth * theme.gridUnit * 4;
+  const indentation = item.depth * theme.sizeUnit * 4;
 
   return (
     <div
       style={{
         ...style,
-        paddingLeft: theme.gridUnit * 4 + indentation,
-        paddingRight: theme.gridUnit * 4,
+        paddingLeft: theme.sizeUnit * 4 + indentation,
+        paddingRight: theme.sizeUnit * 4,
       }}
     >
       {item.type === 'header' && (
@@ -234,7 +206,7 @@ const DatasourcePanelItem = ({
         <div
           css={css`
             display: flex;
-            gap: ${theme.gridUnit * 2}px;
+            gap: ${theme.sizeUnit * 2}px;
             justify-content: space-between;
             align-items: baseline;
           `}
