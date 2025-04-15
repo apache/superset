@@ -42,7 +42,7 @@ import {
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { Menu } from '@superset-ui/core/components/Menu';
-import { NoAnimationDropdown, Tooltip, Button } from 'src/components';
+import { NoAnimationDropdown, Tooltip, Button } from '@superset-ui/core/components';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';

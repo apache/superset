@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Key, ReactNode, PureComponent } from 'react';
-import { Dropdown, CssEditor as AceCssEditor, Button } from 'src/components';
+import { Dropdown, CssEditor as AceCssEditor, Button } from '@superset-ui/core/components';
 import rison from 'rison';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { t, styled, SupersetClient } from '@superset-ui/core';

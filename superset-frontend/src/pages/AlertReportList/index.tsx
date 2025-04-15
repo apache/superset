@@ -42,7 +42,7 @@ import {
   type ListViewActionProps,
   type ListViewProps,
   type ListViewFilters,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { Switch } from '@superset-ui/core/components/Switch';
 import { DATETIME_WITH_TIME_ZONE } from 'src/constants';

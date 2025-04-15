@@ -29,7 +29,7 @@ import setupPlugins from 'src/setup/setupPlugins';
 import { useUiConfig } from '@superset-ui/core/components/UiConfigContext';
 import { RootContextProviders } from 'src/views/RootContextProviders';
 import { store, USER_LOADED } from 'src/views/store';
-import { ErrorBoundary, Loading } from 'src/components';
+import { ErrorBoundary, Loading } from '@superset-ui/core/components';
 import { addDangerToast } from '@superset-ui/core/components/MessageToasts/actions';
 import ToastContainer from '@superset-ui/core/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';

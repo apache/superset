@@ -18,7 +18,7 @@
  */
 import { useDispatch } from 'react-redux';
 import { t } from '@superset-ui/core';
-import { Dropdown, Button } from 'src/components';
+import { Dropdown, Button } from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';

@@ -20,7 +20,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
-import { Tooltip, AlteredSliceTag, Button, DeleteModal } from 'src/components';
+import { Tooltip, AlteredSliceTag, Button, DeleteModal } from '@superset-ui/core/components';
 import { css, logging, SupersetClient, t, useTheme } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { Icons } from '@superset-ui/core/components/Icons';

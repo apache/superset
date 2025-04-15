@@ -26,7 +26,7 @@ import {
   FaveStar,
   Label,
   ListViewCard,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Chart from 'src/types/Chart';
 

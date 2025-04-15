@@ -26,7 +26,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Select, Tooltip, Alert } from 'src/components';
+import { Select, Tooltip, Alert } from '@superset-ui/core/components';
 import { noOp } from 'src/utils/common';
 import ScopingTree from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/ScopingTree';
 import {
@@ -36,7 +36,7 @@ import {
   RootState,
 } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import type { SelectOptionsType } from 'src/components';
+import type { SelectOptionsType } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { NEW_CHART_SCOPING_ID } from './constants';
 

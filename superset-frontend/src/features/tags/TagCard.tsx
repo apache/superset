@@ -24,7 +24,7 @@ import {
   Dropdown,
   ConfirmStatusChange,
   ListViewCard,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tag } from 'src/views/CRUD/types';

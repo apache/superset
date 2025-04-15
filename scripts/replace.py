@@ -7,7 +7,7 @@ from typing import List, Tuple
 # Define replacement patterns as tuples of (pattern, replacement)
 REPLACE_PATTERNS: List[Tuple[str, str]] = [
     # Example patterns - replace these with your actual patterns
-    (r"'src\/components\/", "'@superset-ui/core/components/"),
+    (r"'src\/components", "'@superset-ui/core/components"),
 ]
 
 

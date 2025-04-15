@@ -44,7 +44,7 @@ import {
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilters,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';

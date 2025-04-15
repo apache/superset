@@ -21,7 +21,7 @@ import { Switch } from '@superset-ui/core/components/Switch';
 import {
   InfoTooltip,
   LabeledErrorBoundInput as ValidatedInput,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { FieldPropTypes } from '../../types';
 import { toggleStyle, infoTooltip } from '../styles';
 

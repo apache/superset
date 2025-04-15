@@ -44,7 +44,7 @@ import {
   Select,
   SQLEditor,
   EmptyState,
-} from 'src/components';
+} from '@superset-ui/core/components';
 
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';

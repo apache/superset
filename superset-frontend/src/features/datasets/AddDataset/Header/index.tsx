@@ -19,7 +19,7 @@
 import { Dispatch } from 'react';
 import { t } from '@superset-ui/core';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
-import { Button } from 'src/components';
+import { Button } from '@superset-ui/core/components';
 import { TooltipPlacement } from '@superset-ui/core/components/Tooltip/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Menu } from '@superset-ui/core/components/Menu';

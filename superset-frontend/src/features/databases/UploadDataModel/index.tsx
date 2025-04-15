@@ -42,7 +42,7 @@ import {
   Col,
   Input,
   InputNumber,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { Switch, SwitchProps } from '@superset-ui/core/components/Switch';
 import Upload, { UploadChangeParam, UploadFile } from '@superset-ui/core/components/Upload';
 import { Icons } from '@superset-ui/core/components/Icons';

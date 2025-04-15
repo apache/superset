@@ -32,7 +32,7 @@ import {
   Col,
   Row,
   type FormProps,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { ConditionalFormattingConfig } from './types';
 
 const FullWidthInputNumber = styled(InputNumber)`

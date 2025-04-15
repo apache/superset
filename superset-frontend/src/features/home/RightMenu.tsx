@@ -39,7 +39,7 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import { Menu } from '@superset-ui/core/components/Menu';
-import { Label, Tooltip } from 'src/components';
+import { Label, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { findPermission } from 'src/utils/findPermission';

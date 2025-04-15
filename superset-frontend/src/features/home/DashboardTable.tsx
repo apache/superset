@@ -36,7 +36,7 @@ import {
   handleDashboardDelete,
 } from 'src/views/CRUD/utils';
 import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
-import { DeleteModal, Loading } from 'src/components';
+import { DeleteModal, Loading } from '@superset-ui/core/components';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { Icons } from '@superset-ui/core/components/Icons';

@@ -34,7 +34,7 @@ import {
   type ListViewProps,
   type ListViewActionProps,
   type ListViewFilters,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import {
   FormattedPermission,
   PermissionResource,

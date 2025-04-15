@@ -30,7 +30,7 @@ import {
 } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { ErrorBoundary, Form, StyledModal } from 'src/components';
+import { ErrorBoundary, Form, StyledModal } from '@superset-ui/core/components';
 import { testWithId } from 'src/utils/testUtils';
 import { updateCascadeParentIds } from 'src/dashboard/actions/nativeFilters';
 import useEffectEvent from 'src/hooks/useEffectEvent';

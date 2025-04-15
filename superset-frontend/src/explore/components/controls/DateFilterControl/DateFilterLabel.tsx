@@ -27,7 +27,7 @@ import {
   useCSSTextTruncation,
   fetchTimeRange,
 } from '@superset-ui/core';
-import { Button, Divider, Modal, Tooltip, Select } from 'src/components';
+import { Button, Divider, Modal, Tooltip, Select } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';

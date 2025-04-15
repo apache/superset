@@ -48,7 +48,7 @@ import {
   ErrorAlert,
   ErrorMessageWithStackTrace,
   Loading,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {

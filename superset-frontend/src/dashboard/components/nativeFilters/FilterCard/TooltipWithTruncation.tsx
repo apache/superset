@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip } from 'src/components';
+import { Tooltip } from '@superset-ui/core/components';
 import { TooltipProps } from '@superset-ui/core/components/Tooltip/types';
 import { TooltipTrigger } from './Styles';
 

@@ -50,7 +50,7 @@ import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   DropdownContainer,
   type DropdownRef as DropdownContainerRef,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';

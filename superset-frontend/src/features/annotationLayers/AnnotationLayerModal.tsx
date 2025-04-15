@@ -22,7 +22,7 @@ import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Input, Modal } from 'src/components';
+import { Input, Modal } from '@superset-ui/core/components';
 import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 
 import { OnlyKeyWithType } from 'src/utils/types';

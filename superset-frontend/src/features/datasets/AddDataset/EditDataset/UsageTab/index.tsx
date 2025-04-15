@@ -35,7 +35,7 @@ import Table, {
 import {
   EmptyState,
   ListViewFilterOperator as FilterOperator,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import ChartImage from 'src/assets/images/chart.svg';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { createRef, PureComponent } from 'react';
-import { FormLabel, Alert, Button, Input, Select } from 'src/components';
+import { FormLabel, Alert, Button, Input, Select } from '@superset-ui/core/components';
 import { t, styled } from '@superset-ui/core';
 
 import ModalTrigger, { ModalTriggerRef } from '@superset-ui/core/components/ModalTrigger';

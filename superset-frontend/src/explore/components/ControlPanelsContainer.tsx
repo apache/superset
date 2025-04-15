@@ -62,7 +62,7 @@ import {
   Loading,
   Tooltip,
   PluginContext,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import Tabs from '@superset-ui/core/components/Tabs';
 
 import { getSectionsToRender } from 'src/explore/controlUtils';

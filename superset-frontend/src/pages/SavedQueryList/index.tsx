@@ -51,7 +51,7 @@ import {
   type ListViewProps,
   type ListViewActionProps,
   type ListViewFilters,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { ButtonProps, SubMenuProps } from 'src/features/home/SubMenu';
 import TagsList from '@superset-ui/core/components/TagsList';

@@ -20,7 +20,7 @@ import { PureComponent } from 'react';
 import rison from 'rison';
 import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
-import { Button, AsyncSelect, EmptyState } from 'src/components';
+import { Button, AsyncSelect, EmptyState } from '@superset-ui/core/components';
 import {
   t,
   SupersetClient,

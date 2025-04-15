@@ -40,7 +40,7 @@ import {
   CopyToClipboard,
   Dropdown,
   FilterableTable,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import Skeleton from '@superset-ui/core/components/Skeleton';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {

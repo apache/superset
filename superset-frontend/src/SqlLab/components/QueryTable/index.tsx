@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo, ReactNode } from 'react';
-import { Card, Button, Tooltip, Label } from 'src/components';
+import { Card, Button, Tooltip, Label } from '@superset-ui/core/components';
 import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { t, useTheme, QueryResponse } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';

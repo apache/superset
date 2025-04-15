@@ -35,7 +35,7 @@ import {
   Select,
   Tooltip,
   SQLEditor,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
 import {

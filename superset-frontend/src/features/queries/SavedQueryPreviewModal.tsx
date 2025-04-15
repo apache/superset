@@ -18,7 +18,7 @@
  */
 import { FunctionComponent } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { Button, Modal } from 'src/components';
+import { Button, Modal } from '@superset-ui/core/components';
 import SyntaxHighlighterCopy from 'src/features/queries/SyntaxHighlighterCopy';
 import withToasts, {
   ToastProps,

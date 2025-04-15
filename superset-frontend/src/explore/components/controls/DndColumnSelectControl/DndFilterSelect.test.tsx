@@ -33,7 +33,7 @@ import {
   screen,
   within,
 } from 'spec/helpers/testing-library';
-import type { AsyncAceEditorProps } from 'src/components';
+import type { AsyncAceEditorProps } from '@superset-ui/core/components';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Operators } from 'src/explore/constants';

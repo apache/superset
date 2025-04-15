@@ -23,7 +23,7 @@ import { t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
-import { Loading } from 'src/components';
+import { Loading } from '@superset-ui/core/components';
 import {
   useDashboard,
   useDashboardCharts,

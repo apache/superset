@@ -27,7 +27,7 @@ import {
   Row,
   InputNumber,
   Loading,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import {
   SINCE_GRAIN_OPTIONS,
   SINCE_MODE_OPTIONS,

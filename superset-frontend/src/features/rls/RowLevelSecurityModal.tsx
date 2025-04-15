@@ -27,7 +27,7 @@ import {
   InfoTooltip,
   LabeledErrorBoundInput,
   Input,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { FILTER_OPTIONS } from './constants';

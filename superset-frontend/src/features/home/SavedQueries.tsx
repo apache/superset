@@ -25,7 +25,7 @@ import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { LoadingCards } from 'src/pages/Home';
 import { TableTab } from 'src/views/CRUD/types';
 import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
-import { Dropdown, DeleteModal, Button, ListViewCard } from 'src/components';
+import { Dropdown, DeleteModal, Button, ListViewCard } from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
 import { Icons } from '@superset-ui/core/components/Icons';

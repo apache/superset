@@ -25,7 +25,7 @@ import {
   userEvent,
 } from 'spec/helpers/testing-library';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
-import { EditableTitle } from 'src/components';
+import { EditableTitle } from '@superset-ui/core/components';
 import { setEditMode } from 'src/dashboard/actions/dashboardState';
 
 import Tab from './Tab';

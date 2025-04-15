@@ -41,7 +41,7 @@ import {
   Input,
   Label,
   Loading,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
 import {
   QueryState,

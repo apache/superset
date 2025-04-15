@@ -45,7 +45,7 @@ import {
   ListViewFilterOperator as FilterOperator,
   ListViewFilters,
   Loading,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { Icons } from '@superset-ui/core/components/Icons';

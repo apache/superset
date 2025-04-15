@@ -18,7 +18,7 @@
  */
 import { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
-import { Input, Form, FormLabel, Col, Row } from 'src/components';
+import { Input, Form, FormLabel, Col, Row } from '@superset-ui/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
 // eslint-disable-next-line no-restricted-imports
 import { Tooltip } from 'antd'; // TODO: Remove antd

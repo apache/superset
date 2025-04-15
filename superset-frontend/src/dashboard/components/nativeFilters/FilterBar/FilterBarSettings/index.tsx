@@ -27,7 +27,7 @@ import {
   saveCrossFiltersSetting,
 } from 'src/dashboard/actions/dashboardInfo';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Button, Checkbox, Dropdown } from 'src/components';
+import { Button, Checkbox, Dropdown } from '@superset-ui/core/components';
 import { Space } from '@superset-ui/core/components/Space';
 import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';

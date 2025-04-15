@@ -23,7 +23,7 @@ import { styled, SupersetTheme, css, t, useTheme } from '@superset-ui/core';
 import cx from 'classnames';
 import { debounce } from 'lodash';
 import { Menu, MenuMode, MainNav } from '@superset-ui/core/components/Menu';
-import { Button, Tooltip, Row, type OnClickHandler } from 'src/components';
+import { Button, Tooltip, Row, type OnClickHandler } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { MenuObjectProps } from 'src/types/bootstrapTypes';
 

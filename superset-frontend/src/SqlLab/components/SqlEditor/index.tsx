@@ -59,7 +59,7 @@ import {
   Dropdown,
   EmptyState,
   Modal,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import Timer from '@superset-ui/core/components/Timer';
 import ResizableSidebar from '@superset-ui/core/components/ResizableSidebar';
 import Skeleton from '@superset-ui/core/components/Skeleton';

@@ -42,7 +42,7 @@ import { LoadingCards } from 'src/pages/Home';
 import ChartCard from 'src/features/charts/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
-import { ErrorBoundary, Loading } from 'src/components';
+import { ErrorBoundary, Loading } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';
 import EmptyState from './EmptyState';

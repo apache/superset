@@ -32,7 +32,7 @@ import {
   FaveStar,
   PublishedLabel,
   ListViewCard,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Dashboard } from 'src/views/CRUD/types';

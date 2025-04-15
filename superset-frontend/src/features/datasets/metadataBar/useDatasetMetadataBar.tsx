@@ -18,7 +18,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
-import { Alert } from 'src/components';
+import { Alert } from '@superset-ui/core/components';
 import { Dataset } from '@superset-ui/core/components/Chart/types';
 import MetadataBar from '@superset-ui/core/components/MetadataBar';
 import {

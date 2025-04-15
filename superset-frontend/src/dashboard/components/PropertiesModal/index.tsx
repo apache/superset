@@ -29,7 +29,7 @@ import {
   Row,
   Col,
   Input,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import rison from 'rison';
 import {
   ensureIsArray,

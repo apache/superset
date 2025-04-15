@@ -20,7 +20,7 @@ import { useMemo, FC } from 'react';
 
 import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import { MenuDotsDropdown } from 'src/components';
+import { MenuDotsDropdown } from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 import {
   styled,

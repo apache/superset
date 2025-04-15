@@ -28,7 +28,7 @@ import {
   UserObject,
 } from 'src/features/roles/types';
 import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
-import { FormModal } from 'src/components';
+import { FormModal } from '@superset-ui/core/components';
 import { PermissionsField, RoleNameField, UsersField } from './RoleFormItems';
 import {
   updateRoleName,

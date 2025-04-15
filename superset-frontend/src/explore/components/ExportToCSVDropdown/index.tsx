@@ -20,7 +20,7 @@ import { ReactChild, useCallback, Key } from 'react';
 
 import { t, styled } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Dropdown } from 'src/components';
+import { Dropdown } from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 
 enum MenuKeys {

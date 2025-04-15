@@ -39,7 +39,7 @@ import {
   ListViewFilterOperator as FilterOperator,
   type ListViewFilters,
   type ListViewProps,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';

@@ -31,7 +31,7 @@ import {
   IconTooltip,
   Loading,
   type CollapseProps,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { t, styled, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 

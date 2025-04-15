@@ -29,7 +29,7 @@ import {
   ConfirmStatusChange,
   ListViewFilterOperator,
   ListViewFilters,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {

@@ -26,7 +26,7 @@ import {
   t,
 } from '@superset-ui/core';
 import rison from 'rison';
-import { Collapse, ListViewCard } from 'src/components';
+import { Collapse, ListViewCard } from '@superset-ui/core/components';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
 import {

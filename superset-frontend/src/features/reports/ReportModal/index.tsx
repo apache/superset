@@ -41,7 +41,7 @@ import {
   Input,
   LabeledErrorBoundInput,
   type CronError,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';

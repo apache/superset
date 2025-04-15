@@ -37,7 +37,7 @@ import {
   ChangeDatasourceModal,
   DatasourceModal,
   ErrorAlert,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';

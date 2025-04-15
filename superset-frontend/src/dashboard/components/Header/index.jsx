@@ -37,7 +37,7 @@ import {
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Button, Tooltip, DeleteModal } from 'src/components';
+import { Button, Tooltip, DeleteModal } from '@superset-ui/core/components';
 import { findPermission } from 'src/utils/findPermission';
 import { safeStringify } from 'src/utils/safeStringify';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';

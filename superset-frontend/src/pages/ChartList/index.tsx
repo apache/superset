@@ -60,7 +60,7 @@ import {
   type ListViewFilters,
   type ListViewFilter,
   type LabeledValue,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import TagsList from '@superset-ui/core/components/TagsList';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { Link, useHistory } from 'react-router-dom';

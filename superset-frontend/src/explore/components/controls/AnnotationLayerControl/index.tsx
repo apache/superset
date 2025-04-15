@@ -29,7 +29,7 @@ import {
   css,
 } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { AsyncEsmComponent, List } from 'src/components';
+import { AsyncEsmComponent, List } from '@superset-ui/core/components';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from '@superset-ui/core/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';

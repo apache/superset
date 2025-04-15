@@ -34,7 +34,7 @@ import {
   EmptyState,
   BasicErrorAlert,
   Loading,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
 import { Icons } from '@superset-ui/core/components/Icons';

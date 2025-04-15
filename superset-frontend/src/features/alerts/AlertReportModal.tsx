@@ -47,7 +47,7 @@ import {
   Select,
   AsyncSelect,
   Modal,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';

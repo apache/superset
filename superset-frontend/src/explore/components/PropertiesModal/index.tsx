@@ -27,7 +27,7 @@ import {
   Row,
   Col,
   type SelectValue,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import rison from 'rison';
 import {
   t,

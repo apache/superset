@@ -19,7 +19,7 @@
 import { ChangeEvent, useState, useEffect, FC } from 'react';
 
 import rison from 'rison';
-import { AsyncSelect, Button, Divider, FormLabel, Modal } from 'src/components';
+import { AsyncSelect, Button, Divider, FormLabel, Modal } from '@superset-ui/core/components';
 import { t, styled, SupersetClient } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { Input } from 'antd'; // TODO: Remove antd

@@ -22,7 +22,7 @@ import {
   SupersetClient,
   css,
 } from '@superset-ui/core';
-import { Button, CopyToClipboard } from 'src/components';
+import { Button, CopyToClipboard } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';

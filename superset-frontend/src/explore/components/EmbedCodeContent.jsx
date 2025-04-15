@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { css, styled, t } from '@superset-ui/core';
-import { Input, CopyToClipboard } from 'src/components';
+import { Input, CopyToClipboard } from '@superset-ui/core/components';
 import { URL_PARAMS } from 'src/constants';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import { CopyButton } from './DataTableControl';

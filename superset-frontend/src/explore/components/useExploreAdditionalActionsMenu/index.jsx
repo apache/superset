@@ -30,7 +30,7 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Menu } from '@superset-ui/core/components/Menu';
 import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
-import { Button } from 'src/components';
+import { Button } from '@superset-ui/core/components';
 import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';

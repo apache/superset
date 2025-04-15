@@ -26,7 +26,7 @@ import {
   Modal,
   Input,
   type SelectValue,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import {
   styled,
   t,

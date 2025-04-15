@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
-import { FormModal } from 'src/components';
+import { FormModal } from '@superset-ui/core/components';
 import { createRole, updateRolePermissions } from './utils';
 import { PermissionsField, RoleNameField } from './RoleFormItems';
 import { BaseModalProps, FormattedPermission, RoleForm } from './types';

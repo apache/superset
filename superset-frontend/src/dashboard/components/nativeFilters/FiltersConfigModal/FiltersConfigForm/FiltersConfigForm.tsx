@@ -69,7 +69,7 @@ import {
   Flex,
   Input,
   Loading,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { addDangerToast } from '@superset-ui/core/components/MessageToasts/actions';
 import { Radio } from '@superset-ui/core/components/Radio';

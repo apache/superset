@@ -20,7 +20,7 @@ import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { css, styled, t } from '@superset-ui/core';
 
-import { Alert, Button, Loading } from 'src/components';
+import { Alert, Button, Loading } from '@superset-ui/core/components';
 import TableView from '@superset-ui/core/components/TableView';
 import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
 import { EmptyWrapperType } from '@superset-ui/core/components/TableView/TableView';

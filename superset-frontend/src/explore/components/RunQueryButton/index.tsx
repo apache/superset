@@ -19,7 +19,7 @@
 
 import { ReactNode } from 'react';
 import { t, useTheme } from '@superset-ui/core';
-import { Button } from 'src/components';
+import { Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
 export type RunQueryButtonProps = {

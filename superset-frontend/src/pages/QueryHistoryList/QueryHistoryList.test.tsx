@@ -29,7 +29,7 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import QueryList from 'src/pages/QueryHistoryList';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { QueryObject } from 'src/views/CRUD/types';
-import { ListView, ListViewUIFilters } from 'src/components';
+import { ListView, ListViewUIFilters } from '@superset-ui/core/components';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import SubMenu from 'src/features/home/SubMenu';
 import { QueryState } from '@superset-ui/core';
