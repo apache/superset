@@ -191,7 +191,6 @@ const useFilterControlDisplay = (
       if (overflow) {
         return {
           FilterControlContainer: HorizontalOverflowFilterControlContainer,
-          // FormItem: HorizontalOverflowFormItem,
           FormItem: (props: any) => (
             <HorizontalOverflowFormItem
               {...props}

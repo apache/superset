@@ -84,7 +84,7 @@ function reducer(draft: DataMask, action: DataMaskAction) {
 
 const SelectWrapper = styled.div`
   .select-container {
-    width: ${({ theme }) => theme.gridUnit * 20}px !important;
+    width: ${({ theme }) => theme.gridUnit * 20}px;
     margin-right: 8px;
   }
 `;
@@ -328,9 +328,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     });
   }, [excludeFilterValues]);
 
-  const handleIsNotChange = useCallback((value: string) => {
+  const handleExclusionToggle = (value: string) => {
     setExcludeFilterValues(value === 'true');
-  }, []);
+  };
 
   return (
     <FilterPluginStyle height={height} width={width}>
@@ -346,7 +346,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
                 { value: 'true', label: 'is not' },
                 { value: 'false', label: 'is' },
               ]}
-              onChange={handleIsNotChange}
+              onChange={handleExclusionToggle}
             />
           </SelectWrapper>
         )}
