@@ -16,43 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CSSProperties } from 'react';
-import { styled } from '@superset-ui/core';
-import { CheckboxChecked, CheckboxUnchecked } from 'src/components/Checkbox';
+import { SupersetClient } from '@superset-ui/core';
+import { FormValues } from './types';
 
-export interface CheckboxProps {
-  checked?: boolean;
-  onChange: (val?: boolean) => void;
-  style?: CSSProperties;
-  className?: string;
-}
-
-const Styles = styled.span`
-  &,
-  & svg {
-    vertical-align: top;
+export const createUser = async (values: FormValues) => {
+  const { confirmPassword, ...payload } = values;
+  if (payload.active == null) {
+    payload.active = false;
   }
-`;
+  await SupersetClient.post({
+    endpoint: '/api/v1/security/users/',
+    jsonPayload: { ...payload },
+  });
+};
 
-export default function Checkbox({
-  checked = false,
-  onChange,
-  style,
-  className,
-}: CheckboxProps) {
-  return (
-    <Styles
-      style={style}
-      onClick={() => {
-        onChange(!checked);
-      }}
-      role="checkbox"
-      tabIndex={0}
-      aria-checked={checked}
-      aria-label="Checkbox"
-      className={className || ''}
-    >
-      {checked ? <CheckboxChecked /> : <CheckboxUnchecked />}
-    </Styles>
-  );
-}
+export const updateUser = async (user_Id: number, values: FormValues) => {
+  await SupersetClient.put({
+    endpoint: `/api/v1/security/users/${user_Id}`,
+    jsonPayload: { ...values },
+  });
+};
+
+export const deleteUser = async (userId: number) =>
+  SupersetClient.delete({
+    endpoint: `/api/v1/security/users/${userId}`,
+  });

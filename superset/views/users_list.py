@@ -14,27 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import pytest
+from flask_appbuilder import permission_name
+from flask_appbuilder.api import expose
+from flask_appbuilder.security.decorators import has_access
 
-from superset.extensions import csrf
+from superset.superset_typing import FlaskResponse
+
+from .base import BaseSupersetView
 
 
-@pytest.mark.parametrize(
-    "app",
-    [{"WTF_CSRF_ENABLED": True}],
-    indirect=True,
-)
-def test_csrf_not_exempt(app_context: None) -> None:
-    """
-    Test that REST API is not exempt from CSRF.
-    """
-    assert {blueprint.name for blueprint in csrf._exempt_blueprints} == {
-        "MenuApi",
-        "SecurityApi",
-        "OpenApi",
-        "PermissionViewMenuApi",
-        "SupersetRoleApi",
-        "SupersetUserApi",
-        "PermissionApi",
-        "ViewMenuApi",
-    }
+class UsersListView(BaseSupersetView):
+    route_base = "/"
+    class_permission_name = "security"
+
+    @expose("/users/")
+    @has_access
+    @permission_name("read")
+    def list(self) -> FlaskResponse:
+        return super().render_app_template()
