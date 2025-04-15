@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetTheme, t } from '@superset-ui/core';
-import { Switch } from 'src/components/Switch';
+import { Switch } from '@superset-ui/core/components/Switch';
 import {
   InfoTooltip,
   LabeledErrorBoundInput as ValidatedInput,

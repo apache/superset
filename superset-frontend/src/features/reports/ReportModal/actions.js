@@ -22,7 +22,7 @@ import rison from 'rison';
 import {
   addDangerToast,
   addSuccessToast,
-} from 'src/components/MessageToasts/actions';
+} from '@superset-ui/core/components/MessageToasts/actions';
 import { isEmpty } from 'lodash';
 
 export const SET_REPORT = 'SET_REPORT';

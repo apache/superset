@@ -22,9 +22,9 @@ import { Link, useHistory } from 'react-router-dom';
 import { styled, SupersetTheme, css, t, useTheme } from '@superset-ui/core';
 import cx from 'classnames';
 import { debounce } from 'lodash';
-import { Menu, MenuMode, MainNav } from 'src/components/Menu';
+import { Menu, MenuMode, MainNav } from '@superset-ui/core/components/Menu';
 import { Button, Tooltip, Row, type OnClickHandler } from 'src/components';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { MenuObjectProps } from 'src/types/bootstrapTypes';
 
 const StyledHeader = styled.div<{ backgroundColor?: string }>`

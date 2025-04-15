@@ -28,7 +28,7 @@ import {
   NativeFilterTarget,
 } from '@superset-ui/core';
 import { Dataset } from '@superset-ui/chart-controls';
-import { chart } from 'src/components/Chart/chartReducer';
+import { chart } from '@superset-ui/core/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';

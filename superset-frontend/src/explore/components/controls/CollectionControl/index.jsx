@@ -27,7 +27,7 @@ import {
   SortableElement,
   arrayMove,
 } from 'react-sortable-hoc';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   HeaderContainer,
   AddIconButton,

@@ -22,7 +22,7 @@ import { css, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { useSqlLabInitialState } from 'src/hooks/apiResources/sqlLab';
 import type { InitialState } from 'src/hooks/apiResources/sqlLab';
 import { resetState } from 'src/SqlLab/actions/sqlLab';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { addDangerToast } from '@superset-ui/core/components/MessageToasts/actions';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { SqlLabGlobalStyles } from 'src/SqlLab//SqlLabGlobalStyles';
 import App from 'src/SqlLab/components/App';

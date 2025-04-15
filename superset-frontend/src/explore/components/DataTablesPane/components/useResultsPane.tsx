@@ -26,7 +26,7 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import { EmptyState, Loading } from 'src/components';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { getChartDataRequest } from '@superset-ui/core/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls } from './DataTableControls';

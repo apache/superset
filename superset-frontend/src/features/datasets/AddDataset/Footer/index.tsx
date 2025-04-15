@@ -21,7 +21,7 @@ import { Button } from 'src/components';
 import { t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { logEvent } from 'src/logger/actions';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import {
   LOG_ACTIONS_DATASET_CREATION_EMPTY_CANCELLATION,
   LOG_ACTIONS_DATASET_CREATION_DATABASE_CANCELLATION,

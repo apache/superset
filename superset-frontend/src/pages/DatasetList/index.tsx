@@ -55,9 +55,9 @@ import {
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import { Icons } from 'src/components/Icons';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
+import { Icons } from '@superset-ui/core/components/Icons';
+import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 
 import {

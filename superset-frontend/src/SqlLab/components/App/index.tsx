@@ -27,7 +27,7 @@ import {
   LOCALSTORAGE_WARNING_THRESHOLD,
   LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
 } from 'src/SqlLab/constants';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { addDangerToast } from '@superset-ui/core/components/MessageToasts/actions';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { logEvent } from 'src/logger/actions';
 import {

@@ -39,7 +39,7 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import { Switch } from 'src/components/Switch';
+import { Switch } from '@superset-ui/core/components/Switch';
 import {
   InputNumber,
   Collapse,
@@ -48,12 +48,12 @@ import {
   AsyncSelect,
   Modal,
 } from 'src/components';
-import TimezoneSelector from 'src/components/TimezoneSelector';
-import { propertyComparator } from 'src/components/Select/utils';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
+import { propertyComparator } from '@superset-ui/core/components/Select/utils';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { CheckboxChangeEvent } from 'src/components/Checkbox/types';
-import TreeSelect from 'src/components/TreeSelect';
+import { CheckboxChangeEvent } from '@superset-ui/core/components/Checkbox/types';
+import TreeSelect from '@superset-ui/core/components/TreeSelect';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -77,7 +77,7 @@ import {
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';

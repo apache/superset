@@ -36,7 +36,7 @@
  */
 import fetchMock from 'fetch-mock';
 import { render, act } from 'spec/helpers/testing-library';
-import ToastContainer from 'src/components/MessageToasts/ToastContainer';
+import ToastContainer from '@superset-ui/core/components/MessageToasts/ToastContainer';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { logging } from '@superset-ui/core';
 import EditorAutoSync, { INTERVAL } from '.';

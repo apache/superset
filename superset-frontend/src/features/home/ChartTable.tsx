@@ -28,7 +28,7 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import { useHistory } from 'react-router-dom';
 import { Filter, TableTab } from 'src/views/CRUD/types';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -43,7 +43,7 @@ import ChartCard from 'src/features/charts/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
 import { ErrorBoundary, Loading } from 'src/components';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';

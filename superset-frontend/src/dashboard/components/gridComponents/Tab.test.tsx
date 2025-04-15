@@ -34,7 +34,7 @@ import Markdown from './Markdown';
 jest.mock('src/dashboard/containers/DashboardComponent', () =>
   jest.fn(() => <div data-test="DashboardComponent" />),
 );
-jest.mock('src/components/EditableTitle', () => ({
+jest.mock('@superset-ui/core/components/EditableTitle', () => ({
   __esModule: true,
   EditableTitle: jest.fn(props => (
     <button type="button" data-test="EditableTitle" onClick={props.onSaveTitle}>

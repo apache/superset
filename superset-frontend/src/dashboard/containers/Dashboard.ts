@@ -26,7 +26,7 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 
-import { triggerQuery } from 'src/components/Chart/chartAction';
+import { triggerQuery } from '@superset-ui/core/components/Chart/chartAction';
 import { logEvent } from 'src/logger/actions';
 import { clearDataMaskState } from '../../dataMask/actions';
 

@@ -38,16 +38,16 @@ import {
   DatasourceModal,
   ErrorAlert,
 } from 'src/components';
-import { Menu } from 'src/components/Menu';
-import { Icons } from 'src/components/Icons';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { Icons } from '@superset-ui/core/components/Icons';
+import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import {
   userHasPermission,
   isUserAdmin,
 } from 'src/dashboard/util/permissionUtils';
-import ModalTrigger from 'src/components/ModalTrigger';
+import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';

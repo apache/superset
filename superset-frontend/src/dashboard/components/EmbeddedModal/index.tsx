@@ -26,7 +26,7 @@ import {
 } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Button, FormItem, Input, Modal, Loading } from 'src/components';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
 import { EmbeddedDashboard } from 'src/dashboard/types';
 
 const extensionsRegistry = getExtensionsRegistry();

@@ -19,12 +19,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
 import { Alert } from 'src/components';
-import { Dataset } from 'src/components/Chart/types';
-import MetadataBar from 'src/components/MetadataBar';
+import { Dataset } from '@superset-ui/core/components/Chart/types';
+import MetadataBar from '@superset-ui/core/components/MetadataBar';
 import {
   ContentType,
   MetadataType,
-} from 'src/components/MetadataBar/ContentType';
+} from '@superset-ui/core/components/MetadataBar/ContentType';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 

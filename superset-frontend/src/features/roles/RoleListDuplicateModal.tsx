@@ -19,7 +19,7 @@
 
 import { t } from '@superset-ui/core';
 import { RoleObject } from 'src/pages/RolesList';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
 import { FormModal } from 'src/components';
 import { RoleNameField } from './RoleFormItems';
 import { BaseModalProps, RoleForm } from './types';

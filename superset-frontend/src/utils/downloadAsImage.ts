@@ -21,7 +21,7 @@ import domToImage from 'dom-to-image-more';
 import { kebabCase } from 'lodash';
 // eslint-disable-next-line no-restricted-imports
 import { t, supersetTheme } from '@superset-ui/core';
-import { addWarningToast } from 'src/components/MessageToasts/actions';
+import { addWarningToast } from '@superset-ui/core/components/MessageToasts/actions';
 
 /**
  * generate a consistent file stem from a description and date

@@ -25,7 +25,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { addSuccessToast } from 'src/components/MessageToasts/actions';
+import { addSuccessToast } from '@superset-ui/core/components/MessageToasts/actions';
 import { isEmpty } from 'lodash';
 import { Slice } from 'src/dashboard/types';
 import { Operators } from '../constants';

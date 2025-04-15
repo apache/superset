@@ -22,7 +22,7 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 
 import { Badge, ConfigEditor, Tooltip } from 'src/components';
-import ModalTrigger from 'src/components/ModalTrigger';
+import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
 import { FAST_DEBOUNCE } from 'src/constants';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 

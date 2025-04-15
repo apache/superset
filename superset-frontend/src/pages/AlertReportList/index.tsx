@@ -44,9 +44,9 @@ import {
   type ListViewFilters,
 } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { Switch } from 'src/components/Switch';
+import { Switch } from '@superset-ui/core/components/Switch';
 import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import AlertStatusIcon from 'src/features/alerts/components/AlertStatusIcon';
 import RecipientIcon from 'src/features/alerts/components/RecipientIcon';
 import {
@@ -59,7 +59,7 @@ import Owner from 'src/types/Owner';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 const extensionsRegistry = getExtensionsRegistry();
 

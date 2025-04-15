@@ -22,7 +22,7 @@ import { render } from 'spec/helpers/testing-library';
 import {
   CHART_RENDERING_SUCCEEDED,
   CHART_UPDATE_SUCCEEDED,
-} from 'src/components/Chart/chartAction';
+} from '@superset-ui/core/components/Chart/chartAction';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { FiltersBadge } from 'src/dashboard/components/FiltersBadge';
 import {

@@ -35,7 +35,7 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import { Button, EmptyState, type DatabaseObject } from 'src/components';
 import { t, styled, css } from '@superset-ui/core';
-import { TableSelectorMultiple } from 'src/components/TableSelector';
+import { TableSelectorMultiple } from '@superset-ui/core/components/TableSelector';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import {
   getItem,

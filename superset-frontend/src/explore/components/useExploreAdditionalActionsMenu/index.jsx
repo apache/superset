@@ -27,11 +27,11 @@ import {
   useTheme,
   VizType,
 } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import { Menu } from 'src/components/Menu';
-import ModalTrigger from 'src/components/ModalTrigger';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Menu } from '@superset-ui/core/components/Menu';
+import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
 import { Button } from 'src/components';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getChartPermalink } from 'src/utils/urlUtils';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Tooltip } from 'src/components';
-import { TooltipProps } from 'src/components/Tooltip/types';
+import { TooltipProps } from '@superset-ui/core/components/Tooltip/types';
 import { TooltipTrigger } from './Styles';
 
 export const TooltipWithTruncation = ({

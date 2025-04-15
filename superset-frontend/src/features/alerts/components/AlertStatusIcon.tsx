@@ -18,7 +18,7 @@
  */
 import { t, SupersetTheme, useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { AlertState } from '../types';
 
 function getStatusColor(

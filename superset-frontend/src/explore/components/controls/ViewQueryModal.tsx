@@ -25,7 +25,7 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import { Loading } from 'src/components';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { getChartDataRequest } from '@superset-ui/core/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
 interface Props {

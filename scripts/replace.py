@@ -2,15 +2,16 @@
 import os
 import re
 import subprocess
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 # Define replacement patterns as tuples of (pattern, replacement)
 REPLACE_PATTERNS: List[Tuple[str, str]] = [
     # Example patterns - replace these with your actual patterns
-    (r"'src/components/'", "'@superset-ui/core/components/'"),
+    (r"'src\/components\/", "'@superset-ui/core/components/"),
 ]
 
-def get_git_files(directory: str = '.') -> List[str]:
+
+def get_git_files(directory: str = ".") -> List[str]:
     """
     Get all files tracked by Git in the repository relative to the current working directory.
 
@@ -23,15 +24,15 @@ def get_git_files(directory: str = '.') -> List[str]:
     try:
         # Use 'git ls-files' to get all tracked files
         result = subprocess.run(
-            ['git', 'ls-files'],
+            ["git", "ls-files"],
             cwd=directory,
             check=True,
             capture_output=True,
-            text=True
+            text=True,
         )
 
         # Split the output by newlines and filter out empty strings
-        files = [f for f in result.stdout.split('\n') if f]
+        files = [f for f in result.stdout.split("\n") if f]
         return files
 
     except subprocess.CalledProcessError as e:
@@ -40,6 +41,7 @@ def get_git_files(directory: str = '.') -> List[str]:
     except Exception as e:
         print(f"Unexpected error: {e}")
         return []
+
 
 def replace_in_file(file_path: str, patterns: List[Tuple[str, str]]) -> int:
     """
@@ -59,7 +61,7 @@ def replace_in_file(file_path: str, patterns: List[Tuple[str, str]]) -> int:
 
     try:
         # Read file content
-        with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
             content = f.read()
 
         original_content = content
@@ -78,7 +80,7 @@ def replace_in_file(file_path: str, patterns: List[Tuple[str, str]]) -> int:
 
         # Write back only if changes were made
         if content != original_content:
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)
             print(f"Updated {file_path}: {total_replacements} replacements")
 
@@ -90,6 +92,7 @@ def replace_in_file(file_path: str, patterns: List[Tuple[str, str]]) -> int:
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
         return 0
+
 
 def main():
     """Main function to process all git files."""
@@ -115,10 +118,11 @@ def main():
             total_replacements += replacements
 
     # Print summary
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"Processed {len(git_files)} files")
     print(f"Made changes to {total_files} files")
     print(f"Total replacements: {total_replacements}")
+
 
 if __name__ == "__main__":
     main()

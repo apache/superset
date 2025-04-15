@@ -25,8 +25,8 @@ import {
   ConfirmStatusChange,
   ListViewCard,
 } from 'src/components';
-import { Menu } from 'src/components/Menu';
-import { Icons } from 'src/components/Icons';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { Tag } from 'src/views/CRUD/types';
 import { deleteTags } from 'src/features/tags/tags';
 import { assetUrl } from 'src/utils/assetUrl';

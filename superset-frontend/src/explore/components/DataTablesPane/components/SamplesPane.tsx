@@ -19,12 +19,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
 import { EmptyState, Loading } from 'src/components';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import TableView, { EmptyWrapperType } from '@superset-ui/core/components/TableView';
 import {
   useFilteredTableData,
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
-import { getDatasourceSamples } from 'src/components/Chart/chartAction';
+import { getDatasourceSamples } from '@superset-ui/core/components/Chart/chartAction';
 import { TableControls } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
 

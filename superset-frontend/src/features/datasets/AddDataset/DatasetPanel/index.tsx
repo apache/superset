@@ -19,7 +19,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { SupersetClient, logging, t } from '@superset-ui/core';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { addDangerToast } from '@superset-ui/core/components/MessageToasts/actions';
 import { toQueryString } from 'src/utils/urlUtils';
 import DatasetPanel from './DatasetPanel';
 import { ITableColumn, IDatabaseTable, isIDatabaseTable } from './types';

@@ -26,7 +26,7 @@ import {
   type SelectOptionsType,
   type SelectProps,
 } from 'src/components';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 
 type SelectAsyncProps = Omit<SelectProps, 'options' | 'ariaLabel' | 'onChange'>;
 

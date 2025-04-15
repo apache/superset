@@ -23,7 +23,7 @@ import { Collapse, Label } from 'src/components';
 import TextControl from 'src/explore/components/controls/TextControl';
 import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import PopoverSection from 'src/components/PopoverSection';
+import PopoverSection from '@superset-ui/core/components/PopoverSection';
 
 const controlTypes = {
   fixed: 'fix',

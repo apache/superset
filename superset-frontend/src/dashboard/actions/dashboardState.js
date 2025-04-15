@@ -34,8 +34,8 @@ import {
   addChart,
   removeChart,
   refreshChart,
-} from 'src/components/Chart/chartAction';
-import { chart as initChart } from 'src/components/Chart/chartReducer';
+} from '@superset-ui/core/components/Chart/chartAction';
+import { chart as initChart } from '@superset-ui/core/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import {
   SAVE_TYPE_OVERWRITE,
@@ -49,7 +49,7 @@ import {
   addSuccessToast,
   addWarningToast,
   addDangerToast,
-} from 'src/components/MessageToasts/actions';
+} from '@superset-ui/core/components/MessageToasts/actions';
 import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilterValues';
 import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
@@ -657,8 +657,61 @@ export function setDirectPathToChild(path) {
 }
 
 export const SET_ACTIVE_TAB = 'SET_ACTIVE_TAB';
+
+function findTabsToRestore(tabId, prevTabId, dashboardState, dashboardLayout) {
+  const { activeTabs: prevActiveTabs, inactiveTabs: prevInactiveTabs } =
+    dashboardState;
+  const { present: currentLayout } = dashboardLayout;
+  const restoredTabs = [];
+  const queue = [tabId];
+  const visited = new Set();
+  while (queue.length > 0) {
+    const seek = queue.shift();
+    if (!visited.has(seek)) {
+      visited.add(seek);
+      const found =
+        prevInactiveTabs?.filter(inactiveTabId =>
+          currentLayout[inactiveTabId]?.parents
+            .filter(id => id.startsWith('TAB-'))
+            .slice(-1)
+            .includes(seek),
+        ) ?? [];
+      restoredTabs.push(...found);
+      queue.push(...found);
+    }
+  }
+  const activeTabs = restoredTabs ? [tabId].concat(restoredTabs) : [tabId];
+  const tabChanged = Boolean(prevTabId) && tabId !== prevTabId;
+  const inactiveTabs = tabChanged
+    ? prevActiveTabs.filter(
+        activeTabId =>
+          activeTabId !== prevTabId &&
+          currentLayout[activeTabId]?.parents.includes(prevTabId),
+      )
+    : [];
+  return {
+    activeTabs,
+    inactiveTabs,
+  };
+}
+
 export function setActiveTab(tabId, prevTabId) {
-  return { type: SET_ACTIVE_TAB, tabId, prevTabId };
+  return (dispatch, getState) => {
+    const { dashboardLayout, dashboardState } = getState();
+    const { activeTabs, inactiveTabs } = findTabsToRestore(
+      tabId,
+      prevTabId,
+      dashboardState,
+      dashboardLayout,
+    );
+
+    return dispatch({
+      type: SET_ACTIVE_TAB,
+      activeTabs,
+      prevTabId,
+      inactiveTabs,
+    });
+  };
 }
 
 // Even though SET_ACTIVE_TABS is not being called from Superset's codebase,

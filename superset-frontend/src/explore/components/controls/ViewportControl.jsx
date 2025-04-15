@@ -19,7 +19,7 @@
 import { Component } from 'react';
 import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
-import Popover from 'src/components/Popover';
+import Popover from '@superset-ui/core/components/Popover';
 import { decimal2sexagesimal } from 'geolib';
 
 import { FormLabel, Label } from 'src/components';

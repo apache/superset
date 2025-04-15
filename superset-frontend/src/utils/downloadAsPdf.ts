@@ -20,7 +20,7 @@ import { SyntheticEvent } from 'react';
 import domToPdf from 'dom-to-pdf';
 import { kebabCase } from 'lodash';
 import { logging, t } from '@superset-ui/core';
-import { addWarningToast } from 'src/components/MessageToasts/actions';
+import { addWarningToast } from '@superset-ui/core/components/MessageToasts/actions';
 
 /**
  * generate a consistent file stem from a description and date

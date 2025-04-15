@@ -18,7 +18,7 @@
  */
 import { sharedControlComponents } from '@superset-ui/chart-controls';
 import { Input, InputNumber, Select } from 'src/components';
-import Slider from 'src/components/Slider';
+import Slider from '@superset-ui/core/components/Slider';
 import CurrencyControl from '../../CurrencyControl';
 import CheckboxControl from '../../CheckboxControl';
 

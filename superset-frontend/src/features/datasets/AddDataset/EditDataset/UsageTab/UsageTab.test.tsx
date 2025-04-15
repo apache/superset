@@ -25,7 +25,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { ChartListChart, getMockChart } from 'spec/fixtures/mockCharts';
-import ToastContainer from 'src/components/MessageToasts/ToastContainer';
+import ToastContainer from '@superset-ui/core/components/MessageToasts/ToastContainer';
 import DatasetUsage from '.';
 
 const DEFAULT_DATASET_ID = '1';

@@ -36,7 +36,7 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { Button, Tooltip, DeleteModal } from 'src/components';
 import { findPermission } from 'src/utils/findPermission';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -54,7 +54,7 @@ import setPeriodicRunner, {
 } from 'src/dashboard/util/setPeriodicRunner';
 import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
-import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {

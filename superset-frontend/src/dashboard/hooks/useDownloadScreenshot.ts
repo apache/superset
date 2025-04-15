@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
 import { last } from 'lodash';
 import {
   logging,

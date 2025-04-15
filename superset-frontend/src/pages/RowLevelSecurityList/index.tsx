@@ -28,8 +28,8 @@ import {
   type ListViewFilters,
   type ListViewFetchDataConfig as FetchDataConfig,
 } from 'src/components';
-import { Icons } from 'src/components/Icons';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import { Icons } from '@superset-ui/core/components/Icons';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';

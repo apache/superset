@@ -34,7 +34,7 @@ const mockToasts = {
 jest.mock('./utils');
 const mockCreateRole = jest.mocked(createRole);
 
-jest.mock('src/components/MessageToasts/withToasts', () => ({
+jest.mock('@superset-ui/core/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default: (Component: any) => Component,
   useToasts: () => mockToasts,

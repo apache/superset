@@ -29,7 +29,7 @@ import { css } from '@superset-ui/core';
 import { ErrorBoundary, Layout, Loading } from 'src/components';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
-import ToastContainer from 'src/components/MessageToasts/ToastContainer';
+import ToastContainer from '@superset-ui/core/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import setupPlugins from 'src/setup/setupPlugins';
 import { setupAGGridModules } from 'src/setup/setupAGGridModules';

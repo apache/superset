@@ -34,7 +34,7 @@ import {
   addInfoToast as addInfoToastAction,
   addSuccessToast as addSuccessToastAction,
   addWarningToast as addWarningToastAction,
-} from 'src/components/MessageToasts/actions';
+} from '@superset-ui/core/components/MessageToasts/actions';
 import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { logEvent } from 'src/logger/actions';

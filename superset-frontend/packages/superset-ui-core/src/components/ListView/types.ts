@@ -48,7 +48,8 @@ export interface ListViewFilter {
     | 'select'
     | 'checkbox'
     | 'search'
-    | 'datetime_range';
+    | 'datetime_range'
+    | 'numerical_range';
   unfilteredLabel?: string;
   selects?: SelectOption[];
   onFilterOpen?: () => void;
@@ -60,6 +61,9 @@ export interface ListViewFilter {
   ) => Promise<{ data: SelectOption[]; totalCount: number }>;
   paginate?: boolean;
   loading?: boolean;
+  dateFilterValueType?: 'unix' | 'iso';
+  min?: number;
+  max?: number;
 }
 
 export type ListViewFilters = ListViewFilter[];
@@ -74,7 +78,8 @@ export type InnerFilterValue =
   | undefined
   | string[]
   | number[]
-  | { label: string; value: string | number };
+  | { label: string; value: string | number }
+  | [number | null, number | null];
 
 export interface ListViewFilterValue {
   id: string;

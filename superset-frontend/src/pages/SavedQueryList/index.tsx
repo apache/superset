@@ -35,8 +35,8 @@ import {
   createFetchRelated,
 } from 'src/views/CRUD/utils';
 import { useSelector } from 'react-redux';
-import Popover from 'src/components/Popover';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import Popover from '@superset-ui/core/components/Popover';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
   ConfirmStatusChange,
@@ -54,12 +54,12 @@ import {
 } from 'src/components';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { ButtonProps, SubMenuProps } from 'src/features/home/SubMenu';
-import TagsList from 'src/components/TagsList';
+import TagsList from '@superset-ui/core/components/TagsList';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
 import Tag from 'src/types/TagType';
-import { loadTags } from 'src/components/Tag/utils';
-import { Icons } from 'src/components/Icons';
+import { loadTags } from '@superset-ui/core/components/Tag/utils';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';

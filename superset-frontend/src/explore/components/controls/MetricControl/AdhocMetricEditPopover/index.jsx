@@ -26,7 +26,7 @@ import {
   ensureIsArray,
   DatasourceType,
 } from '@superset-ui/core';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 import {
   Button,
   EmptyState,

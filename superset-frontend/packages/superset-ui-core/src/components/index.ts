@@ -188,4 +188,4 @@ export {
   type RefSelectProps,
 } from './Select';
 
-export { SafeMarkdown } from ./SafeMarkdown';
+export { SafeMarkdown } from './SafeMarkdown';

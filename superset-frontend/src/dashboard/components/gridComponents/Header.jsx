@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
 
-import PopoverDropdown from 'src/components/PopoverDropdown';
+import PopoverDropdown from '@superset-ui/core/components/PopoverDropdown';
 import { EditableTitle } from 'src/components';
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';

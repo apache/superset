@@ -19,9 +19,9 @@
 import { Key, ReactNode, PureComponent } from 'react';
 import { Dropdown, CssEditor as AceCssEditor, Button } from 'src/components';
 import rison from 'rison';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import { t, styled, SupersetClient } from '@superset-ui/core';
-import ModalTrigger from 'src/components/ModalTrigger';
+import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
 
 export interface CssEditorProps {
   initialCss: string;

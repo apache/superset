@@ -21,7 +21,7 @@ import {
   FormLabel,
   LabeledErrorBoundInput as ValidatedInput,
 } from 'src/components';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
 import { CatalogObject, FieldPropTypes } from '../../types';
 

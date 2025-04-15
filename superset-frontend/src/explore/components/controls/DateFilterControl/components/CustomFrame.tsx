@@ -18,7 +18,7 @@
  */
 import { t, customTimeRangeDecode } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { Radio } from 'src/components/Radio';
+import { Radio } from '@superset-ui/core/components/Radio';
 import {
   DatePicker,
   Select,

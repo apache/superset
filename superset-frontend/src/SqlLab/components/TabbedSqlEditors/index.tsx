@@ -18,7 +18,7 @@
  */
 import { PureComponent } from 'react';
 import { pick } from 'lodash';
-import { EditableTabs } from 'src/components/Tabs';
+import { EditableTabs } from '@superset-ui/core/components/Tabs';
 import { connect } from 'react-redux';
 import URI from 'urijs';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
@@ -36,7 +36,7 @@ import * as Actions from 'src/SqlLab/actions/sqlLab';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { locationContext } from 'src/pages/SqlLab/LocationContext';
 import { navigateWithState } from 'src/utils/navigationUtils';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 

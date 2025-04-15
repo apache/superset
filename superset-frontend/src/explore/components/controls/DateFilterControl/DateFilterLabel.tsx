@@ -29,7 +29,7 @@ import {
 } from '@superset-ui/core';
 import { Button, Divider, Modal, Tooltip, Select } from 'src/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { noOp } from 'src/utils/common';

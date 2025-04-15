@@ -43,11 +43,11 @@ import {
   Input,
   InputNumber,
 } from 'src/components';
-import { Switch, SwitchProps } from 'src/components/Switch';
-import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
-import { Icons } from 'src/components/Icons';
+import { Switch, SwitchProps } from '@superset-ui/core/components/Switch';
+import Upload, { UploadChangeParam, UploadFile } from '@superset-ui/core/components/Upload';
+import { Icons } from '@superset-ui/core/components/Icons';
 import rison from 'rison';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import {
   antDModalNoPaddingStyles,
   antDModalStyles,

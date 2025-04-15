@@ -21,9 +21,9 @@ import { useSelector } from 'react-redux';
 import { css, styled, t } from '@superset-ui/core';
 
 import { Alert, Button, Loading } from 'src/components';
-import TableView from 'src/components/TableView';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { EmptyWrapperType } from 'src/components/TableView/TableView';
+import TableView from '@superset-ui/core/components/TableView';
+import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
+import { EmptyWrapperType } from '@superset-ui/core/components/TableView/TableView';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, QueryCostEstimate } from 'src/SqlLab/types';
 

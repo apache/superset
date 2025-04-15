@@ -42,8 +42,8 @@ import {
 } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import { Icons } from 'src/components/Icons';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
 // eslint-disable-next-line no-restricted-imports

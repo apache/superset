@@ -32,7 +32,7 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import ChartContainer from 'src/components/Chart/ChartContainer';
+import ChartContainer from '@superset-ui/core/components/Chart/ChartContainer';
 import {
   getItem,
   setItem,

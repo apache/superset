@@ -20,8 +20,8 @@ import { createRef, PureComponent } from 'react';
 import { FormLabel, Alert, Button, Input, Select } from 'src/components';
 import { t, styled } from '@superset-ui/core';
 
-import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
-import { propertyComparator } from 'src/components/Select/utils';
+import ModalTrigger, { ModalTriggerRef } from '@superset-ui/core/components/ModalTrigger';
+import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 
 const StyledModalTrigger = styled(ModalTrigger)`
   .antd5-modal-body {

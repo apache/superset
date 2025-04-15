@@ -57,7 +57,7 @@ import {
 import rison from 'rison';
 import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/types';
 import { useSelector } from 'react-redux';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { getChartDataRequest } from '@superset-ui/core/components/Chart/chartAction';
 import {
   BasicErrorAlert,
   ErrorMessageWithStackTrace,
@@ -70,10 +70,10 @@ import {
   Input,
   Loading,
 } from 'src/components';
-import { Icons } from 'src/components/Icons';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { Radio } from 'src/components/Radio';
-import Tabs from 'src/components/Tabs';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { addDangerToast } from '@superset-ui/core/components/MessageToasts/actions';
+import { Radio } from '@superset-ui/core/components/Radio';
+import Tabs from '@superset-ui/core/components/Tabs';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
   Chart,

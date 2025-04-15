@@ -23,14 +23,14 @@ import {
   SupersetClient,
   SupersetApiError,
 } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
 } from 'src/logger/LogUtils';
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
 import { last } from 'lodash';
 import { getDashboardUrlParams } from 'src/utils/urlUtils';
 import { useCallback, useEffect, useRef } from 'react';

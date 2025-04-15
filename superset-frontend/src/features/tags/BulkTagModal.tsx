@@ -20,7 +20,7 @@ import { useState, useEffect, FC } from 'react';
 
 import { t, styled, SupersetClient } from '@superset-ui/core';
 import { FormLabel, AsyncSelect, Button, Modal } from 'src/components';
-import { loadTags } from 'src/components/Tag/utils';
+import { loadTags } from '@superset-ui/core/components/Tag/utils';
 import { TaggableResourceOption } from 'src/features/tags/TagModal';
 
 const BulkTagModalContainer = styled.div`

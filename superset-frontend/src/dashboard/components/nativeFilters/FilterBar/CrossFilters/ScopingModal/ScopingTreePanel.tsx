@@ -37,7 +37,7 @@ import {
 } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import type { SelectOptionsType } from 'src/components';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { NEW_CHART_SCOPING_ID } from './constants';
 
 interface ScopingTreePanelProps {

@@ -19,9 +19,9 @@
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import { IconTooltip } from 'src/components/IconTooltip';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { Icons } from 'src/components/Icons';
+import { IconTooltip } from '@superset-ui/core/components/IconTooltip';
+import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 

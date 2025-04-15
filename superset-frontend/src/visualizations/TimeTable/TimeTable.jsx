@@ -20,7 +20,7 @@ import { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Mustache from 'mustache';
 import { scaleLinear } from 'd3-scale';
-import TableView from 'src/components/TableView';
+import TableView from '@superset-ui/core/components/TableView';
 import { styled, t } from '@superset-ui/core';
 import {
   InfoTooltipWithTrigger,

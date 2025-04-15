@@ -23,8 +23,8 @@ import {
   css,
 } from '@superset-ui/core';
 import { Button, CopyToClipboard } from 'src/components';
-import { Icons } from 'src/components/Icons';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import { Icons } from '@superset-ui/core/components/Icons';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { LOG_ACTIONS_SQLLAB_COPY_LINK } from 'src/logger/LogUtils';
 import useLogAction from 'src/logger/useLogAction';

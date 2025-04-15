@@ -18,7 +18,7 @@
  */
 import { Dispatch } from 'redux';
 import { makeApi, t, getErrorText } from '@superset-ui/core';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { addDangerToast } from '@superset-ui/core/components/MessageToasts/actions';
 import {
   ChartConfiguration,
   DashboardInfo,

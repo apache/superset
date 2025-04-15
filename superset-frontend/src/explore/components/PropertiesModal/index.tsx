@@ -40,10 +40,10 @@ import {
   useTheme,
   css,
 } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import { loadTags } from 'src/components/Tag/utils';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
+import { loadTags } from '@superset-ui/core/components/Tag/utils';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import TagType from 'src/types/TagType';
 

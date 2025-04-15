@@ -31,12 +31,12 @@ import {
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { AsyncEsmComponent, List } from 'src/components';
 import { getChartKey } from 'src/explore/exploreUtils';
-import { runAnnotationQuery } from 'src/components/Chart/chartAction';
+import { runAnnotationQuery } from '@superset-ui/core/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import ControlPopover, {
   getSectionContainerElement,
 } from '../ControlPopover/ControlPopover';

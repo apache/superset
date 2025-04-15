@@ -29,7 +29,7 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { ErrorBoundary, Form, StyledModal } from 'src/components';
 import { testWithId } from 'src/utils/testUtils';
 import { updateCascadeParentIds } from 'src/dashboard/actions/nativeFilters';

@@ -19,7 +19,7 @@
 /* eslint camelcase: 0 */
 import { ensureIsArray } from '@superset-ui/core';
 import { omit, pick } from 'lodash';
-import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
+import { DYNAMIC_PLUGIN_CONTROLS_READY } from '@superset-ui/core/components/Chart/chartAction';
 import { getControlsState } from 'src/explore/store';
 import {
   getControlConfig,

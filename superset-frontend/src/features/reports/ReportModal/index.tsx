@@ -42,10 +42,10 @@ import {
   LabeledErrorBoundInput,
   type CronError,
 } from 'src/components';
-import TimezoneSelector from 'src/components/TimezoneSelector';
-import { Icons } from 'src/components/Icons';
-import { Radio, RadioChangeEvent } from 'src/components/Radio';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
 import {
   ReportCreationMethod,

@@ -19,7 +19,7 @@
 
 import { useCallback, useState, FormEvent } from 'react';
 
-import { Radio, RadioChangeEvent } from 'src/components/Radio';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import {
   AsyncSelect,
   Button,
@@ -41,7 +41,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import dayjs from 'dayjs';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { addDangerToast } from '@superset-ui/core/components/MessageToasts/actions';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import {
   DatasetRadioState,
