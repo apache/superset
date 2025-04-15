@@ -22,10 +22,11 @@ import {
   styled,
   SupersetApiError,
   t,
+  css,
   getExtensionsRegistry,
 } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { Button, FormItem, Input, Modal, Loading } from 'src/components';
+import { Button, FormItem, Input, Modal, Loading, Form } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { EmbeddedDashboard } from 'src/dashboard/types';
 
@@ -185,24 +186,34 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
         </a>
       </p>
       <h3>{t('Settings')}</h3>
-      <FormItem>
-        <label htmlFor="allowed-domains">
-          {t('Allowed Domains (comma separated)')}{' '}
-          <InfoTooltipWithTrigger
-            tooltip={t(
-              'A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.',
-            )}
-          />
-        </label>
-        <Input
+      <Form layout="vertical">
+        <FormItem
           name="allowed-domains"
-          id="allowed-domains"
-          value={allowedDomains}
-          placeholder="superset.example.com"
-          onChange={event => setAllowedDomains(event.target.value)}
-        />
-      </FormItem>
-      <ButtonRow>
+          label={
+            <span>
+              {t('Allowed Domains (comma separated)')}{' '}
+              <InfoTooltipWithTrigger
+                placement="top"
+                tooltip={t(
+                  'A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.',
+                )}
+              />
+            </span>
+          }
+        >
+          <Input
+            id="allowed-domains"
+            value={allowedDomains}
+            placeholder="superset.example.com"
+            onChange={event => setAllowedDomains(event.target.value)}
+          />
+        </FormItem>
+      </Form>
+      <ButtonRow
+        css={theme => css`
+          margin-top: ${theme.sizeUnit * 4}px;
+        `}
+      >
         {embedded ? (
           <>
             <Button
