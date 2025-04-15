@@ -310,8 +310,9 @@ const Select = forwardRef(
 
     const handleOnDeselect: SelectProps['onDeselect'] = (value, option) => {
       if (Array.isArray(selectValue)) {
-        let array = selectValue as AntdLabeledValue[];
-        array = array.filter(element => getValue(element) !== getValue(value));
+        const array = (selectValue as AntdLabeledValue[]).filter(
+          element => getValue(element) !== getValue(value),
+        );
         setSelectValue(array);
 
         // removes new option
