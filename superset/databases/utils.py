@@ -289,9 +289,13 @@ def get_column_top_k_values(
     with database.get_raw_connection(catalog='', schema=schema) as conn:
         cursor = conn.cursor()
         mutated_query = database.mutate_sql_based_on_config(query)
-        cursor.execute(mutated_query)
-        db_engine_spec.execute(cursor, mutated_query, database)
-        result = db_engine_spec.fetch_data(cursor)
+        try:
+            cursor.execute(mutated_query)
+            db_engine_spec.execute(cursor, mutated_query, database)
+            result = db_engine_spec.fetch_data(cursor)
+        except Exception as e:
+            logging.error(f"Unable to retrieve top_k values on {schema}/{table}, column {column_name}: {e}")
+            return []
 
     return [value for (value, _) in result]
 
