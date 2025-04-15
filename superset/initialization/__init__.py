@@ -24,9 +24,11 @@ from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
 from deprecation import deprecated
-from flask import Flask, redirect
+from flask import abort, Flask, redirect, request, session
 from flask_appbuilder import expose, IndexView
-from flask_babel import gettext as __
+from flask_appbuilder.api import safe
+from flask_appbuilder.utils.base import get_safe_redirect
+from flask_babel import gettext as __, refresh
 from flask_compress import Compress
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -693,3 +695,24 @@ class SupersetIndexView(IndexView):
     @expose("/")
     def index(self) -> FlaskResponse:
         return redirect("/superset/welcome/")
+
+    @expose("/lang/<string:locale>")
+    @safe
+    def patch_flask_locale(self, locale: str) -> FlaskResponse:
+        """
+        Change user's locale and redirect back to the previous page.
+
+        Overrides FAB's babel.views.LocaleView so we can use the request
+        Referrer as the redirect target, in case our previous page was actually
+        served by the frontend (and thus not added to the session's page_history
+        stack).
+        """
+        if locale not in self.appbuilder.bm.languages:
+            abort(404, description="Locale not supported.")
+        session["locale"] = locale
+        refresh()
+        self.update_redirect()
+
+        if redirect_to := request.headers.get("Referer"):
+            return redirect(get_safe_redirect(redirect_to))
+        return redirect(self.get_redirect())
