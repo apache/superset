@@ -13,25 +13,25 @@ How should you install Superset? Here's a comparison of the different options. I
 
 The fundamental trade-off is between you needing to do more of the detail work yourself vs. using a more complex deployment route that handles those details.
 
-## [PyPI (Python)](/docs/installation/pypi.mdx) 
+## [PyPI (Python)](/docs/installation/pypi.mdx)
 
 **Summary:** This is the only method that requires no knowledge of containers. It requires the most hands-on work to deploy, connect, and maintain each component.
 
 You install Superset as a Python package and run it that way, providing your own metadata database.
 
-If you want caching, you'll set up Redis or RabbitMQ. If you want Alerts & Reports, you'll set up Celery. 
+If you want caching, you'll set up Redis or RabbitMQ. If you want Alerts & Reports, you'll set up Celery.
 
 **Responsibilities**
 
 You will need to get the component services running and communicating with each other. You'll need to arrange backups of your metadata database.
 
-When upgrading, you'll need to manage the system environment and packages and ensure all components have functional dependencies. 
+When upgrading, you'll need to manage the system environment and packages and ensure all components have functional dependencies.
 
-## [Docker Compose](/docs/installation/docker-compose.mdx) 
+## [Docker Compose](/docs/installation/docker-compose.mdx)
 
 **Summary:** This takes advantage of containerization while remaining simpler than Kubernetes. This is the best way to try out Superset.
 
-If you're not just demoing the software, you'll need a moderate understanding of Docker to customize your deployment and avoid a few risks. Even when fully-optimized this is not as robust a method as Kubernetes when it comes to large-scale production deployments. 
+If you're not just demoing the software, you'll need a moderate understanding of Docker to customize your deployment and avoid a few risks. Even when fully-optimized this is not as robust a method as Kubernetes when it comes to large-scale production deployments.
 
 You manage a superset-config.py file and a docker-compose.yml file. Docker Compose brings up all the needed services - the Superset application, a Postgres metadata DB, Redis cache, Celery worker and beat. They are automatically connected to each other.
 
@@ -43,9 +43,9 @@ You will also need to extend the Superset docker image. The default `lean` image
 
 Ideally you will build your own image of Superset that extends `lean`, adding what your deployment needs.
 
-See [Docker Build Presets](/docs/installation/docker-builds/#build-presets) for more information about the different image versions you can extend. 
+See [Docker Build Presets](/docs/installation/docker-builds/#build-presets) for more information about the different image versions you can extend.
 
-## [Kubernetes (K8s)](/docs/installation/kubernetes.mdx) 
+## [Kubernetes (K8s)](/docs/installation/kubernetes.mdx)
 
 **Summary:** This is the best-practice way to deploy a production instance of Superset, but has the steepest skill requirement - someone who knows Kubernetes.
 
