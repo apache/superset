@@ -41,13 +41,13 @@ describe('Datasource control', () => {
     cy.get('[data-test="crud-add-table-item"]', { timeout: 10000 }).click();
     cy.wait(1000);
     cy.get(
-      '[data-test="table-content-rows"] [data-test="editable-title-input"]',
+      '[data-test="table-content-rows"] [data-test="textarea-editable-title-input"]',
     )
       .first()
       .click();
 
     cy.get(
-      '[data-test="table-content-rows"] [data-test="editable-title-input"]',
+      '[data-test="table-content-rows"] [data-test="textarea-editable-title-input"]',
     )
       .first()
       .focus();
