@@ -36,7 +36,7 @@ import {
   ISeriesData,
   WaterfallChartTransformedProps,
   ICallbackDataParams,
-} from './types';
+} from './types-copy';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import { ASSIST_MARK, LEGEND, TOKEN, TOTAL_MARK } from './constants';
@@ -156,7 +156,9 @@ export default function transformProps(
     legendState,
     queriesData,
     hooks,
+    filterState,
     theme,
+    emitCrossFilters,
     inContextMenu,
   } = chartProps;
   const refs: Refs = {};
@@ -461,5 +463,7 @@ export default function transformProps(
     setDataMask,
     onContextMenu,
     onLegendStateChanged,
+    filterState,
+    emitCrossFilters,
   };
 }
