@@ -294,7 +294,7 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'fail_login_count',
-        id: 'login_count',
+        id: 'fail_login_count',
         Header: t('Fail login count'),
         hidden: true,
         Cell: ({ row: { original } }: any) => original.fail_login_count,
