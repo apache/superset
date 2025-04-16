@@ -29,15 +29,13 @@ import {
   css,
 } from '@superset-ui/core';
 
-import { Icons } from '../';
-import withToasts from '../';
 import {
   startMetaDataLoading,
   stopMetaDataLoading,
   syncDatasourceMetadata,
 } from 'src/explore/actions/exploreActions';
-import { fetchSyncedColumns, updateColumns } from '../';
 import type { DatasetObject } from 'src/features/datasets/types';
+import withToasts, { Icons, fetchSyncedColumns, updateColumns } from '..';
 import { ErrorMessageWithStackTrace } from '../ErrorMessage';
 import { AsyncEsmComponent } from '../AsyncEsmComponent';
 import { Button } from '../Button';

@@ -18,8 +18,8 @@
  */
 import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
 import { styled, t } from '@superset-ui/core';
-import Upload, { UploadChangeParam, UploadFile } from '../';
 import { useImportResource } from 'src/views/CRUD/hooks';
+import Upload, { UploadChangeParam, UploadFile } from '..';
 import { Button } from '../Button';
 import { Input } from '../Input';
 import { Modal } from '../Modal';

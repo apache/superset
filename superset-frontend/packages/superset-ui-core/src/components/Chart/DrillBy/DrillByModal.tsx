@@ -33,13 +33,11 @@ import {
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Button, Alert, Modal, Loading, Breadcrumb, Flex } from '../';
 import { RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
-import { useToasts } from '../';
 import { logEvent } from 'src/logger/actions';
 import {
   LOG_ACTIONS_DRILL_BY_BREADCRUMB_CLICKED,
@@ -49,6 +47,7 @@ import {
 } from 'src/logger/LogUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { getQuerySettings } from 'src/explore/exploreUtils';
+import { useToasts, Button, Alert, Modal, Loading, Breadcrumb, Flex } from '..';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';

@@ -34,6 +34,7 @@ import {
   EmptyState,
   BasicErrorAlert,
   Loading,
+  ResizableSidebar,
 } from '@superset-ui/core/components';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
@@ -67,7 +68,6 @@ import {
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import { useUiConfig } from '@superset-ui/core/components/UiConfigContext';
-import { ResizableSidebar } from '@superset-ui/core/components';
 import {
   BUILDER_SIDEPANEL_WIDTH,
   CLOSED_FILTER_BAR_WIDTH,

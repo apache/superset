@@ -18,7 +18,7 @@
  */
 import { ReactNode, ReactElement } from 'react';
 import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
-import { Icons } from '../';
+import { Icons } from '..';
 import type { DropdownProps } from '../Dropdown/types';
 import type { TooltipPlacement } from '../Tooltip/types';
 import type { CertifiedBadgeProps } from '../CertifiedBadge/types';

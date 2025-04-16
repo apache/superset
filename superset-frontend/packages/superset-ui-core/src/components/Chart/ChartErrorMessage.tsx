@@ -20,8 +20,8 @@
 import { ClientErrorObject, SupersetError } from '@superset-ui/core';
 import { FC } from 'react';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
-import { ErrorMessageWithStackTrace } from '../';
 import { ChartSource } from 'src/types/ChartSource';
+import { ErrorMessageWithStackTrace } from '..';
 
 export type Props = {
   chartId: string;

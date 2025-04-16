@@ -42,8 +42,8 @@ import {
   RefSelectProps,
 } from 'antd-v5/es/select';
 import { debounce, isEqual, uniq } from 'lodash';
-import { Icons } from '../';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
+import { Icons } from '..';
 import { Space } from '../Space';
 import {
   getValue,

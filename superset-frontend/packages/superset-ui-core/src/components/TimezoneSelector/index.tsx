@@ -19,8 +19,8 @@
 
 import { useEffect, useMemo } from 'react';
 import { t } from '@superset-ui/core';
-import { Select } from '../';
 import { isDST, extendedDayjs } from 'src/utils/dates';
+import { Select } from '..';
 
 const DEFAULT_TIMEZONE = {
   name: 'GMT Standard Time',

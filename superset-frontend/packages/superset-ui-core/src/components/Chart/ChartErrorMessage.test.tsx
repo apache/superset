@@ -22,8 +22,8 @@ import { ChartSource } from 'src/types/ChartSource';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { ErrorType } from '@superset-ui/core';
-import type { ErrorMessageComponentProps } from '../';
-import { getErrorMessageComponentRegistry } from '../';
+import type { ErrorMessageComponentProps } from '..';
+import { getErrorMessageComponentRegistry } from '..';
 import { ChartErrorMessage } from './ChartErrorMessage';
 
 // Mock the useChartOwnerNames hook

@@ -26,14 +26,13 @@ import {
 } from 'react';
 import { styled, SupersetClient, SupersetError, t } from '@superset-ui/core';
 import rison from 'rison';
-import RefreshLabel from '../';
-import { useToasts } from '../';
 import {
   useCatalogs,
   CatalogOption,
   useSchemas,
   SchemaOption,
 } from 'src/hooks/apiResources';
+import RefreshLabel, { useToasts } from '..';
 import { Label } from '../Label';
 import { Select, AsyncSelect } from '../Select';
 import { FormLabel } from '../Form';

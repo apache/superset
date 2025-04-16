@@ -18,9 +18,8 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { styled, useTheme } from '@superset-ui/core';
-import { Label, Icons, LabelType } from '../';
-
 import { now, fDuration } from 'src/utils/dates';
+import { Label, Icons, LabelType } from '..';
 
 export interface TimerProps {
   endTime?: number;

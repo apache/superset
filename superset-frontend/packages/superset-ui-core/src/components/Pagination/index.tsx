@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Pagination from '../';
 import {
   createUltimatePagination,
   ITEM_TYPES,
 } from 'react-ultimate-pagination';
+import Pagination from '..';
 
 export const ListViewPagination = createUltimatePagination({
   WrapperComponent: Pagination,

@@ -30,8 +30,8 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
-import { EmptyState } from '../';
 import { ChartSource } from 'src/types/ChartSource';
+import { EmptyState } from '..';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
 const propTypes = {

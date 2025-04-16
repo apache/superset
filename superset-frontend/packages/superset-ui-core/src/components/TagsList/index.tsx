@@ -19,7 +19,7 @@
 
 import { useMemo, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import { Tag, TagType } from '../';
+import { Tag, TagType } from '..';
 
 export type TagsListProps = {
   tags: TagType[];

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ensureIsArray, styled, t } from '@superset-ui/core';
-import { Icons } from '../';
+import { Icons } from '..';
 import { ContentType, MetadataType } from '.';
 
 const Header = styled.div`

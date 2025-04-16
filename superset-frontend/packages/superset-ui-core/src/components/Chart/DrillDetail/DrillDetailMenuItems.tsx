@@ -37,8 +37,8 @@ import {
   t,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import { Menu } from '../';
 import { RootState } from 'src/dashboard/types';
+import { Menu } from '..';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { MenuItemWithTruncation } from '../MenuItemWithTruncation';

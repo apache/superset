@@ -23,21 +23,20 @@ import {
   useMemo,
   useEffect,
 } from 'react';
-import type { SelectValue } from '../';
-
 import {
   styled,
   t,
   getClientErrorMessage,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { FormLabel, CertifiedBadge, DatabaseSelector, Select } from '../';
-import { Icons } from '../';
-import type { DatabaseObject } from '../';
-import RefreshLabel from '../';
-import WarningIconWithTooltip from '../';
-import { useToasts } from '../';
 import { useTables, Table } from 'src/hooks/apiResources';
+import type { SelectValue, DatabaseObject } from '..';
+
+import { FormLabel, CertifiedBadge, DatabaseSelector, Select } from '..';
+import { Icons } from '..';
+import RefreshLabel from '..';
+import WarningIconWithTooltip from '..';
+import { useToasts } from '..';
 
 const REFRESH_WIDTH = 30;
 

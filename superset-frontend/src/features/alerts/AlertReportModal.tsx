@@ -47,13 +47,13 @@ import {
   Select,
   AsyncSelect,
   Modal,
+  TreeSelect,
 } from '@superset-ui/core/components';
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
 import { CheckboxChangeEvent } from '@superset-ui/core/components/Checkbox/types';
-import { TreeSelect } from '@superset-ui/core/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';

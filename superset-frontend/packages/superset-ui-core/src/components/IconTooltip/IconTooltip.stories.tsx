@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Icons } from '../';
 import { css, useTheme } from '@superset-ui/core';
+import { Icons } from '..';
 import { IconTooltip } from '.';
 import type { IconTooltipProps } from './types';
 

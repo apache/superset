@@ -17,8 +17,7 @@
  * under the License.
  */
 import type { Meta, StoryObj } from '@storybook/react';
-import { Icons } from '../';
-import { Button } from '../';
+import { Icons, Button } from '..';
 import Upload from '.';
 
 const meta: Meta<typeof Upload> = {

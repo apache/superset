@@ -37,6 +37,7 @@ import {
   ChangeDatasourceModal,
   DatasourceModal,
   ErrorAlert,
+  ModalTrigger,
 } from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -47,7 +48,6 @@ import {
   userHasPermission,
   isUserAdmin,
 } from 'src/dashboard/util/permissionUtils';
-import { ModalTrigger } from '@superset-ui/core/components';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';

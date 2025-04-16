@@ -19,7 +19,7 @@
 import { useState, FC } from 'react';
 
 import { t } from '@superset-ui/core';
-import { Icons } from '../';
+import { Icons } from '..';
 import { Label } from '../Label';
 import { Tooltip } from '../Tooltip';
 import { TooltipContent } from './TooltipContent';

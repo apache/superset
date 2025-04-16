@@ -22,8 +22,8 @@ import {
   getChartMetadataRegistry,
   VizType,
 } from '@superset-ui/core';
-import ChartRenderer from '../';
 import { ChartSource } from 'src/types/ChartSource';
+import ChartRenderer from '..';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),

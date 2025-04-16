@@ -26,7 +26,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Menu } from '../';
 import {
   BaseFormData,
   Behavior,
@@ -45,14 +44,12 @@ import {
 import rison from 'rison';
 import { debounce } from 'lodash';
 import { FixedSizeList as List } from 'react-window';
-import { Icons } from '../';
-import { useToasts } from '../';
-import { Input, Loading } from '../';
 import {
   cachedSupersetGet,
   supersetGetCache,
 } from 'src/utils/cachedSupersetGet';
 import { InputRef } from 'antd-v5';
+import { Icons, useToasts, Input, Loading, Menu } from '..';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemWithTruncation } from '../MenuItemWithTruncation';

@@ -26,12 +26,12 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Button, Modal } from '../';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { Slice } from 'src/types/Chart';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
+import { Button, Modal } from '..';
 import DrillDetailPane from './DrillDetailPane';
 
 interface ModalFooterProps {

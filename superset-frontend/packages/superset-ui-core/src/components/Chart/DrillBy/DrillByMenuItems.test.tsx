@@ -30,8 +30,8 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
-import { Menu } from '../';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
+import { Menu } from '..';
 import { DrillByMenuItems, DrillByMenuItemsProps } from './DrillByMenuItems';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */

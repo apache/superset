@@ -35,7 +35,6 @@ import {
   getQuerySettings,
   getChartDataUri,
 } from 'src/explore/exploreUtils';
-import { addDangerToast } from '../';
 import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
@@ -44,6 +43,7 @@ import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from 'src/utils/dates';
+import { addDangerToast } from '..';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {

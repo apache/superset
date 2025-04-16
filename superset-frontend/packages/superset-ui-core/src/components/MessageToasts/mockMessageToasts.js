@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ToastType } from '../';
+import { ToastType } from '..';
 
 export default [
   { id: 'info_id', toastType: ToastType.Info, text: 'info toast' },

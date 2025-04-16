@@ -23,7 +23,7 @@ import { nanoid } from 'nanoid';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { t, styled } from '@superset-ui/core';
 
-import { Icons } from '../';
+import { Icons } from '..';
 import { Button } from '../Button';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';

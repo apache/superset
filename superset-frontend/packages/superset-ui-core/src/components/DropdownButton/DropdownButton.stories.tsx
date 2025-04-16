@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Menu } from '../';
+import { Menu } from '..';
 import { DropdownButton } from '.';
 import type { DropdownButtonProps } from './types';
 

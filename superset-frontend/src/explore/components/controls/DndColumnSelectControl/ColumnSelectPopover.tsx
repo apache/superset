@@ -36,8 +36,8 @@ import {
   DatasourceType,
 } from '@superset-ui/core';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
-import { Tabs } from '@superset-ui/core/components';
 import {
+  Tabs,
   Button,
   Form,
   FormItem,

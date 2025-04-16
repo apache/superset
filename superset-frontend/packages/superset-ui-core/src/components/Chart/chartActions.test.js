@@ -28,13 +28,13 @@ import {
 } from '@superset-ui/core';
 import { LOG_EVENT } from 'src/logger/actions';
 import * as exploreUtils from 'src/explore/exploreUtils';
-import * as actions from '../';
 import * as asyncEvent from 'src/middleware/asyncEvent';
-import { handleChartDataResponse } from '../';
 
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { initialState } from 'src/SqlLab/fixtures';
+import { handleChartDataResponse } from '..';
+import * as actions from '..';
 
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);

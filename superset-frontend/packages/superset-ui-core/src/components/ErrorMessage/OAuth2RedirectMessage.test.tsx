@@ -23,8 +23,8 @@ import { createStore } from 'redux';
 import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
-import { triggerQuery } from '../';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
+import { triggerQuery } from '..';
 import { OAuth2RedirectMessage } from '.';
 
 // Mock the Redux store

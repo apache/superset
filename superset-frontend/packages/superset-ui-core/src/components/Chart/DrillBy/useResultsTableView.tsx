@@ -18,7 +18,7 @@
  */
 import { css, styled, isDefined, QueryData, t } from '@superset-ui/core';
 import { SingleQueryResultPane } from 'src/explore/components/DataTablesPane/components/SingleQueryResultPane';
-import Tabs from '../';
+import Tabs from '..';
 
 const DATA_SIZE = 15;
 

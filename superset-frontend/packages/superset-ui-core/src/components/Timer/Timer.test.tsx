@@ -20,8 +20,8 @@
  * under the License.
  */
 import { render, sleep, waitFor } from 'spec/helpers/testing-library';
-import { Timer, TimerProps } from '../';
 import { now } from 'src/utils/dates';
+import { Timer, TimerProps } from '..';
 
 function parseTime(text?: string | null) {
   return !!text && Number(text.replace(/:/g, ''));

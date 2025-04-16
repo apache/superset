@@ -37,8 +37,12 @@ import {
 } from 'src/constants';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Input, Button, CopyToClipboard } from '@superset-ui/core/components';
-import { Popover } from '@superset-ui/core/components';
+import {
+  Input,
+  Button,
+  CopyToClipboard,
+  Popover,
+} from '@superset-ui/core/components';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getTimeColumns, setTimeColumns } from './utils';
 

@@ -36,12 +36,12 @@ import {
   t,
   usePrevious,
 } from '@superset-ui/core';
-import { FAST_DEBOUNCE } from '../constants';
 import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
 } from 'antd-v5/es/select';
 import { debounce, isEqual, uniq } from 'lodash';
+import { FAST_DEBOUNCE } from '../constants';
 import {
   getValue,
   hasOption,

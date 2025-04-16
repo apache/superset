@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ADD_TOAST, REMOVE_TOAST } from '../';
-import messageToastsReducer from '../';
+import { ADD_TOAST, REMOVE_TOAST } from '..';
+import messageToastsReducer from '..';
 
 describe('messageToasts reducer', () => {
   it('should return initial state', () => {

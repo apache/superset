@@ -18,8 +18,7 @@
  */
 import { styled, t } from '@superset-ui/core';
 import useGetDatasetRelatedCounts from 'src/features/datasets/hooks/useGetDatasetRelatedCounts';
-import { Badge } from '@superset-ui/core/components';
-import { Tabs } from '@superset-ui/core/components';
+import { Badge, Tabs } from '@superset-ui/core/components';
 import UsageTab from './UsageTab';
 
 const StyledTabs = styled(Tabs)`

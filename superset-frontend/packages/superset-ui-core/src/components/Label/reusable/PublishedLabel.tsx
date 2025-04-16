@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Icons } from '../';
 import { t, useTheme } from '@superset-ui/core';
-import { Label } from '..';
+import { Icons, Label } from '..';
 
 // Define props for the PublishedLabel component
 interface PublishedLabelProps {

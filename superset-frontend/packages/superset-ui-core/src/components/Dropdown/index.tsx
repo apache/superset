@@ -20,7 +20,7 @@ import { ReactElement, cloneElement } from 'react';
 
 import { Dropdown as AntdDropdown, DropdownProps } from 'antd-v5';
 import { styled } from '@superset-ui/core';
-import { Icons } from '../';
+import { Icons } from '..';
 import {
   IconOrientation,
   type NoAnimationDropdownProps,

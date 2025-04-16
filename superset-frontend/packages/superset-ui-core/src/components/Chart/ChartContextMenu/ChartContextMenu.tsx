@@ -41,13 +41,10 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
-import { Menu } from '../';
 import { usePermissions } from 'src/hooks/usePermissions';
-import { Dropdown } from '../';
 import { updateDataMask } from 'src/dataMask/actions';
-import DrillByModal from '../';
 import { useVerboseMap } from 'src/hooks/apiResources/datasets';
-import { Dataset } from '../';
+import DrillByModal, { Menu, Dropdown, Dataset } from '..';
 import { DrillDetailMenuItems } from '../DrillDetail';
 import { getMenuAdjustedY } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';

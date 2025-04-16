@@ -23,9 +23,9 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import DatasourceEditor from '../';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import { isFeatureEnabled } from '@superset-ui/core';
+import DatasourceEditor from '..';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),

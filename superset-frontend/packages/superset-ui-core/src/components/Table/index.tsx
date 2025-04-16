@@ -22,8 +22,8 @@ import { Table as AntTable } from 'antd-v5';
 import { ColumnsType, TableProps as AntTableProps } from 'antd-v5/es/table';
 import { PaginationProps } from 'antd-v5/es/pagination';
 import { t, useTheme, logging, styled } from '@superset-ui/core';
-import { Loading } from '../';
 import { RowSelectionType } from 'antd-v5/es/table/interface';
+import { Loading } from '..';
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
 import VirtualTable, { VirtualTableProps } from './VirtualTable';
 

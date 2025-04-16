@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useTheme, SafeMarkdown } from '@superset-ui/core';
-import { Icons } from '../';
-import type { IconType } from '../';
+import { Icons } from '..';
+import type { IconType } from '..';
 import { Tooltip } from '../Tooltip';
 
 export interface WarningIconWithTooltipProps {

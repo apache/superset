@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Meta, StoryObj } from '@storybook/react';
-import { TagsList, TagsListProps } from '../';
+import { TagsList, TagsListProps } from '..';
 
 export default {
   title: 'Components/TagsList',

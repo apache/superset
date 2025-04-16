@@ -21,11 +21,11 @@ import {
   Dropdown,
   CssEditor as AceCssEditor,
   Button,
+  ModalTrigger,
 } from '@superset-ui/core/components';
 import rison from 'rison';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { t, styled, SupersetClient } from '@superset-ui/core';
-import { ModalTrigger } from '@superset-ui/core/components';
 
 export interface CssEditorProps {
   initialCss: string;

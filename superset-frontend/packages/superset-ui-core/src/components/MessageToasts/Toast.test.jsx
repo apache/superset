@@ -17,7 +17,7 @@
  * under the License.
  */
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
-import Toast from '../';
+import Toast from '..';
 import mockMessageToasts from './mockMessageToasts';
 
 const props = {

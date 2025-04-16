@@ -37,14 +37,14 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
-import BooleanCell from '../';
-import NullCell from '../';
-import TimeCell from '../';
-import { EmptyState, Loading, Table, ColumnsType, TableSize } from '../../';
-import { getDatasourceSamples } from '../';
-import HeaderWithRadioGroup from '../';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
+import BooleanCell from '..';
+import NullCell from '..';
+import TimeCell from '..';
+import { EmptyState, Loading, Table, ColumnsType, TableSize } from '../..';
+import { getDatasourceSamples } from '..';
+import HeaderWithRadioGroup from '..';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { ResultsPage } from './types';

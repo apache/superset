@@ -17,7 +17,7 @@
  * under the License.
  */
 import { action } from '@storybook/addon-actions';
-import { Icons } from '../';
+import { Icons } from '..';
 import { Menu } from '../Menu';
 import { Dropdown } from '../Dropdown';
 import { FaveStar } from '../FaveStar';

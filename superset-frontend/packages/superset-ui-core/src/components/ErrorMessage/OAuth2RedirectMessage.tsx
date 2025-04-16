@@ -23,9 +23,9 @@ import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { ExplorePageState } from 'src/explore/types';
 import { RootState } from 'src/dashboard/types';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
-import { triggerQuery } from '../';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
 import { QueryResponse, t } from '@superset-ui/core';
+import { triggerQuery } from '..';
 
 import type { ErrorMessageComponentProps } from './types';
 import { ErrorAlert } from './ErrorAlert';

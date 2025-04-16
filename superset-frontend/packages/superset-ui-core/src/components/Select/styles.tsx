@@ -18,7 +18,7 @@
  */
 import { styled } from '@superset-ui/core';
 import { Select } from 'antd-v5';
-import { Icons } from '../';
+import { Icons } from '..';
 import { Spin } from '../Spin';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`

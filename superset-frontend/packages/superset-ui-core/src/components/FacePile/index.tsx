@@ -23,8 +23,8 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import getOwnerName from 'src/utils/getOwnerName';
-import { Avatar, AvatarGroup, Tooltip } from '../';
 import { ensureAppRoot } from 'src/utils/pathUtils';
+import { Avatar, AvatarGroup, Tooltip } from '..';
 import { getRandomColor } from './utils';
 import type { FacePileProps } from './types';
 

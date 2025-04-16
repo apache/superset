@@ -17,8 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { Button } from '../';
-import { Icons } from '../';
+import { Button, Icons } from '..';
 import { Tooltip } from '.';
 
 test('starts hidden with default props', () => {
