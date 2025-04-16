@@ -32,23 +32,6 @@ import {
   withTheme,
   getClientErrorObject,
 } from '@superset-ui/core';
-import {
-  Loading,
-  Alert,
-  Badge,
-  Card,
-  Select,
-  AsyncSelect,
-  Button,
-  CertifiedBadge,
-  DatabaseSelector,
-  EditableTitle,
-  FormLabel,
-  Row,
-  Col,
-  Label,
-  Divider,
-} from 'src/components';
 import Tabs from 'src/components/Tabs';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';
@@ -58,7 +41,20 @@ import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
+import { Loading } from '../Loading';
+import { Alert } from '../Alert';
+import { Badge } from '../Badge';
+import { Card } from '../Card';
+import { Select, AsyncSelect } from '../Select';
+import { Button } from '../Button';
+import { CertifiedBadge } from '../CertifiedBadge';
+import { DatabaseSelector } from '../DatabaseSelector';
+import { EditableTitle } from '../EditableTitle';
+import { FormLabel } from '../Form';
+import { Row, Col } from '../Grid';
+import { Label } from '../Label';
 import { Icons } from '../Icons';
+import { Divider } from '../Divider';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';

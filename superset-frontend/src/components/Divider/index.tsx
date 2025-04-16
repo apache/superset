@@ -24,7 +24,7 @@ export function Divider(props: DividerProps) {
   return (
     <AntdDivider
       css={theme => css`
-        margin: ${theme.sizeUnit * 4}px 0;
+        margin: ${theme.margin}px 0;
       `}
       {...props}
     />

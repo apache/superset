@@ -18,7 +18,7 @@
  */
 import { render, screen } from 'spec/helpers/testing-library';
 import '@testing-library/jest-dom';
-import { Typography } from 'src/components/Typography';
+import { Typography } from '.';
 
 describe('Typography Component', () => {
   test('renders Text component', () => {

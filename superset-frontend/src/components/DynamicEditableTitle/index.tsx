@@ -26,9 +26,9 @@ import {
   useState,
 } from 'react';
 import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
 import { useResizeDetector } from 'react-resize-detector';
-import { Input } from 'src/components/Input';
+import { Tooltip } from '../Tooltip';
+import { Input } from '../Input';
 import type { DynamicEditableTitleProps } from './types';
 
 const titleStyles = (theme: SupersetTheme) => css`

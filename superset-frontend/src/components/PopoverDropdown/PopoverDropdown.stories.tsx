@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { Button } from 'src/components';
+import { Button } from '../Button';
 import PopoverDropdown, { PopoverDropdownProps, OptionProps } from '.';
 
 const OPTIONS: OptionProps[] = [

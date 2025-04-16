@@ -17,8 +17,8 @@
  * under the License.
  */
 import { ReactNode, useCallback } from 'react';
-import { Divider } from 'src/components';
-import { Typography } from 'src/components/Typography';
+import { Divider } from '../Divider';
+import { Typography } from '../Typography';
 import { recurseReactClone } from './utils';
 import Field from './Field';
 import { Form } from '../Form';

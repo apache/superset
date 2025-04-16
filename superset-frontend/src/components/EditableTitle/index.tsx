@@ -19,10 +19,10 @@
 import { css, styled, SupersetTheme, t } from '@superset-ui/core';
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Tooltip } from 'src/components/Tooltip';
-import { CertifiedBadge } from 'src/components/CertifiedBadge';
-import { Input, TextAreaRef } from 'src/components/Input';
 import cx from 'classnames';
+import { Tooltip } from '../Tooltip';
+import { CertifiedBadge } from '../CertifiedBadge';
+import { Input, TextAreaRef } from '../Input';
 import type { EditableTitleProps } from './types';
 
 const StyledCertifiedBadge = styled(CertifiedBadge)`
