@@ -296,6 +296,7 @@ class ImportV1DatasetSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    folders = fields.List(fields.Nested(FolderSchema), required=False, allow_none=True)
 
 
 class GetOrCreateDatasetSchema(Schema):
