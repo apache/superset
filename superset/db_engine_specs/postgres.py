@@ -319,7 +319,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return uri, connect_args
 
     @classmethod
-    def get_default_catalog(cls, database: Database) -> str | None:
+    def get_default_catalog(cls, database: Database) -> str:
         """
         Return the default catalog for a given database.
         """

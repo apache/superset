@@ -18,7 +18,7 @@
  */
 describe('Visualization > Sunburst', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/api/v1/chart/data**').as('chartData');
+    cy.intercept('POST', '**/api/v1/chart/data**').as('chartData');
   });
 
   const SUNBURST_FORM_DATA = {
