@@ -379,6 +379,12 @@ OAUTH_PROVIDERS = [
                 'scope': 'openid profile roles' , # Scopes from your configuration
                 'code_challenge_method': 'S256'
             },
+             'access_token_url': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/token',
+             'authorize_url': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/authorize',
+             'jwks_uri': 'https://cybqa.pesapal.com/pesapalsso/.well-known/jwks',
+             'userinfo_endpoint': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/userinfo',
+             'access_token_method': 'POST',
+             'token_endpoint_auth_method': 'client_secret_post',
             'server_metadata_url': 'https://cybqa.pesapal.com/pesapalsso/.well-known/openid-configuration'
         }
     }
@@ -498,7 +504,7 @@ class D3TimeFormat(TypedDict, total=False):
 
 D3_TIME_FORMAT: D3TimeFormat = {}
 
-CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
+CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY","KES","UGX","TZS"]
 
 # ---------------------------------------------------
 # Feature flags
