@@ -196,7 +196,7 @@ const DropdownContainer = forwardRef(
         childrenArray.map(child => resizeObserver.unobserve(child));
         resizeObserver.disconnect();
       };
-    }, [current, items.length]);
+    }, [items.length]);
 
     // callback to update item widths so that the useLayoutEffect runs whenever
     // width of any of the child changes
