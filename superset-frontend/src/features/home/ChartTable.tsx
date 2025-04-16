@@ -44,6 +44,7 @@ import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
 import { ErrorBoundary, Loading } from 'src/components';
 import { Icons } from 'src/components/Icons';
+import { navigateTo } from 'src/utils/navigationUtils';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
 import SubMenu from './SubMenu';
@@ -198,7 +199,7 @@ function ChartTable({
             ),
             buttonStyle: 'secondary',
             onClick: () => {
-              window.location.assign('/chart/add');
+              navigateTo('/chart/add', { assign: true });
             },
           },
           {

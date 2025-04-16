@@ -28,7 +28,7 @@ import { bindActionCreators } from 'redux';
 import { css } from '@superset-ui/core';
 import { ErrorBoundary, Layout, Loading } from 'src/components';
 import Menu from 'src/features/home/Menu';
-import getBootstrapData from 'src/utils/getBootstrapData';
+import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import setupPlugins from 'src/setup/setupPlugins';
@@ -70,7 +70,7 @@ const LocationPathnameLogger = () => {
 };
 
 const App = () => (
-  <Router>
+  <Router basename={applicationRoot()}>
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>

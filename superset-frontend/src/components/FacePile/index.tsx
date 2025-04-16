@@ -23,8 +23,8 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import getOwnerName from 'src/utils/getOwnerName';
-import { Tooltip } from '../Tooltip';
-import { Avatar, AvatarGroup } from '../Avatar';
+import { Avatar, AvatarGroup, Tooltip } from 'src/components';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getRandomColor } from './utils';
 import type { FacePileProps } from './types';
 
@@ -39,7 +39,7 @@ export function FacePile({ users, maxCount = 4 }: FacePileProps) {
         const uniqueKey = `${id}-${first_name}-${last_name}`;
         const color = getRandomColor(uniqueKey, colorList);
         const avatarUrl = isFeatureEnabled(FeatureFlag.SlackEnableAvatars)
-          ? `/api/v1/user/${id}/avatar.png`
+          ? ensureAppRoot(`/api/v1/user/${id}/avatar.png`)
           : undefined;
         return (
           <Tooltip key={name} title={name} placement="top">
