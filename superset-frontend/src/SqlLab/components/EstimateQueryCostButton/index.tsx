@@ -26,8 +26,7 @@ import {
   Loading,
   ModalTrigger,
 } from '@superset-ui/core/components';
-import TableView from '@superset-ui/core/components/TableView';
-import { EmptyWrapperType } from '@superset-ui/core/components/TableView/TableView';
+import { TableView, EmptyWrapperType } from '@superset-ui/core/components/TableView';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, QueryCostEstimate } from 'src/SqlLab/types';
 

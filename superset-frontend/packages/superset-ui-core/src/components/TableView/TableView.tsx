@@ -260,4 +260,5 @@ const TableView = ({
   );
 };
 
-export default memo(TableView);
+const MemoizedTableView = memo(TableView);
+export { MemoizedTableView as TableView };

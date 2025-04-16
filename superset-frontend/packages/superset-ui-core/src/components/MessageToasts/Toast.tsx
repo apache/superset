@@ -89,7 +89,7 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
   let className = 'toast--success';
   let icon = (
     <Icons.CheckCircleFilled
-      css={theme => notificationStyledIcon(theme)}
+      css={(theme: SupersetTheme) => notificationStyledIcon(theme)}
       iconColor={theme.colorSuccess}
     />
   );

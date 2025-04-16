@@ -91,6 +91,7 @@ export * from './PopoverSection';
 export * from './Upload';
 export * from './ResizableSidebar';
 export * from './SafeMarkdown';
+export * from './Slider';
 export * from './Space';
 export * from './Pagination';
 export * from './Radio';

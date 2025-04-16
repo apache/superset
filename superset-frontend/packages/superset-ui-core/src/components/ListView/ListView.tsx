@@ -20,14 +20,8 @@ import { t, styled } from '@superset-ui/core';
 import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
 import cx from 'classnames';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
-import { Icons } from '..';
-import Pagination from '..';
-import TableCollection from '..';
+import { Icons, TableCollection, EmptyState, Checkbox, Button, Alert, ListViewPagination } from '..';
 import type { EmptyStateProps } from '../EmptyState/types';
-import { EmptyState } from '../EmptyState';
-import { Checkbox } from '../Checkbox';
-import { Button } from '../Button';
-import { Alert } from '../Alert';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -447,7 +441,7 @@ export function ListView<T extends object = any>({
               columnsForWrapText={columnsForWrapText}
               bulkSelectEnabled={bulkSelectEnabled}
               selectedFlatRows={selectedFlatRows}
-              toggleRowSelected={(rowId: Number, value) => {
+              toggleRowSelected={(rowId: string, value) => {
                 const row = rows.find(r => r.id === rowId);
                 if (row) {
                   prepareRow(row);
@@ -482,7 +476,7 @@ export function ListView<T extends object = any>({
       </div>
       {rows.length > 0 && (
         <div className="pagination-container">
-          <Pagination
+          <ListViewPagination
             totalPages={pageCount || 0}
             currentPage={pageCount && pageIndex < pageCount ? pageIndex + 1 : 0}
             onChange={(p: number) => gotoPage(p - 1)}

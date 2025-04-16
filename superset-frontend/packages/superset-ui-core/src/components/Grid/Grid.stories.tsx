@@ -18,8 +18,7 @@
  */
 import { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
-import Slider from '..';
-import { Row, Col } from '.';
+import { Slider, Row, Col } from '..';
 import type { ColProps, RowProps } from './types';
 
 export default {

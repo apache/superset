@@ -35,7 +35,9 @@ import {
   syncDatasourceMetadata,
 } from 'src/explore/actions/exploreActions';
 import type { DatasetObject } from 'src/features/datasets/types';
-import withToasts, { Icons, fetchSyncedColumns, updateColumns } from '..';
+import { Icons } from '..';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
+import { fetchSyncedColumns, updateColumns } from './utils';
 import { ErrorMessageWithStackTrace } from '../ErrorMessage';
 import { AsyncEsmComponent } from '../AsyncEsmComponent';
 import { Button } from '../Button';

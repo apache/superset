@@ -41,14 +41,9 @@ import {
 } from 'src/features/datasets/constants';
 import { InputRef } from 'antd-v5';
 import withToasts from '..';
-import { ServerPagination, SortByType } from '..';
 import TableView, { EmptyWrapperType } from '..';
-import { Loading } from '../Loading';
-import { Input } from '../Input';
-import { FacePile } from '../FacePile';
-import { Button } from '../Button';
-import { Alert } from '../Alert';
-import { Modal } from '../Modal';
+import { Loading, Input, FacePile, Button, Alert, Modal } from '..';
+import { SortByType, ServerPagination } from '..';
 import type { Datasource, ChangeDatasourceModalProps } from './types';
 
 const CONFIRM_WARNING_MESSAGE = t(

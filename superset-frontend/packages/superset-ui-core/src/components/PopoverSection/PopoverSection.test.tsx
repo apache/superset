@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { PopoverSection } from './';
+import { PopoverSection } from '.';
 
 test('renders with default props', async () => {
   render(

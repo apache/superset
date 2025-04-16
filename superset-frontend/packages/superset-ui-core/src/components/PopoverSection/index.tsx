@@ -29,7 +29,7 @@ export interface PopoverSectionProps {
   children?: ReactNode;
 }
 
-export default function PopoverSection({
+export function PopoverSection({
   title,
   isSelected,
   children,

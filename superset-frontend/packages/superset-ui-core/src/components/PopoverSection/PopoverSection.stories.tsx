@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PopoverSection from '.';
+import { PopoverSection } from '.';
 
 export default {
   title: 'Components/PopoverSection',

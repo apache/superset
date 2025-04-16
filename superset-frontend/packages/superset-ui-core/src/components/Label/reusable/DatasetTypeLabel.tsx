@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, useTheme } from '@superset-ui/core';
-import { Icons, Label } from '..';
+import { Icons, Label } from '../..';
 
 // Define the prop types for DatasetTypeLabel
 interface DatasetTypeLabelProps {
