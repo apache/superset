@@ -47,7 +47,7 @@ import { debounce } from 'lodash';
 import { FixedSizeList as List } from 'react-window';
 import { Icons } from 'src/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { Input, Loading } from 'src/components';
+import { Input, Loading } from '../';
 import {
   cachedSupersetGet,
   supersetGetCache,

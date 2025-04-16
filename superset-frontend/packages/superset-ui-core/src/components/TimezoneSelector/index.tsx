@@ -19,7 +19,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { t } from '@superset-ui/core';
-import { Select } from 'src/components';
+import { Select } from '../';
 import { isDST, extendedDayjs } from 'src/utils/dates';
 
 const DEFAULT_TIMEZONE = {

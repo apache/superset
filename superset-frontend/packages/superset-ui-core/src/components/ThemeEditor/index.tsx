@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Modal, Tooltip, Flex, Select } from 'antd-v5';
-import { Button, JsonEditor } from 'src/components';
+import { Button, JsonEditor } from '../';
 import {
   themeObject,
   exampleThemes,

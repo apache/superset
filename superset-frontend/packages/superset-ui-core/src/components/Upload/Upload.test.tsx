@@ -23,7 +23,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import Upload from 'src/components/Upload';
-import { Button } from 'src/components';
+import { Button } from '../';
 
 describe('Upload Component', () => {
   test('renders upload button and triggers file upload', async () => {

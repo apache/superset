@@ -19,7 +19,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { styled, useTheme } from '@superset-ui/core';
 import type { LabelType } from 'src/components/Label/types';
-import { Label } from 'src/components';
+import { Label } from '../';
 import { Icons } from 'src/components/Icons';
 
 import { now, fDuration } from 'src/utils/dates';

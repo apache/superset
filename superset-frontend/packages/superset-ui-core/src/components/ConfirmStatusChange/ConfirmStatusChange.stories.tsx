@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Button } from 'src/components';
+import { Button } from '../';
 import { ConfirmStatusChange } from '.';
 import type { ConfirmStatusChangeProps, Callback } from './types';
 

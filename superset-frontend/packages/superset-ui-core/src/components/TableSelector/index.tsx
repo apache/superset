@@ -23,7 +23,7 @@ import {
   useMemo,
   useEffect,
 } from 'react';
-import type { SelectValue } from 'src/components';
+import type { SelectValue } from '../';
 
 import {
   styled,
@@ -36,7 +36,7 @@ import {
   CertifiedBadge,
   DatabaseSelector,
   Select,
-} from 'src/components';
+} from '../';
 import { Icons } from 'src/components/Icons';
 import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
 import RefreshLabel from 'src/components/RefreshLabel';

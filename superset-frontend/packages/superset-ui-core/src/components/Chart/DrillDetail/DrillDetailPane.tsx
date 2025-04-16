@@ -40,7 +40,7 @@ import { useResizeDetector } from 'react-resize-detector';
 import BooleanCell from 'src/components/Table/cell-renderers/BooleanCell';
 import NullCell from 'src/components/Table/cell-renderers/NullCell';
 import TimeCell from 'src/components/Table/cell-renderers/TimeCell';
-import { EmptyState, Loading } from 'src/components';
+import { EmptyState, Loading } from '../';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
 import HeaderWithRadioGroup from 'src/components/Table/header-renderers/HeaderWithRadioGroup';

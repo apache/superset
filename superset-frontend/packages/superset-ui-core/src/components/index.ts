@@ -20,7 +20,7 @@
 /*
  * Re-exporting of components in src/components to facilitate
  * their imports by other components.
- * E.g. import { Select } from 'src/components', probably in the future from '@superset-ui/components'
+ * E.g. import { Select } from '../', probably in the future from '@superset-ui/components'
  */
 export { AntdThemeProvider } from './AntdThemeProvider';
 export { Alert, type AlertProps } from './Alert';

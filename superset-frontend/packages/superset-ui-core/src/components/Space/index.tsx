@@ -20,7 +20,7 @@
 /*
  * Re-exporting of components in src/components to facilitate
  * their imports by other components.
- * E.g. import { Select } from 'src/components'
+ * E.g. import { Select } from '../'
  */
 
 import { Space as AntdSpace } from 'antd-v5';
