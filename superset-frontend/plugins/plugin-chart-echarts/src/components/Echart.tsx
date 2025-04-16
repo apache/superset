@@ -108,12 +108,13 @@ use([
 ]);
 
 const loadLocale = async (locale: string) => {
+  let lang;
   try {
-    const lang = await import(`echarts/lib/i18n/lang${locale}`);
-    return lang?.default;
+    lang = await import(`echarts/lib/i18n/lang${locale}`);
   } catch (e) {
     console.error(`Locale ${locale} not supported in ECharts`, e);
   }
+  return lang?.default;
 };
 
 function Echart(
@@ -184,15 +185,16 @@ function Echart(
       });
 
       chartRef.current?.setOption(echartOptions, true);
-
-      // did mount
-      handleSizeChange({ width, height });
     }
   }, [didMount, echartOptions, eventHandlers, zrEventHandlers]);
 
+  // did mount
   useEffect(() => {
+    if (didMount) {
+      handleSizeChange({ width, height });
+    }
     return () => chartRef.current?.dispose();
-  }, []);
+  }, [didMount]);
 
   // highlighting
   useEffect(() => {
