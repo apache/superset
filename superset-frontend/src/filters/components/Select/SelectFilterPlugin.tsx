@@ -36,6 +36,8 @@ import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Rem
 import { debounce, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import { Select } from 'src/components';
+// eslint-disable-next-line no-restricted-imports
+import { Space } from 'antd'; // Import Space directly from antd
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
@@ -82,10 +84,21 @@ function reducer(draft: DataMask, action: DataMaskAction) {
   }
 }
 
-const SelectWrapper = styled.div`
-  .exclude-select-container {
+const StyledSpace = styled(Space)<{ $inverseSelection: boolean }>`
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  .exclude-select {
     width: 80px;
-    margin-right: 8px;
+    flex-shrink: 0;
+  }
+
+  &.ant-space {
+    .ant-space-item {
+      width: ${({ $inverseSelection }) =>
+        !$inverseSelection ? '100%' : 'auto'};
+    }
   }
 `;
 
@@ -339,10 +352,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         validateStatus={filterState.validateStatus}
         extra={formItemExtra}
       >
-        {inverseSelection && (
-          <SelectWrapper>
+        <StyledSpace $inverseSelection={inverseSelection}>
+          {inverseSelection && (
             <Select
-              className="exclude-select-container"
+              className="exclude-select"
               value={`${excludeFilterValues}`}
               options={[
                 { value: 'true', label: t('is not') },
@@ -350,42 +363,41 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               ]}
               onChange={handleExclusionToggle}
             />
-          </SelectWrapper>
-        )}
-
-        <Select
-          name={formData.nativeFilterId}
-          allowClear
-          allowNewOptions={!searchAllOptions && creatable !== false}
-          allowSelectAll={!searchAllOptions}
-          value={filterState.value || []}
-          disabled={isDisabled}
-          getPopupContainer={
-            showOverflow
-              ? () => (parentRef?.current as HTMLElement) || document.body
-              : (trigger: HTMLElement) =>
-                  (trigger?.parentNode as HTMLElement) || document.body
-          }
-          showSearch={showSearch}
-          mode={multiSelect ? 'multiple' : 'single'}
-          placeholder={placeholderText}
-          onClear={() => onSearch('')}
-          onSearch={onSearch}
-          onBlur={handleBlur}
-          onFocus={setFocusedFilter}
-          onMouseEnter={setHoveredFilter}
-          onMouseLeave={unsetHoveredFilter}
-          // @ts-ignore
-          onChange={handleChange}
-          ref={inputRef}
-          loading={isRefreshing}
-          oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
-          invertSelection={inverseSelection && excludeFilterValues}
-          options={options}
-          sortComparator={sortComparator}
-          onDropdownVisibleChange={setFilterActive}
-          className="select-container"
-        />
+          )}
+          <Select
+            name={formData.nativeFilterId}
+            allowClear
+            allowNewOptions={!searchAllOptions && creatable !== false}
+            allowSelectAll={!searchAllOptions}
+            value={filterState.value || []}
+            disabled={isDisabled}
+            getPopupContainer={
+              showOverflow
+                ? () => (parentRef?.current as HTMLElement) || document.body
+                : (trigger: HTMLElement) =>
+                    (trigger?.parentNode as HTMLElement) || document.body
+            }
+            showSearch={showSearch}
+            mode={multiSelect ? 'multiple' : 'single'}
+            placeholder={placeholderText}
+            onClear={() => onSearch('')}
+            onSearch={onSearch}
+            onBlur={handleBlur}
+            onFocus={setFocusedFilter}
+            onMouseEnter={setHoveredFilter}
+            onMouseLeave={unsetHoveredFilter}
+            // @ts-ignore
+            onChange={handleChange}
+            ref={inputRef}
+            loading={isRefreshing}
+            oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
+            invertSelection={inverseSelection && excludeFilterValues}
+            options={options}
+            sortComparator={sortComparator}
+            onDropdownVisibleChange={setFilterActive}
+            className="select-container"
+          />
+        </StyledSpace>
       </StyledFormItem>
     </FilterPluginStyle>
   );

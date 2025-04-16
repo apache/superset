@@ -121,10 +121,6 @@ const VerticalFormItem = styled(StyledFormItem)<{
     }
   }
 
-  .ant-form-item-control-input-content {
-    ${({ inverseSelection }) => inverseSelection && 'display: flex;'}
-  }
-
   .select-container {
     ${({ inverseSelection }) =>
       inverseSelection &&
@@ -161,20 +157,12 @@ const HorizontalFormItem = styled(StyledFormItem)<{
     width: ${({ inverseSelection }) => (inverseSelection ? 252 : 164)}px;
   }
 
-  .ant-form-item-control-input-content {
-    ${({ inverseSelection }) => inverseSelection && 'display: flex;'}
-  }
-
   .select-container {
     ${({ inverseSelection, theme }) =>
       inverseSelection &&
       `
       width: 164px;
     `}
-  }
-
-  .exclude-filter {
-    margin-top: 0px;
   }
 `;
 
