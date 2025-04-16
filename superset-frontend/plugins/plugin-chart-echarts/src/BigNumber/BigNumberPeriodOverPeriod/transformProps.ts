@@ -31,6 +31,7 @@ import {
   getHeaderFontSize,
   getMetricNameFontSize,
 } from './utils';
+import { getFriendlyMetricName } from '../utils';
 
 dayjs.extend(utc);
 
@@ -101,6 +102,8 @@ export default function transformProps(chartProps: ChartProps) {
   const { data: dataA = [] } = queriesData[0];
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
+  const metrics = chartProps.datasource?.metrics || [];
+  const friendlyMetricName = getFriendlyMetricName(metric, metrics);
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
@@ -185,7 +188,7 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
-    metricName,
+    metricName: friendlyMetricName,
     bigNumber,
     prevNumber,
     valueDifference,

@@ -29,7 +29,11 @@ import {
   getValueFormatter,
 } from '@superset-ui/core';
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
-import { getDateFormatter, parseMetricValue } from '../utils';
+import {
+  getDateFormatter,
+  parseMetricValue,
+  getFriendlyMetricName,
+} from '../utils';
 import { Refs } from '../../types';
 
 export default function transformProps(
@@ -62,6 +66,8 @@ export default function transformProps(
   const { data = [], coltypes = [] } = queriesData[0];
   const granularity = extractTimegrain(rawFormData as QueryFormData);
   const metricName = getMetricLabel(metric);
+  const metrics = chartProps.datasource?.metrics || [];
+  const friendlyMetricName = getFriendlyMetricName(metric, metrics);
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const formattedSubtitle = subtitle || subheader || '';
   const formattedSubtitleFontSize = subheaderFontSize || subtitleFontSize;
@@ -116,6 +122,7 @@ export default function transformProps(
     refs,
     colorThresholdFormatters,
     metricName,
+    friendlyMetricName,
     showMetricName,
     metricNameFontSize,
   };
