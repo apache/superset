@@ -36,6 +36,7 @@
     "plugins/*",
     "src/setup/*"
   ],
+  "sideEffects": false,
   "scripts": {
     "_prettier": "prettier './({src,spec,cypress-base,plugins,packages,.storybook}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}|package.json)'",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --color --mode production",
