@@ -877,6 +877,7 @@ const FiltersConfigForm = (
                 </StyledRowContainer>
               )}
               <Collapse
+                modalMode
                 defaultActiveKey={activeFilterPanelKeys}
                 onChange={key => {
                   handleActiveFilterPanelChange(key);
