@@ -18,6 +18,8 @@
  */
 import { t, useTheme } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
+import { Space } from 'src/components/Space';
+import Typography from 'src/components/Typography';
 
 const ValidatedPanelHeader = ({
   title,
@@ -38,18 +40,36 @@ const ValidatedPanelHeader = ({
     />
   );
   return (
-    <div className="collapse-panel-header">
-      <div className="collapse-panel-title" data-test={testId}>
-        <span>{t(title)}</span>
+    <div>
+      <Space size="small" data-test={testId}>
+        <Typography.Title
+          level={5}
+          style={{
+            margin: 0,
+          }}
+        >
+          {t(title)}
+        </Typography.Title>
         {validateCheckStatus ? (
-          <span className="validation-checkmark">{checkmark}</span>
+          <span>{checkmark}</span>
         ) : (
-          <span className="collapse-panel-asterisk">{' *'}</span>
+          <span
+            style={{
+              color: theme.colors.error.base,
+              fontSize: theme.fontSizeLG,
+            }}
+          >
+            *
+          </span>
         )}
-      </div>
-      <p className="collapse-panel-subtitle">
+      </Space>
+      <Typography.Paragraph
+        style={{
+          margin: 0,
+        }}
+      >
         {subtitle ? t(subtitle) : undefined}
-      </p>
+      </Typography.Paragraph>
     </div>
   );
 };
