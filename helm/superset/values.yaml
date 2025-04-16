@@ -387,6 +387,11 @@ supersetWorker:
     minAvailable: 1
     # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
     maxUnavailable: 1
+  image:
+    # -- Default to global image configuration but allow worker specific image
+    repository: "{{ .Values.image.repository }}"
+    tag: "{{ .Values.image.tag }}"
+    pullPolicy: "{{ .Values.image.pullPolicy }}"
   # -- Worker startup command
   # @default -- a `celery worker` command
   command:

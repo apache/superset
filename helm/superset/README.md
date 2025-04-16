@@ -312,6 +312,9 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWorker.deploymentLabels | object | `{}` | Labels to be added to supersetWorker deployment |
 | supersetWorker.extraContainers | list | `[]` | Launch additional containers into supersetWorker pod |
 | supersetWorker.forceReload | bool | `false` | If true, forces deployment to reload on each upgrade |
+| supersetWorker.image.pullPolicy | string | `"{{ .Values.image.pullPolicy }}"` |  |
+| supersetWorker.image.repository | string | `"{{ .Values.image.repository }}"` | Default to global image configuration but allow worker specific image |
+| supersetWorker.image.tag | string | `"{{ .Values.image.tag }}"` |  |
 | supersetWorker.initContainers | list | a container waiting for postgres and redis | Init container |
 | supersetWorker.livenessProbe.exec.command | list | a `celery inspect ping` command | Liveness probe command |
 | supersetWorker.livenessProbe.failureThreshold | int | `3` |  |
