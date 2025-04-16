@@ -20,12 +20,12 @@
 import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
-import transformProps from './transformProps-copy';
+import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/example1.png';
 import example2 from './images/example2.png';
 import example3 from './images/example3.png';
-import { EchartsWaterfallChartProps, EchartsWaterfallFormData } from './types-copy';
+import { EchartsWaterfallChartProps, EchartsWaterfallFormData } from './types';
 
 export default class EchartsWaterfallChartPlugin extends ChartPlugin<
   EchartsWaterfallFormData,

@@ -20,7 +20,7 @@ import { EChartsCoreOption } from 'echarts/core';
 import { useTheme } from '@superset-ui/core';
 import React, { useRef } from 'react';
 import Echart from '../components/Echart';
-import { WaterfallChartTransformedProps } from './types-copy';
+import { WaterfallChartTransformedProps } from './types';
 import { EventHandlers } from '../types';
 
 export default function EchartsWaterfall(

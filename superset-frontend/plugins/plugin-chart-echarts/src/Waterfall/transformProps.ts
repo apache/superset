@@ -36,7 +36,7 @@ import {
   ISeriesData,
   WaterfallChartTransformedProps,
   ICallbackDataParams,
-} from './types-copy';
+} from './types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import { ASSIST_MARK, LEGEND, TOKEN, TOTAL_MARK } from './constants';
