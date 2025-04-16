@@ -31,7 +31,6 @@ import {
   getHeaderFontSize,
   getMetricNameFontSize,
 } from './utils';
-import { getFriendlyMetricName } from '../utils';
 
 dayjs.extend(utc);
 
@@ -81,7 +80,7 @@ export default function transformProps(chartProps: ChartProps) {
     height,
     formData,
     queriesData,
-    datasource: { currencyFormats = {}, columnFormats = {} },
+    datasource: { currencyFormats = {}, columnFormats = {}, verboseMap = {} },
   } = chartProps;
   const {
     boldText,
@@ -97,13 +96,15 @@ export default function transformProps(chartProps: ChartProps) {
     percentDifferenceFormat,
     subtitle = '',
     subtitleFontSize,
-    columnConfig,
+    columnConfig = {},
   } = formData;
   const { data: dataA = [] } = queriesData[0];
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
-  const metrics = chartProps.datasource?.metrics || [];
-  const friendlyMetricName = getFriendlyMetricName(metric, metrics);
+  const metricKey = metric ? getMetricLabel(metric) : '';
+  const config = columnConfig[metricKey] || {};
+  const customName = config.customColumnName;
+  const originalLabel = customName || verboseMap[metricKey] || metricKey;
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
@@ -188,7 +189,7 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
-    metricName: friendlyMetricName,
+    metricName: originalLabel,
     bigNumber,
     prevNumber,
     valueDifference,

@@ -29,11 +29,7 @@ import {
   getValueFormatter,
 } from '@superset-ui/core';
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
-import {
-  getDateFormatter,
-  parseMetricValue,
-  getFriendlyMetricName,
-} from '../utils';
+import { getDateFormatter, parseMetricValue } from '../utils';
 import { Refs } from '../../types';
 
 export default function transformProps(
@@ -63,11 +59,14 @@ export default function transformProps(
     subheaderFontSize,
   } = formData;
   const refs: Refs = {};
-  const { data = [], coltypes = [] } = queriesData[0];
+  const { data = [], coltypes = [], colnames = [] } = queriesData[0] || {};
   const granularity = extractTimegrain(rawFormData as QueryFormData);
+  const { verboseMap = {} } = chartProps.datasource;
+  const metricKey = colnames.length > 0 ? colnames[0] : 'Unknown Metric';
+  const config = rawFormData?.column_config?.[metricKey] || {};
+  const customName = config.customColumnName;
+  const originalLabel = customName || verboseMap[metricKey] || metricKey;
   const metricName = getMetricLabel(metric);
-  const metrics = chartProps.datasource?.metrics || [];
-  const friendlyMetricName = getFriendlyMetricName(metric, metrics);
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const formattedSubtitle = subtitle || subheader || '';
   const formattedSubtitleFontSize = subheaderFontSize || subtitleFontSize;
@@ -121,8 +120,7 @@ export default function transformProps(
     onContextMenu,
     refs,
     colorThresholdFormatters,
-    metricName,
-    friendlyMetricName,
+    metricName: originalLabel,
     showMetricName,
     metricNameFontSize,
   };
