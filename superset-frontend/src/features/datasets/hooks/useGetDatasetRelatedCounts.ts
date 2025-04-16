@@ -18,7 +18,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { SupersetClient, logging, t } from '@superset-ui/core';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { addDangerToast } from '@superset-ui/core/components/MessageToasts/actions';
 
 const useGetDatasetRelatedCounts = (id: string) => {
   const [usageCount, setUsageCount] = useState(0);

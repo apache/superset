@@ -19,7 +19,7 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { styled, css } from '@superset-ui/core';
-import { Checkbox } from 'src/components';
+import { Checkbox } from '@superset-ui/core/components';
 import ControlHeader from '../ControlHeader';
 
 const propTypes = {

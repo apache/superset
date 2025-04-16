@@ -17,9 +17,9 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { styled, css, t, useTheme } from '@superset-ui/core';
+import { styled, css, t, useTheme, SupersetTheme } from '@superset-ui/core';
 import { Comparator } from '@superset-ui/chart-controls';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { FormattingPopover } from './FormattingPopover';
 import {
@@ -187,7 +187,7 @@ const ConditionalFormattingControl = ({
             <Icons.PlusOutlined
               iconSize="m"
               iconColor={theme.colors.grayscale.light1}
-              css={theme => ({
+              css={(theme: SupersetTheme) => ({
                 margin: `auto ${theme.sizeUnit}px auto 0`,
                 verticalAlign: 'baseline',
               })}

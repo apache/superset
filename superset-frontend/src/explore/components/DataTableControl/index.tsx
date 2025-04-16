@@ -35,10 +35,14 @@ import {
   NULL_DISPLAY,
   SLOW_DEBOUNCE,
 } from 'src/constants';
-import { Radio } from 'src/components/Radio';
-import { Icons } from 'src/components/Icons';
-import { Input, Button, CopyToClipboard } from 'src/components';
-import Popover from 'src/components/Popover';
+import { Radio } from '@superset-ui/core/components/Radio';
+import { Icons } from '@superset-ui/core/components/Icons';
+import {
+  Input,
+  Button,
+  CopyToClipboard,
+  Popover,
+} from '@superset-ui/core/components';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getTimeColumns, setTimeColumns } from './utils';
 
@@ -214,7 +218,7 @@ const DataTableTemporalHeaderCell = ({
           iconSize="m"
           iconColor={theme.colors.grayscale.light1}
           css={{ marginRight: `${theme.sizeUnit}px` }}
-          onClick={e => e.stopPropagation()}
+          onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
         />
       </Popover>
       {columnName}

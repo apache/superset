@@ -39,6 +39,7 @@ import {
   CertifiedBadge,
   DatasourceModal,
   DeleteModal,
+  Icons,
   Tooltip,
   ModifiedInfo,
   FacePile,
@@ -49,15 +50,14 @@ import {
   Loading,
   ListView,
   ListViewFilterOperator as FilterOperator,
+  WarningIconWithTooltip,
   type ListViewProps,
   type ListViewFilters,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import { Icons } from 'src/components/Icons';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 
 import {

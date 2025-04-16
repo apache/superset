@@ -24,7 +24,7 @@ import {
   ClientErrorObject,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { AsyncSelect } from 'src/components';
+import { AsyncSelect } from '@superset-ui/core/components';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
   Dataset,

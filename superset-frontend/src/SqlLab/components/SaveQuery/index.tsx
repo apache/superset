@@ -20,8 +20,16 @@ import { useState, useEffect, useMemo, ChangeEvent } from 'react';
 
 import type { DatabaseObject } from 'src/features/databases/types';
 import { t, styled } from '@superset-ui/core';
-import { Input, Button, Form, FormItem, Modal, Row, Col } from 'src/components';
-import { Menu } from 'src/components/Menu';
+import {
+  Input,
+  Button,
+  Form,
+  FormItem,
+  Modal,
+  Row,
+  Col,
+} from '@superset-ui/core/components';
+import { Menu } from '@superset-ui/core/components/Menu';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 import {
   SaveDatasetModal,

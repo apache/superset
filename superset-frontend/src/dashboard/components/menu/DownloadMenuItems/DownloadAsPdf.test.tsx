@@ -23,7 +23,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import DownloadAsPdf from './DownloadAsPdf';
 
@@ -34,7 +34,7 @@ jest.mock('src/utils/downloadAsPdf', () => ({
   default: jest.fn(() => (_e: SyntheticEvent) => {}),
 }));
 
-jest.mock('src/components/MessageToasts/withToasts', () => ({
+jest.mock('@superset-ui/core/components/MessageToasts/withToasts', () => ({
   useToasts: () => ({
     addDangerToast: mockAddDangerToast,
   }),

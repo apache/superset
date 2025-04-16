@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
 import {
   Checkbox,
   FormModal,
@@ -25,7 +25,7 @@ import {
   Input,
   FormItem,
   FormInstance,
-} from 'src/components/';
+} from '@superset-ui/core/components/';
 import { Role, UserObject } from 'src/pages/UsersList';
 import { BaseUserListModalProps, FormValues } from './types';
 import { createUser, updateUser } from './utils';

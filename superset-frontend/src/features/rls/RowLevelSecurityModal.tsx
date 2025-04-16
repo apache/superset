@@ -19,7 +19,7 @@
 
 import { css, styled, SupersetClient, useTheme, t } from '@superset-ui/core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   Modal,
   Select,
@@ -27,7 +27,7 @@ import {
   InfoTooltip,
   LabeledErrorBoundInput,
   Input,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { FILTER_OPTIONS } from './constants';

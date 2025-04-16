@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { DatabaseObject } from 'src/components';
+import type { DatabaseObject } from '@superset-ui/core/components';
 
 export enum DatasetActionType {
   SelectDatabase,

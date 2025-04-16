@@ -21,7 +21,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { css, t, SupersetClient, useTheme } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
+import {
+  ActionsBar,
+  ActionProps,
+} from '@superset-ui/core/components/ListView/ActionsBar';
 import {
   DeleteModal,
   ListView,
@@ -29,14 +32,14 @@ import {
   ConfirmStatusChange,
   ListViewFilterOperator,
   ListViewFilters,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   UserListAddModal,
   UserListEditModal,
 } from 'src/features/users/UserListModal';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
 import { deleteUser } from 'src/features/users/utils';
 
 const PAGE_SIZE = 25;

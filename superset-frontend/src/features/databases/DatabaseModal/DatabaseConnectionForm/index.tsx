@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetTheme } from '@superset-ui/core';
-import { Form } from 'src/components';
+import { Form } from '@superset-ui/core/components';
 import { FormFieldOrder, FORM_FIELD_MAP } from './constants';
 import { formScrollableStyles, validatedFormStyles } from '../styles';
 import { DatabaseConnectionFormProps } from '../../types';

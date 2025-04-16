@@ -35,12 +35,12 @@ import {
   useCallback,
   ChangeEvent,
 } from 'react';
-import { CheckboxChangeEvent } from 'src/components/Checkbox/types';
+import { CheckboxChangeEvent } from '@superset-ui/core/components/Checkbox/types';
 
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-import Tabs from 'src/components/Tabs';
 import {
+  Tabs,
   Alert,
   Button,
   ErrorMessageWithStackTrace,
@@ -50,11 +50,13 @@ import {
   IconButton,
   InfoTooltip,
   Loading,
-} from 'src/components';
-import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import { ErrorAlert } from 'src/components/ImportModal/ErrorAlert';
-import { Icons } from 'src/components/Icons';
+  Upload,
+  UploadChangeParam,
+  UploadFile,
+} from '@superset-ui/core/components';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
+import { ErrorAlert } from '@superset-ui/core/components/ImportModal/ErrorAlert';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   testDatabaseConnection,
   useSingleViewResource,

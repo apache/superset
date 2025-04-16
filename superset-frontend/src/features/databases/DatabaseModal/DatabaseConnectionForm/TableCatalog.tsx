@@ -20,8 +20,8 @@ import { css, SupersetTheme, t } from '@superset-ui/core';
 import {
   FormLabel,
   LabeledErrorBoundInput as ValidatedInput,
-} from 'src/components';
-import { Icons } from 'src/components/Icons';
+} from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
 import { CatalogObject, FieldPropTypes } from '../../types';
 

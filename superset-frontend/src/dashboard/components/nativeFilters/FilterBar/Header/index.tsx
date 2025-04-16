@@ -19,8 +19,8 @@
 /* eslint-disable no-param-reassign */
 import { css, styled, t } from '@superset-ui/core';
 import { memo, FC } from 'react';
-import { Icons } from 'src/components/Icons';
-import { Button } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Button } from '@superset-ui/core/components';
 import { getFilterBarTestId } from '../utils';
 import FilterBarSettings from '../FilterBarSettings';
 

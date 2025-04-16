@@ -34,8 +34,8 @@ import {
   addChart,
   removeChart,
   refreshChart,
-} from 'src/components/Chart/chartAction';
-import { chart as initChart } from 'src/components/Chart/chartReducer';
+} from '@superset-ui/core/components/Chart/chartAction';
+import { chart as initChart } from '@superset-ui/core/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import {
   SAVE_TYPE_OVERWRITE,
@@ -49,7 +49,7 @@ import {
   addSuccessToast,
   addWarningToast,
   addDangerToast,
-} from 'src/components/MessageToasts/actions';
+} from '@superset-ui/core/components/MessageToasts/actions';
 import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilterValues';
 import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';

@@ -18,7 +18,7 @@
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
 import { css, styled, t } from '@superset-ui/core';
-import Popover from 'src/components/Popover';
+import { Popover } from '@superset-ui/core/components';
 import { FC, useState } from 'react';
 import { EditItem, LayerConf, LayerConfigsControlProps } from './types';
 import LayerConfigsPopoverContent from './LayerConfigsPopoverContent';

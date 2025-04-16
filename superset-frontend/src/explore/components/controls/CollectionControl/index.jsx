@@ -18,7 +18,7 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { List } from 'src/components';
+import { List } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
 import { t, withTheme } from '@superset-ui/core';
 import {
@@ -27,7 +27,7 @@ import {
   SortableElement,
   arrayMove,
 } from 'react-sortable-hoc';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   HeaderContainer,
   AddIconButton,

@@ -45,8 +45,8 @@ import {
   Tooltip,
   usePluginContext,
   Label,
-} from 'src/components';
-import { Icons } from 'src/components/Icons';
+} from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import scrollIntoView from 'scroll-into-view-if-needed';
 

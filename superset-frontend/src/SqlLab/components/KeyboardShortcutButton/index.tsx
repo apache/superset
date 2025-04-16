@@ -18,7 +18,7 @@
  */
 import { FC } from 'react';
 import { styled, t, css } from '@superset-ui/core';
-import ModalTrigger from 'src/components/ModalTrigger';
+import { ModalTrigger } from '@superset-ui/core/components';
 import { detectOS } from 'src/utils/common';
 
 const userOS = detectOS();

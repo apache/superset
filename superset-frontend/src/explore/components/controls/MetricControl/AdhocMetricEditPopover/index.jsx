@@ -26,8 +26,8 @@ import {
   ensureIsArray,
   DatasourceType,
 } from '@superset-ui/core';
-import Tabs from 'src/components/Tabs';
 import {
+  Tabs,
   Button,
   EmptyState,
   Form,
@@ -35,7 +35,7 @@ import {
   Select,
   Tooltip,
   SQLEditor,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
 import {

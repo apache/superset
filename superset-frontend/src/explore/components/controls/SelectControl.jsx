@@ -19,7 +19,7 @@
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { css, isEqualArray, t } from '@superset-ui/core';
-import { Select } from 'src/components';
+import { Select } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {

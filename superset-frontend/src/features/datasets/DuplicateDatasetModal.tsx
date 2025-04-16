@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
-import { Input, FormLabel, Modal } from 'src/components';
+import { Input, FormLabel, Modal } from '@superset-ui/core/components';
 import Dataset from 'src/types/Dataset';
 
 interface DuplicateDatasetModalProps {

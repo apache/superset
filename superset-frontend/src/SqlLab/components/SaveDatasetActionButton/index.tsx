@@ -17,8 +17,8 @@
  * under the License.
  */
 import { t, useTheme } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import { Button, DropdownButton } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Button, DropdownButton } from '@superset-ui/core/components';
 
 interface SaveDatasetActionButtonProps {
   setShowSave: (arg0: boolean) => void;

@@ -29,11 +29,11 @@ import {
   getExtensionsRegistry,
   usePrevious,
 } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import { Switch } from 'src/components/Switch';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Switch } from '@superset-ui/core/components/Switch';
 import { AlertObject } from 'src/features/alerts/types';
-import { Menu } from 'src/components/Menu';
-import { Checkbox } from 'src/components';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { Checkbox } from '@superset-ui/core/components';
 import { noOp } from 'src/utils/common';
 import { ChartState } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';

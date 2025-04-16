@@ -18,11 +18,16 @@
  */
 /* eslint-env browser */
 import { createRef, PureComponent } from 'react';
-import { Radio, RadioChangeEvent } from 'src/components/Radio';
-import { Button, Checkbox, Input } from 'src/components';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
+import {
+  Button,
+  Checkbox,
+  Input,
+  ModalTrigger,
+  ModalTriggerRef,
+} from '@superset-ui/core/components';
 import { t, JsonResponse } from '@superset-ui/core';
 
-import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
 import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_NEWDASHBOARD,

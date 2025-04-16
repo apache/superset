@@ -18,17 +18,19 @@
  */
 import { useState } from 'react';
 import { t } from '@superset-ui/core';
-import Tabs from 'src/components/Tabs';
+import { Tabs, FormModal } from '@superset-ui/core/components';
 import { RoleObject } from 'src/pages/RolesList';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import {
+  TableView,
+  EmptyWrapperType,
+} from '@superset-ui/core/components';
 import {
   BaseModalProps,
   FormattedPermission,
   RoleForm,
   UserObject,
 } from 'src/features/roles/types';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { FormModal } from 'src/components';
+import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
 import { PermissionsField, RoleNameField, UsersField } from './RoleFormItems';
 import {
   updateRoleName,

@@ -19,9 +19,10 @@
 import { PureComponent } from 'react';
 import { t } from '@superset-ui/core';
 
-import PopoverDropdown, {
+import {
+  PopoverDropdown,
   OnChangeHandler,
-} from 'src/components/PopoverDropdown';
+} from '@superset-ui/core/components/PopoverDropdown';
 
 interface MarkdownModeDropdownProps {
   id: string;

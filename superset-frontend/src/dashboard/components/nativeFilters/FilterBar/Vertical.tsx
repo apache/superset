@@ -31,8 +31,8 @@ import {
 } from 'react';
 import cx from 'classnames';
 import { styled, t, useTheme } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import { EmptyState, Loading } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getFilterBarTestId } from './utils';
 import { VerticalBarProps } from './types';
 import Header from './Header';

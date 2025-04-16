@@ -18,7 +18,7 @@
  */
 import { FC } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
-import { Alert, EmptyState } from 'src/components';
+import { Alert, EmptyState } from '@superset-ui/core/components';
 import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
 
 import { SqlLabRootState } from 'src/SqlLab/types';

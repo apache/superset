@@ -19,7 +19,7 @@
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { Dispatch } from 'redux';
-import { ADD_TOAST } from 'src/components/MessageToasts/actions';
+import { ADD_TOAST } from '@superset-ui/core/components/MessageToasts/actions';
 import {
   DatasourceType,
   QueryFormData,

@@ -41,8 +41,8 @@ import {
   Modal,
   Input,
   Loading,
-} from 'src/components';
-import { Radio } from 'src/components/Radio';
+} from '@superset-ui/core/components';
+import { Radio } from '@superset-ui/core/components/Radio';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';

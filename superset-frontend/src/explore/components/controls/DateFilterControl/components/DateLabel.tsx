@@ -20,7 +20,7 @@
 import { forwardRef, MouseEvent, ReactNode, RefObject } from 'react';
 
 import { css, styled, t } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 export type DateLabelProps = {
   name?: string;

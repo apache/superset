@@ -19,10 +19,10 @@
 import { useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import cx from 'classnames';
-import { Button, Modal } from 'src/components';
+import { Button, Modal } from '@superset-ui/core/components';
 import withToasts, {
   ToastProps,
-} from 'src/components/MessageToasts/withToasts';
+} from '@superset-ui/core/components/MessageToasts/withToasts';
 import SyntaxHighlighterCopy from 'src/features/queries/SyntaxHighlighterCopy';
 import useQueryPreviewState from 'src/features/queries/hooks/useQueryPreviewState';
 import { QueryObject } from 'src/views/CRUD/types';

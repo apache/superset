@@ -33,7 +33,7 @@ import {
   screen,
   within,
 } from 'spec/helpers/testing-library';
-import type { AsyncAceEditorProps } from 'src/components';
+import type { AsyncAceEditorProps } from '@superset-ui/core/components';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Operators } from 'src/explore/constants';
@@ -47,8 +47,8 @@ import { Datasource } from '../../../types';
 import { DndItemType } from '../../DndItemType';
 import DatasourcePanelDragOption from '../../DatasourcePanel/DatasourcePanelDragOption';
 
-jest.mock('src/components/AsyncAceEditor', () => ({
-  ...jest.requireActual('src/components/AsyncAceEditor'),
+jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
+  ...jest.requireActual('@superset-ui/core/components/AsyncAceEditor'),
   SQLEditor: (props: AsyncAceEditorProps) => (
     <div data-test="react-ace">{props.value}</div>
   ),

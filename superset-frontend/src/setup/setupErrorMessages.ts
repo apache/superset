@@ -27,7 +27,7 @@ import {
   InvalidSQLErrorMessage,
   OAuth2RedirectMessage,
   FrontendNetworkErrorMessage,
-} from 'src/components';
+} from '@superset-ui/core/components';
 
 import setupErrorMessagesExtra from './setupErrorMessagesExtra';
 

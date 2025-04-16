@@ -55,23 +55,23 @@ import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   DashboardCrossLinks,
+  TagsList,
+  TagType,
+  Icons,
   Loading,
   type ListViewProps,
   type ListViewFilters,
   type ListViewFilter,
   type LabeledValue,
-} from 'src/components';
-import TagsList from 'src/components/TagsList';
+} from '@superset-ui/core/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { Link, useHistory } from 'react-router-dom';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';
-import Tag from 'src/types/TagType';
-import { Icons } from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
-import { loadTags } from 'src/components/Tag/utils';
+import { loadTags } from '@superset-ui/core/components/Tag/utils';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
@@ -415,7 +415,7 @@ function ChartList(props: ChartListProps) {
         }: any) => (
           // Only show custom type tags
           <TagsList
-            tags={tags.filter((tag: Tag) =>
+            tags={tags.filter((tag: TagType) =>
               tag.type
                 ? tag.type === 1 || tag.type === 'TagTypes.custom'
                 : true,

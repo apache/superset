@@ -18,7 +18,7 @@
  */
 import { ReactNode, useCallback, useContext, useEffect, useMemo } from 'react';
 import { useDrop } from 'react-dnd';
-import { t, useTheme } from '@superset-ui/core';
+import { t, useTheme, SupersetTheme } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {
   AddControlLabel,
@@ -29,7 +29,7 @@ import {
   DatasourcePanelDndItem,
   DndItemValue,
 } from 'src/explore/components/DatasourcePanel/types';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { DndItemType } from '../../DndItemType';
 import { DraggingContext, DropzoneContext } from '../../ExploreContainer';
 
@@ -103,7 +103,7 @@ export default function DndSelectLabel({
         <Icons.PlusOutlined
           iconSize="m"
           iconColor={theme.colors.grayscale.light1}
-          css={theme => ({
+          css={(theme: SupersetTheme) => ({
             margin: `auto ${theme.sizeUnit}px auto 0`,
           })}
         />

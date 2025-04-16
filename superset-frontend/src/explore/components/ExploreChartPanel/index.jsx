@@ -32,13 +32,13 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import ChartContainer from 'src/components/Chart/ChartContainer';
+import ChartContainer from '@superset-ui/core/components/Chart/ChartContainer';
 import {
   getItem,
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { Alert } from 'src/components';
+import { Alert } from '@superset-ui/core/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';

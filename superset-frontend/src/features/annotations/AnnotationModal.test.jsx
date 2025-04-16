@@ -20,7 +20,7 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { Modal, JsonEditor } from 'src/components';
+import { Modal, JsonEditor } from '@superset-ui/core/components';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
 import AnnotationModal from './AnnotationModal';

@@ -24,7 +24,7 @@ import { Dispatch } from 'redux';
 import {
   addDangerToast,
   toastActions,
-} from 'src/components/MessageToasts/actions';
+} from '@superset-ui/core/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
 import { SaveActionType } from 'src/explore/types';
 

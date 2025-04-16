@@ -40,7 +40,7 @@ const mockUpdateRoleName = jest.mocked(updateRoleName);
 const mockUpdateRolePermissions = jest.mocked(updateRolePermissions);
 const mockUpdateRoleUsers = jest.mocked(updateRoleUsers);
 
-jest.mock('src/components/MessageToasts/withToasts', () => ({
+jest.mock('@superset-ui/core/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default: (Component: any) => Component,
   useToasts: () => mockToasts,

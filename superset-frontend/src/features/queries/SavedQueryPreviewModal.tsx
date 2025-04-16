@@ -18,11 +18,11 @@
  */
 import { FunctionComponent } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { Button, Modal } from 'src/components';
+import { Button, Modal } from '@superset-ui/core/components';
 import SyntaxHighlighterCopy from 'src/features/queries/SyntaxHighlighterCopy';
 import withToasts, {
   ToastProps,
-} from 'src/components/MessageToasts/withToasts';
+} from '@superset-ui/core/components/MessageToasts/withToasts';
 import useQueryPreviewState from 'src/features/queries/hooks/useQueryPreviewState';
 
 const QueryTitle = styled.div`

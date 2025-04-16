@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FormItem } from 'src/components';
+import { FormItem } from '@superset-ui/core/components';
 import { css, styled, SupersetTheme } from '@superset-ui/core';
 
 const MODAL_BODY_HEIGHT = 180.5;

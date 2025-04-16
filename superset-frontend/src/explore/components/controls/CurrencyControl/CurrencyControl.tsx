@@ -27,7 +27,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { CSSObject } from '@emotion/react';
-import { Select, type SelectProps } from 'src/components';
+import { Select, type SelectProps } from '@superset-ui/core/components';
 import { ViewState } from 'src/views/types';
 import ControlHeader from '../../ControlHeader';
 

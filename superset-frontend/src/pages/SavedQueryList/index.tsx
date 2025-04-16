@@ -35,8 +35,7 @@ import {
   createFetchRelated,
 } from 'src/views/CRUD/utils';
 import { useSelector } from 'react-redux';
-import Popover from 'src/components/Popover';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
   ConfirmStatusChange,
@@ -44,22 +43,23 @@ import {
   ModifiedInfo,
   DeleteModal,
   ImportModal as ImportModelsModal,
+  Popover,
   Loading,
   ListView,
   ListViewActionsBar,
+  TagType,
+  TagsList,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewActionProps,
   type ListViewFilters,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { ButtonProps, SubMenuProps } from 'src/features/home/SubMenu';
-import TagsList from 'src/components/TagsList';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
-import Tag from 'src/types/TagType';
-import { loadTags } from 'src/components/Tag/utils';
-import { Icons } from 'src/components/Icons';
+import { loadTags } from '@superset-ui/core/components/Tag/utils';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
@@ -407,7 +407,7 @@ function SavedQueryList({
           },
         }: any) => (
           // Only show custom type tags
-          <TagsList tags={tags.filter((tag: Tag) => tag.type === 1)} />
+          <TagsList tags={tags.filter((tag: TagType) => tag.type === 1)} />
         ),
         Header: t('Tags'),
         accessor: 'tags',

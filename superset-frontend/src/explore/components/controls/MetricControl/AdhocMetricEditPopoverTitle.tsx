@@ -26,8 +26,8 @@ import {
 } from 'react';
 
 import { t, styled, useTheme } from '@superset-ui/core';
-import { Input, Tooltip } from 'src/components';
-import { Icons } from 'src/components/Icons';
+import { Input, Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 const TitleLabel = styled.span`
   display: inline-block;

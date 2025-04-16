@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { MainNav as Menu } from 'src/components/Menu';
+import { MainNav as Menu } from '@superset-ui/core/components/Menu';
 import LanguagePicker from './LanguagePicker';
 
 const mockedProps = {

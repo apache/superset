@@ -18,7 +18,7 @@
  */
 
 import { useState } from 'react';
-import { Input, Collapse, FormItem } from 'src/components';
+import { Input, Collapse, FormItem } from '@superset-ui/core/components';
 import { CustomParametersChangeType, FieldPropTypes } from '../../types';
 
 const LABELS = {

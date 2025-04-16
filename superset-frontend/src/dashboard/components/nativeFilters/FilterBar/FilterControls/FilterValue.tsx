@@ -43,12 +43,12 @@ import {
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { getChartDataRequest } from '@superset-ui/core/components/Chart/chartAction';
 import {
   ErrorAlert,
   ErrorMessageWithStackTrace,
   Loading,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {

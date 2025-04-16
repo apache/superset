@@ -19,7 +19,7 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import URLShortLinkButton from 'src/dashboard/components/URLShortLinkButton';
-import ToastContainer from 'src/components/MessageToasts/ToastContainer';
+import ToastContainer from '@superset-ui/core/components/MessageToasts/ToastContainer';
 
 const DASHBOARD_ID = 10;
 const PERMALINK_PAYLOAD = {

@@ -27,7 +27,7 @@ import {
   userEvent,
   fireEvent,
 } from 'spec/helpers/testing-library';
-import { UploadFile } from 'src/components/Upload';
+import { UploadFile } from '@superset-ui/core/components/Upload';
 
 const csvProps = {
   show: true,

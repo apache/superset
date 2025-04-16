@@ -23,7 +23,7 @@ import {
   t,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { addDangerToast } from '@superset-ui/core/components/MessageToasts/actions';
 import { Dispatch } from 'redux';
 import { Slice } from '../types';
 

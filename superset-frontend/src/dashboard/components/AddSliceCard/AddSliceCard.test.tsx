@@ -27,7 +27,7 @@ import {
 } from 'spec/helpers/testing-library';
 import AddSliceCard from './AddSliceCard';
 
-jest.mock('src/components/DynamicPlugins', () => ({
+jest.mock('@superset-ui/core/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
     mountedPluginMetadata: { table: { name: 'Table' } },
   }),

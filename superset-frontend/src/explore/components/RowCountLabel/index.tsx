@@ -18,7 +18,7 @@
  */
 import { getNumberFormatter, t, tn } from '@superset-ui/core';
 
-import { Label, Tooltip } from 'src/components';
+import { Label, Tooltip } from '@superset-ui/core/components';
 
 type RowCountLabelProps = {
   rowcount?: number;

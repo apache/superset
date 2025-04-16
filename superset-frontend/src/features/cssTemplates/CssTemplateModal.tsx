@@ -21,9 +21,9 @@ import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import { Icons } from 'src/components/Icons';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import { Input, CssEditor, Modal } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
+import { Input, CssEditor, Modal } from '@superset-ui/core/components';
 
 import { OnlyKeyWithType } from 'src/utils/types';
 import { TemplateObject } from './types';

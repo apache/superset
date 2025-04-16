@@ -18,7 +18,7 @@
  * under the License.
  */
 import { Column, Metric, ensureIsArray } from '@superset-ui/core';
-import { Dataset } from 'src/components/Chart/types';
+import { Dataset } from '@superset-ui/core/components/Chart/types';
 
 export const useVerboseMap = (dataset?: Dataset) => {
   const verbose_map: Record<string, string> = {};

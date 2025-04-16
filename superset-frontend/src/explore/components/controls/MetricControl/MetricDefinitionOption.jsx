@@ -21,7 +21,7 @@ import {
   StyledColumnOption,
   StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import AggregateOption from './AggregateOption';
 import columnType from './columnType';
 import aggregateOptionType from './aggregateOptionType';

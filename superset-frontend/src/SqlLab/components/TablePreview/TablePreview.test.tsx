@@ -27,7 +27,7 @@ import {
 } from 'spec/helpers/testing-library';
 import TablePreview from '.';
 
-jest.mock('src/components/FilterableTable', () => ({
+jest.mock('@superset-ui/core/components/FilterableTable', () => ({
   __esModule: true,
   FilterableTable: ({ data }: { data: Record<string, any>[] }) => (
     <div>
@@ -45,7 +45,7 @@ jest.mock(
     ({ children }: { children: (params: { height: number }) => ReactChild }) =>
       children({ height: 500 }),
 );
-jest.mock('src/components/IconTooltip', () => ({
+jest.mock('@superset-ui/core/components/IconTooltip', () => ({
   IconTooltip: ({
     onClick,
     tooltip,

@@ -23,14 +23,14 @@ import {
   NativeFilterType,
   Divider,
   styled,
-  SLOW_DEBOUNCE,
   t,
   css,
   useTheme,
 } from '@superset-ui/core';
+import { SLOW_DEBOUNCE } from '@superset-ui/core/components/constants';
 import { useDispatch } from 'react-redux';
-import { Icons } from 'src/components/Icons';
-import { ErrorBoundary, Form, StyledModal } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { ErrorBoundary, Form, StyledModal } from '@superset-ui/core/components';
 import { testWithId } from 'src/utils/testUtils';
 import { updateCascadeParentIds } from 'src/dashboard/actions/nativeFilters';
 import useEffectEvent from 'src/hooks/useEffectEvent';

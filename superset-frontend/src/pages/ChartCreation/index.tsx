@@ -30,9 +30,9 @@ import { withTheme, Theme } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
-import { AsyncSelect, Button } from 'src/components';
-import { Steps } from 'src/components/Steps';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import { AsyncSelect, Button } from '@superset-ui/core/components';
+import { Steps } from '@superset-ui/core/components/Steps';
+import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
@@ -44,7 +44,7 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 export interface ChartCreationProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useRef, useState } from 'react';
-import { InputNumber } from 'src/components';
+import { InputNumber } from '@superset-ui/core/components';
 import { t, styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';

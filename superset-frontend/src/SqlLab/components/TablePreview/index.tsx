@@ -25,24 +25,24 @@ import {
   ClientErrorObject,
   css,
   getExtensionsRegistry,
-  SafeMarkdown,
   styled,
   t,
 } from '@superset-ui/core';
-import AutoSizer from 'react-virtualized-auto-sizer';
-import { Icons } from 'src/components/Icons';
-import type { SqlLabRootState } from 'src/SqlLab/types';
 import {
+  Icons,
   Alert,
   Breadcrumb,
+  SafeMarkdown,
   Button,
   Card,
+  Tabs,
   CopyToClipboard,
   Dropdown,
   FilterableTable,
-} from 'src/components';
-import Skeleton from 'src/components/Skeleton';
-import Tabs from 'src/components/Tabs';
+  Skeleton,
+} from '@superset-ui/core/components';
+import AutoSizer from 'react-virtualized-auto-sizer';
+import type { SqlLabRootState } from 'src/SqlLab/types';
 import {
   tableApiUtil,
   TableMetaData,
@@ -50,7 +50,7 @@ import {
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
 import { runTablePreviewQuery } from 'src/SqlLab/actions/sqlLab';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import ResultSet from '../ResultSet';
 import ShowSQL from '../ShowSQL';
 

@@ -24,7 +24,7 @@ import {
   styled,
   SupersetTheme,
 } from '@superset-ui/core';
-import { Modal, usePluginContext } from 'src/components';
+import { Modal, usePluginContext } from '@superset-ui/core/components';
 import { noOp } from 'src/utils/common';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { FilterPlugins } from 'src/constants';

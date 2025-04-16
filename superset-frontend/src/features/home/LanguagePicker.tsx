@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MainNav as Menu } from 'src/components/Menu';
+import { MainNav as Menu } from '@superset-ui/core/components/Menu';
 import { styled, css, useTheme } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 const { SubMenu } = Menu;
 export interface Languages {

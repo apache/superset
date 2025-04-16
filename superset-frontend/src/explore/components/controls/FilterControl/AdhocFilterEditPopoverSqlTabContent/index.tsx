@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useRef, useMemo } from 'react';
-import { Select, SQLEditor } from 'src/components';
+import { Select, SQLEditor } from '@superset-ui/core/components';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';

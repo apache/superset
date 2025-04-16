@@ -20,7 +20,7 @@ import { PureComponent } from 'react';
 import rison from 'rison';
 import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
-import { Button, AsyncSelect, EmptyState } from 'src/components';
+import { Button, AsyncSelect, EmptyState } from '@superset-ui/core/components';
 import {
   t,
   SupersetClient,
@@ -35,7 +35,7 @@ import {
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
-import PopoverSection from 'src/components/PopoverSection';
+import PopoverSection from '@superset-ui/core/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {
   ANNOTATION_SOURCE_TYPES,

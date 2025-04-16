@@ -24,7 +24,7 @@ import { Global } from '@emotion/react';
 
 import { SQL_EDITOR_LEFTBAR_WIDTH } from 'src/SqlLab/constants';
 import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
-import { FullSQLEditor as AceEditor } from 'src/components';
+import { FullSQLEditor as AceEditor } from '@superset-ui/core/components';
 import type { KeyboardShortcut } from 'src/SqlLab/components/KeyboardShortcutButton';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, type CursorPosition } from 'src/SqlLab/types';

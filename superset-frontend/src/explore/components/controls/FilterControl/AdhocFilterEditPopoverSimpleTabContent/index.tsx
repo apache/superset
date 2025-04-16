@@ -18,7 +18,7 @@
  */
 import { FC, ChangeEvent, useEffect, useState } from 'react';
 
-import { Input, Select, Tooltip } from 'src/components';
+import { Input, Select, Tooltip } from '@superset-ui/core/components';
 import {
   isFeatureEnabled,
   FeatureFlag,

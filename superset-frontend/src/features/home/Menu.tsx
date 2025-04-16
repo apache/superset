@@ -20,11 +20,17 @@ import { useState, useEffect } from 'react';
 import { styled, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { MainNav, MenuMode } from 'src/components/Menu';
-import { GenericLink, Tooltip, Grid, Row, Col } from 'src/components';
+import { MainNav, MenuMode } from '@superset-ui/core/components/Menu';
+import {
+  GenericLink,
+  Tooltip,
+  Grid,
+  Row,
+  Col,
+} from '@superset-ui/core/components';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Icons } from 'src/components/Icons';
-import { useUiConfig } from 'src/components/UiConfigContext';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { useUiConfig } from '@superset-ui/core/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
 import {
   MenuObjectChildProps,

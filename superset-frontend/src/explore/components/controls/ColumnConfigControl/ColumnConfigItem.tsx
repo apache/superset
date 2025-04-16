@@ -18,8 +18,8 @@
  */
 import { memo } from 'react';
 import { css, useTheme } from '@superset-ui/core';
-import Popover from 'src/components/Popover';
-import { Icons } from 'src/components/Icons';
+import { Popover } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { ColumnTypeLabel } from '@superset-ui/chart-controls';
 import ColumnConfigPopover, {
   ColumnConfigPopoverProps,

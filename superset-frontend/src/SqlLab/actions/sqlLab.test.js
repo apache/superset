@@ -30,7 +30,7 @@ import {
   queryId,
 } from 'src/SqlLab/fixtures';
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
-import { ADD_TOAST } from 'src/components/MessageToasts/actions';
+import { ADD_TOAST } from '@superset-ui/core/components/MessageToasts/actions';
 import { ToastType } from '../../components/MessageToasts/types';
 
 const middlewares = [thunk];

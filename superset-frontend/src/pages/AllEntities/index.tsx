@@ -20,17 +20,19 @@ import { useEffect, useState } from 'react';
 import { styled, t, css, SupersetTheme } from '@superset-ui/core';
 import { NumberParam, useQueryParam } from 'use-query-params';
 import AllEntitiesTable from 'src/features/allEntities/AllEntitiesTable';
-import { Button, Loading } from 'src/components';
+import { Button, Loading } from '@superset-ui/core/components';
 import MetadataBar, {
   MetadataType,
   Description,
   Owner,
   LastModified,
-} from 'src/components/MetadataBar';
-import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+} from '@superset-ui/core/components/MetadataBar';
+import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
-import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
+import withToasts, {
+  useToasts,
+} from '@superset-ui/core/components/MessageToasts/withToasts';
 import { fetchObjectsByTagIds, fetchSingleTag } from 'src/features/tags/tags';
 import getOwnerName from 'src/utils/getOwnerName';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';

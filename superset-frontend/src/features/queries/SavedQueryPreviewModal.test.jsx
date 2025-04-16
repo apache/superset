@@ -20,7 +20,7 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { Button, Modal } from 'src/components';
+import { Button, Modal } from '@superset-ui/core/components';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'spec/helpers/testing-library';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';

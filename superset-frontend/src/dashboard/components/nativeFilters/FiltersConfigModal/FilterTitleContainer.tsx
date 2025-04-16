@@ -19,7 +19,7 @@
 import { forwardRef, ReactNode } from 'react';
 
 import { styled, t, useTheme } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { FilterRemoval } from './types';
 import DraggableFilter from './DraggableFilter';
 
@@ -142,7 +142,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
               <Icons.DeleteOutlined
                 iconColor={theme.colors.grayscale.light3}
                 iconSize="m"
-                onClick={event => {
+                onClick={(event: React.MouseEvent<HTMLElement>) => {
                   event.stopPropagation();
                   onRemove(id);
                 }}

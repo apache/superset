@@ -22,8 +22,8 @@ import { useHistory } from 'react-router-dom';
 import { t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { Loading } from 'src/components';
+import { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
+import { Loading } from '@superset-ui/core/components';
 import {
   useDashboard,
   useDashboardCharts,
