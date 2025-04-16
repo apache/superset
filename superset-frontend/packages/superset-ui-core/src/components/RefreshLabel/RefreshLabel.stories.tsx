@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import RefreshLabel, { RefreshLabelProps } from '.';
+import { RefreshLabel, RefreshLabelProps } from '.';
 
 export default {
   title: 'Components/RefreshLabel',

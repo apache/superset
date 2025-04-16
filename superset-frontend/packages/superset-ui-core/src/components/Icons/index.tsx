@@ -20,7 +20,7 @@
 import { FC } from 'react';
 import { antdEnhancedIcons } from './AntdEnhanced';
 import AsyncIcon from './AsyncIcon';
-import type { IconType } from './types';
+export type { IconType } from './types';
 
 /**
  * Filename is going to be inferred from the icon name.

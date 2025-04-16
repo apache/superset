@@ -74,7 +74,7 @@ const MenuItem = styled(Menu.Item)`
   }
 `;
 
-const PopoverDropdown = (props: PopoverDropdownProps) => {
+export const PopoverDropdown = (props: PopoverDropdownProps) => {
   const {
     value,
     options,
@@ -120,5 +120,3 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
     </Dropdown>
   );
 };
-
-export default PopoverDropdown;

@@ -18,10 +18,8 @@
  */
 import { styled, useTheme } from '@superset-ui/core';
 import { FC } from 'react';
-import Skeleton from '..';
-import { Card } from '../Card';
+import { Skeleton, Card, Tooltip } from '..';
 import { CertifiedBadge } from '../CertifiedBadge';
-import { Tooltip } from '../Tooltip';
 import { ImageLoader } from './ImageLoader';
 import type { ListViewCardProps, LinkProps } from './types';
 

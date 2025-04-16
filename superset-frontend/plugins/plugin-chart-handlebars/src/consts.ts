@@ -19,7 +19,7 @@
 import { debounce } from 'lodash';
 import { formatSelectOptions } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
-import { SLOW_DEBOUNCE } from '@superset-ui/core/components/contants';
+import { SLOW_DEBOUNCE } from '@superset-ui/core/components/constants';
 
 export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
   [0, t('page_size.all')],

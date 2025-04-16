@@ -20,7 +20,7 @@ import { memo, useEffect, useRef } from 'react';
 import { isEqual } from 'lodash';
 import { styled, t } from '@superset-ui/core';
 import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
-import { Empty, Pagination, TableCollection } from '..';
+import { Empty, ListViewPagination, TableCollection } from '..';
 import { SortByType, ServerPagination } from './types';
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -237,7 +237,7 @@ const TableView = ({
           className="pagination-container"
           isPaginationSticky={props.isPaginationSticky}
         >
-          <Pagination
+          <ListViewPagination
             totalPages={pageCount || 0}
             currentPage={pageCount ? pageIndex + 1 : 0}
             onChange={(p: number) => handleGotoPage(p - 1)}

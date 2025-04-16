@@ -32,11 +32,16 @@ import {
 import { useTables, Table } from 'src/hooks/apiResources';
 import type { SelectValue, DatabaseObject } from '..';
 
-import { FormLabel, CertifiedBadge, DatabaseSelector, Select } from '..';
-import { Icons } from '..';
-import RefreshLabel from '..';
-import WarningIconWithTooltip from '..';
-import { useToasts } from '..';
+import {
+  FormLabel,
+  CertifiedBadge,
+  DatabaseSelector,
+  Select,
+  Icons,
+  RefreshLabel,
+  WarningIconWithTooltip,
+  useToasts,
+} from '..';
 
 const REFRESH_WIDTH = 30;
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Tabs, { TabsProps } from '.';
+import { Tabs, TabsProps } from '.';
 
 export default {
   title: 'Components/Tabs',

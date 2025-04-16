@@ -18,7 +18,7 @@
  */
 import type { Meta, StoryObj } from '@storybook/react';
 import { Icons, Button } from '..';
-import Upload from '.';
+import { Upload } from '.';
 
 const meta: Meta<typeof Upload> = {
   title: 'Components/Upload',

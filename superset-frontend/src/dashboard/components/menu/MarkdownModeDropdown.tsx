@@ -19,7 +19,8 @@
 import { PureComponent } from 'react';
 import { t } from '@superset-ui/core';
 
-import PopoverDropdown, {
+import {
+  PopoverDropdown,
   OnChangeHandler,
 } from '@superset-ui/core/components/PopoverDropdown';
 

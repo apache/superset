@@ -23,7 +23,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { supersetTheme } from '@superset-ui/core';
-import ModalTrigger from '.';
+import { ModalTrigger } from '.';
 
 const mockedProps = {
   triggerNode: <span>Trigger</span>,

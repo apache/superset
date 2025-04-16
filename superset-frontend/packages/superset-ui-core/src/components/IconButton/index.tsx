@@ -19,10 +19,7 @@
 
 // eslint-disable-next-line
 import { SupersetTheme, css } from '@superset-ui/core';
-import Typography, { Icons } from '..';
-import { Card } from '../Card';
-import { Tooltip } from '../Tooltip';
-import { CardProps } from '../Card/types';
+import { Card, Tooltip, CardProps, Typography, Icons } from '..';
 
 interface IconButtonProps extends CardProps {
   buttonText: string;

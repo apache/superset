@@ -21,7 +21,8 @@ import cx from 'classnames';
 import { css, styled, t } from '@superset-ui/core';
 
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
-import PopoverDropdown, {
+import {
+  PopoverDropdown,
   OptionProps,
   OnChangeHandler,
 } from '@superset-ui/core/components/PopoverDropdown';

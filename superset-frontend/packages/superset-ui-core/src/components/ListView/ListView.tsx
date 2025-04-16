@@ -447,7 +447,7 @@ export function ListView<T extends object = any>({
               columnsForWrapText={columnsForWrapText}
               bulkSelectEnabled={bulkSelectEnabled}
               selectedFlatRows={selectedFlatRows}
-              toggleRowSelected={(rowId, value) => {
+              toggleRowSelected={(rowId: Number, value) => {
                 const row = rows.find(r => r.id === rowId);
                 if (row) {
                   prepareRow(row);

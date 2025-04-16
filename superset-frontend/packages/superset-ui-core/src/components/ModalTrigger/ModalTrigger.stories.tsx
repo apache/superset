@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import ModalTrigger from '.';
+import { ModalTrigger } from '.';
 
 interface IModalTriggerProps {
   triggerNode: JSX.Element;

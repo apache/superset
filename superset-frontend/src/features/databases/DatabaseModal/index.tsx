@@ -50,11 +50,10 @@ import {
   IconButton,
   InfoTooltip,
   Loading,
-} from '@superset-ui/core/components';
-import Upload, {
+  Upload,
   UploadChangeParam,
   UploadFile,
-} from '@superset-ui/core/components/Upload';
+} from '@superset-ui/core/components';
 import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import { ErrorAlert } from '@superset-ui/core/components/ImportModal/ErrorAlert';
 import { Icons } from '@superset-ui/core/components/Icons';

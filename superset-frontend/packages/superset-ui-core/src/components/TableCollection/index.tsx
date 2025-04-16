@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HTMLAttributes, memo, useMemo } from 'react';
+import { HTMLAttributes, useMemo } from 'react';
 import {
   ColumnInstance,
   HeaderGroup,
@@ -91,7 +91,7 @@ const StyledTable = styled(Table)`
   `}
 `;
 
-function TableCollection<T extends object>({
+export function TableCollection<T extends object>({
   columns,
   rows,
   loading,
@@ -175,5 +175,3 @@ function TableCollection<T extends object>({
     />
   );
 }
-
-export default memo(TableCollection);

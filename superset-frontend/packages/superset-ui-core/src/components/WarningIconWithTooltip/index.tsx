@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme, SafeMarkdown } from '@superset-ui/core';
-import { Icons } from '..';
-import type { IconType } from '..';
-import { Tooltip } from '../Tooltip';
+import { useTheme } from '@superset-ui/core';
+import { Tooltip, Icons, IconType, SafeMarkdown } from '..';
 
 export interface WarningIconWithTooltipProps {
   warningMarkdown: string;
@@ -27,7 +25,7 @@ export interface WarningIconWithTooltipProps {
   marginRight?: number;
 }
 
-function WarningIconWithTooltip({
+export function WarningIconWithTooltip({
   warningMarkdown,
   size,
   marginRight,
@@ -46,5 +44,3 @@ function WarningIconWithTooltip({
     </Tooltip>
   );
 }
-
-export default WarningIconWithTooltip;

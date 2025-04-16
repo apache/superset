@@ -409,7 +409,7 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
     <StyledNotificationAddButton className={status} onClick={checkStatus}>
       <Icons.PlusOutlined
         iconSize="m"
-        css={theme => ({
+        css={(theme: SupersetTheme) => ({
           margin: `auto ${theme.sizeUnit * 2}px auto 0`,
           verticalAlign: 'middle',
         })}

@@ -20,7 +20,7 @@ import {
   createUltimatePagination,
   ITEM_TYPES,
 } from 'react-ultimate-pagination';
-import Pagination from '..';
+import Pagination from './Wrapper';
 
 export const ListViewPagination = createUltimatePagination({
   WrapperComponent: Pagination,

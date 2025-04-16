@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import PopoverDropdown, { PopoverDropdownProps, OptionProps } from '.';
+import { PopoverDropdown, PopoverDropdownProps, OptionProps } from '.';
 
 const OPTIONS: OptionProps[] = [
   { label: 'Option A', value: 'A' },

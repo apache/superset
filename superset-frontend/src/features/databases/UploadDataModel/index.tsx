@@ -42,12 +42,11 @@ import {
   Col,
   Input,
   InputNumber,
-} from '@superset-ui/core/components';
-import { Switch, SwitchProps } from '@superset-ui/core/components/Switch';
-import Upload, {
+  Upload,
   UploadChangeParam,
   UploadFile,
-} from '@superset-ui/core/components/Upload';
+} from '@superset-ui/core/components';
+import { Switch, SwitchProps } from '@superset-ui/core/components/Switch';
 import { Icons } from '@superset-ui/core/components/Icons';
 import rison from 'rison';
 import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';

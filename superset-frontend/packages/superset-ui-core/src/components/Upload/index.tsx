@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Upload, type UploadFile } from 'antd-v5';
+export { Upload, type UploadFile } from 'antd-v5';
 import { type UploadChangeParam } from 'antd-v5/es/upload';
 
-export default Upload;
-export type { UploadChangeParam, UploadFile };
+export type { UploadChangeParam };

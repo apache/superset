@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import WarningIconWithTooltip, { WarningIconWithTooltipProps } from '.';
+import { WarningIconWithTooltip, WarningIconWithTooltipProps } from '.';
 
 export default {
   title: 'Components/WarningIconWithTooltip',
