@@ -20,12 +20,9 @@ import { styled } from '@superset-ui/core';
 import { Collapse as AntdCollapse } from 'antd-v5';
 import type { CollapseProps } from './types';
 
-export interface CollapseProps extends AntdCollapseProps {
-  animateArrows?: boolean;
-  modalMode?: boolean;
-}
-
-export const Collapse = styled((props: CollapseProps) => <AntdCollapse {...props} />)`
+export const Collapse = styled((props: CollapseProps) => (
+  <AntdCollapse {...props} />
+))`
   ${({ modalMode }) =>
     modalMode &&
     `

@@ -19,6 +19,7 @@
 import { t, useTheme } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
 import { Space } from 'src/components/Space';
+import Typography from 'src/components/Typography';
 
 const ValidatedPanelHeader = ({
   title,
@@ -41,13 +42,14 @@ const ValidatedPanelHeader = ({
   return (
     <div>
       <Space size="small" data-test={testId}>
-        <h5
+        <Typography.Title
+          level={5}
           style={{
-            fontSize: theme.fontSizeLG,
+            margin: 0,
           }}
         >
           {t(title)}
-        </h5>
+        </Typography.Title>
         {validateCheckStatus ? (
           <span>{checkmark}</span>
         ) : (
@@ -61,7 +63,13 @@ const ValidatedPanelHeader = ({
           </span>
         )}
       </Space>
-      <p>{subtitle ? t(subtitle) : undefined}</p>
+      <Typography.Paragraph
+        style={{
+          margin: 0,
+        }}
+      >
+        {subtitle ? t(subtitle) : undefined}
+      </Typography.Paragraph>
     </div>
   );
 };
