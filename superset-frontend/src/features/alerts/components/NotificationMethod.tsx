@@ -36,7 +36,7 @@ import {
 } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Input, Select } from '@superset-ui/core/components';
-import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
+import { RefreshLabel } from '@superset-ui/core/components';
 import {
   NotificationMethodOption,
   NotificationSetting,

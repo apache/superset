@@ -49,8 +49,9 @@ export {
   type AvatarProps,
   type AvatarGroupProps,
 } from './Avatar';
-export { ModalTrigger, type ModalTriggerProps } from './ModalTrigger';
+export { ModalTrigger, type ModalTriggerProps, type ModalTriggerRef } from './ModalTrigger';
 export { Badge, type BadgeProps } from './Badge';
+export { RefreshLabel } from './RefreshLabel';
 export { Tooltip, type TooltipProps } from './Tooltip';
 export { Button, type ButtonProps, type OnClickHandler } from './Button';
 export { ButtonGroup, type ButtonGroupProps } from './ButtonGroup';

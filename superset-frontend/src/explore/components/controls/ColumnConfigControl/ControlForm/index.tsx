@@ -23,11 +23,11 @@ import {
   useMemo,
 } from 'react';
 import {
-  FAST_DEBOUNCE,
   JsonObject,
   JsonValue,
   useTheme,
 } from '@superset-ui/core';
+import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
 import { debounce } from 'lodash';
 import { ControlFormItemNode } from './ControlFormItem';
 
