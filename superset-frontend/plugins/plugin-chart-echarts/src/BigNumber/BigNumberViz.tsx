@@ -96,10 +96,10 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
   }
 
   renderMetricName(maxHeight: number) {
-    const { metricName, width, showMetricName } = this.props;
-    if (!showMetricName || !metricName) return null;
+    const { friendlyMetricName, width, showMetricName } = this.props;
+    if (!showMetricName || !friendlyMetricName) return null;
 
-    const text = metricName;
+    const text = friendlyMetricName;
 
     const container = this.createTemporaryContainer();
     document.body.append(container);
@@ -112,7 +112,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     });
     container.remove();
 
-    if (!showMetricName || !metricName) return null;
+    if (!showMetricName || !friendlyMetricName) return null;
 
     return (
       <div
