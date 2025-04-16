@@ -42,8 +42,7 @@ import { LoadingCards } from 'src/pages/Home';
 import ChartCard from 'src/features/charts/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
-import Loading from 'src/components/Loading';
-import ErrorBoundary from 'src/components/ErrorBoundary';
+import { ErrorBoundary, Loading } from 'src/components';
 import { Icons } from 'src/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';
 import EmptyState from './EmptyState';
@@ -185,6 +184,7 @@ function ChartTable({
       <SubMenu
         activeChild={activeTab}
         tabs={menuTabs}
+        backgroundColor="transparent"
         buttons={[
           {
             name: (
@@ -197,7 +197,7 @@ function ChartTable({
                 {t('Chart')}
               </>
             ),
-            buttonStyle: 'tertiary',
+            buttonStyle: 'secondary',
             onClick: () => {
               navigateTo('/chart/add', { assign: true });
             },

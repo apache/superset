@@ -32,23 +32,23 @@ describe('ColumnElement', () => {
   it('renders a proper primary key', () => {
     const { container } = render(<ColumnElement column={table.columns[0]} />);
     expect(container.querySelector('i.fa-key')).toBeInTheDocument();
-    expect(container.querySelector('.col-name')?.firstChild).toHaveTextContent(
-      'id',
-    );
+    expect(
+      container.querySelector('[data-test="col-name"]')?.firstChild,
+    ).toHaveTextContent('id');
   });
   it('renders a multi-key column', () => {
     const { container } = render(<ColumnElement column={table.columns[1]} />);
     expect(container.querySelector('i.fa-link')).toBeInTheDocument();
     expect(container.querySelector('i.fa-bookmark')).toBeInTheDocument();
-    expect(container.querySelector('.col-name')?.firstChild).toHaveTextContent(
-      'first_name',
-    );
+    expect(
+      container.querySelector('[data-test="col-name"]')?.firstChild,
+    ).toHaveTextContent('first_name');
   });
   it('renders a column with no keys', () => {
     const { container } = render(<ColumnElement column={table.columns[2]} />);
     expect(container.querySelector('i')).not.toBeInTheDocument();
-    expect(container.querySelector('.col-name')?.firstChild).toHaveTextContent(
-      'last_name',
-    );
+    expect(
+      container.querySelector('[data-test="col-name"]')?.firstChild,
+    ).toHaveTextContent('last_name');
   });
 });

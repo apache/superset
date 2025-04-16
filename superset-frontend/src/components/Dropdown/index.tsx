@@ -16,37 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ReactElement,
-  ReactNode,
-  FocusEvent,
-  KeyboardEvent,
-  cloneElement,
-} from 'react';
+import { ReactElement, cloneElement } from 'react';
 
-import {
-  Dropdown as AntdDropdown,
-  DropdownProps as AntdDropdownProps,
-} from 'antd-v5';
+import { Dropdown as AntdDropdown, DropdownProps } from 'antd-v5';
 import { styled } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
+import {
+  IconOrientation,
+  type NoAnimationDropdownProps,
+  type MenuDotsDropdownProps,
+} from './types';
 
 const MenuDots = styled.div`
-  width: ${({ theme }) => theme.gridUnit * 0.75}px;
-  height: ${({ theme }) => theme.gridUnit * 0.75}px;
+  width: ${({ theme }) => theme.sizeUnit * 0.75}px;
+  height: ${({ theme }) => theme.sizeUnit * 0.75}px;
   border-radius: 50%;
   background-color: ${({ theme }) => theme.colors.grayscale.light1};
 
-  font-weight: ${({ theme }) => theme.typography.weights.normal};
+  font-weight: ${({ theme }) => theme.fontWeightNormal};
   display: inline-flex;
   position: relative;
 
   &:hover {
-    background-color: ${({ theme }) => theme.colors.primary.base};
+    background-color: ${({ theme }) => theme.colorPrimary};
 
     &::before,
     &::after {
-      background-color: ${({ theme }) => theme.colors.primary.base};
+      background-color: ${({ theme }) => theme.colorPrimary};
     }
   }
 
@@ -54,37 +50,27 @@ const MenuDots = styled.div`
   &::after {
     position: absolute;
     content: ' ';
-    width: ${({ theme }) => theme.gridUnit * 0.75}px;
-    height: ${({ theme }) => theme.gridUnit * 0.75}px;
+    width: ${({ theme }) => theme.sizeUnit * 0.75}px;
+    height: ${({ theme }) => theme.sizeUnit * 0.75}px;
     border-radius: 50%;
     background-color: ${({ theme }) => theme.colors.grayscale.light1};
   }
 
   &::before {
-    top: ${({ theme }) => theme.gridUnit}px;
+    top: ${({ theme }) => theme.sizeUnit}px;
   }
 
   &::after {
-    bottom: ${({ theme }) => theme.gridUnit}px;
+    bottom: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
 const MenuDotsWrapper = styled.div`
   display: flex;
   align-items: center;
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
-  padding-left: ${({ theme }) => theme.gridUnit}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px;
+  padding-left: ${({ theme }) => theme.sizeUnit}px;
 `;
-
-export enum IconOrientation {
-  Vertical = 'vertical',
-  Horizontal = 'horizontal',
-}
-
-export interface MenuDotsDropdownProps extends AntdDropdownProps {
-  overlay: ReactElement;
-  iconOrientation?: IconOrientation;
-}
 
 const RenderIcon = (
   iconOrientation: IconOrientation = IconOrientation.Vertical,
@@ -110,12 +96,6 @@ export const MenuDotsDropdown = ({
   </AntdDropdown>
 );
 
-export interface NoAnimationDropdownProps extends AntdDropdownProps {
-  children: ReactNode;
-  onBlur?: (e: FocusEvent<HTMLDivElement>) => void;
-  onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
-}
-
 export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   const { children, onBlur, onKeyDown, ...rest } = props;
   const childrenWithProps = cloneElement(children as ReactElement, {
@@ -130,7 +110,8 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   );
 };
 
-export type DropdownProps = AntdDropdownProps;
 export const Dropdown = (props: DropdownProps) => (
   <AntdDropdown autoFocus {...props} />
 );
+
+export type { DropdownProps, NoAnimationDropdownProps, MenuDotsDropdownProps };

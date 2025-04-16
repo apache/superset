@@ -16,24 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  useEffect,
-  useState,
-  FunctionComponent,
-  MouseEventHandler,
-} from 'react';
+import { useEffect, useState, FunctionComponent } from 'react';
 
 import { extendedDayjs } from 'src/utils/dates';
 import { t, styled, css } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
 import dayjs from 'dayjs';
+import type { LastUpdatedProps } from './types';
 
 const REFRESH_INTERVAL = 60000; // every minute
 
-interface LastUpdatedProps {
-  updatedAt: string | number | Date | undefined;
-  update?: MouseEventHandler<HTMLSpanElement>;
-}
 extendedDayjs.updateLocale('en', {
   calendar: {
     lastDay: '[Yesterday at] LTS',
@@ -52,10 +44,10 @@ const TextStyles = styled.span`
 const RefreshIcon = styled(Icons.SyncOutlined)`
   ${({ theme }) => `
   width: auto;
-  height: ${theme.gridUnit * 5}px;
+  height: ${theme.sizeUnit * 5}px;
   position: relative;
-  top: ${theme.gridUnit}px;
-  left: ${theme.gridUnit}px;
+  top: ${theme.sizeUnit}px;
+  left: ${theme.sizeUnit}px;
   cursor: pointer;
 `};
 `;
@@ -95,4 +87,4 @@ export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
   );
 };
 
-export default LastUpdated;
+export type { LastUpdatedProps };

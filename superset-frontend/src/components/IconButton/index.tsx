@@ -18,13 +18,14 @@
  */
 
 // eslint-disable-next-line
-import { Typography } from 'src/components';
-import { Tooltip } from 'src/components/Tooltip';
-import Card, { CardProps } from 'src/components/Card';
+import Typography from 'src/components/Typography';
 import { Icons } from 'src/components/Icons';
 import { SupersetTheme, css } from '@superset-ui/core';
+import { Card } from '../Card';
+import { Tooltip } from '../Tooltip';
+import { CardProps } from '../Card/types';
 
-export interface IconButtonProps extends CardProps {
+interface IconButtonProps extends CardProps {
   buttonText: string;
   icon: string;
   altText?: string;
@@ -51,7 +52,7 @@ const IconButton: React.FC<IconButtonProps> = ({
   const renderIcon = () => {
     const iconContent = icon ? (
       <img
-        src={icon}
+        src={icon as string}
         alt={altText || buttonText}
         css={css`
           width: 100%;
@@ -89,7 +90,7 @@ const IconButton: React.FC<IconButtonProps> = ({
       onKeyDown={handleKeyDown}
       cover={renderIcon()}
       css={(theme: SupersetTheme) => ({
-        padding: theme.gridUnit * 3,
+        padding: theme.sizeUnit * 3,
         textAlign: 'center',
         ...cardProps.style,
       })}
@@ -103,3 +104,4 @@ const IconButton: React.FC<IconButtonProps> = ({
 };
 
 export { IconButton };
+export type { IconButtonProps };

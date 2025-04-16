@@ -25,17 +25,20 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
-import DeleteModal from 'src/components/DeleteModal';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+
+import {
+  DeleteModal,
+  ConfirmStatusChange,
+  ModifiedInfo,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  ListViewActionsBar,
+  type ListViewActionProps,
+  type ListViewProps,
+  type ListViewFilters,
+} from 'src/components';
 import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerModal';
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from 'src/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';
@@ -151,10 +154,12 @@ function AnnotationLayersList({
 
           return <a href={`/annotationlayer/${id}/annotation`}>{name}</a>;
         },
+        id: 'name',
       },
       {
         accessor: 'descr',
         Header: t('Description'),
+        id: 'descr',
       },
       {
         Cell: ({
@@ -168,6 +173,7 @@ function AnnotationLayersList({
         Header: t('Last modified'),
         accessor: 'changed_on',
         size: 'xl',
+        id: 'changed_on',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -195,7 +201,9 @@ function AnnotationLayersList({
               : null,
           ].filter(item => !!item);
 
-          return <ActionsBar actions={actions as ActionProps[]} />;
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
         },
         Header: t('Actions'),
         id: 'actions',
@@ -206,6 +214,7 @@ function AnnotationLayersList({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canDelete, canCreate],
@@ -242,7 +251,7 @@ function AnnotationLayersList({
     });
   }
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Name'),

@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Avatar, AvatarProps } from '.';
+import { Avatar } from '.';
+import type { AvatarProps } from './types';
 
 export default {
-  title: 'Avatar',
+  title: 'Components/Avatar',
   component: Avatar,
 };
 

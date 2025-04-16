@@ -25,15 +25,14 @@ import {
   getChartMetadataRegistry,
   getClientErrorObject,
 } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
-import { EmptyState } from 'src/components/EmptyState';
+import { EmptyState, Loading } from 'src/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls } from './DataTableControls';
 
 const Error = styled.pre`
-  margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
+  margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
 `;
 
 const cache = new WeakMap();

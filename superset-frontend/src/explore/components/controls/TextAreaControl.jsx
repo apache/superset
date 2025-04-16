@@ -18,15 +18,9 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { TextArea } from 'src/components/Input';
-import {
-  Tooltip,
-  TooltipProps as TooltipOptions,
-} from 'src/components/Tooltip';
+import { Input, Tooltip, Button, TextAreaEditor } from 'src/components';
 import { t, withTheme } from '@superset-ui/core';
 
-import Button from 'src/components/Button';
-import { TextAreaEditor } from 'src/components/AsyncAceEditor';
 import ModalTrigger from 'src/components/ModalTrigger';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -59,7 +53,7 @@ const propTypes = {
     'vertical',
   ]),
   textAreaStyles: PropTypes.object,
-  tooltipOptions: PropTypes.oneOf([null, TooltipOptions]),
+  tooltipOptions: PropTypes.oneOf([null, PropTypes.object]),
 };
 
 const defaultProps = {
@@ -125,7 +119,7 @@ class TextAreaControl extends Component {
 
     const textArea = (
       <div>
-        <TextArea
+        <Input.TextArea
           placeholder={t('textarea')}
           onChange={this.onControlChange.bind(this)}
           defaultValue={this.props.initialValue}

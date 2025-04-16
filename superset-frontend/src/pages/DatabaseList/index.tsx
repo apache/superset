@@ -29,7 +29,6 @@ import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
-import Loading from 'src/components/Loading';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
   createErrorHandler,
@@ -38,13 +37,19 @@ import {
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import DeleteModal from 'src/components/DeleteModal';
+import {
+  DeleteModal,
+  Tooltip,
+  ModifiedInfo,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  ListViewFilters,
+  Loading,
+} from 'src/components';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import { Tooltip } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import handleResourceExport from 'src/utils/export';
 import { ExtensionConfigs } from 'src/features/home/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -52,7 +57,6 @@ import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { DatabaseObject } from 'src/features/databases/types';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -82,7 +86,7 @@ interface DatabaseListProps {
 }
 
 const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
 
   .action-button {
     display: inline-block;
@@ -93,15 +97,9 @@ const Actions = styled.div`
 function BooleanDisplay({ value }: { value: Boolean }) {
   const theme = useTheme();
   return value ? (
-    <Icons.CheckOutlined
-      iconSize="s"
-      iconColor={theme.colors.grayscale.dark1}
-    />
+    <Icons.CheckOutlined iconSize="s" iconColor={theme.colorText} />
   ) : (
-    <Icons.CloseOutlined
-      iconSize="s"
-      iconColor={theme.colors.grayscale.light1}
-    />
+    <Icons.CloseOutlined iconSize="s" iconColor={theme.colorText} />
   );
 }
 
@@ -398,12 +396,14 @@ function DatabaseList({
       {
         accessor: 'database_name',
         Header: t('Name'),
+        id: 'database_name',
       },
       {
         accessor: 'backend',
         Header: t('Backend'),
         size: 'lg',
         disableSortBy: true, // TODO: api support for sorting by 'backend'
+        id: 'backend',
       },
       {
         accessor: 'allow_run_async',
@@ -424,6 +424,7 @@ function DatabaseList({
           row: { original: { allow_run_async: boolean } };
         }) => <BooleanDisplay value={allowRunAsync} />,
         size: 'sm',
+        id: 'allow_run_async',
       },
       {
         accessor: 'allow_dml',
@@ -442,6 +443,7 @@ function DatabaseList({
           },
         }: any) => <BooleanDisplay value={allowDML} />,
         size: 'sm',
+        id: 'allow_dml',
       },
       {
         accessor: 'allow_file_upload',
@@ -452,6 +454,7 @@ function DatabaseList({
           },
         }: any) => <BooleanDisplay value={allowFileUpload} />,
         size: 'md',
+        id: 'allow_file_upload',
       },
       {
         accessor: 'expose_in_sqllab',
@@ -462,6 +465,7 @@ function DatabaseList({
           },
         }: any) => <BooleanDisplay value={exposeInSqllab} />,
         size: 'md',
+        id: 'expose_in_sqllab',
       },
       {
         Cell: ({
@@ -475,6 +479,7 @@ function DatabaseList({
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -566,12 +571,13 @@ function DatabaseList({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canDelete, canEdit, canExport],
   );
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Name'),

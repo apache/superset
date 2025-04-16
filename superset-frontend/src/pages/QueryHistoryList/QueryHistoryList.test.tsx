@@ -29,8 +29,7 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import QueryList from 'src/pages/QueryHistoryList';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { QueryObject } from 'src/views/CRUD/types';
-import ListView from 'src/components/ListView';
-import Filters from 'src/components/ListView/Filters';
+import { ListView, ListViewUIFilters } from 'src/components';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import SubMenu from 'src/features/home/SubMenu';
 import { QueryState } from '@superset-ui/core';
@@ -138,7 +137,7 @@ describe('QueryList', () => {
   });
 
   it('searches', async () => {
-    const filtersWrapper = wrapper.find(Filters);
+    const filtersWrapper = wrapper.find(ListViewUIFilters);
     act(() => {
       const props = filtersWrapper.find('[name="sql"]').first().props();
       // @ts-ignore

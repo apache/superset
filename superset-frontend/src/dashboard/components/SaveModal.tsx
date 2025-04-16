@@ -18,14 +18,11 @@
  */
 /* eslint-env browser */
 import { createRef, PureComponent } from 'react';
-import { Radio } from 'src/components/Radio';
-import { RadioChangeEvent } from 'src/components';
-import { Input } from 'src/components/Input';
-import Button from 'src/components/Button';
+import { Radio, RadioChangeEvent } from 'src/components/Radio';
+import { Button, Checkbox, Input } from 'src/components';
 import { t, JsonResponse } from '@superset-ui/core';
 
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
-import Checkbox from 'src/components/Checkbox';
 import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_NEWDASHBOARD,
@@ -197,8 +194,9 @@ class SaveModal extends PureComponent<SaveModalProps, SaveModalState> {
               <Checkbox
                 checked={this.state.duplicateSlices}
                 onChange={() => this.toggleDuplicateSlices()}
-              />
-              <span className="m-l-5">{t('also copy (duplicate) charts')}</span>
+              >
+                {t('also copy (duplicate) charts')}
+              </Checkbox>
             </div>
           </div>
         }

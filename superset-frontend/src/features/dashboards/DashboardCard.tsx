@@ -25,15 +25,17 @@ import {
   SupersetClient,
 } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
-import { Dropdown } from 'src/components/Dropdown';
+import {
+  Dropdown,
+  Button,
+  FacePile,
+  FaveStar,
+  PublishedLabel,
+  ListViewCard,
+} from 'src/components';
 import { Menu } from 'src/components/Menu';
-import ListViewCard from 'src/components/ListViewCard';
 import { Icons } from 'src/components/Icons';
-import { PublishedLabel } from 'src/components/Label';
-import FacePile from 'src/components/FacePile';
-import FaveStar from 'src/components/FaveStar';
 import { Dashboard } from 'src/views/CRUD/types';
-import { Button } from 'src/components';
 import { assetUrl } from 'src/utils/assetUrl';
 
 interface DashboardCardProps {
@@ -180,7 +182,7 @@ function DashboardCard({
               />
             )}
             <Dropdown dropdownRender={() => menu} trigger={['hover', 'click']}>
-              <Button buttonSize="xsmall" type="link">
+              <Button buttonSize="xsmall" buttonStyle="link">
                 <Icons.MoreOutlined iconSize="xl" />
               </Button>
             </Dropdown>

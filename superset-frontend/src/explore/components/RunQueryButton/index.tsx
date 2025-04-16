@@ -19,7 +19,7 @@
 
 import { ReactNode } from 'react';
 import { t, useTheme } from '@superset-ui/core';
-import Button from 'src/components/Button';
+import { Button } from 'src/components';
 import { Icons } from 'src/components/Icons';
 
 export type RunQueryButtonProps = {
@@ -42,7 +42,7 @@ export const RunQueryButton = ({
 }: RunQueryButtonProps) => {
   const theme = useTheme();
   return loading ? (
-    <Button onClick={onStop} buttonStyle="warning" disabled={!canStopQuery}>
+    <Button onClick={onStop} buttonStyle="danger" disabled={!canStopQuery}>
       <Icons.Square iconSize="xs" iconColor={theme.colors.primary.light5} />
       {t('Stop')}
     </Button>

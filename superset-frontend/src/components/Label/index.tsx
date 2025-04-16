@@ -16,44 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  CSSProperties,
-  HTMLAttributes,
-  MouseEventHandler,
-  ReactNode,
-} from 'react';
+import { Tag } from 'src/components/Tag';
+import { css } from '@emotion/react';
+import { useTheme, themeObject } from '@superset-ui/core';
+import { DatasetTypeLabel } from './reusable/DatasetTypeLabel';
+import { PublishedLabel } from './reusable/PublishedLabel';
+import type { LabelProps } from './types';
 
-import { Tag } from 'src/components';
-import { useTheme } from '@superset-ui/core';
-import DatasetTypeLabel from 'src/components/Label/reusable/DatasetTypeLabel';
-import PublishedLabel from 'src/components/Label/reusable/PublishedLabel';
-
-export type OnClickHandler = MouseEventHandler<HTMLElement>;
-
-export type Type =
-  | 'success'
-  | 'warning'
-  | 'danger'
-  | 'info'
-  | 'default'
-  | 'primary'
-  | 'secondary';
-
-export interface LabelProps extends HTMLAttributes<HTMLSpanElement> {
-  key?: string;
-  className?: string;
-  onClick?: OnClickHandler;
-  type?: Type;
-  style?: CSSProperties;
-  children?: ReactNode;
-  role?: string;
-  monospace?: boolean;
-  icon?: ReactNode;
-}
-
-export default function Label(props: LabelProps) {
+export function Label(props: LabelProps) {
   const theme = useTheme();
-  const { colors, transitionTiming } = theme;
+  const { transitionTiming } = theme;
   const {
     type = 'default',
     monospace = false,
@@ -61,72 +33,41 @@ export default function Label(props: LabelProps) {
     onClick,
     children,
     icon,
+    id,
     ...rest
   } = props;
-  const { primary, secondary, grayscale, success, warning, error, info } =
-    colors;
 
-  let baseColor;
-  if (type === 'primary') {
-    baseColor = primary;
-  } else if (type === 'secondary') {
-    baseColor = secondary;
-  } else if (type === 'success') {
-    baseColor = success;
-  } else if (type === 'warning') {
-    baseColor = warning;
-  } else if (type === 'danger') {
-    baseColor = error;
-  } else if (type === 'info') {
-    baseColor = info;
-  } else {
-    baseColor = grayscale;
-  }
-  const color = baseColor.dark2;
-  let borderColor = baseColor.light1;
-  let backgroundColor = baseColor.light2;
+  const baseColor = themeObject.getColorVariants(type);
+  const color = baseColor.active;
+  const borderColor = baseColor.border;
+  const backgroundColor = baseColor.bg;
 
-  // TODO - REMOVE IF BLOCK LOGIC WHEN shades are fixed to be aligned in terms of brightness
-  // currently shades for >=light2 are not aligned for primary, default and secondary
-  if (['default', 'primary', 'secondary'].includes(type)) {
-    // @ts-ignore
-    backgroundColor = baseColor.light4;
-    borderColor = baseColor.light2;
-  }
+  const backgroundColorHover = onClick ? baseColor.bgHover : backgroundColor;
+  const borderColorHover = onClick ? baseColor.borderHover : borderColor;
 
-  const backgroundColorHover = onClick ? baseColor.light1 : backgroundColor;
-  const borderColorHover = onClick ? baseColor.base : borderColor;
-
-  if (type === 'default') {
-    // Lighter for default
-    backgroundColor = grayscale.light3;
-  }
-
-  const css = {
-    transition: `background-color ${transitionTiming}s`,
-    whiteSpace: 'nowrap',
-    cursor: onClick ? 'pointer' : 'default',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    backgroundColor,
-    borderRadius: 8,
-    borderColor,
-    padding: '0.35em 0.8em',
-    lineHeight: 1,
-    color,
-    display: 'inline-flex',
-    verticalAlign: 'middle',
-    alignItems: 'center',
-    maxWidth: '100%',
-    '&:hover': {
-      backgroundColor: backgroundColorHover,
-      borderColor: borderColorHover,
-      opacity: 1,
-    },
-    ...(monospace
-      ? { 'font-family': theme.typography.families.monospace }
-      : {}),
-  };
+  const labelStyles = css`
+    transition: background-color ${transitionTiming}s;
+    white-space: nowrap;
+    cursor: ${onClick ? 'pointer' : 'default'};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background-color: ${backgroundColor};
+    border-radius: 8px;
+    border-color: ${borderColor};
+    padding: 0.35em 0.8em;
+    line-height: 1;
+    color: ${color};
+    display: inline-flex;
+    vertical-align: middle;
+    align-items: center;
+    max-width: 100%;
+    &:hover {
+      background-color: ${backgroundColorHover};
+      border-color: ${borderColorHover};
+      opacity: 1;
+    }
+    ${monospace ? `font-family: ${theme.fontFamilyCode};` : ''}
+  `;
 
   return (
     <Tag
@@ -134,11 +75,12 @@ export default function Label(props: LabelProps) {
       role={onClick ? 'button' : undefined}
       style={style}
       icon={icon}
+      css={labelStyles}
       {...rest}
-      css={css}
     >
       {children}
     </Tag>
   );
 }
 export { DatasetTypeLabel, PublishedLabel };
+export type { LabelType } from './types';

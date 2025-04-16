@@ -25,8 +25,8 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import Select from 'src/components/Select/Select';
-import { SELECT_ALL_VALUE } from './utils';
+import { Select } from '.';
+import { SELECT_ALL_VALUE } from './constants';
 
 type Option = {
   label: string;
@@ -37,7 +37,7 @@ type Option = {
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
-const NO_DATA = 'No Data';
+const NO_DATA = 'No data';
 const LOADING = 'Loading...';
 const OPTIONS: Option[] = [
   { label: 'John', value: 1, gender: 'Male' },
@@ -109,6 +109,13 @@ const findSelectValue = () =>
 
 const findAllSelectValues = () =>
   waitFor(() => [...getElementsByClassName('.ant-select-selection-item')]);
+
+// Tag sets classname manually.
+const findTagSelectValue = () =>
+  waitFor(() => getElementByClassName('.antd5-select-selection-item'));
+
+const findAllTagSelectValues = () =>
+  waitFor(() => [...getElementsByClassName('.antd5-select-selection-item')]);
 
 const findAllCheckedValues = () =>
   waitFor(() => [
@@ -284,6 +291,15 @@ test('should sort selected to the top when in multi mode', async () => {
   ).toBe(true);
 });
 
+test('order of selected values is preserved until dropdown is closed', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowSelectAll={false} />);
+  const originalLabels = OPTIONS.map(option => option.label);
+  await open();
+  userEvent.click(await findSelectOption(originalLabels[1]));
+  userEvent.click(await findSelectOption(originalLabels[5]));
+  expect(await matchOrder(originalLabels)).toBe(true);
+});
+
 test('searches for label or value', async () => {
   const option = OPTIONS[11];
   render(<Select {...defaultProps} />);
@@ -358,7 +374,9 @@ test('searches for custom fields', async () => {
   expect(options[4]).toHaveTextContent('Nikole');
   expect(options[5]).toHaveTextContent('Olivia');
   await type('1');
-  expect(screen.getByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    screen.getByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('removes duplicated values', async () => {
@@ -370,7 +388,7 @@ test('removes duplicated values', async () => {
     },
   });
   fireEvent(input, paste);
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   expect(values.length).toBe(4);
   expect(values[0]).toHaveTextContent('a');
   expect(values[1]).toHaveTextContent('b');
@@ -380,9 +398,9 @@ test('removes duplicated values', async () => {
 
 test('renders a custom label', async () => {
   const options = [
-    { label: 'John', value: 1, customLabel: <h1>John</h1> },
-    { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
-    { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+    { value: 'John', label: <h1>John</h1> },
+    { value: 'Liam', label: <h1>Liam</h1> },
+    { value: 'Olivia', label: <h1>Olivia</h1> },
   ];
   render(<Select {...defaultProps} options={options} />);
   await open();
@@ -393,9 +411,9 @@ test('renders a custom label', async () => {
 
 test('searches for a word with a custom label', async () => {
   const options = [
-    { label: 'John', value: 1, customLabel: <h1>John</h1> },
-    { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
-    { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+    { value: 'John', label: <h1>John</h1> },
+    { value: 'Liam', label: <h1>Liam</h1> },
+    { value: 'Olivia', label: <h1>Olivia</h1> },
   ];
   render(<Select {...defaultProps} options={options} />);
   await type('Liam');
@@ -434,7 +452,9 @@ test('does not add a new option if allowNewOptions is false', async () => {
   render(<Select {...defaultProps} options={OPTIONS} />);
   await open();
   await type(NEW_OPTION);
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('adds the null option when selected in single mode', async () => {
@@ -456,7 +476,7 @@ test('adds the null option when selected in multiple mode', async () => {
   await open();
   userEvent.click(await findSelectOption(OPTIONS[0].label));
   userEvent.click(await findSelectOption(NULL_OPTION.label));
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   expect(values[0]).toHaveTextContent(OPTIONS[0].label);
   expect(values[1]).toHaveTextContent(NULL_OPTION.label);
 });
@@ -469,7 +489,9 @@ test('renders the select with default props', () => {
 test('opens the select without any data', async () => {
   render(<Select {...defaultProps} options={[]} />);
   await open();
-  expect(screen.getByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    screen.getByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('makes a selection in single mode', async () => {
@@ -486,7 +508,7 @@ test('multiple selections in multiple mode', async () => {
   const [firstOption, secondOption] = OPTIONS;
   userEvent.click(await findSelectOption(firstOption.label));
   userEvent.click(await findSelectOption(secondOption.label));
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   expect(values[0]).toHaveTextContent(firstOption.label);
   expect(values[1]).toHaveTextContent(secondOption.label);
 });
@@ -522,12 +544,12 @@ test('deselects an item in multiple mode', async () => {
   const [firstOption, secondOption] = OPTIONS;
   userEvent.click(await findSelectOption(firstOption.label));
   userEvent.click(await findSelectOption(secondOption.label));
-  let values = await findAllSelectValues();
+  let values = await findAllTagSelectValues();
   expect(values.length).toBe(2);
   expect(values[0]).toHaveTextContent(firstOption.label);
   expect(values[1]).toHaveTextContent(secondOption.label);
   userEvent.click(await findSelectOption(firstOption.label));
-  values = await findAllSelectValues();
+  values = await findAllTagSelectValues();
   expect(values.length).toBe(1);
   expect(values[0]).toHaveTextContent(secondOption.label);
 });
@@ -543,7 +565,9 @@ test('shows "No data" when allowNewOptions is false and a new option is entered'
   render(<Select {...defaultProps} allowNewOptions={false} />);
   await open();
   await type(NEW_OPTION);
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('does not show "No data" when allowNewOptions is true and a new option is entered', async () => {
@@ -583,7 +607,7 @@ test('sets a initial value in multiple mode', async () => {
       value={[OPTIONS[0], OPTIONS[1]]}
     />,
   );
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   expect(values[0]).toHaveTextContent(OPTIONS[0].label);
   expect(values[1]).toHaveTextContent(OPTIONS[1].label);
 });
@@ -669,7 +693,7 @@ test('does not render "Select all" as one of the tags after selection', async ()
   render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
   await open();
   userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   expect(values[0]).not.toHaveTextContent(selectAllOptionLabel(OPTIONS.length));
 });
 
@@ -700,7 +724,7 @@ test('selects all values', async () => {
   );
   await open();
   userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   expect(values.length).toBe(1);
   expect(values[0]).toHaveTextContent(`+ ${OPTIONS.length} ...`);
 });
@@ -716,11 +740,11 @@ test('unselects all values', async () => {
   );
   await open();
   userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
-  let values = await findAllSelectValues();
+  let values = await findAllTagSelectValues();
   expect(values.length).toBe(1);
   expect(values[0]).toHaveTextContent(`+ ${OPTIONS.length} ...`);
   userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
-  values = await findAllSelectValues();
+  values = await findAllTagSelectValues();
   expect(values.length).toBe(0);
 });
 
@@ -777,7 +801,7 @@ test('selecting all values also selects "Select all"', async () => {
       userEvent.click(option);
     }
   });
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   expect(values[0]).toHaveTextContent(`+ 10 ...`);
 });
 
@@ -840,7 +864,7 @@ test('+N tag does not count the "Select All" option', async () => {
   );
   await open();
   userEvent.click(await findSelectOption(selectAllOptionLabel(10)));
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   // maxTagCount is 0 so the +N tag should be + 10 ...
   expect(values[0]).toHaveTextContent('+ 10 ...');
 });
@@ -936,19 +960,19 @@ test('"Select All" does not affect disabled options', async () => {
   await open();
 
   // We have 2 options disabled but one is selected initially
-  expect(await findSelectValue()).toHaveTextContent(options[0].label);
-  expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
+  expect(await findTagSelectValue()).toHaveTextContent(options[0].label);
+  expect(await findTagSelectValue()).not.toHaveTextContent(options[1].label);
 
   // Checking Select All shouldn't affect the disabled options
   const selectAll = selectAllOptionLabel(OPTIONS.length - 1);
   userEvent.click(await findSelectOption(selectAll));
-  expect(await findSelectValue()).toHaveTextContent(options[0].label);
-  expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
+  expect(await findTagSelectValue()).toHaveTextContent(options[0].label);
+  expect(await findTagSelectValue()).not.toHaveTextContent(options[1].label);
 
   // Unchecking Select All shouldn't affect the disabled options
   userEvent.click(await findSelectOption(selectAll));
-  expect(await findSelectValue()).toHaveTextContent(options[0].label);
-  expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
+  expect(await findTagSelectValue()).toHaveTextContent(options[0].label);
+  expect(await findTagSelectValue()).not.toHaveTextContent(options[1].label);
 });
 
 test('does not fire onChange when searching but no selection', async () => {

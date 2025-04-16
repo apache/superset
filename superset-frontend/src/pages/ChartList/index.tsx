@@ -42,38 +42,39 @@ import {
   useListViewResource,
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import { TagsList } from 'src/components/Tags';
+import {
+  ConfirmStatusChange,
+  CertifiedBadge,
+  Tooltip,
+  ModifiedInfo,
+  FaveStar,
+  FacePile,
+  GenericLink,
+  ImportModal as ImportModelsModal,
+  InfoTooltip,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  DashboardCrossLinks,
+  Loading,
+  type ListViewProps,
+  type ListViewFilters,
+  type ListViewFilter,
+  type LabeledValue,
+} from 'src/components';
+import TagsList from 'src/components/TagsList';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import FaveStar from 'src/components/FaveStar';
 import { Link, useHistory } from 'react-router-dom';
-import ListView, {
-  Filter,
-  FilterOperator,
-  Filters,
-  ListViewProps,
-  SelectOption,
-} from 'src/components/ListView';
-import Loading from 'src/components/Loading';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
-import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import Tag from 'src/types/TagType';
-import { Tooltip } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
-import InfoTooltip from 'src/components/InfoTooltip';
-import CertifiedBadge from 'src/components/CertifiedBadge';
-import { GenericLink } from 'src/components/GenericLink/GenericLink';
-import { loadTags } from 'src/components/Tags/utils';
-import FacePile from 'src/components/FacePile';
+import { loadTags } from 'src/components/Tag/utils';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
-import { DashboardCrossLinks } from 'src/components/ListView/DashboardCrossLinks';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const FlexRowContainer = styled.div`
@@ -88,7 +89,7 @@ const FlexRowContainer = styled.div`
   }
 
   svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -139,7 +140,7 @@ const createFetchDatasets = async (
   );
 
   return {
-    data: uniqBy<SelectOption>(datasets, 'value'),
+    data: uniqBy<LabeledValue>(datasets, 'value'),
     totalCount: json?.count,
   };
 };
@@ -307,7 +308,7 @@ function ChartList(props: ChartListProps) {
       }),
     );
     return {
-      data: uniqBy<SelectOption>(dashboards, 'value'),
+      data: uniqBy<LabeledValue>(dashboards, 'value'),
       totalCount: response?.json?.count,
     };
   };
@@ -362,6 +363,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
+        id: 'slice_name',
       },
       {
         Cell: ({
@@ -372,6 +374,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Type'),
         accessor: 'viz_type',
         size: 'xxl',
+        id: 'viz_type',
       },
       {
         Cell: ({
@@ -390,6 +393,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'datasource_id',
         disableSortBy: true,
         size: 'xl',
+        id: 'datasource_id',
       },
       {
         Cell: ({
@@ -401,6 +405,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'dashboards',
         disableSortBy: true,
         size: 'xxl',
+        id: 'dashboards',
       },
       {
         Cell: ({
@@ -422,6 +427,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        id: 'tags',
       },
       {
         Cell: ({
@@ -433,6 +439,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'owners',
         disableSortBy: true,
         size: 'xl',
+        id: 'owners',
       },
       {
         Cell: ({
@@ -446,6 +453,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Last modified'),
         accessor: 'last_saved_at',
         size: 'xl',
+        id: 'last_saved_at',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -536,6 +544,7 @@ function ChartList(props: ChartListProps) {
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [
@@ -551,7 +560,7 @@ function ChartList(props: ChartListProps) {
     ],
   );
 
-  const favoritesFilter: Filter = useMemo(
+  const favoritesFilter: ListViewFilter = useMemo(
     () => ({
       Header: t('Favorite'),
       key: 'favorite',
@@ -568,7 +577,7 @@ function ChartList(props: ChartListProps) {
     [],
   );
 
-  const filters: Filters = useMemo(() => {
+  const filters: ListViewFilters = useMemo(() => {
     const filters_list = [
       {
         Header: t('Name'),
@@ -692,7 +701,7 @@ function ChartList(props: ChartListProps) {
         ),
         paginate: true,
       },
-    ] as Filters;
+    ] as ListViewFilters;
     return filters_list;
   }, [addDangerToast, favoritesFilter, props.user]);
 

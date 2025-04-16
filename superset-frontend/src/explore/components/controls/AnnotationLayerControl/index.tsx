@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { List } from 'src/components/List';
 import { connect } from 'react-redux';
 import { PureComponent } from 'react';
 import {
@@ -30,7 +29,7 @@ import {
   css,
 } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import { AsyncEsmComponent, List } from 'src/components';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
@@ -188,12 +187,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
   renderInfo(anno: Annotation) {
     const { annotationError, annotationQuery, theme } = this.props;
     if (annotationQuery[anno.name]) {
-      return (
-        <Icons.SyncOutlined
-          iconColor={theme.colors.primary.base}
-          iconSize="m"
-        />
-      );
+      return <Icons.SyncOutlined iconColor={theme.colorPrimary} iconSize="m" />;
     }
     if (annotationError[anno.name]) {
       return (
@@ -205,7 +199,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
       );
     }
     if (!anno.show) {
-      return <span style={{ color: theme.colors.error.base }}> Hidden </span>;
+      return <span style={{ color: theme.colorError }}> Hidden </span>;
     }
     return '';
   }
@@ -246,7 +240,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 
     return (
       <div>
-        <List bordered css={theme => ({ borderRadius: theme.gridUnit })}>
+        <List bordered css={theme => ({ borderRadius: theme.sizeUnit })}>
           {annotations}
           <ControlPopover
             trigger="click"
@@ -266,7 +260,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
               <Icons.PlusOutlined
                 iconSize="m"
                 css={css`
-                  margin: auto ${theme.gridUnit}px auto 0;
+                  margin: auto ${theme.sizeUnit}px auto 0;
                   vertical-align: tex-top;
                 `}
                 data-test="add-annotation-layer-button"

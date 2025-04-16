@@ -34,29 +34,31 @@ import {
 } from 'src/views/CRUD/utils';
 import { ColumnObject } from 'src/features/datasets/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import { DatasourceModal } from 'src/components/Datasource';
-import DeleteModal from 'src/components/DeleteModal';
+import {
+  ConfirmStatusChange,
+  CertifiedBadge,
+  DatasourceModal,
+  DeleteModal,
+  Tooltip,
+  ModifiedInfo,
+  FacePile,
+  GenericLink,
+  ImportModal as ImportModelsModal,
+  InfoTooltip,
+  DatasetTypeLabel,
+  Loading,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewProps,
+  type ListViewFilters,
+} from 'src/components';
 import handleResourceExport from 'src/utils/export';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
-import { DatasetTypeLabel } from 'src/components/Label';
-import Loading from 'src/components/Loading';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Tooltip } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
-import FacePile from 'src/components/FacePile';
-import CertifiedBadge from 'src/components/CertifiedBadge';
-import InfoTooltip from 'src/components/InfoTooltip';
-import ImportModelsModal from 'src/components/ImportModal/index';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { GenericLink } from 'src/components/GenericLink/GenericLink';
 
 import {
   PAGE_SIZE,
@@ -66,7 +68,6 @@ import {
 } from 'src/features/datasets/constants';
 import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 import { useSelector } from 'react-redux';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -79,7 +80,7 @@ const FlexRowContainer = styled.div`
   display: flex;
 
   svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -92,7 +93,7 @@ const Actions = styled.div`
       i {
         &:hover {
           path {
-            fill: ${theme.colors.grayscale.light1};
+            fill: ${theme.colorText};
           }
         }
       }
@@ -342,6 +343,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
+        id: 'table_name',
       },
       {
         Cell: ({
@@ -353,21 +355,25 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         accessor: 'kind',
         disableSortBy: true,
         size: 'md',
+        id: 'kind',
       },
       {
         Header: t('Database'),
         accessor: 'database.database_name',
         size: 'lg',
+        id: 'database.database_name',
       },
       {
         Header: t('Schema'),
         accessor: 'schema',
         size: 'lg',
+        id: 'schema',
       },
       {
         accessor: 'database',
         disableSortBy: true,
         hidden: true,
+        id: 'database',
       },
       {
         Cell: ({
@@ -392,11 +398,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         accessor: 'sql',
         hidden: true,
         disableSortBy: true,
+        id: 'sql',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -480,7 +488,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleDuplicate}
                   >
-                    <Icons.CopyOutlined />
+                    <Icons.CopyOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -495,12 +503,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canEdit, canDelete, canExport, openDatasetEditModal, canDuplicate, user],
   );
 
-  const filterTypes: Filters = useMemo(
+  const filterTypes: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Name'),

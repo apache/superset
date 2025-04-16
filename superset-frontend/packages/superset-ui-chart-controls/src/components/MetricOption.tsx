@@ -37,7 +37,7 @@ const FlexRowContainer = styled.div`
   display: flex;
 
   > svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -73,7 +73,7 @@ export function MetricOption({
     <span
       className="option-label metric-option-label"
       css={(theme: SupersetTheme) => css`
-        margin-right: ${theme.gridUnit}px;
+        margin-right: ${theme.sizeUnit}px;
       `}
       ref={labelRef}
     >

@@ -32,12 +32,14 @@ import Table, {
   TableSize,
   OnChangeFunction,
 } from 'src/components/Table';
-import { EmptyState } from 'src/components/EmptyState';
+import {
+  EmptyState,
+  ListViewFilterOperator as FilterOperator,
+} from 'src/components';
 import ChartImage from 'src/assets/images/chart.svg';
 import { Icons } from 'src/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { FilterOperator } from 'src/components/ListView';
 import { extendedDayjs } from 'src/utils/dates';
 import TruncatedList from 'src/components/TruncatedList';
 
@@ -124,11 +126,11 @@ const columns: ColumnsType<Chart> = [
 ];
 
 const emptyStateTableCSS = (theme: SupersetTheme) => css`
-  && th.ant-table-cell {
+  && th.antd5-table-cell {
     color: ${theme.colors.grayscale.light1};
   }
 
-  .ant-table-placeholder {
+  .antd5-table-placeholder {
     display: none;
   }
 `;
@@ -148,7 +150,7 @@ const emptyStateButtonText = (
 );
 
 const StyledEmptyState = styled(EmptyState)`
-  margin: ${({ theme }) => 13 * theme.gridUnit}px 0;
+  margin: ${({ theme }) => 13 * theme.sizeUnit}px 0;
 `;
 
 /**

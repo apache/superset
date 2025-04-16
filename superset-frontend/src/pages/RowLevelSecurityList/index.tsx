@@ -18,23 +18,24 @@
  */
 import { t, styled, SupersetClient, useTheme, css } from '@superset-ui/core';
 import { useMemo, useState } from 'react';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import {
+  ConfirmStatusChange,
+  Tooltip,
+  ModifiedInfo,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewProps,
+  type ListViewFilters,
+  type ListViewFetchDataConfig as FetchDataConfig,
+} from 'src/components';
 import { Icons } from 'src/components/Icons';
-import ListView, {
-  FetchDataConfig,
-  FilterOperator,
-  ListViewProps,
-  Filters,
-} from 'src/components/ListView';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Tooltip } from 'src/components/Tooltip';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import RowLevelSecurityModal from 'src/features/rls/RowLevelSecurityModal';
 import { RLSObject } from 'src/features/rls/types';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const Actions = styled.div`
@@ -131,20 +132,24 @@ function RowLevelSecurityList(props: RLSProps) {
       {
         accessor: 'name',
         Header: t('Name'),
+        id: 'name',
       },
       {
         accessor: 'filter_type',
         Header: t('Filter Type'),
         size: 'xl',
+        id: 'filter_type',
       },
       {
         accessor: 'group_key',
         Header: t('Group Key'),
         size: 'xl',
+        id: 'group_key',
       },
       {
         accessor: 'clause',
         Header: t('Clause'),
+        id: 'clause',
       },
       {
         Cell: ({
@@ -158,6 +163,7 @@ function RowLevelSecurityList(props: RLSProps) {
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -230,6 +236,7 @@ function RowLevelSecurityList(props: RLSProps) {
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [
@@ -254,7 +261,7 @@ function RowLevelSecurityList(props: RLSProps) {
           iconColor={theme.colors.primary.light5}
           iconSize="m"
           css={css`
-            margin: auto ${theme.gridUnit * 2}px auto 0;
+            margin: auto ${theme.sizeUnit * 2}px auto 0;
             vertical-align: text-top;
           `}
           data-test="add-rule-empty"
@@ -264,7 +271,7 @@ function RowLevelSecurityList(props: RLSProps) {
     ) : null,
   };
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Name'),
@@ -329,7 +336,7 @@ function RowLevelSecurityList(props: RLSProps) {
             iconColor={theme.colors.primary.light5}
             iconSize="m"
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
               vertical-align: text-top;
             `}
             data-test="add-rule"

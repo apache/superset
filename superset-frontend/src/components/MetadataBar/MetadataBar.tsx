@@ -20,7 +20,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 import { uniqWith } from 'lodash';
 import { styled } from '@superset-ui/core';
-import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
+import { Tooltip } from '../Tooltip';
+import { TooltipPlacement } from '../Tooltip/types';
 import { ContentType } from './ContentType';
 import { config } from './ContentConfig';
 import {
@@ -41,9 +42,9 @@ const Bar = styled.div<{ count: number }>`
     display: flex;
     align-items: center;
     padding: ${VERTICAL_PADDING}px ${HORIZONTAL_PADDING}px;
-    background-color: ${theme.colors.grayscale.light4};
-    color: ${theme.colors.grayscale.base};
-    font-size: ${theme.typography.sizes.s}px;
+    background-color: ${theme.colorBgLayout};
+    color: ${theme.colorTextTertiary};
+    font-size: ${theme.fontSizeSM}px;
     min-width: ${
       HORIZONTAL_PADDING * 2 +
       (ICON_WIDTH + SPACE_BETWEEN_ITEMS) * count -
@@ -80,9 +81,7 @@ const StyledItem = styled.div<{
     cursor: ${onClick ? 'pointer' : 'default'};
     & .metadata-icon {
       color: ${
-        onClick && collapsed
-          ? theme.colors.primary.base
-          : theme.colors.grayscale.base
+        onClick && collapsed ? theme.colorPrimary : theme.colors.grayscale.base
       };
       padding-right: ${collapsed ? 0 : ICON_PADDING}px;
       & .anticon {

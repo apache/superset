@@ -32,6 +32,7 @@ import {
   css,
   isFeatureEnabled,
   FeatureFlag,
+  useTheme,
   getChartMetadataRegistry,
   styled,
   t,
@@ -41,11 +42,10 @@ import {
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { Menu } from 'src/components/Menu';
-import { NoAnimationDropdown } from 'src/components/Dropdown';
+import { NoAnimationDropdown, Tooltip, Button } from 'src/components';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
-import { Tooltip } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
@@ -55,24 +55,20 @@ import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { usePermissions } from 'src/hooks/usePermissions';
-import Button from 'src/components/Button';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 
 // TODO: replace 3 dots with an icon
 const VerticalDotsContainer = styled.div`
-  padding: ${({ theme }) => theme.gridUnit / 4}px
-    ${({ theme }) => theme.gridUnit * 1.5}px;
-
   .dot {
     display: block;
 
-    height: ${({ theme }) => theme.gridUnit}px;
-    width: ${({ theme }) => theme.gridUnit}px;
+    height: ${({ theme }) => theme.sizeUnit}px;
+    width: ${({ theme }) => theme.sizeUnit}px;
     border-radius: 50%;
-    margin: ${({ theme }) => theme.gridUnit / 2}px 0;
+    margin: ${({ theme }) => theme.sizeUnit / 2}px 0;
 
-    background-color: ${({ theme }) => theme.colors.text.label};
+    background-color: ${({ theme }) => theme.colorTextLabel};
   }
 
   &:hover {
@@ -82,7 +78,7 @@ const VerticalDotsContainer = styled.div`
 
 const RefreshTooltip = styled.div`
   height: auto;
-  margin: ${({ theme }) => theme.gridUnit}px 0;
+  margin: ${({ theme }) => theme.sizeUnit}px 0;
   color: ${({ theme }) => theme.colors.grayscale.base};
   line-height: 21px;
   display: flex;
@@ -503,7 +499,7 @@ const SliceHeaderControls = (
       )}
     </Menu>
   );
-
+  const theme = useTheme();
   return (
     <>
       {isFullSize && (
@@ -523,8 +519,9 @@ const SliceHeaderControls = (
         onOpenChange={visible => setIsDropdownVisible(visible)}
       >
         <Button
-          type="link"
           id={`slice_${slice.slice_id}-controls`}
+          buttonStyle="link"
+          css={{ padding: `0px ${theme.sizeUnit}px` }}
           aria-label="More Options"
           aria-haspopup="true"
         >

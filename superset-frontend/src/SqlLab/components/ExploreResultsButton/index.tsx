@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import Button, { OnClickHandler } from 'src/components/Button';
+import { Button, type OnClickHandler } from 'src/components';
 
 export interface ExploreResultsButtonProps {
   database?: {
@@ -35,6 +35,7 @@ const ExploreResultsButton = ({
   return (
     <Button
       buttonSize="small"
+      buttonStyle="secondary"
       onClick={onClick}
       disabled={!allowsSubquery}
       tooltip={t('Explore the result set in the data exploration view')}

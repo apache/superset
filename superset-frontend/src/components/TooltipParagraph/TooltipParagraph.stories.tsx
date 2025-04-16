@@ -19,7 +19,7 @@
 import TooltipParagraph from '.';
 
 export default {
-  title: 'DynamicTooltip',
+  title: 'Components/DynamicTooltip',
   component: TooltipParagraph,
 };
 

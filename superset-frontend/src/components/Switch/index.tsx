@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SwitchProps } from 'antd-v5/lib/switch';
+import { SwitchProps } from 'antd-v5/es/switch';
 import { Switch as AntdSwitch } from 'antd-v5';
 
 export const Switch = (props: SwitchProps) => <AntdSwitch {...props} />;

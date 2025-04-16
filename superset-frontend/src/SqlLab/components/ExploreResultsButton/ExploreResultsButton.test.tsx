@@ -21,7 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import ExploreResultsButton, {
   ExploreResultsButtonProps,
 } from 'src/SqlLab/components/ExploreResultsButton';
-import { OnClickHandler } from 'src/components/Button';
+import type { OnClickHandler } from 'src/components';
 
 const setup = (
   onClickFn: OnClickHandler,

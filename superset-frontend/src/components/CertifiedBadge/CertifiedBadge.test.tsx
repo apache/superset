@@ -22,9 +22,8 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import CertifiedBadge, {
-  CertifiedBadgeProps,
-} from 'src/components/CertifiedBadge';
+import { CertifiedBadge } from '.';
+import type { CertifiedBadgeProps } from './types';
 
 const asyncRender = (props?: CertifiedBadgeProps) =>
   waitFor(() => render(<CertifiedBadge {...props} />));

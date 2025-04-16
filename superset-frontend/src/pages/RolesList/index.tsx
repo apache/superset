@@ -25,14 +25,16 @@ import RoleListEditModal from 'src/features/roles/RoleListEditModal';
 import RoleListDuplicateModal from 'src/features/roles/RoleListDuplicateModal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
-import DeleteModal from 'src/components/DeleteModal';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import {
+  ConfirmStatusChange,
+  DeleteModal,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  ListViewActionsBar,
+  type ListViewProps,
+  type ListViewActionProps,
+  type ListViewFilters,
+} from 'src/components';
 import {
   FormattedPermission,
   PermissionResource,
@@ -252,12 +254,14 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
             original: { name },
           },
         }: any) => <span>{name}</span>,
+        id: 'name',
       },
       {
         accessor: 'user_ids',
         Header: t('Users'),
         hidden: true,
         Cell: ({ row: { original } }: any) => original.user_ids.join(', '),
+        id: 'user_ids',
       },
       {
         accessor: 'permission_ids',
@@ -265,6 +269,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         hidden: true,
         Cell: ({ row: { original } }: any) =>
           original.permission_ids.join(', '),
+        id: 'permission_ids',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -304,7 +309,9 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
               ]
             : [];
 
-          return <ActionsBar actions={actions as ActionProps[]} />;
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
         },
         Header: t('Actions'),
         id: 'actions',
@@ -327,7 +334,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
               iconColor={theme.colors.primary.light5}
               iconSize="m"
               css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
                 vertical-align: text-top;
               `}
             />
@@ -349,7 +356,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
     );
   }
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Name'),
@@ -401,7 +408,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
             iconColor={theme.colors.primary.light5}
             iconSize="m"
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
               vertical-align: text-top;
             `}
           />

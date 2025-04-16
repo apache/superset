@@ -18,8 +18,10 @@
  */
 import { SupersetTheme, t } from '@superset-ui/core';
 import { Switch } from 'src/components/Switch';
-import InfoTooltip from 'src/components/InfoTooltip';
-import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import {
+  InfoTooltip,
+  LabeledErrorBoundInput as ValidatedInput,
+} from 'src/components';
 import { FieldPropTypes } from '../../types';
 import { toggleStyle, infoTooltip } from '../styles';
 

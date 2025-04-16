@@ -46,9 +46,8 @@ import rison from 'rison';
 import { debounce } from 'lodash';
 import { FixedSizeList as List } from 'react-window';
 import { Icons } from 'src/components/Icons';
-import { Input } from 'src/components/Input';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import Loading from 'src/components/Loading';
+import { Input, Loading } from 'src/components';
 import {
   cachedSupersetGet,
   supersetGetCache,
@@ -294,7 +293,7 @@ export const DrillByMenuItems = ({
               prefix={
                 <Icons.SearchOutlined
                   iconSize="l"
-                  iconColor={theme.colors.grayscale.light1}
+                  iconColor={theme.colorIcon}
                 />
               }
               onChange={e => {
@@ -310,7 +309,7 @@ export const DrillByMenuItems = ({
               css={css`
                 width: auto;
                 max-width: 100%;
-                margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
+                margin: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
                 box-shadow: none;
               `}
               value={searchInput}
@@ -319,7 +318,7 @@ export const DrillByMenuItems = ({
           {isLoadingColumns ? (
             <div
               css={css`
-                padding: ${theme.gridUnit * 3}px 0;
+                padding: ${theme.sizeUnit * 3}px 0;
               `}
             >
               <Loading position="inline-centered" />

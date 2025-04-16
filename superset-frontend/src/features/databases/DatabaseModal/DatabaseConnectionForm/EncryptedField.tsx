@@ -17,9 +17,8 @@
  * under the License.
  */
 import { useRef, useState } from 'react';
-import { SupersetTheme, t } from '@superset-ui/core';
-import { Button, AntdSelect } from 'src/components';
-import FormLabel from 'src/components/Form/FormLabel';
+import { SupersetTheme, css, t } from '@superset-ui/core';
+import { Input, Button, FormLabel, Select } from 'src/components';
 import { Icons } from 'src/components/Icons';
 import { DatabaseParameters, FieldPropTypes } from '../../types';
 import { infoTooltip, CredentialInfoForm } from '../styles';
@@ -67,19 +66,23 @@ export const EncryptedField = ({
           <FormLabel>
             {t('How do you want to enter service account credentials?')}
           </FormLabel>
-          <AntdSelect
+          <Select
             defaultValue={uploadOption}
-            style={{ width: '100%' }}
-            onChange={option => setUploadOption(option)}
-          >
-            <AntdSelect.Option value={CredentialInfoOptions.JsonUpload}>
-              {t('Upload JSON file')}
-            </AntdSelect.Option>
-
-            <AntdSelect.Option value={CredentialInfoOptions.CopyPaste}>
-              {t('Copy and Paste JSON credentials')}
-            </AntdSelect.Option>
-          </AntdSelect>
+            css={css`
+              width: 100%;
+            `}
+            onChange={option => setUploadOption(option as number)}
+            options={[
+              {
+                value: CredentialInfoOptions.JsonUpload,
+                label: t('Upload JSON file'),
+              },
+              {
+                value: CredentialInfoOptions.CopyPaste,
+                label: t('Copy and Paste JSON credentials'),
+              },
+            ]}
+          />
         </>
       )}
       {uploadOption === CredentialInfoOptions.CopyPaste ||
@@ -87,7 +90,7 @@ export const EncryptedField = ({
       editNewDb ? (
         <div className="input-container">
           <FormLabel>{t('Service Account')}</FormLabel>
-          <textarea
+          <Input.TextArea
             className="input-form"
             name={encryptedField}
             value={

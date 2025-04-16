@@ -43,7 +43,7 @@ interface ImageLoaderProps
   position: BackgroundPosition;
 }
 
-export default function ImageLoader({
+export function ImageLoader({
   src,
   fallback,
   isLoading,

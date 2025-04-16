@@ -41,36 +41,37 @@ export type AntdMenuItemType = ReactElement & {
 export type MenuItemChildType = AntdMenuItemType;
 
 const StyledMenuItem = styled(AntdMenu.Item)`
-  a {
-    text-decoration: none;
-  }
-  &.antd5-menu-item {
-    div {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+  ${({ theme }) => css`
     a {
-      transition: background-color ${({ theme }) => theme.transitionTiming}s;
-      &:after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 50%;
-        width: 0;
-        height: 3px;
-        opacity: 0;
-        transform: translateX(-50%);
-        transition: all ${({ theme }) => theme.transitionTiming}s;
-        background-color: ${({ theme }) => theme.colors.primary.base};
+      text-decoration: none;
+    }
+    &.antd5-menu-item {
+      div {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
-      &:focus {
-        @media (max-width: 767px) {
-          background-color: ${({ theme }) => theme.colors.primary.light5};
+      a {
+        transition: background-color ${theme.motionDurationMid}s;
+        &:after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 50%;
+          width: 0;
+          height: 3px;
+          opacity: 0;
+          transform: translateX(-50%);
+          transition: translate ${theme.motionDurationMid}s;
+        }
+        &:focus {
+          @media (max-width: 767px) {
+            background-color: ${theme.colorPrimaryBgHover};
+          }
         }
       }
     }
-  }
+  `}
 `;
 
 const StyledMenu = styled(AntdMenu)`
@@ -86,25 +87,31 @@ const StyledNav = styled(AntdMenu)`
     align-items: center;
     height: 100%;
     gap: 0;
+    border-bottom: 0;
+    line-height: ${theme.lineHeight};
     &.antd5-menu-horizontal > .antd5-menu-item {
       height: 100%;
       display: flex;
       align-items: center;
       margin: 0;
-      border-bottom: 2px solid transparent;
-      padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 4}px;
-      &:hover {
-        background-color: ${theme.colors.primary.light5};
-        border-bottom: 2px solid transparent;
-        & a:after {
-          opacity: 1;
-          width: 100%;
-        }
+      padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
+      ::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        background-color: ${theme.colorPrimaryBorderHover};
+        bottom: ${theme.sizeUnit / 4}px;
+        left: 0;
+        transform: scale(0);
+        transition: 0.2s all ease-out;
+      }
+      :hover::after {
+        transform: scale(1);
       }
     }
-    &.antd5-menu-horizontal > .antd5-menu-item-selected {
-      box-sizing: border-box;
-      border-bottom: 2px solid ${theme.colors.primary.base};
+    &.antd5-menu-horizontal > .antd5-menu-item-selected::after {
+      transform: scale(1);
     }
   `}
 `;

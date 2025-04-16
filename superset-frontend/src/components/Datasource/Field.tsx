@@ -19,11 +19,11 @@
 import { useCallback, ReactNode, ReactElement, cloneElement } from 'react';
 
 import { css, SupersetTheme } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
-import { FormItem, FormLabel } from 'src/components/Form';
+import { FormItem, FormLabel } from '../Form';
+import { Tooltip } from '../Tooltip';
 
 const formItemInlineCss = css`
-  .ant-form-item-control-input-content {
+  .antd5-form-item-control-input-content {
     display: flex;
     flex-direction: row;
   }
@@ -82,7 +82,7 @@ export default function Field<V>({
         <div
           css={(theme: SupersetTheme) => ({
             color: theme.colors.grayscale.base,
-            [inline ? 'marginLeft' : 'marginTop']: theme.gridUnit,
+            [inline ? 'marginLeft' : 'marginTop']: theme.sizeUnit,
           })}
         >
           {description}

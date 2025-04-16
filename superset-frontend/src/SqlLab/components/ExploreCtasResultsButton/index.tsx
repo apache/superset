@@ -24,7 +24,7 @@ import {
   addDangerToast,
 } from 'src/SqlLab/actions/sqlLab';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import Button from 'src/components/Button';
+import { Button } from 'src/components';
 import { exploreChart } from 'src/explore/exploreUtils';
 import { SqlLabRootState } from 'src/SqlLab/types';
 

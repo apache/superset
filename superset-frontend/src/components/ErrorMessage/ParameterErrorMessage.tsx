@@ -21,8 +21,8 @@ import { t, tn } from '@superset-ui/core';
 import levenshtein from 'js-levenshtein';
 
 import { ErrorMessageComponentProps } from './types';
-import IssueCode from './IssueCode';
-import ErrorAlert from './ErrorAlert';
+import { IssueCode } from './IssueCode';
+import { ErrorAlert } from './ErrorAlert';
 
 interface ParameterErrorExtra {
   undefined_parameters?: string[];
@@ -51,7 +51,7 @@ const findMatches = (undefinedParameters: string[], templateKeys: string[]) => {
   return matches;
 };
 
-function ParameterErrorMessage({
+export function ParameterErrorMessage({
   error,
   source = 'sqllab',
   subtitle,
@@ -117,5 +117,3 @@ function ParameterErrorMessage({
     />
   );
 }
-
-export default ParameterErrorMessage;

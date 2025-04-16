@@ -18,8 +18,8 @@
  */
 import { forwardRef, useState, ReactNode, MouseEvent } from 'react';
 
-import Modal from 'src/components/Modal';
-import Button from 'src/components/Button';
+import { Button } from '../Button';
+import { Modal } from '../Modal';
 
 export interface ModalTriggerProps {
   dialogClassName?: string;

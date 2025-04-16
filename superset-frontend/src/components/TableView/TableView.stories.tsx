@@ -19,7 +19,7 @@
 import TableView, { TableViewProps, EmptyWrapperType } from '.';
 
 export default {
-  title: 'TableView',
+  title: 'Components/TableView',
   component: TableView,
 };
 
@@ -33,18 +33,22 @@ InteractiveTableView.args = {
       accessor: 'id',
       Header: 'ID',
       sortable: true,
+      id: 'id',
     },
     {
       accessor: 'age',
       Header: 'Age',
+      id: 'age',
     },
     {
       accessor: 'name',
       Header: 'Name',
+      id: 'name',
     },
     {
       accessor: 'summary',
       Header: 'Summary',
+      id: 'summary',
     },
   ],
   data: [

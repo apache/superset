@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode, PureComponent } from 'react';
-import { Form } from 'src/components/Form';
+import { Form } from '../Form';
 
 import { recurseReactClone } from './utils';
 import Field from './Field';

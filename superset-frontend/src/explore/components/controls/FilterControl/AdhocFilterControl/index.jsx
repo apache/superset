@@ -43,7 +43,7 @@ import {
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
 import { Icons } from 'src/components/Icons';
-import Modal from 'src/components/Modal';
+import { Modal } from 'src/components';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilterOption from 'src/explore/components/controls/FilterControl/AdhocFilterOption';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -379,7 +379,7 @@ class AdhocFilterControl extends Component {
                 <AddControlLabel>
                   <Icons.PlusOutlined
                     css={css`
-                      margin: auto ${theme.gridUnit}px auto 0;
+                      margin: auto ${theme.sizeUnit}px auto 0;
                     `}
                     iconSize="m"
                     iconColor={theme.colors.grayscale.light1}

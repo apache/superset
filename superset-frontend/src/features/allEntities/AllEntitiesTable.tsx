@@ -19,10 +19,9 @@
 import { extendedDayjs } from 'src/utils/dates';
 import { t, styled } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import { TagsList } from 'src/components/Tags';
-import FacePile from 'src/components/FacePile';
+import TagsList from 'src/components/TagsList';
 import Tag from 'src/types/TagType';
-import { EmptyState } from 'src/components/EmptyState';
+import { EmptyState, FacePile } from 'src/components';
 import { NumberParam, useQueryParam } from 'use-query-params';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
 
@@ -31,7 +30,7 @@ const PAGE_SIZE = 10;
 
 const AllEntitiesTableContainer = styled.div`
   text-align: left;
-  border-radius: ${({ theme }) => theme.gridUnit * 1}px 0;
+  border-radius: ${({ theme }) => theme.sizeUnit * 1}px 0;
   .table {
     table-layout: fixed;
   }
@@ -40,12 +39,12 @@ const AllEntitiesTableContainer = styled.div`
   }
   .entity-title {
     font-family: Inter;
-    font-size: ${({ theme }) => theme.typography.sizes.m}px;
-    font-weight: ${({ theme }) => theme.typography.weights.medium};
+    font-size: ${({ theme }) => theme.fontSize}px;
+    font-weight: ${({ theme }) => theme.fontWeightMedium};
     line-height: 17px;
     letter-spacing: 0px;
     text-align: left;
-    margin: ${({ theme }) => theme.gridUnit * 4}px 0;
+    margin: ${({ theme }) => theme.sizeUnit * 4}px 0;
   }
 `;
 
@@ -86,6 +85,7 @@ export default function AllEntitiesTable({
           {
             accessor: type,
             Header: 'Title',
+            id: type,
           },
           {
             Cell: ({
@@ -113,6 +113,7 @@ export default function AllEntitiesTable({
             Header: t('Tags'),
             accessor: 'tags',
             disableSortBy: true,
+            id: 'tags',
           },
           {
             Cell: ({
@@ -124,6 +125,7 @@ export default function AllEntitiesTable({
             accessor: 'owners',
             disableSortBy: true,
             size: 'xl',
+            id: 'owners',
           },
         ]}
       />

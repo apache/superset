@@ -104,7 +104,7 @@ export default function DndSelectLabel({
           iconSize="m"
           iconColor={theme.colors.grayscale.light1}
           css={theme => ({
-            margin: `auto ${theme.gridUnit}px auto 0`,
+            margin: `auto ${theme.sizeUnit}px auto 0`,
           })}
         />
         {t(props.ghostButtonText)}

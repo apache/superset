@@ -20,7 +20,7 @@
 import { ReactNode, Key, useMemo } from 'react';
 
 import { styled, t, useTruncation } from '@superset-ui/core';
-import { Tooltip } from '../Tooltip';
+import { Tooltip } from 'src/components';
 
 export type TruncatedListProps<ListItemType> = {
   /**
@@ -88,8 +88,8 @@ const StyledTooltipItem = styled.div`
 const StyledPlus = styled.span`
   ${({ theme }) => `
   cursor: pointer;
-  color: ${theme.colors.primary.dark1};
-  font-weight: ${theme.typography.weights.normal};
+  color: ${theme.colorPrimaryText};
+  font-weight: ${theme.fontWeightNormal};
   `}
 `;
 

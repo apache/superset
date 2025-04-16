@@ -38,13 +38,13 @@ export type ControlFormRowProps = {
 };
 
 export function ControlFormRow({ children }: ControlFormRowProps) {
-  const { gridUnit } = useTheme();
+  const { sizeUnit } = useTheme();
   return (
     <div
       css={{
         display: 'flex',
         flexWrap: 'nowrap',
-        marginBottom: gridUnit,
+        marginBottom: sizeUnit,
         maxWidth: '100%',
       }}
     >
@@ -128,8 +128,8 @@ export default function ControlForm({
     <div
       css={{
         label: {
-          color: theme.colors.text.label,
-          fontSize: theme.typography.sizes.s,
+          color: theme.colorTextLabel,
+          fontSize: theme.fontSizeSM,
         },
       }}
     >

@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatePickerProps } from 'antd-v5';
-import { RangePickerProps } from 'antd-v5/es/date-picker';
+import type { DatePickerProps, RangePickerProps } from './types';
 import { DatePicker, RangePicker } from '.';
 
 export default {
-  title: 'DatePicker',
+  title: 'Components/DatePicker',
   component: DatePicker,
 };
 
@@ -87,9 +86,11 @@ InteractiveDatePicker.args = {
 
 InteractiveDatePicker.argTypes = interactiveTypes;
 
-export const InteractiveRangePicker: any = (args: RangePickerProps) => (
-  <RangePicker {...args} />
-);
+export const InteractiveRangePicker = (
+  args: Omit<RangePickerProps, 'picker'> & {
+    picker?: 'date';
+  },
+) => <RangePicker {...args} />;
 
 InteractiveRangePicker.args = {
   ...commonArgs,

@@ -17,8 +17,7 @@
  * under the License.
  */
 import { fireEvent, getByRole, render } from 'spec/helpers/testing-library';
-
-import EditableTable from 'src/components/EditableTitle';
+import { EditableTitle as EditableTable } from '.';
 
 const mockEvent = {
   target: {

@@ -16,68 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ReactNode,
-  DetailedHTMLProps,
-  TdHTMLAttributes,
-  PureComponent,
-} from 'react';
+import { PureComponent } from 'react';
 
 import { nanoid } from 'nanoid';
 
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { t, styled } from '@superset-ui/core';
 
-import Button from 'src/components/Button';
 import { Icons } from 'src/components/Icons';
+import { Button } from '../Button';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
-
-interface CRUDCollectionProps {
-  allowAddItem?: boolean;
-  allowDeletes?: boolean;
-  collection: Record<PropertyKey, any>[];
-  columnLabels?: Record<PropertyKey, any>;
-  columnLabelTooltips?: Record<PropertyKey, any>;
-  emptyMessage?: ReactNode;
-  expandFieldset?: ReactNode;
-  extraButtons?: ReactNode;
-  itemGenerator?: () => any;
-  itemCellProps?: ((
-    val: unknown,
-    label: string,
-    record: any,
-  ) => DetailedHTMLProps<
-    TdHTMLAttributes<HTMLTableCellElement>,
-    HTMLTableCellElement
-  >)[];
-  itemRenderers?: ((
-    val: unknown,
-    onChange: () => void,
-    label: string,
-    record: any,
-  ) => ReactNode)[];
-  onChange?: (arg0: any) => void;
-  tableColumns: any[];
-  sortColumns: string[];
-  stickyHeader?: boolean;
-}
-
-type Sort = number | string | boolean | any;
-
-enum SortOrder {
-  Asc = 1,
-  Desc = 2,
-  Unsorted = 0,
-}
-
-interface CRUDCollectionState {
-  collection: Record<PropertyKey, any>;
-  collectionArray: Record<PropertyKey, any>[];
-  expandedColumns: Record<PropertyKey, any>;
-  sortColumn: string;
-  sort: SortOrder;
-}
+import {
+  SortOrder,
+  type CRUDCollectionProps,
+  type CRUDCollectionState,
+  type Sort,
+} from './types';
 
 function createCollectionArray(collection: Record<PropertyKey, any>) {
   return Object.keys(collection).map(k => collection[k]);
@@ -121,20 +76,20 @@ const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
     `}
   ${({ theme }) => `
     th span {
-      vertical-align: ${theme.gridUnit * -2}px;
+      vertical-align: ${theme.sizeUnit * -2}px;
     }
     .text-right {
       text-align: right;
     }
     .empty-collection {
-      padding: ${theme.gridUnit * 2 + 2}px;
+      padding: ${theme.sizeUnit * 2 + 2}px;
     }
     .tiny-cell {
-      width: ${theme.gridUnit + 1}px;
+      width: ${theme.sizeUnit + 1}px;
     }
     i.fa-caret-down,
     i.fa-caret-up {
-      width: ${theme.gridUnit + 1}px;
+      width: ${theme.sizeUnit + 1}px;
     }
     td.expanded {
       border-top: 0;
@@ -145,13 +100,13 @@ const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
 
 const CrudButtonWrapper = styled.div`
   text-align: right;
-  ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
+  ${({ theme }) => `margin-bottom: ${theme.sizeUnit * 2}px`}
 `;
 
 const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
-    margin-top: ${theme.gridUnit * 3}px;
-    margin-left: ${theme.gridUnit * 3}px;
+    margin-top: ${theme.sizeUnit * 3}px;
+    margin-left: ${theme.sizeUnit * 3}px;
     button>span>:first-of-type {
       margin-right: 0;
     }
@@ -486,7 +441,7 @@ export default class CRUDCollection extends PureComponent<
             <StyledButtonWrapper>
               <Button
                 buttonSize="small"
-                buttonStyle="tertiary"
+                buttonStyle="secondary"
                 onClick={this.onAddItem}
                 data-test="add-item-button"
               >

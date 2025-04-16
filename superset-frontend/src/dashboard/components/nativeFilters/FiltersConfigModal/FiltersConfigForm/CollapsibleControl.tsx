@@ -18,7 +18,7 @@
  */
 import { ReactNode, useEffect, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import { AntdCheckbox } from 'src/components';
+import { Checkbox } from 'src/components';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 interface CollapsibleControlProps {
@@ -36,20 +36,16 @@ const StyledContainer = styled.div<{ checked: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  min-height: ${({ theme }) => theme.gridUnit * 10}px;
-  padding-top: ${({ theme }) => theme.gridUnit * 2 + 2}px;
-
-  .checkbox {
-    margin-bottom: ${({ theme, checked }) => (checked ? theme.gridUnit : 0)}px;
-  }
+  min-height: ${({ theme }) => theme.sizeUnit * 10}px;
+  padding-top: ${({ theme }) => theme.sizeUnit * 2 + 2}px;
 
   & > div {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 `;
 
 const ChildrenContainer = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * 6}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 6}px;
 `;
 
 const CollapsibleControl = (props: CollapsibleControlProps) => {
@@ -65,8 +61,6 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
   const [isChecked, setIsChecked] = useState(initialValue);
 
   useEffect(() => {
-    // if external `checked` changed to `undefined`, it means that we work now in uncontrolled mode with local state
-    // and we need ignore external value
     if (checked !== undefined) {
       setIsChecked(checked);
     }
@@ -74,15 +68,12 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
 
   return (
     <StyledContainer checked={isChecked}>
-      <AntdCheckbox
-        className="checkbox"
+      <Checkbox
         checked={isChecked}
         disabled={disabled}
         onChange={e => {
           const value = e.target.checked;
-          // external `checked` value has more priority then local state
           if (checked === undefined) {
-            // uncontrolled mode
             setIsChecked(value);
           }
           onChange(value);
@@ -94,7 +85,7 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
             <InfoTooltipWithTrigger placement="top" tooltip={tooltip} />
           )}
         </>
-      </AntdCheckbox>
+      </Checkbox>
       {isChecked && <ChildrenContainer>{children}</ChildrenContainer>}
     </StyledContainer>
   );

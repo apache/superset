@@ -35,22 +35,25 @@ import {
   useCallback,
   ChangeEvent,
 } from 'react';
+import { CheckboxChangeEvent } from 'src/components/Checkbox/types';
 
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-// eslint-disable-next-line no-restricted-imports
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import Tabs from 'src/components/Tabs';
-import { AntdSelect, Upload } from 'src/components';
-import Alert from 'src/components/Alert';
-import Modal from 'src/components/Modal';
-import Button from 'src/components/Button';
-import { IconButton } from 'src/components/IconButton';
-import InfoTooltip from 'src/components/InfoTooltip';
+import {
+  Alert,
+  Button,
+  ErrorMessageWithStackTrace,
+  LabeledErrorBoundInput as ValidatedInput,
+  Modal,
+  Select,
+  IconButton,
+  InfoTooltip,
+  Loading,
+} from 'src/components';
+import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import ErrorAlert from 'src/components/ImportModal/ErrorAlert';
+import { ErrorAlert } from 'src/components/ImportModal/ErrorAlert';
 import { Icons } from 'src/components/Icons';
 import {
   testDatabaseConnection,
@@ -62,7 +65,6 @@ import {
   useImportResource,
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/features/databases/state';
-import Loading from 'src/components/Loading';
 import { isEmpty, pick } from 'lodash';
 import { OnlyKeyWithType } from 'src/utils/types';
 import {
@@ -107,6 +109,11 @@ const extensionsRegistry = getExtensionsRegistry();
 
 const DEFAULT_EXTRA = JSON.stringify({ allows_virtual_table_explore: true });
 
+const TABS_KEYS = {
+  BASIC: 'basic',
+  ADVANCED: 'advanced',
+};
+
 const engineSpecificAlertMapping = {
   [Engines.GSheet]: {
     message: 'Why do I need to create a database?',
@@ -120,12 +127,12 @@ const engineSpecificAlertMapping = {
 };
 
 const TabsStyled = styled(Tabs)`
-  .ant-tabs-content {
+  .antd5-tabs-content {
     display: flex;
     width: 100%;
     overflow: inherit;
 
-    & > .ant-tabs-tabpane {
+    & > .antd5-tabs-tabpane {
       position: relative;
     }
   }
@@ -133,13 +140,13 @@ const TabsStyled = styled(Tabs)`
 
 const ErrorAlertContainer = styled.div`
   ${({ theme }) => `
-    margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
+    margin: ${theme.sizeUnit * 8}px ${theme.sizeUnit * 4}px;
   `};
 `;
 
 const SSHTunnelContainer = styled.div`
   ${({ theme }) => `
-    padding: 0px ${theme.gridUnit * 4}px;
+    padding: 0px ${theme.sizeUnit * 4}px;
   `};
 `;
 
@@ -244,8 +251,8 @@ export type DBReducerActionType =
     };
 
 const StyledBtns = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-  margin-left: ${({ theme }) => theme.gridUnit * 3}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 3}px;
 `;
 
 export function dbReducer(
@@ -333,7 +340,10 @@ export function dbReducer(
             ...extraJson,
             schema_options: {
               ...extraJson?.schema_options,
-              [action.payload.name]: !!action.payload.value,
+              [action.payload.name]:
+                'checked' in action.payload
+                  ? !!action.payload.checked
+                  : !!action.payload.value,
             },
           }),
         };
@@ -553,7 +563,7 @@ export function dbReducer(
   }
 }
 
-const DEFAULT_TAB_KEY = '1';
+const DEFAULT_TAB_KEY = TABS_KEYS.BASIC;
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
@@ -1061,26 +1071,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         {t('Or choose from a list of other databases we support:')}
       </h4>
       <div className="control-label">{t('Supported databases')}</div>
-      <AntdSelect
+      <Select
         className="available-select"
         onChange={setDatabaseModel}
         placeholder={t('Choose a database...')}
+        options={[
+          ...(availableDbs?.databases || [])
+            .sort((a: DatabaseForm, b: DatabaseForm) =>
+              a.name.localeCompare(b.name),
+            )
+            .map((database: DatabaseForm, index: number) => ({
+              value: database.name,
+              label: database.name,
+              key: `database-${index}`,
+            })),
+          { value: 'Other', label: t('Other'), key: 'Other' },
+        ]}
         showSearch
-      >
-        {[...(availableDbs?.databases || [])]
-          ?.sort((a: DatabaseForm, b: DatabaseForm) =>
-            a.name.localeCompare(b.name),
-          )
-          .map((database: DatabaseForm, index: number) => (
-            <AntdSelect.Option value={database.name} key={`database-${index}`}>
-              {database.name}
-            </AntdSelect.Option>
-          ))}
-        {/* Allow users to connect to DB via legacy SQLA form */}
-        <AntdSelect.Option value="Other" key="Other">
-          {t('Other')}
-        </AntdSelect.Option>
-      </AntdSelect>
+      />
       <Alert
         showIcon
         closable={false}
@@ -1190,7 +1198,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (!hasConnectedDb || editNewDb) {
         return (
           <>
-            <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
+            <StyledFooterButton
+              key="back"
+              onClick={handleBackButtonOnConnect}
+              buttonStyle="secondary"
+            >
               {t('Back')}
             </StyledFooterButton>
             <StyledFooterButton
@@ -1248,7 +1260,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
     <>
-      <StyledFooterButton key="close" onClick={onClose}>
+      <StyledFooterButton key="close" onClick={onClose} buttonStyle="secondary">
         {t('Close')}
       </StyledFooterButton>
       <StyledFooterButton
@@ -1610,12 +1622,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <ErrorAlertContainer>
           <ErrorMessageWithStackTrace
             title={t('Database Creation Error')}
-            description={t(
-              'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
-            )}
+            subtitle={t('We are unable to connect to your database.')}
             descriptionDetails={
               alertErrors?.[0] || validationErrors?.description
             }
+            copyText={validationErrors?.description}
           />
         </ErrorAlertContainer>
       );
@@ -1660,7 +1671,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           redirectURL('/dataset/add/');
         }}
       >
-        {t('CREATE DATASET')}
+        {t('Create dataset')}
       </Button>
       <Button
         buttonStyle="secondary"
@@ -1670,7 +1681,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           redirectURL(`/sqllab?db=true`);
         }}
       >
-        {t('QUERY DATA IN SQL LAB')}
+        {t('Query data in SQL Lab')}
       </Button>
     </StyledBtns>
   );
@@ -1737,14 +1748,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <ExtraOptions
           extraExtension={dbConfigExtraExtension}
           db={db as DatabaseObject}
-          onInputChange={({ target }: { target: HTMLInputElement }) =>
+          onInputChange={(
+            e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
+          ) => {
+            const { target } = e;
             onChange(ActionType.InputChange, {
               type: target.type,
               name: target.name,
-              checked: target.checked,
+              checked: 'checked' in target ? target.checked : false,
               value: target.value,
-            })
-          }
+            });
+          }}
           onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
             onChange(ActionType.TextChange, {
               name: target.name,
@@ -1754,11 +1768,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           onEditorChange={(payload: { name: string; json: any }) =>
             onChange(ActionType.EditorChange, payload)
           }
-          onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
+          onExtraInputChange={(
+            e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
+          ) => {
+            const { target } = e;
             onChange(ActionType.ExtraInputChange, {
               type: target.type,
               name: target.name,
-              checked: target.checked,
+              checked: 'checked' in target ? target.checked : false,
               value: target.value,
             });
           }}
@@ -1840,14 +1857,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <Icons.EditOutlined
               iconSize="l"
               css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
               `}
             />
           ) : (
             <Icons.InsertRowAboveOutlined
               iconSize="l"
               css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
               `}
             />
           )}
@@ -1875,128 +1892,150 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         activeKey={tabKey}
         onTabClick={tabChange}
         animated={{ inkBar: true, tabPane: true }}
-      >
-        <Tabs.TabPane tab={<span>{t('Basic')}</span>} key="1">
-          {useSqlAlchemyForm ? (
-            <StyledAlignment>
-              <SqlAlchemyForm
+        items={[
+          {
+            key: TABS_KEYS.BASIC,
+            label: <span>{t('Basic')}</span>,
+            children: (
+              <>
+                {useSqlAlchemyForm ? (
+                  <StyledAlignment>
+                    <SqlAlchemyForm
+                      db={db as DatabaseObject}
+                      onInputChange={({
+                        target,
+                      }: {
+                        target: HTMLInputElement;
+                      }) =>
+                        onChange(ActionType.InputChange, {
+                          type: target.type,
+                          name: target.name,
+                          checked: target.checked,
+                          value: target.value,
+                        })
+                      }
+                      conf={conf}
+                      testConnection={testConnection}
+                      testInProgress={testInProgress}
+                    >
+                      <SSHTunnelSwitchComponent
+                        dbModel={dbModel}
+                        db={db as DatabaseObject}
+                        changeMethods={{
+                          onParametersChange: handleParametersChange,
+                        }}
+                        clearValidationErrors={handleClearValidationErrors}
+                      />
+                      {useSSHTunneling && renderSSHTunnelForm()}
+                    </SqlAlchemyForm>
+                    {isDynamic(db?.backend || db?.engine) && !isEditMode && (
+                      <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+                        <Button
+                          buttonStyle="link"
+                          onClick={() =>
+                            setDB({
+                              type: ActionType.ConfigMethodChange,
+                              payload: {
+                                database_name: db?.database_name,
+                                configuration_method:
+                                  ConfigurationMethod.DynamicForm,
+                                engine: db?.engine,
+                              },
+                            })
+                          }
+                          css={theme => alchemyButtonLinkStyles(theme)}
+                        >
+                          {t(
+                            'Connect this database using the dynamic form instead',
+                          )}
+                        </Button>
+                        <InfoTooltip
+                          tooltip={t(
+                            'Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.',
+                          )}
+                          viewBox="0 -6 24 24"
+                        />
+                      </div>
+                    )}
+                  </StyledAlignment>
+                ) : (
+                  renderDatabaseConnectionForm()
+                )}
+                {!isEditMode && (
+                  <StyledAlertMargin>
+                    <Alert
+                      closable={false}
+                      css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+                      message={t('Additional fields may be required')}
+                      showIcon
+                      description={
+                        <>
+                          {t(
+                            'Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ',
+                          )}
+                          <a
+                            href={DOCUMENTATION_LINK}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="additional-fields-alert-description"
+                          >
+                            {t('here')}
+                          </a>
+                          .
+                        </>
+                      }
+                      type="info"
+                    />
+                  </StyledAlertMargin>
+                )}
+                {showDBError && errorAlert()}
+              </>
+            ),
+          },
+          {
+            key: TABS_KEYS.ADVANCED,
+            label: <span>{t('Advanced')}</span>,
+            children: (
+              <ExtraOptions
+                extraExtension={dbConfigExtraExtension}
                 db={db as DatabaseObject}
-                onInputChange={({ target }: { target: HTMLInputElement }) =>
+                onInputChange={(e: CheckboxChangeEvent) => {
+                  const { target } = e;
                   onChange(ActionType.InputChange, {
                     type: target.type,
                     name: target.name,
                     checked: target.checked,
                     value: target.value,
-                  })
-                }
-                conf={conf}
-                testConnection={testConnection}
-                testInProgress={testInProgress}
-              >
-                <SSHTunnelSwitchComponent
-                  dbModel={dbModel}
-                  db={db as DatabaseObject}
-                  changeMethods={{
-                    onParametersChange: handleParametersChange,
-                  }}
-                  clearValidationErrors={handleClearValidationErrors}
-                />
-                {useSSHTunneling && renderSSHTunnelForm()}
-              </SqlAlchemyForm>
-              {isDynamic(db?.backend || db?.engine) && !isEditMode && (
-                <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-                  <Button
-                    buttonStyle="link"
-                    onClick={() =>
-                      setDB({
-                        type: ActionType.ConfigMethodChange,
-                        payload: {
-                          database_name: db?.database_name,
-                          configuration_method: ConfigurationMethod.DynamicForm,
-                          engine: db?.engine,
-                        },
-                      })
-                    }
-                    css={theme => alchemyButtonLinkStyles(theme)}
-                  >
-                    {t('Connect this database using the dynamic form instead')}
-                  </Button>
-                  <InfoTooltip
-                    tooltip={t(
-                      'Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.',
-                    )}
-                    viewBox="0 -6 24 24"
-                  />
-                </div>
-              )}
-            </StyledAlignment>
-          ) : (
-            renderDatabaseConnectionForm()
-          )}
-          {!isEditMode && (
-            <StyledAlertMargin>
-              <Alert
-                closable={false}
-                css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-                message={t('Additional fields may be required')}
-                showIcon
-                description={
-                  <>
-                    {t(
-                      'Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ',
-                    )}
-                    <a
-                      href={DOCUMENTATION_LINK}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="additional-fields-alert-description"
-                    >
-                      {t('here')}
-                    </a>
-                    .
-                  </>
-                }
-                type="info"
+                  });
+                }}
+                onTextChange={({ target }: { target: HTMLTextAreaElement }) => {
+                  onChange(ActionType.TextChange, {
+                    name: target.name,
+                    value: target.value,
+                  });
+                }}
+                onEditorChange={(payload: { name: string; json: any }) => {
+                  onChange(ActionType.EditorChange, payload);
+                }}
+                onExtraInputChange={(
+                  e: React.ChangeEvent<HTMLInputElement> | CheckboxChangeEvent,
+                ) => {
+                  const { target } = e;
+                  onChange(ActionType.ExtraInputChange, {
+                    type: target.type,
+                    name: target.name,
+                    checked: target.checked,
+                    value: target.value,
+                  });
+                }}
+                onExtraEditorChange={(payload: { name: string; json: any }) => {
+                  onChange(ActionType.ExtraEditorChange, payload);
+                }}
               />
-            </StyledAlertMargin>
-          )}
-          {showDBError && errorAlert()}
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
-          <ExtraOptions
-            extraExtension={dbConfigExtraExtension}
-            db={db as DatabaseObject}
-            onInputChange={({ target }: { target: HTMLInputElement }) =>
-              onChange(ActionType.InputChange, {
-                type: target.type,
-                name: target.name,
-                checked: target.checked,
-                value: target.value,
-              })
-            }
-            onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
-              onChange(ActionType.TextChange, {
-                name: target.name,
-                value: target.value,
-              })
-            }
-            onEditorChange={(payload: { name: string; json: any }) =>
-              onChange(ActionType.EditorChange, payload)
-            }
-            onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
-              onChange(ActionType.ExtraInputChange, {
-                type: target.type,
-                name: target.name,
-                checked: target.checked,
-                value: target.value,
-              });
-            }}
-            onExtraEditorChange={(payload: { name: string; json: any }) => {
-              onChange(ActionType.ExtraEditorChange, payload);
-            }}
-          />
-        </Tabs.TabPane>
-      </TabsStyled>
+            ),
+          },
+        ]}
+      />
     </Modal>
   ) : (
     <Modal
@@ -2018,7 +2057,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <Icons.InsertRowAboveOutlined
             iconSize="l"
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
             `}
           />
           {t('Connect a database')}
@@ -2072,7 +2111,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     <Button
                       data-test="import-database-btn"
                       buttonStyle="link"
-                      type="link"
                       css={importDbButtonLinkStyles}
                     >
                       {t('Import database from file')}
