@@ -109,6 +109,11 @@ const extensionsRegistry = getExtensionsRegistry();
 
 const DEFAULT_EXTRA = JSON.stringify({ allows_virtual_table_explore: true });
 
+const TABS_KEYS = {
+  BASIC: 'basic',
+  ADVANCED: 'advanced',
+};
+
 const engineSpecificAlertMapping = {
   [Engines.GSheet]: {
     message: 'Why do I need to create a database?',
@@ -120,6 +125,18 @@ const engineSpecificAlertMapping = {
       'you choose to connect here.',
   },
 };
+
+const TabsStyled = styled(Tabs)`
+  .antd5-tabs-content {
+    display: flex;
+    width: 100%;
+    overflow: inherit;
+
+    & > .antd5-tabs-tabpane {
+      position: relative;
+    }
+  }
+`;
 
 const ErrorAlertContainer = styled.div`
   ${({ theme }) => `
@@ -546,7 +563,7 @@ export function dbReducer(
   }
 }
 
-const DEFAULT_TAB_KEY = '1';
+const DEFAULT_TAB_KEY = TABS_KEYS.BASIC;
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
@@ -1433,9 +1450,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setPasswords({ ...passwords, [database]: event.target.value })
             }
-            validationMethods={{
-              onBlur: () => {},
-            }}
+            validationMethods={{ onBlur: () => {} }}
             errorMessage={validationErrors?.password_needed}
             label={t('%s PASSWORD', database.slice(10))}
             css={formScrollableStyles}
@@ -1453,9 +1468,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 [database]: event.target.value,
               })
             }
-            validationMethods={{
-              onBlur: () => {},
-            }}
+            validationMethods={{ onBlur: () => {} }}
             errorMessage={validationErrors?.ssh_tunnel_password_needed}
             label={t('%s SSH TUNNEL PASSWORD', database.slice(10))}
             css={formScrollableStyles}
@@ -1473,9 +1486,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 [database]: event.target.value,
               })
             }
-            validationMethods={{
-              onBlur: () => {},
-            }}
+            validationMethods={{ onBlur: () => {} }}
             errorMessage={validationErrors?.ssh_tunnel_private_key_needed}
             label={t('%s SSH TUNNEL PRIVATE KEY', database.slice(10))}
             css={formScrollableStyles}
@@ -1493,9 +1504,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 [database]: event.target.value,
               })
             }
-            validationMethods={{
-              onBlur: () => {},
-            }}
+            validationMethods={{ onBlur: () => {} }}
             errorMessage={
               validationErrors?.ssh_tunnel_private_key_password_needed
             }
@@ -1546,9 +1555,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           id="confirm_overwrite"
           name="confirm_overwrite"
           required
-          validationMethods={{
-            onBlur: () => {},
-          }}
+          validationMethods={{ onBlur: () => {} }}
           errorMessage={validationErrors?.confirm_overwrite}
           label={t('Type "%s" to confirm', t('OVERWRITE'))}
           onChange={confirmOverwrite}
@@ -1880,14 +1887,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           />
         </TabHeader>
       </StyledStickyHeader>
-      <Tabs
+      <TabsStyled
         defaultActiveKey={DEFAULT_TAB_KEY}
         activeKey={tabKey}
         onTabClick={tabChange}
         animated={{ inkBar: true, tabPane: true }}
         items={[
           {
-            key: '1',
+            key: TABS_KEYS.BASIC,
             label: <span>{t('Basic')}</span>,
             children: (
               <>
@@ -1986,56 +1993,45 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             ),
           },
           {
-            key: '2',
+            key: TABS_KEYS.ADVANCED,
             label: <span>{t('Advanced')}</span>,
             children: (
-              <>
-                <ExtraOptions
-                  extraExtension={dbConfigExtraExtension}
-                  db={db as DatabaseObject}
-                  onInputChange={(e: CheckboxChangeEvent) => {
-                    const { target } = e;
-                    onChange(ActionType.InputChange, {
-                      type: target.type,
-                      name: target.name,
-                      checked: target.checked,
-                      value: target.value,
-                    });
-                  }}
-                  onTextChange={({
-                    target,
-                  }: {
-                    target: HTMLTextAreaElement;
-                  }) => {
-                    onChange(ActionType.TextChange, {
-                      name: target.name,
-                      value: target.value,
-                    });
-                  }}
-                  onEditorChange={(payload: { name: string; json: any }) => {
-                    onChange(ActionType.EditorChange, payload);
-                  }}
-                  onExtraInputChange={(
-                    e:
-                      | React.ChangeEvent<HTMLInputElement>
-                      | CheckboxChangeEvent,
-                  ) => {
-                    const { target } = e;
-                    onChange(ActionType.ExtraInputChange, {
-                      type: target.type,
-                      name: target.name,
-                      checked: target.checked,
-                      value: target.value,
-                    });
-                  }}
-                  onExtraEditorChange={(payload: {
-                    name: string;
-                    json: any;
-                  }) => {
-                    onChange(ActionType.ExtraEditorChange, payload);
-                  }}
-                />
-              </>
+              <ExtraOptions
+                extraExtension={dbConfigExtraExtension}
+                db={db as DatabaseObject}
+                onInputChange={(e: CheckboxChangeEvent) => {
+                  const { target } = e;
+                  onChange(ActionType.InputChange, {
+                    type: target.type,
+                    name: target.name,
+                    checked: target.checked,
+                    value: target.value,
+                  });
+                }}
+                onTextChange={({ target }: { target: HTMLTextAreaElement }) => {
+                  onChange(ActionType.TextChange, {
+                    name: target.name,
+                    value: target.value,
+                  });
+                }}
+                onEditorChange={(payload: { name: string; json: any }) => {
+                  onChange(ActionType.EditorChange, payload);
+                }}
+                onExtraInputChange={(
+                  e: React.ChangeEvent<HTMLInputElement> | CheckboxChangeEvent,
+                ) => {
+                  const { target } = e;
+                  onChange(ActionType.ExtraInputChange, {
+                    type: target.type,
+                    name: target.name,
+                    checked: target.checked,
+                    value: target.value,
+                  });
+                }}
+                onExtraEditorChange={(payload: { name: string; json: any }) => {
+                  onChange(ActionType.ExtraEditorChange, payload);
+                }}
+              />
             ),
           },
         ]}
