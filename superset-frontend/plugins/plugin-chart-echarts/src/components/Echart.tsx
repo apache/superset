@@ -190,6 +190,10 @@ function Echart(
     }
   }, [didMount, echartOptions, eventHandlers, zrEventHandlers]);
 
+  useEffect(() => {
+    return () => chartRef.current?.dispose();
+  }, []);
+
   // highlighting
   useEffect(() => {
     if (!chartRef.current) return;
