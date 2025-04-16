@@ -330,8 +330,8 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Dimension to stack by'),
-              visibility: ({ controls }) => {                
-                return controls?.stack?.value == StackControlsValue.Stack},
+              visibility: ({ controls }) =>              
+                controls?.stack?.value == StackControlsValue.Stack,
               renderTrigger: true,
               description: t(
                 'Stack in groups, where each group corresponds to a dimension',
