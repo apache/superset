@@ -27,7 +27,7 @@ export interface RefreshLabelProps {
   disabled?: boolean;
 }
 
-const RefreshLabel = ({
+export const RefreshLabel = ({
   onClick,
   tooltipContent,
   disabled,
@@ -51,5 +51,3 @@ const RefreshLabel = ({
     </Tooltip>
   );
 };
-
-export default RefreshLabel;

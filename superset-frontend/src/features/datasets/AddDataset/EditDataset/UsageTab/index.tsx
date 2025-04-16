@@ -27,7 +27,8 @@ import {
   t,
 } from '@superset-ui/core';
 import Chart, { ChartLinkedDashboard } from 'src/types/Chart';
-import Table, {
+import {
+  Table,
   ColumnsType,
   TableSize,
   OnChangeFunction,

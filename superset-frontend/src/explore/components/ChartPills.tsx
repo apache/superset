@@ -20,7 +20,7 @@ import { forwardRef, RefObject } from 'react';
 import { css, QueryData, SupersetTheme } from '@superset-ui/core';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
 import { CachedLabel, type LabelType } from '@superset-ui/core/components';
-import Timer from '@superset-ui/core/components/Timer';
+import { Timer } from '@superset-ui/core/components';
 
 const CHART_STATUS_MAP = {
   failed: 'danger' as LabelType,

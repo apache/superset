@@ -23,9 +23,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { supersetTheme } from '@superset-ui/core';
-import { Icons } from '../';
-import Popover from '../';
-import { Button } from '../Button';
+import { Icons, Popover, Button } from '../';
 
 test('should render', () => {
   const { container } = render(<Popover />);
