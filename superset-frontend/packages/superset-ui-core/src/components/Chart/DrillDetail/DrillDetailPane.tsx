@@ -39,9 +39,9 @@ import {
 import { useResizeDetector } from 'react-resize-detector';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
-import BooleanCell from '..';
-import NullCell from '..';
-import TimeCell from '..';
+import BooleanCell from '../../Table/cell-renderers/BooleanCell';
+import NullCell from '../../Table/cell-renderers/NullCell';
+import TimeCell from '../../Table/cell-renderers/TimeCell';
 import { EmptyState, Loading, Table, ColumnsType, TableSize } from '../..';
 import { getDatasourceSamples } from '..';
 import HeaderWithRadioGroup from '..';

@@ -31,7 +31,6 @@ import {
   Behavior,
   Column,
   ContextMenuFilters,
-  FAST_DEBOUNCE,
   JsonResponse,
   css,
   ensureIsArray,
@@ -41,6 +40,8 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
+
+import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
 import rison from 'rison';
 import { debounce } from 'lodash';
 import { FixedSizeList as List } from 'react-window';
@@ -49,7 +50,7 @@ import {
   supersetGetCache,
 } from 'src/utils/cachedSupersetGet';
 import { InputRef } from 'antd-v5';
-import { Icons, useToasts, Input, Loading, Menu } from '..';
+import { Icons, useToasts, Input, Loading, Menu } from '../..';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemWithTruncation } from '../MenuItemWithTruncation';

@@ -32,10 +32,8 @@ import {
   useSchemas,
   SchemaOption,
 } from 'src/hooks/apiResources';
-import RefreshLabel, { useToasts } from '..';
-import { Label } from '../Label';
-import { Select, AsyncSelect } from '../Select';
-import { FormLabel } from '../Form';
+import { Label, FormLabel, Select, AsyncSelect, RefreshLabel } from '..';
+import { useToasts } from '..';
 import { ErrorMessageWithStackTrace } from '../ErrorMessage';
 
 import type { LabeledValue as AntdLabeledValue } from '../Select';

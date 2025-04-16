@@ -21,6 +21,6 @@ import { Slider as AntdSlider } from 'antd-v5';
 
 export type { SliderSingleProps, SliderRangeProps };
 
-export default function Slider(props: SliderSingleProps | SliderRangeProps) {
+export function Slider(props: SliderSingleProps | SliderRangeProps) {
   return <AntdSlider {...props} />;
 }

@@ -44,7 +44,7 @@ import { RootState } from 'src/dashboard/types';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { updateDataMask } from 'src/dataMask/actions';
 import { useVerboseMap } from 'src/hooks/apiResources/datasets';
-import DrillByModal, { Menu, Dropdown, Dataset } from '..';
+import DrillByModal, { Menu, Dropdown, Dataset } from '../..';
 import { DrillDetailMenuItems } from '../DrillDetail';
 import { getMenuAdjustedY } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';

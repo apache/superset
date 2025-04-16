@@ -18,7 +18,7 @@
  */
 import { SupersetTheme } from '@superset-ui/core';
 import { Card as AntdCard } from 'antd-v5';
-export type { CardProps } from './types';
+import type { CardProps } from './types';
 
 const CustomCard = ({ padded, ...props }: CardProps) => (
   <AntdCard
@@ -34,3 +34,4 @@ const CustomCard = ({ padded, ...props }: CardProps) => (
 export const Card = Object.assign(CustomCard, {
   Meta: AntdCard.Meta,
 });
+export type { CardProps };

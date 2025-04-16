@@ -31,11 +31,7 @@ import {
 import { Global } from '@emotion/react';
 import { css, t, useTheme, usePrevious } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
-import { Icons } from '..';
-import { Badge } from '../Badge';
-import { Button } from '../Button';
-import { Tooltip } from '../Tooltip';
-import Popover from '../Popover';
+import { Icons, Badge, Button, Tooltip, Popover } from '@superset-ui/core/components';
 import type {
   DropdownContainerProps,
   DropdownItem,

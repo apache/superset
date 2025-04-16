@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import TableView, { TableViewProps } from '.';
+import { TableView, TableViewProps } from '.';
 
 const mockedProps: TableViewProps = {
   columns: [

@@ -26,7 +26,7 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
-import { Tag, Icons } from '..';
+import { Tag, Icons } from '../..';
 
 export type TableControlsProps = {
   filters: BinaryQueryObjectFilterClause[];
