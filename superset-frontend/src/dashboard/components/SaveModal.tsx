@@ -22,7 +22,7 @@ import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import { Button, Checkbox, Input } from '@superset-ui/core/components';
 import { t, JsonResponse } from '@superset-ui/core';
 
-import ModalTrigger, { ModalTriggerRef } from '@superset-ui/core/components/ModalTrigger';
+import { ModalTrigger, ModalTriggerRef } from '@superset-ui/core/components';
 import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_NEWDASHBOARD,

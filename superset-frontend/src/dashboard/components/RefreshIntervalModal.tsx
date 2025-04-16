@@ -20,7 +20,7 @@ import { createRef, PureComponent } from 'react';
 import { FormLabel, Alert, Button, Input, Select } from '@superset-ui/core/components';
 import { t, styled } from '@superset-ui/core';
 
-import ModalTrigger, { ModalTriggerRef } from '@superset-ui/core/components/ModalTrigger';
+import { ModalTrigger, ModalTriggerRef } from '@superset-ui/core/components';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 
 const StyledModalTrigger = styled(ModalTrigger)`

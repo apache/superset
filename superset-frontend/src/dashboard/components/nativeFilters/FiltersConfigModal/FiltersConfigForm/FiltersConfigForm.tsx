@@ -39,10 +39,10 @@ import {
   t,
   ClientErrorObject,
   getClientErrorObject,
-  SLOW_DEBOUNCE,
   useTheme,
   css,
 } from '@superset-ui/core';
+import { SLOW_DEBOUNCE } from '@superset-ui/core/components/constants';
 import { debounce, isEqual } from 'lodash';
 import {
   forwardRef,
