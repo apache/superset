@@ -45,9 +45,7 @@ import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
 } from '../../constants';
-import {
-  StackControlsValue,
-} from '../../../constants';
+import { StackControlsValue } from '../../../constants';
 
 const {
   logAxis,
@@ -330,8 +328,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Dimension to stack by'),
-              visibility: ({ controls }) =>              
-                controls?.stack?.value == StackControlsValue.Stack,
+              visibility: ({ controls }) => controls?.stack?.value === StackControlsValue.Stack,
               renderTrigger: true,
               description: t(
                 'Stack in groups, where each group corresponds to a dimension',

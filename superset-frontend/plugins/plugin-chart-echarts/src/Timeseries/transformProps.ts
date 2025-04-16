@@ -421,7 +421,11 @@ export default function transformProps(
       }
     });
 
-  if (stack === StackControlsValue.Stack && stackDimension && chartProps.rawFormData.groupby) {
+  if (
+    stack === StackControlsValue.Stack &&
+    stackDimension &&
+    chartProps.rawFormData.groupby
+  ) {
     const idxSelectedDimension =
       formData.metrics.length > 1
         ? 1
