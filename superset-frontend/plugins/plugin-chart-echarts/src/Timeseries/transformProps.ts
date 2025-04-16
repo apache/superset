@@ -191,8 +191,7 @@ export default function transformProps(
     yAxisTitleMargin,
     yAxisTitlePosition,
     zoomable,
-    stackbydimension,
-    stackdimension,
+    stackDimension,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
@@ -422,11 +421,11 @@ export default function transformProps(
       }
     });
 
-  if (stackbydimension && stackdimension && chartProps.rawFormData.groupby) {
+  if (stack === StackControlsValue.Stack && stackDimension && chartProps.rawFormData.groupby) {
     const idxSelectedDimension =
       formData.metrics.length > 1
         ? 1
-        : 0 + chartProps.rawFormData.groupby.indexOf(stackdimension);
+        : 0 + chartProps.rawFormData.groupby.indexOf(stackDimension);
     for (const s of series) {
       if (s.id) {
         const columnsArr = labelMap[s.id];

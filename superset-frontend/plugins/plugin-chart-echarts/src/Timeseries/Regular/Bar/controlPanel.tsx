@@ -45,6 +45,9 @@ import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
 } from '../../constants';
+import {
+  StackControlsValue,
+} from '../../../constants';
 
 const {
   logAxis,
@@ -53,7 +56,6 @@ const {
   yAxisBounds,
   zoomable,
   orientation,
-  stackbydimension,
 } = DEFAULT_FORM_DATA;
 
 function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
@@ -318,28 +320,18 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        ...seriesOrderSection,
+        ['color_scheme'],
+        ['time_shift_color'],
+        ...showValueSection,
         [
           {
-            name: 'stackbydimension',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Stack by dimension'),
-              default: stackbydimension,
-              renderTrigger: true,
-              description: t(
-                'Stack in groups, where each group corresponds to a dimension',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'stackdimension',
+            name: 'stackDimension',
             config: {
               type: 'SelectControl',
               label: t('Dimension to stack by'),
-              visibility: ({ controls }) =>
-                Boolean(controls?.stackbydimension?.value),
+              visibility: ({ controls }) => {                
+                return controls?.stack?.value == StackControlsValue.Stack},
               renderTrigger: true,
               description: t(
                 'Stack in groups, where each group corresponds to a dimension',
@@ -364,10 +356,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ...seriesOrderSection,
-        ['color_scheme'],
-        ['time_shift_color'],
-        ...showValueSection,
         [minorTicks],
         [
           {

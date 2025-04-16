@@ -74,8 +74,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   rowLimit: number;
   seriesType: EchartsTimeseriesSeriesType;
   stack: StackType;
-  stackbydimension: boolean;
-  stackdimension: string;
+  stackDimension: string;
   timeCompare?: string[];
   tooltipTimeFormat?: string;
   showTooltipTotal?: boolean;
