@@ -25,7 +25,6 @@ import {
   ClientErrorObject,
   css,
   getExtensionsRegistry,
-  SafeMarkdown,
   styled,
   t,
 } from '@superset-ui/core';
@@ -33,6 +32,7 @@ import {
   Icons,
   Alert,
   Breadcrumb,
+  SafeMarkdown,
   Button,
   Card,
   CopyToClipboard,

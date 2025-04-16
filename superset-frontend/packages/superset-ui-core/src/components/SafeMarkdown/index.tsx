@@ -37,7 +37,7 @@ export function getOverrideHtmlSchema(
   );
 }
 
-function SafeMarkdown({
+export function SafeMarkdown({
   source,
   htmlSanitization = true,
   htmlSchemaOverrides = {},
@@ -85,5 +85,3 @@ function SafeMarkdown({
     </ReactMarkdown>
   );
 }
-
-export default SafeMarkdown;

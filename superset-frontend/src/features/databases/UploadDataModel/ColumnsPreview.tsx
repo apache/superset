@@ -18,9 +18,7 @@
  */
 import { FC } from 'react';
 import { styled, t } from '@superset-ui/core';
-import Typography from '@superset-ui/core/components/Typography';
-import TagsList from '@superset-ui/core/components/TagsList';
-import TagType from 'src/types/TagType';
+import { Typography, TagType, TagsList } from '@superset-ui/core/components';
 
 interface ColumnsPreviewProps {
   columns: string[];

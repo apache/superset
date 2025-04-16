@@ -18,9 +18,7 @@
  */
 import { useState } from 'react';
 import { css, useTheme } from '@superset-ui/core';
-import { Radio } from '../';
-import { Icons } from '../';
-import Popover from '../';
+import { Radio, Icons, Popover } from '../../';
 
 export interface HeaderWithRadioGroupProps {
   headerTitle: string;

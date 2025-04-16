@@ -423,5 +423,3 @@ export function Table<RecordType extends object>(
     </div>
   );
 }
-
-export default Table;

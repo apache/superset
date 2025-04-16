@@ -20,7 +20,7 @@
  * under the License.
  */
 import { render, sleep, waitFor } from 'spec/helpers/testing-library';
-import Timer, { TimerProps } from '../';
+import { Timer, TimerProps } from '../';
 import { now } from 'src/utils/dates';
 
 function parseTime(text?: string | null) {
