@@ -218,7 +218,7 @@ const DataTableTemporalHeaderCell = ({
           iconSize="m"
           iconColor={theme.colors.grayscale.light1}
           css={{ marginRight: `${theme.sizeUnit}px` }}
-          onClick={e => e.stopPropagation()}
+          onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
         />
       </Popover>
       {columnName}

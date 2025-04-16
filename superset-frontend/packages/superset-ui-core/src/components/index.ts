@@ -101,6 +101,7 @@ export * from './Timer';
 export * from './TreeSelect';
 export * from './Switch';
 export * from './Table';
+export * from './TableView';
 export * from './Tabs';
 export * from './TableCollection';
 export * from './Tag';

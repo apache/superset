@@ -18,7 +18,7 @@
  */
 import { useState, forwardRef, useImperativeHandle, RefObject } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { InputNumber, FormLabel } from '..';
+import { InputNumber, FormLabel } from '../..';
 import { BaseFilter, FilterHandler } from './Base';
 
 const RangeFilterContainer = styled.div`

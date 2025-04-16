@@ -25,7 +25,7 @@ import { RootState } from 'src/dashboard/types';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
 import { QueryResponse, t } from '@superset-ui/core';
-import { triggerQuery } from '..';
+import { triggerQuery } from '.';
 
 import type { ErrorMessageComponentProps } from './types';
 import { ErrorAlert } from './ErrorAlert';

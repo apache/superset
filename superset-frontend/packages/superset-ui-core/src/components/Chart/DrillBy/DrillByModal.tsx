@@ -47,7 +47,7 @@ import {
 } from 'src/logger/LogUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { getQuerySettings } from 'src/explore/exploreUtils';
-import { useToasts, Button, Alert, Modal, Loading, Breadcrumb, Flex } from '..';
+import { useToasts, Button, Alert, Modal, Loading, Breadcrumb, Flex } from '../..';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
