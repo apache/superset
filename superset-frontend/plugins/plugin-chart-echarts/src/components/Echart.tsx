@@ -185,16 +185,13 @@ function Echart(
       });
 
       chartRef.current?.setOption(echartOptions, true);
+
+      // did mount
+      handleSizeChange({ width, height });
     }
   }, [didMount, echartOptions, eventHandlers, zrEventHandlers]);
 
-  // did mount
-  useEffect(() => {
-    if (didMount) {
-      handleSizeChange({ width, height });
-    }
-    return () => chartRef.current?.dispose();
-  }, [didMount]);
+  useEffect(() => () => chartRef.current?.dispose(), []);
 
   // highlighting
   useEffect(() => {
