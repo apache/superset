@@ -56,7 +56,7 @@ import {
   ListViewFilterOperator as FilterOperator,
   DashboardCrossLinks,
   TagsList,
-  Tag,
+  TagType,
   Icons,
   Loading,
   type ListViewProps,
@@ -415,7 +415,7 @@ function ChartList(props: ChartListProps) {
         }: any) => (
           // Only show custom type tags
           <TagsList
-            tags={tags.filter((tag: Tag) =>
+            tags={tags.filter((tag: TagType) =>
               tag.type
                 ? tag.type === 1 || tag.type === 'TagTypes.custom'
                 : true,

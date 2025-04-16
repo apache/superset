@@ -4,7 +4,7 @@ import re
 import subprocess
 from typing import List, Tuple
 
-lib = "Tabs"
+lib = "Popover"
 # Define replacement patterns as tuples of (pattern, replacement)
 REPLACE_PATTERNS: List[Tuple[str, str]] = [
     # Example patterns - replace these with your actual patterns

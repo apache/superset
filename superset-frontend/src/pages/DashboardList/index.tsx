@@ -44,6 +44,7 @@ import {
   FacePile,
   FaveStar,
   TagsList,
+  TagType,
   ImportModal as ImportModelsModal,
   PublishedLabel,
   ListView,
@@ -107,7 +108,7 @@ export interface Dashboard {
   url: string;
   thumbnail_url: string;
   owners: Owner[];
-  tags: Tag[];
+  tags: TagType[];
   created_by: object;
 }
 
@@ -367,14 +368,14 @@ function DashboardList(props: DashboardListProps) {
         }: {
           row: {
             original: {
-              tags: Tag[];
+              tags: TagType[];
             };
           };
         }) => (
           // Only show custom type tags
           <TagsList
             tags={tags.filter(
-              (tag: Tag) => tag.type === 'TagTypes.custom' || tag.type === 1,
+              (tag: TagType) => tag.type === 'TagTypes.custom' || tag.type === 1,
             )}
             maxTags={3}
           />

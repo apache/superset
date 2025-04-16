@@ -35,7 +35,7 @@ import {
 import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import Popover from '@superset-ui/core/components/Popover';
+import { Popover } from '@superset-ui/core/components';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import {
   Label,

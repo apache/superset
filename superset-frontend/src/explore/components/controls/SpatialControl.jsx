@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { Row, Col, Checkbox, Label } from '@superset-ui/core/components';
 import { t } from '@superset-ui/core';
 
-import Popover from '@superset-ui/core/components/Popover';
+import { Popover } from '@superset-ui/core/components';
 import PopoverSection from '@superset-ui/core/components/PopoverSection';
 import ControlHeader from '../ControlHeader';
 import SelectControl from './SelectControl';
