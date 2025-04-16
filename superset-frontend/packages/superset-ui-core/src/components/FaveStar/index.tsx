@@ -20,7 +20,7 @@
 import { useCallback, useEffect, MouseEvent } from 'react';
 
 import { css, t, styled, useTheme } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '../';
 import { Tooltip } from '../Tooltip';
 import type { FaveStarProps } from './types';
 

@@ -18,7 +18,7 @@
  */
 import { ensureIsArray, t } from '@superset-ui/core';
 import { ReactElement, RefObject } from 'react';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '../';
 import { LabeledValue as AntdLabeledValue, SELECT_ALL_VALUE } from '.';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
 import { CustomLabeledValue, RawValue, SelectOptionsType, V } from './types';

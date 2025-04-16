@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { IconType } from 'src/components/Icons/types';
+import type { IconType } from '../';
 
 export interface CertifiedBadgeProps {
   certifiedBy?: string;

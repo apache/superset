@@ -26,8 +26,8 @@ import {
 } from 'react';
 import { styled, SupersetClient, SupersetError, t } from '@superset-ui/core';
 import rison from 'rison';
-import RefreshLabel from 'src/components/RefreshLabel';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
+import RefreshLabel from '../';
+import { useToasts } from '../';
 import {
   useCatalogs,
   CatalogOption,

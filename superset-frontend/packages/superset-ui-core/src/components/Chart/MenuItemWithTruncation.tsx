@@ -19,7 +19,7 @@
 
 import { ReactNode, CSSProperties } from 'react';
 import { css, truncationCSS, useCSSTextTruncation } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '../';
 import { Tooltip } from '../';
 import { MenuItemProps } from 'antd-v5';
 

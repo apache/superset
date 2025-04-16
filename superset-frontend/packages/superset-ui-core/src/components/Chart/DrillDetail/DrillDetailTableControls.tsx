@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { Tag } from 'src/components/Tag';
+import { Tag } from '../';
 import {
   BinaryQueryObjectFilterClause,
   css,
@@ -27,7 +27,7 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '../';
 
 export type TableControlsProps = {
   filters: BinaryQueryObjectFilterClause[];

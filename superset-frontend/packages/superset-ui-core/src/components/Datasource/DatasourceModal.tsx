@@ -29,8 +29,8 @@ import {
   css,
 } from '@superset-ui/core';
 
-import { Icons } from 'src/components/Icons';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import { Icons } from '../';
+import withToasts from '../';
 import {
   startMetaDataLoading,
   stopMetaDataLoading,
@@ -39,7 +39,7 @@ import {
 import {
   fetchSyncedColumns,
   updateColumns,
-} from 'src/components/Datasource/utils';
+} from '../';
 import type { DatasetObject } from 'src/features/datasets/types';
 import { ErrorMessageWithStackTrace } from '../ErrorMessage';
 import { AsyncEsmComponent } from '../AsyncEsmComponent';

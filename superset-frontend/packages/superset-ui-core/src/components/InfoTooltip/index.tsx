@@ -18,7 +18,7 @@
  */
 
 import { styled, useTheme, css } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '../';
 import { Tooltip } from '../Tooltip';
 import type { InfoTooltipProps } from './types';
 

@@ -46,7 +46,7 @@ import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useToasts } from '../';
 import { logEvent } from 'src/logger/actions';
 import {
   LOG_ACTIONS_DRILL_BY_BREADCRUMB_CLICKED,

@@ -20,8 +20,8 @@ import { useCallback } from 'react';
 import { styled, t } from '@superset-ui/core';
 import type { Column, ColumnPinnedType, GridApi } from 'ag-grid-community';
 
-import { Icons } from 'src/components/Icons';
-import { Menu } from 'src/components/Menu';
+import { Icons } from '../';
+import { Menu } from '../';
 import copyTextToClipboard from 'src/utils/copy';
 import { MenuDotsDropdown } from '../Dropdown';
 import type { DropdownProps } from '../Dropdown/types';

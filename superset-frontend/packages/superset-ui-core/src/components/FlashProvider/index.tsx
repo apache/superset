@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useToasts } from '../';
 import { useComponentDidMount } from '@superset-ui/core';
 import type { FlashMessage } from './types';
 

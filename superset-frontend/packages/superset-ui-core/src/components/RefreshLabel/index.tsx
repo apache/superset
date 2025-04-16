@@ -18,8 +18,8 @@
  */
 import { MouseEventHandler, forwardRef } from 'react';
 import { SupersetTheme } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import type { IconType } from 'src/components/Icons/types';
+import { Icons } from '../';
+import type { IconType } from '../';
 import { Tooltip } from '../Tooltip';
 
 export interface RefreshLabelProps {

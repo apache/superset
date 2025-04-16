@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '../';
 import { t, useTheme } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';
 import { Alert } from '../Alert';

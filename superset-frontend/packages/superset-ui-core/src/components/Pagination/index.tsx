@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Pagination from 'src/components/Pagination/Wrapper';
+import Pagination from '../';
 import {
   createUltimatePagination,
   ITEM_TYPES,

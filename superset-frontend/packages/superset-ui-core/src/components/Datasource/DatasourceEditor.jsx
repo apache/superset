@@ -19,7 +19,7 @@
 import rison from 'rison';
 import { PureComponent, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { Radio } from 'src/components/Radio';
+import { Radio } from '../';
 import {
   css,
   isFeatureEnabled,
@@ -32,14 +32,14 @@ import {
   withTheme,
   getClientErrorObject,
 } from '@superset-ui/core';
-import Tabs from 'src/components/Tabs';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
-import TableSelector from 'src/components/TableSelector';
+import Tabs from '../';
+import WarningIconWithTooltip from '../';
+import TableSelector from '../';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import withToasts from '../';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import { Loading } from '../Loading';
 import { Alert } from '../Alert';

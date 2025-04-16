@@ -26,7 +26,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '../';
 import {
   BaseFormData,
   Behavior,
@@ -45,8 +45,8 @@ import {
 import rison from 'rison';
 import { debounce } from 'lodash';
 import { FixedSizeList as List } from 'react-window';
-import { Icons } from 'src/components/Icons';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { Icons } from '../';
+import { useToasts } from '../';
 import { Input, Loading } from '../';
 import {
   cachedSupersetGet,

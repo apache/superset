@@ -23,8 +23,8 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { supersetTheme } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import Popover from 'src/components/Popover';
+import { Icons } from '../';
+import Popover from '../';
 import { Button } from '../Button';
 
 test('should render', () => {

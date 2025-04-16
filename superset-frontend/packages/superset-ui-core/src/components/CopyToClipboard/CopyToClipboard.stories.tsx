@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Icons } from 'src/components/Icons';
-import ToastContainer from 'src/components/MessageToasts/ToastContainer';
+import { Icons } from '../';
+import ToastContainer from '../';
 import { Button } from '../Button';
 import { CopyToClipboard } from '.';
 

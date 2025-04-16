@@ -26,7 +26,7 @@ import {
   TablePropGetter,
 } from 'react-table';
 import { styled } from '@superset-ui/core';
-import { Table, TableSize } from 'src/components/Table';
+import { Table, TableSize } from '../';
 import { TableRowSelection, SorterResult } from 'antd-v5/es/table/interface';
 import { mapColumns, mapRows } from './utils';
 

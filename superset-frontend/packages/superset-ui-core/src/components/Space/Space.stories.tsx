@@ -23,7 +23,7 @@
  * E.g. import { Select } from '../'
  */
 
-import { Space, SpaceProps } from 'src/components/Space';
+import { Space, SpaceProps } from '../';
 
 export default {
   title: 'Design System/Components/Space',

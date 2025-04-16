@@ -127,7 +127,7 @@ of the data object for that row, as the first argument of the sorter function.
 The alphabeticalSort is for columns that display a string of text.
 
 \`\`\`
-import { alphabeticalSort } from 'src/components/Table/sorters';
+import { alphabeticalSort } from '../';
 
 const basicColumns = [
   {
@@ -359,7 +359,7 @@ you can register \`onDragOver\` and \`onDragDrop\` event handlers on the destina
 as the getData key as shown below.
 
 \`\`\`
-import { SUPERSET_TABLE_COLUMN } from 'src/components/table';
+import { SUPERSET_TABLE_COLUMN } from '../';
 
 const handleDrop = (ev:Event) => {
   const json = ev.dataTransfer?.getData?.(SUPERSET_TABLE_COLUMN);

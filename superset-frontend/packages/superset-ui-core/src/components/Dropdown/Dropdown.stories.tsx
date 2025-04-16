@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Menu } from 'src/components/Menu';
+import { Menu } from '../';
 import { MenuDotsDropdown } from '.';
 import type { MenuDotsDropdownProps } from './types';
 

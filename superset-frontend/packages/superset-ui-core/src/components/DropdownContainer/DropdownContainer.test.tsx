@@ -17,7 +17,7 @@
  * under the License.
  */
 import { screen, render, userEvent } from 'spec/helpers/testing-library';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '../';
 import { Button } from '../Button';
 import { DropdownContainer } from '.';
 

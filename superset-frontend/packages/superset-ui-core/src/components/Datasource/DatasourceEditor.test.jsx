@@ -23,7 +23,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
+import DatasourceEditor from '../';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import { isFeatureEnabled } from '@superset-ui/core';
 

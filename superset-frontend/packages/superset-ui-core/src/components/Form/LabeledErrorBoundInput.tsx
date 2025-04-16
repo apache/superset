@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled, css, SupersetTheme, t } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '../';
 import errorIcon from 'src/assets/images/icons/error.svg';
 import { Button } from '../Button';
 import { InfoTooltip } from '../InfoTooltip';

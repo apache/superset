@@ -22,7 +22,7 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import Upload from 'src/components/Upload';
+import Upload from '../';
 import { Button } from '../';
 
 describe('Upload Component', () => {

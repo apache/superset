@@ -25,7 +25,7 @@ import {
   SupersetTheme,
 } from '@superset-ui/core';
 import { useState } from 'react';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '../';
 
 interface ThemeEditorProps {
   initialTheme?: SupersetTheme;

@@ -18,8 +18,8 @@
  */
 import { useState } from 'react';
 import { Meta, StoryObj } from '@storybook/react';
-import { Tag } from 'src/components/Tag';
-import type { CheckableTagProps } from 'src/components/Tag';
+import { Tag } from '../';
+import type { CheckableTagProps } from '../';
 import TagType from 'src/types/TagType';
 
 export default {

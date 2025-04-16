@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { ToastMeta } from 'src/components/MessageToasts/types';
+import { ToastMeta } from '../';
 import Toast from './Toast';
 
 export interface VisualProps {

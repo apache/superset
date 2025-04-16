@@ -23,7 +23,7 @@ import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { ExplorePageState } from 'src/explore/types';
 import { RootState } from 'src/dashboard/types';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
-import { triggerQuery } from 'src/components/Chart/chartAction';
+import { triggerQuery } from '../';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
 import { QueryResponse, t } from '@superset-ui/core';
 

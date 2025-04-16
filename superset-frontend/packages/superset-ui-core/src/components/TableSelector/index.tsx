@@ -37,11 +37,11 @@ import {
   DatabaseSelector,
   Select,
 } from '../';
-import { Icons } from 'src/components/Icons';
-import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
-import RefreshLabel from 'src/components/RefreshLabel';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { Icons } from '../';
+import type { DatabaseObject } from '../';
+import RefreshLabel from '../';
+import WarningIconWithTooltip from '../';
+import { useToasts } from '../';
 import { useTables, Table } from 'src/hooks/apiResources';
 
 const REFRESH_WIDTH = 30;

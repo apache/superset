@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tag } from 'src/components/Tag';
+import { Tag } from '../';
 import { css } from '@emotion/react';
 import { useTheme, themeObject } from '@superset-ui/core';
 import { DatasetTypeLabel } from './reusable/DatasetTypeLabel';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Meta, StoryObj } from '@storybook/react';
-import Slider from 'src/components/Slider/index';
+import Slider from '../';
 import { useState } from 'react';
 import { Row, Col } from '.';
 import type { ColProps, RowProps } from './types';

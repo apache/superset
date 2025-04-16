@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import RefreshLabel from 'src/components/RefreshLabel';
+import RefreshLabel from '../';
 
 test('renders with default props', async () => {
   render(<RefreshLabel tooltipContent="Tooltip" onClick={jest.fn()} />);

@@ -19,9 +19,9 @@
 import { t, styled } from '@superset-ui/core';
 import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
 import cx from 'classnames';
-import { Icons } from 'src/components/Icons';
-import Pagination from 'src/components/Pagination';
-import TableCollection from 'src/components/TableCollection';
+import { Icons } from '../';
+import Pagination from '../';
+import TableCollection from '../';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 import type { EmptyStateProps } from '../EmptyState/types';
 import { EmptyState } from '../EmptyState';

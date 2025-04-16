@@ -18,7 +18,7 @@
  */
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 
-import ToastPresenter from 'src/components/MessageToasts/ToastPresenter';
+import ToastPresenter from '../';
 import mockMessageToasts from './mockMessageToasts';
 
 const props = {

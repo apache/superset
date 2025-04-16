@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Meta, StoryObj } from '@storybook/react';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '../';
 import { Menu } from '../Menu';
 import type { LayoutProps, SiderProps } from './types';
 import { Layout } from '.';

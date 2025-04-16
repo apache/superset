@@ -28,9 +28,9 @@ import {
 } from '@superset-ui/core';
 import { LOG_EVENT } from 'src/logger/actions';
 import * as exploreUtils from 'src/explore/exploreUtils';
-import * as actions from 'src/components/Chart/chartAction';
+import * as actions from '../';
 import * as asyncEvent from 'src/middleware/asyncEvent';
-import { handleChartDataResponse } from 'src/components/Chart/chartAction';
+import { handleChartDataResponse } from '../';
 
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';

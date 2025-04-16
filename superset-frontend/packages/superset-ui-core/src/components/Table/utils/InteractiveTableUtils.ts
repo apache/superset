@@ -17,7 +17,7 @@
  * under the License.
  */
 import type { ColumnsType } from 'antd-v5/es/table';
-import { SUPERSET_TABLE_COLUMN } from 'src/components/Table';
+import { SUPERSET_TABLE_COLUMN } from '../';
 import { withinRange } from './utils';
 
 interface IInteractiveColumn extends HTMLElement {

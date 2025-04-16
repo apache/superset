@@ -20,7 +20,7 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import PopoverDropdown, {
   PopoverDropdownProps,
   OptionProps,
-} from 'src/components/PopoverDropdown';
+} from '../';
 
 const defaultProps: PopoverDropdownProps = {
   id: 'popover-dropdown',

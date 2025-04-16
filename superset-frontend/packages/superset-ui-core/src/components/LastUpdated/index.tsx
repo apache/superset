@@ -20,7 +20,7 @@ import { useEffect, useState, FunctionComponent } from 'react';
 
 import { extendedDayjs } from 'src/utils/dates';
 import { t, styled, css } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '../';
 import dayjs from 'dayjs';
 import type { LastUpdatedProps } from './types';
 
