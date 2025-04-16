@@ -767,6 +767,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 <>
                   <h4>{t('Affected Dashboards')}</h4>
                   <List
+                    split={false}
                     size="small"
                     dataSource={datasetCurrentlyDeleting.dashboards.result.slice(
                       0,
@@ -808,8 +809,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {datasetCurrentlyDeleting.charts.count >= 1 && (
                 <>
                   <h4>{t('Affected Charts')}</h4>
-
                   <List
+                    split={false}
                     size="small"
                     dataSource={datasetCurrentlyDeleting.charts.result.slice(
                       0,

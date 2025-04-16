@@ -41,11 +41,13 @@ import {
   DeleteModal,
   Tooltip,
   ModifiedInfo,
+  List,
   ListView,
   ListViewFilterOperator as FilterOperator,
   ListViewFilters,
   Loading,
 } from 'src/components';
+import { Typography } from 'src/components/Typography';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { Icons } from 'src/components/Icons';
@@ -700,70 +702,85 @@ function DatabaseList({
               {databaseCurrentlyDeleting.dashboards.count >= 1 && (
                 <>
                   <h4>{t('Affected Dashboards')}</h4>
-                  <ul>
-                    {databaseCurrentlyDeleting.dashboards.result
-                      .slice(0, 10)
-                      .map(
-                        (
-                          result: { id: number; title: string },
-                          index: number,
-                        ) => (
-                          <li key={result.id}>
-                            <a
+                  <List
+                    split={false}
+                    size="small"
+                    dataSource={databaseCurrentlyDeleting.dashboards.result.slice(
+                      0,
+                      10,
+                    )}
+                    renderItem={(result: { id: number; title: string }) => (
+                      <List.Item key={result.id}>
+                        <List.Item.Meta
+                          avatar={<span>•</span>}
+                          title={
+                            <Typography.Link
                               href={`/superset/dashboard/${result.id}`}
                               target="_atRiskItem"
                             >
                               {result.title}
-                            </a>
-                          </li>
-                        ),
-                      )}
-                    {databaseCurrentlyDeleting.dashboards.result.length >
-                      10 && (
-                      <li>
-                        {t(
-                          '... and %s others',
-                          databaseCurrentlyDeleting.dashboards.result.length -
-                            10,
-                        )}
-                      </li>
+                            </Typography.Link>
+                          }
+                        />
+                      </List.Item>
                     )}
-                  </ul>
+                    footer={
+                      databaseCurrentlyDeleting.dashboards.result.length >
+                        10 && (
+                        <div>
+                          {t(
+                            '... and %s others',
+                            databaseCurrentlyDeleting.dashboards.result.length -
+                              10,
+                          )}
+                        </div>
+                      )
+                    }
+                  />
                 </>
               )}
               {databaseCurrentlyDeleting.charts.count >= 1 && (
                 <>
                   <h4>{t('Affected Charts')}</h4>
-                  <ul>
-                    {databaseCurrentlyDeleting.charts.result.slice(0, 10).map(
-                      (
-                        result: {
-                          id: number;
-                          slice_name: string;
-                        },
-                        index: number,
-                      ) => (
-                        <li key={result.id}>
-                          <a
-                            href={`/explore/?slice_id=${result.id}`}
-                            target="_atRiskItem"
-                          >
-                            {result.slice_name}
-                          </a>
-                        </li>
-                      ),
+                  <List
+                    split={false}
+                    size="small"
+                    dataSource={databaseCurrentlyDeleting.charts.result.slice(
+                      0,
+                      10,
                     )}
-                    {databaseCurrentlyDeleting.charts.result.length > 10 && (
-                      <li>
-                        {t(
-                          '... and %s others',
-                          databaseCurrentlyDeleting.charts.result.length - 10,
-                        )}
-                      </li>
+                    renderItem={(result: {
+                      id: number;
+                      slice_name: string;
+                    }) => (
+                      <List.Item key={result.id}>
+                        <List.Item.Meta
+                          avatar={<span>•</span>}
+                          title={
+                            <Typography.Link
+                              href={`/explore/?slice_id=${result.id}`}
+                              target="_atRiskItem"
+                            >
+                              {result.slice_name}
+                            </Typography.Link>
+                          }
+                        />
+                      </List.Item>
                     )}
-                  </ul>
+                    footer={
+                      databaseCurrentlyDeleting.charts.result.length > 10 && (
+                        <div>
+                          {t(
+                            '... and %s others',
+                            databaseCurrentlyDeleting.charts.result.length - 10,
+                          )}
+                        </div>
+                      )
+                    }
+                  />
                 </>
               )}
+
               {DatabaseDeleteRelatedExtension && (
                 <DatabaseDeleteRelatedExtension
                   database={databaseCurrentlyDeleting}
