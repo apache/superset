@@ -432,7 +432,7 @@ D3_FORMAT: D3Format = {}
 # - tile:// + your_personal_url or openstreetmap_url
 #   example:
 #   DECKGL_BASE_MAP = [
-#       [tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png, 'OpenStreetMap']
+#       ['tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap']
 #    ]
 # Enable CORS and set map url in origins option.
 # Add also map url in connect-src of TALISMAN_CONFIG variable

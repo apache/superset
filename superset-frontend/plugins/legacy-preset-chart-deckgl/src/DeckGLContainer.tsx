@@ -37,11 +37,8 @@ import { JsonObject, JsonValue, styled, usePrevious } from '@superset-ui/core';
 import Tooltip, { TooltipProps } from './components/Tooltip';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Viewport } from './utils/fitViewport';
-import {
-  buildTileLayer,
-  TILE_LAYER_PREFIX,
-  MAPBOX_LAYER_PREFIX,
-} from './utils';
+import { MAPBOX_LAYER_PREFIX, TILE_LAYER_PREFIX, buildTileLayer } from './utils';
+
 
 const TICK = 250; // milliseconds
 
@@ -97,17 +94,16 @@ export const DeckGLContainer = memo(
     );
 
     const layers = useCallback(() => {
+      if (props.mapStyle?.startsWith(TILE_LAYER_PREFIX) && props.layers.some(l => l?.id === 'tile-layer') === false) {
+        props.layers.unshift(
+          buildTileLayer(props.mapStyle.replace(TILE_LAYER_PREFIX, ''), 'tile-layer'),
+        );
+      } 
       // Support for layer factory
       if (props.layers.some(l => typeof l === 'function')) {
         return props.layers.map(l =>
           typeof l === 'function' ? l() : l,
         ) as Layer[];
-      }
-
-      if (props.mapStyle?.startsWith(TILE_LAYER_PREFIX)) {
-        props.layers.unshift(
-          buildTileLayer(props.mapStyle.replace(TILE_LAYER_PREFIX, '')),
-        );
       }
 
       return props.layers as Layer[];
@@ -132,21 +128,6 @@ export const DeckGLContainer = memo(
                 mapStyle={props.mapStyle || 'light'}
                 mapboxApiAccessToken={props.mapboxApiAccessToken}
               />
-            )}
-            {props.mapStyle?.startsWith(MAPBOX_LAYER_PREFIX) && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  bottom: 0,
-                  backgroundColor: 'hsla(0,0%,100%,.5)',
-                  padding: '0 5px',
-                }}
-              >
-                <a href="http://www.openstreetmap.org/copyright">
-                  © OpenStreetMap contributors
-                </a>
-              </div>
             )}
           </DeckGL>
           {children}
