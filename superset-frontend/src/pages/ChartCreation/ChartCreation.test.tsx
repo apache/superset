@@ -38,7 +38,7 @@ jest.mock('src/components/DynamicPlugins', () => ({
 const mockDatasourceResponse = {
   result: [
     {
-      id: 1,
+      id: 'table_1',
       table_name: 'table',
       datasource_type: 'table',
       database: { database_name: 'test_db' },
@@ -190,6 +190,6 @@ test('double-click viz type submits with formatted URL if datasource is selected
   expect(
     screen.getByRole('button', { name: 'Create new chart' }),
   ).toBeEnabled();
-  const formattedUrl = '/explore/?viz_type=table&datasource=1__table';
+  const formattedUrl = '/explore/?viz_type=table&datasource=table_1__table';
   expect(history.push).toHaveBeenCalledWith(formattedUrl);
 });
