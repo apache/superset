@@ -31,12 +31,7 @@ import {
   getClientErrorMessage,
   getClientErrorObject,
 } from '@superset-ui/core';
-import {
-  FormLabel,
-  CertifiedBadge,
-  DatabaseSelector,
-  Select,
-} from '../';
+import { FormLabel, CertifiedBadge, DatabaseSelector, Select } from '../';
 import { Icons } from '../';
 import type { DatabaseObject } from '../';
 import RefreshLabel from '../';

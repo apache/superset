@@ -112,5 +112,3 @@ export {
   type ModalTriggerProps,
   type ModalTriggerRef,
 } from './ModalTrigger';
-
-

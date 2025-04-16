@@ -375,7 +375,8 @@ function DashboardList(props: DashboardListProps) {
           // Only show custom type tags
           <TagsList
             tags={tags.filter(
-              (tag: TagType) => tag.type === 'TagTypes.custom' || tag.type === 1,
+              (tag: TagType) =>
+                tag.type === 'TagTypes.custom' || tag.type === 1,
             )}
             maxTags={3}
           />

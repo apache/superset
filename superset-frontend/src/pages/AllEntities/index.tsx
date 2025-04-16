@@ -30,7 +30,9 @@ import MetadataBar, {
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
-import withToasts, { useToasts } from '@superset-ui/core/components/MessageToasts/withToasts';
+import withToasts, {
+  useToasts,
+} from '@superset-ui/core/components/MessageToasts/withToasts';
 import { fetchObjectsByTagIds, fetchSingleTag } from 'src/features/tags/tags';
 import getOwnerName from 'src/utils/getOwnerName';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';

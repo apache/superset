@@ -20,7 +20,9 @@ import { useState } from 'react';
 import { t } from '@superset-ui/core';
 import { Tabs } from '@superset-ui/core/components';
 import { RoleObject } from 'src/pages/RolesList';
-import TableView, { EmptyWrapperType } from '@superset-ui/core/components/TableView';
+import TableView, {
+  EmptyWrapperType,
+} from '@superset-ui/core/components/TableView';
 import {
   BaseModalProps,
   FormattedPermission,

@@ -36,10 +36,7 @@ import {
   stopMetaDataLoading,
   syncDatasourceMetadata,
 } from 'src/explore/actions/exploreActions';
-import {
-  fetchSyncedColumns,
-  updateColumns,
-} from '../';
+import { fetchSyncedColumns, updateColumns } from '../';
 import type { DatasetObject } from 'src/features/datasets/types';
 import { ErrorMessageWithStackTrace } from '../ErrorMessage';
 import { AsyncEsmComponent } from '../AsyncEsmComponent';

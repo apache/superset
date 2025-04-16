@@ -27,7 +27,10 @@ import {
   computeCustomDateTime,
   fetchTimeRange,
 } from '@superset-ui/core';
-import { DatePicker, type RangePickerProps } from '@superset-ui/core/components';
+import {
+  DatePicker,
+  type RangePickerProps,
+} from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 
 import ControlHeader from 'src/explore/components/ControlHeader';

@@ -50,7 +50,9 @@ jest.mock('src/dashboard/actions/dashboardState', () => ({
   setActiveTab: jest.fn(),
   setDirectPathToChild: jest.fn(),
 }));
-jest.mock('@superset-ui/core/components/ResizableSidebar/useStoredSidebarWidth');
+jest.mock(
+  '@superset-ui/core/components/ResizableSidebar/useStoredSidebarWidth',
+);
 
 // mock following dependent components to fix the prop warnings
 jest.mock('@superset-ui/core/components/Select/Select', () => () => (

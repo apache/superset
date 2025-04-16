@@ -21,7 +21,12 @@ import {
   InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
 import { ReactNode } from 'react';
-import { Checkbox, Tooltip, FormItem, type FormInstance } from '@superset-ui/core/components';
+import {
+  Checkbox,
+  Tooltip,
+  FormItem,
+  type FormInstance,
+} from '@superset-ui/core/components';
 import {
   Filter,
   getChartControlPanelRegistry,
