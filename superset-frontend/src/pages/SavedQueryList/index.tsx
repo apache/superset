@@ -47,7 +47,7 @@ import {
   Loading,
   ListView,
   ListViewActionsBar,
-  Tag,
+  TagType,
   TagsList,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
@@ -407,7 +407,7 @@ function SavedQueryList({
           },
         }: any) => (
           // Only show custom type tags
-          <TagsList tags={tags.filter((tag: Tag) => tag.type === 1)} />
+          <TagsList tags={tags.filter((tag: TagType) => tag.type === 1)} />
         ),
         Header: t('Tags'),
         accessor: 'tags',

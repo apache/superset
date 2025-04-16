@@ -73,7 +73,7 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import { addDangerToast } from '@superset-ui/core/components/MessageToasts/actions';
 import { Radio } from '@superset-ui/core/components/Radio';
-import Tabs from '@superset-ui/core/components/Tabs';
+import { Tabs } from '@superset-ui/core/components';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
   Chart,

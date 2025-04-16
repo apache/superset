@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { Button, ErrorBoundary } from '@superset-ui/core/components';
 import { styled, t } from '@superset-ui/core';
 
-import Tabs from '@superset-ui/core/components/Tabs';
+import { Tabs } from '@superset-ui/core/components';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';

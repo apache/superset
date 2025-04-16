@@ -25,7 +25,7 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
-import Tabs from '@superset-ui/core/components/Tabs';
+import { Tabs } from '@superset-ui/core/components';
 import {
   getItem,
   setItem,

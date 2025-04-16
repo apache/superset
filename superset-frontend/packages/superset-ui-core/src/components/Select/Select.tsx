@@ -31,12 +31,12 @@ import {
 
 import {
   ensureIsArray,
-  FAST_DEBOUNCE,
   formatNumber,
   NumberFormats,
   t,
   usePrevious,
 } from '@superset-ui/core';
+import { FAST_DEBOUNCE } from '../constants';
 import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
