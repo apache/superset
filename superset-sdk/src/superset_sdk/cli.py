@@ -1,8 +1,9 @@
 import json
 import zipfile
 from pathlib import Path
-from typing import Any
 from tempfile import TemporaryDirectory
+from typing import Any
+
 import typer
 
 from superset_sdk.utils import read_json, read_toml
@@ -24,42 +25,52 @@ def bundle() -> None:
     """
     Bundle extension files into a zip file: {name}-{version}.zip
     """
-    current_execution_path = Path.cwd()
-    package = read_json(current_execution_path / "frontend" / "package.json")
-    input_manifest = read_json(current_execution_path / "manifest.json")
-    # pyproject = read_toml(Path("backend") / "pyproject.toml")
-    output_manifest: dict[str, Any] = {}
+    cwd = Path.cwd()
+    package = read_json(cwd / "frontend" / "package.json")
+    extension = read_json(cwd / "extension.json")
+    backend_path = cwd / "backend"
+    pyproject = read_toml(backend_path / "pyproject.toml")
+    manifest: dict[str, Any] = {}
 
     # assert pyproject
 
-    if not input_manifest:
-        typer.secho("❌ manifest.json not found.", err=True, fg=typer.colors.RED)
+    if not extension:
+        typer.secho("❌ extension.json not found.", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=1)
 
-    output_manifest["name"] = name = input_manifest["name"]
-    output_manifest["version"] = version = input_manifest["version"]
-    output_manifest["contributions"] = input_manifest.get("contributions", [])
-    output_manifest["extensionDependencies"] = input_manifest.get(
-        "extensionDependencies", []
-    )
-    output_manifest["moduleFederation"] = input_manifest.get("moduleFederation", {})
-
+    manifest["name"] = name = extension["name"]
+    manifest["version"] = version = extension["version"]
     zip_name = f"{name}-{version}.zip"
+
+    backend = extension.get("backend", {})
+    frontend = extension.get("frontend", {})
+    manifest["dependencies"] = extension.get("dependencies", [])
+    manifest["contributions"] = frontend.get("contributions", [])
+    manifest["moduleFederation"] = frontend.get("moduleFederation", {})
 
     try:
         with TemporaryDirectory() as temp_dir:
             temp_manifest_path = Path(temp_dir) / "manifest.json"
-            temp_manifest_path.write_text(json.dumps(output_manifest, indent=2))
+            temp_manifest_path.write_text(
+                json.dumps(manifest, indent=2, sort_keys=True)
+            )
 
             with zipfile.ZipFile(zip_name, "w", zipfile.ZIP_DEFLATED) as zipf:
                 zipf.write(temp_manifest_path, "manifest.json")
 
                 # bundle frontend assets
                 if package:
-                    dist_path = current_execution_path / "frontend" / "dist"
+                    dist_path = cwd / "frontend" / "dist"
                     for file in dist_path.rglob("*"):
                         if file.is_file():
                             arcname = file.relative_to(Path.cwd())
+                            zipf.write(file, arcname)
+
+                # bundle backend assets
+                if pyproject:
+                    for pattern in backend.get("files", []):
+                        for file in cwd.glob(pattern):
+                            arcname = file.relative_to(cwd)
                             zipf.write(file, arcname)
 
     except Exception as ex:

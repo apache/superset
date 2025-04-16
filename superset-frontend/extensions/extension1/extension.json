@@ -1,0 +1,24 @@
+{
+  "name": "extension1",
+  "version": "1.0.0",
+  "frontend": {
+    "contributions": {
+      "views": {
+        "sqllab.panels": [
+          {
+            "id": "extension1.component",
+            "name": "Primitives"
+          }
+        ]
+      }
+    },
+    "moduleFederation": {
+      "exposes": ["./index"]
+    }
+  },
+  "backend": {
+    "entryPoint": "",
+    "files": ["backend/src/extension1/**/*.py"]
+  },
+  "dependencies": []
+}

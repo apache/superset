@@ -25,9 +25,6 @@
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.0"
   },
-  "extensionDependencies": [
-    "extension1"
-  ],
   "contributions": {
     "views": {
       "sqllab.panels": [
