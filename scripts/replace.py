@@ -12,7 +12,8 @@ REPLACE_PATTERNS: List[Tuple[str, str]] = [
     # (f"import {lib} from '@superset-ui\/core\/components\/{lib}';", "import { " + lib + " } from '@superset-ui/core/components';"),
     #import RefreshLabel from 'src/components/RefreshLabel';
     #("import ModalTrigger, { ModalTriggerRef } from '@superset-ui\/core\/components\/ModalTrigger';", "import { ModalTrigger, ModalTriggerRef } from '@superset-ui/core/components';"),
-    ("from 'src/components'", "from '../'")
+    #("from 'src/components'", "from '../'")
+    ("from 'src/components.*';", "from '../';")
 ]
 
 
