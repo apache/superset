@@ -103,4 +103,4 @@ const SupersetTag = ({
 export const Tag = Object.assign(SupersetTag, {
   CheckableTag: AntdTag.CheckableTag,
 });
-export type { TagProps, CheckableTagProps };
+export type { TagProps, CheckableTagProps, TagType };

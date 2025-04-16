@@ -52,7 +52,7 @@ type Props = {
   children: (width: number) => ReactNode;
 };
 
-const ResizableSidebar: FC<Props> = ({
+export const ResizableSidebar: FC<Props> = ({
   id,
   initialWidth,
   minWidth,
@@ -83,5 +83,3 @@ const ResizableSidebar: FC<Props> = ({
     </>
   );
 };
-
-export default ResizableSidebar;
