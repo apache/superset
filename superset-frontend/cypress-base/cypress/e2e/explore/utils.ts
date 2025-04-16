@@ -58,10 +58,6 @@ export function interceptExploreGet() {
   }).as('getExplore');
 }
 
-export const interceptChartDashboardsGet = () => {
-  cy.intercept('GET', '/api/v1/dashboard/?q=*').as('chartDashboards');
-};
-
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
