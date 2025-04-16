@@ -75,7 +75,6 @@ export function saveChartToDashboard(chartName: string, dashboardName: string) {
   interceptDashboardGet();
   interceptUpdate();
   interceptExploreGet();
-  interceptChartDashboardsGet();
 
   cy.getBySel('query-save-button')
     .should('be.enabled')
@@ -91,7 +90,6 @@ export function saveChartToDashboard(chartName: string, dashboardName: string) {
           '.antd5-select-selection-search-input[aria-label="Select a dashboard"]',
         )
         .type(dashboardName, { force: true });
-      cy.wait('@chartDashboards');
       cy.wrap($modal)
         .find(`.antd5-select-item-option[title="${dashboardName}"]`)
         .click();
