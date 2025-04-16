@@ -303,7 +303,7 @@ def add_columns(table_name: str, *columns: Column) -> None:
     """
     Adds new columns to an existing database table.
 
-    If a column already exist, it logs an informational message and skips the adding process.
+    If a column already exist, or the table doesn't exist, it logs an informational message and skips the adding process.
     Otherwise, it proceeds to add the new column to the table.
 
     The operation is performed using Alembic's batch_alter_table.
@@ -311,6 +311,10 @@ def add_columns(table_name: str, *columns: Column) -> None:
     :param table_name: The name of the table to which the columns will be added.
     :param columns: A list of SQLAlchemy Column objects that define the name, type, and other attributes of the columns to be added.
     """  # noqa: E501
+
+    if not has_table(table_name=table_name):
+        logger.info(f"Table {GREEN}{table_name}{RESET} doesn't exist. Skipping...")
+        return
 
     cols_to_add = []
     for col in columns:
@@ -333,7 +337,7 @@ def drop_columns(table_name: str, *columns: str) -> None:
     """
     Drops specified columns from an existing database table.
 
-    If a column does not exist, it logs an informational message and skips the dropping process.
+    If a column or table does not exist, it logs an informational message and skips the dropping process.
     Otherwise, it proceeds to remove the column from the table.
 
     The operation is performed using Alembic's batch_alter_table.
@@ -341,6 +345,10 @@ def drop_columns(table_name: str, *columns: str) -> None:
     :param table_name: The name of the table from which the columns will be removed.
     :param columns: A list of column names to be dropped.
     """  # noqa: E501
+
+    if not has_table(table_name=table_name):
+        logger.info(f"Table {GREEN}{table_name}{RESET} doesn't exist. Skipping...")
+        return
 
     cols_to_drop = []
     for col in columns:
