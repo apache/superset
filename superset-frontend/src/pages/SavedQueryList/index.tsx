@@ -35,7 +35,6 @@ import {
   createFetchRelated,
 } from 'src/views/CRUD/utils';
 import { useSelector } from 'react-redux';
-import Popover from '@superset-ui/core/components/Popover';
 import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
@@ -44,9 +43,12 @@ import {
   ModifiedInfo,
   DeleteModal,
   ImportModal as ImportModelsModal,
+  Popover,
   Loading,
   ListView,
   ListViewActionsBar,
+  Tag,
+  TagsList,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewActionProps,
@@ -54,10 +56,8 @@ import {
 } from '@superset-ui/core/components';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { ButtonProps, SubMenuProps } from 'src/features/home/SubMenu';
-import TagsList from '@superset-ui/core/components/TagsList';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
-import Tag from 'src/types/TagType';
 import { loadTags } from '@superset-ui/core/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';

@@ -31,7 +31,7 @@ import {
 import QueryTable from 'src/SqlLab/components/QueryTable';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { useEditorQueriesQuery } from 'src/hooks/apiResources/queries';
-import Skeleton from '@superset-ui/core/components/Skeleton';
+import { Skeleton } from '@superset-ui/core/components';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 
 interface QueryHistoryProps {

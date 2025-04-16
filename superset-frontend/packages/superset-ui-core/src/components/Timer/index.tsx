@@ -34,7 +34,7 @@ const TimerLabel = styled(Label)`
   font-family: ${({ theme }) => theme.fontFamilyCode};
 `;
 
-export default function Timer({
+export function Timer({
   endTime,
   isRunning,
   startTime,

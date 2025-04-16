@@ -72,7 +72,7 @@ const StyledTabs = ({
 
 const StyledTabPane = styled(AntdTabs.TabPane)``;
 
-const Tabs = Object.assign(StyledTabs, {
+export const Tabs = Object.assign(StyledTabs, {
   TabPane: StyledTabPane,
 });
 
@@ -141,5 +141,3 @@ export const StyledLineEditableTabs = styled(EditableTabs)`
 export const LineEditableTabs = Object.assign(StyledLineEditableTabs, {
   TabPane: StyledTabPane,
 });
-
-export default Tabs;

@@ -17,4 +17,3 @@
  * under the License.
  */
 export * from './Tabs';
-export { default } from './Tabs';

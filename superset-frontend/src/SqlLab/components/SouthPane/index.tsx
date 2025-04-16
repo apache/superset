@@ -19,7 +19,7 @@
 import { createRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
-import Tabs from '@superset-ui/core/components/Tabs';
+import { Tabs } from '@superset-ui/core/components';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 
 import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';

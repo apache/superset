@@ -35,14 +35,14 @@ import {
   SafeMarkdown,
   Button,
   Card,
+  Tabs,
   CopyToClipboard,
   Dropdown,
   FilterableTable,
+  Skeleton,
 } from '@superset-ui/core/components';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import Skeleton from '@superset-ui/core/components/Skeleton';
-import Tabs from '@superset-ui/core/components/Tabs';
 import {
   tableApiUtil,
   TableMetaData,

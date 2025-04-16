@@ -43,6 +43,7 @@ import {
   DeleteModal,
   FacePile,
   FaveStar,
+  TagsList,
   ImportModal as ImportModelsModal,
   PublishedLabel,
   ListView,
@@ -52,12 +53,10 @@ import {
   type ListViewFilter,
   type ListViewFilters,
 } from '@superset-ui/core/components';
-import TagsList from '@superset-ui/core/components/TagsList';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import Owner from 'src/types/Owner';
-import Tag from 'src/types/TagType';
 import withToasts from '@superset-ui/core/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';

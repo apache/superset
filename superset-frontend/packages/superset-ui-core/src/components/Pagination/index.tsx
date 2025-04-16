@@ -22,7 +22,7 @@ import {
   ITEM_TYPES,
 } from 'react-ultimate-pagination';
 
-const ListViewPagination = createUltimatePagination({
+export const ListViewPagination = createUltimatePagination({
   WrapperComponent: Pagination,
   itemTypeToComponent: {
     [ITEM_TYPES.PAGE]: ({ value, isActive, onClick }) => (
@@ -43,5 +43,3 @@ const ListViewPagination = createUltimatePagination({
     [ITEM_TYPES.LAST_PAGE_LINK]: () => null,
   },
 });
-
-export default ListViewPagination;
