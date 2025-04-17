@@ -71,7 +71,6 @@ import {
   TOKEN_SEPARATORS,
   VIRTUAL_THRESHOLD,
 } from './constants';
-import { customTagRender } from './CustomTag';
 import { Space } from '../Space';
 import { Button } from '../Button';
 
@@ -358,12 +357,17 @@ const Select = forwardRef(
       let updatedOptions = selectOptions;
 
       if (allowNewOptions) {
-        const newOption = searchValue &&
-          !hasOption(searchValue, fullSelectOptions, true) && {
-            label: searchValue,
-            value: searchValue,
-            isNewOption: true,
-          };
+        const optionsWithoutTemporary = ensureIsArray(fullSelectOptions).filter(
+          opt => !opt.isNewOption,
+        );
+        const shouldCreateNewOption =
+          searchValue && !hasOption(searchValue, optionsWithoutTemporary, true);
+
+        const newOption = shouldCreateNewOption && {
+          label: searchValue,
+          value: searchValue,
+          isNewOption: true,
+        };
         const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
           opt => !opt.isNewOption || hasOption(opt.value, selectValue),
         );
@@ -457,7 +461,7 @@ const Select = forwardRef(
       () => (
         <StyledBulkActionsContainer size={0}>
           <Button
-            type="link"
+            buttonStyle="link"
             buttonSize="xsmall"
             disabled={bulkSelectCounts.selectable === 0}
             onMouseDown={e => {
@@ -469,7 +473,7 @@ const Select = forwardRef(
             {`${t('Select all')} (${bulkSelectCounts.selectable})`}
           </Button>
           <Button
-            type="link"
+            buttonStyle="link"
             buttonSize="xsmall"
             disabled={bulkSelectCounts.deselectable === 0}
             onMouseDown={e => {
@@ -729,7 +733,6 @@ const Select = forwardRef(
           options={visibleOptions}
           optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
-          tagRender={customTagRender}
           css={props.css}
           {...props}
           showSearch={shouldShowSearch}

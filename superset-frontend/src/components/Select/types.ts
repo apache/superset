@@ -23,7 +23,6 @@ import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
 } from 'antd-v5/es/select';
-import { TagProps } from 'antd-v5/es/tag';
 import { Interpolation, Theme } from '@emotion/react';
 
 export type RawValue = string | number;
@@ -231,9 +230,3 @@ export interface AsyncSelectProps extends BaseSelectProps {
    */
   onError?: (error: string) => void;
 }
-
-export type CustomTagProps = HTMLSpanElement &
-  TagProps & {
-    label: ReactNode;
-    value: string;
-  };

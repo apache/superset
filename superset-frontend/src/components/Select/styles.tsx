@@ -138,12 +138,5 @@ export const StyledBulkActionsContainer = styled(Space)`
     display: flex;
     justify-content: center;
     border-top: 1px solid ${theme.colors.grayscale.light3};
-    .superset-button {
-      color: ${theme.colorPrimaryText};
-      font-weight: ${theme.fontWeightNormal};
-    }
-    .superset-button:disabled {
-      background-color: transparent;
-    }
   `}
 `;

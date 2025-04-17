@@ -91,8 +91,8 @@ const StyledSpace = styled(Space)<{ $inverseSelection: boolean }>`
     flex-shrink: 0;
   }
 
-  &.ant-space {
-    .ant-space-item {
+  &.antd5-space {
+    .antd5-space-item {
       width: ${({ $inverseSelection }) =>
         !$inverseSelection ? '100%' : 'auto'};
     }
