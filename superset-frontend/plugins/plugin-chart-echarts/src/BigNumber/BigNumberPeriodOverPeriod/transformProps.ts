@@ -82,7 +82,7 @@ export default function transformProps(chartProps: ChartProps) {
     height,
     formData,
     queriesData,
-    datasource: { currencyFormats = {}, columnFormats = {}, verboseMap = {} },
+    datasource: { currencyFormats = {}, columnFormats = {} },
   } = chartProps;
   const {
     boldText,
