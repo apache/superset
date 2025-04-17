@@ -20,6 +20,7 @@
 # development environments. Also note that superset_config_docker.py is imported
 # as a final step as a means to override "defaults" configured here
 #
+
 import logging
 import os
 
@@ -74,7 +75,7 @@ DATA_CACHE_CONFIG = CACHE_CONFIG
 
 class CeleryConfig:
     broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
-    imports = ("superset.sql_lab",)
+    imports = ("superset.sql_lab", "superset.tasks.scheduler")
     result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
     worker_prefetch_multiplier = 1
     task_acks_late = False
@@ -91,14 +92,46 @@ class CeleryConfig:
 
 
 CELERY_CONFIG = CeleryConfig
+APP_NAME = "Fleet"   
+APP_ICONE ="/static/assets/dipali-images/my_companylogo.jpg"  
+FAVICONS = [{"href" : "static/assets/dipali-images/Favicon.jpg"}]
 
-FEATURE_FLAGS = {"ALERT_REPORTS": True}
+# Combined feature flags 
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "EMBEDDED_SUPERSET": True,
+    "DASHBOARD_RBAC": True,
+    "ALLOW_DATA_QUERY_GET": True  # Allows GET requests for chart data
+}
+
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = "http://superset:8088/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
 SQLLAB_CTAS_NO_LIMIT = True
+
+# Guest token settings
+GUEST_ROLE_NAME = "Public"
+GUEST_TOKEN_JWT_SECRET = "Fleet-Superset-Embedding-Secret-Key-12345"  # Replace with your own secure random string
+GUEST_TOKEN_JWT_ALGO = "HS256"
+GUEST_TOKEN_HEADER_NAME = "X-GuestToken"
+GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
+
+# CORS settings for embedding
+ENABLE_CORS = True
+CORS_OPTIONS = {
+    "supports_credentials": True,
+    "allow_headers": ["*"],
+    "expose_headers": ["*"],
+    "resources": "*",
+    "origins": ["http://localhost:3000", "http://localhost:8088", "http://your-fleetview-domain.com"]
+}
+
+# Allow embedding in iframes
+OVERRIDE_HTTP_HEADERS = {'X-Frame-Options': 'ALLOWALL'}
+TALISMAN_ENABLED = False
+WTF_CSRF_ENABLED = False  # Disable CSRF for embedding
 
 #
 # Optionally import superset_config_docker.py (which will have been included on
