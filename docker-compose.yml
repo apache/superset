@@ -29,7 +29,6 @@ x-superset-volumes: &superset-volumes
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
   - ./tests:/app/tests
-
 x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
@@ -43,6 +42,11 @@ x-common-build: &common-build
 
 services:
   nginx:
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     image: nginx:latest
     container_name: superset_nginx
     restart: unless-stopped
@@ -52,6 +56,8 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/templates:/etc/nginx/templates:ro
+
   redis:
     image: redis:7
     container_name: superset_cache

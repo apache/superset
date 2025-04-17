@@ -16,22 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import IconButton from 'src/components/IconButton';
+import { ensureAppRoot } from './pathUtils';
 
-const defaultProps = {
-  buttonText: 'This is the IconButton text',
-  icon: '/images/icons/sql.svg',
+export const navigateTo = (
+  url: string,
+  options?: { newWindow?: boolean; assign?: boolean },
+) => {
+  if (options?.newWindow) {
+    window.open(ensureAppRoot(url), '_blank', 'noopener noreferrer');
+  } else if (options?.assign) {
+    window.location.assign(ensureAppRoot(url));
+  } else {
+    window.location.href = ensureAppRoot(url);
+  }
 };
 
-describe('IconButton', () => {
-  it('renders an IconButton', () => {
-    render(<IconButton {...defaultProps} />);
-
-    const icon = screen.getByRole('img');
-    const buttonText = screen.getByText(/this is the iconbutton text/i);
-
-    expect(icon).toBeVisible();
-    expect(buttonText).toBeVisible();
-  });
-});
+export const navigateWithState = (
+  url: string,
+  state: Record<string, unknown>,
+  options?: { replace?: boolean },
+) => {
+  if (options?.replace) {
+    window.history.replaceState(state, '', ensureAppRoot(url));
+  } else {
+    window.history.pushState(state, '', ensureAppRoot(url));
+  }
+};

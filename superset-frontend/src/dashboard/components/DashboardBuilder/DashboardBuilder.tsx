@@ -467,7 +467,7 @@ const DashboardBuilder = () => {
     ELEMENT_ON_SCREEN_OPTIONS,
   );
 
-  const showFilterBar = !editMode;
+  const showFilterBar = !editMode && nativeFiltersEnabled;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
