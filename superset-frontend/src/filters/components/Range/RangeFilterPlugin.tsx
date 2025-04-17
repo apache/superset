@@ -49,10 +49,62 @@ const StyledDivider = styled.span`
 const Wrapper = styled.div`
   display: flex;
   justify-content: space-between;
+  width: 100%;
 
   .ant-input-number {
     width: 100%;
+    min-width: 80px;
     position: relative;
+  }
+`;
+
+const SliderWrapper = styled.div`
+  margin: ${({ theme }) => theme.gridUnit * 4}px 0;
+  padding: 0 ${({ theme }) => theme.gridUnit}px;
+  width: 100%;
+  min-width: 200px;
+`;
+
+const ErrorIconWrapper = styled.div`
+  margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+  display: flex;
+  align-items: center;
+`;
+
+const HorizontalLayout = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.gridUnit * 4}px;
+  width: 100%;
+
+  .controls-container {
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.gridUnit * 4}px;
+    width: 100%;
+
+    .slider-wrapper {
+      display: flex;
+      align-items: center;
+      flex: 2;
+    }
+
+    .slider-container {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .inputs-container {
+      flex: 1;
+      min-width: 200px;
+      max-width: 300px;
+    }
+  }
+
+  .message-container {
+    width: 100%;
+    text-align: center;
+    padding-top: ${({ theme }) => theme.gridUnit * 2}px;
   }
 `;
 
@@ -90,14 +142,19 @@ const validateRange = (
 ): { isValid: boolean; errorMessage: string | null } => {
   const [inputMin, inputMax] = values;
   const requiredError = t('Filter value is required');
-  const rangeError = t('Please provide a value within range');
+  const rangeError = t('Numbers must be within %(min)s and %(max)s', {
+    min,
+    max,
+  });
+
+  // Single value validation
   if (enableSingleValue !== undefined) {
     const isSingleMin =
       enableSingleValue === SingleValueType.Minimum ||
       enableSingleValue === SingleValueType.Exact;
     const value = isSingleMin ? inputMin : inputMax;
 
-    if (!value && enableEmptyFilter) {
+    if (!isNumber(value) && !enableEmptyFilter) {
       return { isValid: false, errorMessage: requiredError };
     }
 
@@ -109,27 +166,40 @@ const validateRange = (
   }
 
   // Range validation
-  if (enableEmptyFilter && (inputMin === null || inputMax === null)) {
-    return { isValid: false, errorMessage: t('Please provide a valid range') };
+  // Allow empty ranges if enableEmptyFilter is false
+  if (!enableEmptyFilter && inputMin === null && inputMax === null) {
+    return { isValid: true, errorMessage: null };
   }
 
-  if (!enableEmptyFilter && (inputMin !== null) !== (inputMax !== null)) {
-    return { isValid: false, errorMessage: t('Please provide a valid range') };
+  // If enableEmptyFilter is true, at least one value is required
+  if (enableEmptyFilter && inputMin === null && inputMax === null) {
+    return {
+      isValid: false,
+      errorMessage: t('Please provide a valid min or max value'),
+    };
   }
 
-  if (inputMin !== null && inputMax !== null) {
-    if (inputMin > inputMax) {
-      return {
-        isValid: false,
-        errorMessage: t('Minimum value cannot be higher than maximum value'),
-      };
-    }
-    if (inputMin < min || inputMax > max) {
-      return {
-        isValid: false,
-        errorMessage: t('Your range is not within the dataset range'),
-      };
-    }
+  // Check individual value bounds if provided
+  if (inputMin !== null && (inputMin < min || inputMin > max)) {
+    return {
+      isValid: false,
+      errorMessage: rangeError,
+    };
+  }
+
+  if (inputMax !== null && (inputMax < min || inputMax > max)) {
+    return {
+      isValid: false,
+      errorMessage: rangeError,
+    };
+  }
+
+  // Check relationship between min and max when both are provided
+  if (inputMin !== null && inputMax !== null && inputMin > inputMax) {
+    return {
+      isValid: false,
+      errorMessage: t('Min value cannot be greater than max value'),
+    };
   }
 
   return { isValid: true, errorMessage: null };
@@ -151,15 +221,22 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     inputRef,
     filterBarOrientation = FilterBarOrientation.Vertical,
   } = props;
+
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
   const { groupby, enableSingleValue, enableEmptyFilter, defaultValue } =
     formData;
+
+  // Access controlValues from either the top level (new format) or nested (old format)
+  const controlValues = formData?.controlValues || {};
+  const rangeDisplayMode =
+    controlValues.rangeDisplayMode || RangeDisplayMode.SliderAndInput;
+
   const minIndex = 0;
   const maxIndex = 1;
+
   const enableSingleExactValue = enableSingleValue === SingleValueType.Exact;
-  const rangeInput = enableSingleValue === undefined;
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
 
@@ -167,6 +244,30 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     filterState.value || defaultValue || [null, null],
   );
   const [error, setError] = useState<string | null>(null);
+
+  // Prepare slider value from input value, converting nulls to min/max
+  const sliderValue = useMemo(() => {
+    const [inputMin, inputMax] = inputValue;
+
+    // For single value filters
+    if (enableSingleValue === SingleValueType.Minimum) {
+      return inputMin !== null ? inputMin : min;
+    }
+    if (enableSingleValue === SingleValueType.Maximum) {
+      return inputMax !== null ? inputMax : max;
+    }
+    if (enableSingleValue === SingleValueType.Exact) {
+      return inputMin !== null ? inputMin : (min + max) / 2;
+    }
+
+    // For range filters - use placeholders when values are null
+    // If only min is provided, set max to the dataset max
+    // If only max is provided, set min to the dataset min
+    const sliderMin = inputMin !== null ? inputMin : min;
+    const sliderMax = inputMax !== null ? inputMax : max;
+
+    return [sliderMin, sliderMax];
+  }, [inputValue, min, max, enableSingleValue]);
 
   const updateDataMaskError = useCallback(
     (errorMessage: string | null) => {
@@ -206,39 +307,28 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       return;
     }
 
-    if (
-      filterState.validateStatus === 'error' &&
-      error !== filterState.validateMessage
-    ) {
-      setError(filterState.validateMessage);
-
-      const [inputMin, inputMax] = inputValue;
-
-      const { isValid, errorMessage } = validateRange(
-        inputValue,
-        min,
-        max,
-        enableEmptyFilter,
-        enableSingleValue,
-      );
-
-      const isDefaultError =
-        inputMin === null &&
-        inputMax === null &&
-        filterState.validateStatus === 'error';
-
-      if (!isValid || isDefaultError) {
-        setError(errorMessage);
-        updateDataMaskError(errorMessage);
-        return;
-      }
-
-      setError(null);
-      updateDataMaskValue(inputValue);
-      return;
-    }
+    // Handle error case
     if (filterState.validateStatus === 'error') {
       setError(filterState.validateMessage);
+
+      // Only re-validate if message changed to prevents redundant validation
+      if (error !== filterState.validateMessage) {
+        const { isValid, errorMessage } = validateRange(
+          inputValue,
+          min,
+          max,
+          enableEmptyFilter,
+          enableSingleValue,
+        );
+
+        if (!isValid) {
+          setError(errorMessage);
+          updateDataMaskError(errorMessage);
+        } else {
+          setError(null);
+          updateDataMaskValue(inputValue);
+        }
+      }
       return;
     }
 
@@ -261,6 +351,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     }
   }, [JSON.stringify(filterState.value)]);
 
+  // Get just the filter behavior text without the range information (which is shown in the tooltip)
   const metadataText = useMemo(() => {
     switch (enableSingleValue) {
       case SingleValueType.Minimum:
@@ -270,7 +361,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       case SingleValueType.Exact:
         return t('Filters for values equal to this exact value.');
       default:
-        return '';
+        return null; // Don't show redundant metadata for range filters
     }
   }, [enableSingleValue]);
 
@@ -303,29 +394,111 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       setError(null);
       updateDataMaskValue(newInputValue);
     },
-    [col, min, max, enableEmptyFilter, enableSingleValue, setDataMask],
+    [
+      min,
+      max,
+      enableEmptyFilter,
+      enableSingleValue,
+      updateDataMaskError,
+      updateDataMaskValue,
+      inputValue,
+    ],
   );
 
-  const formItemExtra = useMemo(() => {
+  // Handler for slider change
+  const handleSliderChange = useCallback(
+    (value: number[]) => {
+      if (row?.min === undefined && row?.max === undefined) {
+        return;
+      }
+
+      let newInputValue: RangeValue;
+
+      const [sliderMin, sliderMax] =
+        value.length >= 2 ? [value[0], value[1]] : [min, max];
+
+      if (enableSingleValue !== undefined) {
+        // Apply single value logic but still using the range UI
+        if (enableSingleValue === SingleValueType.Minimum) {
+          newInputValue = [sliderMin, null];
+        } else if (enableSingleValue === SingleValueType.Maximum) {
+          newInputValue = [null, sliderMax];
+        } else {
+          // Exact - use the same value for both
+          newInputValue = [sliderMin, sliderMin];
+        }
+      } else {
+        // Regular range case
+        newInputValue = [sliderMin, sliderMax];
+      }
+
+      setInputValue(newInputValue);
+
+      // Slider values should always be valid since they're constrained by min/max props
+      setError(null);
+      updateDataMaskValue(newInputValue);
+    },
+    [min, max, enableSingleValue, updateDataMaskValue],
+  );
+
+  // Create different error display components for vertical and horizontal orientations
+  const verticalErrorDisplay = useMemo(() => {
     if (error) {
       return <StatusMessage status="error">{error}</StatusMessage>;
     }
-    return undefined;
-  }, [error]);
+    // Display the range info message in vertical orientation when no error
+    return (
+      <StatusMessage status="help">
+        {t('Choose numbers between %(min)s and %(max)s', { min, max })};
+      </StatusMessage>
+    );
+  }, [error, min, max]);
+
+  // Info/Error tooltip component for horizontal orientation - always shown
+  const InfoTooltip = useCallback(() => {
+    // Determine the tooltip message and icon color
+    const tooltipMessage =
+      error || t('Choose numbers between %(min)s and %(max)s', { min, max });
+    const iconColor = error ? 'error' : 'primary';
+
+    // Use ExclamationCircleOutlined for errors, InfoCircleOutlined otherwise
+    const IconComponent = error
+      ? Icons.ExclamationCircleOutlined
+      : Icons.InfoCircleOutlined;
+
+    return (
+      <ErrorIconWrapper>
+        <Tooltip title={tooltipMessage} placement="top">
+          <IconComponent
+            iconColor={iconColor}
+            iconSize="m"
+            style={{ color: error ? '#FF0000' : undefined }}
+          />
+        </Tooltip>
+      </ErrorIconWrapper>
+    );
+  }, [error, min, max]);
 
   useEffect(() => {
-    switch (enableSingleValue) {
-      case SingleValueType.Minimum:
-      case SingleValueType.Exact:
-        handleChange(null, maxIndex);
-        break;
-      case SingleValueType.Maximum:
-        handleChange(null, minIndex);
-        break;
-      default:
-        break;
+    if (enableSingleValue !== undefined) {
+      switch (enableSingleValue) {
+        case SingleValueType.Minimum:
+        case SingleValueType.Exact:
+          if (inputValue[maxIndex] !== null) {
+            handleChange(null, maxIndex);
+          }
+          break;
+        case SingleValueType.Maximum:
+          if (inputValue[minIndex] !== null) {
+            handleChange(null, minIndex);
+          }
+          break;
+        default:
+          break;
+      }
     }
 
+    // Reset data mask when single value mode changes
     setDataMask({
       extraFormData: {},
       filterState: {
@@ -335,6 +508,55 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     });
   }, [enableSingleValue]);
 
+  const renderSlider = () => (
+    <SliderWrapper>
+      <Slider
+        min={min}
+        max={max}
+        range
+        value={Array.isArray(sliderValue) ? sliderValue : [min, sliderValue]}
+        onChange={handleSliderChange}
+        tooltip={{
+          formatter: val => (val !== null ? numberFormatter(val) : ''),
+        }}
+      />
+    </SliderWrapper>
+  );
+
+  const renderInputs = () => (
+    <Wrapper
+      tabIndex={-1}
+      ref={inputRef}
+      onFocus={setFocusedFilter}
+      onBlur={unsetFocusedFilter}
+      onMouseEnter={setHoveredFilter}
+      onMouseLeave={unsetHoveredFilter}
+      onMouseDown={() => setFilterActive(true)}
+      onMouseUp={() => setFilterActive(false)}
+    >
+      {/* Always show both input fields for range mode */}
+      <InputNumber
+        value={inputValue[minIndex]}
+        onChange={val => handleChange(val, minIndex)}
+        placeholder={`${min}`}
+        style={{ width: '100%' }}
+        status={filterState.validateStatus}
+        data-test="range-filter-from-input"
+      />
+
+      <StyledDivider>-</StyledDivider>
+
+      <InputNumber
+        value={inputValue[maxIndex]}
+        onChange={val => handleChange(val, maxIndex)}
+        placeholder={`${max}`}
+        style={{ width: '100%' }}
+        data-test="range-filter-to-input"
+        status={filterState.validateStatus}
+      />
+    </Wrapper>
+  );
+
   return (
     <FilterPluginStyle height={height} width={width}>
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
@@ -342,7 +564,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       ) : (
         <FormItem
           aria-labelledby={`filter-name-${formData.nativeFilterId}`}
-          extra={formItemExtra}
+          extra={
+            filterBarOrientation === FilterBarOrientation.Vertical
+              ? verticalErrorDisplay
+              : undefined
+          }
         >
           <Wrapper
             tabIndex={-1}

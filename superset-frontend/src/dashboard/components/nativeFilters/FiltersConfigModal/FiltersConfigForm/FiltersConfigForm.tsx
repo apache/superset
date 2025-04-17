@@ -82,6 +82,7 @@ import DateFilterControl from 'src/explore/components/controls/DateFilterControl
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
+import { RangeDisplayMode } from 'src/filters/components/Range/types';
 import {
   getFormData,
   mergeExtraFormData,
