@@ -139,7 +139,7 @@ export const StyledErrorMessage = styled.div`
 
 export const StyledBulkActionsContainer = styled(Space)`
   ${({ theme }) => `
-    padding: ${theme.gridUnit * 2}px;
+    padding: ${theme.gridUnit}px;
     display: flex;
     justify-content: center;
     border-top: 1px solid ${theme.colors.grayscale.light3};
