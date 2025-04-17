@@ -11,9 +11,7 @@ apispec==6.6.1
 apsw==3.49.1.0
     # via shillelagh
 async-timeout==4.0.3
-    # via
-    #   -r requirements/base.in
-    #   redis
+    # via -r requirements/base.in
 attrs==25.3.0
     # via
     #   cattrs
@@ -99,11 +97,6 @@ email-validator==2.2.0
     # via flask-appbuilder
 et-xmlfile==2.0.0
     # via openpyxl
-exceptiongroup==1.2.2
-    # via
-    #   cattrs
-    #   trio
-    #   trio-websocket
 flask==2.3.3
     # via
     #   apache-superset (pyproject.toml)
@@ -215,7 +208,7 @@ marshmallow==3.26.1
     # via
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
-marshmallow-sqlalchemy==1.4.0
+marshmallow-sqlalchemy==1.4.2
     # via
     #   -r requirements/base.in
     #   flask-appbuilder
@@ -391,11 +384,9 @@ typing-extensions==4.12.2
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
-    #   cattrs
     #   limits
     #   pyopenssl
     #   referencing
-    #   rich
     #   selenium
     #   shillelagh
 tzdata==2025.1
