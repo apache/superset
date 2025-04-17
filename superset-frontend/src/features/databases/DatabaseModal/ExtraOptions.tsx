@@ -33,6 +33,7 @@ import {
   InfoTooltip,
   type CheckboxChangeEvent,
 } from 'src/components';
+import Typography from 'src/components/Typography';
 import {
   StyledInputContainer,
   StyledJsonEditor,
@@ -93,13 +94,16 @@ const ExtraOptions = ({
     <Collapse
       expandIconPosition="right"
       accordion
+      modalMode
       items={[
         {
           key: 'sql-lab',
           label: (
             <div>
-              <h4>{t('SQL Lab')}</h4>
-              <p>{t('Adjust how this database will interact with SQL Lab.')}</p>
+              <Typography.Title level={4}>{t('SQL Lab')}</Typography.Title>
+              <Typography.Paragraph>
+                {t('Adjust how this database will interact with SQL Lab.')}
+              </Typography.Paragraph>
             </div>
           ),
           children: (
@@ -286,8 +290,10 @@ const ExtraOptions = ({
           key: 'performance',
           label: (
             <div>
-              <h4>{t('Performance')}</h4>
-              <p>{t('Adjust performance settings of this database.')}</p>
+              <Typography.Title level={4}>{t('Performance')}</Typography.Title>
+              <Typography.Paragraph>
+                {t('Adjust performance settings of this database.')}
+              </Typography.Paragraph>
             </div>
           ),
           children: (
@@ -411,8 +417,10 @@ const ExtraOptions = ({
           key: 'security',
           label: (
             <div>
-              <h4>{t('Security')}</h4>
-              <p>{t('Add extra connection information.')}</p>
+              <Typography.Title level={4}>{t('Security')}</Typography.Title>
+              <Typography.Paragraph>
+                {t('Add extra connection information.')}
+              </Typography.Paragraph>
             </div>
           ),
           children: (
@@ -566,8 +574,10 @@ const ExtraOptions = ({
           key: 'other',
           label: (
             <div>
-              <h4>{t('Other')}</h4>
-              <p>{t('Additional settings.')}</p>
+              <Typography.Title level={4}>{t('Other')}</Typography.Title>
+              <Typography.Paragraph>
+                {t('Additional settings.')}
+              </Typography.Paragraph>
             </div>
           ),
           children: (

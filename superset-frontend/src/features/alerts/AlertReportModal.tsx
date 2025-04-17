@@ -1462,6 +1462,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         expandIconPosition="right"
         defaultActiveKey="general"
         accordion
+        modalMode
         items={[
           {
             key: 'general',

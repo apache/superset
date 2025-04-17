@@ -48,6 +48,7 @@ InteractiveCollapse.args = {
   bordered: true,
   accordion: false,
   animateArrows: false,
+  modalMode: false,
 };
 
 InteractiveCollapse.argTypes = {

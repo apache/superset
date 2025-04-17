@@ -64,6 +64,13 @@ type Props = {
 const extensionsRegistry = getExtensionsRegistry();
 
 const COLUMN_KEYS = ['column_name', 'column_type', 'keys', 'comment'];
+
+const TABS_KEYS = {
+  COLUMNS: 'columns',
+  METADATA: 'metadata',
+  INDEXES: 'indexes',
+  SAMPLE: 'sample',
+};
 const MENUS = [
   {
     key: 'refresh-table',
@@ -352,78 +359,98 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
             `}
           >
             <AutoSizer disableWidth>
-              {({ height }) => (
-                <Tabs
-                  onTabClick={onTabSwitch}
-                  css={css`
-                    height: ${height}px;
-                  `}
-                >
-                  <Tabs.TabPane
-                    tab={t('Columns (%s)', data.length)}
-                    key="columns"
-                  >
+              {({ height }) => {
+                const tabItems = [];
+
+                tabItems.push({
+                  key: TABS_KEYS.COLUMNS,
+                  label: t('Columns (%s)', data.length),
+                  children: (
                     <ResultTable
                       queryId="table-columns"
                       height={height - TAB_HEADER_HEIGHT}
                       data={data}
                       orderedColumnKeys={columns}
                     />
-                  </Tabs.TabPane>
-                  {tableData?.selectStar && !disableDataPreview && (
-                    <Tabs.TabPane tab={t('Data preview')} key="sample">
-                      {previewQueryId && (
-                        <ResultSet
-                          queryId={previewQueryId}
-                          visualize={false}
-                          csv={false}
-                          cache
-                          height={
-                            height -
-                            TAB_HEADER_HEIGHT -
-                            PREVIEW_TOP_ACTION_HEIGHT
-                          }
-                          displayLimit={PREVIEW_QUERY_LIMIT}
-                          defaultQueryLimit={PREVIEW_QUERY_LIMIT}
-                        />
-                      )}
-                    </Tabs.TabPane>
-                  )}
-                  {tableData?.indexes && tableData.indexes.length > 0 && (
-                    <Tabs.TabPane
-                      tab={t('Indexes (%s)', tableData.indexes.length)}
-                      key="indexes"
-                    >
-                      {tableData.indexes.map((ix, i) => (
-                        <pre className="code" key={i}>
-                          {JSON.stringify(ix, null, '  ')}
-                        </pre>
-                      ))}
-                    </Tabs.TabPane>
-                  )}
-                  {tableData?.metadata && (
-                    <Tabs.TabPane tab={t('Metadata')} key="metadata">
+                  ),
+                });
+
+                if (tableData?.selectStar && !disableDataPreview) {
+                  tabItems.push({
+                    key: TABS_KEYS.SAMPLE,
+                    label: t('Data preview'),
+                    children: previewQueryId && (
+                      <ResultSet
+                        queryId={previewQueryId}
+                        visualize={false}
+                        csv={false}
+                        cache
+                        height={
+                          height - TAB_HEADER_HEIGHT - PREVIEW_TOP_ACTION_HEIGHT
+                        }
+                        displayLimit={PREVIEW_QUERY_LIMIT}
+                        defaultQueryLimit={PREVIEW_QUERY_LIMIT}
+                      />
+                    ),
+                  });
+                }
+
+                if (tableData?.indexes && tableData.indexes.length > 0) {
+                  tabItems.push({
+                    key: TABS_KEYS.INDEXES,
+                    label: t('Indexes (%s)', tableData.indexes.length),
+                    children: tableData.indexes.map((ix, i) => (
+                      <pre className="code" key={i}>
+                        {JSON.stringify(ix, null, '  ')}
+                      </pre>
+                    )),
+                  });
+                }
+
+                if (tableData?.metadata) {
+                  tabItems.push({
+                    key: TABS_KEYS.METADATA,
+                    label: t('Metadata'),
+                    children: (
                       <ResultTable
                         queryId="table-metadata"
                         height={height - TAB_HEADER_HEIGHT}
                         data={Object.entries(tableData.metadata).map(
-                          ([name, value]) => ({ name, value }),
+                          ([name, value]) => ({
+                            name,
+                            value,
+                          }),
                         )}
                         orderedColumnKeys={['name', 'value']}
                       />
-                    </Tabs.TabPane>
-                  )}
-                  {customTabs.map(([title, ExtComponent]) => (
-                    <Tabs.TabPane tab={title} key={title}>
+                    ),
+                  });
+                }
+
+                customTabs.forEach(([title, ExtComponent]) => {
+                  tabItems.push({
+                    key: title,
+                    label: title,
+                    children: (
                       <ExtComponent
                         dbId={Number(dbId)}
                         schema={schema ?? ''}
                         tableName={tableName}
                       />
-                    </Tabs.TabPane>
-                  ))}
-                </Tabs>
-              )}
+                    ),
+                  });
+                });
+
+                return (
+                  <Tabs
+                    onTabClick={onTabSwitch}
+                    css={css`
+                      height: ${height}px;
+                    `}
+                    items={tabItems}
+                  />
+                );
+              }}
             </AutoSizer>
           </div>
         </>

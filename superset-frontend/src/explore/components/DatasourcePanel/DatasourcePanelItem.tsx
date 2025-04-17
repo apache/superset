@@ -32,10 +32,6 @@ import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { DndItemValue, FlattenedItem, Folder } from './types';
 
-export const DEFAULT_MAX_COLUMNS_LENGTH = 50;
-export const DEFAULT_MAX_METRICS_LENGTH = 50;
-export const ITEM_HEIGHT = 30;
-
 const LabelWrapper = styled.div`
   ${({ theme }) => css`
     color: ${theme.colors.grayscale.dark1};
@@ -96,9 +92,16 @@ const SectionHeaderTextContainer = styled.div`
 `;
 
 const SectionHeader = styled.span`
-  ${({ theme }) => `
+  ${({ theme }) => css`
     font-size: ${theme.fontSize}px;
+    font-weight: ${theme.fontWeightMedium};
     line-height: 1.3;
+    text-align: left;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
   `}
 `;
 

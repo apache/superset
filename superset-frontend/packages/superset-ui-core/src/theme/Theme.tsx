@@ -63,6 +63,7 @@ export class Theme {
 
     // Default colors
     colorPrimary: '#2893B3', // NOTE: previous lighter primary color was #20a7c9
+    colorLink: '#2893B3',
     colorError: '#e04355',
     colorWarning: '#fcc700',
     colorSuccess: '#5ac189',

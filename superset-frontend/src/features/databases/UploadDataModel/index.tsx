@@ -600,6 +600,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
           expandIconPosition="right"
           accordion
           defaultActiveKey="general"
+          modalMode
           items={[
             {
               key: 'general',
