@@ -107,8 +107,10 @@ const HorizontalOverflowFilterControlContainer = styled(
   }
 `;
 
-const VerticalFormItem = styled(StyledFormItem)`
-  .antd5-form-item-label {
+const VerticalFormItem = styled(StyledFormItem)<{
+  inverseSelection: boolean;
+}>`
+  .ant-form-item-label {
     overflow: visible;
     label.antd5-form-item-required:not(
         .antd5-form-item-required-mark-optional
@@ -118,9 +120,19 @@ const VerticalFormItem = styled(StyledFormItem)`
       }
     }
   }
+
+  .select-container {
+    ${({ inverseSelection }) =>
+      inverseSelection &&
+      `
+      width: 140px;
+    `}
+  }
 `;
 
-const HorizontalFormItem = styled(StyledFormItem)`
+const HorizontalFormItem = styled(StyledFormItem)<{
+  inverseSelection: boolean;
+}>`
   && {
     margin-bottom: 0;
     align-items: center;
@@ -144,7 +156,15 @@ const HorizontalFormItem = styled(StyledFormItem)`
   }
 
   .antd5-form-item-control {
-    width: ${({ theme }) => theme.sizeUnit * 41}px;
+    width: ${({ inverseSelection }) => (inverseSelection ? 252 : 164)}px;
+  }
+
+  .select-container {
+    ${({ inverseSelection, theme }) =>
+      inverseSelection &&
+      `
+      width: 164px;
+    `}
   }
 `;
 
@@ -153,31 +173,41 @@ const HorizontalOverflowFormItem = VerticalFormItem;
 const useFilterControlDisplay = (
   orientation: FilterBarOrientation,
   overflow: boolean,
+  inverseSelection: boolean,
 ) =>
   useMemo(() => {
     if (orientation === FilterBarOrientation.Horizontal) {
       if (overflow) {
         return {
           FilterControlContainer: HorizontalOverflowFilterControlContainer,
-          FormItem: HorizontalOverflowFormItem,
+          FormItem: (props: any) => (
+            <HorizontalOverflowFormItem
+              {...props}
+              inverseSelection={inverseSelection}
+            />
+          ),
           FilterControlTitleBox: HorizontalOverflowFilterControlTitleBox,
           FilterControlTitle: HorizontalOverflowFilterControlTitle,
         };
       }
       return {
         FilterControlContainer: HorizontalFilterControlContainer,
-        FormItem: HorizontalFormItem,
+        FormItem: (props: any) => (
+          <HorizontalFormItem {...props} inverseSelection={inverseSelection} />
+        ),
         FilterControlTitleBox: HorizontalFilterControlTitleBox,
         FilterControlTitle: HorizontalFilterControlTitle,
       };
     }
     return {
       FilterControlContainer: VerticalFilterControlContainer,
-      FormItem: VerticalFormItem,
+      FormItem: (props: any) => (
+        <VerticalFormItem {...props} inverseSelection={inverseSelection} />
+      ),
       FilterControlTitleBox: VerticalFilterControlTitleBox,
       FilterControlTitle: VerticalFilterControlTitle,
     };
-  }, [orientation, overflow]);
+  }, [orientation, overflow, inverseSelection]);
 
 const ToolTipContainer = styled.div`
   font-size: ${({ theme }) => theme.fontSize}px;
@@ -245,13 +275,14 @@ const FilterControl = ({
     checkIsMissingRequiredValue(filter, filter.dataMask?.filterState);
   const validateStatus = isMissingRequiredValue ? 'error' : undefined;
   const isRequired = !!filter.controlValues?.enableEmptyFilter;
+  const inverseSelection = !!filter.controlValues?.inverseSelection;
 
   const {
     FilterControlContainer,
     FormItem,
     FilterControlTitleBox,
     FilterControlTitle,
-  } = useFilterControlDisplay(orientation, overflow);
+  } = useFilterControlDisplay(orientation, overflow, inverseSelection);
 
   const label = useMemo(
     () => (

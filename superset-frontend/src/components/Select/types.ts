@@ -78,6 +78,10 @@ export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;
 
 export interface BaseSelectProps extends AntdExposedProps {
   /**
+   * Optional CSS class name to apply to the select container
+   */
+  className?: string;
+  /**
    * It enables the user to create new options.
    * Can be used with standard or async select types.
    * Can be used with any mode, single or multiple.
