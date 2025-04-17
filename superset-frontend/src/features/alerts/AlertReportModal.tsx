@@ -694,7 +694,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     const data = await getChartDataRequest(filterValues).then(response =>
       response.json.result[0].data.map((item: any) => {
-        console.log(item);
 
         if (vizType === 'filter_timegrain') {
           return {
@@ -727,15 +726,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         (f: any) => f.id === nativeFilter.nativeFilterId,
       )[0];
 
-      console.log('filter', filter);
-
       const { datasetId } = filter.targets[0];
       const filterName = filter.name;
       const columnName = filter.targets[0].column?.name || filterName;
       const dashboardId = currentAlert?.dashboard?.value;
       const filterType = filter.filterType;
 
-      console.log(filterType);
       if (filterType === 'filter_time') {
         return;
       }
@@ -1102,7 +1098,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           }
         })
         .catch(e => {
-          console.log(e);
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }
@@ -1396,8 +1391,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const filters = Object.values(tabNativeFilters).flat();
     const filter = filters.filter((f: any) => f.id === nativeFilterId)[0];
 
-    console.log('filter', filter);
-
     const { filterType } = filter;
 
     const filterAlreadyExist = nativeFilterData.some(
@@ -1576,13 +1569,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const renderFilterValueSelect = (filter: ExtraNativeFilter, idx: number) => {
-    console.log('filter', filter);
     if (!filter) return null; // todo(hugh): Fix this..
-    const { filterType } = filter;
+    const { filterType, filterValues } = filter;
     let mode = 'multiple';
-
-    console.log(filterType);
-
     if (filterType === 'filter_time') {
       return (
         <DateFilterControl
@@ -1599,8 +1588,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               ),
             );
           }}
-          value={filter.filterValues[0]} // only showing first value in the array
-          autoAdjustOverflow
+          value={filterValues?.[0]} // only showing first value in the array for filter_time
         />
       );
     }
@@ -1777,7 +1765,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         // const optionFilterValues = fetch
         // optionFilterValues
         // @ts-ignore
-        console.log('onEdit', resource.extra.dashboard.nativeFilters);
         const filters = resource.extra.dashboard.nativeFilters;
         setNativeFilterData(filters);
       }
