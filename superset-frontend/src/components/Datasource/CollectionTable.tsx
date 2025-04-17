@@ -32,28 +32,12 @@ import {
   type CRUDCollectionState,
   type Sort,
 } from './types';
-import Table, { ColumnsType, OnChangeFunction, SortOrder } from '../Table';
-
-function createCollectionArray(collection: Record<PropertyKey, any>) {
-  return Object.keys(collection).map(k => collection[k]);
-}
-
-function createKeyedCollection(arr: Array<object>) {
-  const collectionArray = arr.map((o: any) => ({
-    ...o,
-    id: o.id || nanoid(),
-  }));
-
-  const collection: Record<PropertyKey, any> = {};
-  collectionArray.forEach((o: any) => {
-    collection[o.id] = o;
-  });
-
-  return {
-    collection,
-    collectionArray,
-  };
-}
+import Table, {
+  ColumnsType,
+  SortOrder,
+  SorterResult,
+  TablePaginationConfig,
+} from '../Table';
 
 const CrudButtonWrapper = styled.div`
   text-align: right;
@@ -73,7 +57,6 @@ const StyledButtonWrapper = styled.span`
 type CollectionItem = { id: string | number; [key: string]: any };
 
 function createCollectionArray(collection: Record<PropertyKey, any>) {
-  // Cast the result to ensure it matches CollectionItem[] expectation
   return Object.keys(collection).map(k => collection[k] as CollectionItem);
 }
 
@@ -83,12 +66,11 @@ function createKeyedCollection(arr: Array<object>) {
       ({
         ...o,
         id: o.id || nanoid(),
-      }) as CollectionItem, // Ensure items conform to CollectionItem
+      }) as CollectionItem,
   );
 
   const collection: Record<PropertyKey, any> = {};
   collectionArray.forEach((o: CollectionItem) => {
-    // Use string representation of id for object keys consistently
     collection[String(o.id)] = o;
   });
 
@@ -153,13 +135,10 @@ export default class CRUDCollection extends PureComponent<
   onAddItem() {
     if (this.props.itemGenerator) {
       let newItem = this.props.itemGenerator();
-      // Check if the generated item intends to start expanded
       const shouldStartExpanded = newItem.__expanded === true;
       if (!newItem.id) {
         newItem = { ...newItem, id: nanoid() };
       }
-      // Remove the __expanded prop as it's not used by AntD Table directly
-      // and shouldn't be persisted in the actual data.
       delete newItem.__expanded;
 
       const newCollection = {
@@ -167,22 +146,17 @@ export default class CRUDCollection extends PureComponent<
         [newItem.id]: newItem,
       };
 
-      // Prepare the new expanded state *if* the item should start expanded
       const newExpandedColumns = shouldStartExpanded
-        ? { ...this.state.expandedColumns, [newItem.id]: true } // Add the new item's ID as expanded
-        : this.state.expandedColumns; // Otherwise, keep the current expanded state
+        ? { ...this.state.expandedColumns, [newItem.id]: true }
+        : this.state.expandedColumns;
 
       this.setState(
         prevState => ({
           collection: newCollection,
-          // Add to the beginning of the array for immediate visibility
           collectionArray: [newItem, ...prevState.collectionArray],
-          // Update expandedColumns state if the new item should be expanded
           expandedColumns: newExpandedColumns,
         }),
         () => {
-          // Call onChange with the updated array *after* state is set
-          // Pass the collection from the updated state
           this.changeCollection(this.state.collection);
         },
       );
@@ -200,7 +174,6 @@ export default class CRUDCollection extends PureComponent<
     const { columnLabels } = this.props;
     let label = columnLabels?.[col] ? columnLabels[col] : col;
     if (label.startsWith('__')) {
-      // special label-free columns (ie: caret for expand, delete cross)
       label = '';
     }
     return label;
@@ -211,14 +184,11 @@ export default class CRUDCollection extends PureComponent<
     return columnLabelTooltips?.[col];
   }
 
-  changeCollection(collection: any, newItem?: object) {
-    // Update internal collection state
+  changeCollection(collection: any) {
     const newCollectionArray = createCollectionArray(collection);
     this.setState({ collection, collectionArray: newCollectionArray });
 
-    // Notify parent component if onChange is provided
     if (this.props.onChange) {
-      // The collectionArray in state is now the source of truth
       this.props.onChange(newCollectionArray);
     }
   }
@@ -239,10 +209,10 @@ export default class CRUDCollection extends PureComponent<
   }
 
   handleTableChange(
-    pagination,
-    filters,
-    sorter,
-  ): OnChangeFunction<CollectionItem> {
+    _pagination: TablePaginationConfig,
+    _filters: object[],
+    sorter: SorterResult,
+  ) {
     const columnSorter = Array.isArray(sorter) ? sorter[0] : sorter;
     let newSortColumn = '';
     let newSortOrder = 0;
@@ -310,12 +280,7 @@ export default class CRUDCollection extends PureComponent<
   }
 
   buildTableColumns() {
-    const {
-      tableColumns,
-      allowDeletes,
-      sortColumns = [],
-      itemCellProps = {},
-    } = this.props;
+    const { tableColumns, allowDeletes, sortColumns = [] } = this.props;
 
     const antdColumns = tableColumns.map(col => {
       const label = this.getLabel(col);
@@ -365,7 +330,9 @@ export default class CRUDCollection extends PureComponent<
         key: '__actions',
         dataIndex: '__actions',
         sorter: false,
-        title: '',
+        title: <></>,
+        onCell: () => ({}),
+        sortOrder: null,
         render: (_, record: CollectionItem) => (
           <span
             data-test="crud-delete-option"
@@ -436,7 +403,7 @@ export default class CRUDCollection extends PureComponent<
         <Table<CollectionItem>
           data-test="crud-table"
           columns={tableColumns}
-          dataSource={this.state.collectionArray}
+          data={this.state.collectionArray as CollectionItem[]}
           rowKey="id"
           sticky={stickyHeader}
           pagination={false}
