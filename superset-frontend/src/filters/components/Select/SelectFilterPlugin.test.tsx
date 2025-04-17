@@ -141,7 +141,9 @@ describe('SelectFilterPlugin', () => {
     const filterSelect = screen.getAllByRole('combobox')[0];
     userEvent.click(filterSelect);
     userEvent.click(screen.getByTitle('girl'));
-    expect(await screen.findByTitle(/girl/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('option', { name: /girl/i }),
+    ).toBeInTheDocument();
     expect(setDataMask).toHaveBeenCalledWith({
       extraFormData: {
         filters: [

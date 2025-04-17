@@ -419,15 +419,15 @@ const Select = forwardRef(
 
       const newValues = [...currentValues] as AntdLabeledValue[];
       optionsToSelect.forEach(option => {
-        if (!option.disabled && !currentValuesSet.has(option.value)) {
-          if (labelInValue) {
-            newValues.push({
-              label: option.label,
-              value: option.value,
-            });
-          } else {
-            newValues.push(option.value);
-          }
+        if (
+          option.value &&
+          !option.disabled &&
+          !currentValuesSet.has(option.value)
+        ) {
+          newValues.push({
+            label: option.label,
+            value: option.value,
+          });
         }
       });
 
@@ -439,7 +439,6 @@ const Select = forwardRef(
       visibleOptions,
       enabledOptions,
       selectValue,
-      labelInValue,
       fireOnChange,
     ]);
 
