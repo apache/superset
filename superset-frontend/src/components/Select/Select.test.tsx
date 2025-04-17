@@ -755,7 +755,7 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
 });
 
-test('does not render "Select All" when there are 0 or 1 options', async () => {
+test('does not render "Select all" when there are 0 or 1 options', async () => {
   const { rerender } = render(
     <Select {...defaultProps} options={[]} mode="multiple" allowNewOptions />,
   );
@@ -783,7 +783,7 @@ test('does not render "Select All" when there are 0 or 1 options', async () => {
   expect(screen.getByText(selectAllButtonText(2))).toBeInTheDocument();
 });
 
-test('do not count unselected disabled options in "Select All"', async () => {
+test('do not count unselected disabled options in "Select all"', async () => {
   const options = [...OPTIONS];
   options[0].disabled = true;
   options[1].disabled = true;
@@ -797,13 +797,39 @@ test('do not count unselected disabled options in "Select All"', async () => {
   );
   await open();
   // We have 2 options disabled but one is selected initially
-  // Select All should count one and ignore the other
+  // Select all should count one and ignore the other
   expect(
     screen.getByText(selectAllButtonText(OPTIONS.length - 1)),
   ).toBeInTheDocument();
 });
 
-test('"Select All" does not affect disabled options', async () => {
+test('"Deselect all" counts all selected options', async () => {
+  render(<Select {...defaultProps} allowNewOptions mode="multiple" />);
+  await open();
+  userEvent.click(await findSelectOption('Ava'));
+  expect(await screen.findByText(deselectAllButtonText(1))).toBeInTheDocument();
+});
+
+test('"Deselect all" counts new selected options', async () => {
+  render(<Select {...defaultProps} allowNewOptions mode="multiple" />);
+  await open();
+  await type(NEW_OPTION);
+  userEvent.click(await findSelectOption(NEW_OPTION));
+  clearTypedText();
+  await open();
+  userEvent.click(await findSelectOption('Ava'));
+  expect(await screen.findByText(deselectAllButtonText(2))).toBeInTheDocument();
+});
+
+test('"Select all" does not count unselected new options', async () => {
+  render(<Select {...defaultProps} allowNewOptions mode="multiple" />);
+  await open();
+  await type('er');
+  // We have 5 options matching the search
+  expect(await screen.findByText(selectAllButtonText(5))).toBeInTheDocument();
+});
+
+test('"Select all" does not affect disabled options', async () => {
   const options = [...OPTIONS];
   options[0].disabled = true;
   options[1].disabled = true;
@@ -821,13 +847,13 @@ test('"Select All" does not affect disabled options', async () => {
   expect(await findSelectValue()).toHaveTextContent(options[0].label);
   expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
 
-  // Checking Select All shouldn't affect the disabled options
+  // Checking Select all shouldn't affect the disabled options
   const selectAll = selectAllButtonText(OPTIONS.length - 1);
   userEvent.click(await screen.findByText(selectAll));
   expect(await findSelectValue()).toHaveTextContent(options[0].label);
   expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
 
-  // Unchecking Select All shouldn't affect the disabled options
+  // Unchecking Select all shouldn't affect the disabled options
   userEvent.click(await screen.findByText(selectAll));
   expect(await findSelectValue()).toHaveTextContent(options[0].label);
   expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
