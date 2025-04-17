@@ -18,7 +18,7 @@
  */
 import { ComponentProps, RefObject } from 'react';
 import copyTextToClipboard from 'src/utils/copy';
-import { t, logging } from '@superset-ui/core';
+import { t, logging, FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import EmbedCodeContent from 'src/explore/components/EmbedCodeContent';
@@ -64,6 +64,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   } = props;
   const sliceExists =
     latestQueryFormData && Object.keys(latestQueryFormData).length > 0;
+  const isEmbedCodeEnabled = isFeatureEnabled(FeatureFlag.EmbeddableCharts);
 
   const { dataMask, activeTabs } = useSelector(
     (state: RootState) => ({
@@ -118,7 +119,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
       <Menu.Item key={MenuKeys.ShareByEmail} onClick={() => onShareByEmail()}>
         {emailMenuItemTitle}
       </Menu.Item>
-      {sliceExists && (
+      {isEmbedCodeEnabled && sliceExists && (
         <Menu.Item key="embed_code">
           <div onClick={e => e.stopPropagation()} role="button" tabIndex={0}>
             <ModalTrigger
