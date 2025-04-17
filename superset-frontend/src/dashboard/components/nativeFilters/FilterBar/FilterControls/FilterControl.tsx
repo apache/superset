@@ -110,7 +110,7 @@ const HorizontalOverflowFilterControlContainer = styled(
 const VerticalFormItem = styled(StyledFormItem)<{
   inverseSelection: boolean;
 }>`
-  .ant-form-item-label {
+  .antd5-form-item-label {
     overflow: visible;
     label.antd5-form-item-required:not(
         .antd5-form-item-required-mark-optional
