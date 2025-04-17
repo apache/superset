@@ -37,8 +37,11 @@ import { JsonObject, JsonValue, styled, usePrevious } from '@superset-ui/core';
 import Tooltip, { TooltipProps } from './components/Tooltip';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Viewport } from './utils/fitViewport';
-import { MAPBOX_LAYER_PREFIX, TILE_LAYER_PREFIX, buildTileLayer } from './utils';
-
+import {
+  MAPBOX_LAYER_PREFIX,
+  TILE_LAYER_PREFIX,
+  buildTileLayer,
+} from './utils';
 
 const TICK = 250; // milliseconds
 
@@ -94,11 +97,19 @@ export const DeckGLContainer = memo(
     );
 
     const layers = useCallback(() => {
-      if (props.mapStyle?.startsWith(TILE_LAYER_PREFIX) && props.layers.some(l => l?.id === 'tile-layer') === false) {
+      if (
+        props.mapStyle?.startsWith(TILE_LAYER_PREFIX) &&
+        props.layers.some(
+          l => typeof l !== 'function' && l?.id === 'tile-layer',
+        ) === false
+      ) {
         props.layers.unshift(
-          buildTileLayer(props.mapStyle.replace(TILE_LAYER_PREFIX, ''), 'tile-layer'),
+          buildTileLayer(
+            props.mapStyle.replace(TILE_LAYER_PREFIX, ''),
+            'tile-layer',
+          ),
         );
-      } 
+      }
       // Support for layer factory
       if (props.layers.some(l => typeof l === 'function')) {
         return props.layers.map(l =>

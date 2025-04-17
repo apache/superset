@@ -25,14 +25,14 @@ import {
   QueryFormData,
   SequentialScheme,
 } from '@superset-ui/core';
+import { GeoBoundingBox, TileLayer } from '@deck.gl/geo-layers';
+import { BitmapLayer, PathLayer } from '@deck.gl/layers';
 import { hexToRGB } from './utils/colors';
-import {GeoBoundingBox, TileLayer} from '@deck.gl/geo-layers';
-import {BitmapLayer, PathLayer} from '@deck.gl/layers';
 
 const DEFAULT_NUM_BUCKETS = 10;
 
 export const MAPBOX_LAYER_PREFIX = 'mapbox://';
-export const TILE_LAYER_PREFIX = "tile://"
+export const TILE_LAYER_PREFIX = 'tile://';
 
 export type Buckets = {
   break_points: string[];
@@ -198,6 +198,7 @@ export function getBuckets(
 
 export function buildTileLayer(url: string, id: string) {
   interface TileLayerProps {
+    id: string;
     data: string;
     minZoom: number;
     maxZoom: number;
@@ -214,7 +215,7 @@ export function buildTileLayer(url: string, id: string) {
 
   return new TileLayer({
     data: url,
-    id: id,
+    id,
     minZoom: 0,
     maxZoom: 19,
     tileSize: 256,
