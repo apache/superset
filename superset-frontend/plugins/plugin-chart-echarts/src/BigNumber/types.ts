@@ -77,9 +77,9 @@ export type BigNumberVizProps = {
   formatTime?: TimeFormatter;
   headerFontSize: number;
   kickerFontSize?: number;
-  subheader: string;
+  subheader?: string;
   subtitle: string;
-  subheaderFontSize: number;
+  subheaderFontSize?: number;
   subtitleFontSize: number;
   showTimestamp?: boolean;
   showTrendLine?: boolean;
