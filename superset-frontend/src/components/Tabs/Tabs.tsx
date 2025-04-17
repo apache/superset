@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@superset-ui/core';
+import { css, styled, useTheme } from '@superset-ui/core';
 
 // eslint-disable-next-line no-restricted-imports
 import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd-v5';
@@ -30,45 +30,49 @@ const StyledTabs = ({
   animated = false,
   allowOverflow = true,
   ...props
-}: TabsProps) => (
-  <AntdTabs
-    animated={animated}
-    {...props}
-    css={theme => css`
-      overflow: ${allowOverflow ? 'visible' : 'hidden'};
+}: TabsProps) => {
+  const theme = useTheme();
+  return (
+    <AntdTabs
+      animated={animated}
+      {...props}
+      tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
+      css={theme => css`
+        overflow: ${allowOverflow ? 'visible' : 'hidden'};
 
-      .antd5-tabs-content-holder {
-        overflow: ${allowOverflow ? 'visible' : 'auto'};
-      }
-      .antd5-tabs-tab {
-        flex: 1 1 auto;
+        .antd5-tabs-content-holder {
+          overflow: ${allowOverflow ? 'visible' : 'auto'};
+        }
+        .antd5-tabs-tab {
+          flex: 1 1 auto;
 
-        .short-link-trigger.btn {
-          padding: 0 ${theme.sizeUnit}px;
-          & > .fa.fa-link {
-            top: 0;
+          .short-link-trigger.btn {
+            padding: 0 ${theme.sizeUnit}px;
+            & > .fa.fa-link {
+              top: 0;
+            }
           }
         }
-      }
-      .antd5-tabs-tab-btn {
-        display: flex;
-        flex: 1 1 auto;
-        align-items: center;
-        justify-content: center;
-        font-size: ${theme.fontSizeSM}px;
-        text-align: center;
-        user-select: none;
-        .required {
-          margin-left: ${theme.sizeUnit / 2}px;
-          color: ${theme.colorError};
+        .antd5-tabs-tab-btn {
+          display: flex;
+          flex: 1 1 auto;
+          align-items: center;
+          justify-content: center;
+          font-size: ${theme.fontSizeSM}px;
+          text-align: center;
+          user-select: none;
+          .required {
+            margin-left: ${theme.sizeUnit / 2}px;
+            color: ${theme.colorError};
+          }
+          &:focus-visible {
+            box-shadow: none;
+          }
         }
-        &:focus-visible {
-          box-shadow: none;
-        }
-      }
-    `}
-  />
-);
+      `}
+    />
+  );
+};
 
 const StyledTabPane = styled(AntdTabs.TabPane)``;
 

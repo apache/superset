@@ -20,4 +20,5 @@ import type { CollapseProps as AntdCollapseProps } from 'antd-v5';
 
 export interface CollapseProps extends AntdCollapseProps {
   animateArrows?: boolean;
+  modalMode?: boolean;
 }

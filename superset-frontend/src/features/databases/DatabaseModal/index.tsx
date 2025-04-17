@@ -109,6 +109,11 @@ const extensionsRegistry = getExtensionsRegistry();
 
 const DEFAULT_EXTRA = JSON.stringify({ allows_virtual_table_explore: true });
 
+const TABS_KEYS = {
+  BASIC: 'basic',
+  ADVANCED: 'advanced',
+};
+
 const engineSpecificAlertMapping = {
   [Engines.GSheet]: {
     message: 'Why do I need to create a database?',
@@ -558,7 +563,7 @@ export function dbReducer(
   }
 }
 
-const DEFAULT_TAB_KEY = '1';
+const DEFAULT_TAB_KEY = TABS_KEYS.BASIC;
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
@@ -1887,132 +1892,150 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         activeKey={tabKey}
         onTabClick={tabChange}
         animated={{ inkBar: true, tabPane: true }}
-      >
-        <Tabs.TabPane tab={<span>{t('Basic')}</span>} key="1">
-          {useSqlAlchemyForm ? (
-            <StyledAlignment>
-              <SqlAlchemyForm
+        items={[
+          {
+            key: TABS_KEYS.BASIC,
+            label: <span>{t('Basic')}</span>,
+            children: (
+              <>
+                {useSqlAlchemyForm ? (
+                  <StyledAlignment>
+                    <SqlAlchemyForm
+                      db={db as DatabaseObject}
+                      onInputChange={({
+                        target,
+                      }: {
+                        target: HTMLInputElement;
+                      }) =>
+                        onChange(ActionType.InputChange, {
+                          type: target.type,
+                          name: target.name,
+                          checked: target.checked,
+                          value: target.value,
+                        })
+                      }
+                      conf={conf}
+                      testConnection={testConnection}
+                      testInProgress={testInProgress}
+                    >
+                      <SSHTunnelSwitchComponent
+                        dbModel={dbModel}
+                        db={db as DatabaseObject}
+                        changeMethods={{
+                          onParametersChange: handleParametersChange,
+                        }}
+                        clearValidationErrors={handleClearValidationErrors}
+                      />
+                      {useSSHTunneling && renderSSHTunnelForm()}
+                    </SqlAlchemyForm>
+                    {isDynamic(db?.backend || db?.engine) && !isEditMode && (
+                      <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+                        <Button
+                          buttonStyle="link"
+                          onClick={() =>
+                            setDB({
+                              type: ActionType.ConfigMethodChange,
+                              payload: {
+                                database_name: db?.database_name,
+                                configuration_method:
+                                  ConfigurationMethod.DynamicForm,
+                                engine: db?.engine,
+                              },
+                            })
+                          }
+                          css={theme => alchemyButtonLinkStyles(theme)}
+                        >
+                          {t(
+                            'Connect this database using the dynamic form instead',
+                          )}
+                        </Button>
+                        <InfoTooltip
+                          tooltip={t(
+                            'Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.',
+                          )}
+                          viewBox="0 -6 24 24"
+                        />
+                      </div>
+                    )}
+                  </StyledAlignment>
+                ) : (
+                  renderDatabaseConnectionForm()
+                )}
+                {!isEditMode && (
+                  <StyledAlertMargin>
+                    <Alert
+                      closable={false}
+                      css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+                      message={t('Additional fields may be required')}
+                      showIcon
+                      description={
+                        <>
+                          {t(
+                            'Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ',
+                          )}
+                          <a
+                            href={DOCUMENTATION_LINK}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="additional-fields-alert-description"
+                          >
+                            {t('here')}
+                          </a>
+                          .
+                        </>
+                      }
+                      type="info"
+                    />
+                  </StyledAlertMargin>
+                )}
+                {showDBError && errorAlert()}
+              </>
+            ),
+          },
+          {
+            key: TABS_KEYS.ADVANCED,
+            label: <span>{t('Advanced')}</span>,
+            children: (
+              <ExtraOptions
+                extraExtension={dbConfigExtraExtension}
                 db={db as DatabaseObject}
-                onInputChange={({ target }: { target: HTMLInputElement }) =>
+                onInputChange={(e: CheckboxChangeEvent) => {
+                  const { target } = e;
                   onChange(ActionType.InputChange, {
                     type: target.type,
                     name: target.name,
                     checked: target.checked,
                     value: target.value,
-                  })
-                }
-                conf={conf}
-                testConnection={testConnection}
-                testInProgress={testInProgress}
-              >
-                <SSHTunnelSwitchComponent
-                  dbModel={dbModel}
-                  db={db as DatabaseObject}
-                  changeMethods={{
-                    onParametersChange: handleParametersChange,
-                  }}
-                  clearValidationErrors={handleClearValidationErrors}
-                />
-                {useSSHTunneling && renderSSHTunnelForm()}
-              </SqlAlchemyForm>
-              {isDynamic(db?.backend || db?.engine) && !isEditMode && (
-                <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-                  <Button
-                    buttonStyle="link"
-                    onClick={() =>
-                      setDB({
-                        type: ActionType.ConfigMethodChange,
-                        payload: {
-                          database_name: db?.database_name,
-                          configuration_method: ConfigurationMethod.DynamicForm,
-                          engine: db?.engine,
-                        },
-                      })
-                    }
-                    css={theme => alchemyButtonLinkStyles(theme)}
-                  >
-                    {t('Connect this database using the dynamic form instead')}
-                  </Button>
-                  <InfoTooltip
-                    tooltip={t(
-                      'Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.',
-                    )}
-                    viewBox="0 -6 24 24"
-                  />
-                </div>
-              )}
-            </StyledAlignment>
-          ) : (
-            renderDatabaseConnectionForm()
-          )}
-          {!isEditMode && (
-            <StyledAlertMargin>
-              <Alert
-                closable={false}
-                css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-                message={t('Additional fields may be required')}
-                showIcon
-                description={
-                  <>
-                    {t(
-                      'Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ',
-                    )}
-                    <a
-                      href={DOCUMENTATION_LINK}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="additional-fields-alert-description"
-                    >
-                      {t('here')}
-                    </a>
-                    .
-                  </>
-                }
-                type="info"
+                  });
+                }}
+                onTextChange={({ target }: { target: HTMLTextAreaElement }) => {
+                  onChange(ActionType.TextChange, {
+                    name: target.name,
+                    value: target.value,
+                  });
+                }}
+                onEditorChange={(payload: { name: string; json: any }) => {
+                  onChange(ActionType.EditorChange, payload);
+                }}
+                onExtraInputChange={(
+                  e: React.ChangeEvent<HTMLInputElement> | CheckboxChangeEvent,
+                ) => {
+                  const { target } = e;
+                  onChange(ActionType.ExtraInputChange, {
+                    type: target.type,
+                    name: target.name,
+                    checked: target.checked,
+                    value: target.value,
+                  });
+                }}
+                onExtraEditorChange={(payload: { name: string; json: any }) => {
+                  onChange(ActionType.ExtraEditorChange, payload);
+                }}
               />
-            </StyledAlertMargin>
-          )}
-          {showDBError && errorAlert()}
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
-          <ExtraOptions
-            extraExtension={dbConfigExtraExtension}
-            db={db as DatabaseObject}
-            onInputChange={(e: CheckboxChangeEvent) => {
-              const { target } = e;
-              onChange(ActionType.InputChange, {
-                type: target.type,
-                name: target.name,
-                checked: target.checked,
-                value: target.value,
-              });
-            }}
-            onTextChange={({ target }: { target: HTMLTextAreaElement }) => {
-              onChange(ActionType.TextChange, {
-                name: target.name,
-                value: target.value,
-              });
-            }}
-            onEditorChange={(payload: { name: string; json: any }) => {
-              onChange(ActionType.EditorChange, payload);
-            }}
-            onExtraInputChange={(
-              e: React.ChangeEvent<HTMLInputElement> | CheckboxChangeEvent,
-            ) => {
-              const { target } = e;
-              onChange(ActionType.ExtraInputChange, {
-                type: target.type,
-                name: target.name,
-                checked: target.checked,
-                value: target.value,
-              });
-            }}
-            onExtraEditorChange={(payload: { name: string; json: any }) => {
-              onChange(ActionType.ExtraEditorChange, payload);
-            }}
-          />
-        </Tabs.TabPane>
-      </TabsStyled>
+            ),
+          },
+        ]}
+      />
     </Modal>
   ) : (
     <Modal
