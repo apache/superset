@@ -28,7 +28,8 @@ import {
   subheaderFontSize,
   subtitleControl,
   subtitleFontSize,
-  metricNameFontSize,
+  showMetricNameControl,
+  metricNameFontSizeWithVisibility,
 } from '../sharedControls';
 import { ColorSchemeEnum } from './types';
 
@@ -71,28 +72,8 @@ const config: ControlPanelConfig = {
         ],
         [subtitleControl],
         [subtitleFontSize],
-        [
-          {
-            name: 'show_metric_name',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show Metric Name'),
-              renderTrigger: true,
-              default: false,
-              description: t('Whether to display the metric name'),
-            },
-          },
-        ],
-        [
-          {
-            ...metricNameFontSize,
-            config: {
-              ...metricNameFontSize.config,
-              visibility: ({ controls }) =>
-                controls?.show_metric_name?.value === true,
-            },
-          },
-        ],
+        [showMetricNameControl],
+        [metricNameFontSizeWithVisibility],
         [
           {
             ...subheaderFontSize,

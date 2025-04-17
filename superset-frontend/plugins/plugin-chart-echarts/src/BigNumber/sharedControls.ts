@@ -165,3 +165,22 @@ export const metricNameFontSize: CustomControlItem = {
     ],
   },
 };
+
+export const showMetricNameControl: CustomControlItem = {
+  name: 'show_metric_name',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Show Metric Name'),
+    renderTrigger: true,
+    default: false,
+    description: t('Whether to display the metric name'),
+  },
+};
+
+export const metricNameFontSizeWithVisibility: CustomControlItem = {
+  ...metricNameFontSize,
+  config: {
+    ...metricNameFontSize.config,
+    visibility: ({ controls }) => controls?.show_metric_name?.value === true,
+  },
+};

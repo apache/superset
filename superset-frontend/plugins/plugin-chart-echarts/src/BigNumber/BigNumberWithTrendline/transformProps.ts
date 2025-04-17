@@ -35,7 +35,7 @@ import {
   BigNumberWithTrendlineChartProps,
   TimeSeriesDatum,
 } from '../types';
-import { getDateFormatter, parseMetricValue } from '../utils';
+import { getDateFormatter, parseMetricValue, getOriginalLabel } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
 
@@ -97,11 +97,8 @@ export default function transformProps(
   const aggregatedData = hasAggregatedData ? aggregatedQueryData.data[0] : null;
   const refs: Refs = {};
   const metricName = getMetricLabel(metric);
-  const { verboseMap = {} } = chartProps.datasource;
-  const metricKey = colnames.length > 0 ? colnames[0] : 'Unknown Metric';
-  const config = rawFormData?.column_config?.[metricKey] || {};
-  const customName = config.customColumnName;
-  const originalLabel = customName || verboseMap[metricKey] || metricKey;
+  const metrics = chartProps.datasource?.metrics || [];
+  const originalLabel = getOriginalLabel(metric, metrics);
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;

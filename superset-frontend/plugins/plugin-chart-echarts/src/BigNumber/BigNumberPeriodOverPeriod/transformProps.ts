@@ -32,6 +32,8 @@ import {
   getMetricNameFontSize,
 } from './utils';
 
+import { getOriginalLabel } from '../utils';
+
 dayjs.extend(utc);
 
 export const parseMetricValue = (metricValue: number | string | null) => {
@@ -101,10 +103,8 @@ export default function transformProps(chartProps: ChartProps) {
   const { data: dataA = [] } = queriesData[0];
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
-  const metricKey = metric ? getMetricLabel(metric) : '';
-  const config = columnConfig[metricKey] || {};
-  const customName = config.customColumnName;
-  const originalLabel = customName || verboseMap[metricKey] || metricKey;
+  const metrics = chartProps.datasource?.metrics || [];
+  const originalLabel = getOriginalLabel(metric, metrics);
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
