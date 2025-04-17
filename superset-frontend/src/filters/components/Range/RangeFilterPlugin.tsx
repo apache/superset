@@ -459,21 +459,15 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     // Determine the tooltip message and icon color
     const tooltipMessage =
       error || t('Choose numbers between %(min)s and %(max)s', { min, max });
-    const iconColor = error ? 'error' : 'primary';
-
-    // Use ExclamationCircleOutlined for errors, InfoCircleOutlined otherwise
-    const IconComponent = error
-      ? Icons.ExclamationCircleOutlined
-      : Icons.InfoCircleOutlined;
 
     return (
       <ErrorIconWrapper>
         <Tooltip title={tooltipMessage} placement="top">
-          <IconComponent
-            iconColor={iconColor}
-            iconSize="m"
-            style={{ color: error ? '#FF0000' : undefined }}
-          />
+          {error ? (
+            <Icons.ExclamationCircleOutlined iconSize="m" iconColor="error" />
+          ) : (
+            <Icons.InfoCircleOutlined iconSize="m" iconColor="primary" />
+          )}
         </Tooltip>
       </ErrorIconWrapper>
     );
