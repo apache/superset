@@ -114,11 +114,11 @@ class BaseReportScheduleCommand(BaseCommand):
 
         iterations = 60 if minimum_interval <= 3660 else 24
         schedule = croniter(cron_schedule)
-        current_exec = next(schedule)
+        current_exec: float = next(schedule)
 
         for _ in range(iterations):
-            next_exec = next(schedule)
-            diff, current_exec = next_exec - current_exec, next_exec
+            next_exec: float = next(schedule)
+            diff, current_exec = (next_exec - current_exec), next_exec
             if int(diff) < minimum_interval:
                 raise ReportScheduleFrequencyNotAllowed(
                     report_type=report_type, minimum_interval=minimum_interval
