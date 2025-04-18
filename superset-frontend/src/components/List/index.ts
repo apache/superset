@@ -16,11 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { css, styled } from '@superset-ui/core';
 import { List as AntdList } from 'antd-v5';
+import type { ListProps, ListItemProps, ListItemMetaProps } from './types';
+
+interface CompactListItemProps extends ListItemProps {
+  compact?: boolean;
+}
+
+const CompactListItem = styled(AntdList.Item)<CompactListItemProps>`
+  && {
+    ${({ compact, theme }) =>
+      compact &&
+      css`
+        padding: ${theme.sizeUnit / 2}px ${theme.sizeUnit * 3}px
+          ${theme.sizeUnit / 2}px ${theme.sizeUnit}px;
+      `}
+  }
+`;
+
+type CompactListItemWithMeta = typeof CompactListItem & {
+  Meta: typeof AntdList.Item.Meta;
+};
+
+(CompactListItem as CompactListItemWithMeta).Meta = AntdList.Item.Meta;
 
 export const List = Object.assign(AntdList, {
-  Item: AntdList.Item,
-  ItemMeta: AntdList.Item.Meta,
+  Item: CompactListItem,
 });
 
-export type { ListProps, ListItemProps } from './types';
+export type { ListProps, ListItemProps, ListItemMetaProps };

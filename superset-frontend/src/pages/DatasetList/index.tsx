@@ -777,7 +777,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                       id: Key | null | undefined;
                       title: string;
                     }) => (
-                      <List.Item key={result.id}>
+                      <List.Item key={result.id} compact>
                         <List.Item.Meta
                           avatar={<span>•</span>}
                           title={

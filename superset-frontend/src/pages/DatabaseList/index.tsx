@@ -710,7 +710,7 @@ function DatabaseList({
                       10,
                     )}
                     renderItem={(result: { id: number; title: string }) => (
-                      <List.Item key={result.id}>
+                      <List.Item key={result.id} compact>
                         <List.Item.Meta
                           avatar={<span>•</span>}
                           title={
@@ -753,7 +753,7 @@ function DatabaseList({
                       id: number;
                       slice_name: string;
                     }) => (
-                      <List.Item key={result.id}>
+                      <List.Item key={result.id} compact>
                         <List.Item.Meta
                           avatar={<span>•</span>}
                           title={

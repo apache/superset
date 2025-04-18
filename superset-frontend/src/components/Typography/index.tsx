@@ -16,5 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { Typography } from 'antd-v5';
+import { styled, css } from '@superset-ui/core';
+import { Typography as AntdTypography } from 'antd-v5';
+
+const StyledLink = styled(AntdTypography.Link)`
+    ${({ theme }) =>
+      css`
+      && {
+        color: ${theme.colorLink};
+        &:hover {
+          color: ${theme.colorLinkHover};
+        }
+    `}
+  }
+`;
+
+export const Typography: typeof AntdTypography & {
+  Text: typeof AntdTypography.Text;
+  Link: typeof StyledLink;
+  Title: typeof AntdTypography.Title;
+  Paragraph: typeof AntdTypography.Paragraph;
+} = Object.assign(AntdTypography, {
+  Text: AntdTypography.Text,
+  Link: StyledLink,
+  Title: AntdTypography.Title,
+  Paragraph: AntdTypography.Paragraph,
+});
+
 export type { TypographyProps } from 'antd-v5';
