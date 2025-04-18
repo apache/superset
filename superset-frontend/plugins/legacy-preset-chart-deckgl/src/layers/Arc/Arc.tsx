@@ -77,7 +77,7 @@ export function getLayer(
     getTargetColor: (d: any) =>
       d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
     id: `path-layer-${fd.slice_id}` as const,
-    strokeWidth: fd.stroke_width ? fd.stroke_width : 3,
+    getWidth: fd.stroke_width ? fd.stroke_width : 3,
     ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
   });
 }
