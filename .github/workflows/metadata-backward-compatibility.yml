@@ -48,7 +48,14 @@ jobs:
                 const payload = context.payload.pull_request;
                 const validationLabelPresent = !!payload.labels.find(label => label.name.includes('validation:backward-compatible'));
                 if (!validationLabelPresent) {
-                    core.setFailed("🚨 Please add the label 'validation:backward-compatible' to confirm chart metadata backward compatibility.");
+                    core.setFailed(
+                        [
+                            "🚨 We have identified potential changes to the chart metadata in `transformProps`.",
+                            "⚠️ This could affect backward compatibility.",
+                            "✅ To proceed, please review your changes and add the label:",
+                            "`validation:backward-compatible`",
+                        ].join("\n")
+                    );
                 }
 
       - name: "Continue with other checks"
