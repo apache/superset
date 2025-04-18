@@ -312,10 +312,6 @@ def add_columns(table_name: str, *columns: Column) -> None:
     :param columns: A list of SQLAlchemy Column objects that define the name, type, and other attributes of the columns to be added.
     """  # noqa: E501
 
-    if not has_table(table_name=table_name):
-        logger.info(f"Table {GREEN}{table_name}{RESET} doesn't exist. Skipping...")
-        return
-
     cols_to_add = []
     for col in columns:
         if table_has_column(table_name=table_name, column_name=col.name):
@@ -345,10 +341,6 @@ def drop_columns(table_name: str, *columns: str) -> None:
     :param table_name: The name of the table from which the columns will be removed.
     :param columns: A list of column names to be dropped.
     """  # noqa: E501
-
-    if not has_table(table_name=table_name):
-        logger.info(f"Table {GREEN}{table_name}{RESET} doesn't exist. Skipping...")
-        return
 
     cols_to_drop = []
     for col in columns:
