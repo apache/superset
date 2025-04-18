@@ -43,6 +43,21 @@ const defaultProps = {
   subtitle: 'Test subtitle',
 };
 
+const missingExtraProps = {
+  ...defaultProps,
+  error: {
+    error_type: ErrorTypeEnum.INVALID_SQL_ERROR,
+    message: 'SQLStatement should have exactly one statement',
+    level: 'error' as ErrorLevel,
+    extra: {
+      sql: null,
+      line: null,
+      column: null,
+      engine: null,
+    },
+  },
+};
+
 const renderComponent = (overrides = {}) =>
   render(
     <ThemeProvider theme={supersetTheme}>
@@ -58,6 +73,12 @@ describe('InvalidSQLErrorMessage', () => {
     expect(getByText('Unable to parse SQL')).toBeInTheDocument();
     expect(getByText('Test subtitle')).toBeInTheDocument();
     expect(getByText('SELECT * FFROM table')).toBeInTheDocument();
+  });
+
+  it('renders the error message with the empty extra properties', () => {
+    const { getByText } = renderComponent(missingExtraProps);
+    expect(getByText('Unable to parse SQL')).toBeInTheDocument();
+    expect(getByText(missingExtraProps.error.message)).toBeInTheDocument();
   });
 
   it('displays the SQL error line and column indicator', () => {
