@@ -24,6 +24,7 @@ import Tag from 'src/types/TagType';
 import { EmptyState, FacePile } from 'src/components';
 import { NumberParam, useQueryParam } from 'use-query-params';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
+import { Typography } from 'src/components/Typography';
 
 const MAX_TAGS_TO_SHOW = 3;
 const PAGE_SIZE = 10;
@@ -69,7 +70,7 @@ export default function AllEntitiesTable({
 
   const renderTable = (type: objectType) => {
     const data = objects[type].map((o: TaggedObject) => ({
-      [type]: <a href={o.url}>{o.name}</a>,
+      [type]: <Typography.Link href={o.url}>{o.name}</Typography.Link>,
       modified: extendedDayjs.utc(o.changed_on).fromNow(),
       tags: o.tags,
       owners: o.owners,

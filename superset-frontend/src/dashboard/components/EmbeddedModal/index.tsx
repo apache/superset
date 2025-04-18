@@ -29,6 +29,7 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Button, FormItem, Input, Modal, Loading, Form } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { EmbeddedDashboard } from 'src/dashboard/types';
+import { Typography } from 'src/components/Typography';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -179,11 +180,11 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
       )}
       <p>
         {t('For further instructions, consult the')}{' '}
-        <a href={docsUrl} target="_blank" rel="noreferrer">
+        <Typography.Link href={docsUrl} target="_blank" rel="noreferrer">
           {docsDescription
             ? docsDescription()
             : t('Superset Embedded SDK documentation.')}
-        </a>
+        </Typography.Link>
       </p>
       <h3>{t('Settings')}</h3>
       <Form layout="vertical">

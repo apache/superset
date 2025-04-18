@@ -46,6 +46,7 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 import { AnnotationObject } from 'src/features/annotations/types';
 import AnnotationModal from 'src/features/annotations/AnnotationModal';
 import { Icons } from 'src/components/Icons';
+import { Typography } from 'src/components/Typography';
 
 const PAGE_SIZE = 25;
 
@@ -303,7 +304,9 @@ function AnnotationList({
               {hasHistory ? (
                 <Link to="/annotationlayer/list/">{t('Back to all')}</Link>
               ) : (
-                <a href="/annotationlayer/list/">{t('Back to all')}</a>
+                <Typography.Link href="/annotationlayer/list/">
+                  {t('Back to all')}
+                </Typography.Link>
               )}
             </span>
           </StyledHeader>

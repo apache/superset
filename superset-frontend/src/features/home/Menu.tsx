@@ -24,6 +24,7 @@ import { MainNav, MenuMode } from 'src/components/Menu';
 import { GenericLink, Tooltip, Grid, Row, Col } from 'src/components';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Icons } from 'src/components/Icons';
+import { Typography } from 'src/components/Typography';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
 import {
@@ -212,7 +213,7 @@ export function Menu({
     if (url) {
       return (
         <MainNav.Item key={label}>
-          <a href={url}>{label}</a>
+          <Typography.Link href={url}>{label}</Typography.Link>
         </MainNav.Item>
       );
     }
@@ -244,7 +245,9 @@ export function Menu({
                     {child.label}
                   </NavLink>
                 ) : (
-                  <a href={child.url}>{child.label}</a>
+                  <Typography.Link href={child.url}>
+                    {child.label}
+                  </Typography.Link>
                 )}
               </MainNav.Item>
             );

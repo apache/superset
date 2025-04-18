@@ -59,6 +59,7 @@ import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
 import { fetchSyncedColumns, updateColumns } from './utils';
+import { Typography } from '../Typography';
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -330,13 +331,13 @@ function ColumnCollectionTable({
                 /* Note the fragmented translations may not work. */
                 <div>
                   {t('The pattern of timestamp format. For strings use ')}
-                  <a href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
+                  <Typography.Link href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
                     {t('Python datetime string pattern')}
-                  </a>
+                  </Typography.Link>
                   {t(' expression which needs to adhere to the ')}
-                  <a href="https://en.wikipedia.org/wiki/ISO_8601">
+                  <Typography.Link href="https://en.wikipedia.org/wiki/ISO_8601">
                     {t('ISO 8601')}
-                  </a>
+                  </Typography.Link>
                   {t(` standard to ensure that the lexicographical ordering
                       coincides with the chronological ordering. If the
                       timestamp format does not adhere to the ISO 8601 standard
