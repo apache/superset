@@ -32,7 +32,7 @@ jobs:
         id: check_changes
         run: |
             CHANGED_FILES=$(git diff --name-only origin/master...HEAD)
-            echo "CHANGED_FILES=$CHANGED_FILES" >> $GITHUB_ENV
+            echo "Changed files: $CHANGED_FILES"
 
             if echo "$CHANGED_FILES" | grep -qE '^superset-frontend/plugins/.*/transformProps'; then
                 echo "BACKWARD_COMPATIBILITY_CHECK_FAILED=true" >> $GITHUB_ENV
