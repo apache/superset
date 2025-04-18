@@ -34,7 +34,7 @@ jobs:
             CHANGED_FILES=$(git diff --name-only origin/master...HEAD)
             echo "Changed files: $CHANGED_FILES"
 
-            if echo "$CHANGED_FILES" | grep -qE '^superset-frontend/plugins/.*/transformProps'; then
+            if echo "$CHANGED_FILES" | grep -qE '^superset-frontend/plugins/.*/(transformProps|controlPanel)'; then
                 echo "BACKWARD_COMPATIBILITY_CHECK_FAILED=true" >> $GITHUB_ENV
             else
                 echo "BACKWARD_COMPATIBILITY_CHECK_FAILED=false" >> $GITHUB_ENV
@@ -50,9 +50,9 @@ jobs:
                 if (!validationLabelPresent) {
                     core.setFailed(
                         [
-                            "🚨 We have identified potential changes to the chart metadata in `transformProps`.",
-                            "⚠️ This could affect backward compatibility.",
-                            "✅ To proceed, please review your changes and add the label:",
+                            "🚨 Identified potential changes to the chart metadata in `transformProps` or `controlPanel`.",
+                            "⚠️ Such changes may affect backward compatibility and cause charts dependent on previous metadata to break.",
+                            "✅ To proceed, please review your changes to confirm backward-compatibility and add the label:",
                             "`validation:backward-compatible`",
                         ].join("\n")
                     );
