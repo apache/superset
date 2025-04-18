@@ -75,13 +75,6 @@ export const RowTruncationCount = styled.span`
   `}
 `;
 
-export const TooltipList = styled.ul`
-  ${({ theme }) => css`
-    padding-left: ${theme.sizeUnit * 3}px;
-    margin-bottom: 0;
-  `};
-`;
-
 export const TooltipSectionLabel = styled.span`
   font-weight: ${({ theme }) => theme.fontWeightStrong};
 `;
