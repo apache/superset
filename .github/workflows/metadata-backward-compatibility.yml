@@ -1,0 +1,51 @@
+name: "Chart Metadata Backward Compatibility Check"
+
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  backward-compatibility-check:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+        with:
+            fetch-depth: 0
+            persist-credentials: false
+            submodules: recursive
+
+      - name: "Set up Git"
+        run: |
+          git fetch origin master
+
+      - name: "Check for changes in critical files"
+        id: check_changes
+        run: |
+            CHANGED_FILES=$(git diff --name-only origin/master...HEAD)
+            echo "CHANGED_FILES=$CHANGED_FILES" >> $GITHUB_ENV
+
+            if echo "$CHANGED_FILES" | grep -qE '^superset-frontend/plugins/.*/transformProps'; then
+                echo "BACKWARD_COMPATIBILITY_CHECK_FAILED=true" >> $GITHUB_ENV
+            else
+                echo "BACKWARD_COMPATIBILITY_CHECK_FAILED=false" >> $GITHUB_ENV
+            fi
+      - name: "Enforce backward compatibility label"
+        if: env.BACKWARD_COMPATIBILITY_CHECK_FAILED == 'true'
+        run: |
+          echo "🚨 Please add the label 'validation:backward-compatible' to confirm chart metadata backward compatibility."
+          exit 1
+
+      - name: "Continue with other checks"
+        if: env.BACKWARD_COMPATIBILITY_CHECK_FAILED == 'false'
+        run: |
+          echo "✅ No chart metadata backward compatibility issues detected. Proceeding with further checks."
