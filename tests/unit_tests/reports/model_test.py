@@ -28,6 +28,7 @@ def test_get_native_filters_params():
                 {
                     "nativeFilterId": "filter_id",
                     "columnName": "column_name",
+                    "filterType": "filter_select",
                     "filterValues": ["value1", "value2"],
                 }
             ]
@@ -49,11 +50,13 @@ def test_get_native_filters_params_multiple_filters():
             "nativeFilters": [
                 {
                     "nativeFilterId": "filter_id_1",
+                    "filterType": "filter_select",
                     "columnName": "column_name_1",
                     "filterValues": ["value1", "value2"],
                 },
                 {
                     "nativeFilterId": "filter_id_2",
+                    "filterType": "filter_select",
                     "columnName": "column_name_2",
                     "filterValues": ["value3", "value4"],
                 },
@@ -73,10 +76,11 @@ def test_report_generate_native_filter_no_values():
     report_schedule = ReportSchedule()
     native_filter_id = "filter_id"
     column_name = "column_name"
+    filter_type = "filter_select"
     values = None
 
     assert report_schedule._generate_native_filter(
-        native_filter_id, column_name, values
+        native_filter_id, filter_type, column_name, values
     ) == {
         "filter_id": {
             "id": "filter_id",
@@ -104,17 +108,18 @@ def test_get_native_filters_params_invalid_structure():
                 {
                     "nativeFilterId": "filter_id",
                     "columnName": "column_name",
+                    "filterType": "filter_select",
                     # Missing "filterValues" key
                 }
             ]
         }
     }
 
-    assert (
+    try:
         report_schedule.get_native_filters_params()
-        == "(filter_id:(extraFormData:(filters:!((col:column_name,op:IN,val:!()))),"
-        "filterState:(label:column_name,validateStatus:!f,value:!()),id:filter_id,ownState:()))"
-    )
+        assert False, "Expected KeyError but none was raised"
+    except KeyError as e:
+        assert str(e) == "'filterValues'"
 
 
 # todo(hugh): how do we want to handle this case?
@@ -138,14 +143,12 @@ def test_report_generate_native_filter():
     """
     report_schedule = ReportSchedule()
     native_filter_id = "filter_id"
+    filter_type = "filter_select"
     column_name = "column_name"
     values = ["value1", "value2"]
 
-    print(
-        report_schedule._generate_native_filter(native_filter_id, column_name, values)
-    )
     assert report_schedule._generate_native_filter(
-        native_filter_id, column_name, values
+        native_filter_id, filter_type, column_name, values
     ) == {
         "filter_id": {
             "extraFormData": {
@@ -190,11 +193,12 @@ def test_report_generate_native_filter_empty_values():
     """
     report_schedule = ReportSchedule()
     native_filter_id = "filter_id"
+    filter_type = "filter_select"
     column_name = "column_name"
     values = []
 
     assert report_schedule._generate_native_filter(
-        native_filter_id, column_name, values
+        native_filter_id, filter_type, column_name, values
     ) == {
         "filter_id": {
             "extraFormData": {
@@ -217,11 +221,12 @@ def test_report_generate_native_filter_no_column_name():
     """
     report_schedule = ReportSchedule()
     native_filter_id = "filter_id"
+    filter_type = "filter_select"
     column_name = ""
     values = ["value1", "value2"]
 
     assert report_schedule._generate_native_filter(
-        native_filter_id, column_name, values
+        native_filter_id, filter_type, column_name, values
     ) == {
         "filter_id": {
             "extraFormData": {

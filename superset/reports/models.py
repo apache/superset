@@ -194,10 +194,10 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                 params = {
                     **params,
                     **self._generate_native_filter(
-                        filter.get("nativeFilterId"),
-                        filter.get("filterType"),
-                        filter.get("columnName"),
-                        filter.get("filterValues"),
+                        filter["nativeFilterId"],
+                        filter["filterType"],
+                        filter["columnName"],
+                        filter["filterValues"],
                     ),
                 }
         # hack(hughhh): workaround for escaping prison not handling quotes right
@@ -207,10 +207,10 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
 
     def _generate_native_filter(
         self,
-        native_filter_id: Optional[str],
-        filter_type: Optional[str],
-        column_name: Optional[str],
-        values: Optional[list[Optional[str]]],
+        native_filter_id: str,
+        filter_type: str,
+        column_name: str,
+        values: list[Optional[str]],
     ) -> dict[str, Any]:
         
         if filter_type == "filter_time":
