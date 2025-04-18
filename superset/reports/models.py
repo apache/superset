@@ -195,34 +195,84 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                     **params,
                     **self._generate_native_filter(
                         filter.get("nativeFilterId"),
+                        filter.get("filterType"),
                         filter.get("columnName"),
                         filter.get("filterValues"),
                     ),
                 }
-        return prison.dumps(params)
+        # hack(hughhh): workaround for escaping prison not handling quotes right
+        rison = prison.dumps(params)
+        rison = rison.replace("'", "%27")
+        return rison
 
     def _generate_native_filter(
         self,
         native_filter_id: Optional[str],
+        filter_type: Optional[str],
         column_name: Optional[str],
         values: Optional[list[Optional[str]]],
     ) -> dict[str, Any]:
-        return {
-            native_filter_id or "": {
-                "id": native_filter_id or "",
-                "extraFormData": {
-                    "filters": [
-                        {"col": column_name or "", "op": "IN", "val": values or []}
-                    ]
-                },
-                "filterState": {
-                    "label": column_name or "",
-                    "validateStatus": False,
-                    "value": values or [],
-                },
-                "ownState": {},
+        
+        if filter_type == "filter_time":
+            # For select filters, we need to use the "IN" operator
+            return {
+                native_filter_id or "": {
+                    "id": native_filter_id or "",
+                    "extraFormData": {
+                        "time_range": values[0]
+                    },
+                    "filterState": {
+                        "value": values[0]
+                    },
+                    "ownState": {},
+                }
+                
             }
-        }
+        elif filter_type == "filter_timegrain":
+            return {
+                native_filter_id or "": {
+                    "id": native_filter_id or "",
+                    "extraFormData": {
+                        "time_grain_sqla": values[0], # grain
+                    },
+                    "filterState": {
+                        # "label": "30 second", # grain_label
+                        "value": values # grain
+                    },
+                    "ownState": {},
+                }
+                
+            }
+        
+        elif filter_type == "filter_timecolumn":
+            return {
+                native_filter_id or "" : {
+                    "extraFormData": {
+                         "granularity_sqla": values[0] # column_name
+                    },
+                    "filterState": {
+                        "value": values # column_name
+                    },
+                }
+            }
+        
+        elif filter_type == "filter_select":
+            return {
+                native_filter_id or "": {
+                    "id": native_filter_id or "",
+                    "extraFormData": {
+                        "filters": [
+                            {"col": column_name or "", "op": "IN", "val": values or []}
+                        ]
+                    },
+                    "filterState": {
+                        "label": column_name or "",
+                        "validateStatus": False,
+                        "value": values or [],
+                    },
+                    "ownState": {},
+                }
+            }
 
 
 class ReportRecipients(Model, AuditMixinNullable):

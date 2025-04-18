@@ -694,7 +694,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     const data = await getChartDataRequest(filterValues).then(response =>
       response.json.result[0].data.map((item: any) => {
-
         if (vizType === 'filter_timegrain') {
           return {
             value: item.duration,
@@ -1516,12 +1515,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onChangeDashboardFilterValue = (
     idx: number,
-    filterValues: string[],
+    filterValues: string | string[],
   ) => {
-    // todo(hughhh): refactor to handle multiple native filters
+    let values;
+    if (typeof filterValues === 'string') {
+      values = [filterValues];
+    } else {
+      values = filterValues;
+    }
+
+    console.log('values', values);
     setNativeFilterData(
       nativeFilterData.map((filter, index) =>
-        index === idx ? { ...filter, filterValues } : filter,
+        index === idx ? { ...filter, filterValues: values } : filter,
       ),
     );
   };
