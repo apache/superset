@@ -30,6 +30,7 @@ export interface Extension {
   description: string;
   contributions: Contributions;
   exposedModules: string[];
+  files: string[];
   remoteEntry: string;
   scope: string;
   activate: Function;

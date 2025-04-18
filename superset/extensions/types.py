@@ -25,8 +25,17 @@ class ModuleFederationConfig(TypedDict):
     remotes: dict[str, str]
 
 
+class FrontendManifest(TypedDict):
+    moduleFederation: ModuleFederationConfig
+
+
+class BackendManifest(TypedDict):
+    entryPoint: str
+
+
 class Manifest(TypedDict):
     name: str
     description: str
     version: str
-    moduleFederation: list[ModuleFederationConfig]
+    frontend: FrontendManifest
+    backend: BackendManifest

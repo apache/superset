@@ -32,7 +32,7 @@ from superset.utils.core import check_is_safe_zip
 from superset.views.base_api import BaseSupersetApi, requires_form_data, statsd_metrics
 
 FRONTEND_REGEX = re.compile(r"^frontend/dist/([^/]+)$")
-BACKEND_REGEX = re.compile(r"^backend/dist/([^/]+)$")
+BACKEND_REGEX = re.compile(r"^backend/src/(.+)$")
 
 
 class ExtensionsRestApi(BaseSupersetApi):
@@ -49,18 +49,23 @@ class ExtensionsRestApi(BaseSupersetApi):
         extensions = ExtensionDAO.find_all()
         for extension in extensions:
             manifest: Manifest = json.loads(extension.manifest)
-            files = list(json.loads(extension.frontend))
-            remote_entry_url = f"http://localhost:9000/api/v1/extensions/{extension.name}/remoteEntry.js"
-            exposed_modules = manifest.get("moduleFederation", {}).get("exposes", [])
-            extension_data = {
+            extension_data: dict[str, Any] = {
                 "name": extension.name,
-                "remoteEntry": remote_entry_url,
-                "files": files,
                 "scope": extension.name,
-                "exposedModules": exposed_modules,
-                "contributions": manifest.get("contributions", {}),
-                "extensionDependencies": manifest.get("extensionDependencies", []),
+                "dependencies": manifest.get("dependencies", []),
             }
+            frontend = manifest.get("frontend")
+            frontend_files = list(json.loads(extension.frontend))
+            if frontend and frontend_files:
+                module_federation = frontend.get("moduleFederation", {})
+                extension_data.update(
+                    {
+                        "remoteEntry": f"http://localhost:9000/api/v1/extensions/{extension.name}/remoteEntry.js",
+                        "exposedModules": module_federation.get("exposes", []),
+                        "files": frontend_files,
+                        "contributions": frontend.get("contributions", {}),
+                    }
+                )
 
             result.append(extension_data)
 

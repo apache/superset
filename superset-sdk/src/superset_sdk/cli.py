@@ -45,8 +45,13 @@ def bundle() -> None:
     backend = extension.get("backend", {})
     frontend = extension.get("frontend", {})
     manifest["dependencies"] = extension.get("dependencies", [])
-    manifest["contributions"] = frontend.get("contributions", [])
-    manifest["moduleFederation"] = frontend.get("moduleFederation", {})
+    manifest["frontend"] = {
+        "contributions": frontend.get("contributions", []),
+        "moduleFederation": frontend.get("moduleFederation", {}),
+    }
+    manifest["backend"] = {}
+    if entry_point := backend.get("entryPoint", ""):
+        manifest["backend"]["entryPoint"] = entry_point
 
     try:
         with TemporaryDirectory() as temp_dir:

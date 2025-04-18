@@ -27,6 +27,10 @@ from superset.extensions.models import Extension
 logger = logging.getLogger(__name__)
 
 
+def json_dumps_compact(value: dict[str, Any]) -> str:
+    return json.dumps(value, indent=None, separators=(",", ":"), sort_keys=True)
+
+
 class ExtensionDAO(BaseDAO[Extension]):
     @staticmethod
     def get_by_name(name: str) -> Extension | None:
@@ -40,9 +44,9 @@ class ExtensionDAO(BaseDAO[Extension]):
         backend: dict[str, Any],
         enabled: bool,
     ) -> Extension:
-        manifest_str = json.dumps(manifest)
-        frontend_str = json.dumps(frontend) if frontend else None
-        backend_str = json.dumps(backend) if backend else None
+        manifest_str = json_dumps_compact(manifest)
+        frontend_str = json_dumps_compact(frontend) if frontend else None
+        backend_str = json_dumps_compact(backend) if backend else None
         if extension := ExtensionDAO.get_by_name(name):
             extension.manifest = manifest_str
             extension.frontend = frontend_str

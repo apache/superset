@@ -17,14 +17,14 @@
 """add extensions table
 
 Revision ID: d4d5115bdeb0
-Revises: 32bf93dfe2a4
+Revises: 378cecfdba9f
 Create Date: 2025-03-07 08:35:14.112691
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "d4d5115bdeb0"
-down_revision = "32bf93dfe2a4"
+down_revision = "378cecfdba9f"
 
 from uuid import uuid4  # noqa: E402
 

@@ -17,7 +17,7 @@
     }
   },
   "backend": {
-    "entryPoint": "",
+    "entryPoint": "extension/__init__.py",
     "files": ["backend/src/extension1/**/*.py"]
   },
   "dependencies": []
