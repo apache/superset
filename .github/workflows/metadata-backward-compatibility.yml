@@ -6,7 +6,7 @@ on:
       - "master"
       - "[0-9].[0-9]*"
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -39,13 +39,19 @@ jobs:
             else
                 echo "BACKWARD_COMPATIBILITY_CHECK_FAILED=false" >> $GITHUB_ENV
             fi
-      - name: "Enforce backward compatibility label"
+
+      - name: "Check for 'validation:backward-compatible' label"
         if: env.BACKWARD_COMPATIBILITY_CHECK_FAILED == 'true'
-        run: |
-          echo "🚨 Please add the label 'validation:backward-compatible' to confirm chart metadata backward compatibility."
-          exit 1
+        uses: actions/github-script@v7
+        with:
+            script: |
+                const payload = context.payload.pull_request;
+                const validationLabelPresent = !!payload.labels.find(label => label.name.includes('validation:backward-compatible'));
+                if (!validationLabelPresent) {
+                    core.setFailed("🚨 Please add the label 'validation:backward-compatible' to confirm chart metadata backward compatibility.");
+                }
 
       - name: "Continue with other checks"
         if: env.BACKWARD_COMPATIBILITY_CHECK_FAILED == 'false'
         run: |
-          echo "✅ No chart metadata backward compatibility issues detected. Proceeding with further checks."
+            echo "✅ No chart metadata backward compatibility issues detected. Proceeding with further checks."
