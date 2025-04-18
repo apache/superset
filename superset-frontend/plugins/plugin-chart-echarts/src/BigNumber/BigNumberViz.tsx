@@ -188,47 +188,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     );
   }
 
-  renderSubheader(maxHeight: number) {
-    const { bigNumber, subheader, width, bigNumberFallback } = this.props;
-    let fontSize = 0;
-
-    const NO_DATA_OR_HASNT_LANDED = t(
-      'No data after filtering or data is NULL for the latest time record',
-    );
-    const NO_DATA = t(
-      'Try applying different filters or ensuring your datasource has data',
-    );
-    let text = subheader;
-    if (bigNumber === null) {
-      text = bigNumberFallback ? NO_DATA : NO_DATA_OR_HASNT_LANDED;
-    }
-    if (text) {
-      const container = this.createTemporaryContainer();
-      document.body.append(container);
-      fontSize = computeMaxFontSize({
-        text,
-        maxWidth: width * 0.9, // max width reduced
-        maxHeight,
-        className: 'subheader-line',
-        container,
-      });
-      container.remove();
-
-      return (
-        <div
-          className="subheader-line"
-          style={{
-            fontSize,
-            height: maxHeight,
-          }}
-        >
-          {text}
-        </div>
-      );
-    }
-    return null;
-  }
-
   renderSubtitle(maxHeight: number) {
     const { subtitle, width } = this.props;
     let fontSize = 0;
@@ -315,7 +274,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       height,
       kickerFontSize,
       headerFontSize,
-      subheaderFontSize,
       subtitleFontSize,
     } = this.props;
     const className = this.getClassName();
@@ -336,11 +294,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
             {this.renderHeader(
               Math.ceil(headerFontSize * (1 - PROPORTION.TRENDLINE) * height),
             )}
-            {this.renderSubheader(
-              Math.ceil(
-                subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
-              ),
-            )}
             {this.renderSubtitle(
               Math.ceil(subtitleFontSize * (1 - PROPORTION.TRENDLINE) * height),
             )}
@@ -355,7 +308,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         {this.renderFallbackWarning()}
         {this.renderKicker((kickerFontSize || 0) * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}
-        {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
         {this.renderSubtitle(Math.ceil(subtitleFontSize * height))}
       </div>
     );
