@@ -308,7 +308,7 @@ class BaseReportState:
     def _get_tabs_urls(
         self,
         tab_anchors: list[str],
-        native_filter_params: str,
+        native_filter_params: Optional[str] = None,
         user_friendly: bool = False,
     ) -> list[str]:
         """
