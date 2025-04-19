@@ -208,9 +208,7 @@ test('should render', () => {
 
 test('should render the title', () => {
   setup();
-  expect(screen.getByTestId('editable-title')).toHaveTextContent(
-    'Dashboard Title',
-  );
+  expect(screen.getByTestId('editable-title-input')).toHaveDisplayValue('Dashboard Title')
 });
 
 test('should render the editable title', () => {

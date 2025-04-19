@@ -167,6 +167,7 @@ export const DynamicEditableTitle = memo(
           }
         >
           <Input
+            data-test="editable-title-input"
             variant="borderless"
             aria-label={label ?? t('Title')}
             className="dynamic-title-input"
