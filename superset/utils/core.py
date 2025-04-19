@@ -38,6 +38,7 @@ import zlib
 from collections.abc import Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
+import humanize.i18n
 from datetime import timedelta
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
@@ -58,7 +59,7 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app, g, request
+from flask import current_app, g, request, session
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
@@ -101,6 +102,7 @@ from superset.utils.backports import StrEnum
 from superset.utils.database import get_example_database
 from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
+from superset.constants import LOCALES_LANGUAGE_MAP
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource, TableColumn
@@ -1831,3 +1833,10 @@ def get_user_agent(database: Database, source: QuerySource | None) -> str:
         return user_agent_func(database, source)
 
     return DEFAULT_USER_AGENT
+
+
+def activate_humanize_locale() -> str:
+    locale = session.get("locale", "en")
+    if (locale != "en"):
+        locale = LOCALES_LANGUAGE_MAP.get(locale, "fa_IR")
+        humanize.i18n.activate(locale)
