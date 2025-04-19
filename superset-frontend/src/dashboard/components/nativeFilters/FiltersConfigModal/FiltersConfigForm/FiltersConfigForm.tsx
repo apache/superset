@@ -81,6 +81,7 @@ import DateFilterControl from 'src/explore/components/controls/DateFilterControl
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
+import { RangeDisplayMode } from 'src/filters/components/Range/types';
 import {
   getFormData,
   mergeExtraFormData,
@@ -1157,50 +1158,104 @@ const FiltersConfigForm = (
                   </CollapsibleControl>
                 </CleanFormItem>
               ) : (
-                <CleanFormItem name={['filters', filterId, 'rangeFilter']}>
-                  <CollapsibleControl
-                    initialValue={hasEnableSingleValue}
-                    title={t('Single Value')}
-                    onChange={checked => {
-                      onEnableSingleValueChanged(
-                        checked ? SingleValueType.Exact : undefined,
-                      );
-                      formChanged();
-                    }}
-                  >
+                <>
+                  <CleanFormItem name={['filters', filterId, 'rangeFilter']}>
+                    <CollapsibleControl
+                      initialValue={hasEnableSingleValue}
+                      title={t('Single Value')}
+                      onChange={checked => {
+                        onEnableSingleValueChanged(
+                          checked ? SingleValueType.Exact : undefined,
+                        );
+                        formChanged();
+                      }}
+                    >
+                      <StyledRowFormItem
+                        expanded={expanded}
+                        name={[
+                          'filters',
+                          filterId,
+                          'controlValues',
+                          'enableSingleValue',
+                        ]}
+                        initialValue={enableSingleValue}
+                        label={
+                          <StyledLabel>{t('Single value type')}</StyledLabel>
+                        }
+                      >
+                        <Radio.GroupWrapper
+                          onChange={value => {
+                            onEnableSingleValueChanged(value.target.value);
+                            formChanged();
+                          }}
+                          options={[
+                            {
+                              label: t('Minimum'),
+                              value: SingleValueType.Minimum,
+                            },
+                            { label: t('Exact'), value: SingleValueType.Exact },
+                            {
+                              label: t('Maximum'),
+                              value: SingleValueType.Maximum,
+                            },
+                          ]}
+                        />
+                      </StyledRowFormItem>
+                    </CollapsibleControl>
+                  </CleanFormItem>
+
+                  <CleanFormItem name={['filters', filterId, 'rangeType']}>
                     <StyledRowFormItem
                       expanded={expanded}
                       name={[
                         'filters',
                         filterId,
                         'controlValues',
-                        'enableSingleValue',
+                        'rangeDisplayMode',
                       ]}
-                      initialValue={enableSingleValue}
-                      label={
-                        <StyledLabel>{t('Single value type')}</StyledLabel>
+                      initialValue={
+                        formFilter?.controlValues?.rangeDisplayMode ||
+                        filterToEdit?.controlValues?.rangeDisplayMode ||
+                        RangeDisplayMode.SliderAndInput
                       }
+                      label={<StyledLabel>{t('Range Type')}</StyledLabel>}
                     >
-                      <Radio.GroupWrapper
-                        onChange={value => {
-                          onEnableSingleValueChanged(value.target.value);
-                          formChanged();
-                        }}
+                      <Select
+                        ariaLabel={t('Range Type')}
                         options={[
                           {
-                            label: t('Minimum'),
-                            value: SingleValueType.Minimum,
+                            value: RangeDisplayMode.Slider,
+                            label: t('Slider'),
                           },
-                          { label: t('Exact'), value: SingleValueType.Exact },
                           {
-                            label: t('Maximum'),
-                            value: SingleValueType.Maximum,
+                            value: RangeDisplayMode.Input,
+                            label: t('Range Inputs'),
+                          },
+                          {
+                            value: RangeDisplayMode.SliderAndInput,
+                            label: t('Slider and range input'),
                           },
                         ]}
+                        onChange={value => {
+                          const previous =
+                            form.getFieldValue('filters')?.[filterId]
+                              .controlValues || {};
+                          const rangeDisplayMode =
+                            value || RangeDisplayMode.SliderAndInput;
+                          setNativeFilterFieldValues(form, filterId, {
+                            controlValues: {
+                              ...previous,
+                              rangeDisplayMode,
+                            },
+                          });
+
+                          forceUpdate();
+                          formChanged();
+                        }}
                       />
                     </StyledRowFormItem>
-                  </CollapsibleControl>
-                </CleanFormItem>
+                  </CleanFormItem>
+                </>
               )}
             </Collapse.Panel>
           )}
