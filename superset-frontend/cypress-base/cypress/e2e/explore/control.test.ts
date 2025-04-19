@@ -75,7 +75,8 @@ describe('Datasource control', () => {
         .contains('Metrics')
         .click();
     });
-    cy.get(`input[value="${newMetricName}"]`)
+    cy.get(`[data-test="textarea-editable-title-input"]`)
+      .contains(newMetricName)
       .closest('tr')
       .find('[data-test="crud-delete-icon"]')
       .click();

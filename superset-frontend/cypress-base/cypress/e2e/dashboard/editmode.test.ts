@@ -1098,10 +1098,7 @@ describe('Dashboard edit', () => {
       cy.getBySel('dashboard-title-input').clear();
       cy.getBySel('dashboard-title-input').type('Edited title');
       applyChanges();
-      cy.getBySel('textarea-editable-title-input').should(
-        'have.value',
-        'Edited title',
-      );
+      cy.getBySel('editable-title-input').should('have.value', 'Edited title');
     });
   });
 
@@ -1120,8 +1117,8 @@ describe('Dashboard edit', () => {
     });
 
     it('should edit the title inline', () => {
-      cy.getBySel('textarea-editable-title-input').clear();
-      cy.getBySel('textarea-editable-title-input').type('Edited title{enter}');
+      cy.getBySel('editable-title-input').clear();
+      cy.getBySel('editable-title-input').type('Edited title{enter}');
       cy.getBySel('header-save-button').should('be.enabled');
     });
 

@@ -186,7 +186,7 @@ export const DynamicEditableTitle = memo(
                 width: ${inputWidth}px;
               `}
             `}
-            disabled={!isEditing && !canEdit}
+            disabled={!canEdit}
           />
         </Tooltip>
         <span
