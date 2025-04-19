@@ -188,4 +188,6 @@ export {
   type RefSelectProps,
 } from './Select';
 
+export { Image, type ImageProps } from './Image';
+
 export { Upload, type UploadFile, type UploadChangeParam } from './Upload';

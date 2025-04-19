@@ -21,7 +21,7 @@ import { styled, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav, MenuMode } from 'src/components/Menu';
-import { GenericLink, Tooltip, Grid, Row, Col } from 'src/components';
+import { GenericLink, Tooltip, Grid, Row, Col, Image } from 'src/components';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Icons } from 'src/components/Icons';
 import { Typography } from 'src/components/Typography';
@@ -268,12 +268,17 @@ export function Menu({
         style = { ...style, margin: theme.brandLogoMargin };
       }
       link = (
-        <a href={theme.brandLogoHref} className="navbar-brand" style={style}>
-          <img
+        <Typography.Link
+          href={theme.brandLogoHref}
+          className="navbar-brand"
+          style={style}
+        >
+          <Image
+            preview={false}
             src={theme.brandLogoUrl}
             alt={theme.brandLogoAlt || 'Apache Superset'}
           />
-        </a>
+        </Typography.Link>
       );
     } else if (isFrontendRoute(window.location.pathname)) {
       // ---------------------------------------------------------------------------------
@@ -281,14 +286,18 @@ export function Menu({
       // Kept as is for backwards compatibility with the old theme system / superset_config.py
       link = (
         <GenericLink className="navbar-brand" to={brand.path}>
-          <img src={brand.icon} alt={brand.alt} />
+          <Image preview={false} src={brand.icon} alt={brand.alt} />
         </GenericLink>
       );
     } else {
       link = (
-        <a className="navbar-brand" href={brand.path} tabIndex={-1}>
-          <img src={brand.icon} alt={brand.alt} />
-        </a>
+        <Typography.Link
+          className="navbar-brand"
+          href={brand.path}
+          tabIndex={-1}
+        >
+          <Image preview={false} src={brand.icon} alt={brand.alt} />
+        </Typography.Link>
       );
     }
     // ---------------------------------------------------------------------------------
