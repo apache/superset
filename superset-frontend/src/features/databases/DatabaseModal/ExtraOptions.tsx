@@ -33,7 +33,7 @@ import {
   InfoTooltip,
   type CheckboxChangeEvent,
 } from 'src/components';
-import Typography from 'src/components/Typography';
+import { Typography } from 'src/components/Typography';
 import {
   StyledInputContainer,
   StyledJsonEditor,

@@ -18,13 +18,13 @@
  */
 import { memo, useMemo } from 'react';
 import { t, useTruncation } from '@superset-ui/core';
+import { List } from 'src/components/List';
 import { useFilterScope } from './useFilterScope';
 import {
   Row,
   RowLabel,
   RowTruncationCount,
   RowValue,
-  TooltipList,
   TooltipSectionLabel,
 } from './Styles';
 import { FilterCardRowProps } from './types';
@@ -34,14 +34,14 @@ const getTooltipSection = (items: string[] | undefined, label: string) =>
   Array.isArray(items) && items.length > 0 ? (
     <>
       <TooltipSectionLabel>{label}:</TooltipSectionLabel>
-      <TooltipList>
-        {items.map(item => (
-          <li>{item}</li>
-        ))}
-      </TooltipList>
+      <List
+        size="small"
+        split={false}
+        dataSource={items}
+        renderItem={item => <List.Item>{item}</List.Item>}
+      />
     </>
   ) : null;
-
 export const ScopeRow = memo(({ filter }: FilterCardRowProps) => {
   const scope = useFilterScope(filter);
 

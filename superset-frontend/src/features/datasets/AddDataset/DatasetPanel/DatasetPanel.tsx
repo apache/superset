@@ -18,7 +18,7 @@
  */
 import { t, styled } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
-import { Alert } from 'src/components';
+import { Alert, Image } from 'src/components';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
 // @ts-ignore
 import LOADING_GIF from 'src/assets/images/loading.gif';
@@ -267,7 +267,7 @@ const DatasetPanel = ({
     loader = (
       <LoaderContainer>
         <StyledLoader>
-          <img alt={ALT_LOADING} src={LOADING_GIF} />
+          <Image preview={false} alt={ALT_LOADING} src={LOADING_GIF} />
           <div>{REFRESHING}</div>
         </StyledLoader>
       </LoaderContainer>

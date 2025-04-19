@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { css, styled, SupersetTheme, t } from '@superset-ui/core';
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import cx from 'classnames';
-import { css, styled, SupersetTheme, t } from '@superset-ui/core';
-import { CertifiedBadge } from '../CertifiedBadge';
 import { Tooltip } from '../Tooltip';
+import { CertifiedBadge } from '../CertifiedBadge';
+import { Input, TextAreaRef } from '../Input';
 import type { EditableTitleProps } from './types';
 
 const StyledCertifiedBadge = styled(CertifiedBadge)`
@@ -49,11 +50,8 @@ export function EditableTitle({
   const [isEditing, setIsEditing] = useState(editing);
   const [currentTitle, setCurrentTitle] = useState(title);
   const [lastTitle, setLastTitle] = useState(title);
-  const [contentBoundingRect, setContentBoundingRect] =
-    useState<DOMRect | null>(null);
-  // Used so we can access the DOM element if a user clicks on this component.
 
-  const contentRef = useRef<any | HTMLInputElement | HTMLTextAreaElement>();
+  const contentRef = useRef<TextAreaRef>(null);
 
   useEffect(() => {
     if (title !== currentTitle) {
@@ -63,30 +61,27 @@ export function EditableTitle({
   }, [title]);
 
   useEffect(() => {
-    if (isEditing) {
-      contentRef.current.focus();
-      // move cursor and scroll to the end
-      if (contentRef.current.setSelectionRange) {
-        const { length } = contentRef.current.value;
-        contentRef.current.setSelectionRange(length, length);
-        contentRef.current.scrollLeft = contentRef.current.scrollWidth;
-        contentRef.current.scrollTop = contentRef.current.scrollHeight;
+    if (isEditing && contentRef.current) {
+      const textArea = contentRef.current.resizableTextArea?.textArea;
+      // set focus, move cursor and scroll to the end
+      if (textArea) {
+        textArea.focus();
+        const { length } = textArea.value;
+        textArea.setSelectionRange(length, length);
+        textArea.scrollTop = textArea.scrollHeight;
       }
     }
   }, [isEditing]);
 
   function handleClick() {
-    if (!canEdit || isEditing) {
-      return;
+    if (!canEdit || isEditing) return;
+    const textArea = contentRef.current?.resizableTextArea?.textArea;
+    if (textArea) {
+      textArea.focus();
+      const { length } = textArea.value;
+      textArea.setSelectionRange(length, length);
     }
-
-    // For multi-line values, save the actual rendered size of the displayed text.
-    // Later, if a textarea is constructed for editing the value, we'll need this.
-    const contentBounding = contentRef.current
-      ? contentRef.current.getBoundingClientRect()
-      : null;
     setIsEditing(true);
-    setContentBoundingRect(contentBounding);
   }
 
   function handleBlur() {
@@ -127,17 +122,13 @@ export function EditableTitle({
   }
 
   function handleChange(ev: any) {
-    if (!canEdit) {
-      return;
-    }
+    if (!canEdit) return;
     setCurrentTitle(ev.target.value);
   }
 
-  function handleKeyPress(ev: any) {
-    if (ev.key === 'Enter') {
-      ev.preventDefault();
-      handleBlur();
-    }
+  function handleKeyPress(ev: React.KeyboardEvent) {
+    ev.preventDefault();
+    handleBlur();
   }
 
   let value: string | undefined;
@@ -146,49 +137,28 @@ export function EditableTitle({
     value = defaultTitle || title;
   }
 
-  // Construct an inline style based on previously-saved height of the rendered label. Only
-  // used in multi-line contexts.
-  const editStyle =
-    isEditing && contentBoundingRect
-      ? { height: `${contentBoundingRect.height}px` }
-      : undefined;
+  let titleComponent = (
+    <Input.TextArea
+      data-test="textarea-editable-title-input"
+      ref={contentRef}
+      value={value}
+      className={!title ? 'text-muted' : undefined}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      onPressEnter={handleKeyPress}
+      placeholder={placeholder}
+      variant={isEditing ? 'outlined' : 'borderless'}
+      autoSize
+    />
+  );
 
-  // Create a textarea when we're editing a multi-line value, otherwise create an input (which may
-  // be text or a button).
-  let titleComponent =
-    multiLine && isEditing ? (
-      <textarea
-        data-test="editable-title-input"
-        ref={contentRef}
-        value={value}
-        className={!title ? 'text-muted' : undefined}
-        onKeyDown={handleKeyDown}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        onClick={handleClick}
-        onKeyPress={handleKeyPress}
-        placeholder={placeholder}
-        style={editStyle}
-      />
-    ) : (
-      <input
-        data-test="editable-title-input"
-        ref={contentRef}
-        type={isEditing ? 'text' : 'button'}
-        value={value}
-        className={!title ? 'text-muted' : undefined}
-        onKeyDown={handleKeyDown}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        onClick={handleClick}
-        onKeyPress={handleKeyPress}
-        placeholder={placeholder}
-      />
-    );
   if (showTooltip && !isEditing) {
     titleComponent = (
       <Tooltip
         id="title-tooltip"
+        placement="topLeft"
         title={
           canEdit
             ? t('Click to edit')
@@ -205,7 +175,7 @@ export function EditableTitle({
     titleComponent = url ? (
       <Link
         to={url}
-        data-test="editable-title-input"
+        data-test="link-title"
         css={(theme: SupersetTheme) => css`
           color: ${theme.colorText};
           text-decoration: none;
@@ -218,7 +188,7 @@ export function EditableTitle({
         {value}
       </Link>
     ) : (
-      <span data-test="editable-title-input">{value}</span>
+      <span data-test="span-title">{value}</span>
     );
   }
   return (

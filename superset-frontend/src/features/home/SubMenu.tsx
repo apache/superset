@@ -26,6 +26,7 @@ import { Menu, MenuMode, MainNav } from 'src/components/Menu';
 import { Button, Tooltip, Row, type OnClickHandler } from 'src/components';
 import { Icons } from 'src/components/Icons';
 import { MenuObjectProps } from 'src/types/bootstrapTypes';
+import { Typography } from 'src/components/Typography';
 
 const StyledHeader = styled.div<{ backgroundColor?: string }>`
   background-color: ${({ theme, backgroundColor }) =>
@@ -222,9 +223,9 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
                   })}
                   role="tab"
                 >
-                  <a href={tab.url} onClick={tab.onClick}>
+                  <Typography.Link href={tab.url} onClick={tab.onClick}>
                     {tab.label}
-                  </a>
+                  </Typography.Link>
                 </div>
               </Menu.Item>
             );
@@ -266,9 +267,9 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
                       </MainNav.Item>
                     ) : (
                       <MainNav.Item key={item.label}>
-                        <a href={item.url} onClick={item.onClick}>
+                        <Typography.Link href={item.url} onClick={item.onClick}>
                           {item.label}
-                        </a>
+                        </Typography.Link>
                       </MainNav.Item>
                     );
                   }

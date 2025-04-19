@@ -42,9 +42,11 @@ import {
   Col,
   Input,
   InputNumber,
+  Upload,
+  type UploadChangeParam,
+  type UploadFile,
 } from 'src/components';
 import { Switch, SwitchProps } from 'src/components/Switch';
-import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
 import { Icons } from 'src/components/Icons';
 import rison from 'rison';
 import withToasts from 'src/components/MessageToasts/withToasts';

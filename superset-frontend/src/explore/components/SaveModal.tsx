@@ -41,6 +41,7 @@ import {
   Modal,
   Input,
   Loading,
+  Divider,
 } from 'src/components';
 import { Radio } from 'src/components/Radio';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
@@ -357,7 +358,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             {t('Save as...')}
           </Radio>
         </FormItem>
-        <hr />
+        <Divider />
         <FormItem label={t('Chart name')} required>
           <Input
             name="new_slice_name"

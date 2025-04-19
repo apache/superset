@@ -41,6 +41,7 @@ import {
 import { Menu } from 'src/components/Menu';
 import { Label, Tooltip } from 'src/components';
 import { Icons } from 'src/components/Icons';
+import { Typography } from 'src/components/Typography';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -329,7 +330,10 @@ const RightMenu = ({
     ) : (
       <Menu.Item key={item.name} css={styledChildMenu}>
         {item.url ? (
-          <a href={ensureAppRoot(item.url)}> {item.label} </a>
+          <Typography.Link href={ensureAppRoot(item.url)}>
+            {' '}
+            {item.label}{' '}
+          </Typography.Link>
         ) : (
           item.label
         )}
@@ -480,13 +484,13 @@ const RightMenu = ({
                         {menu.label}
                       </Link>
                     ) : (
-                      <a href={ensureAppRoot(menu.url || '')}>
+                      <Typography.Link href={ensureAppRoot(menu.url || '')}>
                         <i
                           data-test={`menu-item-${menu.label}`}
                           className={`fa ${menu.icon}`}
                         />{' '}
                         {menu.label}
-                      </a>
+                      </Typography.Link>
                     )}
                   </Menu.Item>
                 )
@@ -521,7 +525,9 @@ const RightMenu = ({
                       {isFrontendRoute(child.url) ? (
                         <Link to={child.url || ''}>{menuItemDisplay}</Link>
                       ) : (
-                        <a href={child.url || ''}>{menuItemDisplay}</a>
+                        <Typography.Link href={child.url || ''}>
+                          {menuItemDisplay}
+                        </Typography.Link>
                       )}
                     </Menu.Item>
                   );
@@ -539,11 +545,15 @@ const RightMenu = ({
             <Menu.ItemGroup key="user-section" title={t('User')}>
               {navbarRight.user_info_url && (
                 <Menu.Item key="info">
-                  <a href={navbarRight.user_info_url}>{t('Info')}</a>
+                  <Typography.Link href={navbarRight.user_info_url}>
+                    {t('Info')}
+                  </Typography.Link>
                 </Menu.Item>
               )}
               <Menu.Item key="logout" onClick={handleLogout}>
-                <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
+                <Typography.Link href={navbarRight.user_logout_url}>
+                  {t('Logout')}
+                </Typography.Link>
               </Menu.Item>
             </Menu.ItemGroup>,
           ]}

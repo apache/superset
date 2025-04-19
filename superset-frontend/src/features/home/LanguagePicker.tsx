@@ -19,6 +19,7 @@
 import { MainNav as Menu } from 'src/components/Menu';
 import { styled, css, useTheme } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
+import { Typography } from 'src/components/Typography';
 
 const { SubMenu } = Menu;
 export interface Languages {
@@ -82,7 +83,9 @@ export default function LanguagePicker(props: LanguagePickerProps) {
         >
           <StyledLabel className="f16">
             <i className={`flag ${languages[langKey].flag}`} />
-            <a href={languages[langKey].url}>{languages[langKey].name}</a>
+            <Typography.Link href={languages[langKey].url}>
+              {languages[langKey].name}
+            </Typography.Link>
           </StyledLabel>
         </Menu.Item>
       ))}

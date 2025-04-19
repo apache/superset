@@ -22,8 +22,7 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import Upload from 'src/components/Upload';
-import { Button } from 'src/components';
+import { Button, Upload } from 'src/components';
 
 describe('Upload Component', () => {
   test('renders upload button and triggers file upload', async () => {

@@ -41,13 +41,13 @@ describe('Datasource control', () => {
     cy.get('[data-test="crud-add-table-item"]', { timeout: 10000 }).click();
     cy.wait(1000);
     cy.get(
-      '[data-test="table-content-rows"] [data-test="editable-title-input"]',
+      '[data-test="table-content-rows"] [data-test="textarea-editable-title-input"]',
     )
       .first()
       .click();
 
     cy.get(
-      '[data-test="table-content-rows"] [data-test="editable-title-input"]',
+      '[data-test="table-content-rows"] [data-test="textarea-editable-title-input"]',
     )
       .first()
       .focus();
@@ -75,7 +75,8 @@ describe('Datasource control', () => {
         .contains('Metrics')
         .click();
     });
-    cy.get(`input[value="${newMetricName}"]`)
+    cy.get(`[data-test="textarea-editable-title-input"]`)
+      .contains(newMetricName)
       .closest('tr')
       .find('[data-test="crud-delete-icon"]')
       .click();

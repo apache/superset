@@ -17,6 +17,7 @@
  * under the License.
  */
 import { Tooltip } from '../Tooltip';
+import { Button } from '../Button';
 import type { IconTooltipProps } from './types';
 
 export const IconTooltip = ({
@@ -28,19 +29,17 @@ export const IconTooltip = ({
   tooltip = null,
 }: IconTooltipProps) => {
   const iconTooltip = (
-    <button
-      type="button"
+    <Button
       onClick={onClick}
       style={{
-        background: 'none',
-        border: 'none',
         padding: 0,
         ...style,
       }}
+      buttonStyle="link"
       className={`IconTooltip ${className}`}
     >
       {children}
-    </button>
+    </Button>
   );
   if (tooltip) {
     return (

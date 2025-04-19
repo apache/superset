@@ -17,11 +17,12 @@
  * under the License.
  */
 import { JSONTree } from 'react-json-tree';
-import { styled, t } from '@superset-ui/core';
-
+import { t } from '@superset-ui/core';
 import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
 import { Collapse } from '../Collapse';
 import type { ErrorMessageComponentProps } from './types';
+import { List } from '../List';
+import { Typography } from '../Typography';
 
 interface MarshmallowErrorExtra {
   messages: object;
@@ -31,11 +32,6 @@ interface MarshmallowErrorExtra {
     message: string;
   }[];
 }
-
-const StyledUl = styled.ul`
-  padding-left: ${({ theme }) => theme.sizeUnit * 5}px;
-  padding-top: ${({ theme }) => theme.sizeUnit * 4}px;
-`;
 
 const extractInvalidValues = (messages: object, payload: object): string[] => {
   const invalidValues: string[] = [];
@@ -79,13 +75,15 @@ export function MarshmallowErrorMessage({
 
       {message}
 
-      <StyledUl>
-        {extractInvalidValues(extra.messages, extra.payload).map(
-          (value, index) => (
-            <li key={index}>{value}</li>
-          ),
+      <List
+        size="small"
+        dataSource={extractInvalidValues(extra.messages, extra.payload)}
+        renderItem={(value, index) => (
+          <List.Item key={index}>
+            <Typography.Text>{value}</Typography.Text>
+          </List.Item>
         )}
-      </StyledUl>
+      />
 
       <Collapse
         ghost

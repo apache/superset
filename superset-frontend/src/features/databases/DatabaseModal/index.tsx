@@ -50,8 +50,10 @@ import {
   IconButton,
   InfoTooltip,
   Loading,
+  Upload,
+  type UploadChangeParam,
+  type UploadFile,
 } from 'src/components';
-import Upload, { UploadChangeParam, UploadFile } from 'src/components/Upload';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorAlert } from 'src/components/ImportModal/ErrorAlert';
 import { Icons } from 'src/components/Icons';
