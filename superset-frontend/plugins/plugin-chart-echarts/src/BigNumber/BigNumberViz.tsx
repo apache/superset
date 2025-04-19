@@ -35,6 +35,7 @@ const defaultNumberFormatter = getNumberFormatter();
 
 const PROPORTION = {
   // text size: proportion of the chart container sans trendline
+  METRIC_NAME: 0.125,
   KICKER: 0.1,
   HEADER: 0.3,
   SUBHEADER: 0.125,
@@ -49,6 +50,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     formatTime: getTimeFormatter(SMART_DATE_VERBOSE_ID),
     headerFontSize: PROPORTION.HEADER,
     kickerFontSize: PROPORTION.KICKER,
+    metricNameFontSize: PROPORTION.METRIC_NAME,
+    showMetricName: true,
     mainColor: BRAND_COLOR,
     showTimestamp: false,
     showTrendLine: false,
@@ -89,6 +92,38 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       >
         {t('Not up to date')}
       </span>
+    );
+  }
+
+  renderMetricName(maxHeight: number) {
+    const { metricName, width, showMetricName } = this.props;
+    if (!showMetricName || !metricName) return null;
+
+    const text = metricName;
+
+    const container = this.createTemporaryContainer();
+    document.body.append(container);
+    const fontSize = computeMaxFontSize({
+      text,
+      maxWidth: width,
+      maxHeight,
+      className: 'metric-name',
+      container,
+    });
+    container.remove();
+
+    if (!showMetricName || !metricName) return null;
+
+    return (
+      <div
+        className="metric-name"
+        style={{
+          fontSize,
+          height: 'auto',
+        }}
+      >
+        {text}
+      </div>
     );
   }
 
@@ -212,7 +247,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
           className="subtitle-line"
           style={{
             fontSize,
-            height: maxHeight,
+            height: 'auto',
           }}
         >
           {subtitle}
@@ -275,6 +310,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       kickerFontSize,
       headerFontSize,
       subtitleFontSize,
+      metricNameFontSize,
     } = this.props;
     const className = this.getClassName();
 
@@ -286,6 +322,11 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         <div className={className}>
           <div className="text-container" style={{ height: allTextHeight }}>
             {this.renderFallbackWarning()}
+            {this.renderMetricName(
+              Math.ceil(
+                (metricNameFontSize || 0) * (1 - PROPORTION.TRENDLINE) * height,
+              ),
+            )}
             {this.renderKicker(
               Math.ceil(
                 (kickerFontSize || 0) * (1 - PROPORTION.TRENDLINE) * height,
@@ -306,6 +347,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     return (
       <div className={className} style={{ height }}>
         {this.renderFallbackWarning()}
+        {this.renderMetricName((metricNameFontSize || 0) * height)}
         {this.renderKicker((kickerFontSize || 0) * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}
         {this.renderSubtitle(Math.ceil(subtitleFontSize * height))}
@@ -328,10 +370,9 @@ export default styled(BigNumberVis)`
     }
 
     .text-container {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: flex-start;
+      box-sizing: border-box;
+      overflow-y: auto;
+      width: 100%;
       .alert {
         font-size: ${theme.typography.sizes.s};
         margin: -0.5em 0 0.4em;
@@ -343,8 +384,14 @@ export default styled(BigNumberVis)`
 
     .kicker {
       line-height: 1em;
-      padding-bottom: 2em;
+      white-space: nowrap;
+      margin-bottom: ${theme.gridUnit * 2}px;
     }
+    .metric-name {
+     line-height: 1em;
+     white-space: nowrap;
+     margin-bottom: ${theme.gridUnit * 2}px;
+   }
 
     .header-line {
       position: relative;
@@ -359,12 +406,12 @@ export default styled(BigNumberVis)`
 
     .subheader-line {
       line-height: 1em;
-      padding-bottom: 0.3em;
+      margin-bottom: ${theme.gridUnit * 2}px;
     }
 
     .subtitle-line {
       line-height: 1em;
-      padding-top: 0.3em;
+      white-space: nowrap;
     }
 
     &.is-fallback-value {
