@@ -996,9 +996,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             body = GetOrCreateDatasetSchema().load(request.json)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
+        schema_name = body.get("schema")
         table_name = body["table_name"]
         database_id = body["database_id"]
-        if table := DatasetDAO.get_table_by_name(database_id, table_name):
+
+        if table := DatasetDAO.get_table_by_schema_and_name(
+            database_id, schema_name, table_name
+        ):
             return self.response(200, result={"table_id": table.id})
 
         body["database"] = database_id
