@@ -30,6 +30,7 @@ import Loading from 'src/components/Loading';
 import EditorAutoSync from 'src/SqlLab/components/EditorAutoSync';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { LocationProvider } from './LocationContext';
+import { initializeExtensions } from 'src/extensions/slice';
 
 export default function SqlLab() {
   const lastInitializedAt = useSelector<SqlLabRootState, number>(
@@ -53,6 +54,10 @@ export default function SqlLab() {
       initBootstrapData(data);
     }
   }, [data, initBootstrapData]);
+
+  useEffect(() => {
+    dispatch(initializeExtensions('sqllab'));
+  }, [dispatch]);
 
   if (isLoading || shouldInitialize) return <Loading />;
 

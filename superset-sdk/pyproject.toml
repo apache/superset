@@ -1,0 +1,29 @@
+
+[project]
+name = "apache-superset-sdk"
+version = "0.0.1"
+description = "SDK to build Apache Superset extensions"
+authors = [
+    { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
+]
+license = { file="LICENSE.txt" }
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "typer[all]>=0.15.2",
+    "tomli>=2.2.1; python_version < '3.11'"
+]
+
+[build-system]
+requires = ["setuptools>=76.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["superset_sdk"]
+package-dir = { "" = "src" }
+
+[project.scripts]
+superset-sdk = "superset_sdk.cli:main"

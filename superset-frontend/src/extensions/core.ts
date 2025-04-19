@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
-import { Avatar } from 'src/components/Avatar';
+import { core as coreType } from '@apache-superset/types';
+import { getExtensionsContextValue } from './ExtensionsContextUtils';
 
-test('renders with default props', async () => {
-  const { container } = render(<Avatar />);
+const registerView: typeof coreType.registerView = (id, view) => {
+  const { registerView: register } = getExtensionsContextValue();
+  register(id, view);
+};
 
-  expect(container).toBeInTheDocument();
-});
+export const core = {
+  registerView,
+};
