@@ -38,6 +38,7 @@ import Table, {
   SorterResult,
   TablePaginationConfig,
 } from '../Table';
+import { FilterValue } from 'react-table';
 
 const CrudButtonWrapper = styled.div`
   text-align: right;
@@ -210,8 +211,8 @@ export default class CRUDCollection extends PureComponent<
 
   handleTableChange(
     _pagination: TablePaginationConfig,
-    _filters: object[],
-    sorter: SorterResult,
+    _filters: Record<string, FilterValue | null>,
+    sorter: SorterResult<CollectionItem> | SorterResult<CollectionItem>[],
   ) {
     const columnSorter = Array.isArray(sorter) ? sorter[0] : sorter;
     let newSortColumn = '';
