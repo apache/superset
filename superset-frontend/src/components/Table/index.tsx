@@ -44,6 +44,8 @@ export enum ETableAction {
 }
 
 export type { ColumnsType };
+export type { TablePaginationConfig } from 'antd-v5/es/table';
+export type { SorterResult } from 'antd-v5/es/table/interface';
 export type OnChangeFunction<RecordType> =
   AntTableProps<RecordType>['onChange'];
 
