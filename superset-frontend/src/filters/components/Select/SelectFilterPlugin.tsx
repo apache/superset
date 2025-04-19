@@ -29,23 +29,29 @@ import {
   finestTemporalGrainFormatter,
   t,
   tn,
+  styled,
 } from '@superset-ui/core';
-import { debounce } from 'lodash';
+import { debounce, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
-import { Select, FormItem, type LabeledValue } from 'src/components';
+import { FormItem, LabeledValue, Select } from 'src/components';
+import { Space } from 'src/components/Space';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { PluginFilterSelectProps, SelectValue } from './types';
-import { FilterPluginStyle, StatusMessage } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
+import { FilterPluginStyle, StatusMessage } from '../common';
+import { PluginFilterSelectProps, SelectValue } from './types';
 
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
   | {
       type: 'filterState';
       extraFormData: ExtraFormData;
-      filterState: { value: SelectValue; label?: string };
+      filterState: {
+        value: SelectValue;
+        label?: string;
+        excludeFilterValues?: boolean;
+      };
     };
 
 function reducer(draft: DataMask, action: DataMaskAction) {
@@ -74,6 +80,24 @@ function reducer(draft: DataMask, action: DataMaskAction) {
       return draft;
   }
 }
+
+const StyledSpace = styled(Space)<{ $inverseSelection: boolean }>`
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  .exclude-select {
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  &.antd5-space {
+    .antd5-space-item {
+      width: ${({ $inverseSelection }) =>
+        !$inverseSelection ? '100%' : 'auto'};
+    }
+  }
+`;
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
@@ -105,6 +129,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     defaultToFirstItem,
     searchAllOptions,
   } = formData;
+
   const groupby = useMemo(
     () => ensureIsArray(formData.groupby).map(getColumnLabel),
     [formData.groupby],
@@ -124,6 +149,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       }),
     [data, col],
   );
+  const [excludeFilterValues, setExcludeFilterValues] = useState(
+    isUndefined(filterState?.excludeFilterValues)
+      ? true
+      : filterState?.excludeFilterValues,
+  );
 
   const updateDataMask = useCallback(
     (values: SelectValue) => {
@@ -137,7 +167,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           col,
           values,
           emptyFilter,
-          inverseSelection,
+          excludeFilterValues && inverseSelection,
         ),
         filterState: {
           ...filterState,
@@ -150,6 +180,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             appSection === AppSection.FilterConfigModal && defaultToFirstItem
               ? undefined
               : values,
+          excludeFilterValues,
         },
       });
     },
@@ -162,6 +193,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       dispatchDataMask,
       enableEmptyFilter,
       inverseSelection,
+      excludeFilterValues,
       JSON.stringify(filterState),
       labelFormatter,
     ],
@@ -276,6 +308,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     defaultToFirstItem,
     enableEmptyFilter,
     inverseSelection,
+    excludeFilterValues,
     updateDataMask,
     data,
     groupby,
@@ -286,45 +319,82 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
 
+  useEffect(() => {
+    dispatchDataMask({
+      type: 'filterState',
+      extraFormData: getSelectExtraFormData(
+        col,
+        filterState.value,
+        !filterState.value?.length,
+        excludeFilterValues && inverseSelection,
+      ),
+      filterState: {
+        ...(filterState as {
+          value: SelectValue;
+          label?: string;
+          excludeFilterValues?: boolean;
+        }),
+        excludeFilterValues,
+      },
+    });
+  }, [excludeFilterValues]);
+
+  const handleExclusionToggle = (value: string) => {
+    setExcludeFilterValues(value === 'true');
+  };
+
   return (
     <FilterPluginStyle height={height} width={width}>
       <FormItem
         validateStatus={filterState.validateStatus}
         extra={formItemExtra}
       >
-        <Select
-          name={formData.nativeFilterId}
-          allowClear
-          allowNewOptions={!searchAllOptions && creatable !== false}
-          allowSelectAll={!searchAllOptions}
-          // @ts-ignore
-          value={filterState.value || []}
-          disabled={isDisabled}
-          getPopupContainer={
-            showOverflow
-              ? () => (parentRef?.current as HTMLElement) || document.body
-              : (trigger: HTMLElement) =>
-                  (trigger?.parentNode as HTMLElement) || document.body
-          }
-          showSearch={showSearch}
-          mode={multiSelect ? 'multiple' : 'single'}
-          placeholder={placeholderText}
-          onClear={() => onSearch('')}
-          onSearch={onSearch}
-          onBlur={handleBlur}
-          onFocus={setFocusedFilter}
-          onMouseEnter={setHoveredFilter}
-          onMouseLeave={unsetHoveredFilter}
-          // @ts-ignore
-          onChange={handleChange}
-          ref={inputRef}
-          loading={isRefreshing}
-          oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
-          invertSelection={inverseSelection}
-          options={options}
-          sortComparator={sortComparator}
-          onDropdownVisibleChange={setFilterActive}
-        />
+        <StyledSpace $inverseSelection={inverseSelection}>
+          {inverseSelection && (
+            <Select
+              className="exclude-select"
+              value={`${excludeFilterValues}`}
+              options={[
+                { value: 'true', label: t('is not') },
+                { value: 'false', label: t('is') },
+              ]}
+              onChange={handleExclusionToggle}
+            />
+          )}
+          <Select
+            name={formData.nativeFilterId}
+            allowClear
+            allowNewOptions={!searchAllOptions && creatable !== false}
+            allowSelectAll={!searchAllOptions}
+            value={filterState.value || []}
+            disabled={isDisabled}
+            getPopupContainer={
+              showOverflow
+                ? () => (parentRef?.current as HTMLElement) || document.body
+                : (trigger: HTMLElement) =>
+                    (trigger?.parentNode as HTMLElement) || document.body
+            }
+            showSearch={showSearch}
+            mode={multiSelect ? 'multiple' : 'single'}
+            placeholder={placeholderText}
+            onClear={() => onSearch('')}
+            onSearch={onSearch}
+            onBlur={handleBlur}
+            onFocus={setFocusedFilter}
+            onMouseEnter={setHoveredFilter}
+            onMouseLeave={unsetHoveredFilter}
+            // @ts-ignore
+            onChange={handleChange}
+            ref={inputRef}
+            loading={isRefreshing}
+            oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
+            invertSelection={inverseSelection && excludeFilterValues}
+            options={options}
+            sortComparator={sortComparator}
+            onDropdownVisibleChange={setFilterActive}
+            className="select-container"
+          />
+        </StyledSpace>
       </FormItem>
     </FilterPluginStyle>
   );

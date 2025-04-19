@@ -23,7 +23,6 @@ import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
 } from 'antd-v5/es/select';
-import { TagProps } from 'antd-v5/es/tag';
 import { Interpolation, Theme } from '@emotion/react';
 
 export type RawValue = string | number;
@@ -77,6 +76,10 @@ export type AntdExposedProps = Pick<
 export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;
 
 export interface BaseSelectProps extends AntdExposedProps {
+  /**
+   * Optional CSS class name to apply to the select container
+   */
+  className?: string;
   /**
    * It enables the user to create new options.
    * Can be used with standard or async select types.
@@ -227,9 +230,3 @@ export interface AsyncSelectProps extends BaseSelectProps {
    */
   onError?: (error: string) => void;
 }
-
-export type CustomTagProps = HTMLSpanElement &
-  TagProps & {
-    label: ReactNode;
-    value: string;
-  };

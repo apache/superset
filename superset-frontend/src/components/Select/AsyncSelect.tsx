@@ -85,7 +85,6 @@ import {
   TOKEN_SEPARATORS,
   DEFAULT_SORT_COMPARATOR,
 } from './constants';
-import { customTagRender } from './CustomTag';
 
 const Error = ({ error }: { error: string }) => (
   <StyledError>
@@ -635,7 +634,6 @@ const AsyncSelect = forwardRef(
             )
           }
           oneLine={oneLine}
-          tagRender={customTagRender}
           {...props}
           ref={ref}
         />

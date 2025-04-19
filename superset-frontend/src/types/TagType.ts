@@ -26,6 +26,7 @@ export interface TagType {
   editable?: boolean;
   onDelete?: (index: number) => void;
   onClick?: MouseEventHandler<HTMLSpanElement>;
+  onMouseDown?: MouseEventHandler<HTMLSpanElement>;
   onClose?: () => void;
   color?: string;
   name?: string;

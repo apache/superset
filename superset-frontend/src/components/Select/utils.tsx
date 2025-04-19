@@ -159,6 +159,7 @@ export const dropDownRenderHelper = (
   optionsLength: number,
   helperText: string | undefined,
   errorComponent?: JSX.Element,
+  bulkSelectComponents?: JSX.Element,
 ) => {
   if (!isDropdownVisible) {
     originNode.ref?.current?.scrollTo({ top: 0 });
@@ -175,6 +176,7 @@ export const dropDownRenderHelper = (
         <StyledHelperText role="note">{helperText}</StyledHelperText>
       )}
       {originNode}
+      {bulkSelectComponents}
     </>
   );
 };

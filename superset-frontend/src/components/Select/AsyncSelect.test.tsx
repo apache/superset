@@ -123,10 +123,6 @@ const findSelectValue = () =>
 const findAllSelectValues = () =>
   waitFor(() => getElementsByClassName('.ant-select-selection-item'));
 
-// Tag sets classname manually.
-const findAllTagSelectValues = () =>
-  waitFor(() => [...getElementsByClassName('.antd5-select-selection-item')]);
-
 const clearAll = () => userEvent.click(screen.getByLabelText('close-circle'));
 
 const matchOrder = async (expectedLabels: string[]) => {
@@ -392,7 +388,7 @@ test('removes duplicated values', async () => {
   });
   fireEvent(input, paste);
   await waitFor(async () => {
-    const values = await findAllTagSelectValues();
+    const values = await findAllSelectValues();
     expect(values.length).toBe(4);
     expect(values[0]).toHaveTextContent('a');
     expect(values[1]).toHaveTextContent('b');
@@ -491,7 +487,7 @@ test('adds the null option when selected in multiple mode', async () => {
   await open();
   userEvent.click(await findSelectOption(OPTIONS[0].label));
   userEvent.click(await findSelectOption(NULL_OPTION.label));
-  const values = await findAllTagSelectValues();
+  const values = await findAllSelectValues();
   expect(values[0]).toHaveTextContent(OPTIONS[0].label);
   expect(values[1]).toHaveTextContent(NULL_OPTION.label);
 });
@@ -537,7 +533,7 @@ test('multiple selections in multiple mode', async () => {
   const [firstOption, secondOption] = OPTIONS;
   userEvent.click(await findSelectOption(firstOption.label));
   userEvent.click(await findSelectOption(secondOption.label));
-  const values = await findAllTagSelectValues();
+  const values = await findAllSelectValues();
   expect(values[0]).toHaveTextContent(firstOption.label);
   expect(values[1]).toHaveTextContent(secondOption.label);
 });
@@ -589,14 +585,14 @@ test('deselects an item in multiple mode', async () => {
   expect(options[0]).toHaveTextContent(option3.label);
   expect(options[1]).toHaveTextContent(option8.label);
 
-  let values = await findAllTagSelectValues();
+  let values = await findAllSelectValues();
   expect(values).toHaveLength(2);
   // should keep the order by which the options were selected
   expect(values[0]).toHaveTextContent(option8.label);
   expect(values[1]).toHaveTextContent(option3.label);
 
   userEvent.click(await findSelectOption(option3.label));
-  values = await findAllTagSelectValues();
+  values = await findAllSelectValues();
   expect(values.length).toBe(1);
   expect(values[0]).toHaveTextContent(option8.label);
 });
@@ -654,7 +650,7 @@ test('sets a initial value in multiple mode', async () => {
       value={[OPTIONS[0], OPTIONS[1]]}
     />,
   );
-  const values = await findAllTagSelectValues();
+  const values = await findAllSelectValues();
   expect(values[0]).toHaveTextContent(OPTIONS[0].label);
   expect(values[1]).toHaveTextContent(OPTIONS[1].label);
 });
