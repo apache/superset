@@ -35,7 +35,7 @@ module.exports = {
   },
   plugins: [
     new ModuleFederationPlugin({
-      name: 'extension1',
+      name: packageConfig.name,
       filename: 'remoteEntry.js',
       exposes: {
         './index': './src/index.tsx',

@@ -60,6 +60,7 @@ export const initializeExtensions = createAsyncThunk(
 
         const factory = await container.get(exposedModules[0]);
         const Module = factory();
+
         return {
           ...extension,
           activate: Module.activate,
@@ -74,7 +75,11 @@ export const initializeExtensions = createAsyncThunk(
       // Activate each extension
       loadedExtensions.forEach(extension => {
         if (extension.activate) {
-          extension.activate();
+          try {
+            extension.activate();
+          } catch (err) {
+            console.error(`Error activating ${extension.name}`, err);
+          }
         }
       });
 
