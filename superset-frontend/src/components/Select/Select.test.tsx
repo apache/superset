@@ -123,10 +123,12 @@ const matchOrder = async (expectedLabels: string[]) => {
   return true;
 };
 
-const type = (text: string) => {
+const type = (text: string, delay?: number, clear = true) => {
   const select = getSelect();
-  userEvent.clear(select);
-  return userEvent.type(select, text, { delay: 10 });
+  if (clear) {
+    userEvent.clear(select);
+  }
+  return userEvent.type(select, text, { delay: delay ?? 10 });
 };
 
 const clearTypedText = () => {
@@ -1015,6 +1017,29 @@ test('does not fire onChange if the same value is selected in single mode', asyn
   expect(onChange).toHaveBeenCalledTimes(1);
   userEvent.click(await findSelectOption(optionText));
   expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+// Reference for the bug this tests: https://github.com/apache/superset/pull/33043#issuecomment-2809419640
+test('typing and deleting the last character for a new option displays correctly', async () => {
+  jest.useFakeTimers();
+  render(<Select {...defaultProps} allowNewOptions />);
+
+  await open();
+  await type('aaa', 0, false);
+
+  jest.runAllTimers();
+
+  await type('{backspace}', 0, false);
+  await type('a', 0, false);
+
+  jest.runAllTimers();
+
+  expect(
+    screen.queryByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).not.toBeInTheDocument();
+  expect(await findSelectOption('aaa')).toBeInTheDocument();
+
+  jest.useRealTimers();
 });
 
 /*
