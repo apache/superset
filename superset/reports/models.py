@@ -212,50 +212,43 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         column_name: str,
         values: list[Optional[str]],
     ) -> dict[str, Any]:
-        
         if filter_type == "filter_time":
             # For select filters, we need to use the "IN" operator
             return {
                 native_filter_id or "": {
                     "id": native_filter_id or "",
-                    "extraFormData": {
-                        "time_range": values[0]
-                    },
-                    "filterState": {
-                        "value": values[0]
-                    },
+                    "extraFormData": {"time_range": values[0]},
+                    "filterState": {"value": values[0]},
                     "ownState": {},
                 }
-                
             }
         elif filter_type == "filter_timegrain":
             return {
                 native_filter_id or "": {
                     "id": native_filter_id or "",
                     "extraFormData": {
-                        "time_grain_sqla": values[0], # grain
+                        "time_grain_sqla": values[0],  # grain
                     },
                     "filterState": {
                         # "label": "30 second", # grain_label
-                        "value": values # grain
+                        "value": values  # grain
                     },
                     "ownState": {},
                 }
-                
             }
-        
+
         elif filter_type == "filter_timecolumn":
             return {
-                native_filter_id or "" : {
+                native_filter_id or "": {
                     "extraFormData": {
-                         "granularity_sqla": values[0] # column_name
+                        "granularity_sqla": values[0]  # column_name
                     },
                     "filterState": {
-                        "value": values # column_name
+                        "value": values  # column_name
                     },
                 }
             }
-        
+
         elif filter_type == "filter_select":
             return {
                 native_filter_id or "": {
@@ -273,6 +266,8 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                     "ownState": {},
                 }
             }
+
+        return {}
 
 
 class ReportRecipients(Model, AuditMixinNullable):

@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import pytest
+
 from superset.reports.models import ReportSchedule
 
 
@@ -115,11 +117,8 @@ def test_get_native_filters_params_invalid_structure():
         }
     }
 
-    try:
+    with pytest.raises(KeyError, match="'filterValues'"):
         report_schedule.get_native_filters_params()
-        assert False, "Expected KeyError but none was raised"
-    except KeyError as e:
-        assert str(e) == "'filterValues'"
 
 
 # todo(hugh): how do we want to handle this case?
