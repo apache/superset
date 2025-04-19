@@ -426,10 +426,9 @@ export default styled(BigNumberVis)`
     }
 
     .text-container {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: flex-start;
+      box-sizing: border-box;
+      overflow-y: auto;
+      width: 100%;
       .alert {
         font-size: ${theme.typography.sizes.s};
         margin: -0.5em 0 0.4em;
@@ -441,7 +440,8 @@ export default styled(BigNumberVis)`
 
     .kicker {
       line-height: 1em;
-      padding-bottom: 2em;
+      white-space: nowrap;
+      margin-bottom: ${theme.gridUnit * 2}px;
     }
     .metric-name {
      line-height: 1em;
