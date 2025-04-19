@@ -24,6 +24,7 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { t, styled } from '@superset-ui/core';
 
 import { Icons } from 'src/components/Icons';
+import { FilterValue } from 'react-table';
 import { Button } from '../Button';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
@@ -38,7 +39,6 @@ import Table, {
   SorterResult,
   TablePaginationConfig,
 } from '../Table';
-import { FilterValue } from 'react-table';
 
 const CrudButtonWrapper = styled.div`
   text-align: right;
@@ -136,11 +136,11 @@ export default class CRUDCollection extends PureComponent<
   onAddItem() {
     if (this.props.itemGenerator) {
       let newItem = this.props.itemGenerator();
-      const shouldStartExpanded = newItem.__expanded === true;
+      const shouldStartExpanded = newItem.expanded === true;
       if (!newItem.id) {
         newItem = { ...newItem, id: nanoid() };
       }
-      delete newItem.__expanded;
+      delete newItem.expanded;
 
       const newCollection = {
         ...this.state.collection,

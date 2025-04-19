@@ -1458,7 +1458,7 @@ class DatasourceEditor extends PureComponent {
                       filterable: true,
                       groupby: true,
                       expression: t('<enter SQL expression here>'),
-                      __expanded: true,
+                      expanded: true,
                     })}
                   />
                 </StyledColumnsTabWrapper>
