@@ -17,7 +17,6 @@
     "react": "^17.0.2"
   },
   "devDependencies": {
-    "@apache-superset/superset-extensions-sdk": "file:../../../packages/superset-extensions-sdk",
     "@types/react": "^19.0.10",
     "ts-loader": "^9.5.2",
     "typescript": "^5.8.2",

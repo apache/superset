@@ -28,7 +28,7 @@
 
 # Maps are a finicky contribution process we care about
 
-**/*.geojson @villebro @rusackas
+\*_/_.geojson @villebro @rusackas
 /superset-frontend/plugins/legacy-plugin-chart-country-map/ @villebro @rusackas
 
 # Notify some committers of changes in extensions
