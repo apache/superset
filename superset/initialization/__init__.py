@@ -424,15 +424,21 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def init_extensions(self) -> None:
         from superset.daos.extension import ExtensionDAO
 
-        extensions = ExtensionDAO.get_enabled_extensions()
-        for extension in extensions:
-            if backend_files := extension.backend_dict:
-                install_in_memory_importer(backend_files)
+        try:
+            extensions = ExtensionDAO.get_enabled_extensions()
+            for extension in extensions:
+                if backend_files := extension.backend_dict:
+                    install_in_memory_importer(backend_files)
 
-            backend = extension.manifest_dict.get("backend")
-            if backend and (entrypoints := backend.get("entryPoints")):
-                for entrypoint in entrypoints:
-                    eager_import(entrypoint)
+                backend = extension.manifest_dict.get("backend")
+                if backend and (entrypoints := backend.get("entryPoints")):
+                    for entrypoint in entrypoints:
+                        eager_import(entrypoint)
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
+            # if the db hasn't been initialized yet, an exception will be raised.
+            # It's fine to ignore this, as in this case there are no extensions present
+            # yet.
+            pass
 
     def init_app_in_ctx(self) -> None:
         """
