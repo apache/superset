@@ -55,6 +55,7 @@ from superset.extensions import (
     stats_logger_manager,
     talisman,
 )
+from superset.extensions.utils import eager_import, install_in_memory_importer
 from superset.security import SupersetSecurityManager
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
@@ -420,6 +421,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-lock",
         )
 
+    def init_extensions(self) -> None:
+        from superset.daos.extension import ExtensionDAO
+
+        extensions = ExtensionDAO.get_enabled_extensions()
+        for extension in extensions:
+            if backend_files := extension.backend_dict:
+                install_in_memory_importer(backend_files)
+
+            backend = extension.manifest_dict.get("backend")
+            if backend and (entrypoints := backend.get("entryPoints")):
+                for entrypoint in entrypoints:
+                    eager_import(entrypoint)
+
     def init_app_in_ctx(self) -> None:
         """
         Runs init logic in the context of the app
@@ -441,6 +455,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             register_sqla_event_listeners()
 
         self.init_views()
+        self.init_extensions()
 
     def check_secret_key(self) -> None:
         def log_default_secret_key_warning() -> None:

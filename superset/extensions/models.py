@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
+from typing import Any
 
 from flask_appbuilder import Model
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
@@ -39,3 +41,11 @@ class Extension(AuditMixinNullable, ImportExportMixin, Model):
     changed_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     created_by = relationship(security_manager.user_model, foreign_keys=[created_by_fk])
     changed_by = relationship(security_manager.user_model, foreign_keys=[changed_by_fk])
+
+    @property
+    def backend_dict(self) -> dict[str, str] | None:
+        return json.loads(self.backend) if self.backend else None
+
+    @property
+    def manifest_dict(self) -> dict[str, Any]:
+        return json.loads(self.manifest)

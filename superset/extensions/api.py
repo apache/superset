@@ -60,7 +60,7 @@ class ExtensionsRestApi(BaseSupersetApi):
                 module_federation = frontend.get("moduleFederation", {})
                 extension_data.update(
                     {
-                        "remoteEntry": f"http://localhost:9000/api/v1/extensions/{extension.name}/remoteEntry.js",
+                        "remoteEntry": f"/api/v1/extensions/{extension.name}/remoteEntry.js",  # noqa: E501
                         "exposedModules": module_federation.get("exposes", []),
                         "files": frontend_files,
                         "contributions": frontend.get("contributions", {}),

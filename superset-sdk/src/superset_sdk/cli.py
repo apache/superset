@@ -50,8 +50,8 @@ def bundle() -> None:
         "moduleFederation": frontend.get("moduleFederation", {}),
     }
     manifest["backend"] = {}
-    if entry_point := backend.get("entryPoint", ""):
-        manifest["backend"]["entryPoint"] = entry_point
+    if entry_points := backend.get("entryPoints", ""):
+        manifest["backend"]["entryPoints"] = entry_points
 
     try:
         with TemporaryDirectory() as temp_dir:
