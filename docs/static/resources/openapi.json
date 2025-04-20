@@ -258,7 +258,8 @@
               "",
               "opacityLow",
               "opacityMedium",
-              "opacityHigh"
+              "opacityHigh",
+              null
             ],
             "nullable": true,
             "type": "string"
@@ -677,132 +678,6 @@
         },
         "type": "object"
       },
-      "CSVMetadataUploadFilePostSchema": {
-        "properties": {
-          "delimiter": {
-            "description": "The delimiter of the CSV file",
-            "type": "string"
-          },
-          "file": {
-            "description": "The file to upload",
-            "format": "binary",
-            "type": "string"
-          },
-          "header_row": {
-            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "type": "object"
-      },
-      "CSVUploadPostSchema": {
-        "properties": {
-          "already_exists": {
-            "default": "fail",
-            "description": "What to do if the table already exists accepts: fail, replace, append",
-            "enum": [
-              "fail",
-              "replace",
-              "append"
-            ],
-            "type": "string"
-          },
-          "column_data_types": {
-            "description": "A dictionary with column names and their data types if you need to change the defaults. Example: {'user_id':'int'}. Check Python Pandas library for supported data types",
-            "type": "string"
-          },
-          "column_dates": {
-            "description": "A list of column names that should be parsed as dates. Example: date,timestamp",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "columns_read": {
-            "description": "A List of the column names that should be read",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "dataframe_index": {
-            "description": "Write dataframe index as a column.",
-            "type": "boolean"
-          },
-          "day_first": {
-            "description": "DD/MM format dates, international and European format",
-            "type": "boolean"
-          },
-          "decimal_character": {
-            "description": "Character to recognize as decimal point. Default is '.'",
-            "type": "string"
-          },
-          "delimiter": {
-            "description": "The delimiter of the CSV file",
-            "type": "string"
-          },
-          "file": {
-            "description": "The CSV file to upload",
-            "format": "text/csv",
-            "type": "string"
-          },
-          "header_row": {
-            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
-            "type": "integer"
-          },
-          "index_column": {
-            "description": "Column to use as the row labels of the dataframe. Leave empty if no index column",
-            "type": "string"
-          },
-          "index_label": {
-            "description": "Index label for index column.",
-            "type": "string"
-          },
-          "null_values": {
-            "description": "A list of strings that should be treated as null. Examples: '' for empty strings, 'None', 'N/A',Warning: Hive database supports only a single value",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "rows_to_read": {
-            "description": "Number of rows to read from the file. If None, reads all rows.",
-            "minimum": 1,
-            "nullable": true,
-            "type": "integer"
-          },
-          "schema": {
-            "description": "The schema to upload the data file to.",
-            "type": "string"
-          },
-          "skip_blank_lines": {
-            "description": "Skip blank lines in the CSV file.",
-            "type": "boolean"
-          },
-          "skip_initial_space": {
-            "description": "Skip spaces after delimiter.",
-            "type": "boolean"
-          },
-          "skip_rows": {
-            "description": "Number of rows to skip at start of file.",
-            "type": "integer"
-          },
-          "table_name": {
-            "description": "The name of the table to be created/appended",
-            "maxLength": 10000,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "file",
-          "table_name"
-        ],
-        "type": "object"
-      },
       "CacheInvalidationRequestSchema": {
         "properties": {
           "datasource_uids": {
@@ -878,6 +753,14 @@
           },
           "image_url": {
             "description": "The url to fetch the screenshot",
+            "type": "string"
+          },
+          "task_status": {
+            "description": "The status of the async screenshot",
+            "type": "string"
+          },
+          "task_updated_at": {
+            "description": "The timestamp of the last change in status",
             "type": "string"
           }
         },
@@ -1179,7 +1062,8 @@
               "1969-12-28T00:00:00Z/P1W",
               "1969-12-29T00:00:00Z/P1W",
               "P1W/1970-01-03T00:00:00Z",
-              "P1W/1970-01-04T00:00:00Z"
+              "P1W/1970-01-04T00:00:00Z",
+              null
             ],
             "example": "P1D",
             "nullable": true,
@@ -1661,7 +1545,8 @@
               "samples",
               "timegrains",
               "post_processed",
-              "drill_detail"
+              "drill_detail",
+              null
             ],
             "nullable": true
           },
@@ -2098,6 +1983,11 @@
           "url": {
             "readOnly": true
           },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "viz_type": {
             "maxLength": 250,
             "nullable": true,
@@ -2376,7 +2266,8 @@
               "dataset",
               "query",
               "saved_query",
-              "view"
+              "view",
+              null
             ],
             "nullable": true,
             "type": "string"
@@ -2918,6 +2809,11 @@
           "url": {
             "readOnly": true
           },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "viz_type": {
             "maxLength": 250,
             "nullable": true,
@@ -3196,7 +3092,8 @@
               "dataset",
               "query",
               "saved_query",
-              "view"
+              "view",
+              null
             ],
             "nullable": true,
             "type": "string"
@@ -3263,68 +3160,6 @@
             "type": "string"
           }
         },
-        "type": "object"
-      },
-      "ColumnarMetadataUploadFilePostSchema": {
-        "properties": {
-          "file": {
-            "description": "The file to upload",
-            "format": "binary",
-            "type": "string"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "type": "object"
-      },
-      "ColumnarUploadPostSchema": {
-        "properties": {
-          "already_exists": {
-            "default": "fail",
-            "description": "What to do if the table already exists accepts: fail, replace, append",
-            "enum": [
-              "fail",
-              "replace",
-              "append"
-            ],
-            "type": "string"
-          },
-          "columns_read": {
-            "description": "A List of the column names that should be read",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "dataframe_index": {
-            "description": "Write dataframe index as a column.",
-            "type": "boolean"
-          },
-          "file": {
-            "description": "The Columnar file to upload",
-            "format": "binary",
-            "type": "string"
-          },
-          "index_label": {
-            "description": "Index label for index column.",
-            "type": "string"
-          },
-          "schema": {
-            "description": "The schema to upload the data file to.",
-            "type": "string"
-          },
-          "table_name": {
-            "description": "The name of the table to be created/appended",
-            "maxLength": 10000,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "file",
-          "table_name"
-        ],
         "type": "object"
       },
       "CssTemplateRestApi.get": {
@@ -3504,6 +3339,14 @@
           },
           "image_url": {
             "description": "The url to fetch the screenshot",
+            "type": "string"
+          },
+          "task_status": {
+            "description": "The status of the async screenshot",
+            "type": "string"
+          },
+          "task_updated_at": {
+            "description": "The timestamp of the last change in status",
             "type": "string"
           }
         },
@@ -3769,6 +3612,7 @@
             "type": "array"
           },
           "thumbnail_url": {
+            "nullable": true,
             "type": "string"
           },
           "url": {
@@ -3845,10 +3689,6 @@
           "created_on_delta_humanized": {
             "readOnly": true
           },
-          "css": {
-            "nullable": true,
-            "type": "string"
-          },
           "dashboard_title": {
             "maxLength": 500,
             "nullable": true,
@@ -3860,16 +3700,8 @@
           "is_managed_externally": {
             "type": "boolean"
           },
-          "json_metadata": {
-            "nullable": true,
-            "type": "string"
-          },
           "owners": {
             "$ref": "#/components/schemas/DashboardRestApi.get_list.AppleUser"
-          },
-          "position_json": {
-            "nullable": true,
-            "type": "string"
           },
           "published": {
             "nullable": true,
@@ -3894,6 +3726,11 @@
           },
           "url": {
             "readOnly": true
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object"
@@ -5591,6 +5428,9 @@
             "nullable": true,
             "type": "boolean"
           },
+          "folders": {
+            "nullable": true
+          },
           "granularity_sqla": {
             "readOnly": true
           },
@@ -5756,6 +5596,11 @@
           },
           "metric_type": {
             "maxLength": 32,
+            "nullable": true,
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
             "nullable": true,
             "type": "string"
           },
@@ -5950,6 +5795,11 @@
           "table_name": {
             "maxLength": 250,
             "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -6118,6 +5968,12 @@
           "filter_select_enabled": {
             "nullable": true,
             "type": "boolean"
+          },
+          "folders": {
+            "items": {
+              "$ref": "#/components/schemas/Folder"
+            },
+            "type": "array"
           },
           "is_managed_externally": {
             "nullable": true,
@@ -6360,112 +6216,6 @@
         ],
         "type": "object"
       },
-      "ExcelMetadataUploadFilePostSchema": {
-        "properties": {
-          "file": {
-            "description": "The file to upload",
-            "format": "binary",
-            "type": "string"
-          },
-          "header_row": {
-            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "type": "object"
-      },
-      "ExcelUploadPostSchema": {
-        "properties": {
-          "already_exists": {
-            "default": "fail",
-            "description": "What to do if the table already exists accepts: fail, replace, append",
-            "enum": [
-              "fail",
-              "replace",
-              "append"
-            ],
-            "type": "string"
-          },
-          "column_dates": {
-            "description": "A list of column names that should be parsed as dates. Example: date,timestamp",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "columns_read": {
-            "description": "A List of the column names that should be read",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "dataframe_index": {
-            "description": "Write dataframe index as a column.",
-            "type": "boolean"
-          },
-          "decimal_character": {
-            "description": "Character to recognize as decimal point. Default is '.'",
-            "type": "string"
-          },
-          "file": {
-            "description": "The Excel file to upload",
-            "format": "binary",
-            "type": "string"
-          },
-          "header_row": {
-            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
-            "type": "integer"
-          },
-          "index_column": {
-            "description": "Column to use as the row labels of the dataframe. Leave empty if no index column",
-            "type": "string"
-          },
-          "index_label": {
-            "description": "Index label for index column.",
-            "type": "string"
-          },
-          "null_values": {
-            "description": "A list of strings that should be treated as null. Examples: '' for empty strings, 'None', 'N/A',Warning: Hive database supports only a single value",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "rows_to_read": {
-            "description": "Number of rows to read from the file. If None, reads all rows.",
-            "minimum": 1,
-            "nullable": true,
-            "type": "integer"
-          },
-          "schema": {
-            "description": "The schema to upload the data file to.",
-            "type": "string"
-          },
-          "sheet_name": {
-            "description": "Strings used for sheet names (default is the first sheet).",
-            "type": "string"
-          },
-          "skip_rows": {
-            "description": "Number of rows to skip at start of file.",
-            "type": "integer"
-          },
-          "table_name": {
-            "description": "The name of the table to be created/appended",
-            "maxLength": 10000,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "file",
-          "table_name"
-        ],
-        "type": "object"
-      },
       "ExecutePayloadSchema": {
         "properties": {
           "catalog": {
@@ -6570,6 +6320,44 @@
         },
         "required": [
           "formData"
+        ],
+        "type": "object"
+      },
+      "Folder": {
+        "properties": {
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/Folder"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "description": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "metric",
+              "column",
+              "folder"
+            ],
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
         ],
         "type": "object"
       },
@@ -6866,6 +6654,10 @@
           "database_name": {
             "type": "string"
           },
+          "encrypted_extra": {
+            "nullable": true,
+            "type": "string"
+          },
           "expose_in_sqllab": {
             "type": "boolean"
           },
@@ -6945,6 +6737,10 @@
             "type": "object"
           },
           "metadata_params": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "schema_options": {
             "additionalProperties": {},
             "type": "object"
           },
@@ -7301,10 +7097,7 @@
           "user": {
             "$ref": "#/components/schemas/LogRestApi.get.AppleUser"
           },
-          "user_id": {
-            "nullable": true,
-            "type": "integer"
-          }
+          "user_id": {}
         },
         "type": "object"
       },
@@ -7356,10 +7149,7 @@
           "user": {
             "$ref": "#/components/schemas/LogRestApi.get_list.AppleUser"
           },
-          "user_id": {
-            "nullable": true,
-            "type": "integer"
-          }
+          "user_id": {}
         },
         "type": "object"
       },
@@ -7402,6 +7192,150 @@
           "user": {
             "nullable": true
           }
+        },
+        "type": "object"
+      },
+      "PermissionApi.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionApi.get_list": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionApi.post": {
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionApi.put": {
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionViewMenuApi.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "permission": {
+            "$ref": "#/components/schemas/PermissionViewMenuApi.get.Permission"
+          },
+          "view_menu": {
+            "$ref": "#/components/schemas/PermissionViewMenuApi.get.ViewMenu"
+          }
+        },
+        "type": "object"
+      },
+      "PermissionViewMenuApi.get.Permission": {
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionViewMenuApi.get.ViewMenu": {
+        "properties": {
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionViewMenuApi.get_list": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "permission": {
+            "$ref": "#/components/schemas/PermissionViewMenuApi.get_list.Permission"
+          },
+          "view_menu": {
+            "$ref": "#/components/schemas/PermissionViewMenuApi.get_list.ViewMenu"
+          }
+        },
+        "type": "object"
+      },
+      "PermissionViewMenuApi.get_list.Permission": {
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionViewMenuApi.get_list.ViewMenu": {
+        "properties": {
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionViewMenuApi.post": {
+        "properties": {
+          "permission_id": {},
+          "view_menu_id": {}
+        },
+        "type": "object"
+      },
+      "PermissionViewMenuApi.put": {
+        "properties": {
+          "permission_id": {},
+          "view_menu_id": {}
         },
         "type": "object"
       },
@@ -8395,10 +8329,7 @@
           "changed_on_delta_humanized": {
             "readOnly": true
           },
-          "chart_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "chart_id": {},
           "created_by": {
             "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
           },
@@ -8419,10 +8350,7 @@
           "crontab_humanized": {
             "readOnly": true
           },
-          "dashboard_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "dashboard_id": {},
           "description": {
             "nullable": true,
             "type": "string"
@@ -9306,7 +9234,8 @@
             "enum": [
               "charts",
               "dashboards",
-              "alerts_reports"
+              "alerts_reports",
+              null
             ],
             "nullable": true
           },
@@ -10010,7 +9939,8 @@
             "description": "Determines when to trigger alert based off value from alert query. Alerts will be triggered with these validator types:\n- Not Null - When the return value is Not NULL, Empty, or 0\n- Operator - When `sql_return_value comparison_operator threshold` is True e.g. `50 <= 75`<br>Supports the comparison operators <, <=, >, >=, ==, and !=",
             "enum": [
               "not null",
-              "operator"
+              "operator",
+              null
             ],
             "nullable": true,
             "type": "string"
@@ -10056,6 +9986,73 @@
         ],
         "type": "object"
       },
+      "RolePermissionListSchema": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "permission_name": {
+            "type": "string"
+          },
+          "view_menu_name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RolePermissionPostSchema": {
+        "properties": {
+          "permission_view_menu_ids": {
+            "description": "List of permission view menu id",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "permission_view_menu_ids"
+        ],
+        "type": "object"
+      },
+      "RoleResponseSchema": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permission_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "user_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RoleUserPutSchema": {
+        "properties": {
+          "user_ids": {
+            "description": "List of user ids",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ],
+        "type": "object"
+      },
       "Roles": {
         "properties": {
           "id": {
@@ -10074,6 +10071,26 @@
           },
           "name": {
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RolesResponseSchema": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/RoleResponseSchema"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -10243,10 +10260,7 @@
           "database": {
             "$ref": "#/components/schemas/SavedQueryRestApi.get_list.Database"
           },
-          "db_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "db_id": {},
           "description": {
             "nullable": true,
             "type": "string"
@@ -10370,10 +10384,7 @@
             "nullable": true,
             "type": "string"
           },
-          "db_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "db_id": {},
           "description": {
             "nullable": true,
             "type": "string"
@@ -10410,10 +10421,7 @@
             "nullable": true,
             "type": "string"
           },
-          "db_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "db_id": {},
           "description": {
             "nullable": true,
             "type": "string"
@@ -10541,9 +10549,383 @@
         },
         "type": "object"
       },
+      "SqlLabPermalinkSchema": {
+        "properties": {
+          "autorun": {
+            "type": "boolean"
+          },
+          "catalog": {
+            "description": "The catalog name of the query",
+            "nullable": true,
+            "type": "string"
+          },
+          "dbId": {
+            "description": "The id of the database",
+            "type": "integer"
+          },
+          "name": {
+            "description": "The label of the editor tab",
+            "type": "string"
+          },
+          "schema": {
+            "description": "The schema name of the query",
+            "nullable": true,
+            "type": "string"
+          },
+          "sql": {
+            "description": "SQL query text",
+            "type": "string"
+          },
+          "templateParams": {
+            "description": "stringfied JSON string for template parameters",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "dbId",
+          "name",
+          "sql"
+        ],
+        "type": "object"
+      },
       "StopQuerySchema": {
         "properties": {
           "client_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SupersetRoleApi.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SupersetRoleApi.get_list": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SupersetRoleApi.post": {
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SupersetRoleApi.put": {
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get": {
+        "properties": {
+          "active": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "changed_by": {
+            "$ref": "#/components/schemas/SupersetUserApi.get.User1"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/SupersetUserApi.get.User"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
+          "fail_login_count": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_login": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "login_count": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/SupersetUserApi.get.Role"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get.Role": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get.User": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SupersetUserApi.get.User1": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SupersetUserApi.get_list": {
+        "properties": {
+          "active": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "changed_by": {
+            "$ref": "#/components/schemas/SupersetUserApi.get_list.User1"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/SupersetUserApi.get_list.User"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
+          "fail_login_count": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_login": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "login_count": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/SupersetUserApi.get_list.Role"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get_list.Role": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get_list.User": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SupersetUserApi.get_list.User1": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SupersetUserApi.post": {
+        "properties": {
+          "active": {
+            "description": "Is user active?It's not a good policy to remove a user, just make it inactive",
+            "type": "boolean"
+          },
+          "email": {
+            "description": "The user's email",
+            "type": "string"
+          },
+          "first_name": {
+            "description": "The user's first name",
+            "type": "string"
+          },
+          "last_name": {
+            "description": "The user's last name",
+            "type": "string"
+          },
+          "password": {
+            "description": "The user's password for authentication",
+            "type": "string"
+          },
+          "roles": {
+            "description": "The user's roles",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "username": {
+            "description": "The user's username",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "password",
+          "roles",
+          "username"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.put": {
+        "properties": {
+          "active": {
+            "description": "Is user active?It's not a good policy to remove a user, just make it inactive",
+            "type": "boolean"
+          },
+          "email": {
+            "description": "The user's email",
+            "type": "string"
+          },
+          "first_name": {
+            "description": "The user's first name",
+            "type": "string"
+          },
+          "last_name": {
+            "description": "The user's last name",
+            "type": "string"
+          },
+          "password": {
+            "description": "The user's password for authentication",
+            "type": "string"
+          },
+          "roles": {
+            "description": "The user's roles",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "username": {
+            "description": "The user's username",
+            "maxLength": 250,
+            "minLength": 1,
             "type": "string"
           }
         },
@@ -11234,6 +11616,154 @@
         },
         "type": "object"
       },
+      "UploadFileMetadataPostSchema": {
+        "properties": {
+          "delimiter": {
+            "description": "The character used to separate values in the CSV file (e.g., a comma, semicolon, or tab).",
+            "type": "string"
+          },
+          "file": {
+            "description": "The file to upload",
+            "format": "binary",
+            "type": "string"
+          },
+          "header_row": {
+            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
+            "type": "integer"
+          },
+          "type": {
+            "description": "File type to upload",
+            "enum": [
+              "csv",
+              "excel",
+              "columnar"
+            ]
+          }
+        },
+        "required": [
+          "file",
+          "type"
+        ],
+        "type": "object"
+      },
+      "UploadPostSchema": {
+        "properties": {
+          "already_exists": {
+            "default": "fail",
+            "description": "What to do if the table already exists accepts: fail, replace, append",
+            "enum": [
+              "fail",
+              "replace",
+              "append"
+            ],
+            "type": "string"
+          },
+          "column_data_types": {
+            "description": "[CSV only] A dictionary with column names and their data types if you need to change the defaults. Example: {'user_id':'int'}. Check Python Pandas library for supported data types",
+            "type": "string"
+          },
+          "column_dates": {
+            "description": "[CSV and Excel only] A list of column names that should be parsed as dates. Example: date,timestamp",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "columns_read": {
+            "description": "A List of the column names that should be read",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "dataframe_index": {
+            "description": "Write dataframe index as a column.",
+            "type": "boolean"
+          },
+          "day_first": {
+            "description": "[CSV only] DD/MM format dates, international and European format",
+            "type": "boolean"
+          },
+          "decimal_character": {
+            "description": "[CSV and Excel only] Character to recognize as decimal point. Default is '.'",
+            "type": "string"
+          },
+          "delimiter": {
+            "description": "[CSV only] The character used to separate values in the CSV file (e.g., a comma, semicolon, or tab).",
+            "type": "string"
+          },
+          "file": {
+            "description": "The file to upload",
+            "format": "text/csv",
+            "type": "string"
+          },
+          "header_row": {
+            "description": "[CSV and Excel only] Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.",
+            "type": "integer"
+          },
+          "index_column": {
+            "description": "[CSV and Excel only] Column to use as the row labels of the dataframe. Leave empty if no index column",
+            "type": "string"
+          },
+          "index_label": {
+            "description": "Index label for index column.",
+            "type": "string"
+          },
+          "null_values": {
+            "description": "[CSV and Excel only] A list of strings that should be treated as null. Examples: '' for empty strings, 'None', 'N/A', Warning: Hive database supports only a single value",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rows_to_read": {
+            "description": "[CSV and Excel only] Number of rows to read from the file. If None, reads all rows.",
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "schema": {
+            "description": "The schema to upload the data file to.",
+            "type": "string"
+          },
+          "sheet_name": {
+            "description": "[Excel only]] Strings used for sheet names (default is the first sheet).",
+            "type": "string"
+          },
+          "skip_blank_lines": {
+            "description": "[CSV only] Skip blank lines in the CSV file.",
+            "type": "boolean"
+          },
+          "skip_initial_space": {
+            "description": "[CSV only] Skip spaces after delimiter.",
+            "type": "boolean"
+          },
+          "skip_rows": {
+            "description": "[CSV and Excel only] Number of rows to skip at start of file.",
+            "type": "integer"
+          },
+          "table_name": {
+            "description": "The name of the table to be created/appended",
+            "maxLength": 10000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": {
+            "description": "File type to upload",
+            "enum": [
+              "csv",
+              "excel",
+              "columnar"
+            ]
+          }
+        },
+        "required": [
+          "file",
+          "table_name",
+          "type"
+        ],
+        "type": "object"
+      },
       "User": {
         "properties": {
           "first_name": {
@@ -11366,6 +11896,60 @@
         },
         "type": "object"
       },
+      "ViewMenuApi.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ViewMenuApi.get_list": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ViewMenuApi.post": {
+        "properties": {
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ViewMenuApi.put": {
+        "properties": {
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
       "advanced_data_type_convert_schema": {
         "properties": {
           "type": {
@@ -11400,6 +11984,9 @@
             "type": "string"
           },
           "force": {
+            "type": "boolean"
+          },
+          "upload_allowed": {
             "type": "boolean"
           }
         },
@@ -12891,6 +13478,10 @@
                     "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
                     "type": "string"
                   },
+                  "sparse": {
+                    "description": "allow sparse update of resources",
+                    "type": "boolean"
+                  },
                   "ssh_tunnel_passwords": {
                     "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
                     "type": "string"
@@ -14050,7 +14641,7 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
@@ -14059,6 +14650,16 @@
               }
             },
             "description": "Chart async result"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChartCacheScreenshotResponseSchema"
+                }
+              }
+            },
+            "description": "Chart screenshot task created"
           },
           "400": {
             "$ref": "#/components/responses/400"
@@ -14290,7 +14891,7 @@
                 }
               }
             },
-            "description": "Chart thumbnail image"
+            "description": "Chart screenshot image"
           },
           "400": {
             "$ref": "#/components/responses/400"
@@ -14329,6 +14930,7 @@
             }
           },
           {
+            "description": "A hex digest that makes this chart unique",
             "in": "path",
             "name": "digest",
             "required": true,
@@ -16235,6 +16837,83 @@
         ]
       }
     },
+    "/api/v1/dashboard/{pk}/colors": {
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mark_updated",
+            "schema": {
+              "description": "Whether to update the dashboard changed_on field",
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DashboardColorsConfigUpdateSchema"
+              }
+            }
+          },
+          "description": "Colors configuration",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dashboard colors updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Update colors configuration for a dashboard.",
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
     "/api/v1/dashboard/{pk}/favorites/": {
       "delete": {
         "parameters": [
@@ -16353,6 +17032,107 @@
         "requestBody": {
           "content": {
             "application/json": {
+              "examples": {
+                "numerical_range_filter": {
+                  "description": "**This body should be stringified and put into the value field.**",
+                  "summary": "Numerical Range Filter",
+                  "value": {
+                    "extraFormData": {
+                      "filters": [
+                        {
+                          "col": "tz_offset",
+                          "op": ">=",
+                          "val": [
+                            1000
+                          ]
+                        },
+                        {
+                          "col": "tz_offset",
+                          "op": "<=",
+                          "val": [
+                            2000
+                          ]
+                        }
+                      ]
+                    },
+                    "filterState": {
+                      "label": "1000 <= x <= 2000",
+                      "value": [
+                        1000,
+                        2000
+                      ]
+                    },
+                    "id": "NATIVE_FILTER_ID"
+                  }
+                },
+                "time_grain_filter": {
+                  "description": "**This body should be stringified and put into the value field.**",
+                  "summary": "Time Grain Filter",
+                  "value": {
+                    "extraFormData": {
+                      "time_grain_sqla": "P1W/1970-01-03T00:00:00Z"
+                    },
+                    "filterState": {
+                      "label": "Week ending Saturday",
+                      "value": [
+                        "P1W/1970-01-03T00:00:00Z"
+                      ]
+                    },
+                    "id": "NATIVE_FILTER_ID"
+                  }
+                },
+                "time_range_filter": {
+                  "description": "**This body should be stringified and put into the value field.**",
+                  "summary": "Time Range Filter",
+                  "value": {
+                    "extraFormData": {
+                      "time_range": "DATEADD(DATETIME('2025-01-16T00:00:00'), -7, day) : 2025-01-16T00:00:00"
+                    },
+                    "filterState": {
+                      "value": "DATEADD(DATETIME('2025-01-16T00:00:00'), -7, day) : 2025-01-16T00:00:00"
+                    },
+                    "id": "NATIVE_FILTER_ID"
+                  }
+                },
+                "timecolumn_filter": {
+                  "description": "**This body should be stringified and put into the value field.**",
+                  "summary": "Time Column Filter",
+                  "value": {
+                    "extraFormData": {
+                      "granularity_sqla": "order_date"
+                    },
+                    "filterState": {
+                      "value": [
+                        "order_date"
+                      ]
+                    },
+                    "id": "NATIVE_FILTER_ID"
+                  }
+                },
+                "value_filter": {
+                  "description": "**This body should be stringified and put into the value field.**",
+                  "summary": "Value Filter",
+                  "value": {
+                    "extraFormData": {
+                      "filters": [
+                        {
+                          "col": "real_name",
+                          "op": "IN",
+                          "val": [
+                            "John Doe"
+                          ]
+                        }
+                      ]
+                    },
+                    "filterState": {
+                      "value": [
+                        "John Doe"
+                      ]
+                    },
+                    "id": "NATIVE_FILTER_ID"
+                  }
+                }
+              },
               "schema": {
                 "$ref": "#/components/schemas/TemporaryCachePostSchema"
               }
@@ -16691,6 +17471,112 @@
         "requestBody": {
           "content": {
             "application/json": {
+              "examples": {
+                "numerical_range_filter": {
+                  "summary": "Numerical Range Filter",
+                  "value": {
+                    "dataMask": {
+                      "extraFormData": {
+                        "filters": [
+                          {
+                            "col": "tz_offset",
+                            "op": ">=",
+                            "val": [
+                              1000
+                            ]
+                          },
+                          {
+                            "col": "tz_offset",
+                            "op": "<=",
+                            "val": [
+                              2000
+                            ]
+                          }
+                        ]
+                      },
+                      "filterState": {
+                        "label": "1000 <= x <= 200",
+                        "value": [
+                          1000,
+                          2000
+                        ]
+                      },
+                      "id": "NATIVE_FILTER_ID"
+                    }
+                  }
+                },
+                "time_grain_filter": {
+                  "summary": "Time Grain Filter",
+                  "value": {
+                    "dataMask": {
+                      "extraFormData": {
+                        "time_grain_sqla": "P1W/1970-01-03T00:00:00Z"
+                      },
+                      "filterState": {
+                        "label": "Week ending Saturday",
+                        "value": [
+                          "P1W/1970-01-03T00:00:00Z"
+                        ]
+                      },
+                      "id": "NATIVE_FILTER_ID"
+                    }
+                  }
+                },
+                "time_range_filter": {
+                  "summary": "Time Range Filter",
+                  "value": {
+                    "dataMask": {
+                      "extraFormData": {
+                        "time_range": "DATEADD(DATETIME(\"2025-01-16T00:00:00\"), -7, day) : 2025-01-16T00:00:00"
+                      },
+                      "filterState": {
+                        "value": "DATEADD(DATETIME(\"2025-01-16T00:00:00\"), -7, day) : 2025-01-16T00:00:00"
+                      },
+                      "id": "NATIVE_FILTER_ID"
+                    }
+                  }
+                },
+                "timecolumn_filter": {
+                  "summary": "Time Column Filter",
+                  "value": {
+                    "dataMask": {
+                      "extraFormData": {
+                        "granularity_sqla": "order_date"
+                      },
+                      "filterState": {
+                        "value": [
+                          "order_date"
+                        ]
+                      },
+                      "id": "NATIVE_FILTER_ID"
+                    }
+                  }
+                },
+                "value_filter": {
+                  "summary": "Value Filter",
+                  "value": {
+                    "dataMask": {
+                      "extraFormData": {
+                        "filters": [
+                          {
+                            "col": "real_name",
+                            "op": "IN",
+                            "val": [
+                              "John Doe"
+                            ]
+                          }
+                        ]
+                      },
+                      "filterState": {
+                        "value": [
+                          "John Doe"
+                        ]
+                      },
+                      "id": "NATIVE_FILTER_ID"
+                    }
+                  }
+                }
+              },
               "schema": {
                 "$ref": "#/components/schemas/DashboardPermalinkStateSchema"
               }
@@ -16761,6 +17647,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "download_format",
+            "schema": {
+              "enum": [
+                "png",
+                "pdf"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -16819,17 +17716,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/thumbnail_query_schema"
-                }
-              }
-            },
-            "in": "query",
-            "name": "q"
           }
         ],
         "responses": {
@@ -17218,162 +18104,6 @@
         ]
       }
     },
-    "/api/v1/database/columnar_metadata/": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ColumnarMetadataUploadFilePostSchema"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "result": {
-                      "$ref": "#/components/schemas/UploadFileMetadata"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Columnar upload response"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Upload a Columnar file and returns file metadata",
-        "tags": [
-          "Database"
-        ]
-      }
-    },
-    "/api/v1/database/csv_metadata/": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CSVMetadataUploadFilePostSchema"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "result": {
-                      "$ref": "#/components/schemas/UploadFileMetadata"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Columnar upload response"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Upload an CSV file and returns file metadata",
-        "tags": [
-          "Database"
-        ]
-      }
-    },
-    "/api/v1/database/excel_metadata/": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ExcelMetadataUploadFilePostSchema"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "result": {
-                      "$ref": "#/components/schemas/UploadFileMetadata"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Columnar upload response"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Upload an Excel file and returns file metadata",
-        "tags": [
-          "Database"
-        ]
-      }
-    },
     "/api/v1/database/export/": {
       "get": {
         "parameters": [
@@ -17674,6 +18404,58 @@
         ]
       }
     },
+    "/api/v1/database/upload_metadata/": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadFileMetadataPostSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/UploadFileMetadata"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Upload response"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Upload a file and returns file metadata",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
     "/api/v1/database/validate_parameters/": {
       "post": {
         "requestBody": {
@@ -17954,71 +18736,6 @@
         ]
       }
     },
-    "/api/v1/database/{pk}/columnar_upload/": {
-      "post": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ColumnarUploadPostSchema"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Columnar upload response"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Upload a Columnar file to a database table",
-        "tags": [
-          "Database"
-        ]
-      }
-    },
     "/api/v1/database/{pk}/connection": {
       "get": {
         "parameters": [
@@ -18062,136 +18779,6 @@
           }
         ],
         "summary": "Get a database connection info",
-        "tags": [
-          "Database"
-        ]
-      }
-    },
-    "/api/v1/database/{pk}/csv_upload/": {
-      "post": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CSVUploadPostSchema"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "CSV upload response"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Upload a CSV file to a database table",
-        "tags": [
-          "Database"
-        ]
-      }
-    },
-    "/api/v1/database/{pk}/excel_upload/": {
-      "post": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ExcelUploadPostSchema"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Excel upload response"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Upload an Excel file to a database table",
         "tags": [
           "Database"
         ]
@@ -18581,6 +19168,59 @@
         ]
       }
     },
+    "/api/v1/database/{pk}/sync_permissions/": {
+      "post": {
+        "parameters": [
+          {
+            "description": "The database connection ID",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Task created to sync permissions."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Re-sync all permissions for a database connection",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
     "/api/v1/database/{pk}/table/{table_name}/{schema_name}/": {
       "get": {
         "parameters": [
@@ -18931,6 +19571,71 @@
           }
         ],
         "summary": "Get a list of tables for given database",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/upload/": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadPostSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "CSV upload response"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Upload a file to a database table",
         "tags": [
           "Database"
         ]
@@ -20272,6 +20977,46 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "The ui config of embedded dashboard (optional).",
+            "in": "query",
+            "name": "uiConfig",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "description": "Show filters (optional).",
+            "in": "query",
+            "name": "show_filters",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Expand filters (optional).",
+            "in": "query",
+            "name": "expand_filters",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Native filters key to apply filters. (optional).",
+            "in": "query",
+            "name": "native_filters_key",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Permalink key to apply filters. (optional).",
+            "in": "query",
+            "name": "permalink_key",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -20285,6 +21030,11 @@
                     }
                   },
                   "type": "object"
+                }
+              },
+              "text/html": {
+                "schema": {
+                  "type": "string"
                 }
               }
             },
@@ -20743,6 +21493,134 @@
         "summary": "Get chart's permanent link state",
         "tags": [
           "Explore Permanent Link"
+        ]
+      }
+    },
+    "/api/v1/extensions/": {
+      "get": {
+        "tags": [
+          "ExtensionsRestApi"
+        ]
+      }
+    },
+    "/api/v1/extensions/import/": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "bundle": {
+                    "description": "extension bundle (ZIP)",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Extension import result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Import extension bundle",
+        "tags": [
+          "ExtensionsRestApi"
+        ]
+      }
+    },
+    "/api/v1/extensions/{name}/{file}": {
+      "get": {
+        "parameters": [
+          {
+            "description": "name of the extension",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the requested chunk",
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Extension import result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get a frontend chunk of an extension.",
+        "tags": [
+          "ExtensionsRestApi"
         ]
       }
     },
@@ -24623,6 +25501,762 @@
         ]
       }
     },
+    "/api/v1/security/permissions-resources/": {
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/PermissionViewMenuApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions on Resources (View Menus)"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PermissionViewMenuApi.post"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/PermissionViewMenuApi.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item inserted"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions on Resources (View Menus)"
+        ]
+      }
+    },
+    "/api/v1/security/permissions-resources/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions on Resources (View Menus)"
+        ]
+      }
+    },
+    "/api/v1/security/permissions-resources/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions on Resources (View Menus)"
+        ]
+      },
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/PermissionViewMenuApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions on Resources (View Menus)"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PermissionViewMenuApi.put"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/PermissionViewMenuApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions on Resources (View Menus)"
+        ]
+      }
+    },
+    "/api/v1/security/permissions/": {
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/PermissionApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions"
+        ]
+      }
+    },
+    "/api/v1/security/permissions/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions"
+        ]
+      }
+    },
+    "/api/v1/security/permissions/{pk}": {
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/PermissionApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions"
+        ]
+      }
+    },
     "/api/v1/security/refresh": {
       "post": {
         "description": "Use the refresh token to get a new JWT access token",
@@ -24657,6 +26291,1677 @@
         ],
         "tags": [
           "Security"
+        ]
+      }
+    },
+    "/api/v1/security/resources/": {
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/ViewMenuApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Resources (View Menus)"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViewMenuApi.post"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/ViewMenuApi.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item inserted"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Resources (View Menus)"
+        ]
+      }
+    },
+    "/api/v1/security/resources/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Resources (View Menus)"
+        ]
+      }
+    },
+    "/api/v1/security/resources/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Resources (View Menus)"
+        ]
+      },
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/ViewMenuApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Resources (View Menus)"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViewMenuApi.put"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/ViewMenuApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Resources (View Menus)"
+        ]
+      }
+    },
+    "/api/v1/security/roles/": {
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/SupersetRoleApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupersetRoleApi.post"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/SupersetRoleApi.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item inserted"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/roles/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/roles/search/": {
+      "get": {
+        "description": "Fetch a paginated list of roles with user and permission IDs.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "properties": {
+                "filters": {
+                  "items": {
+                    "properties": {
+                      "col": {
+                        "enum": [
+                          "user_ids",
+                          "permission_ids",
+                          "name"
+                        ],
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "order_column": {
+                  "default": "id",
+                  "enum": [
+                    "id",
+                    "name"
+                  ],
+                  "type": "string"
+                },
+                "order_direction": {
+                  "default": "asc",
+                  "enum": [
+                    "asc",
+                    "desc"
+                  ],
+                  "type": "string"
+                },
+                "page": {
+                  "default": 0,
+                  "type": "integer"
+                },
+                "page_size": {
+                  "default": 10,
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolesResponseSchema"
+                }
+              }
+            },
+            "description": "Successfully retrieved roles"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request (invalid input)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "List roles",
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/roles/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      },
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/SupersetRoleApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupersetRoleApi.put"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/SupersetRoleApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/roles/{role_id}/permissions": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "role_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolePermissionPostSchema"
+              }
+            }
+          },
+          "description": "Add role permissions schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/RolePermissionPostSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Permissions added"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/roles/{role_id}/permissions/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "role_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/RolePermissionListSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of permissions"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/roles/{role_id}/users": {
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "role_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleUserPutSchema"
+              }
+            }
+          },
+          "description": "Update role users schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/RoleUserPutSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Role users updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/users/": {
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/SupersetUserApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Users"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupersetUserApi.post"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/SupersetUserApi.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Users"
+        ]
+      }
+    },
+    "/api/v1/security/users/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Users"
+        ]
+      }
+    },
+    "/api/v1/security/users/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Users"
+        ]
+      },
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/SupersetUserApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Users"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupersetUserApi.put"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/SupersetUserApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Users"
         ]
       }
     },
@@ -24913,6 +28218,119 @@
         "summary": "Format SQL code",
         "tags": [
           "SQL Lab"
+        ]
+      }
+    },
+    "/api/v1/sqllab/permalink": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExplorePermalinkStateSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "key": {
+                      "description": "The key to retrieve the permanent link data.",
+                      "type": "string"
+                    },
+                    "url": {
+                      "description": "permanent link.",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The permanent link was stored successfully."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Create a new permanent link",
+        "tags": [
+          "SQL Lab Permanent Link"
+        ]
+      }
+    },
+    "/api/v1/sqllab/permalink/{key}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "state": {
+                      "description": "The stored state",
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Returns the stored form_data."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get permanent link state for SQLLab editor.",
+        "tags": [
+          "SQL Lab Permanent Link"
         ]
       }
     },
