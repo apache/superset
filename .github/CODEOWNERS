@@ -28,10 +28,15 @@
 
 # Maps are a finicky contribution process we care about
 
-\*_/_.geojson @villebro @rusackas
+**/*.geojson @villebro @rusackas
 /superset-frontend/plugins/legacy-plugin-chart-country-map/ @villebro @rusackas
 
 # Notify some committers of changes in extensions
 
-/superset-frontend/src/extensions/ @michael-s-molina @rusackas @villebro
 /superset/extensions/ @michael-s-molina @rusackas @villebro
+/superset-frontend/src/extensions/ @michael-s-molina @rusackas @villebro
+/superset-frontend/src/packages/superset-extensions-sdk/ @michael-s-molina @rusackas @villebro
+/superset-frontend/src/packages/superset-primitives/ @michael-s-molina @rusackas @villebro
+/superset-frontend/src/packages/superset-types/ @michael-s-molina @rusackas @villebro
+/superset-primitives/ @michael-s-molina @rusackas @villebro
+/superset-sdk/ @michael-s-molina @rusackas @villebro
