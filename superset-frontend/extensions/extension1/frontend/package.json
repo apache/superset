@@ -13,13 +13,12 @@
   "license": "Apache-2.0",
   "description": "",
   "peerDependencies": {
+    "@apache-superset/types": "file:../../../packages/superset-types",
     "@apache-superset/primitives": "file:../../../packages/superset-primitives",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
   "devDependencies": {
-    "@apache-superset/superset-extensions-sdk": "file:../../../packages/superset-extensions-sdk",
-    "@apache-superset/types": "file:../../../packages/superset-types",
     "@babel/preset-react": "^7.26.3",
     "@babel/preset-typescript": "^7.26.0",
     "@types/react": "^19.0.10",
