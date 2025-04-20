@@ -82,15 +82,13 @@ import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { Icons } from 'src/components/Icons';
-import { native } from 'rimraf';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 import ValidatedPanelHeader from './components/ValidatedPanelHeader';
 import StyledPanel from './components/StyledPanel';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
-import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
-import { set } from 'lodash';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -668,7 +666,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const fetchDashboardFilterValues = async (
-    dashboardId: number,
+    dashboardId: number | string | undefined,
     columnName: string,
     datasetId: string,
     vizType = 'filter_select',
@@ -715,6 +713,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }),
     );
 
+    // eslint-disable-next-line consistent-return
     return data;
   };
 
@@ -729,7 +728,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       const filterName = filter.name;
       const columnName = filter.targets[0].column?.name || filterName;
       const dashboardId = currentAlert?.dashboard?.value;
-      const filterType = filter.filterType;
+      const { filterType } = filter;
 
       if (filterType === 'filter_time') {
         return;
@@ -741,7 +740,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         columnName,
         datasetId,
         filterType,
-      ).then(options => {
+      ).then(optionFilterValues => {
         setNativeFilterData(prev =>
           prev.map(filter =>
             filter.nativeFilterId === nativeFilter.nativeFilterId
@@ -749,7 +748,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   ...filter,
                   filterType,
                   filterName,
-                  optionFilterValues: options,
+                  optionFilterValues,
                 }
               : filter,
           ),
@@ -1403,7 +1402,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     const filterName = filter.name;
 
-    let columnName;
+    let columnName: string;
     if (
       filterType === 'filter_time' ||
       filterType === 'filter_timecolumn' ||
@@ -1461,7 +1460,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   nativeFilterId,
                   columnLabel,
                   columnName,
-                  optionFilterValues: optionFilterValues,
+                  optionFilterValues,
                   filterValues: [], // reset filter values on filter change
                 }
               : filter,
@@ -1517,14 +1516,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     idx: number,
     filterValues: string | string[],
   ) => {
-    let values;
+    let values: string[];
     if (typeof filterValues === 'string') {
       values = [filterValues];
     } else {
       values = filterValues;
     }
 
-    console.log('values', values);
     setNativeFilterData(
       nativeFilterData.map((filter, index) =>
         index === idx ? { ...filter, filterValues: values } : filter,
@@ -1618,7 +1616,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           // @ts-ignore
           onChangeDashboardFilterValue(idx, value)
         }
-        mode={mode}
+        mode={mode as 'multiple' | 'single'}
       />
     );
   };
@@ -2268,6 +2266,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               />
                             </div>
                             <Select
+                              // @ts-ignore
                               className="filters-dash-select"
                               disabled={nativeFilterOptions?.length < 1}
                               ariaLabel={t('Select Filter')}
