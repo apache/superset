@@ -2303,18 +2303,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         </div>
                       ))}
                       <div className="filters-add-container">
-                        {filterNativeFilterOptions().length > 0 && (
-                          <Button
-                            className="filters-add-btn"
-                            type="link"
-                            onClick={() => {
-                              handleAddFilterField();
-                              add();
-                            }}
-                          >
-                            + {t('Apply another dashboard filter')}
-                          </Button>
-                        )}
+                        {filterNativeFilterOptions().length > 0 &&
+                          nativeFilterData.length <
+                            filterNativeFilterOptions().length && (
+                            <Button
+                              className="filters-add-btn"
+                              type="link"
+                              onClick={() => {
+                                handleAddFilterField();
+                                add();
+                              }}
+                            >
+                              + {t('Apply another dashboard filter')}
+                            </Button>
+                          )}
                       </div>
                     </div>
                   )}
