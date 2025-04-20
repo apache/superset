@@ -44,9 +44,39 @@ class ExtensionsRestApi(BaseSupersetApi):
     @expose("/", methods=("GET",))
     @permission_name("read")
     def get(self, **kwargs: Any) -> Response:  # TODO: The module comes as a parameter
+        """List all enabled extensions.
+        ---
+        get:
+          summary: List all enabled extensions.
+          responses:
+            200:
+              description: List of all enabled extensions
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                        result:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                remoteEntry:
+                                  type: string
+                                remoteEntry:
+                                  type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
         # TODO: Move code to command
         result = []
-        extensions = ExtensionDAO.find_all()
+        extensions = ExtensionDAO.get_enabled_extensions()
         for extension in extensions:
             manifest: Manifest = json.loads(extension.manifest)
             extension_data: dict[str, Any] = {
