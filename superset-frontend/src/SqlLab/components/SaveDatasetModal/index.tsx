@@ -292,8 +292,8 @@ export const SaveDatasetModal = ({
         /* eslint-disable-next-line no-underscore-dangle */
         delete p._filters;
         // eslint-disable-next-line no-param-reassign
-        templateParams = JSON.stringify(p);
       }
+      templateParams = JSON.stringify(p);
     }
 
     dispatch(
