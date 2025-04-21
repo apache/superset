@@ -38,7 +38,6 @@ const badgeColors: BadgeColorValue[] = [
   'blue',
   'navyblue',
   'lightblue',
-  'limegreen',
   'purple',
   'geekblue',
   'magenta',
