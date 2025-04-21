@@ -29,7 +29,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-    "typer[all]>=0.15.2",
+    "click>=8.0.3",
     "tomli>=2.2.1; python_version < '3.11'"
 ]
 
@@ -42,4 +42,4 @@ packages = ["superset_sdk"]
 package-dir = { "" = "src" }
 
 [project.scripts]
-superset-sdk = "superset_sdk.cli:main"
+superset-sdk = "superset_sdk.cli:app"

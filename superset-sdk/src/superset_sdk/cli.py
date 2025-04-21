@@ -16,16 +16,20 @@
 # under the License.
 
 import json
+import sys
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 
-import typer
+import click
 
 from superset_sdk.utils import read_json, read_toml
 
-app = typer.Typer(help="CLI for validating and bundling Superset extensions.")
+
+@click.group(help="CLI for validating and bundling Superset extensions.")
+def app() -> None:
+    pass
 
 
 @app.command()
@@ -34,7 +38,7 @@ def validate() -> None:
     Validate extension.
     """
     # TODO: add validation logic
-    typer.secho("✅ Validation successful", fg=typer.colors.GREEN)
+    click.secho("✅ Validation successful", fg="green")
 
 
 @app.command()
@@ -49,11 +53,9 @@ def bundle() -> None:
     pyproject = read_toml(backend_path / "pyproject.toml")
     manifest: dict[str, Any] = {}
 
-    # assert pyproject
-
     if not extension:
-        typer.secho("❌ extension.json not found.", err=True, fg=typer.colors.RED)
-        raise typer.Exit(code=1)
+        click.secho("❌ extension.json not found.", err=True, fg="red")
+        sys.exit(1)
 
     manifest["name"] = name = extension["name"]
     manifest["version"] = version = extension["version"]
@@ -96,15 +98,11 @@ def bundle() -> None:
                             zipf.write(file, arcname)
 
     except Exception as ex:
-        typer.secho(f"❌ Failed to create bundle: {ex}", err=True, fg=typer.colors.RED)
-        raise typer.Exit(code=1) from ex
+        click.secho(f"❌ Failed to create bundle: {ex}", err=True, fg="red")
+        sys.exit(1)
 
-    typer.secho(f"✅ Bundle created: {zip_name}", fg=typer.colors.GREEN)
-
-
-def main() -> None:
-    app()
+    click.secho(f"✅ Bundle created: {zip_name}", fg="green")
 
 
 if __name__ == "__main__":
-    main()
+    app()
