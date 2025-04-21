@@ -17,10 +17,10 @@
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, List, Tuple
+from typing import Any
 from zipfile import is_zipfile, ZipFile
 
-from flask import request, Response, send_file
+from flask import g, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -44,6 +44,7 @@ from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.filters import (
     SavedQueryAllTextFilter,
     SavedQueryFavoriteFilter,
+    SavedQueryFilter,
     SavedQueryTagIdFilter,
     SavedQueryTagNameFilter,
 )
@@ -80,7 +81,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     resource_name = "saved_query"
     allow_browser_login = True
 
-    base_filters: List[Tuple[Any, ...]] = []
+    base_filters = [["id", SavedQueryFilter, lambda: []]]
 
     show_columns = [
         "changed_on",
@@ -190,10 +191,10 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     allowed_distinct_fields = {"catalog", "schema"}
 
     def pre_add(self, item: SavedQuery) -> None:
-        pass
+        item.user = g.user
 
     def pre_update(self, item: SavedQuery) -> None:
-        pass
+        self.pre_add(item)
 
     @expose("/", methods=("DELETE",))
     @protect()
