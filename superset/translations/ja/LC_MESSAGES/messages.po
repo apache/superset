@@ -962,7 +962,7 @@ msgid "Added"
 msgstr "追加済み"
 
 #, fuzzy, python-format
-msgid "Added to 1 dashboard"
+msgid "Added to %s dashboard"
 msgid_plural "Added to %s dashboards"
 msgstr[0] "1 つのダッシュボードに追加"
 

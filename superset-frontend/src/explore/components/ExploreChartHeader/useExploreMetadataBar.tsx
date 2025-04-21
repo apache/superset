@@ -36,7 +36,7 @@ export const useExploreMetadataBar = (
         title:
           metadata.dashboards.length > 0
             ? tn(
-                'Added to 1 dashboard',
+                'Added to %s dashboard',
                 'Added to %s dashboards',
                 metadata.dashboards.length,
                 metadata.dashboards.length,

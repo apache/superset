@@ -991,7 +991,7 @@ msgid "Added"
 msgstr "Añadido"
 
 #, fuzzy, python-format
-msgid "Added to 1 dashboard"
+msgid "Added to %s dashboard"
 msgid_plural "Added to %s dashboards"
 msgstr[0] "Añadir a un nuevo Dashboard"
 msgstr[1] ""
