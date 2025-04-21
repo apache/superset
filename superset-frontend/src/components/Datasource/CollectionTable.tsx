@@ -143,23 +143,27 @@ export default class CRUDCollection extends PureComponent<
       }
       delete newItem.expanded;
 
-      const newCollection = {
-        ...this.state.collection,
-        [newItem.id]: newItem,
-      };
-
-      const newExpandedColumns = shouldStartExpanded
-        ? { ...this.state.expandedColumns, [newItem.id]: true }
-        : this.state.expandedColumns;
-
       this.setState(
-        prevState => ({
-          collection: newCollection,
-          collectionArray: [newItem, ...prevState.collectionArray],
-          expandedColumns: newExpandedColumns,
-        }),
+        prevState => {
+          const newCollection = {
+            ...prevState.collection,
+            [newItem.id]: newItem,
+          };
+          const newExpandedColumns = shouldStartExpanded
+            ? { ...prevState.expandedColumns, [newItem.id]: true }
+            : prevState.expandedColumns;
+          const newCollectionArray = [newItem, ...prevState.collectionArray];
+
+          return {
+            collection: newCollection,
+            collectionArray: newCollectionArray,
+            expandedColumns: newExpandedColumns,
+          };
+        },
         () => {
-          this.changeCollection(this.state.collection);
+          if (this.props.onChange) {
+            this.props.onChange(this.state.collectionArray);
+          }
         },
       );
     }
