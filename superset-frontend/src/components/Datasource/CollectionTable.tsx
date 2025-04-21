@@ -38,6 +38,7 @@ import Table, {
   SortOrder,
   SorterResult,
   TablePaginationConfig,
+  TableSize,
 } from '../Table';
 
 const CrudButtonWrapper = styled.div`
@@ -411,6 +412,8 @@ export default class CRUDCollection extends PureComponent<
           onChange={this.handleTableChange}
           locale={{ emptyText: emptyMessage }}
           expandable={expandableConfig}
+          size={TableSize.Middle}
+          tableLayout={this.props.tableLayout ?? 'auto'}
         />
       </>
     );

@@ -211,6 +211,7 @@ function ColumnCollectionTable({
 }) {
   return (
     <CollectionTable
+      tableLayout="fixed"
       tableColumns={
         isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? [
@@ -1341,6 +1342,7 @@ class DatasourceEditor extends PureComponent {
         }}
         allowDeletes
         stickyHeader
+        tableLayout="auto"
       />
     );
   }
