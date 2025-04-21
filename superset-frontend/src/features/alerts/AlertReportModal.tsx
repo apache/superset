@@ -2304,7 +2304,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       ))}
                       <div className="filters-add-container">
                         {filterNativeFilterOptions().length > 0 &&
-                          nativeFilterData.length <
+                          nativeFilterData.length <=
                             filterNativeFilterOptions().length && (
                             <Button
                               className="filters-add-btn"
