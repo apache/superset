@@ -108,6 +108,8 @@ export default function transformProps(
     bigNumber,
     headerFormatter,
     headerFontSize,
+    subheader,
+    subheaderFontSize,
     subtitleFontSize: formattedSubtitleFontSize,
     subtitle: formattedSubtitle,
     onContextMenu,
