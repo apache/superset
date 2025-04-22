@@ -61,7 +61,8 @@ function renderQueryLimit(
         placeholder="custom limit"
         onKeyDown={event => {
           if (event.key === 'Enter') {
-            const limit = parseInt(event.target.value, 10);
+            const val = (event.target as HTMLInputElement).value;
+            const limit = parseInt(val, 10);
             setQueryLimit(limit);
             convertToNumWithSpaces(limit);
           }
