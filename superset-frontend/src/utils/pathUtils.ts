@@ -26,3 +26,4 @@ import { applicationRoot } from 'src/utils/getBootstrapData';
 export function ensureAppRoot(path: string): string {
   return `${applicationRoot()}${path.startsWith('/') ? path : `/${path}`}`;
 }
+

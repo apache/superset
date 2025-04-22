@@ -327,7 +327,7 @@ const RightMenu = ({
     ) : (
       <Menu.Item key={item.name} css={styledChildMenu}>
         {item.url ? (
-          <a href={ensureAppRoot(item.url)}> {item.label} </a>
+          <a href={sanitizeAndEnsureAppRoot(item.url)}> {item.label} </a>
         ) : (
           item.label
         )}
