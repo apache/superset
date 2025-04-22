@@ -251,3 +251,12 @@ may use the docker cache if assets already exist. Running `docker compose build`
 `docker compose up` or the equivalent shortcut `docker compose up --build` ensures that your
 docker images matche the definition in the repository. This should only apply to the main
 docker-compose.yml file (default) and not to the alternative methods defined above.
+
+## 5. Building custom extended Docker image on top of the official image
+
+This section demonstrates how to deploy Superset using Docker compose and a customized image based on an official released. This example is useful for multiple reasons:
+
+1. It provides an example of configuration files viable for a Docker compose deployment.
+2. It provides a script to build a custom Docker image on top of a stock image from a local Superset repository and tag.
+
+[This directory](./custom_docker_compose_installation_files/) provides 
