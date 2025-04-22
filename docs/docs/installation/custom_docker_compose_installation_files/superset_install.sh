@@ -46,7 +46,7 @@ git checkout $TAG
 
 # Copy custom installation files into the Superset repository:
 # - superset_config_docker.py: custom configuration
-# - .env-local: environment variables for local development
+# - .env-local: environment variables.
 # - requirements-local.txt: additional Python dependencies
 # - Dockerfile-local.dockerfile: custom Dockerfile for local builds
 # - docker_compose_overrides.yml: Docker Compose overrides

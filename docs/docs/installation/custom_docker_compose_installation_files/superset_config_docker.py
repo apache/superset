@@ -1,3 +1,6 @@
+# This file overrides the superset/docker/pythonpath_dev/souperset_config.py file, in which it is imported
+# as a final step as a means to override "defaults".
+
 import os
 
 FEATURE_FLAGS = {
