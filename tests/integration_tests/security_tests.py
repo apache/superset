@@ -1550,6 +1550,7 @@ class TestRolePermission(SupersetTestCase):
             ["SecurityApi", "login"],
             ["SecurityApi", "refresh"],
             ["SupersetIndexView", "index"],
+            ["SupersetIndexView", "patch_flask_locale"],
             ["DatabaseRestApi", "oauth2"],
         ]
         unsecured_views = []

@@ -172,11 +172,7 @@ def paginated_update(
 
 
 def try_load_json(data: Optional[str]) -> dict[str, Any]:
-    try:
-        return data and json.loads(data) or {}
-    except json.JSONDecodeError:
-        print(f"Failed to parse: {data}")
-        return {}
+    return data and json.loads(data) or {}
 
 
 def has_table(table_name: str) -> bool:
@@ -226,24 +222,25 @@ def drop_fks_for_table(
             op.drop_constraint(fk_name, table_name, type_="foreignkey")
 
 
-def create_table(table_name: str, *columns: SchemaItem) -> None:
+def create_table(table_name: str, *columns: SchemaItem, **kwargs: Any) -> None:
     """
     Creates a database table with the specified name and columns.
 
     This function checks if a table with the given name already exists in the database.
     If the table already exists, it logs an informational.
-    Otherwise, it proceeds to create a new table using the provided name and schema columns.
+    Otherwise, it proceeds to create a new table using the provided name
+    and schema columns.
 
     :param table_name: The name of the table to be created.
-    :param columns: A variable number of arguments representing the schema just like when calling alembic's method create_table()
-    """  # noqa: E501
-
+    :param columns: A variable number of arguments representing the schema
+    just like when calling alembic's method create_table()
+    """
     if has_table(table_name=table_name):
         logger.info(f"Table {LRED}{table_name}{RESET} already exists. Skipping...")
         return
 
     logger.info(f"Creating table {GREEN}{table_name}{RESET}...")
-    op.create_table(table_name, *columns)
+    op.create_table(table_name, *columns, **kwargs)
     logger.info(f"Table {GREEN}{table_name}{RESET} created.")
 
 
