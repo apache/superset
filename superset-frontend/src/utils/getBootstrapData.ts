@@ -17,6 +17,7 @@
  * under the License.
  */
 import { BootstrapData } from 'src/types/bootstrapTypes';
+import DOMPurify from 'dompurify';
 import { DEFAULT_BOOTSTRAP_DATA } from 'src/constants';
 
 let cachedBootstrapData: BootstrapData | null = null;
@@ -25,8 +26,11 @@ export default function getBootstrapData(): BootstrapData {
   if (cachedBootstrapData === null) {
     const appContainer = document.getElementById('app');
     const dataBootstrap = appContainer?.getAttribute('data-bootstrap');
-    cachedBootstrapData = dataBootstrap
-      ? JSON.parse(dataBootstrap)
+    const sanitizedDataBootstrap = dataBootstrap
+      ? DOMPurify.sanitize(dataBootstrap)
+      : null;
+    cachedBootstrapData = sanitizedDataBootstrap
+      ? JSON.parse(sanitizedDataBootstrap)
       : DEFAULT_BOOTSTRAP_DATA;
   }
   // Add a fallback to ensure the returned value is always of type BootstrapData

@@ -24,5 +24,6 @@ import { applicationRoot } from 'src/utils/getBootstrapData';
  * @param path A string path to a resource
  */
 export function ensureAppRoot(path: string): string {
-  return `${applicationRoot()}${path.startsWith('/') ? path : `/${path}`}`;
+  const fullPath = `${applicationRoot()}${path.startsWith('/') ? path : `/${path}`}`;
+  return encodeURI(fullPath);
 }
