@@ -26,7 +26,7 @@ from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.extensions import db
-from flask_appbuilder.security.sqla.apis import RoleApi
+from flask_appbuilder.security.sqla.apis import RoleApi, UserApi
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_group_role,
@@ -139,17 +139,38 @@ class SupersetRoleApi(RoleApi):
         item.permissions = []
 
 
+class SupersetUserApi(UserApi):
+    """
+    Overriding the UserApi to be able to delete users
+    """
+
+    search_columns = [
+        "id",
+        "roles",
+        "first_name",
+        "last_name",
+        "username",
+        "active",
+        "email",
+        "last_login",
+        "login_count",
+        "fail_login_count",
+        "created_on",
+        "changed_on",
+    ]
+
+    def pre_delete(self, item: Model) -> None:
+        """
+        Overriding this method to be able to delete items when they have constraints
+        """
+        item.roles = []
+
+
 UserModelView.list_widget = SupersetSecurityListWidget
 PermissionViewModelView.list_widget = SupersetSecurityListWidget
 PermissionModelView.list_widget = SupersetSecurityListWidget
 
 # Limiting routes on FAB model views
-UserModelView.include_route_methods = RouteMethod.CRUD_SET | {
-    RouteMethod.ACTION,
-    RouteMethod.API_READ,
-    RouteMethod.ACTION_POST,
-    "userinfo",
-}
 PermissionViewModelView.include_route_methods = {RouteMethod.LIST}
 PermissionModelView.include_route_methods = {RouteMethod.LIST}
 ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
@@ -226,6 +247,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
 
     role_api = SupersetRoleApi
+<<<<<<< HEAD
+=======
+    user_api = SupersetUserApi
+>>>>>>> 6af1c494c5 (re add manager.py)
 
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
