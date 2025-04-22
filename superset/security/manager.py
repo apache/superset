@@ -42,7 +42,6 @@ from flask_appbuilder.security.sqla.models import (
 from flask_appbuilder.security.views import (
     PermissionModelView,
     PermissionViewModelView,
-    UserModelView,
     ViewMenuModelView,
 )
 from flask_appbuilder.widgets import ListWidget
@@ -166,7 +165,6 @@ class SupersetUserApi(UserApi):
         item.roles = []
 
 
-UserModelView.list_widget = SupersetSecurityListWidget
 PermissionViewModelView.list_widget = SupersetSecurityListWidget
 PermissionModelView.list_widget = SupersetSecurityListWidget
 
@@ -247,10 +245,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
 
     role_api = SupersetRoleApi
-<<<<<<< HEAD
-=======
     user_api = SupersetUserApi
->>>>>>> 6af1c494c5 (re add manager.py)
 
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
@@ -272,6 +267,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Action Log",
         "Log",
         "List Users",
+        "UsersListView",
         "List Roles",
         "List Groups",
         "ResetPasswordView",
@@ -2802,5 +2798,5 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         if security_menu:
             for item in list(security_menu.childs):
-                if item.name == "List Roles":
+                if item.name in ["List Roles", "List Users"]:
                     security_menu.childs.remove(item)
