@@ -251,15 +251,17 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       container.remove();
 
       return (
-        <div
-          className="subtitle-line"
-          style={{
-            fontSize,
-            height: maxHeight,
-          }}
-        >
-          {text}
-        </div>
+        <>
+          <div
+            className="subtitle-line subheader-line"
+            style={{
+              fontSize: `${fontSize}px`,
+              height: maxHeight,
+            }}
+          >
+            {text}
+          </div>
+        </>
       );
     }
     return null;
@@ -411,12 +413,12 @@ export default styled(BigNumberVis)`
 
     .subheader-line {
       line-height: 1em;
-      padding-bottom: 0.3em;
+      padding-bottom: 0;
     }
 
-    .subtitle-line {
+    .subtittle-line {
       line-height: 1em;
-      padding-top: 0.3em;
+      padding-bottom: 0;
     }
 
     &.is-fallback-value {
