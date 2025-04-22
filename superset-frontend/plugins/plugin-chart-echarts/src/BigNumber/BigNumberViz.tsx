@@ -188,26 +188,18 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     );
   }
 
-  renderSubheader(maxHeight: number) {
-    const { bigNumber, subheader, width, bigNumberFallback } = this.props;
+  rendermetricComparisonSummary(maxHeight: number) {
+    const { subheader, width } = this.props;
     let fontSize = 0;
 
-    const NO_DATA_OR_HASNT_LANDED = t(
-      'No data after filtering or data is NULL for the latest time record',
-    );
-    const NO_DATA = t(
-      'Try applying different filters or ensuring your datasource has data',
-    );
-    let text = subheader;
-    if (bigNumber === null) {
-      text = bigNumberFallback ? NO_DATA : NO_DATA_OR_HASNT_LANDED;
-    }
+    const text = subheader;
+
     if (text) {
       const container = this.createTemporaryContainer();
       document.body.append(container);
       fontSize = computeMaxFontSize({
         text,
-        maxWidth: width * 0.9, // max width reduced
+        maxWidth: width * 0.9,
         maxHeight,
         className: 'subheader-line',
         container,
@@ -230,23 +222,33 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
   }
 
   renderSubtitle(maxHeight: number) {
-    const { subtitle, width } = this.props;
+    const { subtitle, width, bigNumber, bigNumberFallback } = this.props;
     let fontSize = 0;
 
-    if (subtitle) {
+    const NO_DATA_OR_HASNT_LANDED = t(
+      'No data after filtering or data is NULL for the latest time record',
+    );
+    const NO_DATA = t(
+      'Try applying different filters or ensuring your datasource has data',
+    );
+
+    let text = subtitle;
+    if (bigNumber === null) {
+      text =
+        subtitle || (bigNumberFallback ? NO_DATA : NO_DATA_OR_HASNT_LANDED);
+    }
+
+    if (text) {
       const container = this.createTemporaryContainer();
       document.body.append(container);
-      try {
-        fontSize = computeMaxFontSize({
-          text: subtitle,
-          maxWidth: width * 0.9,
-          maxHeight,
-          className: 'subtitle-line',
-          container,
-        });
-      } finally {
-        container.remove();
-      }
+      fontSize = computeMaxFontSize({
+        text,
+        maxWidth: width * 0.9,
+        maxHeight,
+        className: 'subtitle-line',
+        container,
+      });
+      container.remove();
 
       return (
         <div
@@ -256,7 +258,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
             height: maxHeight,
           }}
         >
-          {subtitle}
+          {text}
         </div>
       );
     }
@@ -336,7 +338,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
             {this.renderHeader(
               Math.ceil(headerFontSize * (1 - PROPORTION.TRENDLINE) * height),
             )}
-            {this.renderSubheader(
+            {this.rendermetricComparisonSummary(
               Math.ceil(
                 subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
               ),
@@ -355,7 +357,9 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         {this.renderFallbackWarning()}
         {this.renderKicker((kickerFontSize || 0) * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}
-        {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
+        {this.rendermetricComparisonSummary(
+          Math.ceil(subheaderFontSize * height),
+        )}
         {this.renderSubtitle(Math.ceil(subtitleFontSize * height))}
       </div>
     );
