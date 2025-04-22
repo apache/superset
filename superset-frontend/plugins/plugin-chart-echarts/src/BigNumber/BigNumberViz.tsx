@@ -208,7 +208,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
 
       return (
         <div
-          className="subheader-line subtitle-line"
+          className="subheader-line"
           style={{
             fontSize,
             height: maxHeight,
@@ -416,7 +416,7 @@ export default styled(BigNumberVis)`
       padding-bottom: 0;
     }
 
-    .subtittle-line {
+    .subtitle-line {
       line-height: 1em;
       padding-bottom: 0;
     }
