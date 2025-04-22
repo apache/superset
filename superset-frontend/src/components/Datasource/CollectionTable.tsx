@@ -73,7 +73,7 @@ function createKeyedCollection(arr: Array<object>) {
 
   const collection: Record<PropertyKey, any> = {};
   collectionArray.forEach((o: CollectionItem) => {
-    collection[String(o.id)] = o;
+    collection[o.id] = o;
   });
 
   return {
@@ -114,13 +114,11 @@ export default class CRUDCollection extends PureComponent<
       const { collection, collectionArray } = createKeyedCollection(
         nextProps.collection,
       );
-      this.setState({
+      this.setState(prevState => ({
         collection,
         collectionArray,
-        sortColumn: '',
-        sort: 0,
-        expandedColumns: {},
-      });
+        expandedColumns: prevState.expandedColumns,
+      }));
     }
   }
 
@@ -370,9 +368,9 @@ export default class CRUDCollection extends PureComponent<
     } = this.props;
 
     const tableColumns = this.buildTableColumns();
-    const expandedRowKeys = Object.keys(this.state.expandedColumns)
-      .filter(id => this.state.expandedColumns[id])
-      .map(Number);
+    const expandedRowKeys = Object.keys(this.state.expandedColumns).filter(
+      id => this.state.expandedColumns[id],
+    );
 
     const expandableConfig = expandFieldset
       ? {
@@ -410,7 +408,7 @@ export default class CRUDCollection extends PureComponent<
           data-test="crud-table"
           columns={tableColumns}
           data={this.state.collectionArray as CollectionItem[]}
-          rowKey="id"
+          rowKey={(record: CollectionItem) => String(record.id)}
           sticky={stickyHeader}
           pagination={false}
           onChange={this.handleTableChange}
