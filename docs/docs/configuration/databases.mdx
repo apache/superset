@@ -1288,9 +1288,9 @@ mssql+pyodbc:///?odbc_connect=Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3BSer
 ```
 
 :::note
-You'all might have noticed that some special form of charecters are used in above connection string. For example see the `odbc_connect` parameter, the value is `Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B` which is URL encoded form of `Driver={ODBC+Driver+17+for+SQL+Server};`. It's important to give the connection string as URL encoded format.
+You might have noticed that some special charecters are used in the above connection string. For example see the `odbc_connect` parameter. The value is `Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B` which is a URL-encoded form of `Driver={ODBC+Driver+17+for+SQL+Server};`. It's important to give the connection string is URL encoded.
 
-For more information about this check the [sqlalchemy documentation](https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords). Which says `When constructing a fully formed URL string to pass to create_engine(), special characters such as those that may be used in the user and password need to be URL encoded to be parsed correctly.. This includes the @ sign.`
+For more information about this check the [sqlalchemy documentation](https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords). Which says `When constructing a fully formed URL string to pass to create_engine(), special characters such as those that may be used in the user and password need to be URL encoded to be parsed correctly. This includes the @ sign.`
 :::
 
 
