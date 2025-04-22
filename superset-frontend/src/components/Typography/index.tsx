@@ -31,16 +31,10 @@ const StyledLink = styled(AntdTypography.Link)`
   }
 `;
 
-export const Typography: typeof AntdTypography & {
-  Text: typeof AntdTypography.Text;
-  Link: typeof StyledLink;
-  Title: typeof AntdTypography.Title;
-  Paragraph: typeof AntdTypography.Paragraph;
-} = Object.assign(AntdTypography, {
+export const Typography: typeof AntdTypography = Object.assign(AntdTypography, {
   Text: AntdTypography.Text,
   Link: StyledLink,
   Title: AntdTypography.Title,
   Paragraph: AntdTypography.Paragraph,
 });
-
 export type { TypographyProps } from 'antd-v5';

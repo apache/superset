@@ -212,7 +212,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
       </Form>
       <ButtonRow
         css={theme => css`
-          margin-top: ${theme.sizeUnit * 4}px;
+          margin-top: ${theme.margin}px;
         `}
       >
         {embedded ? (

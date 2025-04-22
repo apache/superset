@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { css } from '@superset-ui/core';
 import { List } from 'src/components';
-import { Typography } from 'src/components/Typography';
 import { ValidationObject } from './types';
 import { TRANSLATIONS } from './AlertReportModal';
 
@@ -37,8 +37,15 @@ export const buildErrorTooltipMessage = (
       <List
         dataSource={sectionErrors}
         renderItem={err => (
-          <List.Item>
-            <Typography.Text>• {err}</Typography.Text>
+          <List.Item
+            css={theme => css`
+              &&& {
+                color: ${theme.colorWhite};
+              }
+            `}
+            compact
+          >
+            • {err}
           </List.Item>
         )}
         size="small"

@@ -86,7 +86,11 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
         <CopyToClipboard
           shouldShowText={false}
           text={html}
-          copyNode={<Icons.CopyOutlined />}
+          copyNode={
+            <span role="button" aria-label="Copy to clipboard">
+              <Icons.CopyOutlined />
+            </span>
+          }
         />
         <Input.TextArea
           data-test="embed-code-textarea"
@@ -106,9 +110,9 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
         />
       </div>
       <Space
-        direction="orizzontal"
+        direction="horizzontal"
         css={theme => css`
-          margin-top: ${theme.sizeUnit * 4}px;
+          margin-top: ${theme.margin}px;
         `}
       >
         <div>
