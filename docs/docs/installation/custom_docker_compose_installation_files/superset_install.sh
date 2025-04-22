@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# This script installs Apache Superset from a specific GitHub repository and tag.
+# It sets up logging, environment variables, enables memory overcommit for Redis,
+# clones the Superset repository, copies custom installation files, builds the stock and custom Docker images,
+# and starts the Superset components using Docker Compose.
+# The script assumes that the following environment variables are set:
+# - SUPERSET_GITHUB_URL: The URL of the Superset GitHub repository.
+# - TAG: The tag or branch of the Superset repository to check out.
+
 # Set up logging: define a log-step function, export it, create a log file, and redirect all output to the log file.
 log-step() {
   printf "\n--> %s\n\n" "$(date): $1"
@@ -50,12 +58,13 @@ git checkout $TAG
 # - requirements-local.txt: additional Python dependencies
 # - Dockerfile-local.dockerfile: custom Dockerfile for local builds
 # - docker_compose_overrides.yml: Docker Compose overrides
+# Modify the source paths as needed to match the location of your custom files.
 log-step "Copying installation files to the Superset repository"
-cp $HOME/superset_installation/superset_config_docker.py $HOME/superset/docker/pythonpath_dev/superset_config_docker.py
-cp $HOME/superset_installation/.env-local $HOME/superset/docker/.env-local
-cp $HOME/superset_installation/requirements-local.txt $HOME/superset/docker/requirements-local.txt
-cp $HOME/superset_installation/Dockerfile-local.dockerfile $HOME/superset/Dockerfile-local.dockerfile
-cp $HOME/superset_installation/docker_compose_overrides.yml $HOME/superset/docker_compose_overrides.yml
+cp $HOME/custom_docker_compose_installation_files/superset_config_docker.py $HOME/superset/docker/pythonpath_dev/superset_config_docker.py
+cp $HOME/custom_docker_compose_installation_files/.env-local $HOME/superset/docker/.env-local
+cp $HOME/custom_docker_compose_installation_files/requirements-local.txt $HOME/superset/docker/requirements-local.txt
+cp $HOME/custom_docker_compose_installation_files/Dockerfile-local.dockerfile $HOME/superset/Dockerfile-local.dockerfile
+cp $HOME/custom_docker_compose_installation_files/docker_compose_overrides.yml $HOME/superset/docker_compose_overrides.yml
 
 # Build Superset from the current git branch and run it. 
 # This will create a Docker image - using the offical Dockerfile - named 'superset-local' and tag it as 'latest'.

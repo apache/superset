@@ -252,17 +252,19 @@ may use the docker cache if assets already exist. Running `docker compose build`
 docker images matche the definition in the repository. This should only apply to the main
 docker-compose.yml file (default) and not to the alternative methods defined above.
 
-## 5. Building custom extended Docker image on top of the official image
+## 5. Building a Custom Extended Docker Image
 
-This section demonstrates how to deploy Superset using Docker compose and a customized image based on an official released. This example is useful for multiple reasons:
+This section explains how to deploy Superset using Docker Compose with a custom image based on an official release. This approach is useful if you need to:
 
-1. It provides an example of configuration files viable for a Docker compose deployment.
-2. It provides a script to build a custom Docker image on top of a stock image from a local Superset repository and tag.
+1. Customize configuration files for a Docker Compose deployment.
+2. Build a custom Docker image that extends an official Superset image using your own local repository and specific commit tag.
 
-[This directory](./custom_docker_compose_installation_files/) includes the example files to build and deploy a custom Superset Docker image using Docker compose:
+This [directory](./custom_docker_compose_installation_files/) contains example files to help you build and deploy a custom Superset Docker image:
 
-- [superset_config_docker.py](./custom_docker_compose_installation_files/superset_config_docker.py): custom configuration file, overriding the default [superset_config.py file](../../../docker/pythonpath_dev/superset_config.py)
-- [.env-local](./custom_docker_compose_installation_files/.env-local): environment variables overriding the default [.env file](../../../docker/.env).
-- [requirements-local.txt](./custom_docker_compose_installation_files/requirements-local.txt): additional Python dependencies.
-- [Dockerfile-local.dockerfile](./custom_docker_compose_installation_files/Dockerfile-local.dockerfile): custom Dockerfile to build the custom image which extends the default [Dockerfile](../../../Dockerfile)
-- [docker_compose_overrides.yml](./custom_docker_compose_installation_files/docker_compose_overrides.yml): Docker Compose configuration file which overrides the [default file](../../../docker-compose-image-tag.yml)
+- [superset_config_docker.py](./custom_docker_compose_installation_files/superset_config_docker.py): Configuration file that overrides the default [superset_config.py](../../../docker/pythonpath_dev/superset_config.py).
+- [.env-local](./custom_docker_compose_installation_files/.env-local): Environment variables that override the default ones specified in [.env](../../../docker/.env).
+- [requirements-local.txt](./custom_docker_compose_installation_files/requirements-local.txt): Additional Python dependencies.
+- [Dockerfile-local.dockerfile](./custom_docker_compose_installation_files/Dockerfile-local.dockerfile): Dockerfile that extends the default [Dockerfile](../../../Dockerfile).
+- [docker_compose_overrides.yml](./custom_docker_compose_installation_files/docker_compose_overrides.yml): Docker Compose configuration which extends the [default configuration](../../../docker-compose-image-tag.yml).
+- [superset_install.sh](./custom_docker_compose_installation_files/superset_install.sh): Shell script that installs Apache Superset from a specific GitHub repository and tag. It clones the specified Superset repository, copies the custom installation files, builds the stock and custom Docker images, and starts the Superset components using Docker Compose.
+- [env_variables.sh](./custom_docker_compose_installation_files/env_variables.sh): Environment variables which specify the URL of the Superset Github repository and the commit tag to build and deploy.
