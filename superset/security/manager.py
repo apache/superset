@@ -2787,10 +2787,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         super().register_views()
 
         for view in list(self.appbuilder.baseviews):
-            if (
-                isinstance(view, self.rolemodelview.__class__)
-                and getattr(view, "route_base", None) == "/roles"
-            ):
+            if isinstance(view, self.rolemodelview.__class__) and getattr(
+                view, "route_base", None
+            ) in ["/roles", "/users"]:
                 self.appbuilder.baseviews.remove(view)
 
         security_menu = next(
