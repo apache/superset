@@ -62,7 +62,9 @@ export default function transformProps(
   const granularity = extractTimegrain(rawFormData as QueryFormData);
   const metricName = getMetricLabel(metric);
   const formattedSubtitle = subtitle || subheader || '';
-  const formattedSubtitleFontSize = subheaderFontSize || subtitleFontSize;
+  const formattedSubtitleFontSize = subtitle?.trim()
+    ? subtitleFontSize
+    : subheaderFontSize;
   const bigNumber =
     data.length === 0 ? null : parseMetricValue(data[0][metricName]);
 
