@@ -17,28 +17,39 @@
  * under the License.
  */
 import { memo, useMemo } from 'react';
-import { t, useTruncation } from '@superset-ui/core';
+import { t, useTruncation, css } from '@superset-ui/core';
 import { List } from 'src/components/List';
 import { useFilterScope } from './useFilterScope';
-import {
-  Row,
-  RowLabel,
-  RowTruncationCount,
-  RowValue,
-  TooltipSectionLabel,
-} from './Styles';
+import { Row, RowLabel, RowTruncationCount, RowValue } from './Styles';
 import { FilterCardRowProps } from './types';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 
 const getTooltipSection = (items: string[] | undefined, label: string) =>
   Array.isArray(items) && items.length > 0 ? (
     <>
-      <TooltipSectionLabel>{label}:</TooltipSectionLabel>
+      <span
+        css={theme => css`
+          font-weight: ${theme.fontWeightStrong};
+        `}
+      >
+        {label}:
+      </span>
       <List
         size="small"
         split={false}
         dataSource={items}
-        renderItem={item => <List.Item>{item}</List.Item>}
+        renderItem={item => (
+          <List.Item
+            compact
+            css={theme => css`
+              span[role='button'] {
+                color: ${theme.colorWhite};
+              }
+            `}
+          >
+            {item}
+          </List.Item>
+        )}
       />
     </>
   ) : null;

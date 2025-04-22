@@ -63,7 +63,14 @@ export const DependenciesRow = memo(({ filter }: FilterCardRowProps) => {
         <List
           dataSource={dependencies}
           renderItem={dependency => (
-            <List.Item compact>
+            <List.Item
+              compact
+              css={theme => css`
+                span[role='button'] {
+                  color: ${theme.colorWhite};
+                }
+              `}
+            >
               • <DependencyValue dependency={dependency} />
             </List.Item>
           )}

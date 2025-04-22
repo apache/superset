@@ -75,10 +75,6 @@ export const RowTruncationCount = styled.span`
   `}
 `;
 
-export const TooltipSectionLabel = styled.span`
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
-`;
-
 export const TooltipTrigger = styled.div`
   min-width: 0;
   display: inline-flex;

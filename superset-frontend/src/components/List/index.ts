@@ -32,6 +32,14 @@ const CompactListItem = styled(AntdList.Item)<CompactListItemProps>`
         padding: ${theme.sizeUnit / 2}px ${theme.sizeUnit * 3}px
           ${theme.sizeUnit / 2}px ${theme.sizeUnit}px;
       `}
+    ${({ theme }) => css`
+      && a {
+        color: ${theme.colorLink};
+        &:hover {
+          color: ${theme.colorLinkHover};
+        }
+      }
+    `}
   }
 `;
 
