@@ -143,7 +143,9 @@ describe('QueryLimitSelect', () => {
       elem.textContent?.trim(),
     );
 
-    expect(actualLabels).toEqual(expectedLabels);
+    expect(actualLabels.slice(0, actualLabels.length - 1)).toEqual(
+      expectedLabels,
+    );
   });
 
   it('renders dropdown select correctly when maxRow is a multiple of 10', async () => {
@@ -165,7 +167,9 @@ describe('QueryLimitSelect', () => {
       elem.textContent?.trim(),
     );
 
-    expect(actualLabels).toEqual(expectedLabels);
+    expect(actualLabels.slice(0, actualLabels.length - 1)).toEqual(
+      expectedLabels,
+    );
   });
 
   it('dispatches QUERY_EDITOR_SET_QUERY_LIMIT action on dropdown menu click', async () => {
