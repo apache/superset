@@ -24,9 +24,11 @@ from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
 from deprecation import deprecated
-from flask import Flask, redirect, url_for
+from flask import abort, Flask, redirect, request, session, url_for
 from flask_appbuilder import expose, IndexView
-from flask_babel import gettext as __
+from flask_appbuilder.api import safe
+from flask_appbuilder.utils.base import get_safe_redirect
+from flask_babel import gettext as __, refresh
 from flask_compress import Compress
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -86,8 +88,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         wtforms_json.init()
 
-        if not os.path.exists(self.config["DATA_DIR"]):
-            os.makedirs(self.config["DATA_DIR"])
+        os.makedirs(self.config["DATA_DIR"], exist_ok=True)
 
     def post_init(self) -> None:
         """
@@ -184,6 +185,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
+        from superset.views.users_list import UsersListView
 
         set_app_error_handlers(self.superset_app)
 
@@ -226,6 +228,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Setup regular views
         #
         app_root = appbuilder.app.config["APPLICATION_ROOT"]
+        if app_root.endswith("/"):
+            app_root = app_root.rstrip("/")
+
         appbuilder.add_link(
             "Home",
             label=__("Home"),
@@ -274,6 +279,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
+        )
+
+        appbuilder.add_view(
+            UsersListView,
+            "List Users",
+            label=__("List Users"),
+            category="Security",
+            category_label=__("Security"),
         )
 
         appbuilder.add_view(
@@ -705,3 +718,24 @@ class SupersetIndexView(IndexView):
     @expose("/")
     def index(self) -> FlaskResponse:
         return redirect(url_for("Superset.welcome"))
+
+    @expose("/lang/<string:locale>")
+    @safe
+    def patch_flask_locale(self, locale: str) -> FlaskResponse:
+        """
+        Change user's locale and redirect back to the previous page.
+
+        Overrides FAB's babel.views.LocaleView so we can use the request
+        Referrer as the redirect target, in case our previous page was actually
+        served by the frontend (and thus not added to the session's page_history
+        stack).
+        """
+        if locale not in self.appbuilder.bm.languages:
+            abort(404, description="Locale not supported.")
+        session["locale"] = locale
+        refresh()
+        self.update_redirect()
+
+        if redirect_to := request.headers.get("Referer"):
+            return redirect(get_safe_redirect(redirect_to))
+        return redirect(self.get_redirect())
