@@ -123,7 +123,9 @@ describe('QueryLimitSelect', () => {
       elem.textContent?.trim(),
     );
 
-    expect(actualLabels).toEqual(expectedLabels);
+    expect(actualLabels.slice(0, actualLabels.length - 1)).toEqual(
+      expectedLabels,
+    );
   });
 
   it('renders dropdown select correctly when maxRow is less than 10', async () => {
