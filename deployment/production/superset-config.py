@@ -84,7 +84,7 @@ CORS_OPTIONS = {
      'origins': [f'{ALEX_BACKEND_URL}']
 }
     
-
+SQLALCHEMY_TABLE_PREFIX = ""
 #---------------- Custom Methods ---------------------------
 
 
