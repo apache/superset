@@ -228,10 +228,9 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const { groupby, enableSingleValue, enableEmptyFilter, defaultValue } =
     formData;
 
-  // Access controlValues from either the top level (new format) or nested (old format)
-  const controlValues = formData?.controlValues || {};
+  // Get the display mode from formData
   const rangeDisplayMode =
-    controlValues.rangeDisplayMode || RangeDisplayMode.SliderAndInput;
+    formData?.rangeDisplayMode || RangeDisplayMode.SliderAndInput;
 
   const minIndex = 0;
   const maxIndex = 1;
@@ -408,10 +407,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   // Handler for slider change
   const handleSliderChange = useCallback(
     (value: number[]) => {
-      if (row?.min === undefined && row?.max === undefined) {
-        return;
-      }
-
       let newInputValue: RangeValue;
 
       const [sliderMin, sliderMax] =
@@ -433,15 +428,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       }
 
       setInputValue(newInputValue);
-
-      // Slider values should always be valid since they're constrained by min/max props
       setError(null);
       updateDataMaskValue(newInputValue);
     },
     [min, max, enableSingleValue, updateDataMaskValue],
   );
 
-  // Create different error display components for vertical and horizontal orientations
+  // different error display components for vertical and horizontal orientations
   const verticalErrorDisplay = useMemo(() => {
     if (error) {
       return <StatusMessage status="error">{error}</StatusMessage>;
@@ -456,7 +449,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   // Info/Error tooltip component for horizontal orientation - always shown
   const InfoTooltip = useCallback(() => {
-    // Determine the tooltip message and icon color
     const tooltipMessage =
       error || t('Choose numbers between %(min)s and %(max)s', { min, max });
 

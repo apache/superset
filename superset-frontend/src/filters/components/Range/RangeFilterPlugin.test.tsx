@@ -264,7 +264,7 @@ describe('RangeFilterPlugin', () => {
     it('should render only the slider in slider mode', () => {
       getWrapper({
         formData: {
-          controlValues: { rangeDisplayMode: RangeDisplayMode.Slider },
+          rangeDisplayMode: RangeDisplayMode.Slider,
         },
       });
 
@@ -277,7 +277,7 @@ describe('RangeFilterPlugin', () => {
     it('should render only inputs in input mode', () => {
       getWrapper({
         formData: {
-          controlValues: { rangeDisplayMode: RangeDisplayMode.Input },
+          rangeDisplayMode: RangeDisplayMode.Input,
         },
       });
 
@@ -290,7 +290,7 @@ describe('RangeFilterPlugin', () => {
     it('should render both slider and inputs in slider-and-input mode', () => {
       getWrapper({
         formData: {
-          controlValues: { rangeDisplayMode: RangeDisplayMode.SliderAndInput },
+          rangeDisplayMode: RangeDisplayMode.SliderAndInput,
         },
       });
 
@@ -306,7 +306,7 @@ describe('RangeFilterPlugin', () => {
     it('should default to slider-and-input mode when not specified', () => {
       getWrapper({
         formData: {
-          controlValues: {},
+          // No rangeDisplayMode specified
         },
       });
 

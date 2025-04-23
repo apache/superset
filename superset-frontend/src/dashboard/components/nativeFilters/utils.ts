@@ -83,7 +83,6 @@ export const getFormData = ({
   return {
     ...controlValues,
     ...otherProps,
-    controlValues,
     adhoc_filters: adhoc_filters ?? [],
     extra_filters: [],
     extra_form_data: dependencies,

@@ -289,6 +289,7 @@ export function fillNativeFilterForm(
     .type(name, { scrollBehavior: false, force: true });
 
   if (dataset) {
+<<<<<<< HEAD
     cy.get('div[aria-label="Dataset"]').within(() => {
       cy.get('input').then($input => {
         setSelectSearchInput($input, dataset, true);
@@ -303,6 +304,35 @@ export function fillNativeFilterForm(
         setSelectSearchInput($input, filterColumn, true);
       });
     });
+=======
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .last()
+      .click({ force: true, scrollBehavior: false });
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .type(`${dataset}`, { scrollBehavior: false });
+    cy.get(nativeFilters.silentLoading).should('not.exist');
+    cy.get(`[label="${dataset}"]`).click({ multiple: true, force: true });
+  }
+  cy.get(nativeFilters.silentLoading).should('not.exist');
+  if (filterColumn) {
+    // Target and alias the column field
+    cy.contains('label', 'Column').closest('.ant-form-item').as('columnField');
+
+    cy.get('@columnField').find('.ant-select-selector').click();
+
+    cy.get('@columnField')
+      .find('.ant-select-selection-search-input')
+      .should('be.visible')
+      .type(filterColumn, { delay: 100 });
+
+    cy.get('.ant-select-dropdown')
+      .should('be.visible')
+      .contains('.ant-select-item-option', filterColumn)
+      .should('be.visible')
+      .click();
+>>>>>>> b2ebe9d6ae (korbit ai review changes)
   }
 }
 
@@ -365,20 +395,23 @@ export function saveNativeFilterSettings(charts: ChartSpec[]) {
     .should('be.visible')
     .click({ force: true });
 
-  cy.wait(2000);
-
-  cy.get('body').then($body => {
-    if ($body.find(nativeFilters.modal.container).length > 0) {
+  // Wait for modal to either close or remain open
+  cy.get('body').should($body => {
+    const modalExists = $body.find(nativeFilters.modal.container).length > 0;
+    if (modalExists) {
       cy.get(nativeFilters.modal.footer)
         .contains('Save')
+        .should('be.visible')
         .click({ force: true });
-
-      cy.wait(1000);
     }
+  });
 
-    charts.forEach(chart => {
-      waitForChartLoad(chart);
-    });
+  // Ensure modal is closed
+  cy.get(nativeFilters.modal.container).should('not.exist');
+
+  // Wait for all charts to load
+  charts.forEach(chart => {
+    waitForChartLoad(chart);
   });
 }
 
