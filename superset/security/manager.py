@@ -60,6 +60,7 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     SupersetSecurityException,
 )
+from superset.security.auth import NoLoginView
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
@@ -245,6 +246,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     role_api = SupersetRoleApi
     user_api = SupersetUserApi
+
+    auth_view = NoLoginView
+    authdbview = NoLoginView
 
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",

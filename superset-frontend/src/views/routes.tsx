@@ -138,6 +138,10 @@ const UsersList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "UsersList" */ 'src/pages/UsersList'),
 );
 
+const Login = lazy(
+  () => import(/* webpackChunkName: "Login" */ 'src/pages/Login'),
+);
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -146,6 +150,10 @@ type Routes = {
 }[];
 
 export const routes: Routes = [
+  {
+    path: '/login/',
+    Component: Login,
+  },
   {
     path: '/superset/welcome/',
     Component: Home,
