@@ -150,6 +150,9 @@ const Chart = props => {
   const emitCrossFilters = useSelector(
     state => !!state.dashboardInfo.crossFiltersEnabled,
   );
+  const maxRows = useSelector(
+    state => state.dashboardInfo.common.conf.SQL_MAX_ROW,
+  );
   const datasource = useSelector(
     state =>
       (chart &&
@@ -360,9 +363,7 @@ const Chart = props => {
         is_cached: props.isCached,
       });
       exportChart({
-        formData: isFullCSV
-          ? { ...formData, row_limit: props.maxRows }
-          : formData,
+        formData: isFullCSV ? { ...formData, row_limit: maxRows } : formData,
         resultType: isPivot ? 'post_processed' : 'full',
         resultFormat: format,
         force: true,
