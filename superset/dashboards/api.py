@@ -99,6 +99,7 @@ from superset.dashboards.schemas import (
     screenshot_query_schema,
     TabsPayloadSchema,
     thumbnail_query_schema,
+    DashboardScreenshotPostSchema,
 )
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
@@ -310,6 +311,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         TabsPayloadSchema,
         GetFavStarIdsSchema,
         EmbeddedDashboardResponseSchema,
+        DashboardScreenshotPostSchema,
     )
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
