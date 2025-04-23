@@ -33,7 +33,6 @@ export function EditableTitle({
   canEdit = false,
   editing = false,
   extraClasses,
-  multiLine = false,
   noPermitTooltip,
   onSaveTitle,
   showTooltip = true,
@@ -44,6 +43,8 @@ export function EditableTitle({
   certifiedBy,
   certificationDetails,
   url,
+  maxWidth,
+  autoSize = true,
   // rest is related to title tooltip
   ...rest
 }: EditableTitleProps) {
@@ -69,7 +70,7 @@ export function EditableTitle({
     );
     const textWidth = measureTextWidth(currentTitle || '', font);
     const padding = 20;
-    const maxAllowedWidth = 200;
+    const maxAllowedWidth = typeof maxWidth === 'number' ? maxWidth : Infinity;
     setInputWidth(Math.min(textWidth + padding, maxAllowedWidth));
   }, [currentTitle]);
 
@@ -179,7 +180,7 @@ export function EditableTitle({
       onPressEnter={handleKeyPress}
       placeholder={placeholder}
       variant={isEditing ? 'outlined' : 'borderless'}
-      autoSize={{ minRows: 1, maxRows: 3 }}
+      autoSize={autoSize ? { minRows: 1, maxRows: 3 } : false}
       css={theme => css`
         && {
           width: ${inputWidth}px;

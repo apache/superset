@@ -1309,7 +1309,12 @@ class DatasourceEditor extends PureComponent {
                   warningMarkdown={record.warning_markdown}
                 />
               )}
-              <EditableTitle canEdit title={v} onSaveTitle={onChange} />
+              <EditableTitle
+                canEdit
+                title={v}
+                onSaveTitle={onChange}
+                maxWidth={300}
+              />
             </FlexRowContainer>
           ),
           verbose_name: (v, onChange) => (
