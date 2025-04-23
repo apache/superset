@@ -56,18 +56,21 @@ function renderQueryLimit(
           {convertToNumWithSpaces(limit)}{' '}
         </Menu.Item>
       ))}
-      <Input
-        type="number"
-        placeholder="custom limit"
-        onKeyDown={event => {
-          if (event.key === 'Enter') {
-            const val = (event.target as HTMLInputElement).value;
-            const limit = parseInt(val, 10);
-            setQueryLimit(limit);
-            convertToNumWithSpaces(limit);
-          }
-        }}
-      />
+      <Menu.Item>
+        <Input
+          type="number"
+          placeholder="custom limit"
+          onClick={e => e.stopPropagation()}
+          onKeyDown={event => {
+            if (event.key === 'Enter') {
+              const val = (event.target as HTMLInputElement).value;
+              const limit = parseInt(val, 10);
+              setQueryLimit(limit);
+              convertToNumWithSpaces(limit);
+            }
+          }}
+        />
+      </Menu.Item>
     </Menu>
   );
 }
