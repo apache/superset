@@ -417,17 +417,14 @@ const Select = forwardRef(
       const currentValues = ensureIsArray(selectValue);
       const currentValuesSet = new Set(currentValues.map(getValue));
 
-      const newValues = [...currentValues] as AntdLabeledValue[];
+      const newValues = [...currentValues] as RawValue[];
       optionsToSelect.forEach(option => {
         if (
           option.value &&
           !option.disabled &&
           !currentValuesSet.has(option.value)
         ) {
-          newValues.push({
-            label: option.label,
-            value: option.value,
-          });
+          newValues.push(option.value);
         }
       });
 
