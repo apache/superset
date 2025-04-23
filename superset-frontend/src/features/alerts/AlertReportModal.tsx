@@ -38,17 +38,21 @@ import {
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-import { Input, InputNumber } from 'src/components/Input';
+import {
+  Input,
+  InputNumber,
+  Modal,
+  Collapse,
+  Select,
+  AsyncSelect,
+  Checkbox,
+  type CheckboxChangeEvent,
+} from 'src/components';
 import { Switch } from 'src/components/Switch';
-import { Modal } from 'src/components/Modal';
-import { Collapse } from 'src/components/Collapse';
-import { Select, AsyncSelect } from 'src/components';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { propertyComparator } from 'src/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { Checkbox } from 'src/components/Checkbox';
-import { CheckboxChangeEvent } from 'src/components/Checkbox/types';
 import TreeSelect from 'src/components/TreeSelect';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';

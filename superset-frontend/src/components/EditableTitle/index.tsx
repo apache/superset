@@ -112,22 +112,33 @@ export function EditableTitle({
   // the ' ' key (among others, including all arrows) the onChange() doesn't fire. Somehow
   // keydown is still called so we can detect this and manually add a ' ' to the current title
   function handleKeyDown(event: any) {
-    if (event.key === ' ') {
+    const stopPropagationKeys = [
+      'Backspace',
+      'Delete',
+      ' ',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown',
+    ];
+
+    if (stopPropagationKeys.includes(event.key)) {
       event.stopPropagation();
     }
+
     if (event.key === 'Enter') {
       event.preventDefault();
       handleBlur();
     }
   }
 
-  function handleChange(ev: any) {
+  function handleChange(event: any) {
     if (!canEdit) return;
-    setCurrentTitle(ev.target.value);
+    setCurrentTitle(event.target.value);
   }
 
-  function handleKeyPress(ev: React.KeyboardEvent) {
-    ev.preventDefault();
+  function handleKeyPress(event: React.KeyboardEvent) {
+    event.preventDefault();
     handleBlur();
   }
 
@@ -150,7 +161,7 @@ export function EditableTitle({
       onPressEnter={handleKeyPress}
       placeholder={placeholder}
       variant={isEditing ? 'outlined' : 'borderless'}
-      autoSize
+      autoSize={{ minRows: 1, maxRows: 3 }}
     />
   );
 
