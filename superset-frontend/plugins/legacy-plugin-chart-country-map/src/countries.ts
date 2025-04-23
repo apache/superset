@@ -161,6 +161,7 @@ import philippines_regions from './countries/philippines_regions.geojson';
 import poland from './countries/poland.geojson';
 import portugal from './countries/portugal.geojson';
 import qatar from './countries/qatar.geojson';
+import republic_of_serbia from './countries/republic_of_serbia.geojson';
 import romania from './countries/romania.geojson';
 import russia from './countries/russia.geojson';
 import rwanda from './countries/rwanda.geojson';
@@ -363,6 +364,7 @@ export const countries = {
   poland,
   portugal,
   qatar,
+  republic_of_serbia,
   romania,
   russia,
   rwanda,
