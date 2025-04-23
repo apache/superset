@@ -50,8 +50,28 @@ export function EditableTitle({
   const [isEditing, setIsEditing] = useState(editing);
   const [currentTitle, setCurrentTitle] = useState(title);
   const [lastTitle, setLastTitle] = useState(title);
-
+  const [inputWidth, setInputWidth] = useState<number>(0);
   const contentRef = useRef<TextAreaRef>(null);
+
+  function measureTextWidth(text: string, font = '14px Arial') {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.font = font;
+      return context.measureText(text).width;
+    }
+    return 0;
+  }
+
+  useEffect(() => {
+    const { font } = window.getComputedStyle(
+      contentRef.current?.resizableTextArea?.textArea || document.body,
+    );
+    const textWidth = measureTextWidth(currentTitle || '', font);
+    const padding = 20;
+    const maxAllowedWidth = 200;
+    setInputWidth(Math.min(textWidth + padding, maxAllowedWidth));
+  }, [currentTitle]);
 
   useEffect(() => {
     if (title !== currentTitle) {
@@ -87,10 +107,7 @@ export function EditableTitle({
   function handleBlur() {
     const formattedTitle = currentTitle.trim();
 
-    if (!canEdit) {
-      return;
-    }
-
+    if (!canEdit) return;
     setIsEditing(false);
 
     if (!formattedTitle.length) {
@@ -150,6 +167,7 @@ export function EditableTitle({
 
   let titleComponent = (
     <Input.TextArea
+      size="small"
       data-test="textarea-editable-title-input"
       ref={contentRef}
       value={value}
@@ -162,6 +180,13 @@ export function EditableTitle({
       placeholder={placeholder}
       variant={isEditing ? 'outlined' : 'borderless'}
       autoSize={{ minRows: 1, maxRows: 3 }}
+      css={theme => css`
+        && {
+          width: ${inputWidth}px;
+          min-width: ${theme.sizeUnit * 10}px;
+          transition: auto;
+        }
+      `}
     />
   );
 
