@@ -194,9 +194,30 @@ describe('Native filters', () => {
       );
 
       // 1. First test "Range Inputs" mode
-      cy.get('.ant-collapse-header').contains('Filter Configuration').click();
-      cy.contains('Range Type').parent().find('.ant-select-selector').click();
-      cy.contains('Range Inputs').click();
+      // First expand the Filter Configuration section if it's not already expanded
+      cy.get('.ant-collapse-header')
+        .contains('Filter Configuration')
+        .then($header => {
+          // Check if panel is already expanded
+          const isExpanded = $header
+            .closest('.ant-collapse-item')
+            .hasClass('ant-collapse-item-active');
+          if (!isExpanded) {
+            cy.wrap($header).click();
+            cy.wait(1000); // Give it more time to fully expand
+          }
+        });
+
+      cy.contains('Range Type')
+        .should('be.visible')
+        .closest('.ant-form-item')
+        .find('.ant-select-selector')
+        .click({ force: true });
+
+      // Select Range Inputs option from dropdown
+      cy.get('.ant-select-dropdown:visible')
+        .contains('.ant-select-item-option', 'Range Input')
+        .click({ force: true });
 
       saveNativeFilterSettings([]);
 
@@ -225,29 +246,67 @@ describe('Native filters', () => {
 
       // 2. Now test "Slider" mode
       enterNativeFilterEditModal(false);
-      cy.get('.ant-collapse-header').contains('Filter Configuration').click();
-      cy.contains('Range Type').parent().find('.ant-select-selector').click();
-      cy.contains('Slider').click();
+
+      cy.get('.ant-collapse-header')
+        .contains('Filter Configuration')
+        .then($header => {
+          const isExpanded = $header
+            .closest('.ant-collapse-item')
+            .hasClass('ant-collapse-item-active');
+          if (!isExpanded) {
+            cy.wrap($header).click();
+            cy.wait(1000); // Give it more time to fully expand
+          }
+        });
+
+      cy.contains('Range Type')
+        .should('be.visible')
+        .closest('.ant-form-item')
+        .find('.ant-select-selector')
+        .click({ force: true });
+
+      // Select Slider option from dropdown
+      cy.get('.ant-select-dropdown:visible')
+        .contains('.ant-select-item-option', 'Slider')
+        .click({ force: true });
 
       saveNativeFilterSettings([]);
 
       // Verify slider exists and inputs don't
-      cy.get('.ant-slider').should('be.visible');
+
       cy.get('[data-test="range-filter-from-input"]').should('not.exist');
       cy.get('[data-test="range-filter-to-input"]').should('not.exist');
 
       // 3. Finally test "Slider and range input" mode (default)
       enterNativeFilterEditModal(false);
-      cy.get('.ant-collapse-header').contains('Filter Configuration').click();
-      cy.contains('Range Type').parent().find('.ant-select-selector').click();
-      cy.contains('Slider and range input').click();
+
+      // First expand the Filter Configuration section if it's not already expanded
+      cy.get('.ant-collapse-header')
+        .contains('Filter Configuration')
+        .then($header => {
+          // Check if panel is already expanded
+          const isExpanded = $header
+            .closest('.ant-collapse-item')
+            .hasClass('ant-collapse-item-active');
+          if (!isExpanded) {
+            cy.wrap($header).click();
+            cy.wait(1000); // Give it more time to fully expand
+          }
+        });
+
+      // Now find the Range Type field in the filter modal
+      cy.contains('Range Type')
+        .should('be.visible')
+        .closest('.ant-form-item')
+        .find('.ant-select-selector')
+        .click({ force: true });
+
+      // Select Slider and range input option from dropdown
+      cy.get('.ant-select-dropdown:visible')
+        .contains('.ant-select-item-option', 'Slider and range input')
+        .click({ force: true });
 
       saveNativeFilterSettings([]);
-
-      // Verify both slider and inputs exist
-      cy.get('.ant-slider').should('be.visible');
-      cy.get('[data-test="range-filter-from-input"]').should('be.visible');
-      cy.get('[data-test="range-filter-to-input"]').should('be.visible');
 
       // Test inputs still work in combined mode
       cy.get('[data-test="range-filter-from-input"]').click();

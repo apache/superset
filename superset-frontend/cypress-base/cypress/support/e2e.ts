@@ -183,7 +183,7 @@ Cypress.Commands.add('login', () => {
   cy.request({
     method: 'POST',
     url: '/login/',
-    body: { username: 'admin', password: 'general' },
+    body: { username: 'admin', password: 'admin' },
   }).then(response => {
     if (response.status === 302) {
       // If there's a redirect, follow it manually
