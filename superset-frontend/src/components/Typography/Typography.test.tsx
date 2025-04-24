@@ -18,7 +18,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import Typography from 'src/components/Typography';
+import { Typography } from 'src/components/Typography';
 
 describe('Typography Component', () => {
   test('renders Text component', () => {

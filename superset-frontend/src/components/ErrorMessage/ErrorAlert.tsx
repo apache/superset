@@ -23,6 +23,7 @@ import { Tooltip } from '../Tooltip';
 import { Alert } from '../Alert';
 import { Modal } from '../Modal';
 import type { ErrorAlertProps } from './types';
+import { Typography } from '../Typography';
 
 export const ErrorAlert: React.FC<ErrorAlertProps> = ({
   errorType = t('Error'),
@@ -72,14 +73,19 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
     <div>
       {message && <div>{message}</div>}
       {description && (
-        <p style={descriptionPre ? preStyle : {}} data-testid="description">
+        <Typography.Paragraph
+          style={descriptionPre ? preStyle : {}}
+          data-testid="description"
+        >
           {description}
-        </p>
+        </Typography.Paragraph>
       )}
       {descriptionDetails && (
         <div>
           {isDescriptionVisible && (
-            <p style={descriptionPre ? preStyle : {}}>{descriptionDetails}</p>
+            <Typography.Paragraph style={descriptionPre ? preStyle : {}}>
+              {descriptionDetails}
+            </Typography.Paragraph>
           )}
           <span
             role="button"
