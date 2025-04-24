@@ -66,8 +66,7 @@ def test_custom_sql_time_column() -> None:
             "expressionType": "SQL",
             "operator": "TEMPORAL_RANGE",
             "sqlExpression": (
-                "sum(ds) >= '1925-04-24T00:00:00' AND "
-                "sum(ds) < '2025-04-24T00:00:00'"
+                "sum(ds) >= '1925-04-24T00:00:00' AND sum(ds) < '2025-04-24T00:00:00'"
             ),
             "subject": "ds",
         }
