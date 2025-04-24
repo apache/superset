@@ -560,12 +560,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
                 ):
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
-                    try:
-                        value = float(value)
-                    except ValueError:
-                        logger.error(f"Unable to cast value {value} to num")
-
-                    return utils.cast_to_num(value)
+                    return utils.cast_to_num(float(value))
                 if value == NULL_STRING:
                     return None
                 if value == EMPTY_STRING:
