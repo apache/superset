@@ -455,7 +455,7 @@ const Select = forwardRef(
 
     const bulkSelectComponent = useMemo(
       () => (
-        <StyledBulkActionsContainer size={0}>
+        <StyledBulkActionsContainer justify="center">
           <Button
             buttonStyle="link"
             buttonSize="xsmall"

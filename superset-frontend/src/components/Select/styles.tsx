@@ -20,7 +20,7 @@ import { styled } from '@superset-ui/core';
 import { Select } from 'antd-v5';
 import { Icons } from 'src/components/Icons';
 import { Spin } from '../Spin';
-import { Space } from '../Space';
+import { Flex } from '../Flex';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `
@@ -132,11 +132,9 @@ export const StyledErrorMessage = styled.div`
   text-overflow: ellipsis;
 `;
 
-export const StyledBulkActionsContainer = styled(Space)`
+export const StyledBulkActionsContainer = styled(Flex)`
   ${({ theme }) => `
     padding: ${theme.sizeUnit}px;
-    display: flex;
-    justify-content: center;
     border-top: 1px solid ${theme.colors.grayscale.light3};
   `}
 `;
