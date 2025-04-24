@@ -504,53 +504,34 @@ const config: ControlPanelConfig = {
                   const updatedColnames: string[] = [];
                   const updatedColtypes: GenericDataType[] = [];
 
-                  colnames
-                    .filter(
-                      colname =>
-                        last(colname.split('__')) !== timeComparisonValue,
-                    )
-                    .forEach((colname, index) => {
-                      if (
-                        explore.form_data.metrics?.some(
-                          metric => getMetricLabel(metric) === colname,
-                        ) ||
-                        explore.form_data.percent_metrics?.some(
-                          (metric: QueryFormMetric) =>
-                            getMetricLabel(metric) === colname,
-                        )
-                      ) {
-                        const comparisonColumns =
-                          generateComparisonColumns(colname);
-                        comparisonColumns.forEach((name, idx) => {
-                          updatedColnames.push(name);
-                          updatedColtypes.push(
-                            ...generateComparisonColumnTypes(4),
-                          );
-                          timeComparisonColumnMap[name] = true;
-                          if (idx === 0 && name.startsWith('Main ')) {
-                            childColumnMap[name] = false;
-                          } else {
-                            childColumnMap[name] = true;
-                          }
-                        });
-                      } else {
-                        updatedColnames.push(colname);
-                        updatedColtypes.push(coltypes[index]);
-                        childColumnMap[colname] = false;
-                        timeComparisonColumnMap[colname] = false;
-                      }
-                    });
+                  colnames.forEach((colname, index) => {
+                    if (coltypes[index] === GenericDataType.Numeric) {
+                      const comparisonColumns =
+                        generateComparisonColumns(colname);
+                      comparisonColumns.forEach((name, idx) => {
+                        updatedColnames.push(name);
+                        updatedColtypes.push(
+                          ...generateComparisonColumnTypes(4),
+                        );
+
+                        if (idx === 0 && name.startsWith('Main ')) {
+                          childColumnMap[name] = false;
+                        } else {
+                          childColumnMap[name] = true;
+                        }
+                      });
+                    } else {
+                      updatedColnames.push(colname);
+                      updatedColtypes.push(coltypes[index]);
+                      childColumnMap[colname] = false;
+                    }
+                  });
 
                   colnames = updatedColnames;
                   coltypes = updatedColtypes;
                 }
                 return {
-                  columnsPropsObject: {
-                    colnames,
-                    coltypes,
-                    childColumnMap,
-                    timeComparisonColumnMap,
-                  },
+                  columnsPropsObject: { colnames, coltypes, childColumnMap },
                 };
               },
             },
