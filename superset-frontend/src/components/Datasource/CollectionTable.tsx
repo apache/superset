@@ -21,7 +21,7 @@ import { PureComponent, ReactNode } from 'react';
 import { nanoid } from 'nanoid';
 
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, css } from '@superset-ui/core';
 
 import { Icons } from 'src/components/Icons';
 import { FilterValue } from 'react-table';
@@ -415,6 +415,13 @@ export default class CRUDCollection extends PureComponent<
           pagination={false}
           onChange={this.handleTableChange}
           locale={{ emptyText: emptyMessage }}
+          css={
+            stickyHeader &&
+            css`
+              height: 350px;
+              overflow: auto;
+            `
+          }
           expandable={expandableConfig}
           size={TableSize.Middle}
           tableLayout="auto"
