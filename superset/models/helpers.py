@@ -1162,6 +1162,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             if operator == utils.FilterOperator.TEMPORAL_RANGE:
                 return value
+
+            if (
+                isinstance(value, (float, int))
+                and target_generic_type == utils.GenericDataType.NUMERIC
+            ):
+                value = float(value)
             if (
                 isinstance(value, (float, int))
                 and target_generic_type == utils.GenericDataType.TEMPORAL
@@ -1185,6 +1191,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         utils.FilterOperator.LIKE,
                     }
                 ):
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        logger.error(f"Unable to cast value {value} to num")
+
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
                     return utils.cast_to_num(value)
