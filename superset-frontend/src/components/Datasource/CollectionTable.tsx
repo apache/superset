@@ -34,10 +34,10 @@ import {
   type Sort,
 } from './types';
 import Table, {
-  ColumnsType,
-  SortOrder,
-  SorterResult,
-  TablePaginationConfig,
+  type ColumnsType,
+  type SortOrder,
+  type SorterResult,
+  type TablePaginationConfig,
   TableSize,
 } from '../Table';
 
