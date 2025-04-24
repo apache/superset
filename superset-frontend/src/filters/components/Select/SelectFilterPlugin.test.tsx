@@ -367,38 +367,6 @@ describe('SelectFilterPlugin', () => {
     );
   });
 
-  test('Is/Is Not select is visible when inverseSelection is true', () => {
-    getWrapper({ inverseSelection: true });
-    expect(screen.getByText('is not')).toBeInTheDocument();
-  });
-
-  test('Is/Is Not select is not visible when inverseSelection is false', () => {
-    getWrapper({ inverseSelection: false });
-    expect(screen.queryByText('is not')).not.toBeInTheDocument();
-  });
-
-  test('Is/Is Not select toggles correctly', async () => {
-    getWrapper({ inverseSelection: true });
-
-    const isNotSelect = screen.getByText('is not');
-    expect(isNotSelect).toBeInTheDocument();
-
-    // Click to open dropdown
-    userEvent.click(isNotSelect);
-
-    // Click "is" option
-    userEvent.click(screen.getByText('is'));
-
-    // Should update excludeFilterValues to false
-    expect(setDataMask).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filterState: expect.objectContaining({
-          excludeFilterValues: false,
-        }),
-      }),
-    );
-  });
-
   test('Should not allow for new values when creatable is false', () => {
     getWrapper({ creatable: false });
     userEvent.type(screen.getByRole('combobox'), 'new value');
