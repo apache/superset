@@ -286,7 +286,7 @@ export default class CRUDCollection extends PureComponent<
   buildTableColumns() {
     const { tableColumns, allowDeletes, sortColumns = [] } = this.props;
 
-    const antdColumns = tableColumns.map(col => {
+    const antdColumns: ColumnsType = tableColumns.map(col => {
       const label = this.getLabel(col);
       const tooltip = this.getTooltip(col);
       const isSortable = sortColumns.includes(col);
@@ -302,6 +302,7 @@ export default class CRUDCollection extends PureComponent<
       return {
         key: col,
         dataIndex: col,
+        minWidth: 100,
         title: (
           <>
             {label}
@@ -337,6 +338,7 @@ export default class CRUDCollection extends PureComponent<
         title: <></>,
         onCell: () => ({}),
         sortOrder: null,
+        minWidth: 50,
         render: (_, record: CollectionItem) => (
           <span
             data-test="crud-delete-option"
@@ -415,7 +417,7 @@ export default class CRUDCollection extends PureComponent<
           locale={{ emptyText: emptyMessage }}
           expandable={expandableConfig}
           size={TableSize.Middle}
-          tableLayout={this.props.tableLayout ?? 'auto'}
+          tableLayout="auto"
         />
       </>
     );
