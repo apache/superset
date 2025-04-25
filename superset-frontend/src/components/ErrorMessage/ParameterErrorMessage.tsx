@@ -23,6 +23,7 @@ import levenshtein from 'js-levenshtein';
 import { ErrorMessageComponentProps } from './types';
 import { IssueCode } from './IssueCode';
 import { ErrorAlert } from './ErrorAlert';
+import { List } from '../List';
 
 interface ParameterErrorExtra {
   undefined_parameters?: string[];
@@ -75,11 +76,15 @@ export function ParameterErrorMessage({
         {Object.keys(matches).length > 0 && (
           <>
             <p>{t('Did you mean:')}</p>
-            <ul>
-              {Object.entries(matches).map(
-                ([undefinedParameter, templateKeys]) => (
-                  <li>
-                    {tn(
+            <List
+              split={false}
+              size="small"
+              dataSource={Object.entries(matches)}
+              renderItem={([undefinedParameter, templateKeys]) => (
+                <List.Item compact>
+                  <List.Item.Meta
+                    avatar={<span>•</span>}
+                    title={tn(
                       '%(suggestion)s instead of "%(undefinedParameter)s?"',
                       '%(firstSuggestions)s or %(lastSuggestion)s instead of "%(undefinedParameter)s"?',
                       templateKeys.length,
@@ -90,10 +95,10 @@ export function ParameterErrorMessage({
                         undefinedParameter,
                       },
                     )}
-                  </li>
-                ),
+                  />
+                </List.Item>
               )}
-            </ul>
+            />
             <br />
           </>
         )}
@@ -106,7 +111,6 @@ export function ParameterErrorMessage({
       </p>
     </>
   );
-
   return (
     <ErrorAlert
       errorType={t('Parameter error')}

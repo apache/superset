@@ -21,9 +21,10 @@ import { styled, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav, MenuMode } from 'src/components/Menu';
-import { GenericLink, Tooltip, Grid, Row, Col } from 'src/components';
+import { GenericLink, Tooltip, Grid, Row, Col, Image } from 'src/components';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Icons } from 'src/components/Icons';
+import { Typography } from 'src/components/Typography';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
 import {
@@ -48,6 +49,12 @@ const StyledHeader = styled.header`
       }
       .caret {
         display: none;
+      }
+      & .antd5-image{
+        padding: ${theme.sizeUnit}px
+          ${theme.sizeUnit * 2}px
+          ${theme.sizeUnit}px
+          ${theme.sizeUnit * 4}px;
       }
       .navbar-brand {
         display: flex;
@@ -212,7 +219,7 @@ export function Menu({
     if (url) {
       return (
         <MainNav.Item key={label}>
-          <a href={url}>{label}</a>
+          <Typography.Link href={url}>{label}</Typography.Link>
         </MainNav.Item>
       );
     }
@@ -244,7 +251,9 @@ export function Menu({
                     {child.label}
                   </NavLink>
                 ) : (
-                  <a href={child.url}>{child.label}</a>
+                  <Typography.Link href={child.url}>
+                    {child.label}
+                  </Typography.Link>
                 )}
               </MainNav.Item>
             );
@@ -265,12 +274,17 @@ export function Menu({
         style = { ...style, margin: theme.brandLogoMargin };
       }
       link = (
-        <a href={theme.brandLogoHref} className="navbar-brand" style={style}>
-          <img
+        <Typography.Link
+          href={theme.brandLogoHref}
+          className="navbar-brand"
+          style={style}
+        >
+          <Image
+            preview={false}
             src={theme.brandLogoUrl}
             alt={theme.brandLogoAlt || 'Apache Superset'}
           />
-        </a>
+        </Typography.Link>
       );
     } else if (isFrontendRoute(window.location.pathname)) {
       // ---------------------------------------------------------------------------------
@@ -278,14 +292,18 @@ export function Menu({
       // Kept as is for backwards compatibility with the old theme system / superset_config.py
       link = (
         <GenericLink className="navbar-brand" to={brand.path}>
-          <img src={brand.icon} alt={brand.alt} />
+          <Image preview={false} src={brand.icon} alt={brand.alt} />
         </GenericLink>
       );
     } else {
       link = (
-        <a className="navbar-brand" href={brand.path} tabIndex={-1}>
-          <img src={brand.icon} alt={brand.alt} />
-        </a>
+        <Typography.Link
+          className="navbar-brand"
+          href={brand.path}
+          tabIndex={-1}
+        >
+          <Image preview={false} src={brand.icon} alt={brand.alt} />
+        </Typography.Link>
       );
     }
     // ---------------------------------------------------------------------------------
