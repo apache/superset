@@ -34,6 +34,6 @@ test('renders a table', () => {
   expect(
     getByRole('table')
       .getElementsByTagName('tbody')[0]
-      .getElementsByClassName('row'),
-  ).toHaveLength(length);
+      .getElementsByTagName('tr'),
+  ).toHaveLength(length + 1); // Ant design measure row;
 });

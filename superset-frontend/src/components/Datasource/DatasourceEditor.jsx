@@ -433,9 +433,7 @@ function ColumnCollectionTable({
                 ),
               main_dttm_col: (value, _onItemChange, _label, record) => {
                 const checked = datasource.main_dttm_col === record.column_name;
-                const disabled = !columns.find(
-                  column => column.column_name === record.column_name,
-                ).is_dttm;
+                const disabled = !record?.is_dttm;
                 return (
                   <Radio
                     data-test={`radio-default-dttm-${record.column_name}`}
@@ -483,9 +481,7 @@ function ColumnCollectionTable({
                 ),
               main_dttm_col: (value, _onItemChange, _label, record) => {
                 const checked = datasource.main_dttm_col === record.column_name;
-                const disabled = !columns.find(
-                  column => column.column_name === record.column_name,
-                ).is_dttm;
+                const disabled = !record?.is_dttm;
                 return (
                   <Radio
                     data-test={`radio-default-dttm-${record.column_name}`}
@@ -1465,7 +1461,7 @@ class DatasourceEditor extends PureComponent {
                       filterable: true,
                       groupby: true,
                       expression: t('<enter SQL expression here>'),
-                      __expanded: true,
+                      expanded: true,
                     })}
                   />
                 </StyledColumnsTabWrapper>
