@@ -10,6 +10,31 @@
             "name": "Primitives"
           }
         ]
+      },
+      "menus": {
+        "view/primary": [
+          {
+            "view": "builtin.editor",
+            "icon": "CopyOutlined",
+            "command": "extension1.copy_query"
+          }
+        ],
+        "view/secondary": [
+          {
+            "view": "builtin.editor",
+            "command": "extension1.prettify"
+          }
+        ],
+        "view/context": [
+          {
+            "view": "builtin.editor",
+            "command": "extension1.clear"
+          },
+          {
+            "view": "extension1.component",
+            "command": "extension1.refresh"
+          }
+        ]
       }
     },
     "moduleFederation": {
