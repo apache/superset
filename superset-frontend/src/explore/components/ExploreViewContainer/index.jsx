@@ -788,17 +788,12 @@ function mapStateToProps(state) {
       ...controls.subtitle,
       value: slice.form_data.subheader,
     };
-  }
-  if (
-    form_data.viz_type === 'big_number_total' &&
-    slice?.form_data?.subheader_font_size &&
-    (!controls.subtitle_font_size?.value ||
-      controls.subtitle_font_size.value === '')
-  ) {
-    controls.subtitle_font_size = {
-      ...controls.subtitle_font_size,
-      value: slice.form_data.subheader_font_size,
-    };
+    if (slice?.form_data?.subheader_font_size) {
+      controls.subtitle_font_size = {
+        ...controls.subtitle_font_size,
+        value: slice.form_data.subheader_font_size,
+      };
+    }
   }
 
   const patchedFormData = patchBigNumberTotalFormData(form_data, slice);
