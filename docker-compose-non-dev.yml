@@ -33,6 +33,22 @@ x-common-build: &common-build
     - apache/superset-cache:3.10-slim-bookworm
 
 services:
+#  kong:
+#    image: kong:3.8.0
+#    container_name: kong-container
+#    restart: unless-stopped
+#    environment:
+#      KONG_DATABASE: "off"
+#      KONG_DECLARATIVE_CONFIG: /kong/kong.yml
+#      KONG_PROXY_ACCESS_LOG: /dev/stdout
+#      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+#      KONG_PROXY_ERROR_LOG: /dev/stderr
+#      KONG_ADMIN_ERROR_LOG: /dev/stderr
+#      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+#      ports:
+#        - "8000:8000"
+      # Public proxy port    - "8001:8001"
+
   redis:
     image: redis:7
     container_name: superset_cache

@@ -41,7 +41,7 @@ from typing import Any, Callable, Iterator, Literal, TYPE_CHECKING, TypedDict
 import click
 from celery.schedules import crontab
 from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB,AUTH_OAUTH
+from flask_appbuilder.security.manager import AUTH_DB,AUTH_OAUTH,AUTH_REMOTE_USER
 from flask_caching.backends.base import BaseCache
 from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES
@@ -342,7 +342,7 @@ FAB_API_SWAGGER_UI = True
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
 # AUTH_TYPE = AUTH_OAUTH
-AUTH_TYPE = AUTH_DB
+AUTH_TYPE = AUTH_REMOTE_USER
 
 # OAUTH_PROVIDERS = [
 #     {
@@ -397,8 +397,9 @@ AUTH_ROLE_ADMIN = 'Admin'
 AUTH_ROLE_PUBLIC = 'Public'
 
 AUTH_ROLES_MAPPING = {
-"superset_users": ["*"],
+"DataEngineer": ["Admin"],
 "superset_admins": ["Admin"],
+
 }
 # Will allow user self registration
 AUTH_USER_REGISTRATION = True
