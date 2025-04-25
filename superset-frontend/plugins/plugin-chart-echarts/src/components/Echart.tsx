@@ -25,6 +25,7 @@ import {
   useLayoutEffect,
   useCallback,
   Ref,
+  useState,
 } from 'react';
 import { merge } from 'lodash';
 
@@ -107,6 +108,16 @@ use([
   LabelLayout,
 ]);
 
+const loadLocale = async (locale: string) => {
+  let lang;
+  try {
+    lang = await import(`echarts/lib/i18n/lang${locale}`);
+  } catch (e) {
+    console.error(`Locale ${locale} not supported in ECharts`, e);
+  }
+  return lang?.default;
+};
+
 const getTheme = (options: any) => {
   const token = themeObject.theme;
   const theme = {
@@ -163,6 +174,7 @@ function Echart(
     // eslint-disable-next-line no-param-reassign
     refs.divRef = divRef;
   }
+  const [didMount, setDidMount] = useState(false);
   const chartRef = useRef<EChartsType>();
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],
@@ -188,20 +200,20 @@ function Echart(
   );
 
   useEffect(() => {
-    const loadLocaleAndInitChart = async () => {
-      if (!divRef.current) return;
-
-      const lang = await import(`echarts/lib/i18n/lang${locale}`).catch(e => {
-        console.error(`Locale ${locale} not supported in ECharts`, e);
-      });
-      if (lang?.default) {
-        registerLocale(locale, lang.default);
+    loadLocale(locale).then(localeObj => {
+      if (localeObj) {
+        registerLocale(locale, localeObj);
       }
-
+      if (!divRef.current) return;
       if (!chartRef.current) {
         chartRef.current = init(divRef.current, null, { locale });
       }
+      setDidMount(true);
+    });
+  }, [locale]);
 
+  useEffect(() => {
+    if (didMount) {
       Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
         chartRef.current?.off(name);
         chartRef.current?.on(name, handler);
@@ -217,14 +229,14 @@ function Echart(
         getTheme(echartOptions),
         echartOptions,
       );
-      chartRef.current.setOption(themedEchartOptions, true);
+      chartRef.current?.setOption(themedEchartOptions, true);
 
       // did mount
       handleSizeChange({ width, height });
-    };
+    }
+  }, [didMount, echartOptions, eventHandlers, zrEventHandlers]);
 
-    loadLocaleAndInitChart();
-  }, [echartOptions, eventHandlers, zrEventHandlers, locale]);
+  useEffect(() => () => chartRef.current?.dispose(), []);
 
   // highlighting
   useEffect(() => {

@@ -20,6 +20,7 @@ import { styled } from '@superset-ui/core';
 import { Select } from 'antd-v5';
 import { Icons } from 'src/components/Icons';
 import { Spin } from '../Spin';
+import { Flex } from '../Flex';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `
@@ -56,10 +57,6 @@ export const StyledSelect = styled(Select, {
     .antd5-select-selection-item::after {
       height: 0;
       display: block !important;
-    }
-    .select-all {
-      border-radius: 0;
-      border-bottom: 1px solid ${theme.colors.grayscale.light3};
     }
     ${
       oneLine &&
@@ -133,4 +130,11 @@ export const StyledError = styled.div`
 export const StyledErrorMessage = styled.div`
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+
+export const StyledBulkActionsContainer = styled(Flex)`
+  ${({ theme }) => `
+    padding: ${theme.sizeUnit}px;
+    border-top: 1px solid ${theme.colors.grayscale.light3};
+  `}
 `;
