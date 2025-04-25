@@ -50,6 +50,12 @@ const StyledHeader = styled.header`
       .caret {
         display: none;
       }
+      & .antd5-image{
+        padding: ${theme.sizeUnit}px
+          ${theme.sizeUnit * 2}px
+          ${theme.sizeUnit}px
+          ${theme.sizeUnit * 4}px;
+      }
       .navbar-brand {
         display: flex;
         flex-direction: column;
