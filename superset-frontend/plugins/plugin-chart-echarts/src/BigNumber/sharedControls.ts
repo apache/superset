@@ -24,17 +24,17 @@ import { CustomControlItem } from '@superset-ui/chart-controls';
 const FONT_SIZE_OPTIONS_SMALL = [
   { label: t('Tiny'), value: 0.125 },
   { label: t('Small'), value: 0.15 },
-  { label: t('Normal'), value: 0.175 },
-  { label: t('Large'), value: 0.185 },
-  { label: t('Huge'), value: 0.2 },
+  { label: t('Normal'), value: 0.2 },
+  { label: t('Large'), value: 0.3 },
+  { label: t('Huge'), value: 0.4 },
 ];
 
 const FONT_SIZE_OPTIONS_LARGE = [
   { label: t('Tiny'), value: 0.2 },
-  { label: t('Small'), value: 0.25 },
-  { label: t('Normal'), value: 0.3 },
-  { label: t('Large'), value: 0.35 },
-  { label: t('Huge'), value: 0.4 },
+  { label: t('Small'), value: 0.3 },
+  { label: t('Normal'), value: 0.4 },
+  { label: t('Large'), value: 0.5 },
+  { label: t('Huge'), value: 0.6 },
 ];
 
 function makeFontSizeControl(
@@ -59,7 +59,7 @@ function makeFontSizeControl(
 export const headerFontSize = makeFontSizeControl(
   'header_font_size',
   'Big Number Font Size',
-  0.3,
+  0.4,
   FONT_SIZE_OPTIONS_LARGE,
 );
 

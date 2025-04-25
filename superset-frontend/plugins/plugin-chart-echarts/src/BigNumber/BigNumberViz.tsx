@@ -224,6 +224,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
   rendermetricComparisonSummary(maxHeight: number) {
     const { subheader, width } = this.props;
     let fontSize = 0;
+    console.log(subtitle.length);
 
     const text = subheader;
 
@@ -411,12 +412,12 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
 }
 
 export default styled(BigNumberVis)`
-  ${({ theme }) => `
+  ${({ theme, showMetricName, subtitle }) => `
     font-family: ${theme.typography.families.sansSerif};
     position: relative;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: ${showMetricName && subtitle.length > 0 ? 'flex-start' : 'center'};
     align-items: flex-start;
 
     &.no-trendline .subheader-line {
@@ -425,6 +426,7 @@ export default styled(BigNumberVis)`
 
     .text-container {
       box-sizing: border-box;
+      overflow-x: hidden;
       overflow-y: auto;
       width: 100%;
       .alert {

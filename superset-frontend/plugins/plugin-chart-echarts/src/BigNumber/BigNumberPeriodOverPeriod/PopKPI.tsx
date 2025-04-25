@@ -45,13 +45,16 @@ const MetricNameContainer = styled.div<{ metricNameFontSize?: number }>`
   `}
 `;
 
-const NumbersContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  width: 100%;
-  overflow: auto;
+const NumbersContainer = styled.div<{ justifyContent: string }>`
+  ${({ theme, justifyContent }) => `
+    display: flex;
+    justify-content: ${justifyContent};
+    align-items: center;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+  `}
 `;
 
 const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
@@ -265,6 +268,7 @@ export default function PopKPI(props: PopKPIProps) {
   return (
     <div css={wrapperDivStyles} ref={wrapperRef}>
       <NumbersContainer
+        justifyContent={showMetricName && subtitle ? 'flex-start' : 'center'}
         css={
           isOverflowing &&
           css`
