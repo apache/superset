@@ -1,10 +1,10 @@
 import { useState } from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { Tabs, Button, Input, Radio } from 'antd';
-import { ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 import dayjs, { Dayjs, ManipulateType } from 'dayjs';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear';
 import { useTheme } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
 import {
   FilterContainer,
   CalendarGrid,
@@ -40,24 +40,6 @@ interface DateFilterProps {
   onApply: (dates: [Dayjs, Dayjs]) => void;
   onCancel: () => void;
 }
-
-const ChevronsLeft = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    className="lucide lucide-chevrons-left-icon lucide-chevrons-left"
-  >
-    <path d="m11 17-5-5 5-5" />
-    <path d="m18 17-5-5 5-5" />
-  </svg>
-);
 
 const DateFilter: React.FC<DateFilterProps> = ({ onApply, onCancel }) => {
   const theme = useTheme();
@@ -240,11 +222,11 @@ const DateFilter: React.FC<DateFilterProps> = ({ onApply, onCancel }) => {
         <CalendarHeader>
           <ButtonGroup>
             <IconButton
-              icon={<ChevronsLeft />}
+              icon={<Icons.DoubleLeftOutlined />}
               onClick={() => setCurrentMonth(m => m.subtract(1, 'year'))}
             />
             <IconButton
-              icon={<ChevronLeft />}
+              icon={<Icons.LeftOutlined />}
               onClick={() => setCurrentMonth(m => m.subtract(1, 'month'))}
             />
           </ButtonGroup>
@@ -252,11 +234,11 @@ const DateFilter: React.FC<DateFilterProps> = ({ onApply, onCancel }) => {
           <span>{nextMonth.format('MMM YYYY')}</span>
           <ButtonGroup>
             <IconButton
-              icon={<ChevronRight />}
+              icon={<Icons.RightOutlined />}
               onClick={() => setCurrentMonth(m => m.add(1, 'month'))}
             />
             <IconButton
-              icon={<ChevronsRight />}
+              icon={<Icons.DoubleRightOutlined />}
               onClick={() => setCurrentMonth(m => m.add(1, 'year'))}
             />
           </ButtonGroup>
