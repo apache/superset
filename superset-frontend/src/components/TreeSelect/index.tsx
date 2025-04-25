@@ -16,8 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TreeSelect } from 'antd-v5';
-import type { TreeSelectProps } from 'antd-v5/es/tree-select';
-
-export default TreeSelect;
-export type { TreeSelectProps };
+export { TreeSelect, type TreeSelectProps } from 'antd-v5';

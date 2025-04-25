@@ -40,11 +40,11 @@ describe('Datasource control', () => {
     // create new metric
     cy.get('[data-test="crud-add-table-item"]', { timeout: 10000 }).click();
     cy.wait(1000);
-    cy.get('.antd5-table-body [data-test="editable-title-input"]')
+    cy.get('.antd5-table-body [data-test="textarea-editable-title-input"]')
       .first()
       .click();
 
-    cy.get('.antd5-table-body [data-test="editable-title-input"]')
+    cy.get('.antd5-table-body [data-test="textarea-editable-title-input"]')
       .first()
       .focus();
     cy.focused().clear({ force: true });
