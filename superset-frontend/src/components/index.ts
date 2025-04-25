@@ -21,9 +21,6 @@
  * Re-exporting of components in src/components to facilitate
  * their imports by other components.
  * E.g. import { Select } from 'src/components', probably in the future from '@superset-ui/components'
-import { StepsProps, type TreeSelectProps } from '.';
-import { SwitchProps } from '../features/databases/types';
-import TreeSelect from '.';
  */
 export { AntdThemeProvider } from './AntdThemeProvider';
 export { Alert, type AlertProps } from './Alert';
