@@ -7,7 +7,7 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
             # Get user info from the userinfo endpoint
             me = self.appbuilder.sm.oauth_remotes[provider].get(
                 'https://cybqa.pesapal.com/pesapalsso/v2/connect/userinfo')
-
+            print("outputforuserinfo: "+me)
             # Map the user information from the response
             # Adjust these fields based on what your provider returns
             return {
