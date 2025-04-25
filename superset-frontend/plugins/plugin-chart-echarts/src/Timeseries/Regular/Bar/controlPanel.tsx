@@ -327,7 +327,7 @@ const config: ControlPanelConfig = {
             name: 'stackDimension',
             config: {
               type: 'SelectControl',
-              label: t('Dimension to stack by'),
+              label: t('Dimension to split by'),
               visibility: ({ controls }) =>
                 controls?.stack?.value === StackControlsValue.Stack,
               renderTrigger: true,
