@@ -6,7 +6,7 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
         if provider == 'signin-oidc':
             # Get user info from the userinfo endpoint
             me = self.appbuilder.sm.oauth_remotes[provider].get(
-                'v2/connect/userinfo').data
+                'https://cybqa.pesapal.com/pesapalsso/v2/connect/userinfo').data
 
             # Map the user information from the response
             # Adjust these fields based on what your provider returns
