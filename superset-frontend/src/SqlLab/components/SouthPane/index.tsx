@@ -37,8 +37,7 @@ import Results from './Results';
 import TablePreview from '../TablePreview';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
-import { RootState } from 'src/views/store';
-import { selectContribution } from 'src/extensions/selectors';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
 
 const TAB_HEIGHT = 130;
 
@@ -97,8 +96,9 @@ const SouthPane = ({
 }: SouthPaneProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const contributions = useSelector((state: RootState) =>
-    selectContribution(state, 'views', 'sqllab.panels'),
+  const contributions = ExtensionsManager.getInstance().getContribution(
+    'views',
+    'sqllab.panels',
   );
   const { views } = useExtensionsContext();
   const { offline, tables } = useSelector(

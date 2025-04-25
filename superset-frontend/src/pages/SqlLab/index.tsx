@@ -18,7 +18,7 @@
  */
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { css, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { css, isFeatureEnabled, FeatureFlag, logging } from '@superset-ui/core';
 import { useSqlLabInitialState } from 'src/hooks/apiResources/sqlLab';
 import type { InitialState } from 'src/hooks/apiResources/sqlLab';
 import { resetState } from 'src/SqlLab/actions/sqlLab';
@@ -30,7 +30,7 @@ import Loading from 'src/components/Loading';
 import EditorAutoSync from 'src/SqlLab/components/EditorAutoSync';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { LocationProvider } from './LocationContext';
-import { initializeExtensions } from 'src/extensions/slice';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
 
 export default function SqlLab() {
   const lastInitializedAt = useSelector<SqlLabRootState, number>(
@@ -56,8 +56,10 @@ export default function SqlLab() {
   }, [data, initBootstrapData]);
 
   useEffect(() => {
-    dispatch(initializeExtensions('sqllab'));
-  }, [dispatch]);
+    ExtensionsManager.getInstance()
+      .initialize('sqllab')
+      .catch(e => logging.error(e));
+  }, []);
 
   if (isLoading || shouldInitialize) return <Loading />;
 
