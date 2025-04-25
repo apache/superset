@@ -224,7 +224,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
   rendermetricComparisonSummary(maxHeight: number) {
     const { subheader, width } = this.props;
     let fontSize = 0;
-    console.log(subtitle.length);
 
     const text = subheader;
 
