@@ -3,6 +3,28 @@
   "version": "1.0.0",
   "frontend": {
     "contributions": {
+      "commands": [
+        {
+          "command": "extension1.copy_query",
+          "title": "Copy Query",
+          "description": "Copy the current query to clipboard"
+        },
+        {
+          "command": "extension1.prettify",
+          "title": "Prettify",
+          "description": "Prettify the current query"
+        },
+        {
+          "command": "extension1.clear",
+          "title": "Clear",
+          "description": "Clear the current query"
+        },
+        {
+          "command": "extension1.refresh",
+          "title": "Refresh",
+          "description": "Refresh the current panel"
+        }
+      ],
       "views": {
         "sqllab.panels": [
           {
