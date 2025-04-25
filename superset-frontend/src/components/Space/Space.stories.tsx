@@ -16,14 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/*
- * Re-exporting of components in src/components to facilitate
- * their imports by other components.
- * E.g. import { Select } from 'src/components'
- */
-
-import { Space, SpaceProps } from 'src/components/Space';
+import { Space, type SpaceProps } from '.';
 
 export default {
   title: 'Design System/Components/Space',

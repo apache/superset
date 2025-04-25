@@ -40,8 +40,8 @@ import {
   CopyToClipboard,
   Dropdown,
   FilterableTable,
+  Skeleton,
 } from 'src/components';
-import Skeleton from 'src/components/Skeleton';
 import Tabs from 'src/components/Tabs';
 import {
   tableApiUtil,

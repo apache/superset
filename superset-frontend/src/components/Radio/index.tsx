@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Radio as Antd5Radio, CheckboxOptionType } from 'antd-v5';
-import type {
-  RadioChangeEvent,
-  RadioProps,
-  RadioGroupProps,
-} from 'antd-v5/es/radio';
+import {
+  Radio as Antd5Radio,
+  type CheckboxOptionType,
+  type RadioGroupProps,
+} from 'antd-v5';
 
-import { Space, SpaceProps } from '../Space';
+import { Space, type SpaceProps } from '../Space';
 
 export type RadioGroupWrapperProps = RadioGroupProps & {
   spaceConfig?: {
@@ -51,13 +50,13 @@ const RadioGroup = ({
     </Antd5Radio.Group>
   );
 };
+export const Radio = Object.assign(Antd5Radio, {
+  GroupWrapper: RadioGroup,
+  Button: Antd5Radio.Button,
+});
 export type {
   RadioChangeEvent,
   RadioGroupProps,
   RadioProps,
   CheckboxOptionType,
-};
-export const Radio = Object.assign(Antd5Radio, {
-  GroupWrapper: RadioGroup,
-  Button: Antd5Radio.Button,
-});
+} from 'antd-v5';

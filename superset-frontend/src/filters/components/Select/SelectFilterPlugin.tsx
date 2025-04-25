@@ -33,8 +33,7 @@ import {
 } from '@superset-ui/core';
 import { debounce, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
-import { FormItem, LabeledValue, Select } from 'src/components';
-import { Space } from 'src/components/Space';
+import { FormItem, LabeledValue, Select, Space } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';

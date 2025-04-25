@@ -17,10 +17,10 @@
  * under the License.
  */
 import type { Meta, StoryObj } from '@storybook/react';
-import { SkeletonButtonProps } from 'antd-v5/es/skeleton/Button';
+import { type SkeletonButtonProps } from 'antd-v5/es/skeleton/Button';
 import { Space } from '../Space';
 import { AvatarProps } from '../Avatar/types';
-import Skeleton, { type SkeletonProps } from './index';
+import { Skeleton, type SkeletonProps } from '.';
 
 const { Avatar, Button, Input, Image } = Skeleton;
 

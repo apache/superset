@@ -42,18 +42,18 @@ import {
   Input,
   InputNumber,
   Modal,
+  Switch,
   Collapse,
   Select,
   AsyncSelect,
   Checkbox,
+  TreeSelect,
   type CheckboxChangeEvent,
 } from 'src/components';
-import { Switch } from 'src/components/Switch';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { propertyComparator } from 'src/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import TreeSelect from 'src/components/TreeSelect';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
