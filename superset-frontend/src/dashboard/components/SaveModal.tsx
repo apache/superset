@@ -19,7 +19,7 @@
 /* eslint-env browser */
 import { createRef, PureComponent } from 'react';
 import { Radio, RadioChangeEvent } from 'src/components/Radio';
-import { Button, Checkbox, Input } from 'src/components';
+import { Button, Checkbox, Input, Divider } from 'src/components';
 import { t, JsonResponse } from '@superset-ui/core';
 
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
@@ -175,7 +175,7 @@ class SaveModal extends PureComponent<SaveModalProps, SaveModalState> {
             >
               {t('Overwrite Dashboard [%s]', this.props.dashboardTitle)}
             </Radio>
-            <hr />
+            <Divider />
             <Radio
               value={SAVE_TYPE_NEWDASHBOARD}
               onChange={this.handleSaveTypeChange}

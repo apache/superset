@@ -85,8 +85,8 @@ const StyledDiv = styled.div`
     /* push Chart actions to upper right */
     .dragdroppable-column .dashboard-component-chart-holder .hover-menu--top,
     .dragdroppable .dashboard-component-header .hover-menu--top {
-      right: ${theme.sizeUnit * 2}px;
-      top: ${theme.sizeUnit * 2}px;
+      right: ${theme.sizeUnit * 3}px;
+      top: ${theme.sizeUnit * 5}px;
       background: transparent;
       border: none;
       transform: unset;

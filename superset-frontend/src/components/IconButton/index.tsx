@@ -18,9 +18,9 @@
  */
 
 // eslint-disable-next-line
-import Typography from 'src/components/Typography';
-import { Icons } from 'src/components/Icons';
 import { SupersetTheme, css } from '@superset-ui/core';
+import { Typography } from '../Typography';
+import { Icons } from '../Icons';
 import { Card } from '../Card';
 import { Tooltip } from '../Tooltip';
 import { CardProps } from '../Card/types';

@@ -38,21 +38,21 @@ import {
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-
-import { Switch } from 'src/components/Switch';
 import {
+  Input,
   InputNumber,
+  Modal,
   Collapse,
-  Checkbox,
   Select,
   AsyncSelect,
-  Modal,
+  Checkbox,
+  type CheckboxChangeEvent,
 } from 'src/components';
+import { Switch } from 'src/components/Switch';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { propertyComparator } from 'src/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { CheckboxChangeEvent } from 'src/components/Checkbox/types';
 import TreeSelect from 'src/components/TreeSelect';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
@@ -1092,12 +1092,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('validator_config_json', config);
   };
 
-  const onThresholdChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { target } = event;
-
+  const onThresholdChange = (value: number | null) => {
     const config = {
       op: currentAlert ? currentAlert.validator_config_json?.op : undefined,
-      threshold: target.value,
+      threshold: value,
     };
 
     updateAlertState('validator_config_json', config);
@@ -1492,15 +1490,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     <span className="required">*</span>
                   </div>
                   <div className="input-container">
-                    <input
-                      type="text"
+                    <Input
                       name="name"
-                      value={currentAlert ? currentAlert.name : ''}
                       placeholder={
                         isReport
                           ? t('Enter report name')
                           : t('Enter alert name')
                       }
+                      value={currentAlert ? currentAlert.name : ''}
                       onChange={onInputChange}
                     />
                   </div>
@@ -1531,8 +1528,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <StyledInputContainer>
                   <div className="control-label">{t('Description')}</div>
                   <div className="input-container">
-                    <input
-                      type="text"
+                    <Input
                       name="description"
                       value={currentAlert ? currentAlert.description || '' : ''}
                       placeholder={t(
@@ -1647,16 +1643,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             )}
                           </div>
                           <div className="input-container">
-                            <input
+                            <InputNumber
+                              disabled={conditionNotNull}
                               type="number"
                               name="threshold"
-                              disabled={conditionNotNull}
                               value={
                                 currentAlert?.validator_config_json
                                   ?.threshold !== undefined && !conditionNotNull
                                   ? currentAlert.validator_config_json.threshold
                                   : ''
                               }
+                              min={0}
                               placeholder={t('Value')}
                               onChange={onThresholdChange}
                             />
