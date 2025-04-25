@@ -61,20 +61,22 @@ export const DependenciesRow = memo(({ filter }: FilterCardRowProps) => {
     () =>
       elementsTruncated > 0 && dependencies ? (
         <List
+          split={false}
           dataSource={dependencies}
           renderItem={dependency => (
             <List.Item
               compact
               css={theme => css`
-                span[role='button'] {
+                && .dependency-item {
                   color: ${theme.colorWhite};
                 }
               `}
             >
-              • <DependencyValue dependency={dependency} />
+              <span className="dependency-item">
+                • <DependencyValue dependency={dependency} />
+              </span>
             </List.Item>
           )}
-          split={false}
         />
       ) : null,
     [elementsTruncated, dependencies],

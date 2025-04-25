@@ -42,12 +42,12 @@ const getTooltipSection = (items: string[] | undefined, label: string) =>
           <List.Item
             compact
             css={theme => css`
-              span[role='button'] {
+              && .scope-item {
                 color: ${theme.colorWhite};
               }
             `}
           >
-            {item}
+            <span className="scope-item">• {item} </span>
           </List.Item>
         )}
       />

@@ -77,21 +77,25 @@ export function ParameterErrorMessage({
           <>
             <p>{t('Did you mean:')}</p>
             <List
+              split={false}
               size="small"
               dataSource={Object.entries(matches)}
               renderItem={([undefinedParameter, templateKeys]) => (
-                <List.Item>
-                  {tn(
-                    '%(suggestion)s instead of "%(undefinedParameter)s?"',
-                    '%(firstSuggestions)s or %(lastSuggestion)s instead of "%(undefinedParameter)s"?',
-                    templateKeys.length,
-                    {
-                      suggestion: templateKeys.join(', '),
-                      firstSuggestions: templateKeys.slice(0, -1).join(', '),
-                      lastSuggestion: templateKeys[templateKeys.length - 1],
-                      undefinedParameter,
-                    },
-                  )}
+                <List.Item compact>
+                  <List.Item.Meta
+                    avatar={<span>•</span>}
+                    title={tn(
+                      '%(suggestion)s instead of "%(undefinedParameter)s?"',
+                      '%(firstSuggestions)s or %(lastSuggestion)s instead of "%(undefinedParameter)s"?',
+                      templateKeys.length,
+                      {
+                        suggestion: templateKeys.join(', '),
+                        firstSuggestions: templateKeys.slice(0, -1).join(', '),
+                        lastSuggestion: templateKeys[templateKeys.length - 1],
+                        undefinedParameter,
+                      },
+                    )}
+                  />
                 </List.Item>
               )}
             />
