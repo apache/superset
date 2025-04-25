@@ -131,14 +131,11 @@ In the database connection summary table, there’s a column showing if the AI A
 
 ### Dispatcher
 
-TODO: Refine description.
-
 All requests to LLM providers are managed by the LLM dispatcher, which acts as the unified interface for handling interactions with different LLM APIs. The dispatcher is responsible for:
 
-- Routing SQL generation requests to the appropriate LLM API based on the selected database connection and its configuration.
 - Managing initialization and state of LLM API wrapper classes, ensuring they are up-to-date with the latest database context.
 - Handling prompt construction, including database metadata, system instructions, query editor content, and user input.
-- Applying context caching strategies as supported by each LLM provider to optimize performance and reduce costs.
+- Routing SQL generation requests to the appropriate LLM API based on the selected database connection and its configuration.
 - Coordinating error handling and retry logic during SQL extraction and validation.
 
 This centralized approach ensures consistent, efficient, and reliable communication between Superset and the configured LLMs.  
@@ -149,7 +146,7 @@ The dispatcher provides the following interfaces for other modules:
    Triggers a Celery worker to execute the database metadata data pipeline and generate a JSON file.
 
 2. **LLM State Validation**:  
-   Verifies whether Superset is configured to call an LLM API for the selected database connection.
+   Determines the state of the context worker and whether Superset is configured to call an LLM API for the selected database connection.
 
 3. **SQL Generation**:  
    Routes SQL generation requests to the appropriate LLM API based on the selected database and configuration.
@@ -168,15 +165,11 @@ The dispatcher leverages the following inputs to construct prompts for SQL gener
 
 The dispatcher adheres to a singleton pattern. When a SQL generation request is initiated, it ensures the appropriate LLM API wrapper class is initialized with the relevant database context. This initialization occurs either when the wrapper has not been previously set up or when the database context has been recently regenerated, rendering the current wrapper outdated.
 
-If specific schemas are selected in the dropdown menu, the dispatcher includes metadata for only those schemas directly in the prompt. In such cases, it bypasses the context caching functionality provided by the LLM API, even if the provider supports it.  
-
 ### Context Builder
-
-TODO: Adjust schematics and refine description.
 
 ![llm_config](../../static/img/screenshots/ai_assistant/build_context.png) 
 
-The database metadata context is periodically rebuilt by a Celery worker data pipeline, based on the AI Assistant configuration for each database connection. Most metadata — such as schemas, tables, columns, indexes, and foreign keys — is already collected by Superset for SQLLab’s catalog exploration features. The only additional step is gathering the most common values for text columns. The pipeline compiles all relevant metadata into a compact, nested JSON file, which is cached in Redis for fast and efficient access by the AI Assistant.
+The database metadata context is periodically rebuilt by a Celery worker data pipeline, based on the AI Assistant configuration for each database connection. Metadata, such as schemas, tables, columns, indexes, and foreign keys, is collected by the context builder along with the most common values for text columns. The pipeline compiles all relevant metadata into a compact, nested JSON file, which is cached in Redis for fast and efficient access by the AI Assistant.
 
 This comprehensive metadata ensures the LLM has the necessary context to generate accurate and efficient SQL queries.  
 It constist of:
@@ -197,17 +190,21 @@ It constist of:
       - **Foreign Keys**: Details about foreign key constraints.  
          - Helps construct accurate JOIN clauses by identifying relationships between tables.  
 
+The context builder is triggered periodically by a scheduled Celery task. This scheduled task checks all the configured database connections for any that have the AI assistant enabled and for the status of that connection's context. If the context doesn't exist or is out of date, the context builder is triggered for that database connection.
+
 ### Caching Context
 
-TODO: Adjust schematics and refine description.
-
 If the LLM API supports context caching (such as Gemini), Superset leverages this capability to optimize SQL generation. Context caching allows the database metadata and system instructions to be stored and reused across multiple requests, significantly reducing input token usage, improving response times, and lowering operational costs. When context caching is available, the AI Assistant uploads the metadata and instructions to the LLM provider once, then references this cached context for subsequent queries. If the LLM API does not support explicit context caching, the full metadata and instructions are included in every prompt, which may increase token consumption and latency.
+
+On each request to generate SQL, the dispatcher hands the complete context to the Base LLM implementation that wraps the specific LLM API. The Base LLM implementation takes responsibility for managing the cache with the LLM API if that service is provided.
 
 ![llm_config](../../static/img/screenshots/ai_assistant/cache_context.png) 
 
 ### SQL Generation
 
-TODO: Adjust schematics and augment architectural description.
+SQL Generation requests from the frontend provide a database ID, user input, and any prior relevant context, such as the content of the SQL editor. These inputs pass to the dispatcher, which adds the database context and calls the configured LLM implementation.
+
+The Base LLM implementation receives the reponse from the LLM API, extracts the SQL from the response, and returns the SQL to the dispatcher. The dispatcher then checks to ensure the received SQL is free of errors before returning it to the frontend. If errors are found, the base LLM is called again and the error messages are included in the context to assist the LLM in correcting the mistake.
 
 ![llm_config](../../static/img/screenshots/ai_assistant/generate_sql.png)  
 
