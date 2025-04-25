@@ -7,15 +7,13 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
             # Get user info from the userinfo endpoint
             me = self.appbuilder.sm.oauth_remotes[provider].get(
                 'https://cybqa.pesapal.com/pesapalsso/v2/connect/userinfo')
-            print("outputforuserinfo: "+str(me))
-            # Map the user information from the response
-            # Adjust these fields based on what your provider returns
+            data = me.json()
+            print("user_data: {0}".format(data))
             return {
-                'name': me.get('name', ''),
-                'email': me.get('email', ''),
-                'id': me.get('sub', ''),
-                'username': me.get('preferred_username', me.get('email', '')),
-                'first_name': me.get('given_name', ''),
-                'last_name': me.get('family_name', ''),
-                'role_keys': me.get('role', [])  # If roles are provided
+                'name': data['name'],
+                'email': data['email'],
+                'id': data['preferred_username'],
+                'username': data['preferred_username'],
+                'first_name': data['given_name'],
+                'last_name': data['family_name']
             }
