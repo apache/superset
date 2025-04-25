@@ -123,12 +123,25 @@ export default class CRUDCollection extends PureComponent<
   }
 
   onCellChange(id: number, col: string, val: boolean) {
-    this.changeCollection({
-      ...this.state.collection,
-      [id]: {
-        ...this.state.collection[id],
-        [col]: val,
-      },
+    this.setState(prevState => {
+      const updatedCollection = {
+        ...prevState.collection,
+        [id]: {
+          ...prevState.collection[id],
+          [col]: val,
+        },
+      };
+      const updatedCollectionArray = prevState.collectionArray.map(item =>
+        item.id === id ? updatedCollection[id] : item,
+      );
+
+      if (this.props.onChange) {
+        this.props.onChange(updatedCollectionArray);
+      }
+      return {
+        collection: updatedCollection,
+        collectionArray: updatedCollectionArray,
+      };
     });
   }
 
@@ -189,7 +202,9 @@ export default class CRUDCollection extends PureComponent<
   }
 
   changeCollection(collection: any) {
+    console.log({ collection });
     const newCollectionArray = createCollectionArray(collection);
+    console.log({ newCollectionArray });
     this.setState({ collection, collectionArray: newCollectionArray });
 
     if (this.props.onChange) {
