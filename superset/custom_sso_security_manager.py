@@ -6,7 +6,7 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
         if provider == 'signin-oidc':
             # Get user info from the userinfo endpoint
             me = self.appbuilder.sm.oauth_remotes[provider].get(
-                'https://cybqa.pesapal.com/pesapalsso/v2/connect/userinfo')
+                'userinfo')
 
             # roles = self.appbuilder.sm.oauth_remotes[provider].get(
             #     'https://cybqa.pesapal.com/pesapalsso/api/ssoservices/roles/get-required-roles')
