@@ -11,8 +11,8 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
                 'https://cybqa.pesapal.com/pesapalsso/api/ssoservices/roles/get-required-roles')
             data = me.json()
             print("user_data: {0}".format(data))
-            roles_data = roles.json()
-            print("data_roles: {0}".format(roles_data))
+            # roles_data = roles.json()
+            # print("data_roles: {0}".format(roles_data))
 
             # # Extract email from the 'sub' or 'email' field
             # email = data.get('email', data.get('sub'))
