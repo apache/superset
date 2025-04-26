@@ -184,7 +184,7 @@ SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 
 
 
-# CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
+CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
