@@ -7,8 +7,8 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
             # Get user info from the userinfo endpoint
             me = self.appbuilder.sm.oauth_remotes[provider].get(
                 'https://cybqa.pesapal.com/pesapalsso/v2/connect/userinfo')
-            roles = self.appbuilder.sm.oauth_remotes[provider].get(
-                'https://cybqa.pesapal.com/pesapalsso/api/ssoservices/roles/get-required-roles')
+            # roles = self.appbuilder.sm.oauth_remotes[provider].get(
+            #     'https://cybqa.pesapal.com/pesapalsso/api/ssoservices/roles/get-required-roles')
             data = me.json()
             print("user_data: {0}".format(data))
             # roles_data = roles.json()
