@@ -357,6 +357,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       headerFontSize,
       subtitleFontSize,
       metricNameFontSize,
+      subheaderFontSize,
     } = this.props;
     const className = this.getClassName();
 
@@ -461,12 +462,12 @@ export default styled(BigNumberVis)`
 
     .subheader-line {
       line-height: 1em;
-      margin-bottom: ${theme.gridUnit * 2}px;
+      padding-bottom: 0;
     }
 
     .subtitle-line {
       line-height: 1em;
-      padding-top: 0.3em;
+      padding-bottom: 0;
     }
 
     &.is-fallback-value {
