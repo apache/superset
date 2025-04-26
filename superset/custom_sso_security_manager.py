@@ -45,6 +45,5 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
                 'id': data['sub'],
                 'username': data['sub'],
                 'first_name': data['sub'],
-                'last_name': data['sub'],
-                'role_keys': ['DataEngineer']
+                'last_name': data['sub']
             }
