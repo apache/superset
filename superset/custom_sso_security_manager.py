@@ -6,12 +6,11 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
         if provider == 'signin-oidc':
             # Get user info from the userinfo endpoint
             me = self.appbuilder.sm.oauth_remotes[provider].get(
-                'userinfo')
+                'https://cybqa.pesapal.com/pesapalsso/v2/connect/userinfo')
 
             # roles = self.appbuilder.sm.oauth_remotes[provider].get(
             #     'https://cybqa.pesapal.com/pesapalsso/api/ssoservices/roles/get-required-roles')
             data = me.json()
-            print("before: {0}".format(me))
             print("user_data: {0}".format(data))
             # roles_data = roles.json()
             # print("data_roles: {0}".format(roles_data))
@@ -47,5 +46,6 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
                 'id': data['sub'],
                 'username': data['sub'],
                 'first_name': data['sub'],
-                'last_name': data['sub']
+                'last_name': data['sub'],
+                'role_keys': ['DataEngineer']
             }
