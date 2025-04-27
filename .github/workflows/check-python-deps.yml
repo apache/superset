@@ -17,7 +17,6 @@ jobs:
   check-python-deps:
     runs-on: ubuntu-22.04
     steps:
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
