@@ -435,6 +435,9 @@ export default class CRUDCollection extends PureComponent<
             css`
               height: 350px;
               overflow: auto;
+              .antd5-table-sticky-holder {
+                z-index: 9;
+              }
             `
           }
           expandable={expandableConfig}
