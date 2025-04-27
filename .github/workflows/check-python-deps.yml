@@ -22,7 +22,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-          depth: 1
+          fetch-depth: 1
 
       - name: Setup Python
         if: steps.check.outputs.python
