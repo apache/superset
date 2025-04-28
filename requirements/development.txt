@@ -72,7 +72,7 @@ cattrs==24.1.2
     # via
     #   -c requirements/base.txt
     #   requests-cache
-celery==5.4.0
+celery==5.5.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -318,6 +318,7 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -395,7 +396,7 @@ jsonschema-specifications==2024.10.1
     #   openapi-schema-validator
 kiwisolver==1.4.7
     # via matplotlib
-kombu==5.5.0
+kombu==5.5.3
     # via
     #   -c requirements/base.txt
     #   celery
@@ -565,7 +566,7 @@ prison==0.2.1
     #   flask-appbuilder
 progress==1.6
     # via apache-superset
-prompt-toolkit==3.0.50
+prompt-toolkit==3.0.51
     # via
     #   -c requirements/base.txt
     #   click-repl
@@ -850,10 +851,9 @@ typing-extensions==4.12.2
     #   rich
     #   selenium
     #   shillelagh
-tzdata==2025.1
+tzdata==2025.2
     # via
     #   -c requirements/base.txt
-    #   celery
     #   kombu
     #   pandas
 tzlocal==5.2

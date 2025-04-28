@@ -44,7 +44,7 @@ cachetools==5.5.2
     # via google-auth
 cattrs==24.1.2
     # via requests-cache
-celery==5.4.0
+celery==5.5.2
     # via apache-superset (pyproject.toml)
 certifi==2025.1.31
     # via
@@ -158,6 +158,7 @@ greenlet==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
+    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.14.0
@@ -191,7 +192,7 @@ jsonschema==4.23.0
     # via flask-appbuilder
 jsonschema-specifications==2024.10.1
     # via jsonschema
-kombu==5.5.0
+kombu==5.5.3
     # via celery
 korean-lunar-calendar==0.3.1
     # via holidays
@@ -271,7 +272,7 @@ polyline==2.0.2
     # via apache-superset (pyproject.toml)
 prison==0.2.1
     # via flask-appbuilder
-prompt-toolkit==3.0.50
+prompt-toolkit==3.0.51
     # via click-repl
 pyarrow==14.0.2
     # via apache-superset (pyproject.toml)
@@ -398,9 +399,8 @@ typing-extensions==4.12.2
     #   rich
     #   selenium
     #   shillelagh
-tzdata==2025.1
+tzdata==2025.2
     # via
-    #   celery
     #   kombu
     #   pandas
 url-normalize==1.4.3
