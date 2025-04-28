@@ -27,13 +27,6 @@ import sys
 from celery.schedules import crontab
 from flask_caching.backends.filesystemcache import FileSystemCache
 
-LANGUAGES = {
-    'en': {'flag': 'us', 'name': 'English'},
-    'pt_BR': {'flag': 'br', 'name': 'Português (Brasil)'},
-}
-
-BABEL_DEFAULT_LOCALE = 'pt_BR'
-
 logger = logging.getLogger()
 
 DATABASE_DIALECT = os.getenv("DATABASE_DIALECT")
@@ -79,6 +72,13 @@ CACHE_CONFIG = {
 }
 DATA_CACHE_CONFIG = CACHE_CONFIG
 THUMBNAIL_CACHE_CONFIG = CACHE_CONFIG
+
+LANGUAGES = {
+    'en': {'flag': 'us', 'name': 'English'},
+    'pt_BR': {'flag': 'br', 'name': 'Português (Brasil)'},
+}
+
+BABEL_DEFAULT_LOCALE = 'pt_BR'
 
 
 class CeleryConfig:
