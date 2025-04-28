@@ -18,6 +18,7 @@
  */
 
 import { Component, ReactNode } from 'react';
+import { Button } from 'antd-v5';
 
 export type Props = {
   children: ReactNode;
@@ -45,13 +46,9 @@ export default class Expandable extends Component<Props, State> {
 
     return (
       <div>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          onClick={this.handleToggle}
-        >
+        <Button type="primary" size="small" onClick={this.handleToggle}>
           {`${open ? 'Hide' : 'Show'} ${expandableWhat}`}
-        </button>
+        </Button>
         <br />
         <br />
         {open ? children : null}
