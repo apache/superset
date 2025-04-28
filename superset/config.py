@@ -354,7 +354,7 @@ OAUTH_PROVIDERS = [
             'client_secret': 'e3da967e-6ab0-4b6c-85d6-150fabd09e7d',  # Replace with your actual client secret
             'server_metadata_url': 'https://cybqa.pesapal.com/pesapalsso/.well-known/openid-configuration',
             'client_kwargs': {
-                'scope': 'openid ' , # Scopes from your configuration
+                'scope': 'openid profile roles' , # Scopes from your configuration
                 'code_challenge_method': 'S256'
             },
              'access_token_url': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/token',
@@ -384,7 +384,7 @@ AUTH_ROLES_MAPPING = {
 AUTH_USER_REGISTRATION = True
 
 # The default user self registration role
-AUTH_USER_REGISTRATION_ROLE = "Public"
+#AUTH_USER_REGISTRATION_ROLE = "Public"
 
 AUTH_ROLES_SYNC_AT_LOGIN = True
 
