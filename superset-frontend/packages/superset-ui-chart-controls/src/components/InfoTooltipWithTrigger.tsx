@@ -39,7 +39,7 @@ export const InfoTooltipWithTrigger = ({
   icon = <ExclamationCircleOutlined />,
   className = 'text-muted',
   placement = 'right',
-  iconsStyle = {},
+  iconsStyle = { fontSize: 12 },
 }: InfoTooltipWithTriggerProps) => {
   const handleKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
     if (onClick && (event.key === 'Enter' || event.key === ' ')) {

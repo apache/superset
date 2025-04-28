@@ -17,10 +17,10 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, useTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
-
+import { Icons } from 'src/components/Icons';
 import { Badge, ConfigEditor, Tooltip } from 'src/components';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { FAST_DEBOUNCE } from 'src/constants';
@@ -47,6 +47,7 @@ const TemplateParamsEditor = ({
   const [isValid, setIsValid] = useState(true);
 
   const { templateParams } = useQueryEditor(queryEditorId, ['templateParams']);
+  const theme = useTheme();
   const code = templateParams ?? '{}';
 
   useEffect(() => {
@@ -107,8 +108,12 @@ const TemplateParamsEditor = ({
             <Badge count={paramCount} />
             {!isValid && (
               <InfoTooltipWithTrigger
-                icon="exclamation-triangle"
-                bsStyle="danger"
+                icon={
+                  <Icons.WarningOutlined
+                    iconSize="s"
+                    iconColor={theme.colorError}
+                  />
+                }
                 tooltip={t('Invalid JSON')}
                 label="invalid-json"
               />

@@ -396,7 +396,7 @@ export const OptionControlLabel = ({
       {(!!datasourceWarningMessage || isExtra) && (
         <StyledInfoTooltipWithTrigger
           icon={
-            <Icons.ExclamationCircleOutlined
+            <Icons.WarningOutlined
               iconSize="s"
               iconColor={theme.colorWarning}
             />

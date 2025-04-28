@@ -72,9 +72,13 @@ export default function Option({
       <Label data-test="control-label">{children}</Label>
       {(!!datasourceWarningMessage || isExtra) && (
         <StyledInfoTooltipWithTrigger
-          icon="exclamation-triangle"
+          icon={
+            <Icons.WarningOutlined
+              iconSize="s"
+              iconColor={theme.colorWarning}
+            />
+          }
           placement="top"
-          bsStyle="warning"
           tooltip={
             datasourceWarningMessage ||
             t(`
