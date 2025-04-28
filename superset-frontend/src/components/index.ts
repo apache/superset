@@ -187,3 +187,18 @@ export {
   type LabeledValue,
   type RefSelectProps,
 } from './Select';
+
+export { Steps, StepsProps } from './Steps';
+
+export { Space, type SpaceProps } from './Space';
+
+export { Skeleton, type SkeletonProps } from './Skeleton';
+
+export { Switch, type SwitchProps } from './Switch';
+
+export { TreeSelect, type TreeSelectProps } from './TreeSelect';
+
+export { Typography, type TypographyProps } from './Typography';
+
+export { Image, type ImageProps } from './Image';
+export { Upload, type UploadFile, type UploadChangeParam } from './Upload';

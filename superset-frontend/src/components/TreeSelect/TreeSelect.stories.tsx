@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Meta, StoryObj } from '@storybook/react';
-import TreeSelect, { type TreeSelectProps } from 'src/components/TreeSelect';
+import { TreeSelect, type TreeSelectProps } from '.';
 
 export default {
   title: 'Components/TreeSelect',

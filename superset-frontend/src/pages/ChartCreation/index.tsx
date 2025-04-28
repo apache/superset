@@ -30,8 +30,7 @@ import { withTheme, Theme } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
-import { AsyncSelect, Button } from 'src/components';
-import { Steps } from 'src/components/Steps';
+import { AsyncSelect, Button, Steps } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {

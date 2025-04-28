@@ -21,7 +21,6 @@ export interface EditableTitleProps {
   editing?: boolean;
   emptyText?: string;
   extraClasses?: Array<string> | string;
-  multiLine?: boolean;
   noPermitTooltip?: string;
   onSaveTitle: (arg0: string) => void;
   showTooltip?: boolean;
@@ -32,4 +31,6 @@ export interface EditableTitleProps {
   certifiedBy?: string;
   certificationDetails?: string;
   url?: string;
+  maxWidth?: number;
+  autoSize?: boolean;
 }

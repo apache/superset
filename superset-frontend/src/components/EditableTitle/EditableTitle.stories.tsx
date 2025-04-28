@@ -32,12 +32,13 @@ InteractiveEditableTitle.args = {
   canEdit: true,
   editing: false,
   emptyText: 'Empty text',
-  multiLine: true,
   noPermitTooltip: 'Not permitted',
   showTooltip: true,
   title: 'Title',
   defaultTitle: 'Default title',
   placeholder: 'Placeholder',
+  maxWidth: 100,
+  autoSize: true,
 };
 
 InteractiveEditableTitle.argTypes = {

@@ -17,17 +17,11 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { css, styled, t } from '@superset-ui/core';
-import { Input, CopyToClipboard } from 'src/components';
+import { css, t } from '@superset-ui/core';
+import { Input, CopyToClipboard, Space, Typography } from 'src/components';
 import { URL_PARAMS } from 'src/constants';
 import { getChartPermalink } from 'src/utils/urlUtils';
-import { CopyButton } from './DataTableControl';
-
-const CopyButtonEmbedCode = styled(CopyButton)`
-  && {
-    margin: 0 0 ${({ theme }) => theme.sizeUnit}px;
-  }
-`;
+import { Icons } from 'src/components/Icons';
 
 const EmbedCodeContent = ({ formData, addDangerToast }) => {
   const [height, setHeight] = useState('400');
@@ -91,11 +85,9 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
           shouldShowText={false}
           text={html}
           copyNode={
-            <CopyButtonEmbedCode buttonSize="xsmall">
-              {/* TODO: Remove fa-icon */}
-              {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-              <i className="fa fa-clipboard" />
-            </CopyButtonEmbedCode>
+            <span role="button" aria-label="Copy to clipboard">
+              <Icons.CopyOutlined />
+            </span>
           }
         />
         <Input.TextArea
@@ -107,6 +99,7 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
           readOnly
           css={theme => css`
             resize: vertical;
+            margin-top: ${theme.sizeUnit * 2}px;
             padding: ${theme.sizeUnit * 2}px;
             font-size: ${theme.fontSizeSM}px;
             border-radius: 4px;
@@ -114,39 +107,34 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
           `}
         />
       </div>
-      <div
+      <Space
+        direction="horizzontal"
         css={theme => css`
-          display: flex;
-          margin-top: ${theme.sizeUnit * 4}px;
-          & > div {
-            margin-right: ${theme.sizeUnit * 2}px;
-          }
-          & > div:last-of-type {
-            margin-right: 0;
-            margin-left: ${theme.sizeUnit * 2}px;
-          }
+          margin-top: ${theme.margin}px;
         `}
       >
         <div>
-          <label htmlFor="embed-height">{t('Chart height')}</label>
+          <Typography.Text type="secondary">
+            {t('Chart height')}
+          </Typography.Text>
           <Input
-            type="text"
+            type="number"
             defaultValue={height}
             name="height"
             onChange={handleInputChange}
           />
         </div>
         <div>
-          <label htmlFor="embed-width">{t('Chart width')}</label>
+          <Typography.Text type="secondary">{t('Chart width')}</Typography.Text>
           <Input
-            type="text"
+            type="number"
             defaultValue={width}
             name="width"
             onChange={handleInputChange}
             id="embed-width"
           />
         </div>
-      </div>
+      </Space>
     </div>
   );
 };

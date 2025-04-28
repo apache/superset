@@ -583,7 +583,7 @@ export const exploreView = {
     saveButton: dataTestLocator('datasource-modal-save'),
     metricsTab: {
       addItem: dataTestLocator('crud-add-table-item'),
-      rowsContainer: dataTestLocator('table-content-rows'),
+      rowsContainer: '.antd5-table-body',
     },
     confirmModal: {
       okButton: '.antd5-modal-confirm-btns .antd5-btn-primary',

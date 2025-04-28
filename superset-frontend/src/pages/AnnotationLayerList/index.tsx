@@ -25,6 +25,7 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
+import { Typography } from 'src/components/Typography';
 
 import {
   DeleteModal,
@@ -152,7 +153,11 @@ function AnnotationLayersList({
             return <Link to={`/annotationlayer/${id}/annotation`}>{name}</Link>;
           }
 
-          return <a href={`/annotationlayer/${id}/annotation`}>{name}</a>;
+          return (
+            <Typography.Link href={`/annotationlayer/${id}/annotation`}>
+              {name}
+            </Typography.Link>
+          );
         },
         id: 'name',
       },

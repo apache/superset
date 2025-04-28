@@ -16,10 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SupersetTheme, css, t } from '@superset-ui/core';
-import { Input, Button, FormLabel, Select } from 'src/components';
+import {
+  Input,
+  Button,
+  FormLabel,
+  Select,
+  Upload,
+  type UploadFile,
+} from 'src/components';
 import { Icons } from 'src/components/Icons';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DatabaseParameters, FieldPropTypes } from '../../types';
 import { infoTooltip, CredentialInfoForm } from '../styles';
 
@@ -42,13 +50,11 @@ export const EncryptedField = ({
   db,
   editNewDb,
 }: FieldPropTypes) => {
-  const selectedFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.JsonUpload.valueOf(),
   );
-  const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
-    null,
-  );
+  const { addDangerToast } = useToasts();
   const showCredentialsInfo = !isEditMode;
   const encryptedField =
     db?.engine &&
@@ -59,6 +65,24 @@ export const EncryptedField = ({
     paramValue && typeof paramValue === 'object'
       ? JSON.stringify(paramValue)
       : paramValue;
+
+  const readTextFile = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsText(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+    });
+
+  useEffect(() => {
+    changeMethods.onParametersChange({
+      target: {
+        name: encryptedField,
+        value: '',
+      },
+    });
+  }, []);
+
   return (
     <CredentialInfoForm>
       {showCredentialsInfo && (
@@ -110,58 +134,58 @@ export const EncryptedField = ({
             className="input-container"
             css={(theme: SupersetTheme) => infoTooltip(theme)}
           >
-            {!fileToUpload && (
-              <Button onClick={() => selectedFileInputRef.current?.click()}>
-                <Icons.LinkOutlined iconSize="m" />
-                {t('Upload credentials')}
-              </Button>
-            )}
-            {fileToUpload && (
-              <div className="credentials-uploaded">
-                <Button block disabled>
-                  <Icons.LinkOutlined iconSize="m" />
-                  {t('Credentials uploaded')}
-                </Button>
-                <Icons.DeleteFilled
-                  iconSize="m"
-                  onClick={() => {
-                    setFileToUpload(null);
-                    changeMethods.onParametersChange({
-                      target: {
-                        name: encryptedField,
-                        value: '',
-                      },
-                    });
-                  }}
-                />
-              </div>
-            )}
-
-            <input
-              ref={selectedFileInputRef}
-              id="selectedFile"
+            <Upload
               accept=".json"
-              className="input-upload"
-              type="file"
-              onChange={async event => {
-                let file;
-                if (event.target.files) {
-                  file = event.target.files[0];
-                }
-                setFileToUpload(file?.name);
+              maxCount={1}
+              fileList={fileList}
+              // avoid automatic upload
+              beforeUpload={() => false}
+              onRemove={() => {
+                setFileList([]);
                 changeMethods.onParametersChange({
                   target: {
-                    type: null,
                     name: encryptedField,
-                    value: await file?.text(),
-                    checked: false,
+                    value: '',
                   },
                 });
-                if (selectedFileInputRef.current) {
-                  selectedFileInputRef.current.value = null as any;
+                return true;
+              }}
+              onChange={async info => {
+                const file = info.fileList?.[0]?.originFileObj;
+                if (file) {
+                  try {
+                    const fileContent = await readTextFile(file);
+                    changeMethods.onParametersChange({
+                      target: {
+                        type: null,
+                        name: encryptedField,
+                        value: fileContent,
+                        checked: false,
+                      },
+                    });
+                    setFileList(info.fileList);
+                  } catch (error) {
+                    setFileList([]);
+                    addDangerToast(
+                      t(
+                        'Unable to read the file, please refresh and try again.',
+                      ),
+                    );
+                  }
+                } else {
+                  changeMethods.onParametersChange({
+                    target: {
+                      name: encryptedField,
+                      value: '',
+                    },
+                  });
                 }
               }}
-            />
+            >
+              <Button icon={<Icons.LinkOutlined iconSize="m" />}>
+                {t('Upload credentials')}
+              </Button>
+            </Upload>
           </div>
         )
       )}

@@ -17,7 +17,7 @@
  * under the License.
  */
 import type { Meta, StoryObj } from '@storybook/react';
-import { Typography } from 'src/components/Typography';
+import { Typography } from '.';
 
 export default {
   title: 'Components/Typography',

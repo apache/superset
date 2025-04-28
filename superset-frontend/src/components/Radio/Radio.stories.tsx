@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Icons } from 'src/components/Icons';
 import { css } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
 import { Space } from '../Space';
-import { Radio, RadioProps, RadioGroupWrapperProps } from './index';
+import { Radio, type RadioProps, type RadioGroupWrapperProps } from '.';
 
 export default {
   title: 'Components/Radio',

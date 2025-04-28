@@ -47,11 +47,13 @@ import {
   InfoTooltip,
   DatasetTypeLabel,
   Loading,
+  List,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilters,
 } from 'src/components';
+import { Typography } from 'src/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
@@ -764,67 +766,85 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {datasetCurrentlyDeleting.dashboards.count >= 1 && (
                 <>
                   <h4>{t('Affected Dashboards')}</h4>
-                  <ul>
-                    {datasetCurrentlyDeleting.dashboards.result
-                      .slice(0, 10)
-                      .map(
-                        (
-                          result: { id: Key | null | undefined; title: string },
-                          index: number,
-                        ) => (
-                          <li key={result.id}>
-                            <a
+                  <List
+                    split={false}
+                    size="small"
+                    dataSource={datasetCurrentlyDeleting.dashboards.result.slice(
+                      0,
+                      10,
+                    )}
+                    renderItem={(result: {
+                      id: Key | null | undefined;
+                      title: string;
+                    }) => (
+                      <List.Item key={result.id} compact>
+                        <List.Item.Meta
+                          avatar={<span>•</span>}
+                          title={
+                            <Typography.Link
                               href={`/superset/dashboard/${result.id}`}
                               target="_atRiskItem"
                             >
                               {result.title}
-                            </a>
-                          </li>
-                        ),
-                      )}
-                    {datasetCurrentlyDeleting.dashboards.result.length > 10 && (
-                      <li>
-                        {t(
-                          '... and %s others',
-                          datasetCurrentlyDeleting.dashboards.result.length -
-                            10,
-                        )}
-                      </li>
+                            </Typography.Link>
+                          }
+                        />
+                      </List.Item>
                     )}
-                  </ul>
+                    footer={
+                      datasetCurrentlyDeleting.dashboards.result.length >
+                        10 && (
+                        <div>
+                          {t(
+                            '... and %s others',
+                            datasetCurrentlyDeleting.dashboards.result.length -
+                              10,
+                          )}
+                        </div>
+                      )
+                    }
+                  />
                 </>
               )}
               {datasetCurrentlyDeleting.charts.count >= 1 && (
                 <>
                   <h4>{t('Affected Charts')}</h4>
-                  <ul>
-                    {datasetCurrentlyDeleting.charts.result.slice(0, 10).map(
-                      (
-                        result: {
-                          id: Key | null | undefined;
-                          slice_name: string;
-                        },
-                        index: number,
-                      ) => (
-                        <li key={result.id}>
-                          <a
-                            href={`/explore/?slice_id=${result.id}`}
-                            target="_atRiskItem"
-                          >
-                            {result.slice_name}
-                          </a>
-                        </li>
-                      ),
+                  <List
+                    split={false}
+                    size="small"
+                    dataSource={datasetCurrentlyDeleting.charts.result.slice(
+                      0,
+                      10,
                     )}
-                    {datasetCurrentlyDeleting.charts.result.length > 10 && (
-                      <li>
-                        {t(
-                          '... and %s others',
-                          datasetCurrentlyDeleting.charts.result.length - 10,
-                        )}
-                      </li>
+                    renderItem={(result: {
+                      id: Key | null | undefined;
+                      slice_name: string;
+                    }) => (
+                      <List.Item key={result.id} compact>
+                        <List.Item.Meta
+                          avatar={<span>•</span>}
+                          title={
+                            <Typography.Link
+                              href={`/explore/?slice_id=${result.id}`}
+                              target="_atRiskItem"
+                            >
+                              {result.slice_name}
+                            </Typography.Link>
+                          }
+                        />
+                      </List.Item>
                     )}
-                  </ul>
+                    footer={
+                      datasetCurrentlyDeleting.charts.result.length > 10 && (
+                        <div>
+                          {t(
+                            '... and %s others',
+                            datasetCurrentlyDeleting.charts.result.length - 10,
+                          )}
+                        </div>
+                      )
+                    }
+                  />
                 </>
               )}
               {DatasetDeleteRelatedExtension && (
