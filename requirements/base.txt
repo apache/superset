@@ -158,6 +158,7 @@ greenlet==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
+    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.14.0
@@ -373,7 +374,7 @@ sqlalchemy-utils==0.38.3
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
-sqlglot==26.11.1
+sqlglot==26.16.2
     # via apache-superset (pyproject.toml)
 sqlparse==0.5.3
     # via apache-superset (pyproject.toml)

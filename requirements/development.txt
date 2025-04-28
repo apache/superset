@@ -318,6 +318,7 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -799,7 +800,7 @@ sqlalchemy-utils==0.38.3
     #   -c requirements/base.txt
     #   apache-superset
     #   flask-appbuilder
-sqlglot==26.11.1
+sqlglot==26.16.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
