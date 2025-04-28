@@ -1573,7 +1573,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const renderFilterValueSelect = (filter: ExtraNativeFilter, idx: number) => {
-    if (!filter) return null; // todo(hugh): Fix this..
+    if (!filter) return null;
     const { filterType, filterValues } = filter;
     let mode = 'multiple';
     if (filterType === 'filter_time') {
@@ -1610,12 +1610,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         placeholder={t('Select Value')}
         disabled={!filter?.optionFilterValues}
         value={filter?.filterValues}
-        // @ts-ignore
-        options={filter?.optionFilterValues}
-        onChange={value =>
-          // @ts-ignore
-          onChangeDashboardFilterValue(idx, value)
-        }
+        options={filter?.optionFilterValues || []}
+        onChange={value => onChangeDashboardFilterValue(idx, String(value))}
         mode={mode as 'multiple' | 'single'}
       />
     );
@@ -1763,12 +1759,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     if (resource) {
       // Add native filter settings
-
       if (resource.extra?.dashboard?.nativeFilters) {
-        // grab remaining filterValues here....
-        // const optionFilterValues = fetch
-        // optionFilterValues
-        // @ts-ignore
         const filters = resource.extra.dashboard.nativeFilters;
         setNativeFilterData(filters);
       }
@@ -2266,19 +2257,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               />
                             </div>
                             <Select
-                              // @ts-ignore
-                              className="filters-dash-select"
                               disabled={nativeFilterOptions?.length < 1}
                               ariaLabel={t('Select Filter')}
                               placeholder={t('Select Filter')}
-                              // @ts-ignore
                               value={nativeFilterData[idx]?.filterName}
-                              // @ts-ignore
                               options={filterNativeFilterOptions()}
                               onChange={value =>
-                                // @ts-ignore
-                                onChangeDashboardFilter(idx, value)
+                                onChangeDashboardFilter(idx, String(value))
                               }
+                              css={css`
+                                flex: 1;
+                              `}
                               oneLine
                             />
                           </div>
@@ -2303,20 +2292,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         </div>
                       ))}
                       <div className="filters-add-container">
-                        {filterNativeFilterOptions().length > 0 &&
-                          nativeFilterData.length <=
-                            filterNativeFilterOptions().length && (
-                            <Button
-                              className="filters-add-btn"
-                              type="link"
-                              onClick={() => {
-                                handleAddFilterField();
-                                add();
-                              }}
-                            >
-                              + {t('Apply another dashboard filter')}
-                            </Button>
-                          )}
+                        {filterNativeFilterOptions().length > 0 && (
+                          <Button
+                            className="filters-add-btn"
+                            type="link"
+                            onClick={() => {
+                              handleAddFilterField();
+                              add();
+                            }}
+                          >
+                            + {t('Apply another dashboard filter')}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )}
