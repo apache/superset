@@ -17,13 +17,12 @@ jobs:
   check-python-deps:
     runs-on: ubuntu-22.04
     steps:
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
-          depth: 1
+          fetch-depth: 1
 
       - name: Setup Python
         if: steps.check.outputs.python
