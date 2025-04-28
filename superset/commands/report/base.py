@@ -118,7 +118,7 @@ class BaseReportScheduleCommand(BaseCommand):
 
         for _ in range(iterations):
             next_exec = next(schedule)
-            diff, current_exec = next_exec - current_exec, next_exec
+            diff, current_exec = next_exec - current_exec, next_exec  # type: ignore
             if int(diff) < minimum_interval:
                 raise ReportScheduleFrequencyNotAllowed(
                     report_type=report_type, minimum_interval=minimum_interval
