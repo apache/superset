@@ -318,6 +318,7 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -405,7 +406,7 @@ korean-lunar-calendar==0.3.1
     #   holidays
 lazy-object-proxy==1.10.0
     # via openapi-spec-validator
-limits==4.4.1
+limits==5.1.0
     # via
     #   -c requirements/base.txt
     #   flask-limiter
@@ -495,7 +496,7 @@ outcome==1.3.0.post0
     # via
     #   -c requirements/base.txt
     #   trio
-packaging==24.2
+packaging==25.0
     # via
     #   -c requirements/base.txt
     #   apache-superset

@@ -158,6 +158,7 @@ greenlet==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
+    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.14.0
@@ -195,7 +196,7 @@ kombu==5.5.0
     # via celery
 korean-lunar-calendar==0.3.1
     # via holidays
-limits==4.4.1
+limits==5.1.0
     # via flask-limiter
 mako==1.3.9
     # via
@@ -244,7 +245,7 @@ ordered-set==4.1.0
     # via flask-limiter
 outcome==1.3.0.post0
     # via trio
-packaging==24.2
+packaging==25.0
     # via
     #   apache-superset (pyproject.toml)
     #   apispec
