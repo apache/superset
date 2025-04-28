@@ -24,11 +24,30 @@ import { Icons } from 'src/components/Icons';
 import Typography from 'src/components/Typography';
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 type LoginType = {
   username: string;
   password: string;
 };
+
+type OauthProvider = {
+  name: string;
+  icon: string;
+};
+
+interface LoginForm {
+  username: string;
+  password: string;
+}
+
+enum AuthType {
+  AuthDB = 1,
+  AuthOauth,
+  AuthLDAP,
+  AuthRemoteUser,
+  AuthOID,
+}
 
 const LoginContainer = styled(Flex)`
   width: 100%;
@@ -51,19 +70,21 @@ const StyledLabel = styled(Typography.Text)`
   `}
 `;
 
-interface LoginForm {
-  username: string;
-  password: string;
-}
-
 export default function Login() {
   const [form] = Form.useForm<LoginForm>();
   const [loading, setLoading] = useState(false);
   const location = useLocation();
 
-  // Parse the query string to get the 'next' parameter
   const queryParams = new URLSearchParams(location.search);
   const nextUrl = queryParams.get('next') || '/superset/welcome/';
+
+  const bootstrapData = getBootstrapData();
+
+  const authType: AuthType = bootstrapData.common.conf.AUTH_TYPE;
+  const oauthProviders: OauthProvider[] =
+    bootstrapData.common.conf.OAUTH_PROVIDERS;
+
+  console.log({ authType, oauthProviders });
 
   const onFinish = (values: LoginType) => {
     setLoading(true);
@@ -77,41 +98,53 @@ export default function Login() {
   return (
     <LoginContainer justify="center">
       <StyledCard title={t('Sign in')} padded variant="borderless">
-        <Flex justify="center" vertical gap="middle">
-          <Typography.Text type="secondary">
-            {t('Enter your login and password below:')}
-          </Typography.Text>
-          <Form
-            layout="vertical"
-            requiredMark="optional"
-            form={form}
-            onFinish={onFinish}
-          >
-            <Form.Item<LoginType>
-              label={<StyledLabel>{t('Username:')}</StyledLabel>}
-              name="username"
-              rules={[
-                { required: true, message: t('Please enter your username') },
-              ]}
+        {authType === AuthType.AuthOauth && (
+          <Flex justify="center" vertical gap="middle">
+            <div />
+          </Flex>
+        )}
+        {authType === AuthType.AuthDB && (
+          <Flex justify="center" vertical gap="middle">
+            <Typography.Text type="secondary">
+              {t('Enter your login and password below:')}
+            </Typography.Text>
+            <Form
+              layout="vertical"
+              requiredMark="optional"
+              form={form}
+              onFinish={onFinish}
             >
-              <Input prefix={<Icons.UserOutlined size={1} />} />
-            </Form.Item>
-            <Form.Item<LoginType>
-              label={<StyledLabel>{t('Password:')}</StyledLabel>}
-              name="password"
-              rules={[
-                { required: true, message: t('Please enter your password') },
-              ]}
-            >
-              <Input.Password prefix={<Icons.KeyOutlined size={1} />} />
-            </Form.Item>
-            <Form.Item label={null}>
-              <Button block type="primary" htmlType="submit" loading={loading}>
-                {t('Sign in')}
-              </Button>
-            </Form.Item>
-          </Form>
-        </Flex>
+              <Form.Item<LoginType>
+                label={<StyledLabel>{t('Username:')}</StyledLabel>}
+                name="username"
+                rules={[
+                  { required: true, message: t('Please enter your username') },
+                ]}
+              >
+                <Input prefix={<Icons.UserOutlined size={1} />} />
+              </Form.Item>
+              <Form.Item<LoginType>
+                label={<StyledLabel>{t('Password:')}</StyledLabel>}
+                name="password"
+                rules={[
+                  { required: true, message: t('Please enter your password') },
+                ]}
+              >
+                <Input.Password prefix={<Icons.KeyOutlined size={1} />} />
+              </Form.Item>
+              <Form.Item label={null}>
+                <Button
+                  block
+                  type="primary"
+                  htmlType="submit"
+                  loading={loading}
+                >
+                  {t('Sign in')}
+                </Button>
+              </Form.Item>
+            </Form>
+          </Flex>
+        )}
       </StyledCard>
     </LoginContainer>
   );
