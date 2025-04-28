@@ -89,6 +89,7 @@ from superset.dashboards.schemas import (
     DashboardNativeFiltersConfigUpdateSchema,
     DashboardPostSchema,
     DashboardPutSchema,
+    DashboardScreenshotPostSchema,
     EmbeddedDashboardConfigSchema,
     EmbeddedDashboardResponseSchema,
     get_delete_ids_schema,
@@ -99,7 +100,6 @@ from superset.dashboards.schemas import (
     screenshot_query_schema,
     TabsPayloadSchema,
     thumbnail_query_schema,
-    DashboardScreenshotPostSchema,
 )
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
