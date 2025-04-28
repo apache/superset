@@ -15,21 +15,28 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from flask import (
-    abort,
-)
+from urllib.parse import urlencode
+
+from flask import g, redirect, request
 from flask_appbuilder import expose
-from flask_appbuilder.security.decorators import no_cache
 from flask_appbuilder.security.views import AuthView
+from werkzeug import Response
 
 
-class NoLoginView(AuthView):
+class AuthRedirectView(AuthView):
+    route_base = ""
+
     @expose("/login/", methods=["GET"])
-    @no_cache
-    def login(self):
-        abort(404)
+    def login(self) -> Response:
+        if g.user is not None and g.user.is_authenticated:
+            return redirect(self.appbuilder.get_url_for_index)
+
+        next_url = request.args.get("next")
+        query_params = {"next": next_url} if next_url else {}
+        signin_url = f"/signin/?{urlencode(query_params)}"
+
+        return redirect(signin_url)
 
     @expose("/logout/", methods=["GET"])
-    @no_cache
-    def logout(self):
-        abort(404)
+    def logout(self) -> Response:
+        return redirect("/signout/")

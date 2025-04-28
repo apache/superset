@@ -73,25 +73,17 @@ const StyledLabel = styled(Typography.Text)`
 export default function Login() {
   const [form] = Form.useForm<LoginForm>();
   const [loading, setLoading] = useState(false);
-  const location = useLocation();
-
-  const queryParams = new URLSearchParams(location.search);
-  const nextUrl = queryParams.get('next') || '/superset/welcome/';
 
   const bootstrapData = getBootstrapData();
 
   const authType: AuthType = bootstrapData.common.conf.AUTH_TYPE;
-  const oauthProviders: OauthProvider[] =
-    bootstrapData.common.conf.OAUTH_PROVIDERS;
-
-  console.log({ authType, oauthProviders });
+  // const oauthProviders: OauthProvider[] =
+  //   bootstrapData.common.conf.OAUTH_PROVIDERS;
 
   const onFinish = (values: LoginType) => {
     setLoading(true);
-    SupersetClient.postForm('/login/', values, '').then(response => {
+    SupersetClient.postForm('/login/', values, '').finally(() => {
       setLoading(false);
-      console.log('Login response:', response);
-      window.location.href = nextUrl;
     });
   };
 

@@ -15,25 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from flask import g, redirect
 from flask_appbuilder import expose
-from flask_appbuilder.security.views import no_cache
+from flask_appbuilder.security.decorators import no_cache
+from werkzeug import Response
 
 from superset.views.base import BaseSupersetView
 
 
 class SupersetAuthView(BaseSupersetView):
-    """
-    This class is used to override the default authentication view in Flask AppBuilder.
-    It is used to customize the login and logout views.
-    """
+    route_base = ""
 
-    route_base = "/"
-
-    @expose("/login/", methods=["GET"])
+    @expose("/signin/", methods=["GET"])
     @no_cache
-    def login(self) -> str:
-        """
-        Override the default login view to return a 404 error.
-        This is used to disable the login view in Flask AppBuilder.
-        """
+    def login(self) -> Response:
+        if g.user.is_authenticated:
+            return redirect(self.appbuilder.get_url_for_index)
+        return super().render_app_template()
+
+    @expose("/signout/", methods=["GET"])
+    @no_cache
+    def logout(self) -> Response:
         return super().render_app_template()
