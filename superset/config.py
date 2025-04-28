@@ -352,7 +352,18 @@ OAUTH_PROVIDERS = [
         'remote_app': {
             'client_id': '9457f4a9-b8f7-45f6-a3db-50e94019c600',
             'client_secret': 'e3da967e-6ab0-4b6c-85d6-150fabd09e7d',  # Replace with your actual client secret
-            'server_metadata_url': 'https://cybqa.pesapal.com/pesapalsso/.well-known/openid-configuration'
+            'server_metadata_url': 'https://cybqa.pesapal.com/pesapalsso/.well-known/openid-configuration',
+            'client_kwargs': {
+                'scope': 'openid ' , # Scopes from your configuration
+                'code_challenge_method': 'S256'
+            },
+             'access_token_url': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/token',
+             'authorize_url': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/authorize',
+             'jwks_uri': 'https://cybqa.pesapal.com/pesapalsso/.well-known/jwks',
+             'userinfo_endpoint': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/userinfo',
+             'access_token_method': 'POST',
+             'token_endpoint_auth_method': 'client_secret_post'
+
         }
     }
 ]
