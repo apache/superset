@@ -13,8 +13,7 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
             #     'https://cybqa.pesapal.com/pesapalsso/api/ssoservices/roles/get-required-roles')
             data = me.json()
             print("user_data: {0}".format(data))
-            sm = json.dumps(self.appbuilder.sm)
-            print("security_manager: {0}".format(sm))
+            print("response: {0}".format(response))
             # roles_data = roles.json()
             # print("data_roles: {0}".format(roles_data))
 
