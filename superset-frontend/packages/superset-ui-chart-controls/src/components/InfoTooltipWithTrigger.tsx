@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CSSProperties } from 'react';
+import { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { kebabCase } from 'lodash';
 import { t } from '@superset-ui/core';
 import { Tooltip, TooltipProps, TooltipPlacement } from './Tooltip';
@@ -24,48 +24,51 @@ import { Tooltip, TooltipProps, TooltipPlacement } from './Tooltip';
 export interface InfoTooltipWithTriggerProps {
   label?: string;
   tooltip?: TooltipProps['title'];
-  icon?: string;
+  icon?: ReactNode;
   onClick?: () => void;
   placement?: TooltipPlacement;
-  bsStyle?: string;
   className?: string;
   iconsStyle?: CSSProperties;
 }
 
-export function InfoTooltipWithTrigger({
+export const InfoTooltipWithTrigger = ({
   label,
   tooltip,
-  bsStyle,
   onClick,
-  icon = 'info-circle',
+  icon,
   className = 'text-muted',
   placement = 'right',
   iconsStyle = {},
-}: InfoTooltipWithTriggerProps) {
-  const iconClass = `fa fa-${icon} ${className} ${
-    bsStyle ? `text-${bsStyle}` : ''
-  }`;
+}: InfoTooltipWithTriggerProps) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
+    if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+      onClick();
+    }
+  };
+
   const iconEl = (
-    <i
+    <span
       role="button"
       aria-label={t('Show info tooltip')}
       tabIndex={0}
-      className={iconClass}
-      style={{ cursor: onClick ? 'pointer' : undefined, ...iconsStyle }}
+      className={className}
+      style={{
+        cursor: onClick ? 'pointer' : undefined,
+        display: 'inline-flex',
+        alignItems: 'center',
+        ...iconsStyle,
+      }}
       onClick={onClick}
-      onKeyPress={
-        onClick &&
-        (event => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            onClick();
-          }
-        })
-      }
-    />
+      onKeyDown={handleKeyDown}
+    >
+      {icon}
+    </span>
   );
+
   if (!tooltip) {
     return iconEl;
   }
+
   return (
     <Tooltip
       id={`${kebabCase(label)}-tooltip`}
@@ -75,6 +78,4 @@ export function InfoTooltipWithTrigger({
       {iconEl}
     </Tooltip>
   );
-}
-
-export default InfoTooltipWithTrigger;
+};
