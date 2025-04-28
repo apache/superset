@@ -19,6 +19,7 @@
 import { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { kebabCase } from 'lodash';
 import { t } from '@superset-ui/core';
+import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { Tooltip, TooltipProps, TooltipPlacement } from './Tooltip';
 
 export interface InfoTooltipWithTriggerProps {
@@ -35,7 +36,7 @@ export const InfoTooltipWithTrigger = ({
   label,
   tooltip,
   onClick,
-  icon,
+  icon = <ExclamationCircleOutlined />,
   className = 'text-muted',
   placement = 'right',
   iconsStyle = {},

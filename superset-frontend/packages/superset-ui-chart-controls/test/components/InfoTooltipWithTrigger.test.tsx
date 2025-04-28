@@ -18,7 +18,11 @@
  */
 import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { ThemeProvider, supersetTheme, hexToRgb } from '@superset-ui/core';
+import {
+  InfoCircleOutlined,
+  ExclamationCircleOutlined,
+} from '@ant-design/icons';
 import { InfoTooltipWithTrigger, InfoTooltipWithTriggerProps } from '../../src';
 
 jest.mock('../../src/components/Tooltip', () => ({
@@ -44,31 +48,35 @@ test('renders a tooltip', () => {
   expect(getAllByTestId('mock-tooltip').length).toEqual(1);
 });
 
-test('renders an info icon', () => {
+test('renders an info antd icon', () => {
   const { container } = setup();
-  expect(container.getElementsByClassName('fa-info-circle')).toHaveLength(1);
+  const iconElement = container.querySelector('svg');
+  expect(iconElement).not.toBeNull();
 });
 
-test('responds to keypresses', () => {
+test('responds to keydown events', () => {
   const clickHandler = jest.fn();
   const { getByRole } = setup({
     label: 'test',
     tooltip: 'this is a test',
     onClick: clickHandler,
   });
-  fireEvent.keyPress(getByRole('button'), {
+
+  fireEvent.keyDown(getByRole('button'), {
     key: 'Tab',
     code: 9,
     charCode: 9,
   });
   expect(clickHandler).toHaveBeenCalledTimes(0);
-  fireEvent.keyPress(getByRole('button'), {
+
+  fireEvent.keyDown(getByRole('button'), {
     key: 'Enter',
     code: 13,
     charCode: 13,
   });
   expect(clickHandler).toHaveBeenCalledTimes(1);
-  fireEvent.keyPress(getByRole('button'), {
+
+  fireEvent.keyDown(getByRole('button'), {
     key: ' ',
     code: 32,
     charCode: 32,
@@ -76,9 +84,41 @@ test('responds to keypresses', () => {
   expect(clickHandler).toHaveBeenCalledTimes(2);
 });
 
-test('has a bsStyle', () => {
+test('applies success color based on theme token', () => {
   const { container } = setup({
-    bsStyle: 'something',
+    icon: <InfoCircleOutlined />,
+    iconsStyle: { color: supersetTheme.colorSuccess },
   });
-  expect(container.getElementsByClassName('text-something')).toHaveLength(1);
+
+  const buttonSpan = container.querySelector(
+    'span[role="button"]',
+  ) as HTMLElement;
+  expect(buttonSpan).toBeInTheDocument();
+  expect(buttonSpan.style.color).toBe(hexToRgb(supersetTheme.colorSuccess));
+});
+
+test('applies warning color based on theme token', () => {
+  const { container } = setup({
+    icon: <InfoCircleOutlined />,
+    iconsStyle: { color: supersetTheme.colorWarning },
+  });
+
+  const buttonSpan = container.querySelector(
+    'span[role="button"]',
+  ) as HTMLElement;
+  expect(buttonSpan).toBeInTheDocument();
+  expect(buttonSpan.style.color).toBe(hexToRgb(supersetTheme.colorWarning));
+});
+
+test('applies error color based on theme token', () => {
+  const { container } = setup({
+    icon: <ExclamationCircleOutlined />,
+    iconsStyle: { color: supersetTheme.colorError },
+  });
+
+  const buttonSpan = container.querySelector(
+    'span[role="button"]',
+  ) as HTMLElement;
+  expect(buttonSpan).toBeInTheDocument();
+  expect(buttonSpan.style.color).toBe(hexToRgb(supersetTheme.colorError));
 });
