@@ -376,8 +376,8 @@ AUTH_ROLE_PUBLIC = 'Public'
 
 AUTH_ROLES_MAPPING = {
 "DataEngineer": ["Admin"],
-"superset_admins": ["Admin"],
-
+"DeputyCTO": ["Admin"],
+"superset_admins": ["Admin"]
 }
 # Will allow user self registration
 AUTH_USER_REGISTRATION = True
