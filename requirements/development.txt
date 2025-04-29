@@ -355,7 +355,7 @@ idna==3.10
     #   email-validator
     #   requests
     #   trio
-importlib-metadata==8.6.1
+importlib-metadata==8.7.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
