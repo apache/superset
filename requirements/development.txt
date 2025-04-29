@@ -669,7 +669,7 @@ python-dateutil==2.9.0.post0
     #   pyhive
     #   shillelagh
     #   trino
-python-dotenv==1.0.1
+python-dotenv==1.1.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
