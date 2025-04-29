@@ -866,10 +866,61 @@ class TestCore(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         resp = self.client.get("superset/dashboard/p/123/")
 
-        expected_url = "/superset/dashboard/1?permalink_key=123&standalone=3"
+        expected_url = "/superset/dashboard/1/?permalink_key=123&standalone=3"
 
         assert resp.headers["Location"] == expected_url
         assert resp.status_code == 302
+
+
+class TestLocalePatch(SupersetTestCase):
+    MOCK_LANGUAGES = (
+        "superset.views.filters.current_app.config",
+        {
+            "LANGUAGES": {
+                "es": {"flag": "es", "name": "Español"},
+            },
+        },
+    )
+
+    @mock.patch.dict(*MOCK_LANGUAGES)
+    def test_lang_redirect(self):
+        self.login(GAMMA_USERNAME)
+        referer_url = "http://localhost/explore/"
+        resp = self.client.get("/lang/es", headers={"Referer": referer_url})
+
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == referer_url
+        with self.client.session_transaction() as session:
+            assert session["locale"] == "es"
+
+    @mock.patch.dict(*MOCK_LANGUAGES)
+    def test_lang_invalid_referer(self):
+        self.login(GAMMA_USERNAME)
+        referer_url = "http://someotherserver/explore/"
+        resp = self.client.get("/lang/es", headers={"Referer": referer_url})
+
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == "/"
+        with self.client.session_transaction() as session:
+            assert session["locale"] == "es"
+
+    @mock.patch.dict(*MOCK_LANGUAGES)
+    def test_lang_no_referer(self):
+        self.login(GAMMA_USERNAME)
+        resp = self.client.get("/lang/es")
+
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == "/"
+        with self.client.session_transaction() as session:
+            assert session["locale"] == "es"
+
+    def test_lang_invalid_locale(self):
+        self.login(GAMMA_USERNAME)
+        resp = self.client.get("/lang/es")
+
+        assert resp.status_code == 500
+        with self.client.session_transaction() as session:
+            assert session["locale"] == "en"
 
 
 if __name__ == "__main__":

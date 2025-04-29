@@ -27,13 +27,13 @@ describe.skip('Dashboard form data', () => {
   });
 
   it('should apply url params to slice requests', () => {
-    cy.intercept('/api/v1/chart/data?*', request => {
+    cy.intercept('**/api/v1/chart/data?*', request => {
       // TODO: export url params to chart data API
       request.body.queries.forEach((query: { url_params: JsonObject }) => {
         expect(query.url_params).deep.eq(urlParams);
       });
     });
-    cy.intercept('/superset/explore_json/*', request => {
+    cy.intercept('**/superset/explore_json/*', request => {
       const requestParams = JSON.parse(
         parsePostForm(request.body).form_data as string,
       );

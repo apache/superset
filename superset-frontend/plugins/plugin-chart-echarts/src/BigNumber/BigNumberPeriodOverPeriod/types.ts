@@ -35,6 +35,8 @@ export interface PopKPIStylesProps {
 
 export type TableColumnConfig = {
   visible?: boolean;
+  customColumnName?: string;
+  displayTypeIcon?: boolean;
 };
 
 interface PopKPICustomizeProps {
@@ -61,6 +63,8 @@ export type PopKPIProps = PopKPIStylesProps &
     metricName: string;
     bigNumber: string;
     prevNumber: string;
+    subtitle?: string;
+    subtitleFontSize: number;
     valueDifference: string;
     percentDifferenceFormattedString: string;
     compType: string;
