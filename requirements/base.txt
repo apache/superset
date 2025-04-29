@@ -174,7 +174,7 @@ idna==3.10
     #   email-validator
     #   requests
     #   trio
-importlib-metadata==8.6.1
+importlib-metadata==8.7.0
     # via apache-superset (pyproject.toml)
 isodate==0.7.2
     # via apache-superset (pyproject.toml)
