@@ -527,7 +527,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [nativeFilterOptions, setNativeFilterOptions] = useState<
     {
       value: string;
-      name: string;
+      label: string;
     }[]
   >([]);
   const [tabNativeFilters, setTabNativeFilters] = useState<object>({});
@@ -1418,9 +1418,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const datasetId = filter.targets[0].datasetId || null;
 
     const columnLabel = nativeFilterOptions.filter(
-      // @ts-ignore
       filter => filter.value === nativeFilterId,
-      // @ts-ignore
     )[0].label;
     const dashboardId = currentAlert?.dashboard?.value;
 
