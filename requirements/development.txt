@@ -72,7 +72,7 @@ cattrs==24.1.2
     # via
     #   -c requirements/base.txt
     #   requests-cache
-celery==5.4.0
+celery==5.5.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -355,7 +355,7 @@ idna==3.10
     #   email-validator
     #   requests
     #   trio
-importlib-metadata==8.6.1
+importlib-metadata==8.7.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -396,7 +396,7 @@ jsonschema-specifications==2024.10.1
     #   openapi-schema-validator
 kiwisolver==1.4.7
     # via matplotlib
-kombu==5.5.0
+kombu==5.5.3
     # via
     #   -c requirements/base.txt
     #   celery
@@ -406,11 +406,11 @@ korean-lunar-calendar==0.3.1
     #   holidays
 lazy-object-proxy==1.10.0
     # via openapi-spec-validator
-limits==4.4.1
+limits==5.1.0
     # via
     #   -c requirements/base.txt
     #   flask-limiter
-mako==1.3.9
+mako==1.3.10
     # via
     #   -c requirements/base.txt
     #   alembic
@@ -496,7 +496,7 @@ outcome==1.3.0.post0
     # via
     #   -c requirements/base.txt
     #   trio
-packaging==24.2
+packaging==25.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -566,7 +566,7 @@ prison==0.2.1
     #   flask-appbuilder
 progress==1.6
     # via apache-superset
-prompt-toolkit==3.0.50
+prompt-toolkit==3.0.51
     # via
     #   -c requirements/base.txt
     #   click-repl
@@ -636,7 +636,7 @@ pyopenssl==25.0.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
-pyparsing==3.2.2
+pyparsing==3.2.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -669,7 +669,7 @@ python-dateutil==2.9.0.post0
     #   pyhive
     #   shillelagh
     #   trino
-python-dotenv==1.0.1
+python-dotenv==1.1.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -800,7 +800,7 @@ sqlalchemy-utils==0.38.3
     #   -c requirements/base.txt
     #   apache-superset
     #   flask-appbuilder
-sqlglot==26.11.1
+sqlglot==26.16.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -851,10 +851,9 @@ typing-extensions==4.12.2
     #   rich
     #   selenium
     #   shillelagh
-tzdata==2025.1
+tzdata==2025.2
     # via
     #   -c requirements/base.txt
-    #   celery
     #   kombu
     #   pandas
 tzlocal==5.2
