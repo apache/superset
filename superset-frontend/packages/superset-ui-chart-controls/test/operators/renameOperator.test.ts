@@ -109,7 +109,7 @@ test('should add renameOperator if exists derived metrics', () => {
     ).toEqual({
       operation: 'rename',
       options: {
-        columns: { 'difference__count(*)__count(*)__1 year ago': '1 year ago' },
+        columns: { [`${type}__count(*)__count(*)__1 year ago`]: '1 year ago' },
         inplace: true,
         level: 0,
       },
