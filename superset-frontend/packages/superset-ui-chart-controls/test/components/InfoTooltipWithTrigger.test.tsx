@@ -18,7 +18,7 @@
  */
 import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
-import { ThemeProvider, supersetTheme, hexToRgb } from '@superset-ui/core';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger, InfoTooltipWithTriggerProps } from '../../src';
 
 jest.mock('../../src/components/Tooltip', () => ({
@@ -42,12 +42,6 @@ test('renders a tooltip', () => {
     tooltip: 'this is a test',
   });
   expect(getAllByTestId('mock-tooltip').length).toEqual(1);
-});
-
-test('renders an info antd icon', () => {
-  const { container } = setup();
-  const iconElement = container.querySelector('svg');
-  expect(iconElement).not.toBeNull();
 });
 
 test('responds to keydown events', () => {
@@ -80,41 +74,47 @@ test('responds to keydown events', () => {
   expect(clickHandler).toHaveBeenCalledTimes(2);
 });
 
-test('applies info color based on theme token', () => {
+test('finds the info circle icon inside info variant', () => {
   const { container } = setup({
     type: 'info',
-    iconStyle: { color: supersetTheme.colorInfo },
   });
 
-  const buttonSpan = container.querySelector(
-    'span[role="button"]',
-  ) as HTMLElement;
-  expect(buttonSpan).toBeInTheDocument();
-  expect(buttonSpan.style.color).toBe(hexToRgb(supersetTheme.colorIcon));
+  const iconSpan = container.querySelector('svg[data-icon="info-circle"]');
+  expect(iconSpan).toBeInTheDocument();
 });
 
-test('applies warning color based on theme token', () => {
+test('finds the warning icon inside warning variant', () => {
   const { container } = setup({
-    type: 'info',
-    iconStyle: { color: supersetTheme.colorWarning },
+    type: 'warning',
   });
 
-  const buttonSpan = container.querySelector(
-    'span[role="button"]',
-  ) as HTMLElement;
-  expect(buttonSpan).toBeInTheDocument();
-  expect(buttonSpan.style.color).toBe(hexToRgb(supersetTheme.colorWarning));
+  const iconSpan = container.querySelector('svg[data-icon="warning"]');
+  expect(iconSpan).toBeInTheDocument();
 });
 
-test('applies error color based on theme token', () => {
+test('finds the close circle icon inside error variant', () => {
   const { container } = setup({
-    type: 'info',
-    iconStyle: { color: supersetTheme.colorError },
+    type: 'error',
   });
 
-  const buttonSpan = container.querySelector(
-    'span[role="button"]',
-  ) as HTMLElement;
-  expect(buttonSpan).toBeInTheDocument();
-  expect(buttonSpan.style.color).toBe(hexToRgb(supersetTheme.colorError));
+  const iconSpan = container.querySelector('svg[data-icon="close-circle"]');
+  expect(iconSpan).toBeInTheDocument();
+});
+
+test('finds the question circle icon inside question variant', () => {
+  const { container } = setup({
+    type: 'question',
+  });
+
+  const iconSpan = container.querySelector('svg[data-icon="question-circle"]');
+  expect(iconSpan).toBeInTheDocument();
+});
+
+test('finds the thunderbolt icon inside notice variant', () => {
+  const { container } = setup({
+    type: 'notice',
+  });
+
+  const iconSpan = container.querySelector('svg[data-icon="thunderbolt"]');
+  expect(iconSpan).toBeInTheDocument();
 });

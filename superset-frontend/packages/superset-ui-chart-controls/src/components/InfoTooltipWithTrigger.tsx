@@ -106,7 +106,7 @@ export const InfoTooltipWithTrigger = ({
 
   return (
     <Tooltip
-      id={`${kebabCase(label)}-tooltip`}
+      id={`${kebabCase(label) || Math.floor(Math.random() * 10000)}-tooltip`}
       title={tooltip}
       placement={placement}
     >

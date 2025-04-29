@@ -33,18 +33,20 @@ const setup = (
 
 describe('ExploreResultsButton', () => {
   it('renders', async () => {
-    const { queryByText } = setup(jest.fn(), {
+    setup(jest.fn(), {
       database: { allows_subquery: true },
     });
 
-    expect(queryByText('Create Chart')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create Chart' })).toBeEnabled();
+    expect(screen.getByText('Create Chart')).toBeInTheDocument();
+    const buttons = screen.getAllByRole('button');
+    expect(buttons[0]).toBeEnabled();
   });
 
   it('renders disabled if subquery not allowed', async () => {
-    const { queryByText } = setup(jest.fn());
+    setup(jest.fn());
 
-    expect(queryByText('Create Chart')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create Chart' })).toBeDisabled();
+    expect(screen.getByText('Create Chart')).toBeInTheDocument();
+    const buttons = screen.getAllByRole('button');
+    expect(buttons[0]).toBeDisabled();
   });
 });
