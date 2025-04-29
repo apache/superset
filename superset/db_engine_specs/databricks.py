@@ -353,7 +353,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
 
 class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine = "databricks"
-    engine_name = "Databricks"
+    engine_name = "Databricks (legacy)"
     drivers = {"connector": "Native all-purpose driver"}
     default_driver = "connector"
 
@@ -373,7 +373,10 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         "extra",
     }
 
-    supports_dynamic_schema = supports_catalog = supports_dynamic_catalog = True
+    supports_dynamic_schema = True
+    supports_catalog = True
+    supports_dynamic_catalog = True
+    supports_cross_catalog_queries = True
 
     @classmethod
     def build_sqlalchemy_uri(  # type: ignore
@@ -433,12 +436,11 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         return spec.to_dict()["components"]["schemas"][cls.__name__]
 
     @classmethod
-    def get_default_catalog(
-        cls,
-        database: Database,
-    ) -> str | None:
+    def get_default_catalog(cls, database: Database) -> str:
         """
         Return the default catalog.
+
+        It's optionally specified in `connect_args.catalog`. If not:
 
         The default behavior for Databricks is confusing. When Unity Catalog is not
         enabled we have (the DB engine spec hasn't been tested with it enabled):
@@ -451,6 +453,10 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         To handle permissions correctly we use the result of `SHOW CATALOGS` when a
         single catalog is returned.
         """
+        connect_args = cls.get_extra_params(database)["engine_params"]["connect_args"]
+        if default_catalog := connect_args.get("catalog"):
+            return default_catalog
+
         with database.get_sqla_engine() as engine:
             catalogs = {catalog for (catalog,) in engine.execute("SHOW CATALOGS")}
             if len(catalogs) == 1:
@@ -485,7 +491,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
 
 class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine = "databricks"
-    engine_name = "Databricks Python Connector"
+    engine_name = "Databricks"
     default_driver = "databricks-sql-python"
     drivers = {"databricks-sql-python": "Databricks SQL Python"}
 

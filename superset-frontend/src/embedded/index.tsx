@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import 'src/public-path';
+
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
@@ -33,6 +35,7 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { embeddedApi } from './api';
+import { getDataMaskChangeTrigger } from './utils';
 
 setupPlugins();
 
@@ -59,9 +62,20 @@ const EmbededLazyDashboardPage = () => {
   if (uiConfig?.emitDataMasks) {
     log('setting up Switchboard event emitter');
 
+    let previousDataMask = store.getState().dataMask;
+
     store.subscribe(() => {
-      const state = store.getState();
-      Switchboard.emit('getDataMasks', state.dataMask);
+      const currentState = store.getState();
+      const currentDataMask = currentState.dataMask;
+
+      // Only emit if the dataMask has changed
+      if (previousDataMask !== currentDataMask) {
+        Switchboard.emit('observeDataMask', {
+          ...currentDataMask,
+          ...getDataMaskChangeTrigger(currentDataMask, previousDataMask),
+        });
+        previousDataMask = currentDataMask;
+      }
     });
   }
 
@@ -226,6 +240,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       embeddedApi.getDashboardPermalink,
     );
     Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
+    Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
     Switchboard.start();
   }
 });
