@@ -17,7 +17,6 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Button, type OnClickHandler, Icons } from 'src/components';
 
 export interface ExploreResultsButtonProps {
