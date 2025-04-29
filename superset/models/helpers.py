@@ -1193,7 +1193,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 ):
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
-                    return utils.cast_to_num(float(value))
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        logger.warning(f"Unable to convert {value} to number")
+                    return utils.cast_to_num(value)
                 if value == NULL_STRING:
                     return None
                 if value == EMPTY_STRING:
