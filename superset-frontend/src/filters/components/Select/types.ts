@@ -36,6 +36,7 @@ export interface PluginFilterSelectCustomizeProps {
   defaultValue?: SelectValue;
   enableEmptyFilter: boolean;
   inverseSelection: boolean;
+  creatable: boolean;
   multiSelect: boolean;
   defaultToFirstItem: boolean;
   searchAllOptions: boolean;
@@ -71,6 +72,7 @@ export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   enableEmptyFilter: false,
   inverseSelection: false,
   defaultToFirstItem: false,
+  creatable: true,
   multiSelect: true,
   searchAllOptions: false,
   sortAscending: true,

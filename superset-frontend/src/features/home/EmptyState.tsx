@@ -20,6 +20,7 @@ import Button from 'src/components/Button';
 import { EmptyState as EmptyStateComponent } from 'src/components/EmptyState';
 import { TableTab } from 'src/views/CRUD/types';
 import { styled, t } from '@superset-ui/core';
+import { navigateTo } from 'src/utils/navigationUtils';
 import { WelcomeTable } from './types';
 
 const EmptyContainer = styled.div`
@@ -84,7 +85,7 @@ export default function EmptyState({
       <Button
         buttonStyle="default"
         onClick={() => {
-          window.location.href = url;
+          navigateTo(url);
         }}
       >
         {isFavorite

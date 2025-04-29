@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 from __future__ import annotations
 
 import re
@@ -262,6 +263,9 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
     engine_name = "MotherDuck"
     engine_aliases: set[str] = {"duckdb"}
 
+    supports_catalog = True
+    supports_dynamic_catalog = True
+
     sqlalchemy_uri_placeholder = (
         "duckdb:///md:{database_name}?motherduck_token={SERVICE_TOKEN}"
     )
@@ -296,3 +300,33 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         return str(
             URL(drivername=DuckDBEngineSpec.engine, database=database, query=query)
         )
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        if catalog:
+            uri = uri.set(database=f"md:{catalog}")
+
+        return uri, connect_args
+
+    @classmethod
+    def get_default_catalog(cls, database: Database) -> str | None:
+        return database.url_object.database.split(":", 1)[1]
+
+    @classmethod
+    def get_catalog_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+    ) -> set[str]:
+        return {
+            catalog
+            for (catalog,) in inspector.bind.execute(
+                "SELECT alias FROM MD_ALL_DATABASES() WHERE is_attached;"
+            )
+        }

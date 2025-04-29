@@ -18,7 +18,7 @@
  */
 describe('Visualization > Pie', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
+    cy.intercept('POST', '**/api/v1/chart/data*').as('getJson');
   });
 
   const PIE_FORM_DATA = {

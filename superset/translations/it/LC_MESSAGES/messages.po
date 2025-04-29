@@ -8421,7 +8421,7 @@ msgid "Refresh"
 msgstr ""
 
 msgid "Refresh dashboard"
-msgstr "Rimuovi il grafico dalla dashboard"
+msgstr "Ricarica la dashboard"
 
 msgid "Refresh frequency"
 msgstr ""

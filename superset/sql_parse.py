@@ -272,11 +272,12 @@ class ParsedQuery:
             logger.warning("Unable to parse SQL (%s): %s", self._dialect, self.sql)
             raise SupersetSecurityException(
                 SupersetError(
-                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
                     message=__(
                         "You may have an error in your SQL statement. {message}"
                     ).format(message=ex.error.message),
                     level=ErrorLevel.ERROR,
+                    extra=ex.error.extra,
                 )
             ) from ex
 

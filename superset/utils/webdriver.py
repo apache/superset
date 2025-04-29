@@ -191,7 +191,6 @@ class WebDriverPlaywright(WebDriverProxy):
                     # chart containers didn't render
                     logger.debug("Wait for chart containers to draw at url: %s", url)
                     slice_container_locator = page.locator(".chart-container")
-                    slice_container_locator.first.wait_for()
                     for slice_container_elem in slice_container_locator.all():
                         slice_container_elem.wait_for()
                 except PlaywrightTimeout:
@@ -274,6 +273,10 @@ class WebDriverSelenium(WebDriverProxy):
 
         # Add additional configured webdriver options
         webdriver_conf = dict(current_app.config["WEBDRIVER_CONFIGURATION"])
+
+        # Set the binary location if provided
+        # We need to pop it from the dict due to selenium_version < 4.10.0
+        options.binary_location = webdriver_conf.pop("binary_location", "")
 
         if version.parse(selenium_version) < version.parse("4.10.0"):
             kwargs |= webdriver_conf

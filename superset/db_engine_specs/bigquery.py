@@ -136,7 +136,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     allows_hidden_cc_in_orderby = True
 
-    supports_catalog = supports_dynamic_catalog = True
+    supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
@@ -539,7 +539,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             ]
 
     @classmethod
-    def get_default_catalog(cls, database: Database) -> str | None:
+    def get_default_catalog(cls, database: Database) -> str:
         """
         Get the default catalog.
         """

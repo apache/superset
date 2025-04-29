@@ -682,13 +682,33 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
       const {
         key,
-        label,
+        label: originalLabel,
         isNumeric,
         dataType,
         isMetric,
         isPercentMetric,
         config = {},
       } = column;
+      const label = config.customColumnName || originalLabel;
+      let displayLabel = label;
+
+      const isComparisonColumn = ['#', '△', '%', t('Main')].includes(
+        column.label,
+      );
+
+      if (isComparisonColumn) {
+        if (column.label === t('Main')) {
+          displayLabel = config.customColumnName || column.originalLabel || '';
+        } else if (config.customColumnName) {
+          displayLabel =
+            config.displayTypeIcon !== false
+              ? `${column.label} ${config.customColumnName}`
+              : config.customColumnName;
+        } else if (config.displayTypeIcon === false) {
+          displayLabel = '';
+        }
+      }
+
       const columnWidth = Number.isNaN(Number(config.columnWidth))
         ? config.columnWidth
         : Number(config.columnWidth);
@@ -795,6 +815,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
             background: ${backgroundColor || undefined};
+            padding-left: ${column.isChildColumn
+              ? `${theme.gridUnit * 5}px`
+              : `${theme.gridUnit}px`};
           `;
 
           const cellBarStyles = css`
@@ -970,11 +993,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 alignItems: 'flex-end',
               }}
             >
-              <span data-column-name={col.id}>{label}</span>
+              <span data-column-name={col.id}>{displayLabel}</span>
               <SortIcon column={col} />
             </div>
           </th>
         ),
+
         Footer: totals ? (
           i === 0 ? (
             <th key={`footer-summary-${i}`}>
@@ -1024,9 +1048,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     ],
   );
 
+  const visibleColumnsMeta = useMemo(
+    () => filteredColumnsMeta.filter(col => col.config?.visible !== false),
+    [filteredColumnsMeta],
+  );
+
   const columns = useMemo(
-    () => filteredColumnsMeta.map(getColumnConfigs),
-    [filteredColumnsMeta, getColumnConfigs],
+    () => visibleColumnsMeta.map(getColumnConfigs),
+    [visibleColumnsMeta, getColumnConfigs],
   );
 
   const handleServerPaginationChange = useCallback(

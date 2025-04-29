@@ -642,3 +642,28 @@ def test_update_without_catalog_change(mocker: MockerFixture) -> None:
     UpdateDatabaseCommand(1, {}).run()
 
     update_catalog_attribute.assert_not_called()
+
+
+def test_update_broken_connection(mocker: MockerFixture) -> None:
+    """
+    Test that updating a database with a broken connection works
+    even if it has to run a query to get the default catalog.
+    """
+    database = mocker.MagicMock()
+    database.get_default_catalog.side_effect = Exception("Broken connection")
+    database.id = 1
+    new_db = mocker.MagicMock()
+    new_db.get_default_catalog.return_value = "main"
+
+    database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    database_dao.find_by_id.return_value = database
+    database_dao.update.return_value = new_db
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+
+    update_catalog_attribute = mocker.patch.object(
+        UpdateDatabaseCommand,
+        "_update_catalog_attribute",
+    )
+    UpdateDatabaseCommand(1, {}).run()
+
+    update_catalog_attribute.assert_called_once_with(1, "main")

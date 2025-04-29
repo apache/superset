@@ -23,7 +23,12 @@ import {
   sharedControls,
   sections,
 } from '@superset-ui/chart-controls';
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  subtitleControl,
+  subtitleFontSize,
+} from '../sharedControls';
 import { ColorSchemeEnum } from './types';
 
 const config: ControlPanelConfig = {
@@ -63,6 +68,8 @@ const config: ControlPanelConfig = {
             config: { ...headerFontSize.config, default: 0.2 },
           },
         ],
+        [subtitleControl],
+        [subtitleFontSize],
         [
           {
             ...subheaderFontSize,
@@ -120,7 +127,11 @@ const config: ControlPanelConfig = {
                 [GenericDataType.Numeric]: [
                   {
                     tab: t('General'),
-                    children: [['visible']],
+                    children: [
+                      ['customColumnName'],
+                      ['displayTypeIcon'],
+                      ['visible'],
+                    ],
                   },
                 ],
               },

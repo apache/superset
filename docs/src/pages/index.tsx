@@ -111,7 +111,7 @@ const StyledTitleContainer = styled('div')`
   }
 `;
 
-const StyledButton = styled(Link)`
+const StyledButton = styled(Link as React.ComponentType<any>)`
   border-radius: 10px;
   font-size: 20px;
   font-weight: bold;

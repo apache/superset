@@ -81,6 +81,8 @@ export default function PopKPI(props: PopKPIProps) {
     currentTimeRangeFilter,
     startDateOffset,
     shift,
+    subtitle,
+    subtitleFontSize,
     dashboardTimeRange,
   } = props;
 
@@ -140,6 +142,16 @@ export default function PopKPI(props: PopKPIProps) {
     margin-bottom: ${theme.gridUnit * 4}px;
   `;
 
+  const SubtitleText = styled.div`
+    ${({ theme }) => `
+    font-family: ${theme.typography.families.sansSerif};
+    font-weight: ${theme.typography.weights.medium};
+    text-align: center;
+    margin-top: -10px;
+    margin-bottom: ${theme.gridUnit * 4}px;
+  `}
+  `;
+
   const getArrowIndicatorColor = () => {
     if (!comparisonColorEnabled || percentDifferenceNumber === 0) {
       return theme.colors.grayscale.base;
@@ -195,31 +207,40 @@ export default function PopKPI(props: PopKPIProps) {
   ]);
 
   const SYMBOLS_WITH_VALUES = useMemo(
-    () => [
-      {
-        symbol: '#',
-        value: prevNumber,
-        tooltipText: t('Data for %s', comparisonRange || 'previous range'),
-        columnKey: 'Previous value',
-      },
-      {
-        symbol: '△',
-        value: valueDifference,
-        tooltipText: t('Value difference between the time periods'),
-        columnKey: 'Delta',
-      },
-      {
-        symbol: '%',
-        value: percentDifferenceFormattedString,
-        tooltipText: t('Percentage difference between the time periods'),
-        columnKey: 'Percent change',
-      },
-    ],
+    () =>
+      [
+        {
+          defaultSymbol: '#',
+          value: prevNumber,
+          tooltipText: t('Data for %s', comparisonRange || 'previous range'),
+          columnKey: 'Previous value',
+        },
+        {
+          defaultSymbol: '△',
+          value: valueDifference,
+          tooltipText: t('Value difference between the time periods'),
+          columnKey: 'Delta',
+        },
+        {
+          defaultSymbol: '%',
+          value: percentDifferenceFormattedString,
+          tooltipText: t('Percentage difference between the time periods'),
+          columnKey: 'Percent change',
+        },
+      ].map(item => {
+        const config = props.columnConfig?.[item.columnKey];
+        return {
+          ...item,
+          symbol: config?.displayTypeIcon === false ? '' : item.defaultSymbol,
+          label: config?.customColumnName || item.columnKey,
+        };
+      }),
     [
       comparisonRange,
       prevNumber,
       valueDifference,
       percentDifferenceFormattedString,
+      props.columnConfig,
     ],
   );
 
@@ -250,6 +271,15 @@ export default function PopKPI(props: PopKPIProps) {
             </span>
           )}
         </div>
+        {subtitle && (
+          <SubtitleText
+            style={{
+              fontSize: `${subtitleFontSize * height * 0.4}px`,
+            }}
+          >
+            {subtitle}
+          </SubtitleText>
+        )}
 
         {visibleSymbols.length > 0 && (
           <div
@@ -276,7 +306,7 @@ export default function PopKPI(props: PopKPIProps) {
           >
             {visibleSymbols.map((symbol_with_value, index) => (
               <ComparisonValue
-                key={`comparison-symbol-${symbol_with_value.symbol}`}
+                key={`comparison-symbol-${symbol_with_value.columnKey}`}
                 subheaderFontSize={subheaderFontSize}
               >
                 <Tooltip
@@ -284,15 +314,19 @@ export default function PopKPI(props: PopKPIProps) {
                   placement="top"
                   title={symbol_with_value.tooltipText}
                 >
-                  <SymbolWrapper
-                    backgroundColor={
-                      index > 0 ? backgroundColor : defaultBackgroundColor
-                    }
-                    textColor={index > 0 ? textColor : defaultTextColor}
-                  >
-                    {symbol_with_value.symbol}
-                  </SymbolWrapper>
-                  {symbol_with_value.value}
+                  {symbol_with_value.symbol && (
+                    <SymbolWrapper
+                      backgroundColor={
+                        index > 0 ? backgroundColor : defaultBackgroundColor
+                      }
+                      textColor={index > 0 ? textColor : defaultTextColor}
+                    >
+                      {symbol_with_value.symbol}
+                    </SymbolWrapper>
+                  )}
+                  {symbol_with_value.value}{' '}
+                  {props.columnConfig?.[symbol_with_value.columnKey]
+                    ?.customColumnName || ''}
                 </Tooltip>
               </ComparisonValue>
             ))}

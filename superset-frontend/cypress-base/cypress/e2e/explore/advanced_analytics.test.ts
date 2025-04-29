@@ -21,8 +21,8 @@ import { interceptV1ChartData } from './utils';
 describe('Advanced analytics', () => {
   beforeEach(() => {
     interceptV1ChartData();
-    cy.intercept('PUT', '/api/v1/explore/**').as('putExplore');
-    cy.intercept('GET', '/explore/**').as('getExplore');
+    cy.intercept('PUT', '**/api/v1/explore/**').as('putExplore');
+    cy.intercept('GET', '**/explore/**').as('getExplore');
   });
 
   it('Create custom time compare', () => {

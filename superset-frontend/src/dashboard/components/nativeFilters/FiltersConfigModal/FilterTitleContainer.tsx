@@ -46,6 +46,7 @@ export const FilterTitle = styled.div`
         }
       }
       &.errored div, &.errored .warning {
+        align-items: center;
         color: ${theme.colors.error.base};
       }
   `}
@@ -120,7 +121,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
               {isRemoved ? t('(Removed)') : getFilterTitle(id)}
             </div>
             {!removedFilters[id] && isErrored && (
-              <StyledWarning className="warning" />
+              <StyledWarning className="warning" iconSize="s" />
             )}
             {isRemoved && (
               <span

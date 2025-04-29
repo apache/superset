@@ -18,7 +18,7 @@
  */
 describe('Visualization > Box Plot', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
+    cy.intercept('POST', '**/api/v1/chart/data*').as('getJson');
   });
 
   const BOX_PLOT_FORM_DATA = {

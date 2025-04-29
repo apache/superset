@@ -47,19 +47,24 @@ export default function transformProps(
   const {
     headerFontSize,
     metric = 'value',
-    subheader = '',
-    subheaderFontSize,
+    subtitle,
+    subtitleFontSize,
     forceTimestampFormatting,
     timeFormat,
     yAxisFormat,
     conditionalFormatting,
     currencyFormat,
+    subheader,
+    subheaderFontSize,
   } = formData;
   const refs: Refs = {};
   const { data = [], coltypes = [] } = queriesData[0];
   const granularity = extractTimegrain(rawFormData as QueryFormData);
   const metricName = getMetricLabel(metric);
-  const formattedSubheader = subheader;
+  const formattedSubtitle = subtitle?.trim() ? subtitle : subheader || '';
+  const formattedSubtitleFontSize = subtitle?.trim()
+    ? (subtitleFontSize ?? 1)
+    : (subheaderFontSize ?? 1);
   const bigNumber =
     data.length === 0 ? null : parseMetricValue(data[0][metricName]);
 
@@ -106,7 +111,8 @@ export default function transformProps(
     headerFormatter,
     headerFontSize,
     subheaderFontSize,
-    subheader: formattedSubheader,
+    subtitleFontSize: formattedSubtitleFontSize,
+    subtitle: formattedSubtitle,
     onContextMenu,
     refs,
     colorThresholdFormatters,

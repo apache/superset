@@ -113,7 +113,7 @@ class DorisEngineSpec(MySQLEngineSpec):
     )
     encryption_parameters = {"ssl": "0"}
     supports_dynamic_schema = True
-    supports_catalog = supports_dynamic_catalog = True
+    supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
 
     column_type_mappings = (  # type: ignore
         (

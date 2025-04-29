@@ -28,7 +28,7 @@ type adhocFilter = {
 
 describe('Visualization > Graph', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
+    cy.intercept('POST', '**/api/v1/chart/data*').as('getJson');
   });
 
   const GRAPH_FORM_DATA = {

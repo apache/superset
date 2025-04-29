@@ -25,7 +25,7 @@ describe('Download Chart > Bar chart', () => {
   };
 
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '**/superset/explore_json/**').as('getJson');
   });
 
   it('download chart with image works', () => {
