@@ -22,7 +22,7 @@ import { kebabCase } from 'lodash';
 import { css, t, useTheme, themeObject } from '@superset-ui/core';
 import {
   CloseCircleOutlined,
-  ExclamationCircleOutlined,
+  InfoCircleOutlined,
   WarningOutlined,
   ThunderboltOutlined,
   QuestionCircleOutlined,
@@ -54,11 +54,11 @@ export const InfoTooltipWithTrigger = ({
 
   const infoTooltipWithTriggerVariants = useMemo(
     () => ({
-      info: { color: theme.colorIcon, icon: <CloseCircleOutlined /> },
+      info: { color: theme.colorIcon, icon: <InfoCircleOutlined /> },
       question: { color: theme.colorIcon, icon: <QuestionCircleOutlined /> },
       warning: { color: theme.colorWarning, icon: <WarningOutlined /> },
       notice: { color: theme.colorWarning, icon: <ThunderboltOutlined /> },
-      error: { color: theme.colorError, icon: <ExclamationCircleOutlined /> },
+      error: { color: theme.colorError, icon: <CloseCircleOutlined /> },
     }),
     [theme],
   );
