@@ -421,7 +421,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
-        assert database.sqlalchemy_uri == "postgresql://user:pass@host1"
+        assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
+        assert database.password == "pass"  # noqa: S105
 
         db.session.delete(database)
         db.session.commit()
@@ -461,7 +462,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == '{"schemas_allowed_for_file_upload": ["upload"]}'
-        assert database.sqlalchemy_uri == "postgresql://user:pass@host1"
+        assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
+        assert database.password == "pass"  # noqa: S105
 
         db.session.delete(database)
         db.session.commit()
@@ -732,7 +734,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
-        assert database.sqlalchemy_uri == "postgresql://user:pass@host1"
+        assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
+        assert database.password == "pass"  # noqa: S105
 
         model_ssh_tunnel = (
             db.session.query(SSHTunnel)
@@ -779,7 +782,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
-        assert database.sqlalchemy_uri == "postgresql://user:pass@host1"
+        assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
+        assert database.password == "pass"  # noqa: S105
 
         model_ssh_tunnel = (
             db.session.query(SSHTunnel)
@@ -1008,7 +1012,12 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 @patch("superset.db_engine_specs.base.is_hostname_valid")
 @patch("superset.db_engine_specs.base.is_port_open")
 @patch("superset.commands.database.validate.DatabaseDAO")
-def test_validate(DatabaseDAO, is_port_open, is_hostname_valid, app_context):  # noqa: N803
+def test_validate(
+    mock_database_dao,  # noqa: N803
+    is_port_open,
+    is_hostname_valid,
+    app_context,
+) -> None:
     """
     Test parameter validation.
     """
