@@ -48,14 +48,8 @@ import TimezoneSelector from 'src/components/TimezoneSelector';
 import { propertyComparator } from 'src/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-// todo(hughhh): migrate to src/components/Form
-import {
-  AntdCheckbox,
-  AsyncSelect,
-  Select,
-  TreeSelect,
-  AntdForm,
-} from 'src/components';
+import { AntdCheckbox, AsyncSelect, Select, TreeSelect } from 'src/components';
+import { Form as AntdForm } from 'src/components/Form';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
