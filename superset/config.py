@@ -818,7 +818,7 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
-# `pip install .[cors]` or `pip install apache-superset[cors]`, depending
+# `pip install .[cors]` or `pip install apache_superset[cors]`, depending
 ENABLE_CORS = False
 CORS_OPTIONS: dict[Any, Any] = {}
 
@@ -1017,6 +1017,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
+        "superset.tasks.slack",
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
@@ -1047,6 +1048,11 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "task": "prune_logs",
         #     "schedule": crontab(minute="*", hour="*"),
         #     "kwargs": {"retention_period_days": 180},
+        # },
+        # Uncomment to enable Slack channel cache warm-up
+        # "slack.cache_channels": {
+        #     "task": "slack.cache_channels",
+        #     "schedule": crontab(minute="0", hour="*"),
         # },
     }
 
@@ -1247,6 +1253,7 @@ ENABLE_CHUNK_ENCODING = False
 SILENCE_FAB = True
 
 FAB_ADD_SECURITY_VIEWS = True
+FAB_ADD_SECURITY_API = True
 FAB_ADD_SECURITY_PERMISSION_VIEW = False
 FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
 FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
@@ -1490,6 +1497,7 @@ EMAIL_REPORTS_CTA = "Explore in Superset"
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
+SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # The webdriver to use for generating reports. Use one of the following
 # firefox

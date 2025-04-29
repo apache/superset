@@ -97,11 +97,13 @@ export const useHeaderActionsMenu = ({
           showPropertiesModal();
           break;
         case MenuKeys.ToggleFullscreen: {
+          const isCurrentlyStandalone =
+            Number(getUrlParam(URL_PARAMS.standalone)) === 1;
           const url = getDashboardUrl({
             pathname: window.location.pathname,
             filters: getActiveFilters(),
             hash: window.location.hash,
-            standalone: getUrlParam(URL_PARAMS.standalone),
+            standalone: isCurrentlyStandalone ? null : 1,
           });
           window.location.replace(url);
           break;
