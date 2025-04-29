@@ -110,5 +110,6 @@ export const metricNameFontSizeWithVisibility: CustomControlItem = {
   config: {
     ...metricNameFontSize.config,
     visibility: ({ controls }) => controls?.show_metric_name?.value === true,
+    resetOnHide: false,
   },
 };
