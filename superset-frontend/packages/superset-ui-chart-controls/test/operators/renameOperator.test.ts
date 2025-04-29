@@ -186,7 +186,7 @@ test('should add renameOperator if exist "actual value" time comparison', () => 
   });
 });
 
-test('should add renameOperator if exist derived time comparison', () => {
+test('should add renameOperator if derived time comparison exists', () => {
   expect(
     renameOperator(
       {
@@ -211,7 +211,7 @@ test('should add renameOperator if exist derived time comparison', () => {
   });
 });
 
-test('should add renameOperator if exists multiple metrics', () => {
+test('should add renameOperator if multiple metrics exist', () => {
   expect(
     renameOperator(
       {
