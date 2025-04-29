@@ -77,6 +77,7 @@ import {
   SelectValue,
   ContentType,
   ExtraNativeFilter,
+  NativeFilterObject,
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -335,10 +336,11 @@ export const StyledInputContainer = styled.div`
     }
 
     .filters {
-      margin: 5px 0;
+      margin: ${theme.gridUnit * 3}px 0;
 
       .filters-container {
         display: flex;
+        margin: ${theme.gridUnit * 2}px 0;
       }
 
       .filters-dash-container {
@@ -346,7 +348,7 @@ export const StyledInputContainer = styled.div`
         flex-direction: column;
         max-width: 174px;
         flex: 1;
-        margin-right: 16px;
+        margin-right: ${theme.gridUnit * 4}px;
 
         .control-label {
           flex: 1;
@@ -365,7 +367,7 @@ export const StyledInputContainer = styled.div`
 
       .filters-delete {
         display: flex;
-        margin-top: 23px;
+        margin-top: ${theme.gridUnit * 6}px;
       }
 
       .filters-trashcan {
@@ -668,7 +670,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const fetchDashboardFilterValues = async (
     dashboardId: number | string | undefined,
     columnName: string,
-    datasetId: string,
+    datasetId: number | string,
     vizType = 'filter_select',
   ) => {
     if (vizType === 'filter_time') {
@@ -717,7 +719,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     return data;
   };
 
-  const addNativeFilterOptions = (nativeFilters: any) => {
+  const addNativeFilterOptions = (nativeFilters: NativeFilterObject[]) => {
     nativeFilterData.map(nativeFilter => {
       if (!nativeFilter.nativeFilterId) return;
       const filter = nativeFilters.filter(
