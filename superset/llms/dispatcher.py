@@ -35,30 +35,6 @@ def _get_last_successful_task_for_database(pk: int) -> Tuple[ContextBuilderTask,
             return task, context_builder_worker
     return None, None
 
-def _get_schema_json_from_worker(pk: int) -> Tuple[str, str]:
-    # db_task = ContextBuilderTaskDAO.get_latest_task_for_database(pk)
-    # context_builder_worker = AsyncResult(db_task.task_id)
-    # context_builder_worker = schema_context_workers.get(pk)
-    (context_builder_task, context_builder_worker) = _get_last_successful_task_for_database(pk)
-    
-    if not context_builder_worker:
-        logger.error(f"No context builder worker found for database {pk}.")
-        return ("NOT_FOUND", None)
-
-    if context_builder_worker.status == 'FAILURE':
-        logger.error(f"Context builder worker encountered an error for database {pk}.")
-        return ("ERROR", None)
-
-    if context_builder_worker.status == 'PENDING':
-        logger.error(f"Context builder worker is still pending for database {pk}.")
-        return ("PENDING", None)
-
-    if context_builder_worker.status != 'SUCCESS':
-        logger.error(f"Context builder worker is in an unknown state for database {pk}.")
-        return ("ERROR", None)
-
-    return ("SUCCESS", context_builder_worker.result["result"])
-
 
 def _get_or_create_llm_provider(pk: int, dialect: str, context: str) -> BaseLlm:
     # db_task = ContextBuilderTaskDAO.get_latest_task_for_database(pk)
@@ -218,6 +194,7 @@ def generate_context_for_db(pk: int):
         task_id=task.id,
         params=json.dumps({}),
         started_time=datetime.datetime.now(datetime.timezone.utc),
+        status="PENDING",
     )
     ContextBuilderTaskDAO.create(context_task)
     logger.info(f"Created context task {context_task.task_id}")

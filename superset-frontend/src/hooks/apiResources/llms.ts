@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { api, JsonResponse } from './queryApi';
 
@@ -57,13 +57,28 @@ export const {
   endpoints: llmEndpoints,
 } = llmContextApi;
 
+
 export function useLlmContextStatus(options: FetchLlmContextStatusQueryParams) {
   const { dbId, onSuccess, onError } = options || {};
 
+  const pollingInterval =
+    useRef<number>(30000);
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+
   const result = useContextStatusQuery(
     { dbId },
-    { pollingInterval: 5000 },
+    { pollingInterval: pollingInterval.current },
   );
+
+  // Adjust polling interval based on status
+  useEffect(() => {
+    const status = result?.data?.status;
+    const desiredInterval = status === 'building' ? 5000 : 30000;
+    if (pollingInterval.current !== desiredInterval) {
+      pollingInterval.current = desiredInterval;
+      forceUpdate();
+    }
+  }, [result?.data?.status]);
 
   const handleOnSuccess = useEffectEvent((data: LlmContextStatus, isRefetched: boolean) => {
     onSuccess?.(data, isRefetched);

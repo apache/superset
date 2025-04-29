@@ -1275,4 +1275,7 @@ class ContextBuilderTask(Model):
     task_id = Column(String(255), unique=True)
     database_id = Column(Integer, ForeignKey("dbs.id"))
     started_time = Column(DateTime, default=datetime.now(timezone.utc))
+    ended_time = Column(DateTime, nullable=True)
+    status = Column(String(255), nullable=True)
+    duration = Column(Integer, nullable=True)
     params = Column(utils.MediumText())

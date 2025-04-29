@@ -238,7 +238,7 @@ def get_table_relation_metadata(
         dtype = dtype.split("(")[0] if "(" in dtype else dtype
         
         top_k_values = None
-        if dtype not in ["INTEGER", "BIGINT", "SMALLINT", "NUMERIC", "DECIMAL", "FLOAT", "DOUBLE", "TIMESTAMP", "BOOLEAN"]:
+        if dtype not in ["BIGINT", "BOOLEAN", "DECIMAL", "DOUBLE", "FLOAT", "INTEGER", "JSON", "NUMERIC", "SMALLINT", "TIMESTAMP"]:
             top_k_values = get_column_top_k_values(database, table, col["column_name"], table.schema, top_k=top_k, top_k_limit=top_k_limit)
 
         column_metadata = {

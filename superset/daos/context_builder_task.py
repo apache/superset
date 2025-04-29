@@ -5,6 +5,10 @@ from superset.models.core import ContextBuilderTask
 
 class ContextBuilderTaskDAO(BaseDAO[ContextBuilderTask]):
     @staticmethod
+    def find_by_task_id(task_id: int) -> ContextBuilderTask | None:
+        return db.session.query(ContextBuilderTask).filter_by(task_id=task_id).one_or_none()
+
+    @staticmethod
     def get_latest_task_for_database(database_id: int) -> ContextBuilderTask:
         return (
             db.session.query(ContextBuilderTask)

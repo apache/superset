@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import json
 import logging
+import time
 
 from celery.result import AsyncResult
 from celery.utils.log import get_task_logger
@@ -89,6 +90,7 @@ def initiate_context_generation(pk: int):
         task_id=task.id,
         params=json.dumps({}),
         started_time=datetime.datetime.now(datetime.timezone.utc),
+        status="PENDING",
     )
     ContextBuilderTaskDAO.create(context_task)
     db.session.commit()
@@ -96,31 +98,47 @@ def initiate_context_generation(pk: int):
 
     return task
 
-@celery_app.task(name="generate_llm_context")
-def generate_llm_context(db_id: int):
+@celery_app.task(bind=True, name="generate_llm_context")
+def generate_llm_context(self, db_id: int):
     logger.info(f"Generating LLM context for database {db_id}")
+    start_time = time.perf_counter()
+    task_status = "SUCCESS"
 
-    admin_user = security_manager.find_user(username="admin")
-    if not admin_user:
-        return {"status_code": 500, "message": "Unable to find admin user"}
+    try:
+        admin_user = security_manager.find_user(username="admin")
+        if not admin_user:
+            return {"status_code": 500, "message": "Unable to find admin user"}
 
-    with override_user(admin_user):
-        database = DatabaseDAO.find_by_id(db_id)
+        with override_user(admin_user):
+            database = DatabaseDAO.find_by_id(db_id)
 
-        if not database:
-            return {"status_code": 404, "message": "Database not found"}
+            if not database:
+                return {"status_code": 404, "message": "Database not found"}
 
-        context_settings = json.loads(database.llm_context_options or "{}")
-        selected_schemas = context_settings.get("schemas", None)
-        include_indexes = context_settings.get("include_indexes", True)
-        top_k = context_settings.get("top_k", 10)
-        top_k_limit = context_settings.get("top_k_limit", 10000)
+            context_settings = json.loads(database.llm_context_options or "{}")
+            selected_schemas = context_settings.get("schemas", None)
+            include_indexes = context_settings.get("include_indexes", True)
+            top_k = context_settings.get("top_k", 10)
+            top_k_limit = context_settings.get("top_k_limit", 10000)
 
-        schemas = get_database_metadata(database, None, include_indexes, selected_schemas, top_k, top_k_limit)
-        logger.info(f"Done generating LLM context for database {db_id}")
+            schemas = get_database_metadata(database, None, include_indexes, selected_schemas, top_k, top_k_limit)
+            logger.info(f"Done generating LLM context for database {db_id}")
 
-    schema_json = reduce_json_token_count(
-        json.dumps([schema.model_dump() for schema in schemas])
-    )
+        schema_json = reduce_json_token_count(
+            json.dumps([schema.model_dump() for schema in schemas])
+        )
+    except Exception as e:
+        task_status = "ERROR"
+        raise e
+    finally:
+        db_task = ContextBuilderTaskDAO.find_by_task_id(self.request.id)
+        if db_task:
+            db_task.ended_time = datetime.datetime.now(datetime.timezone.utc)
+            db_task.status = task_status
+            end_time = time.perf_counter()
+            db_task.duration = int(end_time*1000 - start_time*1000)
+            db.session.commit()
+        else:
+            logger.error(f"Task {self.request.id} not found in database")
 
     return {"status_code": 200, "result": schema_json}
