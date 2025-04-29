@@ -193,7 +193,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
       return (
         <InfoTooltipWithTrigger
           label="validation-errors"
-          iconsStyle={{ color: theme.colorError }}
+          type="error"
           tooltip={annotationError[anno.name]}
         />
       );

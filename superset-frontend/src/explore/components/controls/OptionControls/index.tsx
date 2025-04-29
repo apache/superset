@@ -395,12 +395,7 @@ export const OptionControlLabel = ({
       </Label>
       {(!!datasourceWarningMessage || isExtra) && (
         <StyledInfoTooltipWithTrigger
-          icon={
-            <Icons.WarningOutlined
-              iconSize="s"
-              iconColor={theme.colorWarning}
-            />
-          }
+          type="warning"
           placement="top"
           tooltip={
             datasourceWarningMessage ||

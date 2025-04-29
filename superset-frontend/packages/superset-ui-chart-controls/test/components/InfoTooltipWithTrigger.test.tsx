@@ -19,10 +19,6 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
 import { ThemeProvider, supersetTheme, hexToRgb } from '@superset-ui/core';
-import {
-  InfoCircleOutlined,
-  ExclamationCircleOutlined,
-} from '@ant-design/icons';
 import { InfoTooltipWithTrigger, InfoTooltipWithTriggerProps } from '../../src';
 
 jest.mock('../../src/components/Tooltip', () => ({
@@ -84,23 +80,23 @@ test('responds to keydown events', () => {
   expect(clickHandler).toHaveBeenCalledTimes(2);
 });
 
-test('applies success color based on theme token', () => {
+test('applies info color based on theme token', () => {
   const { container } = setup({
-    icon: <InfoCircleOutlined />,
-    iconsStyle: { color: supersetTheme.colorSuccess },
+    type: 'info',
+    iconStyle: { color: supersetTheme.colorInfo },
   });
 
   const buttonSpan = container.querySelector(
     'span[role="button"]',
   ) as HTMLElement;
   expect(buttonSpan).toBeInTheDocument();
-  expect(buttonSpan.style.color).toBe(hexToRgb(supersetTheme.colorSuccess));
+  expect(buttonSpan.style.color).toBe(hexToRgb(supersetTheme.colorIcon));
 });
 
 test('applies warning color based on theme token', () => {
   const { container } = setup({
-    icon: <InfoCircleOutlined />,
-    iconsStyle: { color: supersetTheme.colorWarning },
+    type: 'info',
+    iconStyle: { color: supersetTheme.colorWarning },
   });
 
   const buttonSpan = container.querySelector(
@@ -112,8 +108,8 @@ test('applies warning color based on theme token', () => {
 
 test('applies error color based on theme token', () => {
   const { container } = setup({
-    icon: <ExclamationCircleOutlined />,
-    iconsStyle: { color: supersetTheme.colorError },
+    type: 'info',
+    iconStyle: { color: supersetTheme.colorError },
   });
 
   const buttonSpan = container.querySelector(

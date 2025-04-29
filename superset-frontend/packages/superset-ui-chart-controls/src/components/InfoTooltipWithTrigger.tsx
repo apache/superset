@@ -16,31 +16,60 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CSSProperties, KeyboardEvent, ReactNode } from 'react';
+import { KeyboardEvent, useMemo } from 'react';
+import { SerializedStyles, CSSObject } from '@emotion/react';
 import { kebabCase } from 'lodash';
-import { t } from '@superset-ui/core';
-import { ExclamationCircleOutlined } from '@ant-design/icons';
+import { css, t, useTheme, themeObject } from '@superset-ui/core';
+import {
+  CloseCircleOutlined,
+  ExclamationCircleOutlined,
+  WarningOutlined,
+  ThunderboltOutlined,
+  QuestionCircleOutlined,
+} from '@ant-design/icons';
 import { Tooltip, TooltipProps, TooltipPlacement } from './Tooltip';
 
 export interface InfoTooltipWithTriggerProps {
   label?: string;
   tooltip?: TooltipProps['title'];
-  icon?: ReactNode;
   onClick?: () => void;
   placement?: TooltipPlacement;
   className?: string;
-  iconsStyle?: CSSProperties;
+  iconStyle?: CSSObject | SerializedStyles;
+  type?: 'info' | 'warning' | 'notice' | 'error' | 'question';
+  iconSize?: 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl';
 }
 
 export const InfoTooltipWithTrigger = ({
+  type,
+  iconSize = 's',
   label,
   tooltip,
   onClick,
-  icon = <ExclamationCircleOutlined />,
   className = 'text-muted',
   placement = 'right',
-  iconsStyle = { fontSize: 12 },
+  iconStyle,
 }: InfoTooltipWithTriggerProps) => {
+  const theme = useTheme();
+
+  const infoTooltipWithTriggerVariants = useMemo(
+    () => ({
+      info: { color: theme.colorIcon, icon: <CloseCircleOutlined /> },
+      question: { color: theme.colorIcon, icon: <QuestionCircleOutlined /> },
+      warning: { color: theme.colorWarning, icon: <WarningOutlined /> },
+      notice: { color: theme.colorWarning, icon: <ThunderboltOutlined /> },
+      error: { color: theme.colorError, icon: <ExclamationCircleOutlined /> },
+    }),
+    [theme],
+  );
+
+  const variant = type ? infoTooltipWithTriggerVariants[type] : null;
+
+  const iconCss = css`
+    color: ${variant?.color ?? theme.colorIcon};
+    font-size: ${themeObject.getFontSize(iconSize)};
+  `;
+
   const handleKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
     if (onClick && (event.key === 'Enter' || event.key === ' ')) {
       onClick();
@@ -53,16 +82,21 @@ export const InfoTooltipWithTrigger = ({
       aria-label={t('Show info tooltip')}
       tabIndex={0}
       className={className}
-      style={{
-        cursor: onClick ? 'pointer' : undefined,
-        display: 'inline-flex',
-        alignItems: 'center',
-        ...iconsStyle,
-      }}
+      css={[
+        css`
+          display: inline-flex;
+          align-items: center;
+          line-height: 0;
+          vertical-align: middle;
+          ${onClick ? 'cursor: pointer;' : ''}
+        `,
+        iconCss,
+        iconStyle,
+      ]}
       onClick={onClick}
       onKeyDown={handleKeyDown}
     >
-      {icon}
+      {variant?.icon}
     </span>
   );
 

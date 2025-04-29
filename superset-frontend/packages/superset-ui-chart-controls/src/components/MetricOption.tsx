@@ -112,14 +112,12 @@ export function MetricOption({
       )}
       {warningMarkdown && (
         <InfoTooltipWithTrigger
-          className="text-warning"
-          icon="warning"
+          type="warning"
           tooltip={<SafeMarkdown source={warningMarkdown} />}
           label={`warn-${metric.metric_name}`}
-          iconsStyle={{ marginLeft: 0 }}
+          iconStyle={{ marginLeft: 0 }}
           {...(metric.error_text && {
-            className: 'text-danger',
-            icon: 'exclamation-circle',
+            type: 'warning',
           })}
         />
       )}
