@@ -23,7 +23,6 @@ import { Button, Card, Flex, Form, Input } from 'src/components';
 import { Icons } from 'src/components/Icons';
 import Typography from 'src/components/Typography';
 import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 type LoginType = {
@@ -43,15 +42,20 @@ interface LoginForm {
 
 enum AuthType {
   AuthDB = 1,
-  AuthOauth,
   AuthLDAP,
   AuthRemoteUser,
+  AuthOauth,
   AuthOID,
 }
 
 const LoginContainer = styled(Flex)`
   width: 100%;
 `;
+
+const providerIcons: Record<string, React.ReactNode> = {
+  'fa-google': <Icons.GoogleOutlined />,
+  'fa-facebook': <Icons.FacebookOutlined />,
+};
 
 const StyledCard = styled(Card)`
   ${({ theme }) => css`
@@ -77,8 +81,8 @@ export default function Login() {
   const bootstrapData = getBootstrapData();
 
   const authType: AuthType = bootstrapData.common.conf.AUTH_TYPE;
-  // const oauthProviders: OauthProvider[] =
-  //   bootstrapData.common.conf.OAUTH_PROVIDERS;
+  const oauthProviders: OauthProvider[] =
+    bootstrapData.common.conf.OAUTH_PROVIDERS;
 
   const onFinish = (values: LoginType) => {
     setLoading(true);
@@ -92,7 +96,26 @@ export default function Login() {
       <StyledCard title={t('Sign in')} padded variant="borderless">
         {authType === AuthType.AuthOauth && (
           <Flex justify="center" vertical gap="middle">
-            <div />
+            <Form
+              layout="vertical"
+              requiredMark="optional"
+              form={form}
+              onFinish={onFinish}
+            >
+              {oauthProviders.map(provider => (
+                <Form.Item<LoginType>>
+                  <Button
+                    block
+                    type="primary"
+                    htmlType="submit"
+                    loading={loading}
+                    icon={providerIcons[provider.icon]}
+                  >
+                    {t('Sign in with')} {provider.name}
+                  </Button>
+                </Form.Item>
+              ))}
+            </Form>
           </Flex>
         )}
         {authType === AuthType.AuthDB && (

@@ -328,13 +328,16 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     language = locale.language if locale else "en"
     auth_type = appbuilder.app.config["AUTH_TYPE"]
-    # print(appbuilder.app.config["OAUTH_PROVIDERS"])
-    # oauth_providers = [
-    #     {"name": provider.name, "icon": provider.icon}
-    #     for provider in appbuilder.app.config["OAUTH_PROVIDERS"]
-    # ]
     frontend_config["AUTH_TYPE"] = auth_type
-    # frontend_config["OAUTH_PROVIDERS"] = oauth_providers
+    oauth_providers = []
+    for provider in appbuilder.sm.oauth_providers:
+        oauth_providers.append(
+            {
+                "name": provider["name"],
+                "icon": provider["icon"],
+            }
+        )
+    frontend_config["OAUTH_PROVIDERS"] = oauth_providers
 
     bootstrap_data = {
         "application_root": conf["APPLICATION_ROOT"],

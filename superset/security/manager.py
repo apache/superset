@@ -2791,6 +2791,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def register_views(self) -> None:
         super().register_views()
         self.auth_view = self.appbuilder.add_view_no_menu(AuthRedirectView)
+        self.authdbview = self.appbuilder.add_view_no_menu(AuthRedirectView)
+        self.authoauthview = self.appbuilder.add_view_no_menu(AuthRedirectView)
 
         for view in list(self.appbuilder.baseviews):
             if isinstance(view, self.rolemodelview.__class__) and getattr(
