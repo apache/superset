@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppSection,
   DataMask,
@@ -157,6 +157,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ? true
       : filterState?.excludeFilterValues,
   );
+
+  const prevExcludeFilterValues = useRef(excludeFilterValues);
 
   const updateDataMask = useCallback(
     (values: SelectValue) => {
@@ -323,23 +325,26 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [JSON.stringify(dataMask)]);
 
   useEffect(() => {
-    dispatchDataMask({
-      type: 'filterState',
-      extraFormData: getSelectExtraFormData(
-        col,
-        filterState.value,
-        !filterState.value?.length,
-        excludeFilterValues && inverseSelection,
-      ),
-      filterState: {
-        ...(filterState as {
-          value: SelectValue;
-          label?: string;
-          excludeFilterValues?: boolean;
-        }),
-        excludeFilterValues,
-      },
-    });
+    if (prevExcludeFilterValues.current !== excludeFilterValues) {
+      dispatchDataMask({
+        type: 'filterState',
+        extraFormData: getSelectExtraFormData(
+          col,
+          filterState.value,
+          !filterState.value?.length,
+          excludeFilterValues && inverseSelection,
+        ),
+        filterState: {
+          ...(filterState as {
+            value: SelectValue;
+            label?: string;
+            excludeFilterValues?: boolean;
+          }),
+          excludeFilterValues,
+        },
+      });
+      prevExcludeFilterValues.current = excludeFilterValues;
+    }
   }, [excludeFilterValues]);
 
   const handleExclusionToggle = (value: string) => {
