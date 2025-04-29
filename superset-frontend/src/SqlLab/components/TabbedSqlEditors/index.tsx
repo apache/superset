@@ -36,6 +36,7 @@ import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyState } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { locationContext } from 'src/pages/SqlLab/LocationContext';
+import { navigateWithState } from 'src/utils/navigationUtils';
 import { Icons } from 'src/components/Icons';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
@@ -148,7 +149,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       this.newQueryEditor();
 
       if (isNewQuery) {
-        window.history.replaceState({}, document.title, SQL_LAB_URL);
+        navigateWithState(SQL_LAB_URL, {}, { replace: true });
       }
     } else {
       const qe = this.activeQueryEditor();
@@ -171,7 +172,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
   popNewTab(urlParams: Record<string, string>) {
     // Clean the url in browser history
     const updatedUrl = `${URI(SQL_LAB_URL).query(urlParams)}`;
-    window.history.replaceState({}, document.title, updatedUrl);
+    navigateWithState(updatedUrl, {}, { replace: true });
   }
 
   activeQueryEditor() {

@@ -125,63 +125,63 @@ export const valueNativeFilterOptions = [
 ];
 
 export function interceptGet() {
-  cy.intercept('GET', '/api/v1/dashboard/*').as('get');
+  cy.intercept('GET', '**/api/v1/dashboard/*').as('get');
 }
 
 export function interceptFiltering() {
-  cy.intercept('GET', `/api/v1/dashboard/?q=*`).as('filtering');
+  cy.intercept('GET', `**/api/v1/dashboard/?q=*`).as('filtering');
 }
 
 export function interceptBulkDelete() {
-  cy.intercept('DELETE', `/api/v1/dashboard/?q=*`).as('bulkDelete');
+  cy.intercept('DELETE', `**/api/v1/dashboard/?q=*`).as('bulkDelete');
 }
 
 export function interceptDelete() {
-  cy.intercept('DELETE', `/api/v1/dashboard/*`).as('delete');
+  cy.intercept('DELETE', `**/api/v1/dashboard/*`).as('delete');
 }
 
 export function interceptUpdate() {
-  cy.intercept('PUT', `/api/v1/dashboard/*`).as('update');
+  cy.intercept('PUT', `**/api/v1/dashboard/*`).as('update');
 }
 
 export function interceptExploreUpdate() {
-  cy.intercept('PUT', `/api/v1/chart/*`).as('chartUpdate');
+  cy.intercept('PUT', `**/api/v1/chart/*`).as('chartUpdate');
 }
 
 export function interceptPost() {
-  cy.intercept('POST', `/api/v1/dashboard/`).as('post');
+  cy.intercept('POST', `**/api/v1/dashboard/`).as('post');
 }
 
 export function interceptLog() {
-  cy.intercept('/superset/log/?explode=events&dashboard_id=*').as('logs');
+  cy.intercept('**/superset/log/?explode=events&dashboard_id=*').as('logs');
 }
 
 export function interceptFav() {
-  cy.intercept({ url: `/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
+  cy.intercept({ url: `**/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
     'select',
   );
 }
 
 export function interceptUnfav() {
-  cy.intercept({ url: `/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
+  cy.intercept({ url: `**/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
     'unselect',
   );
 }
 
 export function interceptDataset() {
-  cy.intercept('GET', `/api/v1/dataset/*`).as('getDataset');
+  cy.intercept('GET', `**/api/v1/dataset/*`).as('getDataset');
 }
 
 export function interceptCharts() {
-  cy.intercept('GET', `/api/v1/dashboard/*/charts`).as('getCharts');
+  cy.intercept('GET', `**/api/v1/dashboard/*/charts`).as('getCharts');
 }
 
 export function interceptDatasets() {
-  cy.intercept('GET', `/api/v1/dashboard/*/datasets`).as('getDatasets');
+  cy.intercept('GET', `**/api/v1/dashboard/*/datasets`).as('getDatasets');
 }
 
 export function interceptFilterState() {
-  cy.intercept('POST', `/api/v1/dashboard/*/filter_state*`).as(
+  cy.intercept('POST', `**/api/v1/dashboard/*/filter_state*`).as(
     'postFilterState',
   );
 }

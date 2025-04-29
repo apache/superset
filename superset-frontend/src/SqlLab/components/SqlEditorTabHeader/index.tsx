@@ -230,12 +230,12 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
           />
         }
       />
-      <TabTitle>{qe.name}</TabTitle>
+      <TabTitle>{qe.name}</TabTitle>{' '}
       <StatusIcon
         className="status-icon"
         iconSize="xs"
         iconColor={getStatusColor(queryState, theme)}
-      />
+      />{' '}
     </TabTitleWrapper>
   );
 };
