@@ -563,7 +563,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
                     try:
                         value = float(value)
                     except ValueError:
-                        logger.info(f"Unable to convert {value} to float")
+                        logger.warning(f"Unable to convert {value} to float")
                     return utils.cast_to_num(value)
                 if value == NULL_STRING:
                     return None
