@@ -24,7 +24,6 @@ import {
   SupersetClient,
   t,
   css,
-  useTheme,
 } from '@superset-ui/core';
 import { useCallback, useMemo, useState, MouseEvent } from 'react';
 import { Link, useHistory } from 'react-router-dom';
@@ -106,7 +105,6 @@ function SavedQueryList({
   addSuccessToast,
   user,
 }: SavedQueryListProps) {
-  const theme = useTheme();
   const {
     state: {
       loading,
@@ -210,13 +208,7 @@ function SavedQueryList({
           }
         `}
       >
-        <Icons.PlusOutlined
-          iconColor={theme.colors.primary.light5}
-          iconSize="m"
-          css={css`
-            margin: auto ${theme.sizeUnit * 2}px auto 0;
-          `}
-        />
+        <Icons.PlusOutlined iconSize="m" />
         {t('Query')}
       </Link>
     ),

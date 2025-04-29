@@ -210,10 +210,7 @@ class DashboardGrid extends PureComponent {
         size="large"
         buttonText={
           <>
-            <Icons.PlusOutlined
-              iconSize="m"
-              iconColor={theme.colors.primary.light5}
-            />
+            <Icons.PlusOutlined iconSize="m" color={theme.colorPrimary} />
             {t('Create a new chart')}
           </>
         }
@@ -235,10 +232,7 @@ class DashboardGrid extends PureComponent {
         )}
         buttonText={
           <>
-            <Icons.PlusOutlined
-              iconSize="m"
-              iconColor={theme.colors.primary.light5}
-            />
+            <Icons.PlusOutlined iconSize="m" color={theme.colorPrimary} />
             {t('Create a new chart')}
           </>
         }

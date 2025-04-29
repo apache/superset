@@ -24,8 +24,6 @@ import {
   styled,
   SupersetClient,
   t,
-  useTheme,
-  css,
 } from '@superset-ui/core';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
@@ -160,7 +158,6 @@ const StyledActions = styled.div`
 `;
 
 function ChartList(props: ChartListProps) {
-  const theme = useTheme();
   const {
     addDangerToast,
     addSuccessToast,
@@ -771,13 +768,7 @@ function ChartList(props: ChartListProps) {
     subMenuButtons.push({
       name: (
         <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              vertical-align: text-top;
-            `}
-          />
+          <Icons.PlusOutlined iconSize="m" />
           <span>{t('Chart')}</span>
         </>
       ),
@@ -794,10 +785,7 @@ function ChartList(props: ChartListProps) {
           title={t('Import charts')}
           placement="bottomRight"
         >
-          <Icons.DownloadOutlined
-            data-test="import-button"
-            iconColor={theme.colors.primary.dark1}
-          />
+          <Icons.DownloadOutlined data-test="import-button" />
         </Tooltip>
       ),
       buttonStyle: 'link',

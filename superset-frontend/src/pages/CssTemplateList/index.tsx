@@ -18,7 +18,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import { t, SupersetClient, useTheme, css } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -59,7 +59,6 @@ function CssTemplatesList({
   addSuccessToast,
   user,
 }: CssTemplatesListProps) {
-  const theme = useTheme();
   const {
     state: {
       loading,
@@ -204,20 +203,9 @@ function CssTemplatesList({
 
   if (canCreate) {
     subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              margin: 'auto ${theme.sizeUnit * 2}px auto 0';
-              vertical-align: text-top;
-            `}
-          />
-          {t('CSS template')}
-        </>
-      ),
+      name: <>{t('CSS template')}</>,
       buttonStyle: 'primary',
+      icon: <Icons.PlusOutlined iconSize="m" />,
       onClick: () => {
         setCurrentCssTemplate(null);
         setCssTemplateModalOpen(true);

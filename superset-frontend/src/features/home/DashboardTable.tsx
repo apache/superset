@@ -190,8 +190,8 @@ function DashboardTable({
             name: (
               <>
                 <Icons.PlusOutlined
-                  iconColor={theme.colors.primary.dark1}
                   iconSize="m"
+                  iconColor={theme.colorPrimary}
                 />
                 {t('Dashboard')}
               </>

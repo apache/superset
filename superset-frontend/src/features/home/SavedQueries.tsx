@@ -275,12 +275,8 @@ export const SavedQueries = ({
                 `}
               >
                 <Icons.PlusOutlined
-                  css={css`
-                    margin: auto ${theme.sizeUnit * 2}px auto 0;
-                    vertical-align: text-top;
-                  `}
+                  iconColor={theme.colorPrimary}
                   iconSize="m"
-                  iconColor={theme.colors.primary.dark1}
                 />
                 {t('SQL Query')}
               </Link>
