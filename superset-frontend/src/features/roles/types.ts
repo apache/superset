@@ -16,22 +16,51 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import IconButton from 'src/components/IconButton';
-
-const defaultProps = {
-  buttonText: 'This is the IconButton text',
-  icon: '/images/icons/sql.svg',
+export type PermissionView = {
+  name: string;
 };
 
-describe('IconButton', () => {
-  it('renders an IconButton', () => {
-    render(<IconButton {...defaultProps} />);
+export type PermissionResource = {
+  id: number;
+  permission: PermissionView;
+  view_menu: PermissionView;
+};
 
-    const icon = screen.getByRole('img');
-    const buttonText = screen.getByText(/this is the iconbutton text/i);
+export type FormattedPermission = {
+  label: string;
+  value: string;
+  id: number;
+};
 
-    expect(icon).toBeVisible();
-    expect(buttonText).toBeVisible();
-  });
-});
+export type RolePermissions = {
+  id: number;
+  permission_name: string;
+  view_menu_name: string;
+};
+
+export type UserObject = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  isActive: boolean;
+  roles: Array<RoleInfo>;
+};
+
+export type RoleInfo = {
+  id: number;
+  name: string;
+};
+
+export type RoleForm = {
+  roleName: string;
+  rolePermissions: number[];
+  roleUsers: number[];
+};
+
+export interface BaseModalProps {
+  show: boolean;
+  onHide: () => void;
+  onSave: () => void;
+}
