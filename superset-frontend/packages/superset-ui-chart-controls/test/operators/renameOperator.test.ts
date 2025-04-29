@@ -77,6 +77,15 @@ test('should skip renameOperator if does not exist x_axis and is_timeseries', ()
   ).toEqual(undefined);
 });
 
+test('should skip renameOperator if not is_timeseries and multi metrics', () => {
+  expect(
+    renameOperator(formData, {
+      ...queryObject,
+      ...{ is_timeseries: false, metrics: ['count(*)', 'sum(val)'] },
+    }),
+  ).toEqual(undefined);
+});
+
 test('should add renameOperator', () => {
   expect(renameOperator(formData, queryObject)).toEqual({
     operation: 'rename',
