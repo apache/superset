@@ -131,10 +131,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
-        from superset.connectors.sqla.views import (
-            RowLevelSecurityView,
-            TableModelView,
-        )
         from superset.css_templates.api import CssTemplateRestApi
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
@@ -163,7 +159,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
-        from superset.views.auth import SupersetAuthView
         from superset.views.chart.views import SliceModelView
         from superset.views.core import Superset
         from superset.views.css_templates import CssTemplateModelView
@@ -183,6 +178,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             SavedQueryView,
             TableSchemaView,
             TabStateView,
+        )
+        from superset.views.sqla import (
+            RowLevelSecurityView,
+            TableModelView,
         )
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
@@ -332,7 +331,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
         appbuilder.add_view_no_menu(RoleRestAPI)
-        appbuilder.add_view_no_menu(SupersetAuthView)
 
         #
         # Add links

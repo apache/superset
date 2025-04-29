@@ -68,7 +68,6 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
-from superset.security.views import AuthRedirectView
 from superset.sql_parse import extract_tables_from_jinja_sql, Table
 from superset.tasks.utils import get_current_user
 from superset.utils import json
@@ -246,9 +245,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     role_api = SupersetRoleApi
     user_api = SupersetUserApi
-
-    # auth_view = NoLoginView
-    # authdbview = NoLoginView
 
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
@@ -2789,10 +2785,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
     def register_views(self) -> None:
+        from superset.views.auth import SupersetAuthView
+
+        self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
         super().register_views()
-        self.auth_view = self.appbuilder.add_view_no_menu(AuthRedirectView)
-        self.authdbview = self.appbuilder.add_view_no_menu(AuthRedirectView)
-        self.authoauthview = self.appbuilder.add_view_no_menu(AuthRedirectView)
 
         for view in list(self.appbuilder.baseviews):
             if isinstance(view, self.rolemodelview.__class__) and getattr(

@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from flask import g, redirect
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import no_cache
 from werkzeug import Response
@@ -26,14 +25,12 @@ from superset.views.base import BaseSupersetView
 class SupersetAuthView(BaseSupersetView):
     route_base = ""
 
-    @expose("/signin/", methods=["GET"])
+    @expose("/login/")
     @no_cache
     def login(self) -> Response:
-        if g.user.is_authenticated:
-            return redirect(self.appbuilder.get_url_for_index)
         return super().render_app_template()
 
-    @expose("/signout/", methods=["GET"])
+    @expose("/logout/")
     @no_cache
     def logout(self) -> Response:
         return super().render_app_template()

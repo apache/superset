@@ -151,11 +151,11 @@ type Routes = {
 
 export const routes: Routes = [
   {
-    path: '/signin/',
+    path: '/login/',
     Component: Login,
   },
   {
-    path: '/signout/',
+    path: '/logout/',
     Component: Login,
   },
   {

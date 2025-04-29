@@ -29,12 +29,12 @@ from flask import (
     request,
     Response,
     send_file,
-    url_for,
 )
 from flask_wtf.csrf import CSRFError
 from sqlalchemy import exc
 from werkzeug.exceptions import HTTPException
 
+from superset import appbuilder
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -153,7 +153,7 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         if request.is_json:
             return show_http_exception(ex)
 
-        return redirect(url_for("SupersetAuthView.login"))
+        return redirect(appbuilder.get_url_for_login)
 
     @app.errorhandler(HTTPException)
     def show_http_exception(ex: HTTPException) -> FlaskResponse:

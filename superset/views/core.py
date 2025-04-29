@@ -35,6 +35,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset import (
     app,
+    appbuilder,
     conf,
     db,
     event_logger,
@@ -793,7 +794,7 @@ class Superset(BaseSupersetView):
         except SupersetSecurityException as ex:
             # anonymous users should get the login screen, others should go to dashboard list  # noqa: E501
             if g.user is None or g.user.is_anonymous:
-                redirect_url = f"{url_for('SupersetAuthView.login')}?next={request.url}"
+                redirect_url = f"{appbuilder.get_url_for_login}?next={request.url}"
                 warn_msg = "Users must be logged in to view this dashboard."
             else:
                 redirect_url = url_for("DashboardModelView.list")
@@ -898,7 +899,7 @@ class Superset(BaseSupersetView):
         if not g.user or not get_user_id():
             if conf["PUBLIC_ROLE_LIKE"]:
                 return self.render_template("superset/public_welcome.html")
-            return redirect(url_for("SupersetAuthView.login"))
+            return redirect(appbuilder.get_url_for_login)
 
         if welcome_dashboard_id := (
             db.session.query(UserAttribute.welcome_dashboard_id)
