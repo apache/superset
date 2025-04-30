@@ -81,7 +81,6 @@ class ExtensionsRestApi(BaseSupersetApi):
             manifest: Manifest = json.loads(extension.manifest)
             extension_data: dict[str, Any] = {
                 "name": extension.name,
-                "scope": extension.name,
                 "dependencies": manifest.get("dependencies", []),
             }
             frontend = manifest.get("frontend")

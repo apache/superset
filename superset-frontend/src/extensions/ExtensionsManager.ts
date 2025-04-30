@@ -61,7 +61,7 @@ class ExtensionsManager {
    * @returns The loaded extension with activate and deactivate methods.
    */
   private async loadModule(extension: Extension): Promise<Extension> {
-    const { remoteEntry, scope, exposedModules } = extension;
+    const { remoteEntry, name, exposedModules } = extension;
 
     // Load the remote entry script
     await new Promise<void>((resolve, reject) => {
@@ -78,7 +78,7 @@ class ExtensionsManager {
     // Initialize Webpack module federation
     // @ts-ignore
     await __webpack_init_sharing__('default');
-    const container = (window as any)[scope];
+    const container = (window as any)[name];
 
     // @ts-ignore
     await container.init(__webpack_share_scopes__.default);

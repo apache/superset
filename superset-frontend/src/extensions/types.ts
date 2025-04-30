@@ -32,7 +32,6 @@ export interface Extension {
   exposedModules: string[];
   files: string[];
   remoteEntry: string;
-  scope: string;
   activate: Function;
   deactivate: Function;
   extensionDependencies: string[];
