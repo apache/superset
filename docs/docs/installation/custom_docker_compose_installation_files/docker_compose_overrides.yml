@@ -1,0 +1,12 @@
+---
+# This file will override the stock upstream Docker Compose for superset
+# to use our locally built container that has additional packages in it.
+services:
+  superset:
+    image: custom/superset-extended:latest
+  superset-init:
+    image: custom/superset-extended:latest
+  superset-worker:
+    image: custom/superset-extended:latest
+  superset-worker-beat:
+    image: custom/superset-extended:latest
