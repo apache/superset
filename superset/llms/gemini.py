@@ -1,6 +1,7 @@
-import logging
 import datetime
 import json
+import logging
+import time
 
 from google import genai
 from google.genai import types
@@ -58,7 +59,11 @@ class GeminiLlm(BaseLlm):
             self.cache_expiry = None
 
         if not self.cache_name:
+            logger.info(f"Creating new cache for model {model}...")
+            start_time = time.perf_counter()
             created_cache = self._create_schema_cache(gemini_client, model, user_instructions)
+            end_time = time.perf_counter()
+            logger.info(f"Cache created in {end_time - start_time:.2f} seconds")
             self.cache_name = created_cache.name
             self.cache_expiry = created_cache.expire_time
 
@@ -138,8 +143,6 @@ class GeminiLlm(BaseLlm):
 
         logger.info(f"Using API key {llm_api_key} and model {llm_model} for database {self.pk}")
 
-        # logger.info(f"Context: {self.context}")
-
         gemini_client = genai.Client(api_key=llm_api_key)
 
         if schemas:
@@ -162,13 +165,17 @@ class GeminiLlm(BaseLlm):
             logger.info(f"Using cache {self.cache_name}")
 
             contents = [history, prompt] if history else [prompt]
-            response = gemini_client.models.generate_content(
-                model=llm_model,
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    cached_content=cache_name,
-                ),
-            )
+            try:
+                response = gemini_client.models.generate_content(
+                    model=llm_model,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        cached_content=cache_name,
+                    ),
+                )
+            except genai.exceptions.ServerError as e:
+                logger.error(f"Server error: {e}")
+                return f"-- Failed to generate SQL: {e.message}"
 
         # Check if the response is an error by looking at the finish reason of every candidate
         for candidate in response.candidates:

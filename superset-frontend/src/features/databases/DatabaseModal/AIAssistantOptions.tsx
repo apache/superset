@@ -58,9 +58,10 @@ const StyledLlmSwitch = styled.div`
 
 const GEMINI_MODELS = {
   'models/gemini-1.5-flash-002': 'Gemini 1.5 Flash',
-  // 'models/gemini-2.0-flash-001': 'Gemini 2.0 Flash',
-  'models/gemini-2.0-flash-lite-001': 'Gemini 2.0 Flash-Lite',
+  'models/gemini-2.0-flash': 'Gemini 2.0 Flash',
+  'models/gemini-2.0-flash-thinking-exp': 'Gemini 2.5 Flash Preview',
   'models/gemini-1.5-pro-002': 'Gemini 1.5 Pro',
+  'models/gemini-2.0-pro-exp': 'Gemini 2.5 Pro Experimental',
 }
 
 const AIAssistantOptions = ({
