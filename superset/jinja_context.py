@@ -382,7 +382,8 @@ class ExtraCache:
                     val
                     or
                     # IS_NULL and IS_NOT_NULL operators do not have a value
-                    op in (
+                    op
+                    in (
                         FilterOperator.IS_NULL.value,
                         FilterOperator.IS_NOT_NULL.value,
                     )
