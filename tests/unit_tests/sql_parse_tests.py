@@ -1214,7 +1214,7 @@ def test_strip_comments_from_sql() -> None:
 
 def test_check_sql_functions_exist() -> None:
     """
-    Test that comments are stripped out correctly.
+    Test sql functions are detected correctly
     """
     assert not (
         check_sql_functions_exist("select a, b from version", {"version"}, "postgresql")
@@ -1234,6 +1234,35 @@ def test_check_sql_functions_exist() -> None:
 
     assert check_sql_functions_exist(
         "select 1, a.version from (select version()) as a", {"version"}, "postgresql"
+    )
+
+
+def test_check_sql_functions_exist_with_comments() -> None:
+    """
+    Test sql functions are detected correctly with comments
+    """
+    assert not (
+        check_sql_functions_exist(
+            "select a, b from version/**/", {"version"}, "postgresql"
+        )
+    )
+
+    assert check_sql_functions_exist("select version/**/()", {"version"}, "postgresql")
+
+    assert check_sql_functions_exist(
+        "select version from version/**/()", {"version"}, "postgresql"
+    )
+
+    assert check_sql_functions_exist(
+        "select 1, a.version from (select version from version/**/()) as a",
+        {"version"},
+        "postgresql",
+    )
+
+    assert check_sql_functions_exist(
+        "select 1, a.version from (select version/**/()) as a",
+        {"version"},
+        "postgresql",
     )
 
 

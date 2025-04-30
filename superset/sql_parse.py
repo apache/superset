@@ -181,7 +181,10 @@ def check_sql_functions_exist(
     :param function_list: The list of functions to search for
     :param engine: The engine to use for parsing the SQL statement
     """
-    return ParsedQuery(sql, engine=engine).check_functions_exist(function_list)
+    sql_no_comments = ParsedQuery(sql, engine=engine).strip_comments()
+    return ParsedQuery(sql_no_comments, engine=engine).check_functions_exist(
+        function_list
+    )
 
 
 def strip_comments_from_sql(statement: str, engine: str = "base") -> str:
@@ -230,7 +233,7 @@ class ParsedQuery:
         return self._tables
 
     def _check_functions_exist_in_token(
-        self, token: Token, functions: set[str]
+        self, statement: TokenList, token: Token, functions: set[str]
     ) -> bool:
         if (
             isinstance(token, Function)
@@ -238,9 +241,22 @@ class ParsedQuery:
             and token.get_name().lower() in functions
         ):
             return True
+        if token.ttype == Keyword:
+            if token.value.lower() in functions:
+                idx = statement.token_index(token) + 1
+                while idx < len(statement.tokens):
+                    token = statement.tokens[idx]
+                    if isinstance(token, Parenthesis):
+                        return True
+                    if token.ttype != Whitespace:
+                        break
+                    idx += 1
+
         if hasattr(token, "tokens"):
             for inner_token in token.tokens:
-                if self._check_functions_exist_in_token(inner_token, functions):
+                if self._check_functions_exist_in_token(
+                    TokenList(token.tokens), inner_token, functions
+                ):
                     return True
         return False
 
@@ -253,7 +269,7 @@ class ParsedQuery:
         """
         for statement in self._parsed:
             for token in statement.tokens:
-                if self._check_functions_exist_in_token(token, functions):
+                if self._check_functions_exist_in_token(statement, token, functions):
                     return True
         return False
 
