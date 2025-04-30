@@ -56,8 +56,8 @@ const IconButton: React.FC<IconButtonProps> = ({
         alt={altText || buttonText}
         css={css`
           width: 100%;
-          height: 120px;
           object-fit: contain;
+          height: 100px;
         `}
       />
     ) : (
@@ -66,7 +66,7 @@ const IconButton: React.FC<IconButtonProps> = ({
           display: flex;
           align-content: center;
           align-items: center;
-          height: 120px;
+          height: 100px;
         `}
       >
         <Icons.DatabaseOutlined

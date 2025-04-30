@@ -167,19 +167,21 @@ const ModalHeader = ({
   );
 
   const noDbHeader = (
-    <StyledFormHeader>
-      <div className="select-db">
-        <p className="helper-top">
-          {t('STEP %(stepCurr)s OF %(stepLast)s', {
-            stepCurr: 1,
-            stepLast: 3,
-          })}
-        </p>
-        <Typography.Title level={4}>
-          {t('Select a database to connect')}
-        </Typography.Title>
-      </div>
-    </StyledFormHeader>
+    <StyledStickyHeader>
+      <StyledFormHeader>
+        <div className="select-db">
+          <p className="helper-top">
+            {t('STEP %(stepCurr)s OF %(stepLast)s', {
+              stepCurr: 1,
+              stepLast: 3,
+            })}
+          </p>
+          <Typography.Title level={4}>
+            {t('Select a database to connect')}
+          </Typography.Title>
+        </div>
+      </StyledFormHeader>
+    </StyledStickyHeader>
   );
 
   const importDbHeader = (
