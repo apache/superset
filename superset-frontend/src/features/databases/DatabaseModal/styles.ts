@@ -535,6 +535,7 @@ export const StyledCatalogTable = styled.div`
 `;
 
 export const StyledUploadWrapper = styled.div`
+  margin: ${({ theme }) => theme.sizeUnit * 4}px;
   .ant-progress-inner {
     display: none;
   }
