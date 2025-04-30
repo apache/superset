@@ -16,12 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+export interface CommandContribution {
+  command: string;
+  icon: string;
+  title: string;
+  description: string;
+}
+
+export interface MenuItem {
+  view: string;
+  command: string;
+}
+
+export interface MenuContribution {
+  primary?: MenuItem[];
+  secondary?: MenuItem[];
+  context?: MenuItem[];
+}
+
+export interface ViewContribution {
+  id: string;
+  name: string;
+}
+
 export interface Contributions {
+  commands: CommandContribution[];
+  menus: {
+    [key: string]: MenuContribution;
+  };
   views: {
-    [key: string]: {
-      id: string;
-      name: string;
-    }[];
+    [key: string]: ViewContribution[];
   };
 }
 

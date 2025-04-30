@@ -17,7 +17,13 @@
  * under the License.
  */
 import { SupersetClient, logging } from '@superset-ui/core';
-import { Contributions, Extension, Module } from './types';
+import {
+  CommandContribution,
+  Extension,
+  MenuContribution,
+  Module,
+  ViewContribution,
+} from './types';
 
 class ExtensionsManager {
   private static instance: ExtensionsManager;
@@ -120,19 +126,72 @@ class ExtensionsManager {
   }
 
   /**
-   * Retrieves contributions of a specific type and key from all extensions.
-   * @param type The type of contribution (e.g., 'views').
-   * @param key The key of the contribution.
-   * @returns An array of contributions matching the type and key.
+   * Retrieves menu contributions for a specific key from all extensions.
+   * @param key The key of the menu contribution.
+   * @returns The menu contribution matching the key, or undefined if not found.
    */
-  public getContribution(type: keyof Contributions, key: string): any[] {
-    const results: any[] = [];
+  public getMenuContribution(key: string): MenuContribution | undefined {
+    let results: MenuContribution | undefined;
+
     this.getExtensions().forEach(extension => {
       const { contributions } = extension;
-      if (contributions[type] && contributions[type][key]) {
-        results.push(...contributions[type][key]);
+      if (contributions.menus && contributions.menus[key]) {
+        const contribution = contributions.menus[key];
+        if (!results) {
+          results = { ...contribution };
+        } else {
+          // Merge contributions if needed
+          results.primary = [
+            ...(results.primary || []),
+            ...(contribution.primary || []),
+          ];
+          results.secondary = [
+            ...(results.secondary || []),
+            ...(contribution.secondary || []),
+          ];
+          results.context = [
+            ...(results.context || []),
+            ...(contribution.context || []),
+          ];
+        }
       }
     });
+
+    return results;
+  }
+
+  /**
+   * Retrieves view contributions for a specific key from all extensions.
+   * @param key The key of the view contribution.
+   * @returns An array of view contributions matching the key, or undefined if not found.
+   */
+  public getViewContributions(key: string): ViewContribution[] | undefined {
+    let results: ViewContribution[] = [];
+
+    this.getExtensions().forEach(extension => {
+      const { contributions } = extension;
+      if (contributions.views && contributions.views[key]) {
+        results = [...results, ...contributions.views[key]];
+      }
+    });
+
+    return results.length > 0 ? results : undefined;
+  }
+
+  /**
+   * Retrieves command contributions.
+   * @returns An array of all command contributions from all extensions.
+   */
+  public getCommandContributions(): CommandContribution[] {
+    let results: CommandContribution[] = [];
+
+    this.getExtensions().forEach(extension => {
+      const { contributions } = extension;
+      if (contributions.commands) {
+        results = [...results, ...contributions.commands];
+      }
+    });
+
     return results;
   }
 }

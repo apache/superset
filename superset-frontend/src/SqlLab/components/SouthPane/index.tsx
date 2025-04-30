@@ -96,10 +96,8 @@ const SouthPane = ({
 }: SouthPaneProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const contributions = ExtensionsManager.getInstance().getContribution(
-    'views',
-    'sqllab.panels',
-  );
+  const contributions =
+    ExtensionsManager.getInstance().getViewContributions('sqllab.panels');
   const { views } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
@@ -185,7 +183,7 @@ const SouthPane = ({
             latestQueryId={latestQueryId}
           />
         </Tabs.TabPane>
-        {contributions.map(contribution => (
+        {contributions?.map(contribution => (
           <Tabs.TabPane
             key={contribution.id}
             tab={contribution.name}
