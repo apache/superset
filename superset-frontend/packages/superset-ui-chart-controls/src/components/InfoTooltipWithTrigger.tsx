@@ -42,7 +42,7 @@ export interface InfoTooltipWithTriggerProps {
 }
 
 export const InfoTooltipWithTrigger = ({
-  type,
+  type = 'info',
   iconSize = 's',
   label,
   tooltip,
@@ -84,17 +84,19 @@ export const InfoTooltipWithTrigger = ({
       aria-label={t('Show info tooltip')}
       className={className}
       css={[
-        css`
-          vertical-align: middle;
+        theme => css`
+          vertical-align: text-bottom;
           box-shadow: none;
           padding: 0;
           height: auto;
           background: none;
+          &&&:hover,
           &&&:focus,
           &&&:active {
             box-shadow: none;
             background: none;
             outline: none;
+            color: ${theme.colorTextTertiary};
           }
           ${onClick ? 'cursor: pointer;' : ''}
         `,
