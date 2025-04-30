@@ -30,7 +30,22 @@ const registerCommand: typeof commandsType.registerCommand = (
   });
 };
 
-// TODO: Make it typeof commandsType
-export const commands = {
+const executeCommand: typeof commandsType.executeCommand = <T>(
+  command: string,
+  ...args: any[]
+): Promise<T> => {
+  console.log('executing command', command, args);
+  // Replace with actual implementation if needed
+  return Promise.resolve(undefined as T);
+};
+
+const getCommands: typeof commandsType.getCommands = filterInternal => {
+  console.log('getting commands');
+  return Promise.resolve([]);
+};
+
+export const commands: typeof commandsType = {
   registerCommand,
+  executeCommand,
+  getCommands,
 };

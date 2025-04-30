@@ -19,11 +19,107 @@
 import { core as coreType } from '@apache-superset/types';
 import { getExtensionsContextValue } from './ExtensionsContextUtils';
 
+export class Column implements coreType.Column {
+  name: string;
+  type: string;
+
+  constructor(name: string, type: string) {
+    this.name = name;
+    this.type = type;
+  }
+}
+
+export class Table implements coreType.Table {
+  name: string;
+  columns: Column[];
+
+  constructor(name: string, columns: Column[]) {
+    this.name = name;
+    this.columns = columns;
+  }
+
+  addColumn(column: Column): void {
+    this.columns.push(column);
+  }
+}
+
+export class Catalog implements coreType.Catalog {
+  name: string;
+  description?: string;
+
+  constructor(name: string, description?: string) {
+    this.name = name;
+    this.description = description;
+  }
+}
+
+export class Schema implements coreType.Schema {
+  tables: Table[];
+
+  constructor(tables: Table[]) {
+    this.tables = tables;
+  }
+
+  addTable(table: Table): void {
+    this.tables.push(table);
+  }
+}
+
+export class Database implements coreType.Database {
+  id: number;
+  name: string;
+  catalogs: Catalog[];
+  schemas: Schema[];
+
+  constructor(
+    id: number,
+    name: string,
+    catalogs: Catalog[],
+    schemas: Schema[],
+  ) {
+    this.id = id;
+    this.name = name;
+    this.catalogs = catalogs;
+    this.schemas = schemas;
+  }
+
+  addCatalog(catalog: Catalog): void {
+    this.catalogs.push(catalog);
+  }
+
+  addSchema(schema: Schema): void {
+    this.schemas.push(schema);
+  }
+}
+
+export class Disposable implements coreType.Disposable {
+  private callOnDispose: () => any;
+
+  constructor(callOnDispose: () => any) {
+    this.callOnDispose = callOnDispose;
+  }
+
+  static from(...disposableLikes: { dispose: () => any }[]): Disposable {
+    return new Disposable(() => {
+      for (const disposable of disposableLikes) {
+        disposable.dispose();
+      }
+    });
+  }
+
+  dispose(): any {
+    if (this.callOnDispose) {
+      this.callOnDispose();
+    }
+  }
+}
+
 const registerView: typeof coreType.registerView = (id, view) => {
   const { registerView: register } = getExtensionsContextValue();
   register(id, view);
 };
 
-export const core = {
+export const core: typeof coreType = {
   registerView,
+  Disposable,
 };
