@@ -181,7 +181,7 @@ def check_sql_functions_exist(
     :param function_list: The list of functions to search for
     :param engine: The engine to use for parsing the SQL statement
     """
-    return ParsedQuery(sql, engine=engine).check_functions_exist(function_list)
+    return SQLScript(sql, engine=engine).check_functions_present(function_list)
 
 
 def strip_comments_from_sql(statement: str, engine: str = "base") -> str:
