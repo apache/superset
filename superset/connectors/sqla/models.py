@@ -1046,7 +1046,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     metric_type = Column(String(32))
     description = Column(utils.MediumText())
     d3format = Column(String(128))
-    currency = Column(String(128))
+    currency = Column(JSON, nullable=True)
     warning_text = Column(Text)
     table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
     expression = Column(utils.MediumText(), nullable=False)
