@@ -529,7 +529,7 @@ def cast_text_column_to_json(
         conn.execute(stmt_update)
 
     op.drop_column(table, column)
-    op.alter_column(table, tmp_column, new_column_name=column)
+    op.alter_column(table, tmp_column, existing_type=JSON(), new_column_name=column)
 
     return
 
@@ -583,6 +583,11 @@ def cast_json_column_to_text(
         conn.execute(stmt_update)
 
     op.drop_column(table, column)
-    op.alter_column(table, tmp_column, new_column_name=column)
+    op.alter_column(
+        table,
+        tmp_column,
+        existing_type=String(length=length),
+        new_column_name=column,
+    )
 
     return
