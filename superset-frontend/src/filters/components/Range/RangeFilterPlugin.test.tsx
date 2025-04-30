@@ -196,7 +196,7 @@ describe('RangeFilterPlugin', () => {
     });
 
     const inputs = screen.getAllByRole('spinbutton');
-    expect(inputs).toHaveLength(2);
+    expect(inputs).toHaveLength(1);
     expect(inputs[0]).toHaveValue('20');
   });
 
@@ -226,8 +226,8 @@ describe('RangeFilterPlugin', () => {
     });
 
     const inputs = screen.getAllByRole('spinbutton');
-    expect(inputs).toHaveLength(2);
-    expect(inputs[1]).toHaveValue('60');
+    expect(inputs).toHaveLength(1);
+    expect(inputs[0]).toHaveValue('60');
   });
 
   it('should call setDataMask with correct exact filter', () => {
@@ -256,7 +256,7 @@ describe('RangeFilterPlugin', () => {
     });
 
     const inputs = screen.getAllByRole('spinbutton');
-    expect(inputs).toHaveLength(2);
+    expect(inputs).toHaveLength(1);
     expect(inputs[0]).toHaveValue('10');
   });
 
