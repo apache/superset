@@ -29,8 +29,3 @@ class SupersetAuthView(BaseSupersetView):
     @no_cache
     def login(self) -> Response:
         return super().render_app_template()
-
-    @expose("/logout/")
-    @no_cache
-    def logout(self) -> Response:
-        return super().render_app_template()

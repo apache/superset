@@ -36,6 +36,7 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
+from flask_appbuilder.const import AUTH_OAUTH
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -329,15 +330,16 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     language = locale.language if locale else "en"
     auth_type = appbuilder.app.config["AUTH_TYPE"]
     frontend_config["AUTH_TYPE"] = auth_type
-    oauth_providers = []
-    for provider in appbuilder.sm.oauth_providers:
-        oauth_providers.append(
-            {
-                "name": provider["name"],
-                "icon": provider["icon"],
-            }
-        )
-    frontend_config["OAUTH_PROVIDERS"] = oauth_providers
+    if auth_type == AUTH_OAUTH:
+        oauth_providers = []
+        for provider in appbuilder.sm.oauth_providers:
+            oauth_providers.append(
+                {
+                    "name": provider["name"],
+                    "icon": provider["icon"],
+                }
+            )
+        frontend_config["OAUTH_PROVIDERS"] = oauth_providers
 
     bootstrap_data = {
         "application_root": conf["APPLICATION_ROOT"],
