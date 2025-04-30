@@ -6,6 +6,7 @@
       "commands": [
         {
           "command": "extension1.copy_query",
+          "icon": "CopyOutlined",
           "title": "Copy Query",
           "description": "Copy the current query to clipboard"
         },
@@ -38,7 +39,6 @@
           "primary": [
             {
               "view": "builtin.editor",
-              "icon": "CopyOutlined",
               "command": "extension1.copy_query"
             }
           ],

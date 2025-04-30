@@ -19,18 +19,30 @@
 
 // eslint-disable-next-line no-restricted-syntax
 import React from 'react';
-import { core } from '@apache-superset/types';
+import { commands, core } from '@apache-superset/types';
 import Component from './Component';
 import { formatDatabase } from './formatter';
 import { Extension1API } from './publicAPI';
+import { copy_query, clear, prettify, refresh } from './commands';
+
+const disposables: core.Disposable[] = [];
 
 export const activate = () => {
   core.registerView('extension1.component', <Component />);
+
+  disposables.push(
+    commands.registerCommand('extension1.copy_query', copy_query),
+    commands.registerCommand('extension1.clear', clear),
+    commands.registerCommand('extension1.prettify', prettify),
+    commands.registerCommand('extension1.refresh', refresh),
+  );
+
   return {
     formatDatabase,
   } as Extension1API;
 };
 
 export const deactivate = () => {
-  console.log('Extension 1 deactivated');
+  disposables.forEach(disposable => disposable.dispose());
+  disposables.length = 0;
 };

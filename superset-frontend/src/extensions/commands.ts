@@ -19,29 +19,39 @@
 import { commands as commandsType } from '@apache-superset/types';
 import { Disposable } from '@apache-superset/primitives';
 
+const commandRegistry: Map<string, (...args: any[]) => any> = new Map();
+
 const registerCommand: typeof commandsType.registerCommand = (
   command,
   callback,
   thisArg,
 ) => {
-  console.log('registering command', command);
+  if (commandRegistry.has(command)) {
+    throw new Error(`Command "${command}" is already registered.`);
+  }
+  const boundCallback = thisArg ? callback.bind(thisArg) : callback;
+  commandRegistry.set(command, boundCallback);
   return new Disposable(() => {
-    console.log('disposing command', command);
+    commandRegistry.delete(command);
   });
 };
 
-const executeCommand: typeof commandsType.executeCommand = <T>(
+const executeCommand: typeof commandsType.executeCommand = async <T>(
   command: string,
   ...args: any[]
 ): Promise<T> => {
-  console.log('executing command', command, args);
-  // Replace with actual implementation if needed
-  return Promise.resolve(undefined as T);
+  const callback = commandRegistry.get(command);
+  if (!callback) {
+    throw new Error(`Command "${command}" not found.`);
+  }
+  return callback(...args) as T;
 };
 
 const getCommands: typeof commandsType.getCommands = filterInternal => {
-  console.log('getting commands');
-  return Promise.resolve([]);
+  const commands = Array.from(commandRegistry.keys());
+  return Promise.resolve(
+    filterInternal ? commands.filter(cmd => !cmd.startsWith('_')) : commands,
+  );
 };
 
 export const commands: typeof commandsType = {
