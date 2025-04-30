@@ -56,10 +56,24 @@ def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
 def apply_column_types(
     df: pd.DataFrame, column_types: list[GenericDataType]
 ) -> pd.DataFrame:
-    for column, column_type in zip(df.columns, column_types):
+    """
+    Applies the column types to the dataframe to prepare for an excel export
+
+    :param df: The dataframe to apply the column types to
+    :param column_types: The types of the columns
+    :return: The dataframe with the column types applied
+    """
+    for column, column_type in zip(df.columns, column_types, strict=False):
         if column_type == GenericDataType.NUMERIC:
             try:
                 df[column] = pd.to_numeric(df[column])
+                # if the number is too large, convert it to a string
+                # Excel does not support numbers larger than 10^15
+                df[column] = df[column].apply(
+                    lambda x: str(x)
+                    if isinstance(x, (int, float)) and abs(x) > 10**15
+                    else x
+                )
             except ValueError:
                 df[column] = df[column].astype(str)
         elif pd.api.types.is_datetime64tz_dtype(df[column]):

@@ -70,8 +70,7 @@ json_metadata_description = (
     " specific parameters."
 )
 published_description = (
-    "Determines whether or not this dashboard is visible in "
-    "the list of all dashboards."
+    "Determines whether or not this dashboard is visible in the list of all dashboards."
 )
 charts_description = (
     "The names of the dashboard's charts. Names are used for legacy reasons."
@@ -180,7 +179,7 @@ class DashboardJSONMetadataSchema(Schema):
 
         This field was removed in https://github.com/apache/superset/pull/23228, but might
         be present in old exports.
-        """
+        """  # noqa: E501
         if "show_native_filters" in data:
             del data["show_native_filters"]
 
@@ -212,7 +211,7 @@ class DashboardGetResponseSchema(Schema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description}
     )
-    thumbnail_url = fields.String()
+    thumbnail_url = fields.String(allow_none=True)
     published = fields.Boolean()
     css = fields.String(metadata={"description": css_description})
     json_metadata = fields.String(metadata={"description": json_metadata_description})
@@ -438,18 +437,18 @@ class DashboardColorsConfigUpdateSchema(BaseDashboardSchema):
 
 
 class DashboardScreenshotPostSchema(Schema):
-    dataMask = fields.Dict(
+    dataMask = fields.Dict(  # noqa: N815
         keys=fields.Str(),
         values=fields.Raw(),
         metadata={"description": "An object representing the data mask."},
     )
-    activeTabs = fields.List(
+    activeTabs = fields.List(  # noqa: N815
         fields.Str(), metadata={"description": "A list representing active tabs."}
     )
     anchor = fields.String(
         metadata={"description": "A string representing the anchor."}
     )
-    urlParams = fields.List(
+    urlParams = fields.List(  # noqa: N815
         fields.Tuple(
             (fields.Str(), fields.Str()),
         ),
@@ -466,7 +465,7 @@ class GetFavStarIdsSchema(Schema):
     result = fields.List(
         fields.Nested(ChartFavStarResponseResult),
         metadata={
-            "description": "A list of results for each corresponding chart in the request"
+            "description": "A list of results for each corresponding chart in the request"  # noqa: E501
         },
     )
 
@@ -485,6 +484,7 @@ class ImportV1DashboardSchema(Schema):
     certified_by = fields.String(allow_none=True)
     certification_details = fields.String(allow_none=True)
     published = fields.Boolean(allow_none=True)
+    tags = fields.List(fields.String(), allow_none=True)
 
 
 class EmbeddedDashboardConfigSchema(Schema):
@@ -507,12 +507,19 @@ class DashboardCacheScreenshotResponseSchema(Schema):
     image_url = fields.String(
         metadata={"description": "The url to fetch the screenshot"}
     )
+    task_status = fields.String(
+        metadata={"description": "The status of the async screenshot"}
+    )
+    task_updated_at = fields.String(
+        metadata={"description": "The timestamp of the last change in status"}
+    )
 
 
 class CacheScreenshotSchema(Schema):
-    dataMask = fields.Dict(keys=fields.Str(), values=fields.Raw(), required=False)
-    activeTabs = fields.List(fields.Str(), required=False)
+    dataMask = fields.Dict(keys=fields.Str(), values=fields.Raw(), required=False)  # noqa: N815
+    activeTabs = fields.List(fields.Str(), required=False)  # noqa: N815
     anchor = fields.Str(required=False)
-    urlParams = fields.List(
+    urlParams = fields.List(  # noqa: N815
         fields.List(fields.Str(), validate=lambda x: len(x) == 2), required=False
     )
+    permalinkKey = fields.Str(required=False)  # noqa: N815

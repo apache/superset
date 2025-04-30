@@ -272,11 +272,12 @@ class ParsedQuery:
             logger.warning("Unable to parse SQL (%s): %s", self._dialect, self.sql)
             raise SupersetSecurityException(
                 SupersetError(
-                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
                     message=__(
                         "You may have an error in your SQL statement. {message}"
                     ).format(message=ex.error.message),
                     level=ErrorLevel.ERROR,
+                    extra=ex.error.extra,
                 )
             ) from ex
 
@@ -318,7 +319,7 @@ class ParsedQuery:
                     return False
         return True
 
-    def is_select(self) -> bool:
+    def is_select(self) -> bool:  # noqa: C901
         # make sure we strip comments; prevents a bug with comments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
         seen_select = False
@@ -333,7 +334,7 @@ class ParsedQuery:
                         ):
                             return False
                     except ValueError:
-                        # sqloxide was not able to parse the query, so let's continue with
+                        # sqloxide was not able to parse the query, so let's continue with  # noqa: E501
                         # sqlparse
                         pass
                 inner_cte = self.get_inner_cte_expression(statement.tokens) or []
@@ -753,7 +754,7 @@ def insert_rls_as_subquery(
     return token_list
 
 
-def insert_rls_in_predicate(
+def insert_rls_in_predicate(  # noqa: C901
     token_list: TokenList,
     database_id: int,
     default_schema: str | None,
@@ -807,7 +808,7 @@ def insert_rls_in_predicate(
             )
             state = InsertRLSState.SCANNING
 
-        # Found ON clause, insert RLS. The logic for ON is more complicated than the logic
+        # Found ON clause, insert RLS. The logic for ON is more complicated than the logic  # noqa: E501
         # for WHERE because in the former the comparisons are siblings, while on the
         # latter they are children.
         elif (
@@ -899,7 +900,7 @@ RE_JINJA_VAR = re.compile(r"\{\{[^\{\}]+\}\}")
 RE_JINJA_BLOCK = re.compile(r"\{[%#][^\{\}%#]+[%#]\}")
 
 
-def extract_table_references(
+def extract_table_references(  # noqa: C901
     sql_text: str, sqla_dialect: str, show_warning: bool = True
 ) -> set[Table]:
     """
@@ -909,7 +910,7 @@ def extract_table_references(
     tree = None
 
     if sqloxide_parse:
-        for dialect, sqla_dialects in SQLOXIDE_DIALECTS.items():
+        for dialect, sqla_dialects in SQLOXIDE_DIALECTS.items():  # noqa: B007
             if sqla_dialect in sqla_dialects:
                 break
         sql_text = RE_JINJA_BLOCK.sub(" ", sql_text)

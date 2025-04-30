@@ -49,6 +49,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.models.sql_lab import Query
+from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
@@ -63,6 +64,8 @@ from superset.utils.core import (
     get_column_names_from_metrics,
     get_metric_names,
     get_x_axis_label,
+    is_adhoc_column,
+    is_adhoc_metric,
     normalize_dttm_col,
     TIME_COMPARISON,
 )
@@ -180,6 +183,30 @@ class QueryContextProcessor:
             ]
             for col in cache.df.columns.values
         }
+        label_map.update(
+            {
+                column_name: [
+                    str(query_obj.columns[idx])
+                    if not is_adhoc_column(query_obj.columns[idx])
+                    else cast(AdhocColumn, query_obj.columns[idx])["sqlExpression"],
+                ]
+                for idx, column_name in enumerate(query_obj.column_names)
+            }
+        )
+        label_map.update(
+            {
+                metric_name: [
+                    str(query_obj.metrics[idx])
+                    if not is_adhoc_metric(query_obj.metrics[idx])
+                    else str(cast(AdhocMetric, query_obj.metrics[idx])["sqlExpression"])
+                    if cast(AdhocMetric, query_obj.metrics[idx])["expressionType"]
+                    == "SQL"
+                    else metric_name,
+                ]
+                for idx, metric_name in enumerate(query_obj.metric_names)
+                if query_obj and query_obj.metrics
+            }
+        )
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
 
         return {
@@ -394,15 +421,15 @@ class QueryContextProcessor:
         :returns: The time offset.
         """
         if offset == "inherit":
-            # return the difference in days between the from and the to dttm formatted as a string with the " days ago" suffix
+            # return the difference in days between the from and the to dttm formatted as a string with the " days ago" suffix  # noqa: E501
             return f"{(outer_to_dttm - outer_from_dttm).days} days ago"
         if self.is_valid_date(offset):
-            # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix
+            # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix  # noqa: E501
             offset_date = datetime.strptime(offset, "%Y-%m-%d")
             return f"{(outer_from_dttm - offset_date).days} days ago"
         return ""
 
-    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
+    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements  # noqa: C901
         self,
         df: pd.DataFrame,
         query_object: QueryObject,
@@ -433,14 +460,14 @@ class QueryContextProcessor:
         for offset in query_object.time_offsets:
             try:
                 # pylint: disable=line-too-long
-                # Since the x-axis is also a column name for the time filter, x_axis_label will be set as granularity
+                # Since the x-axis is also a column name for the time filter, x_axis_label will be set as granularity  # noqa: E501
                 # these query object are equivalent:
-                # 1) { granularity: 'dttm_col', time_range: '2020 : 2021', time_offsets: ['1 year ago']}
+                # 1) { granularity: 'dttm_col', time_range: '2020 : 2021', time_offsets: ['1 year ago']}  # noqa: E501
                 # 2) { columns: [
-                #        {label: 'dttm_col', sqlExpression: 'dttm_col', "columnType": "BASE_AXIS" }
+                #        {label: 'dttm_col', sqlExpression: 'dttm_col', "columnType": "BASE_AXIS" }  # noqa: E501
                 #      ],
                 #      time_offsets: ['1 year ago'],
-                #      filters: [{col: 'dttm_col', op: 'TEMPORAL_RANGE', val: '2020 : 2021'}],
+                #      filters: [{col: 'dttm_col', op: 'TEMPORAL_RANGE', val: '2020 : 2021'}],  # noqa: E501
                 #    }
                 original_offset = offset
                 if self.is_valid_date(offset) or offset == "inherit":
@@ -494,10 +521,10 @@ class QueryContextProcessor:
                 if flt.get("col") != x_axis_label
             ]
 
-            # Inherit or custom start dates might compute the same offset but the response cannot be given
-            # using cached data unless you are using the same date of inherited range, that's why we
-            # set the cache cache using a custom key that includes the original offset and the computed offset
-            # for those two scenarios, the rest of the scenarios will use the original offset as cache key
+            # Inherit or custom start dates might compute the same offset but the response cannot be given  # noqa: E501
+            # using cached data unless you are using the same date of inherited range, that's why we  # noqa: E501
+            # set the cache cache using a custom key that includes the original offset and the computed offset  # noqa: E501
+            # for those two scenarios, the rest of the scenarios will use the original offset as cache key  # noqa: E501
             cached_time_offset_key = (
                 offset if offset == original_offset else f"{offset}_{original_offset}"
             )
@@ -824,7 +851,7 @@ class QueryContextProcessor:
         return annotation_data
 
     @staticmethod
-    def get_viz_annotation_data(
+    def get_viz_annotation_data(  # noqa: C901
         annotation_layer: dict[str, Any], force: bool
     ) -> dict[str, Any]:
         # pylint: disable=import-outside-toplevel

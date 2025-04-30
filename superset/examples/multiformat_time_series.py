@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Optional
 
 import pandas as pd
@@ -32,6 +33,8 @@ from .helpers import (
     merge_slice,
     misc_dash_slices,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def load_multiformat_time_series(  # pylint: disable=too-many-locals
@@ -75,10 +78,10 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
                 },
                 index=False,
             )
-        print("Done loading table!")
-        print("-" * 80)
+        logger.debug("Done loading table!")
+        logger.debug("-" * 80)
 
-    print(f"Creating table [{tbl_name}] reference")
+    logger.debug(f"Creating table [{tbl_name}] reference")
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
@@ -105,7 +108,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
     obj.fetch_metadata()
     tbl = obj
 
-    print("Creating Heatmap charts")
+    logger.debug("Creating Heatmap charts")
     for i, col in enumerate(tbl.columns):
         slice_data = {
             "metrics": ["count"],

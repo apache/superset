@@ -98,6 +98,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       !formatTime ||
       !showTimestamp ||
       typeof timestamp === 'string' ||
+      typeof timestamp === 'bigint' ||
       typeof timestamp === 'boolean'
     )
       return null;
@@ -120,7 +121,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         className="kicker"
         style={{
           fontSize,
-          height: maxHeight,
+          height: 'auto',
         }}
       >
         {text}
@@ -156,7 +157,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     document.body.append(container);
     const fontSize = computeMaxFontSize({
       text,
-      maxWidth: width - 8, // Decrease 8px for more precise font size
+      maxWidth: width * 0.9, // reduced it's max width
       maxHeight,
       className: 'header-line',
       container,
@@ -174,8 +175,10 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       <div
         className="header-line"
         style={{
+          display: 'flex',
+          alignItems: 'center',
           fontSize,
-          height: maxHeight,
+          height: 'auto',
           color: numberColor,
         }}
         onContextMenu={onContextMenu}
@@ -185,31 +188,26 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     );
   }
 
-  renderSubheader(maxHeight: number) {
-    const { bigNumber, subheader, width, bigNumberFallback } = this.props;
+  rendermetricComparisonSummary(maxHeight: number) {
+    const { subheader, width } = this.props;
     let fontSize = 0;
 
-    const NO_DATA_OR_HASNT_LANDED = t(
-      'No data after filtering or data is NULL for the latest time record',
-    );
-    const NO_DATA = t(
-      'Try applying different filters or ensuring your datasource has data',
-    );
-    let text = subheader;
-    if (bigNumber === null) {
-      text = bigNumberFallback ? NO_DATA : NO_DATA_OR_HASNT_LANDED;
-    }
+    const text = subheader;
+
     if (text) {
       const container = this.createTemporaryContainer();
       document.body.append(container);
-      fontSize = computeMaxFontSize({
-        text,
-        maxWidth: width,
-        maxHeight,
-        className: 'subheader-line',
-        container,
-      });
-      container.remove();
+      try {
+        fontSize = computeMaxFontSize({
+          text,
+          maxWidth: width * 0.9,
+          maxHeight,
+          className: 'subheader-line',
+          container,
+        });
+      } finally {
+        container.remove();
+      }
 
       return (
         <div
@@ -221,6 +219,52 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         >
           {text}
         </div>
+      );
+    }
+    return null;
+  }
+
+  renderSubtitle(maxHeight: number) {
+    const { subtitle, width, bigNumber, bigNumberFallback } = this.props;
+    let fontSize = 0;
+
+    const NO_DATA_OR_HASNT_LANDED = t(
+      'No data after filtering or data is NULL for the latest time record',
+    );
+    const NO_DATA = t(
+      'Try applying different filters or ensuring your datasource has data',
+    );
+
+    let text = subtitle;
+    if (bigNumber === null) {
+      text =
+        subtitle || (bigNumberFallback ? NO_DATA : NO_DATA_OR_HASNT_LANDED);
+    }
+
+    if (text) {
+      const container = this.createTemporaryContainer();
+      document.body.append(container);
+      fontSize = computeMaxFontSize({
+        text,
+        maxWidth: width * 0.9,
+        maxHeight,
+        className: 'subtitle-line',
+        container,
+      });
+      container.remove();
+
+      return (
+        <>
+          <div
+            className="subtitle-line subheader-line"
+            style={{
+              fontSize: `${fontSize}px`,
+              height: maxHeight,
+            }}
+          >
+            {text}
+          </div>
+        </>
       );
     }
     return null;
@@ -278,6 +322,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       height,
       kickerFontSize,
       headerFontSize,
+      subtitleFontSize,
       subheaderFontSize,
     } = this.props;
     const className = this.getClassName();
@@ -298,10 +343,13 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
             {this.renderHeader(
               Math.ceil(headerFontSize * (1 - PROPORTION.TRENDLINE) * height),
             )}
-            {this.renderSubheader(
+            {this.rendermetricComparisonSummary(
               Math.ceil(
                 subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
               ),
+            )}
+            {this.renderSubtitle(
+              Math.ceil(subtitleFontSize * (1 - PROPORTION.TRENDLINE) * height),
             )}
           </div>
           {this.renderTrendline(chartHeight)}
@@ -314,7 +362,10 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         {this.renderFallbackWarning()}
         {this.renderKicker((kickerFontSize || 0) * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}
-        {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
+        {this.rendermetricComparisonSummary(
+          Math.ceil(subheaderFontSize * height),
+        )}
+        {this.renderSubtitle(Math.ceil(subtitleFontSize * height))}
       </div>
     );
   }
@@ -356,6 +407,7 @@ export default styled(BigNumberVis)`
       position: relative;
       line-height: 1em;
       white-space: nowrap;
+      margin-bottom:${theme.gridUnit * 2}px;
       span {
         position: absolute;
         bottom: 0;
@@ -363,6 +415,11 @@ export default styled(BigNumberVis)`
     }
 
     .subheader-line {
+      line-height: 1em;
+      padding-bottom: 0;
+    }
+
+    .subtitle-line {
       line-height: 1em;
       padding-bottom: 0;
     }

@@ -35,7 +35,7 @@ from flask_babel import ngettext
 from jinja2.exceptions import TemplateSyntaxError
 from marshmallow import ValidationError
 
-from superset import event_logger
+from superset import event_logger, is_feature_enabled
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.delete import DeleteDatasetCommand
 from superset.commands.dataset.duplicate import DuplicateDatasetCommand
@@ -134,6 +134,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "schema",
         "sql",
         "table_name",
+        "uuid",
     ]
     list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
@@ -193,8 +194,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics.id",
         "metrics.metric_name",
         "metrics.metric_type",
+        "metrics.uuid",
         "metrics.verbose_name",
         "metrics.warning_text",
+        "folders",
         "datasource_type",
         "url",
         "extra",
@@ -568,7 +571,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".duplicate",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.duplicate",
         log_to_statsd=False,
     )
     @requires_json
@@ -620,9 +623,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response(201, id=new_model.id, result=item)
         except DatasetInvalidError as ex:
             return self.response_422(
-                message=ex.normalized_messages()
-                if isinstance(ex, ValidationError)
-                else str(ex)
+                message=(
+                    ex.normalized_messages()
+                    if isinstance(ex, ValidationError)
+                    else str(ex)
+                )
             )
         except DatasetCreateFailedError as ex:
             logger.error(
@@ -638,7 +643,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".refresh",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.refresh",
         log_to_statsd=False,
     )
     def refresh(self, pk: int) -> Response:
@@ -1016,8 +1021,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".warm_up_cache",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.warm_up_cache",
         log_to_statsd=False,
     )
     def warm_up_cache(self) -> Response:
@@ -1052,7 +1056,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
-        """
+        """  # noqa: E501
         try:
             body = DatasetCacheWarmUpRequestSchema().load(request.json)
         except ValidationError as error:
@@ -1075,7 +1079,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @handle_api_exception
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".get",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
     )
     def get(self, pk: int, **kwargs: Any) -> Response:
@@ -1152,6 +1156,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         response["id"] = pk
         response[API_RESULT_RES_KEY] = show_model_schema.dump(item, many=False)
 
+        # remove folders from resposne if `DATASET_FOLDERS` is disabled, so that it's
+        # possible to inspect if the feature is supported or not
+        if (
+            not is_feature_enabled("DATASET_FOLDERS")
+            and "folders" in response[API_RESULT_RES_KEY]
+        ):
+            del response[API_RESULT_RES_KEY]["folders"]
+
         if parse_boolean_string(request.args.get("include_rendered_sql")):
             try:
                 processor = get_template_processor(database=item.database)
@@ -1176,14 +1188,16 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         def render_item_list(item_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
             return [
-                {
-                    **item,
-                    "rendered_expression": processor.process_template(
-                        item["expression"]
-                    ),
-                }
-                if item.get("expression")
-                else item
+                (
+                    {
+                        **item,
+                        "rendered_expression": processor.process_template(
+                            item["expression"]
+                        ),
+                    }
+                    if item.get("expression")
+                    else item
+                )
                 for item in item_list
             ]
 

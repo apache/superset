@@ -27,7 +27,7 @@ class SupersetErrorType(StrEnum):
     Types of errors that can exist within Superset.
 
     Keep in sync with superset-frontend/packages/superset-ui-core/src/query/types/Query.ts
-    """
+    """  # noqa: E501
 
     # Frontend errors
     FRONTEND_CSRF_ERROR = "FRONTEND_CSRF_ERROR"
@@ -40,7 +40,7 @@ class SupersetErrorType(StrEnum):
     TABLE_DOES_NOT_EXIST_ERROR = "TABLE_DOES_NOT_EXIST_ERROR"
     SCHEMA_DOES_NOT_EXIST_ERROR = "SCHEMA_DOES_NOT_EXIST_ERROR"
     CONNECTION_INVALID_USERNAME_ERROR = "CONNECTION_INVALID_USERNAME_ERROR"
-    CONNECTION_INVALID_PASSWORD_ERROR = "CONNECTION_INVALID_PASSWORD_ERROR"
+    CONNECTION_INVALID_PASSWORD_ERROR = "CONNECTION_INVALID_PASSWORD_ERROR"  # noqa: S105
     CONNECTION_INVALID_HOSTNAME_ERROR = "CONNECTION_INVALID_HOSTNAME_ERROR"
     CONNECTION_PORT_CLOSED_ERROR = "CONNECTION_PORT_CLOSED_ERROR"
     CONNECTION_INVALID_PORT_ERROR = "CONNECTION_INVALID_PORT_ERROR"
@@ -201,7 +201,7 @@ class ErrorLevel(StrEnum):
     Levels of errors that can exist within Superset.
 
     Keep in sync with superset-frontend/packages/superset-ui-core/src/query/types/Query.ts
-    """
+    """  # noqa: E501
 
     INFO = "info"
     WARNING = "warning"

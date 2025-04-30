@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import copy
+import logging
 from typing import Any
 
 from sqlalchemy import and_, Column, Integer, String, Text
@@ -25,6 +26,8 @@ from superset import conf
 from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
 from superset.utils import json
+
+logger = logging.getLogger("alembic")
 
 Base = declarative_base()
 
@@ -62,8 +65,8 @@ class MigrateViz:
         if "viz_type" in self.data:
             self.data["viz_type"] = self.target_viz_type
 
-        # Sometimes visualizations have same keys in the source form_data and rename_keys
-        # We need to remove them from data to allow the migration to work properly with rename_keys
+        # Sometimes visualizations have same keys in the source form_data and rename_keys  # noqa: E501
+        # We need to remove them from data to allow the migration to work properly with rename_keys  # noqa: E501
         for source_key, target_key in self.rename_keys.items():
             if source_key in self.data and target_key in self.data:
                 self.data.pop(target_key)
@@ -121,41 +124,51 @@ class MigrateViz:
 
     @classmethod
     def upgrade_slice(cls, slc: Slice) -> None:
-        clz = cls(slc.params)
-        form_data_bak = copy.deepcopy(clz.data)
+        try:
+            clz = cls(slc.params)
+            form_data_bak = copy.deepcopy(clz.data)
 
-        clz._pre_action()
-        clz._migrate()
-        clz._post_action()
+            clz._pre_action()
+            clz._migrate()
+            clz._post_action()
 
-        # viz_type depends on the migration and should be set after its execution
-        # because a source viz can be mapped to different target viz types
-        slc.viz_type = clz.target_viz_type
+            # viz_type depends on the migration and should be set after its execution
+            # because a source viz can be mapped to different target viz types
+            slc.viz_type = clz.target_viz_type
 
-        # only backup params
-        slc.params = json.dumps({**clz.data, FORM_DATA_BAK_FIELD_NAME: form_data_bak})
+            # only backup params
+            slc.params = json.dumps(
+                {**clz.data, FORM_DATA_BAK_FIELD_NAME: form_data_bak}
+            )
 
-        if "form_data" in (query_context := try_load_json(slc.query_context)):
-            query_context["form_data"] = clz.data
-            slc.query_context = json.dumps(query_context)
+            if "form_data" in (query_context := try_load_json(slc.query_context)):
+                query_context["form_data"] = clz.data
+                slc.query_context = json.dumps(query_context)
+        except Exception as e:
+            logger.warning(f"Failed to migrate slice {slc.id}: {e}")
 
     @classmethod
     def downgrade_slice(cls, slc: Slice) -> None:
-        form_data = try_load_json(slc.params)
-        if "viz_type" in (form_data_bak := form_data.get(FORM_DATA_BAK_FIELD_NAME, {})):
-            slc.params = json.dumps(form_data_bak)
-            slc.viz_type = form_data_bak.get("viz_type")
-            query_context = try_load_json(slc.query_context)
-            if "form_data" in query_context:
-                query_context["form_data"] = form_data_bak
-                slc.query_context = json.dumps(query_context)
+        try:
+            form_data = try_load_json(slc.params)
+            if "viz_type" in (
+                form_data_bak := form_data.get(FORM_DATA_BAK_FIELD_NAME, {})
+            ):
+                slc.params = json.dumps(form_data_bak)
+                slc.viz_type = form_data_bak.get("viz_type")
+                query_context = try_load_json(slc.query_context)
+                if "form_data" in query_context:
+                    query_context["form_data"] = form_data_bak
+                    slc.query_context = json.dumps(query_context)
+        except Exception as e:
+            logger.warning(f"Failed to downgrade slice {slc.id}: {e}")
 
     @classmethod
     def upgrade(cls, session: Session) -> None:
         slices = session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
         for slc in paginated_update(
             slices,
-            lambda current, total: print(f"Upgraded {current}/{total} charts"),
+            lambda current, total: logger.info(f"Upgraded {current}/{total} charts"),
         ):
             cls.upgrade_slice(slc)
 
@@ -169,6 +182,6 @@ class MigrateViz:
         )
         for slc in paginated_update(
             slices,
-            lambda current, total: print(f"Downgraded {current}/{total} charts"),
+            lambda current, total: logger.info(f"Downgraded {current}/{total} charts"),
         ):
             cls.downgrade_slice(slc)

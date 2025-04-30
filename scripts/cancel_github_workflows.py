@@ -49,7 +49,7 @@ github_repo = os.environ.get("GITHUB_REPOSITORY", "apache/superset")
 def request(
     method: Literal["GET", "POST", "DELETE", "PUT"], endpoint: str, **kwargs: Any
 ) -> dict[str, Any]:
-    resp = requests.request(
+    resp = requests.request(  # noqa: S113
         method,
         f"https://api.github.com/{endpoint.lstrip('/')}",
         headers={"Authorization": f"Bearer {github_token}"},
@@ -152,7 +152,7 @@ Date:   {date_str}
     help="Whether to also cancel running workflows.",
 )
 @click.argument("branch_or_pull", required=False)
-def cancel_github_workflows(
+def cancel_github_workflows(  # noqa: C901
     branch_or_pull: Optional[str],
     repo: str,
     event: list[str],
@@ -217,7 +217,7 @@ def cancel_github_workflows(
         seen = set()
         dups = []
         for item in reversed(runs):
-            key = f'{item["event"]}_{item["head_branch"]}_{item["workflow_id"]}'
+            key = f"{item['event']}_{item['head_branch']}_{item['workflow_id']}"
             if key in seen:
                 dups.append(item)
             else:

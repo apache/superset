@@ -38,18 +38,37 @@ import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
 import { NULL_STRING } from '../constants';
 
+const isIterable = (obj: any): obj is Iterable<any> =>
+  obj != null && typeof obj[Symbol.iterator] === 'function';
+
 function normalizeSymbolSize(
   nodes: ScatterSeriesOption[],
   maxBubbleValue: number,
 ) {
-  const [bubbleMinValue, bubbleMaxValue] = extent(nodes, x => x.data?.[0]?.[2]);
-  const nodeSpread = bubbleMaxValue - bubbleMinValue;
-  nodes.forEach(node => {
-    // eslint-disable-next-line no-param-reassign
-    node.symbolSize =
-      (((node.data?.[0]?.[2] - bubbleMinValue) / nodeSpread) *
-        (maxBubbleValue * 2) || 0) + MINIMUM_BUBBLE_SIZE;
-  });
+  const [bubbleMinValue, bubbleMaxValue] = extent<ScatterSeriesOption, number>(
+    nodes,
+    x => {
+      const tmpValue = x.data?.[0];
+      const result = isIterable(tmpValue) ? tmpValue[2] : null;
+      if (typeof result === 'number') {
+        return result;
+      }
+      return null;
+    },
+  );
+  if (bubbleMinValue !== undefined && bubbleMaxValue !== undefined) {
+    const nodeSpread = bubbleMaxValue - bubbleMinValue;
+    nodes.forEach(node => {
+      const tmpValue = node.data?.[0];
+      const calculated = isIterable(tmpValue) ? tmpValue[2] : null;
+      if (typeof calculated === 'number') {
+        // eslint-disable-next-line no-param-reassign
+        node.symbolSize =
+          (((calculated - bubbleMinValue) / nodeSpread) *
+            (maxBubbleValue * 2) || 0) + MINIMUM_BUBBLE_SIZE;
+      }
+    });
+  }
 }
 
 export function formatTooltip(
@@ -182,7 +201,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       name: bubbleXAxisTitle,
       nameLocation: 'middle',
       nameTextStyle: {
-        fontWight: 'bolder',
+        fontWeight: 'bolder',
       },
       nameGap: convertInteger(xAxisTitleMargin),
       type: xAxisType,
@@ -200,7 +219,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       name: bubbleYAxisTitle,
       nameLocation: 'middle',
       nameTextStyle: {
-        fontWight: 'bolder',
+        fontWeight: 'bolder',
       },
       nameGap: convertInteger(yAxisTitleMargin),
       min: yAxisMin,

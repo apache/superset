@@ -18,11 +18,17 @@
  */
 import { isValidElement } from 'react';
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import TableElement, { Column } from 'src/SqlLab/components/TableElement';
 import { table, initialState } from 'src/SqlLab/fixtures';
 import { render, waitFor, fireEvent } from 'spec/helpers/testing-library';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 jest.mock('src/components/Loading', () => () => (
   <div data-test="mock-loading" />
@@ -86,7 +92,7 @@ test('has 4 IconTooltip elements', async () => {
     initialState,
   });
   await waitFor(() =>
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
+    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
   );
 });
 
@@ -106,7 +112,7 @@ test('fades table', async () => {
     initialState,
   });
   await waitFor(() =>
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
+    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
   );
   const style = window.getComputedStyle(getAllByTestId('fade')[0]);
   expect(style.opacity).toBe('0');
@@ -127,7 +133,7 @@ test('sorts columns', async () => {
     },
   );
   await waitFor(() =>
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
+    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
   );
   expect(
     getAllByTestId('mock-column-element').map(el => el.textContent),
@@ -143,11 +149,9 @@ test('sorts columns', async () => {
 test('removes the table', async () => {
   const updateTableSchemaEndpoint = 'glob:*/tableschemaview/*';
   fetchMock.delete(updateTableSchemaEndpoint, {});
-  const isFeatureEnabledMock = jest
-    .spyOn(uiCore, 'isFeatureEnabled')
-    .mockImplementation(
-      featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
-    );
+  mockedIsFeatureEnabled.mockImplementation(
+    featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
+  );
   const { getAllByTestId, getByText } = render(
     <TableElement {...mockedProps} />,
     {
@@ -156,14 +160,14 @@ test('removes the table', async () => {
     },
   );
   await waitFor(() =>
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
+    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
   );
   expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(0);
   fireEvent.click(getByText('Remove table preview'));
   await waitFor(() =>
     expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1),
   );
-  isFeatureEnabledMock.mockClear();
+  mockedIsFeatureEnabled.mockClear();
 });
 
 test('fetches table metadata when expanded', async () => {
@@ -189,7 +193,7 @@ test('refreshes table metadata when triggered', async () => {
     },
   );
   await waitFor(() =>
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
+    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
   );
   expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(0);
   expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1);

@@ -187,11 +187,11 @@ def test_extract_errors() -> None:
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={
-                "engine_name": "Databricks",
+                "engine_name": "Databricks (legacy)",
                 "issue_codes": [
                     {
                         "code": 1002,
-                        "message": "Issue 1002 - The database returned an unexpected error.",
+                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
                     }
                 ],
             },
@@ -214,11 +214,11 @@ def test_extract_errors_with_context() -> None:
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={
-                "engine_name": "Databricks",
+                "engine_name": "Databricks (legacy)",
                 "issue_codes": [
                     {
                         "code": 1002,
-                        "message": "Issue 1002 - The database returned an unexpected error.",
+                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
                     }
                 ],
             },
@@ -242,7 +242,9 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec as spec
+    from superset.db_engine_specs.databricks import (
+        DatabricksNativeEngineSpec as spec,  # noqa: N813
+    )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 

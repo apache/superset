@@ -17,12 +17,24 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
-import { screen, waitFor, render } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { ReactElement } from 'react';
 import fetchMock from 'fetch-mock';
 import { createMemoryHistory } from 'history';
 import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+
+const renderWithTheme = (component: ReactElement, renderOptions = {}) =>
+  render(
+    <ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>,
+    renderOptions,
+  );
 
 jest.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
@@ -88,8 +100,13 @@ const renderOptions = {
 };
 
 async function renderComponent(user = mockUser) {
-  render(
-    <ChartCreation user={user} addSuccessToast={() => null} {...routeProps} />,
+  renderWithTheme(
+    <ChartCreation
+      user={user}
+      addSuccessToast={() => null}
+      theme={supersetTheme}
+      {...routeProps}
+    />,
     renderOptions,
   );
   await waitFor(() => new Promise(resolve => setTimeout(resolve, 0)));

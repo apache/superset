@@ -25,7 +25,7 @@ import { TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { expandFilterOnLeftPanel } from './utils';
 
 const TREEMAP = { name: 'Treemap', viz: 'treemap_v2' };
-const LINE_CHART = { name: 'Growth Rate', viz: 'line' };
+const LINE_CHART = { name: 'Growth Rate', viz: 'echarts_timeseries_line' };
 const BOX_PLOT = { name: 'Box plot', viz: 'box_plot' };
 const BIG_NUMBER = { name: 'Number of Girls', viz: 'big_number_total' };
 const TABLE = { name: 'Names Sorted by Num in California', viz: 'table' };
@@ -64,9 +64,8 @@ describe('Dashboard tabs', () => {
     cy.get('@top-level-tabs')
       .last()
       .should('not.have.class', 'ant-tabs-tab-active');
-
-    cy.getBySel('grid-container').find('.box_plot').should('not.exist');
-    cy.getBySel('grid-container').find('.line').should('not.exist');
+    cy.get('[data-test-chart-name="Box plot"]').should('not.exist');
+    cy.get('[data-test-chart-name="Trends"]').should('not.exist');
 
     cy.get('@top-level-tabs').last().click();
     cy.get('@top-level-tabs')
@@ -76,7 +75,8 @@ describe('Dashboard tabs', () => {
       .first()
       .should('not.have.class', 'ant-tabs-tab-active');
     waitForChartLoad(BOX_PLOT);
-    cy.getBySel('grid-container').find('.box_plot').should('be.visible');
+
+    cy.get('[data-test-chart-name="Box plot"]').should('exist');
 
     resetTabs();
 
@@ -88,7 +88,7 @@ describe('Dashboard tabs', () => {
 
     cy.get('@row-level-tabs').last().click();
     waitForChartLoad(LINE_CHART);
-    cy.getBySel('grid-container').find('.line').should('be.visible');
+    cy.get('[data-test-chart-name="Trends"]').should('exist');
     cy.get('@row-level-tabs').first().click();
   });
 
@@ -116,7 +116,7 @@ describe('Dashboard tabs', () => {
       });
     });
 
-    cy.intercept('/superset/explore_json/?*').as('legacyChartData');
+    cy.intercept('**/superset/explore_json/?*').as('legacyChartData');
     // click row level tab, send 1 more query
     cy.get('.ant-tabs-tab').contains('row tab 2').click();
 
@@ -131,7 +131,7 @@ describe('Dashboard tabs', () => {
       expect(requestParams.viz_type).eq(LINE_CHART.viz);
     });
 
-    cy.intercept('POST', '/api/v1/chart/data?*').as('v1ChartData');
+    cy.intercept('POST', '**/api/v1/chart/data?*').as('v1ChartData');
 
     // click top level tab, send 1 more query
     cy.get('.ant-tabs-tab').contains('Tab B').click();

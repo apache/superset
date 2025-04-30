@@ -18,10 +18,10 @@
  */
 import { useMemo, FC, ReactElement } from 'react';
 
-import { t, styled, useTheme } from '@superset-ui/core';
+import { t, styled, useTheme, SupersetTheme } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
@@ -44,11 +44,13 @@ export interface RunQueryActionButtonProps {
 const buildText = (
   shouldShowStopButton: boolean,
   selectedText: string | undefined,
+  theme: SupersetTheme,
 ): string | JSX.Element => {
   if (shouldShowStopButton) {
     return (
       <>
-        <i className="fa fa-stop" /> {t('Stop')}
+        <Icons.Square iconSize="xs" iconColor={theme.colors.primary.light5} />
+        {t('Stop')}
       </>
     );
   }
@@ -148,13 +150,12 @@ const RunQueryActionButton = ({
           ? {
               overlay: overlayCreateAsMenu,
               icon: (
-                <Icons.CaretDown
+                <Icons.DownOutlined
                   iconColor={
                     isDisabled
                       ? theme.colors.grayscale.base
                       : theme.colors.grayscale.light5
                   }
-                  name="caret-down"
                 />
               ),
               trigger: 'click',
@@ -163,7 +164,7 @@ const RunQueryActionButton = ({
               buttonStyle: shouldShowStopBtn ? 'warning' : 'primary',
             })}
       >
-        {buildText(shouldShowStopBtn, selectedText)}
+        {buildText(shouldShowStopBtn, selectedText, theme)}
       </ButtonComponent>
     </StyledButton>
   );

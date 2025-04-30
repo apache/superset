@@ -21,7 +21,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from superset.db_engine_specs.impala import ImpalaEngineSpec as spec
+from superset.db_engine_specs.impala import ImpalaEngineSpec as spec  # noqa: N813
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm

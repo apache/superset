@@ -36,7 +36,7 @@ import { Resizable } from 're-resizable';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import {
   getItem,
   setItem,
@@ -50,6 +50,7 @@ import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from 'src/logger/LogUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
@@ -215,7 +216,7 @@ const updateHistory = debounce(
         stateModifier = 'pushState';
       }
       // avoid race condition in case user changes route before explore updates the url
-      if (window.location.pathname.startsWith('/explore')) {
+      if (window.location.pathname.startsWith(ensureAppRoot('/explore'))) {
         const url = mountExploreUrl(
           standalone ? URL_PARAMS.standalone.name : null,
           {
@@ -359,7 +360,14 @@ function ExploreViewContainer(props) {
   }
 
   useComponentDidMount(() => {
-    props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
+    props.actions.logEvent(
+      LOG_ACTIONS_MOUNT_EXPLORER,
+      props.slice?.slice_id
+        ? {
+            slice_id: props.slice.slice_id,
+          }
+        : undefined,
+    );
   });
 
   useChangeEffect(tabId, (previous, current) => {
@@ -628,10 +636,13 @@ function ExploreViewContainer(props) {
               className="action-button"
               onClick={toggleCollapse}
             >
-              <Icons.Expand
+              <Icons.VerticalAlignTopOutlined
+                iconSize="xl"
+                css={css`
+                  transform: rotate(-90deg);
+                `}
                 className="collapse-icon"
                 iconColor={theme.colors.primary.base}
-                iconSize="l"
               />
             </span>
           </div>
@@ -654,10 +665,13 @@ function ExploreViewContainer(props) {
           >
             <span role="button" tabIndex={0} className="action-button">
               <Tooltip title={t('Open Datasource tab')}>
-                <Icons.Collapse
+                <Icons.VerticalAlignTopOutlined
+                  iconSize="xl"
+                  css={css`
+                    transform: rotate(90deg);
+                  `}
                   className="collapse-icon"
                   iconColor={theme.colors.primary.base}
-                  iconSize="l"
                 />
               </Tooltip>
             </span>
@@ -720,6 +734,17 @@ const retainQueryModeRequirements = hiddenFormData =>
     key => !QUERY_MODE_REQUISITES.has(key),
   );
 
+function patchBigNumberTotalFormData(form_data, slice) {
+  if (
+    form_data.viz_type === 'big_number_total' &&
+    !form_data.subtitle &&
+    slice?.form_data?.subheader
+  ) {
+    return { ...form_data, subtitle: slice.form_data.subheader };
+  }
+  return form_data;
+}
+
 function mapStateToProps(state) {
   const {
     explore,
@@ -754,6 +779,25 @@ function mapStateToProps(state) {
     dashboardId = undefined;
   }
 
+  if (
+    form_data.viz_type === 'big_number_total' &&
+    slice?.form_data?.subheader &&
+    (!controls.subtitle?.value || controls.subtitle.value === '')
+  ) {
+    controls.subtitle = {
+      ...controls.subtitle,
+      value: slice.form_data.subheader,
+    };
+    if (slice?.form_data?.subheader_font_size) {
+      controls.subtitle_font_size = {
+        ...controls.subtitle_font_size,
+        value: slice.form_data.subheader_font_size,
+      };
+    }
+  }
+
+  const patchedFormData = patchBigNumberTotalFormData(form_data, slice);
+
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource,
@@ -775,7 +819,7 @@ function mapStateToProps(state) {
     slice,
     sliceName: explore.sliceName ?? slice?.slice_name ?? null,
     triggerRender: explore.triggerRender,
-    form_data,
+    form_data: patchedFormData,
     table_name: datasource.table_name,
     vizType: form_data.viz_type,
     standalone: !!explore.standalone,

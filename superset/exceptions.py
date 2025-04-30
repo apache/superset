@@ -26,7 +26,7 @@ from marshmallow import ValidationError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
 
-class SupersetException(Exception):
+class SupersetException(Exception):  # noqa: N818
     status = 500
     message = ""
 
@@ -396,13 +396,13 @@ class DisallowedSQLFunction(SupersetErrorException):
         )
 
 
-class CreateKeyValueDistributedLockFailedException(Exception):
+class CreateKeyValueDistributedLockFailedException(Exception):  # noqa: N818
     """
     Exception to signalize failure to acquire lock.
     """
 
 
-class DeleteKeyValueDistributedLockFailedException(Exception):
+class DeleteKeyValueDistributedLockFailedException(Exception):  # noqa: N818
     """
     Exception to signalize failure to delete lock.
     """

@@ -33,6 +33,7 @@ import {
   SupersetClient,
   t,
   getClientErrorObject,
+  css,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -302,6 +303,7 @@ const PropertiesModal = ({
         content: t('A valid color scheme is required'),
         okButtonProps: { danger: true, className: 'btn-danger' },
       });
+      onHide();
       throw new Error('A valid color scheme is required');
     }
 
@@ -462,7 +464,6 @@ const PropertiesModal = ({
             hasCustomLabelsColor={hasCustomLabelsColor}
             onChange={onColorSchemeChange}
             colorScheme={colorScheme}
-            labelMargin={4}
           />
         </Col>
       </Row>
@@ -531,7 +532,6 @@ const PropertiesModal = ({
               hasCustomLabelsColor={hasCustomLabelsColor}
               onChange={onColorSchemeChange}
               colorScheme={colorScheme}
-              labelMargin={4}
             />
           </Col>
         </Row>
@@ -722,7 +722,11 @@ const PropertiesModal = ({
               <Button
                 buttonStyle="link"
                 onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+                css={css`
+                  padding: 0;
+                `}
               >
+                {/* TODO: Remove fa-icon */}
                 <i
                   className={`fa fa-angle-${isAdvancedOpen ? 'down' : 'right'}`}
                   style={{ minWidth: '1em' }}

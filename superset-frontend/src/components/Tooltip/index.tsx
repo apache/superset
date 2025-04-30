@@ -16,25 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { supersetTheme } from '@superset-ui/core';
+// eslint-disable-next-line no-restricted-imports
+import { supersetTheme } from '@superset-ui/core'; // TODO: DO not import theme directly
 import { Tooltip as AntdTooltip } from 'antd-v5';
-import {
-  TooltipProps as AntdTooltipProps,
-  TooltipPlacement as AntdTooltipPlacement,
-} from 'antd-v5/lib/tooltip';
+import { TooltipProps, TooltipPlacement } from 'antd-v5/lib/tooltip';
 
-export type TooltipPlacement = AntdTooltipPlacement;
-export type TooltipProps = AntdTooltipProps;
+export { TooltipProps, TooltipPlacement };
 
-export const Tooltip = (props: TooltipProps) => (
-  <>
-    <AntdTooltip
-      overlayInnerStyle={{
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-      }}
-      color={`${supersetTheme.colors.grayscale.dark2}e6`}
-      {...props}
-    />
-  </>
+export const Tooltip = ({ overlayStyle, ...props }: TooltipProps) => (
+  <AntdTooltip
+    styles={{
+      body: { overflow: 'hidden', textOverflow: 'ellipsis' },
+      root: overlayStyle ?? {},
+    }}
+    color={`${supersetTheme.colors.grayscale.dark2}e6`}
+    {...props}
+  />
 );

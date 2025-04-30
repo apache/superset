@@ -65,7 +65,7 @@ def cidr_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeResponse:
             break
         else:
             resp["display_value"] = ", ".join(
-                map(
+                map(  # noqa: C417
                     lambda x: f"{x['start']} - {x['end']}"
                     if isinstance(x, dict)
                     else str(x),
@@ -76,7 +76,7 @@ def cidr_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeResponse:
 
 
 # Make this return a single clause
-def cidr_translate_filter_func(
+def cidr_translate_filter_func(  # noqa: C901
     col: Column, operator: FilterOperator, values: list[Any]
 ) -> Any:
     """

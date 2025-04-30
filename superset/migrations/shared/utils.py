@@ -120,7 +120,7 @@ def assign_uuids(
     for dialect, sql in uuid_by_dialect.items():
         if isinstance(bind.dialect, dialect):
             op.execute(
-                f"UPDATE {dialect().identifier_preparer.quote(table_name)} SET uuid = {sql}"
+                f"UPDATE {dialect().identifier_preparer.quote(table_name)} SET uuid = {sql}"  # noqa: S608, E501
             )
             print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.\n")
             return
@@ -172,11 +172,7 @@ def paginated_update(
 
 
 def try_load_json(data: Optional[str]) -> dict[str, Any]:
-    try:
-        return data and json.loads(data) or {}
-    except json.JSONDecodeError:
-        print(f"Failed to parse: {data}")
-        return {}
+    return data and json.loads(data) or {}
 
 
 def has_table(table_name: str) -> bool:
@@ -193,12 +189,16 @@ def has_table(table_name: str) -> bool:
     return table_exists
 
 
-def drop_fks_for_table(table_name: str) -> None:
+def drop_fks_for_table(
+    table_name: str, foreign_key_names: list[str] | None = None
+) -> None:
     """
-    Drop all foreign key constraints for a table if it exist and the database
-    is not sqlite.
+    Drop specific or all foreign key constraints for a table
+    if they exist and the database is not sqlite.
 
-    :param table_name: The table name to drop foreign key constraints for
+    :param table_name: The table name to drop foreign key constraints from
+    :param foreign_key_names: Optional list of specific foreign key names to drop.
+    If None is provided, all will be dropped.
     """
     connection = op.get_bind()
     inspector = Inspector.from_engine(connection)
@@ -207,32 +207,40 @@ def drop_fks_for_table(table_name: str) -> None:
         return  # sqlite doesn't like constraints
 
     if has_table(table_name):
-        foreign_keys = inspector.get_foreign_keys(table_name)
-        for fk in foreign_keys:
+        existing_fks = {fk["name"] for fk in inspector.get_foreign_keys(table_name)}
+
+        # What to delete based on whether the list was passed
+        if foreign_key_names is not None:
+            foreign_key_names = list(set(foreign_key_names) & existing_fks)
+        else:
+            foreign_key_names = list(existing_fks)
+
+        for fk_name in foreign_key_names:
             logger.info(
-                f"Dropping foreign key {GREEN}{fk['name']}{RESET} from table {GREEN}{table_name}{RESET}..."
+                f"Dropping foreign key {GREEN}{fk_name}{RESET} from table {GREEN}{table_name}{RESET}..."  # noqa: E501
             )
-            op.drop_constraint(fk["name"], table_name, type_="foreignkey")
+            op.drop_constraint(fk_name, table_name, type_="foreignkey")
 
 
-def create_table(table_name: str, *columns: SchemaItem) -> None:
+def create_table(table_name: str, *columns: SchemaItem, **kwargs: Any) -> None:
     """
     Creates a database table with the specified name and columns.
 
     This function checks if a table with the given name already exists in the database.
     If the table already exists, it logs an informational.
-    Otherwise, it proceeds to create a new table using the provided name and schema columns.
+    Otherwise, it proceeds to create a new table using the provided name
+    and schema columns.
 
     :param table_name: The name of the table to be created.
-    :param columns: A variable number of arguments representing the schema just like when calling alembic's method create_table()
+    :param columns: A variable number of arguments representing the schema
+    just like when calling alembic's method create_table()
     """
-
     if has_table(table_name=table_name):
         logger.info(f"Table {LRED}{table_name}{RESET} already exists. Skipping...")
         return
 
     logger.info(f"Creating table {GREEN}{table_name}{RESET}...")
-    op.create_table(table_name, *columns)
+    op.create_table(table_name, *columns, **kwargs)
     logger.info(f"Table {GREEN}{table_name}{RESET} created.")
 
 
@@ -246,7 +254,7 @@ def drop_table(table_name: str) -> None:
     (handled by `drop_fks_for_table`) and then proceeds to drop the table.
 
     :param table_name: The name of the table to be dropped.
-    """
+    """  # noqa: E501
 
     if not has_table(table_name=table_name):
         logger.info(f"Table {GREEN}{table_name}{RESET} doesn't exist. Skipping...")
@@ -274,10 +282,10 @@ def batch_operation(
     the start index and the end index of the current batch.
     :param count: The total number of items to process.
     :param batch_size: The number of items to process in each batch.
-    """
+    """  # noqa: E501
     if count <= 0:
         logger.info(
-            f"No records to process in batch {LRED}(count <= 0){RESET} for callable {LRED}other_callable_example{RESET}. Skipping..."
+            f"No records to process in batch {LRED}(count <= 0){RESET} for callable {LRED}other_callable_example{RESET}. Skipping..."  # noqa: E501
         )
         return
     for offset in range(0, count, batch_size):
@@ -287,7 +295,7 @@ def batch_operation(
 
     logger.info(f"Progress: {count:,}/{count:,} (100%)")
     logger.info(
-        f"End: {GREEN}{callable.__name__}{RESET} batch operation {GREEN}succesfully{RESET} executed."
+        f"End: {GREEN}{callable.__name__}{RESET} batch operation {GREEN}successfully{RESET} executed."  # noqa: E501
     )
 
 
@@ -295,20 +303,20 @@ def add_columns(table_name: str, *columns: Column) -> None:
     """
     Adds new columns to an existing database table.
 
-    If a column already exists, it logs an informational message and skips the adding process.
+    If a column already exist, or the table doesn't exist, it logs an informational message and skips the adding process.
     Otherwise, it proceeds to add the new column to the table.
 
     The operation is performed using Alembic's batch_alter_table.
 
     :param table_name: The name of the table to which the columns will be added.
     :param columns: A list of SQLAlchemy Column objects that define the name, type, and other attributes of the columns to be added.
-    """
+    """  # noqa: E501
 
     cols_to_add = []
     for col in columns:
         if table_has_column(table_name=table_name, column_name=col.name):
             logger.info(
-                f"Column {LRED}{col.name}{RESET} already present on table {LRED}{table_name}{RESET}. Skipping..."
+                f"Column {LRED}{col.name}{RESET} already present on table {LRED}{table_name}{RESET}. Skipping..."  # noqa: E501
             )
         else:
             cols_to_add.append(col)
@@ -316,7 +324,7 @@ def add_columns(table_name: str, *columns: Column) -> None:
     with op.batch_alter_table(table_name) as batch_op:
         for col in cols_to_add:
             logger.info(
-                f"Adding column {GREEN}{col.name}{RESET} to table {GREEN}{table_name}{RESET}..."
+                f"Adding column {GREEN}{col.name}{RESET} to table {GREEN}{table_name}{RESET}..."  # noqa: E501
             )
             batch_op.add_column(col)
 
@@ -325,20 +333,20 @@ def drop_columns(table_name: str, *columns: str) -> None:
     """
     Drops specified columns from an existing database table.
 
-    If a column does not exist, it logs an informational message and skips the dropping process.
+    If a column or table does not exist, it logs an informational message and skips the dropping process.
     Otherwise, it proceeds to remove the column from the table.
 
     The operation is performed using Alembic's batch_alter_table.
 
     :param table_name: The name of the table from which the columns will be removed.
     :param columns: A list of column names to be dropped.
-    """
+    """  # noqa: E501
 
     cols_to_drop = []
     for col in columns:
         if not table_has_column(table_name=table_name, column_name=col):
             logger.info(
-                f"Column {LRED}{col}{RESET} is not present on table {LRED}{table_name}{RESET}. Skipping..."
+                f"Column {LRED}{col}{RESET} is not present on table {LRED}{table_name}{RESET}. Skipping..."  # noqa: E501
             )
         else:
             cols_to_drop.append(col)
@@ -346,12 +354,14 @@ def drop_columns(table_name: str, *columns: str) -> None:
     with op.batch_alter_table(table_name) as batch_op:
         for col in cols_to_drop:
             logger.info(
-                f"Dropping column {GREEN}{col}{RESET} from table {GREEN}{table_name}{RESET}..."
+                f"Dropping column {GREEN}{col}{RESET} from table {GREEN}{table_name}{RESET}..."  # noqa: E501
             )
             batch_op.drop_column(col)
 
 
-def create_index(table_name: str, index_name: str, *columns: str) -> None:
+def create_index(
+    table_name: str, index_name: str, columns: list[str], *, unique: bool = False
+) -> None:
     """
     Creates an index on specified columns of an existing database table.
 
@@ -360,12 +370,13 @@ def create_index(table_name: str, index_name: str, *columns: str) -> None:
 
     :param table_name: The name of the table on which the index will be created.
     :param index_name: The name of the index to be created.
-    :param columns: A list column names where the index will be created
-    """
+    :param columns: A list of column names for which the index will be created
+    :param unique: If True, create a unique index.
+    """  # noqa: E501
 
     if table_has_index(table=table_name, index=index_name):
         logger.info(
-            f"Table {LRED}{table_name}{RESET} already has index {LRED}{index_name}{RESET}. Skipping..."
+            f"Table {LRED}{table_name}{RESET} already has index {LRED}{index_name}{RESET}. Skipping..."  # noqa: E501
         )
         return
 
@@ -373,7 +384,12 @@ def create_index(table_name: str, index_name: str, *columns: str) -> None:
         f"Creating index {GREEN}{index_name}{RESET} on table {GREEN}{table_name}{RESET}"
     )
 
-    op.create_index(table_name=table_name, index_name=index_name, columns=columns)
+    op.create_index(
+        table_name=table_name,
+        index_name=index_name,
+        unique=unique,
+        columns=columns,
+    )
 
 
 def drop_index(table_name: str, index_name: str) -> None:
@@ -385,16 +401,70 @@ def drop_index(table_name: str, index_name: str) -> None:
 
     :param table_name: The name of the table from which the index will be dropped.
     :param index_name: The name of the index to be dropped.
-    """
+    """  # noqa: E501
 
     if not table_has_index(table=table_name, index=index_name):
         logger.info(
-            f"Table {LRED}{table_name}{RESET} doesn't have index {LRED}{index_name}{RESET}. Skipping..."
+            f"Table {LRED}{table_name}{RESET} doesn't have index {LRED}{index_name}{RESET}. Skipping..."  # noqa: E501
         )
         return
 
     logger.info(
-        f"Dropping index {GREEN}{index_name}{RESET} from table {GREEN}{table_name}{RESET}..."
+        f"Dropping index {GREEN}{index_name}{RESET} from table {GREEN}{table_name}{RESET}..."  # noqa: E501
     )
 
     op.drop_index(table_name=table_name, index_name=index_name)
+
+
+def create_fks_for_table(
+    foreign_key_name: str,
+    table_name: str,
+    referenced_table: str,
+    local_cols: list[str],
+    remote_cols: list[str],
+    ondelete: Optional[str] = None,
+) -> None:
+    """
+    Create a foreign key constraint for a table, ensuring compatibility with sqlite.
+
+    :param foreign_key_name: Foreign key constraint name.
+    :param table_name: The name of the table where the foreign key will be created.
+    :param referenced_table: The table the FK references.
+    :param local_cols: Column names in the current table.
+    :param remote_cols: Column names in the referenced table.
+    :param ondelete: (Optional) The ON DELETE action (e.g., "CASCADE", "SET NULL").
+    """
+    connection = op.get_bind()
+
+    if not has_table(table_name):
+        logger.warning(
+            f"Table {LRED}{table_name}{RESET} does not exist. Skipping foreign key creation."  # noqa: E501
+        )
+        return
+
+    if isinstance(connection.dialect, SQLiteDialect):
+        # SQLite requires batch mode since ALTER TABLE is limited
+        with op.batch_alter_table(table_name) as batch_op:
+            logger.info(
+                f"Creating foreign key {GREEN}{foreign_key_name}{RESET} on table {GREEN}{table_name}{RESET} (SQLite mode)..."  # noqa: E501
+            )
+            batch_op.create_foreign_key(
+                foreign_key_name,
+                referenced_table,
+                local_cols,
+                remote_cols,
+                ondelete=ondelete,
+            )
+    else:
+        # Standard FK creation for other databases
+        logger.info(
+            f"Creating foreign key {GREEN}{foreign_key_name}{RESET} on table {GREEN}{table_name}{RESET}..."  # noqa: E501
+        )
+        op.create_foreign_key(
+            foreign_key_name,
+            table_name,
+            referenced_table,
+            local_cols,
+            remote_cols,
+            ondelete=ondelete,
+        )

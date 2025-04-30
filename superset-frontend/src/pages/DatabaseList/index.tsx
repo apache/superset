@@ -21,6 +21,8 @@ import {
   styled,
   SupersetClient,
   t,
+  useTheme,
+  css,
 } from '@superset-ui/core';
 import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
@@ -40,7 +42,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import handleResourceExport from 'src/utils/export';
@@ -71,20 +73,13 @@ interface DatabaseDeleteObject extends DatabaseObject {
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  addInfoToast: (msg: string) => void;
   user: {
     userId: string | number;
     firstName: string;
     lastName: string;
   };
 }
-
-const IconCheck = styled(Icons.Check)`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-`;
-
-const IconCancelX = styled(Icons.CancelX)`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
-`;
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
@@ -96,14 +91,27 @@ const Actions = styled.div`
 `;
 
 function BooleanDisplay({ value }: { value: Boolean }) {
-  return value ? <IconCheck /> : <IconCancelX />;
+  const theme = useTheme();
+  return value ? (
+    <Icons.CheckOutlined
+      iconSize="s"
+      iconColor={theme.colors.grayscale.dark1}
+    />
+  ) : (
+    <Icons.CloseOutlined
+      iconSize="s"
+      iconColor={theme.colors.grayscale.light1}
+    />
+  );
 }
 
 function DatabaseList({
   addDangerToast,
+  addInfoToast,
   addSuccessToast,
   user,
 }: DatabaseListProps) {
+  const theme = useTheme();
   const {
     state: {
       loading,
@@ -120,6 +128,9 @@ function DatabaseList({
   );
   const fullUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
+  );
+  const shouldSyncPermsInAsyncMode = useSelector<any, boolean>(
+    state => state.common?.conf.SYNC_DB_PERMISSIONS_IN_ASYNC_MODE,
   );
   const showDatabaseModal = getUrlParam(URL_PARAMS.showDatabaseModal);
 
@@ -312,7 +323,14 @@ function DatabaseList({
         'data-test': 'btn-create-database',
         name: (
           <>
-            <i className="fa fa-plus" /> {t('Database')}{' '}
+            <Icons.PlusOutlined
+              css={css`
+                vertical-align: text-top;
+              `}
+              iconColor={theme.colors.primary.light5}
+              iconSize="m"
+            />
+            {t('Database')}
           </>
         ),
         buttonStyle: 'primary',
@@ -333,6 +351,44 @@ function DatabaseList({
       setPreparingExport(false);
     });
     setPreparingExport(true);
+  }
+
+  function handleDatabasePermSync(database: DatabaseObject) {
+    if (shouldSyncPermsInAsyncMode) {
+      addInfoToast(t('Validating connectivity for %s', database.database_name));
+    } else {
+      addInfoToast(t('Syncing permissions for %s', database.database_name));
+    }
+    SupersetClient.post({
+      endpoint: `/api/v1/database/${database.id}/sync_permissions/`,
+    }).then(
+      ({ response }) => {
+        // Sync request
+        if (response.status === 200) {
+          addSuccessToast(
+            t('Permissions successfully synced for %s', database.database_name),
+          );
+        }
+        // Async request
+        else {
+          addInfoToast(
+            t(
+              'Syncing permissions for %s in the background',
+              database.database_name,
+            ),
+          );
+        }
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t(
+            'An error occurred while syncing permissions for %s: %s',
+            database.database_name,
+            errMsg,
+          ),
+        ),
+      ),
+    );
   }
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -426,6 +482,7 @@ function DatabaseList({
             handleDatabaseEditModal({ database: original, modalOpen: true });
           const handleDelete = () => openDatabaseDeleteModal(original);
           const handleExport = () => handleDatabaseExport(original);
+          const handleSync = () => handleDatabasePermSync(original);
           if (!canEdit && !canDelete && !canExport) {
             return null;
           }
@@ -444,7 +501,7 @@ function DatabaseList({
                     title={t('Delete database')}
                     placement="bottom"
                   >
-                    <Icons.Trash />
+                    <Icons.DeleteOutlined iconSize="l" />
                   </Tooltip>
                 </span>
               )}
@@ -460,7 +517,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share />
+                    <Icons.UploadOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -477,7 +534,24 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                  </span>
+                </Tooltip>
+              )}
+              {canEdit && (
+                <Tooltip
+                  id="sync-action-tooltip"
+                  title={t('Sync Permissions')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    data-test="database-sync-perm"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleSync}
+                  >
+                    <Icons.SyncOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}

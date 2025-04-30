@@ -26,7 +26,7 @@ const formData: SqlaFormData = {
   cumulative: true,
   normalize: true,
   groupby: ['country', 'region'],
-  viz_type: VizType.LegacyHistogram,
+  viz_type: VizType.Histogram,
   datasource: 'foo',
 };
 

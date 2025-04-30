@@ -1,7 +1,7 @@
 ---
 title:  Kubernetes
 hide_title: true
-sidebar_position: 2
+sidebar_position: 3
 version: 1
 ---
 
@@ -150,16 +150,20 @@ Superset requires a Python DB-API database driver and a SQLAlchemy
 dialect to be installed for each datastore you want to connect to.
 
 See [Install Database Drivers](/docs/configuration/databases) for more information.
+It is recommended that you refer to versions listed in
+[pyproject.toml](https://github.com/apache/superset/blob/master/pyproject.toml)
+instead of hard-coding them in your bootstrap script, as seen below.
 
 :::
 
 The following example installs the drivers for BigQuery and Elasticsearch, allowing you to connect to these data sources within your Superset setup:
+
 ```yaml
 bootstrapScript: |
   #!/bin/bash
-  pip install psycopg2==2.9.6 \
-    sqlalchemy-bigquery==1.6.1 \
-    elasticsearch-dbapi==0.2.5 &&\
+  uv pip install .[postgres] \
+    .[bigquery] \
+    .[elasticsearch] &&\
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 ```
 

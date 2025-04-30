@@ -150,6 +150,9 @@ const Chart = props => {
   const emitCrossFilters = useSelector(
     state => !!state.dashboardInfo.crossFiltersEnabled,
   );
+  const maxRows = useSelector(
+    state => state.dashboardInfo.common.conf.SQL_MAX_ROW,
+  );
   const datasource = useSelector(
     state =>
       (chart &&
@@ -157,6 +160,7 @@ const Chart = props => {
         state.datasources[chart.form_data.datasource]) ||
       PLACEHOLDER_DATASOURCE,
   );
+  const dashboardInfo = useSelector(state => state.dashboardInfo);
 
   const [descriptionHeight, setDescriptionHeight] = useState(0);
   const [height, setHeight] = useState(props.height);
@@ -304,6 +308,8 @@ const Chart = props => {
     ],
   );
 
+  formData.dashboardId = dashboardInfo.id;
+
   const onExploreChart = useCallback(
     async clickEvent => {
       const isOpenInNewTab =
@@ -357,9 +363,7 @@ const Chart = props => {
         is_cached: props.isCached,
       });
       exportChart({
-        formData: isFullCSV
-          ? { ...formData, row_limit: props.maxRows }
-          : formData,
+        formData: isFullCSV ? { ...formData, row_limit: maxRows } : formData,
         resultType: isPivot ? 'post_processed' : 'full',
         resultFormat: format,
         force: true,
@@ -376,16 +380,13 @@ const Chart = props => {
     ],
   );
 
-  const exportCSV = useCallback(
-    (isFullCSV = false) => {
-      exportTable('csv', isFullCSV);
-    },
-    [exportTable],
-  );
+  const exportCSV = useCallback(() => {
+    exportTable('csv', false);
+  }, [exportTable]);
 
   const exportFullCSV = useCallback(() => {
-    exportCSV(true);
-  }, [exportCSV]);
+    exportTable('csv', true);
+  }, [exportTable]);
 
   const exportPivotCSV = useCallback(() => {
     exportTable('csv', false, true);

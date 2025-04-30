@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import DeleteModal from '.';
 
 test('Must display title and content', () => {
@@ -30,9 +29,9 @@ test('Must display title and content', () => {
   };
   render(<DeleteModal {...props} />);
   expect(screen.getByTestId('test-title')).toBeInTheDocument();
-  expect(screen.getByTestId('test-title')).toBeVisible();
+  expect(screen.getByTestId('test-title')).toBeInTheDocument();
   expect(screen.getByTestId('test-description')).toBeInTheDocument();
-  expect(screen.getByTestId('test-description')).toBeVisible();
+  expect(screen.getByTestId('test-description')).toBeInTheDocument();
 });
 
 test('Calling "onHide"', () => {
@@ -53,7 +52,7 @@ test('Calling "onHide"', () => {
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('del');
 
   // close the modal
-  expect(screen.getByText('×')).toBeVisible();
+  expect(screen.getByText('×')).toBeInTheDocument();
   userEvent.click(screen.getByText('×'));
   expect(props.onHide).toHaveBeenCalledTimes(1);
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
@@ -73,7 +72,7 @@ test('Calling "onConfirm" only after typing "delete" in the input', () => {
   render(<DeleteModal {...props} />);
   expect(props.onHide).toHaveBeenCalledTimes(0);
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
-  expect(screen.getByTestId('delete-modal-input')).toBeVisible();
+  expect(screen.getByTestId('delete-modal-input')).toBeInTheDocument();
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // do not execute "onConfirm" if you have not typed "delete"

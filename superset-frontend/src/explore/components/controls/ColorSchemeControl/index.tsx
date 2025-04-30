@@ -23,17 +23,17 @@ import {
   ColorScheme,
   ColorSchemeGroup,
   SequentialScheme,
-  styled,
   t,
   useTheme,
   getLabelsColorMap,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import AntdSelect from 'antd/lib/select';
-import { isFunction, sortBy } from 'lodash';
+// eslint-disable-next-line no-restricted-imports
+import AntdSelect from 'antd/lib/select'; // TODO: Remove antd
+import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { SelectOptionsType } from 'src/components/Select/types';
 import { StyledSelect } from 'src/components/Select/styles';
 import { handleFilterOptionHelper } from 'src/components/Select/utils';
@@ -57,7 +57,7 @@ export interface ColorSchemeControlProps {
   colorNamespace?: string;
   chartId?: number;
   dashboardId?: number;
-  label: string;
+  label?: string;
   name: string;
   onChange?: (value: string) => void;
   value: string;
@@ -65,12 +65,10 @@ export interface ColorSchemeControlProps {
   defaultScheme?: string;
   choices: string[][] | (() => string[][]);
   schemes: ColorSchemes | (() => ColorSchemes);
-  isLinear: boolean;
+  isLinear?: boolean;
+  description?: string;
+  hovered?: boolean;
 }
-
-const StyledAlert = styled(Icons.AlertSolid)`
-  color: ${({ theme }) => theme.colors.alert.base};
-`;
 
 const CUSTOM_LABEL_ALERT = t(
   `The colors of this chart might be overridden by custom label colors of the related dashboard.
@@ -106,6 +104,7 @@ const Label = ({
   | 'hasSharedLabelsColor'
   | 'hasDashboardColorScheme'
 >) => {
+  const theme = useTheme();
   if (hasSharedLabelsColor || hasCustomLabelsColor || hasDashboardColorScheme) {
     const alertTitle =
       hasCustomLabelsColor && !hasSharedLabelsColor
@@ -113,12 +112,17 @@ const Label = ({
         : dashboardId && hasDashboardColorScheme
           ? DASHBOARD_ALERT
           : DASHBOARD_CONTEXT_ALERT;
-
     return (
       <>
         {label}{' '}
         <Tooltip title={alertTitle}>
-          <StyledAlert iconSize="s" />
+          <Icons.WarningOutlined
+            iconColor={theme.colors.warning.base}
+            css={css`
+              vertical-align: baseline;
+            `}
+            iconSize="s"
+          />
         </Tooltip>
       </>
     );
@@ -163,7 +167,7 @@ const ColorSchemeControl = ({
     }
     let result = value || defaultScheme;
     if (result === 'SUPERSET_DEFAULT') {
-      const schemesObject = isFunction(schemes) ? schemes() : schemes;
+      const schemesObject = typeof schemes === 'function' ? schemes() : schemes;
       result = schemesObject?.SUPERSET_DEFAULT?.id;
     }
     return result;
@@ -179,8 +183,8 @@ const ColorSchemeControl = ({
         </Option>,
       ];
     }
-    const schemesObject = isFunction(schemes) ? schemes() : schemes;
-    const controlChoices = isFunction(choices) ? choices() : choices;
+    const schemesObject = typeof schemes === 'function' ? schemes() : schemes;
+    const controlChoices = typeof choices === 'function' ? choices() : choices;
     const allColorOptions: string[] = [];
     const filteredColorOptions = controlChoices.filter(o => {
       const option = o[0];

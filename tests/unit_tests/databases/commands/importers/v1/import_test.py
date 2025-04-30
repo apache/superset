@@ -45,7 +45,8 @@ def test_import_database(mocker: MockerFixture, session: Session) -> None:
     config = copy.deepcopy(database_config)
     database = import_database(config)
     assert database.database_name == "imported_database"
-    assert database.sqlalchemy_uri == "postgresql://user:pass@host1"
+    assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
+    assert database.password == "pass"  # noqa: S105
     assert database.cache_timeout is None
     assert database.expose_in_sqllab is True
     assert database.allow_run_async is False
@@ -112,7 +113,7 @@ def test_import_database_sqlite_invalid(
         _ = import_database(config)
     assert (
         str(excinfo.value)
-        == "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."
+        == "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."  # noqa: E501
     )
     # restore app config
     app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True

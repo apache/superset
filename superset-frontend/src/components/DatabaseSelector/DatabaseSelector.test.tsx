@@ -17,18 +17,18 @@
  * under the License.
  */
 
-import { act } from 'react-dom/test-utils';
 import fetchMock from 'fetch-mock';
 import {
+  act,
+  defaultStore as store,
   render,
   screen,
+  userEvent,
   waitFor,
-  defaultStore as store,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import { api } from 'src/hooks/apiResources/queryApi';
 import DatabaseSelector, { DatabaseSelectorProps } from '.';
-import { EmptyStateSmall } from '../EmptyState';
+import { EmptyState } from '../EmptyState';
 
 const createProps = (): DatabaseSelectorProps => ({
   db: {
@@ -225,7 +225,7 @@ test('Refresh should work', async () => {
   });
 
   // click schema reload
-  userEvent.click(screen.getByRole('button', { name: 'refresh' }));
+  userEvent.click(screen.getByRole('button', { name: 'sync' }));
 
   await waitFor(() => {
     expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
@@ -307,7 +307,7 @@ test('should show empty state if there are no options', async () => {
     <DatabaseSelector
       {...props}
       db={undefined}
-      emptyState={<EmptyStateSmall title="empty" image="" />}
+      emptyState={<EmptyState size="small" title="empty" />}
     />,
     { useRedux: true, store },
   );
@@ -328,12 +328,16 @@ test('Should schema select display options', async () => {
   });
   expect(select).toBeInTheDocument();
   userEvent.click(select);
-  expect(
-    await screen.findByRole('option', { name: 'public' }),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByRole('option', { name: 'information_schema' }),
-  ).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+  const publicOption = await screen.findByRole('option', { name: 'public' });
+  expect(publicOption).toBeInTheDocument();
+
+  const infoSchemaOption = await screen.findByRole('option', {
+    name: 'information_schema',
+  });
+  expect(infoSchemaOption).toBeInTheDocument();
 });
 
 test('Sends the correct db when changing the database', async () => {

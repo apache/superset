@@ -48,7 +48,8 @@ export interface Filter {
     | 'select'
     | 'checkbox'
     | 'search'
-    | 'datetime_range';
+    | 'datetime_range'
+    | 'numerical_range';
   unfilteredLabel?: string;
   selects?: SelectOption[];
   onFilterOpen?: () => void;
@@ -59,25 +60,32 @@ export interface Filter {
     pageSize: number,
   ) => Promise<{ data: SelectOption[]; totalCount: number }>;
   paginate?: boolean;
+  loading?: boolean;
+  dateFilterValueType?: 'unix' | 'iso';
+  min?: number;
+  max?: number;
 }
 
 export type Filters = Filter[];
 
 export type ViewModeType = 'card' | 'table';
 
+export type InnerFilterValue =
+  | string
+  | boolean
+  | number
+  | null
+  | undefined
+  | string[]
+  | number[]
+  | { label: string; value: string | number }
+  | [number | null, number | null];
+
 export interface FilterValue {
   id: string;
   urlDisplay?: string;
   operator?: string;
-  value:
-    | string
-    | boolean
-    | number
-    | null
-    | undefined
-    | string[]
-    | number[]
-    | { label: string; value: string | number };
+  value: InnerFilterValue;
 }
 
 export interface FetchDataConfig {

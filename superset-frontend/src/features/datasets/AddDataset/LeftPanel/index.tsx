@@ -20,7 +20,7 @@ import { useEffect, SetStateAction, Dispatch, useCallback } from 'react';
 import { styled, t } from '@superset-ui/core';
 import TableSelector, { TableOption } from 'src/components/TableSelector';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
-import { emptyStateComponent } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
 import {
@@ -178,13 +178,30 @@ export default function LeftPanel({
     ),
     [datasetNames],
   );
+  const getDatabaseEmptyState = (emptyResultsWithSearch: boolean) => (
+    <EmptyState
+      image="empty.svg"
+      title={
+        emptyResultsWithSearch
+          ? t('No databases match your search')
+          : t('No databases available')
+      }
+      description={
+        <span>
+          {t('Manage your databases')}{' '}
+          <a href="/databaseview/list">{t('here')}</a>
+        </span>
+      }
+      size="small"
+    />
+  );
 
   return (
     <LeftPanelStyle>
       <TableSelector
         database={dataset?.db}
         handleError={addDangerToast}
-        emptyState={emptyStateComponent(false)}
+        emptyState={getDatabaseEmptyState(false)}
         onDbChange={setDatabase}
         onCatalogChange={setCatalog}
         onSchemaChange={setSchema}

@@ -18,7 +18,7 @@
  */
 import { useState } from 'react';
 import { styled, t } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Select } from 'src/components';
 import { CollapsibleControl } from './CollapsibleControl';
 import { INPUT_WIDTH } from './constants';
@@ -53,7 +53,7 @@ const AddFilter = styled.div`
   `}
 `;
 
-const DeleteFilter = styled(Icons.Trash)`
+const DeleteFilter = styled(Icons.DeleteOutlined)`
   ${({ theme }) => `
     cursor: pointer;
     margin-left: ${theme.gridUnit * 2}px;
@@ -171,7 +171,7 @@ const List = ({
       ))}
       {availableFilters.length > rows.length && (
         <AddFilter role="button" onClick={onAdd}>
-          <Icons.PlusSmall />
+          <Icons.PlusOutlined iconSize="xs" />
           {t('Add filter')}
         </AddFilter>
       )}

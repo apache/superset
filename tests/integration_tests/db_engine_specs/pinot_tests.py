@@ -81,10 +81,10 @@ class TestPinotDbEngineSpec(TestDbEngineSpec):
         assert result == expected
 
     def test_invalid_get_time_expression_arguments(self):
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(NotImplementedError):  # noqa: PT027
             PinotEngineSpec.get_timestamp_expr(column("tstamp"), None, "P0.25Y")
 
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(NotImplementedError):  # noqa: PT027
             PinotEngineSpec.get_timestamp_expr(
                 column("tstamp"), "epoch_s", "invalid_grain"
             )

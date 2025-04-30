@@ -14,7 +14,7 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
- * under the License.
+ * under the License.src/pages/DatabaseList/DatabaseList.test.jsx
  */
 import thunk from 'redux-thunk';
 import * as reactRedux from 'react-redux';
@@ -30,7 +30,7 @@ import SubMenu from 'src/features/home/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 
 // store needed for withToasts(DatabaseList)
 
@@ -131,11 +131,11 @@ describe('Admin DatabaseList', () => {
   });
 
   test('renders', () => {
-    expect(wrapper.find(DatabaseList)).toExist();
+    expect(wrapper.find(DatabaseList)).toBeTruthy();
   });
 
   test('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find(SubMenu)).toBeTruthy();
   });
 
   test('renders a SubMenu with no tabs', () => {
@@ -143,11 +143,11 @@ describe('Admin DatabaseList', () => {
   });
 
   test('renders a DatabaseModal', () => {
-    expect(wrapper.find(DatabaseModal)).toExist();
+    expect(wrapper.find(DatabaseModal)).toBeTruthy();
   });
 
   test('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   test('fetches Databases', () => {
@@ -175,7 +175,11 @@ describe('Admin DatabaseList', () => {
     });
     await waitForComponentToPaint(wrapper);
     act(() => {
-      wrapper.find('button').last().props().onClick();
+      wrapper
+        .find({ 'data-test': 'modal-confirm-button' })
+        .last()
+        .props()
+        .onClick();
     });
 
     await waitForComponentToPaint(wrapper);
@@ -239,6 +243,6 @@ describe('Admin DatabaseList', () => {
     );
     await waitForComponentToPaint(newWrapper);
 
-    expect(newWrapper.find('.dropdown-menu-links')).not.toExist();
+    expect(newWrapper.find('.dropdown-menu-links').length).toBe(0);
   });
 });

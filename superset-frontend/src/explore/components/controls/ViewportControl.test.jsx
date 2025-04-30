@@ -16,13 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styledMount as mount } from 'spec/helpers/theming';
-import Popover from 'src/components/Popover';
-
-import Label from 'src/components/Label';
 import ViewportControl from 'src/explore/components/controls/ViewportControl';
-import TextControl from 'src/explore/components/controls/TextControl';
-import ControlHeader from 'src/explore/components/ControlHeader';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 
 const defaultProps = {
   value: {
@@ -33,29 +28,27 @@ const defaultProps = {
     pitch: 0,
   },
   name: 'foo',
+  label: 'bar',
 };
+const renderedCoordinate = '6° 51\' 8.50" | 31° 13\' 21.56"';
 
 describe('ViewportControl', () => {
-  let wrapper;
-  let inst;
   beforeEach(() => {
-    wrapper = mount(<ViewportControl {...defaultProps} />);
-    inst = wrapper.instance();
+    render(<ViewportControl {...defaultProps} />);
   });
 
-  it('renders a OverlayTrigger', () => {
-    const controlHeader = wrapper.find(ControlHeader);
-    expect(controlHeader).toHaveLength(1);
-    expect(wrapper.find(Popover)).toExist();
+  it('renders a OverlayTrigger if clicked', () => {
+    expect(screen.getByTestId('foo-header')).toBeInTheDocument(); // Presence of ControlHeader
+    userEvent.click(screen.getByText(renderedCoordinate));
+    expect(screen.getByText('Viewport')).toBeInTheDocument(); // Presence of Popover
   });
 
-  it('renders a Popover with 5 TextControl', () => {
-    const popOver = mount(inst.renderPopover());
-    expect(popOver.find(TextControl)).toHaveLength(5);
+  it('renders a Popover with 5 TextControl if clicked', () => {
+    userEvent.click(screen.getByText(renderedCoordinate));
+    expect(screen.queryAllByTestId('inline-name')).toHaveLength(5);
   });
 
   it('renders a summary in the label', () => {
-    const label = wrapper.find(Label).first();
-    expect(label.render().text()).toBe('6° 51\' 8.50" | 31° 13\' 21.56"');
+    expect(screen.getByText(renderedCoordinate)).toBeInTheDocument();
   });
 });

@@ -21,7 +21,7 @@ from superset.utils import json
 
 
 def md5_sha_from_str(val: str) -> str:
-    return hashlib.md5(val.encode("utf-8")).hexdigest()
+    return hashlib.md5(val.encode("utf-8")).hexdigest()  # noqa: S324
 
 
 def md5_sha_from_dict(

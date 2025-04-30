@@ -24,7 +24,11 @@ import {
   Dataset,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subtitleFontSize,
+  subtitleControl,
+} from '../sharedControls';
 
 export default {
   controlPanelSections: [
@@ -34,31 +38,12 @@ export default {
       controlSetRows: [['metric'], ['adhoc_filters']],
     },
     {
-      label: t('Display settings'),
-      expanded: true,
-      tabOverride: 'data',
-      controlSetRows: [
-        [
-          {
-            name: 'subheader',
-            config: {
-              type: 'TextControl',
-              label: t('Subheader'),
-              renderTrigger: true,
-              description: t(
-                'Description text that shows up below your Big Number',
-              ),
-            },
-          },
-        ],
-      ],
-    },
-    {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
         [headerFontSize],
-        [subheaderFontSize],
+        [subtitleControl],
+        [subtitleFontSize],
         ['y_axis_format'],
         ['currency_format'],
         [
@@ -112,12 +97,15 @@ export default {
                   Array.isArray(colnames) && Array.isArray(coltypes)
                     ? colnames
                         .filter(
-                          (colname: string, index: number) =>
+                          (_: string, index: number) =>
                             coltypes[index] === GenericDataType.Numeric,
                         )
-                        .map(colname => ({
+                        .map((colname: string | number) => ({
                           value: colname,
-                          label: verboseMap[colname] ?? colname,
+                          label:
+                            (Array.isArray(verboseMap)
+                              ? verboseMap[colname as number]
+                              : verboseMap[colname as string]) ?? colname,
                         }))
                     : [];
                 return {

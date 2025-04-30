@@ -17,15 +17,14 @@
  * under the License.
  */
 import thunk from 'redux-thunk';
-import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import {
   render,
   screen,
+  userEvent,
   waitForElementToBeRemoved,
   waitFor,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import { CustomFrame } from '../components';
 
 const TODAY = '2024-06-03';
@@ -52,11 +51,9 @@ const emptyStore = mockStore({});
 const invalidStore = mockStore({ common: { locale: 'invalid_locale' } });
 
 test('renders with default props', async () => {
-  render(
-    <Provider store={store}>
-      <CustomFrame onChange={jest.fn()} value={emptyValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={jest.fn()} value={emptyValue} />, {
+    store,
+  });
   expect(screen.getByLabelText('Loading')).toBeVisible();
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   expect(screen.getByText('Configure custom time range')).toBeInTheDocument();
@@ -68,11 +65,9 @@ test('renders with default props', async () => {
 });
 
 test('renders with empty store', () => {
-  render(
-    <Provider store={emptyStore}>
-      <CustomFrame onChange={jest.fn()} value={emptyValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={jest.fn()} value={emptyValue} />, {
+    store: emptyStore,
+  });
   expect(screen.getByText('Configure custom time range')).toBeInTheDocument();
   expect(screen.getByText('Relative Date/Time')).toBeInTheDocument();
   expect(screen.getByRole('spinbutton')).toBeInTheDocument();
@@ -82,21 +77,17 @@ test('renders with empty store', () => {
 });
 
 test('renders since and until with specific date/time with default locale', () => {
-  render(
-    <Provider store={emptyStore}>
-      <CustomFrame onChange={jest.fn()} value={specificValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={jest.fn()} value={specificValue} />, {
+    store: emptyStore,
+  });
   expect(screen.getAllByText('Specific Date/Time').length).toBe(2);
   expect(screen.getAllByRole('img', { name: 'calendar' }).length).toBe(2);
 });
 
 test('renders with invalid locale', () => {
-  render(
-    <Provider store={invalidStore}>
-      <CustomFrame onChange={jest.fn()} value={emptyValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={jest.fn()} value={emptyValue} />, {
+    store: invalidStore,
+  });
   expect(screen.getByText('Configure custom time range')).toBeInTheDocument();
   expect(screen.getByText('Relative Date/Time')).toBeInTheDocument();
   expect(screen.getByRole('spinbutton')).toBeInTheDocument();
@@ -106,32 +97,26 @@ test('renders with invalid locale', () => {
 });
 
 test('renders since and until with specific date/time with invalid locale', () => {
-  render(
-    <Provider store={invalidStore}>
-      <CustomFrame onChange={jest.fn()} value={specificValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={jest.fn()} value={specificValue} />, {
+    store: invalidStore,
+  });
   expect(screen.getAllByText('Specific Date/Time').length).toBe(2);
   expect(screen.getAllByRole('img', { name: 'calendar' }).length).toBe(2);
 });
 
 test('renders since and until with specific date/time', async () => {
-  render(
-    <Provider store={store}>
-      <CustomFrame onChange={jest.fn()} value={specificValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={jest.fn()} value={specificValue} />, {
+    store,
+  });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   expect(screen.getAllByText('Specific Date/Time').length).toBe(2);
   expect(screen.getAllByRole('img', { name: 'calendar' }).length).toBe(2);
 });
 
 test('renders since and until with relative date/time', async () => {
-  render(
-    <Provider store={store}>
-      <CustomFrame onChange={jest.fn()} value={relativeNowValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={jest.fn()} value={relativeNowValue} />, {
+    store,
+  });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   expect(screen.getAllByText('Relative Date/Time').length).toBe(2);
   expect(screen.getAllByRole('spinbutton').length).toBe(2);
@@ -140,58 +125,48 @@ test('renders since and until with relative date/time', async () => {
 });
 
 test('renders since and until with Now option', async () => {
-  render(
-    <Provider store={store}>
-      <CustomFrame onChange={jest.fn()} value={nowValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={jest.fn()} value={nowValue} />, {
+    store,
+  });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   expect(screen.getAllByText('Now').length).toBe(2);
 });
 
 test('renders since and until with Midnight option', async () => {
-  render(
-    <Provider store={store}>
-      <CustomFrame onChange={jest.fn()} value={todayValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={jest.fn()} value={todayValue} />, {
+    store,
+  });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   expect(screen.getAllByText('Midnight').length).toBe(2);
 });
 
 test('renders anchor with now option', async () => {
-  render(
-    <Provider store={store}>
-      <CustomFrame onChange={jest.fn()} value={relativeNowValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={jest.fn()} value={relativeNowValue} />, {
+    store,
+  });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   expect(screen.getByText('Anchor to')).toBeInTheDocument();
-  expect(screen.getByRole('radio', { name: 'NOW' })).toBeInTheDocument();
-  expect(screen.getByRole('radio', { name: 'Date/Time' })).toBeInTheDocument();
+  expect(screen.getByLabelText('Now')).toBeInTheDocument();
+  expect(screen.getByLabelText('Date/Time')).toBeInTheDocument();
   expect(screen.queryByPlaceholderText('Select date')).not.toBeInTheDocument();
 });
 
 test('renders anchor with date/time option', async () => {
-  render(
-    <Provider store={store}>
-      <CustomFrame onChange={jest.fn()} value={relativeTodayValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={jest.fn()} value={relativeTodayValue} />, {
+    store,
+  });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   expect(screen.getByText('Anchor to')).toBeInTheDocument();
-  expect(screen.getByRole('radio', { name: 'NOW' })).toBeInTheDocument();
-  expect(screen.getByRole('radio', { name: 'Date/Time' })).toBeInTheDocument();
+  expect(screen.getByLabelText('Now')).toBeInTheDocument();
+  expect(screen.getByLabelText('Date/Time')).toBeInTheDocument();
   expect(screen.getByPlaceholderText('Select date')).toBeInTheDocument();
 });
 
 test('triggers onChange when the anchor changes', async () => {
   const onChange = jest.fn();
-  render(
-    <Provider store={store}>
-      <CustomFrame onChange={onChange} value={relativeNowValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={onChange} value={relativeNowValue} />, {
+    store,
+  });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   userEvent.click(screen.getByRole('radio', { name: 'Date/Time' }));
   expect(onChange).toHaveBeenCalled();
@@ -199,11 +174,9 @@ test('triggers onChange when the anchor changes', async () => {
 
 test('triggers onChange when the value changes', async () => {
   const onChange = jest.fn();
-  render(
-    <Provider store={store}>
-      <CustomFrame onChange={onChange} value={emptyValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={onChange} value={emptyValue} />, {
+    store,
+  });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   userEvent.click(screen.getByRole('img', { name: 'up' }));
   expect(onChange).toHaveBeenCalled();
@@ -211,11 +184,9 @@ test('triggers onChange when the value changes', async () => {
 
 test('triggers onChange when the mode changes', async () => {
   const onChange = jest.fn();
-  render(
-    <Provider store={store}>
-      <CustomFrame onChange={onChange} value={todayNowValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={onChange} value={todayNowValue} />, {
+    store,
+  });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   userEvent.click(screen.getByTitle('Midnight'));
   expect(await screen.findByTitle('Relative Date/Time')).toBeInTheDocument();
@@ -230,11 +201,9 @@ test('triggers onChange when the mode changes', async () => {
 
 test('triggers onChange when the grain changes', async () => {
   const onChange = jest.fn();
-  render(
-    <Provider store={store}>
-      <CustomFrame onChange={onChange} value={relativeNowValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={onChange} value={relativeNowValue} />, {
+    store,
+  });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   userEvent.click(screen.getByText('Days Before'));
   expect(await screen.findByText('Weeks Before')).toBeInTheDocument();
@@ -247,11 +216,9 @@ test('triggers onChange when the grain changes', async () => {
 
 test('triggers onChange when the date changes', async () => {
   const onChange = jest.fn();
-  render(
-    <Provider store={store}>
-      <CustomFrame onChange={onChange} value={specificValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={onChange} value={specificValue} />, {
+    store,
+  });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   const inputs = screen.getAllByPlaceholderText('Select date');
   userEvent.click(inputs[0]);
@@ -266,14 +233,13 @@ test('should translate Date Picker', async () => {
   const store = mockStore({
     common: { locale: 'fr' },
   });
-  render(
-    <Provider store={store}>
-      <CustomFrame onChange={onChange} value={specificValue} />
-    </Provider>,
-  );
+  render(<CustomFrame onChange={onChange} value={specificValue} />, {
+    store,
+  });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   userEvent.click(screen.getAllByRole('img', { name: 'calendar' })[0]);
   expect(screen.getByText('2021')).toBeInTheDocument();
+
   expect(screen.getByText('lu')).toBeInTheDocument();
   expect(screen.getByText('ma')).toBeInTheDocument();
   expect(screen.getByText('me')).toBeInTheDocument();
@@ -286,13 +252,12 @@ test('should translate Date Picker', async () => {
 test('calls onChange when START Specific Date/Time is selected', async () => {
   const onChange = jest.fn();
   render(
-    <Provider store={store}>
-      <CustomFrame
-        onChange={onChange}
-        value={specificValue}
-        isOverflowingFilterBar
-      />
-    </Provider>,
+    <CustomFrame
+      onChange={onChange}
+      value={specificValue}
+      isOverflowingFilterBar
+    />,
+    { store },
   );
 
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
@@ -306,7 +271,7 @@ test('calls onChange when START Specific Date/Time is selected', async () => {
   const randomDate = screen.getByTitle('2021-03-11');
   userEvent.click(randomDate);
 
-  const okButton = screen.getByText('Ok');
+  const okButton = screen.getByText('OK');
   userEvent.click(okButton);
 
   expect(onChange).toHaveBeenCalled();
@@ -315,13 +280,12 @@ test('calls onChange when START Specific Date/Time is selected', async () => {
 test('calls onChange when END Specific Date/Time is selected', async () => {
   const onChange = jest.fn();
   render(
-    <Provider store={store}>
-      <CustomFrame
-        onChange={onChange}
-        value={specificValue}
-        isOverflowingFilterBar
-      />
-    </Provider>,
+    <CustomFrame
+      onChange={onChange}
+      value={specificValue}
+      isOverflowingFilterBar
+    />,
+    { store },
   );
 
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
@@ -335,7 +299,7 @@ test('calls onChange when END Specific Date/Time is selected', async () => {
   const randomDate = screen.getByTitle('2021-03-28');
   userEvent.click(randomDate);
 
-  const okButton = screen.getByText('Ok');
+  const okButton = screen.getByText('OK');
   userEvent.click(okButton);
 
   expect(onChange).toHaveBeenCalled();
@@ -344,13 +308,12 @@ test('calls onChange when END Specific Date/Time is selected', async () => {
 test('calls onChange when a date is picked from anchor mode date picker', async () => {
   const onChange = jest.fn();
   render(
-    <Provider store={store}>
-      <CustomFrame
-        onChange={onChange}
-        value={relativeTodayValue}
-        isOverflowingFilterBar
-      />
-    </Provider>,
+    <CustomFrame
+      onChange={onChange}
+      value={relativeTodayValue}
+      isOverflowingFilterBar
+    />,
+    { store },
   );
 
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
@@ -372,7 +335,7 @@ test('calls onChange when a date is picked from anchor mode date picker', async 
   const randomDate = screen.getByTitle('2024-06-05');
   userEvent.click(randomDate);
 
-  const okButton = screen.getByText('Ok');
+  const okButton = screen.getByText('OK');
   userEvent.click(okButton);
 
   expect(onChange).toHaveBeenCalled();

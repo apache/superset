@@ -56,7 +56,7 @@ def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
     db_engine_spec.fetch_data.return_value = [(42,)]
 
     cursor = mocker.MagicMock()
-    SupersetResultSet = mocker.patch("superset.sql_lab.SupersetResultSet")
+    SupersetResultSet = mocker.patch("superset.sql_lab.SupersetResultSet")  # noqa: N806
 
     execute_sql_statement(
         sql_statement,
@@ -99,7 +99,7 @@ def test_execute_sql_statement_with_rls(
     db_engine_spec.fetch_data.return_value = [(42,)]
 
     cursor = mocker.MagicMock()
-    SupersetResultSet = mocker.patch("superset.sql_lab.SupersetResultSet")
+    SupersetResultSet = mocker.patch("superset.sql_lab.SupersetResultSet")  # noqa: N806
     mocker.patch(
         "superset.sql_lab.insert_rls_as_subquery",
         return_value=sqlparse.parse("SELECT * FROM sales WHERE organization_id=42")[0],
@@ -232,7 +232,7 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture) -> No
         )
     except SupersetErrorException:
         pytest.fail(
-            "SupersetErrorException should not have been raised for payload within the limit"
+            "SupersetErrorException should not have been raised for payload within the limit"  # noqa: E501
         )
 
 

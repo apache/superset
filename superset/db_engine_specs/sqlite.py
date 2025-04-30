@@ -31,7 +31,6 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 
 if TYPE_CHECKING:
-    # prevent circular imports
     from superset.models.core import Database
 
 
@@ -88,12 +87,10 @@ class SqliteEngineSpec(BaseEngineSpec):
         TimeGrain.YEAR: "DATETIME({col}, 'start of year')",
         TimeGrain.WEEK_ENDING_SATURDAY: "DATETIME({col}, 'start of day', 'weekday 6')",
         TimeGrain.WEEK_ENDING_SUNDAY: "DATETIME({col}, 'start of day', 'weekday 0')",
-        TimeGrain.WEEK_STARTING_SUNDAY: (
-            "DATETIME({col}, 'start of day', 'weekday 0', '-7 days')"
-        ),
-        TimeGrain.WEEK_STARTING_MONDAY: (
-            "DATETIME({col}, 'start of day', 'weekday 1', '-7 days')"
-        ),
+        TimeGrain.WEEK_STARTING_SUNDAY: "DATETIME({col}, 'start of day', \
+            -strftime('%w', {col}) || ' days')",
+        TimeGrain.WEEK_STARTING_MONDAY: "DATETIME({col}, 'start of day', '-' || \
+            ((strftime('%w', {col}) + 6) % 7) || ' days')",
     }
     # not sure why these are different
     _time_grain_expressions.update(

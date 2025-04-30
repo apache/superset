@@ -23,8 +23,12 @@ import { SupersetClient } from '@superset-ui/core';
 
 import { safeStringify } from '../utils/safeStringify';
 import { LOG_EVENT } from '../logger/actions';
-import { LOG_EVENT_TYPE_TIMING } from '../logger/LogUtils';
+import {
+  LOG_EVENT_TYPE_TIMING,
+  LOG_ACTIONS_SPA_NAVIGATION,
+} from '../logger/LogUtils';
 import DebouncedMessageQueue from '../utils/DebouncedMessageQueue';
+import { ensureAppRoot } from '../utils/pathUtils';
 
 const LOG_ENDPOINT = '/superset/log/?explode=events';
 const sendBeacon = events => {
@@ -48,7 +52,7 @@ const sendBeacon = events => {
       // if we have a guest token, we need to send it for auth via the form
       formData.append('guest_token', SupersetClient.getGuestToken());
     }
-    navigator.sendBeacon(endpoint, formData);
+    navigator.sendBeacon(ensureAppRoot(endpoint), formData);
   } else {
     SupersetClient.post({
       endpoint,
@@ -67,73 +71,87 @@ const logMessageQueue = new DebouncedMessageQueue({
   delayThreshold: 1000,
 });
 let lastEventId = 0;
-const loggerMiddleware = store => next => action => {
-  if (action.type !== LOG_EVENT) {
-    return next(action);
-  }
+const loggerMiddleware = store => next => {
+  let navPath;
+  return action => {
+    if (action.type !== LOG_EVENT) {
+      return next(action);
+    }
 
-  const { dashboardInfo, explore, impressionId, dashboardLayout, sqlLab } =
-    store.getState();
-  let logMetadata = {
-    impression_id: impressionId,
-    version: 'v2',
-  };
-  if (dashboardInfo?.id) {
-    logMetadata = {
-      source: 'dashboard',
-      source_id: dashboardInfo.id,
-      ...logMetadata,
+    const { dashboardInfo, explore, impressionId, dashboardLayout, sqlLab } =
+      store.getState();
+    let logMetadata = {
+      impression_id: impressionId,
+      version: 'v2',
     };
-  } else if (explore?.slice) {
-    logMetadata = {
-      source: 'explore',
-      source_id: explore.slice ? explore.slice.slice_id : 0,
-      ...logMetadata,
-    };
-  } else if (sqlLab) {
-    const editor = sqlLab.queryEditors.find(
-      ({ id }) => id === sqlLab.tabHistory.slice(-1)[0],
-    );
-    logMetadata = {
-      source: 'sqlLab',
-      source_id: editor?.id,
-      db_id: editor?.dbId,
-      schema: editor?.schema,
-    };
-  }
+    const { eventName } = action.payload;
+    let { eventData = {} } = action.payload;
 
-  const { eventName } = action.payload;
-  let { eventData = {} } = action.payload;
-  eventData = {
-    ...logMetadata,
-    ts: new Date().getTime(),
-    event_name: eventName,
-    ...eventData,
-  };
-  if (LOG_EVENT_TYPE_TIMING.has(eventName)) {
+    if (eventName === LOG_ACTIONS_SPA_NAVIGATION) {
+      navPath = eventData.path;
+    }
+    const path = navPath || window?.location?.href;
+
+    if (dashboardInfo?.id && path?.includes('/dashboard/')) {
+      logMetadata = {
+        source: 'dashboard',
+        source_id: dashboardInfo.id,
+        dashboard_id: dashboardInfo.id,
+        ...logMetadata,
+      };
+    } else if (explore?.slice) {
+      logMetadata = {
+        source: 'explore',
+        source_id: explore.slice ? explore.slice.slice_id : 0,
+        ...(explore.slice.slice_id && { slice_id: explore.slice.slice_id }),
+        ...logMetadata,
+      };
+    } else if (path?.includes('/sqllab/')) {
+      const editor = sqlLab.queryEditors.find(
+        ({ id }) => id === sqlLab.tabHistory.slice(-1)[0],
+      );
+      logMetadata = {
+        source: 'sqlLab',
+        source_id: editor?.id,
+        db_id: editor?.dbId,
+        schema: editor?.schema,
+      };
+    }
+
     eventData = {
+      ...logMetadata,
+      ts: new Date().getTime(),
+      event_name: eventName,
       ...eventData,
-      event_type: 'timing',
-      trigger_event: lastEventId,
     };
-  } else {
-    lastEventId = nanoid();
-    eventData = {
-      ...eventData,
-      event_type: 'user',
-      event_id: lastEventId,
-      visibility: document.visibilityState,
-    };
-  }
+    if (LOG_EVENT_TYPE_TIMING.has(eventName)) {
+      eventData = {
+        ...eventData,
+        event_type: 'timing',
+        trigger_event: lastEventId,
+      };
+    } else {
+      lastEventId = nanoid();
+      eventData = {
+        ...eventData,
+        event_type: 'user',
+        event_id: lastEventId,
+        visibility: document.visibilityState,
+      };
+    }
 
-  if (eventData.target_id && dashboardLayout?.present?.[eventData.target_id]) {
-    const { meta } = dashboardLayout.present[eventData.target_id];
-    // chart name or tab/header text
-    eventData.target_name = meta.chartId ? meta.sliceName : meta.text;
-  }
+    if (
+      eventData.target_id &&
+      dashboardLayout?.present?.[eventData.target_id]
+    ) {
+      const { meta } = dashboardLayout.present[eventData.target_id];
+      // chart name or tab/header text
+      eventData.target_name = meta.chartId ? meta.sliceName : meta.text;
+    }
 
-  logMessageQueue.append(eventData);
-  return eventData;
+    logMessageQueue.append(eventData);
+    return eventData;
+  };
 };
 
 export default loggerMiddleware;

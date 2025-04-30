@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { FeatureFlag } from '@superset-ui/core';
 import * as copyUtils from 'src/utils/copy';
 import {
   render,
   screen,
+  userEvent,
   waitForElementToBeRemoved,
 } from 'spec/helpers/testing-library';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
@@ -73,6 +73,7 @@ describe('DataTablesPane', () => {
     expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
     localStorage.clear();
   });
+
   test('Should show tabs: View samples', async () => {
     const props = createDataTablesPaneProps(0);
     render(<DataTablesPane {...props} />, {

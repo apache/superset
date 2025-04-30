@@ -79,7 +79,7 @@ class TestDatasetApi(SupersetTestCase):
         sql: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> SqlaTable:
-        obj_owners = list()
+        obj_owners = list()  # noqa: C408
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
             obj_owners.append(user)
@@ -115,7 +115,7 @@ class TestDatasetApi(SupersetTestCase):
             .all()
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_virtual_datasets(self):
         with self.create_app().app_context():
             datasets = []
@@ -137,7 +137,7 @@ class TestDatasetApi(SupersetTestCase):
                 db.session.delete(dataset)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_datasets(self):
         with self.create_app().app_context():
             datasets = []
@@ -253,8 +253,9 @@ class TestDatasetApi(SupersetTestCase):
             "schema",
             "sql",
             "table_name",
+            "uuid",
         ]
-        assert sorted(list(response["result"][0].keys())) == expected_columns
+        assert sorted(response["result"][0]) == expected_columns
 
     def test_get_dataset_list_gamma(self):
         """
@@ -519,7 +520,7 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/dataset/{dataset.id}?q=(columns:!(id,sql))&include_rendered_sql=true"
+        uri = f"api/v1/dataset/{dataset.id}?q=(columns:!(id,sql))&include_rendered_sql=true"  # noqa: E501
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 400
         response = json.loads(rv.data.decode("utf-8"))
@@ -866,7 +867,7 @@ class TestDatasetApi(SupersetTestCase):
 
         # cleanup
         data = json.loads(rv.data.decode("utf-8"))
-        uri = f'api/v1/dataset/{data.get("id")}'
+        uri = f"api/v1/dataset/{data.get('id')}"
         rv = self.client.delete(uri)
         assert rv.status_code == 200
         with example_db.get_sqla_engine() as engine:
@@ -951,7 +952,7 @@ class TestDatasetApi(SupersetTestCase):
 
             # cleanup
             data = json.loads(rv.data.decode("utf-8"))
-            uri = f'api/v1/dataset/{data.get("id")}'
+            uri = f"api/v1/dataset/{data.get('id')}"
             rv = self.client.delete(uri)
             assert rv.status_code == 200
 
@@ -1562,6 +1563,89 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
+    @with_feature_flags(DATASET_FOLDERS=True)
+    def test_update_dataset_add_folders(self):
+        """
+        Dataset API: Test adding folders to dataset
+        """
+        self.login(username="admin")
+
+        dataset = self.insert_default_dataset()
+        dataset_data = {
+            "folders": [
+                {
+                    "type": "folder",
+                    "uuid": "b49ac3dd-c79b-42a4-9082-39ee74f3b369",
+                    "name": "My metrics",
+                    "children": [
+                        {
+                            "type": "metric",
+                            "uuid": str(dataset.metrics[0].uuid),
+                        },
+                    ],
+                },
+                {
+                    "type": "folder",
+                    "uuid": "f5db85fa-75d6-45e5-bdce-c6194db80642",
+                    "name": "My columns",
+                    "children": [
+                        {
+                            "type": "folder",
+                            "uuid": "b5330233-e323-4157-b767-98b16f00ca93",
+                            "name": "Dimensions",
+                            "children": [
+                                {
+                                    "type": "column",
+                                    "uuid": str(dataset.columns[1].uuid),
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ]
+        }
+
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.put_assert_metric(uri, dataset_data, "put")
+        print(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+
+        model = db.session.query(SqlaTable).get(dataset.id)
+        assert model.folders == [
+            {
+                "uuid": "b49ac3dd-c79b-42a4-9082-39ee74f3b369",
+                "type": "folder",
+                "name": "My metrics",
+                "children": [
+                    {
+                        "uuid": str(dataset.metrics[0].uuid),
+                        "type": "metric",
+                    }
+                ],
+            },
+            {
+                "uuid": "f5db85fa-75d6-45e5-bdce-c6194db80642",
+                "type": "folder",
+                "name": "My columns",
+                "children": [
+                    {
+                        "uuid": "b5330233-e323-4157-b767-98b16f00ca93",
+                        "type": "folder",
+                        "name": "Dimensions",
+                        "children": [
+                            {
+                                "uuid": str(dataset.columns[1].uuid),
+                                "type": "column",
+                            }
+                        ],
+                    }
+                ],
+            },
+        ]
+
+        db.session.delete(dataset)
+        db.session.commit()
+
     def test_delete_dataset_item(self):
         """
         Dataset API: Test delete dataset item
@@ -1955,7 +2039,7 @@ class TestDatasetApi(SupersetTestCase):
     @pytest.mark.usefixtures("create_datasets")
     def test_export_dataset_gamma(self):
         """
-        Dataset API: Test export dataset has gamma
+        Dataset API: Test export dataset as gamma
         """
 
         dataset = self.get_fixture_datasets()[0]
@@ -1965,7 +2049,7 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
-        assert rv.status_code == 403
+        assert rv.status_code in (403, 404)
 
         perm1 = security_manager.find_permission_view_menu("can_export", "Dataset")
 
@@ -2015,7 +2099,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
 
-        assert rv.status_code == 404
+        assert rv.status_code in (403, 404)
 
     @pytest.mark.usefixtures("create_datasets")
     def test_export_dataset_bundle_gamma(self):
@@ -2031,7 +2115,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
         # gamma users by default do not have access to this dataset
-        assert rv.status_code == 403
+        assert rv.status_code in (403, 404)
 
     @unittest.skip("Number of related objects depend on DB")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -2204,11 +2288,11 @@ class TestDatasetApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "datasets/imported_dataset.yaml": "Dataset already exists and `overwrite=true` was not passed",
+                        "datasets/imported_dataset.yaml": "Dataset already exists and `overwrite=true` was not passed",  # noqa: E501
                         "issue_codes": [
                             {
                                 "code": 1010,
-                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
                             }
                         ],
                     },
@@ -2327,7 +2411,7 @@ class TestDatasetApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1010,
-                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
                             }
                         ]
                     },

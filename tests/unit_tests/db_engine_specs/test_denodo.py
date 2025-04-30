@@ -22,7 +22,7 @@ import pytest
 from sqlalchemy import column, types
 from sqlalchemy.engine.url import make_url
 
-from superset.db_engine_specs.denodo import DenodoEngineSpec as spec
+from superset.db_engine_specs.denodo import DenodoEngineSpec as spec  # noqa: N813
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,

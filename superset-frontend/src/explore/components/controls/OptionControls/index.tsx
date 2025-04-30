@@ -22,7 +22,7 @@ import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { styled, t, useTheme, keyframes, css } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import { StyledMetricOption } from '../../optionRenderers';
@@ -82,7 +82,7 @@ export const CaretContainer = styled.div`
 `;
 
 export const CloseContainer = styled.div`
-  height: 100%;
+  height: auto;
   width: ${({ theme }) => theme.gridUnit * 6}px;
   border-right: solid 1px ${({ theme }) => theme.colors.grayscale.dark2}0C;
   cursor: pointer;
@@ -373,16 +373,25 @@ export const OptionControlLabel = ({
       withCaret={withCaret}
       data-test="option-label"
       {...props}
+      css={css`
+        text-align: center;
+      `}
     >
       <CloseContainer
         role="button"
         data-test="remove-control-button"
         onClick={onRemove}
       >
-        <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
+        <Icons.CloseOutlined
+          iconSize="m"
+          iconColor={theme.colors.grayscale.light1}
+          css={css`
+            vertical-align: sub;
+          `}
+        />
       </CloseContainer>
       <Label data-test="control-label">
-        {isFunction && <Icons.FieldDerived />}
+        {isFunction && <Icons.FunctionOutlined iconSize="m" />}
         {getLabelContent()}
       </Label>
       {(!!datasourceWarningMessage || isExtra) && (
@@ -401,7 +410,13 @@ export const OptionControlLabel = ({
       )}
       {withCaret && (
         <CaretContainer>
-          <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
+          <Icons.RightOutlined
+            iconSize="m"
+            css={css`
+              margin-top: ${theme.gridUnit}px;
+            `}
+            iconColor={theme.colors.grayscale.light1}
+          />
         </CaretContainer>
       )}
     </OptionControlContainer>

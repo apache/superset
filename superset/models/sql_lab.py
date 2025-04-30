@@ -420,7 +420,7 @@ class SavedQuery(
         primaryjoin="and_(SavedQuery.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'query')",
         secondaryjoin="TaggedObject.tag_id == Tag.id",
-        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
     )
 
     export_parent = "database"

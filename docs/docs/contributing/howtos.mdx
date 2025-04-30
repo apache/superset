@@ -10,7 +10,7 @@ version: 1
 
 The latest documentation and tutorial are available at https://superset.apache.org/.
 
-The documentation site is built using [Docusaurus 2](https://docusaurus.io/), a modern
+The documentation site is built using [Docusaurus 3](https://docusaurus.io/), a modern
 static website generator, the source for which resides in `./docs`.
 
 ### Local Development
@@ -223,36 +223,39 @@ To run a single test file:
 npm run test -- path/to/file.js
 ```
 
-### e2e Integration Testing
+### E2E Integration Testing
 
-For e2e testing, we recommend that you use a `docker-compose` backed-setup
-
-Alternatively, you can go lower level and set things up in your
-development environment by following these steps:
-
-First set up a python/flask backend:
+For E2E testing, we recommend that you use a `docker compose` backend
 
 ```bash
-export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
-export SUPERSET_TESTENV=true
-export CYPRESS_BASE_URL="http://localhost:8081"
-superset db upgrade
-superset load_test_users
-superset init
-superset load-examples --load-test-data
-superset run --port 8081
+CYPRESS_CONFIG=true docker compose up --build
+```
+`docker compose` will get to work and expose a Cypress-ready Superset app.
+This app uses a different database schema (`superset_cypress`) to keep it isolated from
+your other dev environmen(s)t, a specific set of examples, and a set of configurations that
+aligns with the expectations within the end-to-end tests.  Also note that it's served on a
+different port than the default port for the backend (`8088`).
+
+Now in another terminal, let's get ready to execute some Cypress commands. First, tell cypress
+to connect to the Cypress-ready Superset backend.
+
+```
+CYPRESS_BASE_URL=http://localhost:8081
 ```
 
-In another terminal, prepare the frontend and run Cypress tests:
-
 ```bash
-cd superset-frontend
-npm run build-instrumented
-
-cd cypress-base
+# superset-frontend/cypress-base is the base folder for everything Cypress-related
+# It's essentially its own npm app, with its own dependencies, configurations and utilities
+cd superset-frontend/cypress-base
 npm install
 
-# run tests via headless Chrome browser (requires Chrome 64+)
+# use interactive mode to run tests, while keeping memory usage contained
+# this will fire up an interactive Cypress UI
+# as you alter the code, the tests will re-run automatically, and you can visualize each
+# and every step for debugging purposes
+npx cypress open --config numTestsKeptInMemory=5
+
+# to run the test suite on the command line using chrome (same as CI)
 npm run cypress-run-chrome
 
 # run tests from a specific file
@@ -264,9 +267,6 @@ npm run cypress-run-chrome -- --spec cypress/e2e/dashboard/index.test.js --confi
 # to open the cypress ui
 npm run cypress-debug
 
-# to point cypress to a url other than the default (http://localhost:8088) set the environment variable before running the script
-# e.g., CYPRESS_BASE_URL="http://localhost:9000"
-CYPRESS_BASE_URL=<your url> npm run cypress open
 ```
 
 See [`superset-frontend/cypress_build.sh`](https://github.com/apache/superset/blob/master/superset-frontend/cypress_build.sh).
@@ -411,7 +411,7 @@ See [set capabilities for a container](https://kubernetes.io/docs/tasks/configur
 
 Once the pod is running as root and has the `SYS_PTRACE` capability it will be able to debug the Flask app.
 
-You can follow the same instructions as in `docker compose`. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
+You can follow the same instructions as in `docker compose`. Enter the pod and install the required library and packages: gdb, netstat and debugpy.
 
 Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 
@@ -607,4 +607,28 @@ If using the eslint extension with vscode, put the following in your workspace `
 "eslint.workingDirectories": [
   "superset-frontend"
 ]
+```
+
+## GitHub Ephemeral Environments
+
+On any given pull request on GitHub, it's possible to create a temporary environment/deployment
+by simply adding the label `testenv-up` to the PR.  Once you add the `testenv-up` label, a
+GitHub Action will be triggered that will:
+
+- build a docker image
+- deploy it in EC2 (sponsored by the folks at [Preset](https://preset.io))
+- write a comment on the PR with a link to the ephemeral environment
+
+For more advanced use cases, it's possible to set a feature flag on the PR body, which will
+take effect on the ephemeral environment. For example, if you want to set the `TAGGING_SYSTEM`
+feature flag to `true`, you can add the following line to the PR body/description:
+
+```
+FEATURE_TAGGING_SYSTEM=true
+```
+
+Simarly, it's possible to disable feature flags with:
+
+```
+FEATURE_TAGGING_SYSTEM=false
 ```

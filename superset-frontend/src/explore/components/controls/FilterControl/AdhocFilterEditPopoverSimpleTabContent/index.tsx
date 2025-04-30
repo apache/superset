@@ -166,7 +166,9 @@ export const useSimpleTabFilterProps = (props: Props) => {
     let { operator, operatorId, comparator } = props.adhocFilter;
     operator =
       operator && operatorId && isOperatorRelevant(operatorId, subject)
-        ? OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation
+        ? OPERATOR_ENUM_TO_OPERATOR_TYPE[
+            operatorId as keyof typeof OPERATOR_ENUM_TO_OPERATOR_TYPE
+          ].operation
         : null;
     if (!isDefined(operator)) {
       // if operator is `null`, use the `IN` and reset the comparator.
@@ -206,9 +208,6 @@ export const useSimpleTabFilterProps = (props: Props) => {
       newComparator = Array.isArray(currentComparator)
         ? currentComparator[0]
         : currentComparator;
-    }
-    if (operatorId === Operators.IsTrue || operatorId === Operators.IsFalse) {
-      newComparator = Operators.IsTrue === operatorId;
     }
     if (operatorId && CUSTOM_OPERATORS.has(operatorId)) {
       props.onChange(
@@ -310,7 +309,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     const valuesFromSuggestionsLength = Array.isArray(comparator)
       ? comparator.filter(v => suggestions.includes(v)).length
       : 0;
-    return suggestions?.length - valuesFromSuggestionsLength ?? 0;
+    return suggestions ? suggestions.length - valuesFromSuggestionsLength : 0;
   };
   const createSuggestionsPlaceholder = () => {
     const optionsRemaining = getOptionsRemaining();

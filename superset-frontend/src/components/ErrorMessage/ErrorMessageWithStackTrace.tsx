@@ -32,20 +32,23 @@ type Props = {
   stackTrace?: string;
   source?: ErrorSource;
   description?: string;
+  descriptionDetails?: ReactNode;
   errorMitigationFunction?: () => void;
   fallback?: ReactNode;
+  compact?: boolean;
 };
 
 export default function ErrorMessageWithStackTrace({
   title = DEFAULT_TITLE,
   error,
   subtitle,
-  copyText,
   link,
   stackTrace,
   source,
   description,
+  descriptionDetails,
   fallback,
+  compact,
 }: Props) {
   // Check if a custom error message component was registered for this message
   if (error) {
@@ -55,6 +58,7 @@ export default function ErrorMessageWithStackTrace({
     if (ErrorMessageComponent) {
       return (
         <ErrorMessageComponent
+          compact={compact}
           error={error}
           source={source}
           subtitle={subtitle}
@@ -66,28 +70,28 @@ export default function ErrorMessageWithStackTrace({
   if (fallback) {
     return <>{fallback}</>;
   }
+  const computedDescriptionDetails =
+    descriptionDetails ||
+    (link || stackTrace ? (
+      <>
+        {link && (
+          <a href={link} target="_blank" rel="noopener noreferrer">
+            {t('Request Access')}
+          </a>
+        )}
+        <br />
+        {stackTrace && <pre>{stackTrace}</pre>}
+      </>
+    ) : undefined);
 
   return (
     <ErrorAlert
-      level="warning"
-      title={title}
-      subtitle={subtitle}
-      copyText={copyText}
+      type="error"
+      errorType={title}
+      message={subtitle}
       description={description}
-      source={source}
-      body={
-        link || stackTrace ? (
-          <>
-            {link && (
-              <a href={link} target="_blank" rel="noopener noreferrer">
-                (Request Access)
-              </a>
-            )}
-            <br />
-            {stackTrace && <pre>{stackTrace}</pre>}
-          </>
-        ) : undefined
-      }
+      descriptionDetails={computedDescriptionDetails}
+      compact={compact}
     />
   );
 }

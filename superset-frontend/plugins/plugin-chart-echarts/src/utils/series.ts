@@ -33,7 +33,7 @@ import {
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
-import { SortSeriesType } from '@superset-ui/chart-controls';
+import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
@@ -156,9 +156,15 @@ export function sortAndFilterSeries(
     case SortSeriesType.Avg:
       aggregator = name => ({ name, value: meanBy(rows, name) });
       break;
-    default:
-      aggregator = name => ({ name, value: name.toLowerCase() });
-      break;
+    default: {
+      const collator = new Intl.Collator(undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
+      return seriesNames.sort((a, b) =>
+        sortSeriesAscending ? collator.compare(a, b) : collator.compare(b, a),
+      );
+    }
   }
 
   const sortedValues = seriesNames.map(aggregator);
@@ -363,7 +369,7 @@ export function formatSeriesName(
   if (name === undefined || name === null) {
     return NULL_STRING;
   }
-  if (typeof name === 'boolean') {
+  if (typeof name === 'boolean' || typeof name === 'bigint') {
     return name.toString();
   }
   if (name instanceof Date || coltype === GenericDataType.Temporal) {
@@ -425,6 +431,7 @@ export function getLegendProps(
   theme: SupersetTheme,
   zoomable = false,
   legendState?: LegendState,
+  padding?: LegendPaddingType,
 ): LegendComponentOption | LegendComponentOption[] {
   const legend: LegendComponentOption | LegendComponentOption[] = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
@@ -443,13 +450,30 @@ export function getLegendProps(
       borderColor: theme.colors.grayscale.base,
     },
   };
+  const MIN_LEGEND_WIDTH = 0;
+  const MARGIN_GUTTER = 45;
+  const getLegendWidth = (paddingWidth: number) =>
+    Math.max(paddingWidth - MARGIN_GUTTER, MIN_LEGEND_WIDTH);
+
   switch (orientation) {
     case LegendOrientation.Left:
       legend.left = 0;
+      if (padding?.left) {
+        legend.textStyle = {
+          overflow: 'truncate',
+          width: getLegendWidth(padding.left),
+        };
+      }
       break;
     case LegendOrientation.Right:
       legend.right = 0;
       legend.top = zoomable ? TIMESERIES_CONSTANTS.legendRightTopOffset : 0;
+      if (padding?.right) {
+        legend.textStyle = {
+          overflow: 'truncate',
+          width: getLegendWidth(padding.right),
+        };
+      }
       break;
     case LegendOrientation.Bottom:
       legend.bottom = 0;
@@ -467,7 +491,7 @@ export function getChartPadding(
   show: boolean,
   orientation: LegendOrientation,
   margin?: string | number | null,
-  padding?: { top?: number; bottom?: number; left?: number; right?: number },
+  padding?: LegendPaddingType,
   isHorizontal?: boolean,
 ): {
   bottom: number;
