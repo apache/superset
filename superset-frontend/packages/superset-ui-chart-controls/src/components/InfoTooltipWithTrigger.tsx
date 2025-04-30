@@ -27,6 +27,7 @@ import {
   ThunderboltOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons';
+import { Button } from 'antd-v5';
 import { Tooltip, TooltipProps, TooltipPlacement } from './Tooltip';
 
 export interface InfoTooltipWithTriggerProps {
@@ -67,7 +68,7 @@ export const InfoTooltipWithTrigger = ({
 
   const iconCss = css`
     color: ${variant?.color ?? theme.colorIcon};
-    font-size: ${themeObject.getFontSize(iconSize)};
+    font-size: ${themeObject.getFontSize(iconSize)}px;
   `;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
@@ -77,17 +78,24 @@ export const InfoTooltipWithTrigger = ({
   };
 
   const iconEl = (
-    <span
-      role="button"
+    <Button
+      type="text"
+      variant="text"
       aria-label={t('Show info tooltip')}
-      tabIndex={0}
       className={className}
       css={[
         css`
-          display: inline-flex;
-          align-items: center;
-          line-height: 0;
           vertical-align: middle;
+          box-shadow: none;
+          padding: 0;
+          height: auto;
+          background: none;
+          &&&:focus,
+          &&&:active {
+            box-shadow: none;
+            background: none;
+            outline: none;
+          }
           ${onClick ? 'cursor: pointer;' : ''}
         `,
         iconCss,
@@ -97,7 +105,7 @@ export const InfoTooltipWithTrigger = ({
       onKeyDown={handleKeyDown}
     >
       {variant?.icon}
-    </span>
+    </Button>
   );
 
   if (!tooltip) {
