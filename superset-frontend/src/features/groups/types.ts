@@ -16,52 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type PermissionView = {
-  name: string;
-};
-
-export type PermissionResource = {
-  id: number;
-  permission: PermissionView;
-  view_menu: PermissionView;
-};
-
-export type FormattedPermission = {
-  label: string;
-  value: string;
-  id: number;
-};
-
-export type RolePermissions = {
-  id: number;
-  permission_name: string;
-  view_menu_name: string;
-};
-
-export type UserObject = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  username: string;
-  email: string;
-  isActive: boolean;
-  roles: Array<RoleInfo>;
-};
-
-export type RoleInfo = {
-  id: number;
-  name: string;
-};
-
-export type RoleForm = {
-  roleName: string;
-  rolePermissions: number[];
-  roleUsers: number[];
-  roleGroups: number[];
-};
-
-export interface BaseModalProps {
+export interface BaseGroupListModalProps {
   show: boolean;
   onHide: () => void;
   onSave: () => void;
 }
+
+export type FormValues = {
+  [key: string]: string | number | boolean | string[] | number[];
+};

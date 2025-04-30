@@ -18,12 +18,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { css, t, SupersetClient, useTheme } from '@superset-ui/core';
+import { css, t, useTheme } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import RoleListAddModal from 'src/features/roles/RoleListAddModal';
-import RoleListEditModal from 'src/features/roles/RoleListEditModal';
-import RoleListDuplicateModal from 'src/features/roles/RoleListDuplicateModal';
-import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, {
@@ -33,17 +29,19 @@ import ListView, {
 } from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import { FormattedPermission, UserObject } from 'src/features/roles/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { Icons } from 'src/components/Icons';
+import {
+  GroupListAddModal,
+  GroupListEditModal,
+} from 'src/features/groups/GroupListModal';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { deleteGroup } from 'src/features/groups/utils';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
-import { GroupObject } from '../GroupsList';
 
 const PAGE_SIZE = 25;
 
-interface RolesListProps {
-  addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+interface GroupsListProps {
   user: {
     userId: string | number;
     firstName: string;
@@ -52,76 +50,77 @@ interface RolesListProps {
   };
 }
 
-export type RoleObject = {
+export type Role = {
   id: number;
   name: string;
-  permission_ids: number[];
-  users?: Array<UserObject>;
-  user_ids: number[];
-  group_ids: number[];
+};
+
+export type User = {
+  id: number;
+  username: string;
+};
+
+export type GroupObject = {
+  id: number;
+  name: string;
+  label: string;
+  description: string;
+  roles: Role[];
+  users: User[];
 };
 
 enum ModalType {
   ADD = 'add',
   EDIT = 'edit',
-  DUPLICATE = 'duplicate',
 }
 
-function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
+function GroupsList({ user }: GroupsListProps) {
   const theme = useTheme();
+  const { addDangerToast, addSuccessToast } = useToasts();
   const {
     state: {
       loading,
-      resourceCount: rolesCount,
-      resourceCollection: roles,
+      resourceCount: groupsCount,
+      resourceCollection: groups,
       bulkSelectEnabled,
     },
     fetchData,
     refreshData,
     toggleBulkSelect,
-  } = useListViewResource<RoleObject>(
-    'security/roles/search',
-    t('Role'),
+  } = useListViewResource<GroupObject>(
+    'security/groups',
+    t('Group'),
     addDangerToast,
-    false,
   );
   const [modalState, setModalState] = useState({
     edit: false,
     add: false,
-    duplicate: false,
   });
   const openModal = (type: ModalType) =>
     setModalState(prev => ({ ...prev, [type]: true }));
   const closeModal = (type: ModalType) =>
     setModalState(prev => ({ ...prev, [type]: false }));
 
-  const [currentRole, setCurrentRole] = useState<RoleObject | null>(null);
-  const [roleCurrentlyDeleting, setRoleCurrentlyDeleting] =
-    useState<RoleObject | null>(null);
-  const [permissions, setPermissions] = useState<FormattedPermission[]>([]);
-  const [users, setUsers] = useState<UserObject[]>([]);
-  const [groups, setGroups] = useState<GroupObject[]>([]);
+  const [currentGroup, setCurrentGroup] = useState<GroupObject | null>(null);
+  const [groupCurrentlyDeleting, setGroupCurrentlyDeleting] =
+    useState<GroupObject | null>(null);
   const [loadingState, setLoadingState] = useState({
-    permissions: true,
+    roles: true,
     users: true,
-    groups: true,
   });
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   const isAdmin = useMemo(() => isUserAdmin(user), [user]);
 
-  const fetchPermissions = useCallback(() => {
+  const fetchRoles = useCallback(() => {
     fetchPaginatedData({
-      endpoint: '/api/v1/security/permissions-resources/',
-      setData: setPermissions,
+      endpoint: '/api/v1/security/roles/',
+      setData: setRoles,
       setLoadingState,
-      loadingKey: 'permissions',
+      loadingKey: 'roles',
       addDangerToast,
-      errorMessage: 'Error while fetching permissions',
-      mapResult: ({ permission, view_menu, id }) => ({
-        label: `${permission.name.replace(/_/g, ' ')} ${view_menu.name.replace(/_/g, ' ')}`,
-        value: `${permission.name}__${view_menu.name}`,
-        id,
-      }),
+      errorMessage: t('Error while fetching roles'),
     });
   }, [addDangerToast]);
 
@@ -136,65 +135,49 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
     });
   }, [addDangerToast]);
 
-  const fetchGroups = useCallback(() => {
-    fetchPaginatedData({
-      endpoint: '/api/v1/security/groups/',
-      setData: setGroups,
-      setLoadingState,
-      loadingKey: 'groups',
-      addDangerToast,
-      errorMessage: t('Error while fetching groups'),
-    });
-  }, [addDangerToast]);
-
   useEffect(() => {
-    fetchPermissions();
-  }, [fetchPermissions]);
+    fetchRoles();
+  }, [fetchRoles]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  useEffect(() => {
-    fetchGroups();
-  }, [fetchGroups]);
-
-  const handleRoleDelete = async ({ id, name }: RoleObject) => {
+  const handleGroupDelete = async ({ id, name }: GroupObject) => {
     try {
-      await SupersetClient.delete({
-        endpoint: `/api/v1/security/roles/${id}`,
-      });
-
+      await deleteGroup(id);
       refreshData();
-      setRoleCurrentlyDeleting(null);
-      addSuccessToast(t('Deleted role: %s', name));
+      setGroupCurrentlyDeleting(null);
+      addSuccessToast(t('Deleted group: %s', name));
     } catch (error) {
       addDangerToast(t('There was an issue deleting %s', name));
     }
   };
 
-  const handleBulkRolesDelete = async (rolesToDelete: RoleObject[]) => {
-    const deletedRoleNames: string[] = [];
+  const handleBulkGroupsDelete = (groupsToDelete: GroupObject[]) => {
+    const deletedGroupsNames: string[] = [];
 
-    await Promise.all(
-      rolesToDelete.map(async role => {
-        try {
-          await SupersetClient.delete({
-            endpoint: `api/v1/security/roles/${role.id}`,
-          });
-
-          deletedRoleNames.push(role.name);
-        } catch (error) {
-          addDangerToast(t('Error deleting %s', role.name));
+    Promise.all(
+      groupsToDelete.map(group =>
+        deleteGroup(group.id)
+          .then(() => {
+            deletedGroupsNames.push(group.name);
+          })
+          .catch(err => {
+            addDangerToast(t('Error deleting %s', group.name));
+          }),
+      ),
+    )
+      .then(() => {
+        if (deletedGroupsNames.length > 0) {
+          addSuccessToast(
+            t('Deleted groups: %s', deletedGroupsNames.join(', ')),
+          );
         }
-      }),
-    );
-
-    if (deletedRoleNames.length > 0) {
-      addSuccessToast(t('Deleted roles: %s', deletedRoleNames.join(', ')));
-    }
-
-    refreshData();
+      })
+      .finally(() => {
+        refreshData();
+      });
   };
 
   const initialSort = [{ id: 'name', desc: true }];
@@ -211,58 +194,72 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         }: any) => <span>{name}</span>,
       },
       {
-        accessor: 'user_ids',
-        id: 'user_ids',
+        accessor: 'label',
+        id: 'label',
+        Header: t('Label'),
+        Cell: ({
+          row: {
+            original: { label },
+          },
+        }: any) => <span>{label}</span>,
+      },
+      {
+        accessor: 'description',
+        id: 'description',
+        Header: t('Description'),
+        Cell: ({
+          row: {
+            original: { description },
+          },
+        }: any) => <span>{description}</span>,
+        hidden: true,
+      },
+      {
+        accessor: 'roles',
+        id: 'roles',
+        Header: t('Roles'),
+        Cell: ({
+          row: {
+            original: { roles },
+          },
+        }: any) => (
+          <span>{roles?.map((role: Role) => role.name).join(', ')}</span>
+        ),
+        disableSortBy: true,
+      },
+      {
+        accessor: 'users',
+        id: 'users',
         Header: t('Users'),
+        Cell: ({
+          row: {
+            original: { users },
+          },
+        }: any) => (
+          <span>{users?.map((user: User) => user.username).join(', ')}</span>
+        ),
+        disableSortBy: true,
         hidden: true,
-        Cell: ({ row: { original } }: any) => original.user_ids.join(', '),
-      },
-      {
-        accessor: 'group_ids',
-        id: 'group_ids',
-        Header: t('Groups'),
-        hidden: true,
-        Cell: ({ row: { original } }: any) => original.groups_ids.join(', '),
-      },
-      {
-        accessor: 'permission_ids',
-        id: 'permission_ids',
-        Header: t('Permissions'),
-        hidden: true,
-        Cell: ({ row: { original } }: any) =>
-          original.permission_ids.join(', '),
       },
       {
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => {
-            setCurrentRole(original);
+            setCurrentGroup(original);
             openModal(ModalType.EDIT);
           };
-          const handleDelete = () => setRoleCurrentlyDeleting(original);
-          const handleDuplicate = () => {
-            setCurrentRole(original);
-            openModal(ModalType.DUPLICATE);
-          };
-
+          const handleDelete = () => setGroupCurrentlyDeleting(original);
           const actions = isAdmin
             ? [
                 {
-                  label: 'role-list-edit-action',
-                  tooltip: t('Edit role'),
+                  label: 'group-list-edit-action',
+                  tooltip: t('Edit group'),
                   placement: 'bottom',
                   icon: 'EditOutlined',
                   onClick: handleEdit,
                 },
                 {
-                  label: 'role-list-duplicate-action',
-                  tooltip: t('Duplicate role'),
-                  placement: 'bottom',
-                  icon: 'CopyOutlined',
-                  onClick: handleDuplicate,
-                },
-                {
-                  label: 'role-list-delete-action',
-                  tooltip: t('Delete role'),
+                  label: 'group-list-delete-action',
+                  tooltip: t('Delete group'),
                   placement: 'bottom',
                   icon: 'DeleteOutlined',
                   onClick: handleDelete,
@@ -297,15 +294,15 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
                 vertical-align: text-top;
               `}
             />
-            {t('Role')}
+            {t('Group')}
           </>
         ),
         buttonStyle: 'primary',
         onClick: () => {
           openModal(ModalType.ADD);
         },
-        loading: loadingState.permissions,
-        'data-test': 'add-role-button',
+        loading: loadingState.roles || loadingState.users,
+        'data-test': 'add-group-button',
       },
       {
         name: t('Bulk select'),
@@ -325,11 +322,38 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         operator: FilterOperator.Contains,
       },
       {
-        Header: t('Users'),
-        key: 'user_ids',
-        id: 'user_ids',
+        Header: t('Label'),
+        key: 'label',
+        id: 'label',
+        input: 'search',
+        operator: FilterOperator.Contains,
+      },
+      {
+        Header: t('Description'),
+        key: 'description',
+        id: 'description',
+        input: 'search',
+        operator: FilterOperator.Contains,
+      },
+      {
+        Header: t('Roles'),
+        key: 'roles',
+        id: 'roles',
         input: 'select',
-        operator: FilterOperator.RelationOneMany,
+        operator: FilterOperator.RelationManyMany,
+        unfilteredLabel: t('All'),
+        selects: roles?.map(role => ({
+          label: role.name,
+          value: role.id,
+        })),
+        loading: loadingState.roles,
+      },
+      {
+        Header: t('Users'),
+        key: 'users',
+        id: 'users',
+        input: 'select',
+        operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         selects: users?.map(user => ({
           label: user.username,
@@ -337,45 +361,12 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         })),
         loading: loadingState.users,
       },
-      {
-        Header: t('Permissions'),
-        key: 'permission_ids',
-        id: 'permission_ids',
-        input: 'select',
-        operator: FilterOperator.RelationOneMany,
-        unfilteredLabel: t('All'),
-        selects: permissions?.map(permission => ({
-          label: permission.label,
-          value: permission.id,
-        })),
-        loading: loadingState.permissions,
-      },
-      {
-        Header: t('Groups'),
-        key: 'group_ids',
-        id: 'group_ids',
-        input: 'select',
-        operator: FilterOperator.RelationOneMany,
-        unfilteredLabel: t('All'),
-        selects: groups?.map(group => ({
-          label: group.name,
-          value: group.id,
-        })),
-        loading: loadingState.groups,
-      },
     ],
-    [
-      permissions,
-      users,
-      groups,
-      loadingState.groups,
-      loadingState.users,
-      loadingState.permissions,
-    ],
+    [loadingState.roles, loadingState.users, roles, users],
   );
 
   const emptyState = {
-    title: t('No roles yet'),
+    title: t('No groups yet'),
     image: 'filter-results.svg',
     ...(isAdmin && {
       buttonAction: () => {
@@ -391,7 +382,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
               vertical-align: text-top;
             `}
           />
-          {t('Role')}
+          {t('Group')}
         </>
       ),
     }),
@@ -399,59 +390,48 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
 
   return (
     <>
-      <SubMenu name={t('List Roles')} buttons={subMenuButtons} />
-      <RoleListAddModal
+      <SubMenu name={t('List Groups')} buttons={subMenuButtons} />
+      <GroupListAddModal
         onHide={() => closeModal(ModalType.ADD)}
         show={modalState.add}
         onSave={() => {
           refreshData();
           closeModal(ModalType.ADD);
         }}
-        permissions={permissions}
+        roles={roles}
+        users={users}
       />
-      {modalState.edit && currentRole && (
-        <RoleListEditModal
-          role={currentRole}
+      {modalState.edit && currentGroup && (
+        <GroupListEditModal
+          group={currentGroup}
           show={modalState.edit}
           onHide={() => closeModal(ModalType.EDIT)}
           onSave={() => {
             refreshData();
             closeModal(ModalType.EDIT);
-            fetchUsers();
           }}
-          permissions={permissions}
+          roles={roles}
           users={users}
-          groups={groups}
         />
       )}
-      {modalState.duplicate && currentRole && (
-        <RoleListDuplicateModal
-          role={currentRole}
-          show={modalState.duplicate}
-          onHide={() => closeModal(ModalType.DUPLICATE)}
-          onSave={() => {
-            refreshData();
-            closeModal(ModalType.DUPLICATE);
-          }}
-        />
-      )}
-      {roleCurrentlyDeleting && (
+
+      {groupCurrentlyDeleting && (
         <DeleteModal
-          description={t('This action will permanently delete the role.')}
+          description={t('This action will permanently delete the group.')}
           onConfirm={() => {
-            if (roleCurrentlyDeleting) {
-              handleRoleDelete(roleCurrentlyDeleting);
+            if (groupCurrentlyDeleting) {
+              handleGroupDelete(groupCurrentlyDeleting);
             }
           }}
-          onHide={() => setRoleCurrentlyDeleting(null)}
+          onHide={() => setGroupCurrentlyDeleting(null)}
           open
-          title={t('Delete Role?')}
+          title={t('Delete Group?')}
         />
       )}
       <ConfirmStatusChange
         title={t('Please confirm')}
-        description={t('Are you sure you want to delete the selected roles?')}
-        onConfirm={handleBulkRolesDelete}
+        description={t('Are you sure you want to delete the selected groups?')}
+        onConfirm={handleBulkGroupsDelete}
       >
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = isAdmin
@@ -466,11 +446,11 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
             : [];
 
           return (
-            <ListView<RoleObject>
-              className="role-list-view"
+            <ListView<GroupObject>
+              className="group-list-view"
               columns={columns}
-              count={rolesCount}
-              data={roles}
+              count={groupsCount}
+              data={groups}
               fetchData={fetchData}
               filters={filters}
               initialSort={initialSort}
@@ -491,4 +471,4 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
   );
 }
 
-export default withToasts(RolesList);
+export default GroupsList;

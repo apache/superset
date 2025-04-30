@@ -50,6 +50,7 @@ describe('RoleListEditModal', () => {
     name: 'Admin',
     permission_ids: [10, 20],
     user_ids: [5, 7],
+    group_ids: [1, 2],
   };
 
   const mockPermissions = [
@@ -74,6 +75,17 @@ describe('RoleListEditModal', () => {
     },
   ];
 
+  const mockGroups = [
+    {
+      id: 1,
+      name: 'Group A',
+      label: 'Group A',
+      description: 'Description A',
+      roles: [],
+      users: [],
+    },
+  ];
+
   const mockProps = {
     role: mockRole,
     show: true,
@@ -81,6 +93,7 @@ describe('RoleListEditModal', () => {
     onSave: jest.fn(),
     permissions: mockPermissions,
     users: mockUsers,
+    groups: mockGroups,
   };
 
   it('renders modal with correct title and fields', () => {

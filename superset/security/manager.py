@@ -145,6 +145,7 @@ class SupersetUserApi(UserApi):
     search_columns = [
         "id",
         "roles",
+        "groups",
         "first_name",
         "last_name",
         "username",
@@ -281,6 +282,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "User's Statistics",
         # Guarding all AB_ADD_SECURITY_API = True REST APIs
         "RoleRestAPI",
+        "Group",
         "Role",
         "Permission",
         "PermissionViewMenu",

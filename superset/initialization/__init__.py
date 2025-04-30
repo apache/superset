@@ -174,6 +174,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
+        from superset.views.groups import GroupsListView
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
         from superset.views.roles import RolesListView
@@ -285,6 +286,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             UsersListView,
             "List Users",
             label=__("List Users"),
+            category="Security",
+            category_label=__("Security"),
+        )
+
+        appbuilder.add_view(
+            GroupsListView,
+            "Groups",
+            label=__("Groups"),
             category="Security",
             category_label=__("Security"),
         )

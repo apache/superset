@@ -16,52 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type PermissionView = {
-  name: string;
+import { SupersetClient } from '@superset-ui/core';
+import { FormValues } from './types';
+
+export const createGroup = async (values: FormValues) => {
+  await SupersetClient.post({
+    endpoint: '/api/v1/security/groups/',
+    jsonPayload: { ...values },
+  });
 };
 
-export type PermissionResource = {
-  id: number;
-  permission: PermissionView;
-  view_menu: PermissionView;
+export const updateGroup = async (groupId: number, values: FormValues) => {
+  await SupersetClient.put({
+    endpoint: `/api/v1/security/groups/${groupId}`,
+    jsonPayload: { ...values },
+  });
 };
 
-export type FormattedPermission = {
-  label: string;
-  value: string;
-  id: number;
-};
-
-export type RolePermissions = {
-  id: number;
-  permission_name: string;
-  view_menu_name: string;
-};
-
-export type UserObject = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  username: string;
-  email: string;
-  isActive: boolean;
-  roles: Array<RoleInfo>;
-};
-
-export type RoleInfo = {
-  id: number;
-  name: string;
-};
-
-export type RoleForm = {
-  roleName: string;
-  rolePermissions: number[];
-  roleUsers: number[];
-  roleGroups: number[];
-};
-
-export interface BaseModalProps {
-  show: boolean;
-  onHide: () => void;
-  onSave: () => void;
-}
+export const deleteGroup = async (groupId: number) =>
+  SupersetClient.delete({
+    endpoint: `/api/v1/security/groups/${groupId}`,
+  });
