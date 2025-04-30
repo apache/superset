@@ -27,7 +27,7 @@ class ActionLogView(BaseSupersetView):
     route_base = "/"
     class_permission_name = "security"
 
-    @expose("/action/")
+    @expose("/actionlog/list")
     @has_access
     @permission_name("read")
     def list(self) -> FlaskResponse:
