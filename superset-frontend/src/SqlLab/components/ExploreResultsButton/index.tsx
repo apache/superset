@@ -38,6 +38,7 @@ const ExploreResultsButton = ({
       icon={<Icons.LineChartOutlined />}
       onClick={onClick}
       disabled={!allowsSubquery}
+      role="button"
       tooltip={t('Explore the result set in the data exploration view')}
       data-test="explore-results-button"
     >
