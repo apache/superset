@@ -123,7 +123,8 @@ function updateDataMaskForFilterChanges(
     const shouldPreserveState =
       existingFilter &&
       areTargetsEqual &&
-      filter.controlValues?.enableEmptyFilter === true;
+      (filter.controlValues?.enableEmptyFilter === true ||
+        filter.controlValues?.defaultToFirstItem);
 
     mergedDataMask[filter.id] = {
       ...getInitialDataMask(filter.id),
