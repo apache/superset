@@ -330,7 +330,7 @@ gunicorn==23.0.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-h11==0.14.0
+h11==0.16.0
     # via
     #   -c requirements/base.txt
     #   wsproto
@@ -473,7 +473,6 @@ numpy==1.26.4
     #   pandas
     #   pandas-gbq
     #   prophet
-    #   pyarrow
 oauthlib==3.2.2
     # via requests-oauthlib
 odfpy==1.4.1
