@@ -221,7 +221,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "datasource_name",
         "name",
         "column_formats",
-        "currency_formats",
         "granularity_sqla",
         "time_grain_sqla",
         "order_by_choices",

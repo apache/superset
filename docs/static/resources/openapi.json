@@ -3565,9 +3565,6 @@
             },
             "type": "array"
           },
-          "currency_formats": {
-            "type": "object"
-          },
           "database": {
             "$ref": "#/components/schemas/Database"
           },
@@ -5030,10 +5027,6 @@
             },
             "type": "array"
           },
-          "currency_formats": {
-            "description": "Currency formats.",
-            "type": "object"
-          },
           "database": {
             "description": "Database associated with the dataset.",
             "type": "object"
@@ -5557,9 +5550,6 @@
             "type": "string"
           },
           "created_on_humanized": {
-            "readOnly": true
-          },
-          "currency_formats": {
             "readOnly": true
           },
           "database": {
