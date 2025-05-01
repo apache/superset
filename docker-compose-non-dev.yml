@@ -34,7 +34,7 @@ x-common-build: &common-build
 
 services:
   redis:
-    image: redis:7
+    image: docker.io/redis:7
     container_name: superset_cache
     restart: unless-stopped
     volumes:

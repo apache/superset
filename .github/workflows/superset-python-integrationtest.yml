@@ -35,7 +35,7 @@ jobs:
           --health-timeout=5s
           --health-retries=5
       redis:
-        image: redis:7-alpine
+        image: docker.io/redis:7-alpine
         options: --entrypoint redis-server
         ports:
           - 16379:6379
@@ -94,7 +94,7 @@ jobs:
           # GitHub action runner's default installations
           - 15432:5432
       redis:
-        image: redis:7-alpine
+        image: docker.io/redis:7-alpine
         ports:
           - 16379:6379
     steps:
@@ -147,7 +147,7 @@ jobs:
         sqlite:///${{ github.workspace }}/.temp/examples.db?check_same_thread=true
     services:
       redis:
-        image: redis:7-alpine
+        image: docker.io/redis:7-alpine
         ports:
           - 16379:6379
     steps:
