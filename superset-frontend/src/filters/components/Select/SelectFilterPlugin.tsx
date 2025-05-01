@@ -33,7 +33,7 @@ import {
 } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
-import { debounce, isUndefined, isEqual } from 'lodash';
+import { debounce, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import { Select } from 'src/components';
 // eslint-disable-next-line no-restricted-imports
@@ -294,34 +294,49 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [formData.sortAscending],
   );
 
-  const memoizedUpdateDataMask = useCallback(
-    (value: SelectValue) => {
-      if (!isEqual(value, filterState.value)) {
-        updateDataMask(value);
-      }
-    },
-    [updateDataMask, filterState.value],
-  );
-
   useEffect(() => {
-    if (defaultToFirstItem && filterState.value === undefined) {
+    // Case 1: Handle disabled state first
+    if (isDisabled) {
+      updateDataMask(null);
+      return;
+    }
+
+    // Case 2: Handle empty filter enabled case
+    if (enableEmptyFilter) {
+      if (defaultToFirstItem) {
+        // Set to first item if defaultToFirstItem is true
+        const firstItem: SelectValue = data[0]
+          ? (groupby.map(col => data[0][col]) as string[])
+          : null;
+        if (firstItem?.[0] !== undefined) {
+          updateDataMask(firstItem);
+        }
+      } else if (formData?.defaultValue) {
+        // Set to defaultValue if available
+        updateDataMask(formData.defaultValue);
+      }
+      return;
+    }
+    // Case 3 : Default to first item is enabled without enable Empty filter
+    if (defaultToFirstItem) {
       const firstItem: SelectValue = data[0]
         ? (groupby.map(col => data[0][col]) as string[])
         : null;
-
       if (firstItem?.[0] !== undefined) {
-        memoizedUpdateDataMask(firstItem);
+        updateDataMask(firstItem);
       }
     }
-  }, [defaultToFirstItem, data, groupby, memoizedUpdateDataMask]);
-
-  useEffect(() => {
-    if (isDisabled) {
-      memoizedUpdateDataMask(null);
-    } else if (filterState.value !== undefined) {
-      memoizedUpdateDataMask(filterState.value);
-    }
-  }, [isDisabled, filterState.value, memoizedUpdateDataMask]);
+  }, [
+    isDisabled,
+    enableEmptyFilter,
+    defaultToFirstItem,
+    filterState.value,
+    formData?.defaultValue,
+    data,
+    groupby,
+    col,
+    inverseSelection,
+  ]);
 
   useEffect(() => {
     setDataMask(dataMask);
