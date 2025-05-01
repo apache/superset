@@ -89,7 +89,10 @@ const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
 export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
-const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
+const ROW_LIMIT_OPTIONS = [
+  10, 50, 100, 250, 500, 1000, 5000, 10000, 50000, 100000, 150000, 200000,
+  250000, 300000, 350000, 400000, 450000, 500000,
+];
 const SERIES_LIMITS = [5, 10, 25, 50, 100, 500];
 
 const appContainer = document.getElementById('app');
