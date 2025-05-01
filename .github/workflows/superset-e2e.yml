@@ -54,7 +54,7 @@ jobs:
       USE_DASHBOARD: ${{ github.event.inputs.use_dashboard == 'true' || 'false' }}
     services:
       postgres:
-        image: postgres:16-alpine
+        image: docker.io/postgres:16-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset

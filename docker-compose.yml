@@ -73,7 +73,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:16
+    image: docker.io/postgres:16
     container_name: superset_db
     restart: unless-stopped
     ports:
