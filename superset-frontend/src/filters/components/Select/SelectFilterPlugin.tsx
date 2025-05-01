@@ -33,7 +33,7 @@ import {
 } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
-import { debounce, isUndefined } from 'lodash';
+import { debounce, isUndefined, isEqual } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import { Select } from 'src/components';
 // eslint-disable-next-line no-restricted-imports
@@ -294,36 +294,34 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [formData.sortAscending],
   );
 
+  const memoizedUpdateDataMask = useCallback(
+    (value: SelectValue) => {
+      if (!isEqual(value, filterState.value)) {
+        updateDataMask(value);
+      }
+    },
+    [updateDataMask, filterState.value],
+  );
+
   useEffect(() => {
     if (defaultToFirstItem && filterState.value === undefined) {
-      // initialize to first value if set to default to first item
       const firstItem: SelectValue = data[0]
         ? (groupby.map(col => data[0][col]) as string[])
         : null;
-      // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
-      // TODO: still need repopulate default value in config modal when column changed
+
       if (firstItem?.[0] !== undefined) {
-        updateDataMask(firstItem);
+        memoizedUpdateDataMask(firstItem);
       }
-    } else if (isDisabled) {
-      // empty selection if filter is disabled
-      updateDataMask(null);
-    } else {
-      // reset data mask based on filter state
-      updateDataMask(filterState.value);
     }
-  }, [
-    col,
-    isDisabled,
-    defaultToFirstItem,
-    enableEmptyFilter,
-    inverseSelection,
-    excludeFilterValues,
-    updateDataMask,
-    data,
-    groupby,
-    JSON.stringify(filterState.value),
-  ]);
+  }, [defaultToFirstItem, data, groupby, memoizedUpdateDataMask]);
+
+  useEffect(() => {
+    if (isDisabled) {
+      memoizedUpdateDataMask(null);
+    } else if (filterState.value !== undefined) {
+      memoizedUpdateDataMask(filterState.value);
+    }
+  }, [isDisabled, filterState.value, memoizedUpdateDataMask]);
 
   useEffect(() => {
     setDataMask(dataMask);
