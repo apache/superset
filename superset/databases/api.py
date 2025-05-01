@@ -311,6 +311,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     base_related_field_filters = {
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
+    @expose("/execute/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_results",
+        log_to_statsd=False,
+    )
+    def execute_sql_query(self) -> FlaskResponse:
+        return self.response(request.json)
 
     @expose("/<int:pk>/connection", methods=("GET",))
     @protect()
