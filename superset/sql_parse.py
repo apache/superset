@@ -229,34 +229,6 @@ class ParsedQuery:
             self._tables = self._extract_tables_from_sql()
         return self._tables
 
-    def _check_functions_exist_in_token(
-        self, token: Token, functions: set[str]
-    ) -> bool:
-        if (
-            isinstance(token, Function)
-            and token.get_name() is not None
-            and token.get_name().lower() in functions
-        ):
-            return True
-        if hasattr(token, "tokens"):
-            for inner_token in token.tokens:
-                if self._check_functions_exist_in_token(inner_token, functions):
-                    return True
-        return False
-
-    def check_functions_exist(self, functions: set[str]) -> bool:
-        """
-        Check if the SQL statement contains any of the specified functions.
-
-        :param functions: A set of functions to search for
-        :return: True if the statement contains any of the specified functions
-        """
-        for statement in self._parsed:
-            for token in statement.tokens:
-                if self._check_functions_exist_in_token(token, functions):
-                    return True
-        return False
-
     def _extract_tables_from_sql(self) -> set[Table]:
         """
         Extract all table references in a query.
