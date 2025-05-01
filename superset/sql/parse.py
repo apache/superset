@@ -458,7 +458,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Check if any of the given functions are present in the script.
 
-        :param function_list: List of functions to check for
+        :param functions: List of functions to check for
         :return: True if any of the functions are present
         """
         present = {
@@ -641,7 +641,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         Check if any of the given functions are present in the script.
 
-        :param function_list: List of functions to check for
+        :param functions: List of functions to check for
         :return: True if any of the functions are present
         """
         logger.warning("Kusto KQL doesn't support checking for functions present.")
@@ -716,7 +716,7 @@ class SQLScript:
         """
         Check if any of the given functions are present in the script.
 
-        :param function_list: List of functions to check for
+        :param functions: List of functions to check for
         :return: True if any of the functions are present
         """
         return any(
