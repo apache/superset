@@ -107,8 +107,8 @@ const StyledSpace = styled(Space)<{
   }
 `;
 
-// Keep track of orientation changes outside component
-let previousOrientation: FilterBarOrientation | undefined;
+// Keep track of orientation changes outside component with filter ID
+const orientationMap = new Map<string, FilterBarOrientation>();
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
@@ -168,11 +168,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const prevExcludeFilterValues = useRef(excludeFilterValues);
 
-  // Check if only orientation changed
   const hasOnlyOrientationChanged = useRef(false);
 
   useEffect(() => {
-    // Update orientation change flag
+    // Get previous orientation for this specific filter
+    const previousOrientation = orientationMap.get(formData.nativeFilterId);
+
+    // Check if only orientation changed for this filter
     if (
       previousOrientation !== undefined &&
       previousOrientation !== filterBarOrientation
@@ -181,7 +183,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     } else {
       hasOnlyOrientationChanged.current = false;
     }
-    previousOrientation = filterBarOrientation;
+
+    // Update orientation for this filter
+    if (filterBarOrientation) {
+      orientationMap.set(formData.nativeFilterId, filterBarOrientation);
+    }
   }, [filterBarOrientation]);
 
   const updateDataMask = useCallback(
