@@ -83,7 +83,7 @@ dependencies = [
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
     "python-geohash",
-    "pyarrow>=14.0.1, <15",
+    "pyarrow>=18.1.0, <19",
     "pyyaml>=6.0.0, <7.0.0",
     "PyJWT>=2.4.0, <3.0",
     "redis>=4.6.0, <5.0",
@@ -399,3 +399,4 @@ pyxlsb = "1"  # GPL
 
 [tool.uv.sources]
 apache-superset-primitives = { path = "./superset-primitives", editable = true }
+apache-superset-sdk = { path = "./superset-sdk", editable = true }
