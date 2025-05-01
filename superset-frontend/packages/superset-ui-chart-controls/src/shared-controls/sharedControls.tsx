@@ -45,6 +45,7 @@ import {
   isDefined,
   NO_TIME_RANGE,
   validateMaxValue,
+  validateServerPagination,
 } from '@superset-ui/core';
 
 import {
@@ -226,10 +227,14 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   freeForm: true,
   label: t('Row limit'),
   clearable: false,
-  mapStateToProps: state => ({ maxValue: state?.common?.conf?.SQL_MAX_ROW }),
+  mapStateToProps: state => ({
+    maxValue: state?.common?.conf?.SQL_MAX_ROW,
+    serverPagination: state?.form_data?.server_pagination,
+  }),
   validators: [
     legacyValidateInteger,
     (v, state) => validateMaxValue(v, state?.maxValue || DEFAULT_MAX_ROW),
+    (v, state) => validateServerPagination(v, state?.serverPagination),
   ],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
