@@ -31,7 +31,6 @@ from sqlalchemy import and_
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
 from sqlparse.sql import (
-    Function,
     Identifier,
     IdentifierList,
     Parenthesis,
