@@ -36,8 +36,9 @@ import {
 } from './types';
 import { useOverflowDetection } from './useOverflowDetection';
 
-const MetricNameContainer = styled.div<{ metricNameFontSize?: number }>`
+const MetricNameText = styled.div<{ metricNameFontSize?: number }>`
   ${({ theme, metricNameFontSize }) => `
+    font-family: ${theme.typography.families.sansSerif};
     font-weight: ${theme.typography.weights.normal};
     font-size: ${metricNameFontSize || theme.typography.sizes.s * 2}px;
     text-align: center;
@@ -45,16 +46,15 @@ const MetricNameContainer = styled.div<{ metricNameFontSize?: number }>`
   `}
 `;
 
-const NumbersContainer = styled.div<{ justifyContent: string }>`
-  ${({ theme, justifyContent }) => `
-    display: flex;
-    justify-content: ${justifyContent};
-    align-items: center;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-  `}
+const NumbersContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  padding: 12px;
 `;
 
 const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
@@ -268,20 +268,20 @@ export default function PopKPI(props: PopKPIProps) {
   return (
     <div css={wrapperDivStyles} ref={wrapperRef}>
       <NumbersContainer
-        justifyContent={showMetricName && subtitle ? 'flex-start' : 'center'}
         css={
           isOverflowing &&
           css`
             width: fit-content;
             margin: auto;
             align-items: flex-start;
+            overflow: auto;
           `
         }
       >
         {showMetricName && metricName && (
-          <MetricNameContainer metricNameFontSize={metricNameFontSize}>
+          <MetricNameText metricNameFontSize={metricNameFontSize}>
             {metricName}
-          </MetricNameContainer>
+          </MetricNameText>
         )}
 
         <div css={bigValueContainerStyles}>

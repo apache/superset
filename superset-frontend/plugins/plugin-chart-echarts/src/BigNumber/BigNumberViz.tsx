@@ -165,8 +165,13 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
   renderHeader(maxHeight: number) {
     const { bigNumber, headerFormatter, width, colorThresholdFormatters } =
       this.props;
-    // @ts-ignore
-    const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
+    // Convert bigNumber to a number if possible, otherwise use null
+    const numericValue =
+      typeof bigNumber === 'number' ? bigNumber : Number(bigNumber);
+    const text =
+      bigNumber === null || Number.isNaN(numericValue)
+        ? t('No data')
+        : headerFormatter(numericValue);
 
     const hasThresholdColorFormatter =
       Array.isArray(colorThresholdFormatters) &&
@@ -175,8 +180,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     let numberColor;
     if (hasThresholdColorFormatter) {
       colorThresholdFormatters!.forEach(formatter => {
-        const formatterResult = bigNumber
-          ? formatter.getColorFromValue(bigNumber as number)
+        const formatterResult = !Number.isNaN(numericValue)
+          ? formatter.getColorFromValue(numericValue)
           : false;
         if (formatterResult) {
           numberColor = formatterResult;
