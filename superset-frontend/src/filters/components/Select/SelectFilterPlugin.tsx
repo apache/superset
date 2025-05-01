@@ -330,7 +330,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     isDisabled,
     enableEmptyFilter,
     defaultToFirstItem,
-    filterState.value,
     formData?.defaultValue,
     data,
     groupby,
