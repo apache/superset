@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactElement } from 'react';
-import { sharedControls } from '../shared-controls';
-import sharedControlComponents from '../shared-controls/components';
+import { isValidElement, ReactElement } from 'react';
+import { sharedControls, sharedControlComponents } from '../shared-controls';
 import {
   ControlType,
   ControlSetItem,
@@ -64,18 +63,14 @@ export function expandControlConfig(
     };
   }
   // JSX/React element or NULL
-  if (
-    !control ||
-    typeof control === 'string' ||
-    React.isValidElement(control)
-  ) {
+  if (!control || typeof control === 'string' || isValidElement(control)) {
     return control as ReactElement;
   }
   // already fully expanded control config, e.g.
   // {
   //   name: 'metric',
   //   config: {
-  //     type: 'SelectControl' | SelectComonent
+  //     type: 'SelectControl' | SelectComponent
   //   }
   // }
   if ('name' in control && 'config' in control) {

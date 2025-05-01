@@ -31,7 +31,7 @@ export const newQueryTabName = (
 
   if (queryEditors.length > 0) {
     const mappedUntitled = queryEditors.filter(qe =>
-      qe.name.match(untitledQueryRegex),
+      qe.name?.match(untitledQueryRegex),
     );
     const untitledQueryNumbers = mappedUntitled.map(
       qe => +qe.name.replace(untitledQuery, ''),

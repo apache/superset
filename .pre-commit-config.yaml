@@ -15,45 +15,88 @@
 # limitations under the License.
 #
 repos:
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.9.3
+  - repo: https://github.com/MarcoGorelli/auto-walrus
+    rev: 0.3.4
     hooks:
-      - id: isort
+      - id: auto-walrus
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.941
+    rev: v1.15.0
     hooks:
       - id: mypy
-        additional_dependencies: [types-all]
-  - repo: https://github.com/peterdemin/pip-compile-multi
-    rev: v2.4.1
-    hooks:
-      - id: pip-compile-multi-verify
+        args: [--check-untyped-defs]
+        additional_dependencies: [
+            types-simplejson,
+            types-python-dateutil,
+            types-requests,
+            # types-redis 4.6.0.5 is failing mypy
+            # because of https://github.com/python/typeshed/pull/10531
+            types-redis==4.6.0.4,
+            types-pytz,
+            types-croniter,
+            types-PyYAML,
+            types-setuptools,
+            types-paramiko,
+            types-Markdown,
+          ]
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v5.0.0
     hooks:
       - id: check-docstring-first
       - id: check-added-large-files
-        exclude: \.(geojson)$
+        exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*|^superset-frontend/CHANGELOG\.md$
       - id: check-yaml
         exclude: ^helm/superset/templates/
       - id: debug-statements
       - id: end-of-file-fixer
+        exclude: .*/lerna\.json$
       - id: trailing-whitespace
+        exclude: ^.*\.(snap)
         args: ["--markdown-linebreak-ext=md"]
-  - repo: https://github.com/psf/black
-    rev: 22.3.0
-    hooks:
-      - id: black
-        language_version: python3
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.4.1 # Use the sha or tag you want to point at
+    rev: v4.0.0-alpha.8 # Use the sha or tag you want to point at
     hooks:
       - id: prettier
-        args: ['--ignore-path=./superset-frontend/.prettierignore']
-        files: 'superset-frontend'
+        additional_dependencies:
+          - prettier@3.5.3
+        args: ["--ignore-path=./superset-frontend/.prettierignore"]
+        files: "superset-frontend"
+  - repo: local
+    hooks:
+    - id: eslint-frontend
+      name: eslint (frontend)
+      entry: ./scripts/eslint.sh
+      language: system
+      pass_filenames: true
+      files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
+    - id: eslint-docs
+      name: eslint (docs)
+      entry: bash -c 'cd docs && FILES=$(echo "$@" | sed "s|docs/||g") && yarn eslint --fix --ext .js,.jsx,.ts,.tsx --quiet $FILES'
+      language: system
+      pass_filenames: true
+      files: ^docs/.*\.(js|jsx|ts|tsx)$
+    - id: type-checking-frontend
+      name: Type-Checking (Frontend)
+      entry: bash -c './scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base'
+      language: system
+      files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
+      exclude: ^superset-frontend/cypress-base\/
+      require_serial: true
   # blacklist unsafe functions like make_url (see #19526)
   - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
     rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
     hooks:
       - id: blacklist
         args: ["--blacklisted-names=make_url", "--ignore=tests/"]
+  - repo: https://github.com/norwoodj/helm-docs
+    rev: v1.14.2
+    hooks:
+      - id: helm-docs
+        files: helm
+        verbose: false
+        args: ["--log-level", "error"]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.7
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format

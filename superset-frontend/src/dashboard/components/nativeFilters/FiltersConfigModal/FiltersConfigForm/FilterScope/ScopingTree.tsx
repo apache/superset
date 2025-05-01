@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import React, { FC, useMemo, useState } from 'react';
+import { FC, useMemo, useState, memo } from 'react';
 import { NativeFilterScope } from '@superset-ui/core';
 import { Tree } from 'src/components';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { useFilterScopeTree } from './state';
 import { findFilterScope, getTreeCheckedItems } from './utils';
 
@@ -33,6 +33,7 @@ type ScopingTreeProps = {
   initialScope: NativeFilterScope;
   chartId?: number;
   initiallyExcludedCharts?: number[];
+  title?: string;
 };
 
 const buildTreeLeafTitle = (
@@ -46,7 +47,7 @@ const buildTreeLeafTitle = (
       <>
         {title}&nbsp;
         <Tooltip title={tooltipTitle}>
-          <Icons.Info iconSize="m" />
+          <Icons.InfoCircleOutlined iconSize="m" />
         </Tooltip>
       </>
     );
@@ -61,6 +62,7 @@ const ScopingTree: FC<ScopingTreeProps> = ({
   updateFormValues,
   chartId,
   initiallyExcludedCharts = [],
+  title,
 }) => {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([
     DASHBOARD_ROOT_ID,
@@ -70,6 +72,7 @@ const ScopingTree: FC<ScopingTreeProps> = ({
     chartId,
     initiallyExcludedCharts,
     buildTreeLeafTitle,
+    title,
   );
   const [autoExpandParent, setAutoExpandParent] = useState<boolean>(true);
 
@@ -108,4 +111,4 @@ const ScopingTree: FC<ScopingTreeProps> = ({
   );
 };
 
-export default ScopingTree;
+export default memo(ScopingTree);

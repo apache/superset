@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { VizType } from '@superset-ui/core';
 import { hydrateExplore, HYDRATE_EXPLORE } from './hydrateExplore';
 import { exploreInitialData } from '../fixtures';
 
@@ -49,14 +50,14 @@ test('creates hydrate action from initial data', () => {
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
-              viz_type: 'table',
+              viz_type: VizType.Table,
             },
             sliceFormData: {
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
-              viz_type: 'table',
+              viz_type: VizType.Table,
             },
             queryController: null,
             queriesResponse: null,
@@ -70,6 +71,7 @@ test('creates hydrate action from initial data', () => {
         saveModal: {
           dashboards: [],
           saveModalAlert: null,
+          isVisible: false,
         },
         explore: {
           can_add: false,
@@ -84,6 +86,8 @@ test('creates hydrate action from initial data', () => {
           slice: exploreInitialData.slice,
           standalone: null,
           force: null,
+          saveAction: null,
+          common: {},
         },
       },
     }),
@@ -119,14 +123,14 @@ test('creates hydrate action with existing state', () => {
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
-              viz_type: 'table',
+              viz_type: VizType.Table,
             },
             sliceFormData: {
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
-              viz_type: 'table',
+              viz_type: VizType.Table,
             },
             queryController: null,
             queriesResponse: null,
@@ -140,6 +144,7 @@ test('creates hydrate action with existing state', () => {
         saveModal: {
           dashboards: [],
           saveModalAlert: null,
+          isVisible: false,
         },
         explore: {
           can_add: false,
@@ -155,8 +160,56 @@ test('creates hydrate action with existing state', () => {
           slice: exploreInitialData.slice,
           standalone: null,
           force: null,
+          saveAction: null,
+          common: {},
         },
       },
+    }),
+  );
+});
+
+test('uses configured default time range if not set', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {
+      conf: {
+        DEFAULT_TIME_FILTER: 'Last year',
+      },
+    },
+    explore: {},
+  }));
+  // @ts-ignore
+  hydrateExplore({ form_data: {}, slice: {}, dataset: {} })(dispatch, getState);
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          form_data: expect.objectContaining({
+            time_range: 'Last year',
+          }),
+        }),
+      }),
+    }),
+  );
+  const withTimeRangeSet = {
+    form_data: { time_range: 'Last day' },
+    slice: {},
+    dataset: {},
+  };
+  // @ts-ignore
+  hydrateExplore(withTimeRangeSet)(dispatch, getState);
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          form_data: expect.objectContaining({
+            time_range: 'Last day',
+          }),
+        }),
+      }),
     }),
   );
 });

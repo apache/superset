@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { Menu } from 'src/components/Menu';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 
@@ -29,7 +27,7 @@ const overlayMenu = (
 );
 
 describe('SaveDatasetActionButton', () => {
-  it('renders a split save button', () => {
+  test('renders a split save button', async () => {
     render(
       <SaveDatasetActionButton
         setShowSave={() => true}
@@ -38,13 +36,16 @@ describe('SaveDatasetActionButton', () => {
     );
 
     const saveBtn = screen.getByRole('button', { name: /save/i });
-    const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+    const caretBtn = screen.getByRole('button', { name: /down/i });
 
+    expect(
+      await screen.findByRole('button', { name: /save/i }),
+    ).toBeInTheDocument();
     expect(saveBtn).toBeVisible();
     expect(caretBtn).toBeVisible();
   });
 
-  it('renders a "save dataset" dropdown menu item when user clicks caret button', () => {
+  test('renders a "save dataset" dropdown menu item when user clicks caret button', async () => {
     render(
       <SaveDatasetActionButton
         setShowSave={() => true}
@@ -52,7 +53,10 @@ describe('SaveDatasetActionButton', () => {
       />,
     );
 
-    const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+    const caretBtn = screen.getByRole('button', { name: /down/i });
+    expect(
+      await screen.findByRole('button', { name: /down/i }),
+    ).toBeInTheDocument();
     userEvent.click(caretBtn);
 
     const saveDatasetMenuItem = screen.getByText(/save dataset/i);

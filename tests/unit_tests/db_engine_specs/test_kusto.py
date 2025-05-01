@@ -16,33 +16,41 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 from datetime import datetime
+from typing import Optional
 
 import pytest
+from sqlalchemy import column
 
-from tests.unit_tests.fixtures.common import dttm
+from superset.db_engine_specs.kusto import KustoKqlEngineSpec
+from superset.sql.parse import SQLScript
+from superset.sql_parse import ParsedQuery
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(
     "sql,expected",
     [
-        ("SELECT foo FROM tbl", True),
+        ("SELECT foo FROM tbl", False),
         ("SHOW TABLES", False),
         ("EXPLAIN SELECT foo FROM tbl", False),
-        ("INSERT INTO tbl (foo) VALUES (1)", False),
+        ("INSERT INTO tbl (foo) VALUES (1)", True),
     ],
 )
-def test_sql_is_readonly_query(sql: str, expected: bool) -> None:
+def test_sql_has_mutation(sql: str, expected: bool) -> None:
     """
     Make sure that SQL dialect consider only SELECT statements as read-only
     """
 
     from superset.db_engine_specs.kusto import KustoSqlEngineSpec
-    from superset.sql_parse import ParsedQuery
 
-    parsed_query = ParsedQuery(sql)
-    is_readonly = KustoSqlEngineSpec.is_readonly_query(parsed_query)
-
-    assert expected == is_readonly
+    assert (
+        SQLScript(
+            sql,
+            engine=KustoSqlEngineSpec.engine,
+        ).has_mutation()
+        == expected
+    )
 
 
 @pytest.mark.parametrize(
@@ -60,38 +68,37 @@ def test_kql_is_select_query(kql: str, expected: bool) -> None:
     """
 
     from superset.db_engine_specs.kusto import KustoKqlEngineSpec
-    from superset.sql_parse import ParsedQuery
 
     parsed_query = ParsedQuery(kql)
-    is_select = KustoKqlEngineSpec.is_select_query(parsed_query)
-
-    assert expected == is_select
+    assert KustoKqlEngineSpec.is_select_query(parsed_query) == expected
 
 
 @pytest.mark.parametrize(
     "kql,expected",
     [
-        ("tbl | limit 100", True),
-        ("let foo = 1; tbl | where bar == foo", True),
-        (".show tables", True),
-        ("print 1", True),
-        ("set querytrace; Events | take 100", True),
-        (".drop table foo", False),
-        (".set-or-append table foo <| bar", False),
+        ("tbl | limit 100", False),
+        ("let foo = 1; tbl | where bar == foo", False),
+        (".show tables", False),
+        ("print 1", False),
+        ("set querytrace; Events | take 100", False),
+        (".drop table foo", True),
+        (".set-or-append table foo <| bar", True),
     ],
 )
-def test_kql_is_readonly_query(kql: str, expected: bool) -> None:
+def test_kql_has_mutation(kql: str, expected: bool) -> None:
     """
     Make sure that KQL dialect consider only SELECT statements as read-only
     """
 
     from superset.db_engine_specs.kusto import KustoKqlEngineSpec
-    from superset.sql_parse import ParsedQuery
 
-    parsed_query = ParsedQuery(kql)
-    is_readonly = KustoKqlEngineSpec.is_readonly_query(parsed_query)
-
-    assert expected == is_readonly
+    assert (
+        SQLScript(
+            kql,
+            engine=KustoKqlEngineSpec.engine,
+        ).has_mutation()
+        == expected
+    )
 
 
 def test_kql_parse_sql() -> None:
@@ -108,45 +115,61 @@ def test_kql_parse_sql() -> None:
 
 
 @pytest.mark.parametrize(
-    "target_type,expected_dttm",
+    "target_type,expected_result",
     [
-        ("DATETIME", "datetime(2019-01-02T03:04:05.678900)"),
-        ("TIMESTAMP", "datetime(2019-01-02T03:04:05.678900)"),
-        ("DATE", "datetime(2019-01-02)"),
+        ("DateTime", "datetime(2019-01-02T03:04:05.678900)"),
+        ("TimeStamp", "datetime(2019-01-02T03:04:05.678900)"),
+        ("Date", "datetime(2019-01-02)"),
+        ("UnknownType", None),
     ],
 )
 def test_kql_convert_dttm(
     target_type: str,
-    expected_dttm: str,
-    dttm: datetime,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
-    """
-    Test that date objects are converted correctly.
-    """
+    from superset.db_engine_specs.kusto import KustoKqlEngineSpec as spec  # noqa: N813
 
-    from superset.db_engine_specs.kusto import KustoKqlEngineSpec
-
-    assert expected_dttm == KustoKqlEngineSpec.convert_dttm(target_type, dttm)
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
 @pytest.mark.parametrize(
-    "target_type,expected_dttm",
+    "target_type,expected_result",
     [
-        ("DATETIME", "CONVERT(DATETIME, '2019-01-02T03:04:05.678', 126)"),
-        ("DATE", "CONVERT(DATE, '2019-01-02', 23)"),
-        ("SMALLDATETIME", "CONVERT(SMALLDATETIME, '2019-01-02 03:04:05', 20)"),
-        ("TIMESTAMP", "CONVERT(TIMESTAMP, '2019-01-02 03:04:05', 20)"),
+        ("Date", "CONVERT(DATE, '2019-01-02', 23)"),
+        ("DateTime", "CONVERT(DATETIME, '2019-01-02T03:04:05.678', 126)"),
+        ("SmallDateTime", "CONVERT(SMALLDATETIME, '2019-01-02 03:04:05', 20)"),
+        ("TimeStamp", "CONVERT(TIMESTAMP, '2019-01-02 03:04:05', 20)"),
+        ("UnknownType", None),
     ],
 )
 def test_sql_convert_dttm(
     target_type: str,
-    expected_dttm: str,
-    dttm: datetime,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
-    """
-    Test that date objects are converted correctly.
-    """
+    from superset.db_engine_specs.kusto import KustoSqlEngineSpec as spec  # noqa: N813
 
-    from superset.db_engine_specs.kusto import KustoSqlEngineSpec
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
 
-    assert expected_dttm == KustoSqlEngineSpec.convert_dttm(target_type, dttm)
+
+@pytest.mark.parametrize(
+    "in_duration,expected_result",
+    [
+        ("PT1S", "bin(temporal,1s)"),
+        ("PT1M", "bin(temporal,1m)"),
+        ("PT5M", "bin(temporal,5m)"),
+        ("PT1H", "bin(temporal,1h)"),
+        ("P1D", "startofday(temporal)"),
+        ("P1W", "startofweek(temporal)"),
+        ("P1M", "startofmonth(temporal)"),
+        ("P1Y", "startofyear(temporal)"),
+    ],
+)
+def test_timegrain_expressions(in_duration: str, expected_result: str) -> None:
+    col = column("temporal")
+
+    actual_result = KustoKqlEngineSpec.get_timestamp_expr(
+        col=col, pdf=None, time_grain=in_duration
+    )
+    assert str(actual_result) == expected_result

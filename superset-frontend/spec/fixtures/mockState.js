@@ -35,6 +35,11 @@ export default {
   sliceEntities: sliceEntitiesForChart,
   charts: chartQueries,
   nativeFilters: nativeFiltersInfo,
+  common: {
+    conf: {
+      SAMPLES_ROW_LIMIT: 10,
+    },
+  },
   dataMask: mockDataMaskInfo,
   dashboardInfo,
   dashboardFilters: emptyFilters,

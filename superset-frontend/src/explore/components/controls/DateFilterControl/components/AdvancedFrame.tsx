@@ -16,28 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
-import { SEPARATOR } from 'src/explore/components/controls/DateFilterControl/utils';
+import { SEPARATOR, t } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { FrameComponentProps } from 'src/explore/components/controls/DateFilterControl/types';
 import DateFunctionTooltip from './DateFunctionTooltip';
 
-export function AdvancedFrame(props: FrameComponentProps) {
-  function getAdvancedRange(value: string): string {
-    if (value.includes(SEPARATOR)) {
-      return value;
-    }
-    if (value.startsWith('Last')) {
-      return [value, ''].join(SEPARATOR);
-    }
-    if (value.startsWith('Next')) {
-      return ['', value].join(SEPARATOR);
-    }
-    return SEPARATOR;
+function getAdvancedRange(value: string): string {
+  if (value.includes(SEPARATOR)) {
+    return value;
   }
+  if (value.startsWith('Last')) {
+    return [value, ''].join(SEPARATOR);
+  }
+  if (value.startsWith('Next')) {
+    return ['', value].join(SEPARATOR);
+  }
+  return SEPARATOR;
+}
 
+export function AdvancedFrame(props: FrameComponentProps) {
   const advancedRange = getAdvancedRange(props.value || '');
   const [since, until] = advancedRange.split(SEPARATOR);
   if (advancedRange !== props.value) {
@@ -57,6 +55,8 @@ export function AdvancedFrame(props: FrameComponentProps) {
       <div className="section-title">
         {t('Configure Advanced Time Range ')}
         <DateFunctionTooltip placement="rightBottom">
+          {/* TODO: Remove fa-icon */}
+          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
           <i className="fa fa-info-circle text-muted" />
         </DateFunctionTooltip>
       </div>

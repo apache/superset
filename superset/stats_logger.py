@@ -54,22 +54,20 @@ class DummyStatsLogger(BaseStatsLogger):
         logger.debug(Fore.CYAN + "[stats_logger] (incr) " + key + Style.RESET_ALL)
 
     def decr(self, key: str) -> None:
-        logger.debug((Fore.CYAN + "[stats_logger] (decr) " + key + Style.RESET_ALL))
+        logger.debug(Fore.CYAN + "[stats_logger] (decr) " + key + Style.RESET_ALL)
 
     def timing(self, key: str, value: float) -> None:
         logger.debug(
-            (Fore.CYAN + f"[stats_logger] (timing) {key} | {value} " + Style.RESET_ALL)
+            Fore.CYAN + f"[stats_logger] (timing) {key} | {value} " + Style.RESET_ALL
         )
 
     def gauge(self, key: str, value: float) -> None:
         logger.debug(
-            (
-                Fore.CYAN
-                + "[stats_logger] (gauge) "
-                + f"{key}"
-                + f"{value}"
-                + Style.RESET_ALL
-            )
+            Fore.CYAN
+            + "[stats_logger] (gauge) "
+            + f"{key}"
+            + f"{value}"
+            + Style.RESET_ALL
         )
 
 
@@ -107,5 +105,5 @@ try:
         def gauge(self, key: str, value: float) -> None:
             self.client.gauge(key, value)
 
-except Exception:  # pylint: disable=broad-except
+except Exception:  # pylint: disable=broad-except  # noqa: S110
     pass

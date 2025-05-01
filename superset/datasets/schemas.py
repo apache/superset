@@ -14,49 +14,60 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
-import re
-from typing import Any, Dict
+from datetime import datetime
+from typing import Any
 
+from dateutil.parser import isoparse
 from flask_babel import lazy_gettext as _
-from marshmallow import fields, pre_load, Schema, ValidationError
-from marshmallow.validate import Length
-from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
+from marshmallow import fields, pre_load, Schema, validates_schema, ValidationError
+from marshmallow.validate import Length, OneOf
 
-from superset.datasets.models import Dataset
+from superset.exceptions import SupersetMarshmallowValidationError
+from superset.utils import json
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
+openapi_spec_methods_override = {
+    "get_list": {
+        "get": {
+            "summary": "Get a list of datasets",
+            "description": "Gets a list of datasets, use Rison or JSON query "
+            "parameters for filtering, sorting, pagination and "
+            " for selecting specific columns and metadata.",
+        }
+    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
+}
 
-def validate_python_date_format(value: str) -> None:
-    regex = re.compile(
-        r"""
-        ^(
-            epoch_s|epoch_ms|
-            (?P<date>%Y(-%m(-%d)?)?)([\sT](?P<time>%H(:%M(:%S(\.%f)?)?)?))?
-        )$
-        """,
-        re.VERBOSE,
-    )
-    match = regex.match(value or "")
-    if not match:
-        raise ValidationError(_("Invalid date/timestamp format"))
+
+def validate_python_date_format(dt_format: str) -> bool:
+    if dt_format in ("epoch_s", "epoch_ms"):
+        return True
+    try:
+        dt_str = datetime.now().strftime(dt_format)
+        isoparse(dt_str)
+    except ValueError as ex:
+        raise ValidationError([_("Invalid date/timestamp format")]) from ex
+    return True
 
 
 class DatasetColumnsPutSchema(Schema):
-    id = fields.Integer()
+    id = fields.Integer(required=False)
     column_name = fields.String(required=True, validate=Length(1, 255))
     type = fields.String(allow_none=True)
-    advanced_data_type = fields.String(allow_none=True, validate=Length(1, 255))
-    verbose_name = fields.String(allow_none=True, Length=(1, 1024))
+    advanced_data_type = fields.String(
+        allow_none=True,
+        validate=Length(1, 255),
+    )
+    verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     description = fields.String(allow_none=True)
     expression = fields.String(allow_none=True)
     extra = fields.String(allow_none=True)
     filterable = fields.Boolean()
     groupby = fields.Boolean()
-    is_active = fields.Boolean()
-    is_dttm = fields.Boolean(default=False)
+    is_active = fields.Boolean(allow_none=True)
+    is_dttm = fields.Boolean(allow_none=True, dump_default=False)
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
     )
@@ -71,18 +82,53 @@ class DatasetMetricsPutSchema(Schema):
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
-    verbose_name = fields.String(allow_none=True, Length=(1, 1024))
+    currency = fields.String(allow_none=True, required=False, validate=Length(1, 128))
+    verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
 
+class FolderSchema(Schema):
+    uuid = fields.UUID(required=True)
+    type = fields.String(
+        required=False,
+        validate=OneOf(["metric", "column", "folder"]),
+    )
+    name = fields.String(required=False, validate=Length(1, 250))
+    description = fields.String(
+        required=False,
+        allow_none=True,
+        validate=Length(0, 1000),
+    )
+    # folder can contain metrics, columns, and subfolders:
+    children = fields.List(
+        fields.Nested(lambda: FolderSchema()),
+        required=False,
+        allow_none=True,
+    )
+
+    @validates_schema
+    def validate_folder(self, data: dict[str, Any], **kwargs: Any) -> None:
+        if "uuid" in data and len(data) == 1:
+            # only UUID is present, this is a metric or column
+            return
+
+        # folder; must have children
+        if "name" in data and "children" not in data:
+            raise ValidationError("If 'name' is present, 'children' must be present.")
+
+
 class DatasetPostSchema(Schema):
     database = fields.Integer(required=True)
-    schema = fields.String(validate=Length(0, 250))
+    catalog = fields.String(allow_none=True, validate=Length(0, 250))
+    schema = fields.String(allow_none=True, validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
+    sql = fields.String(allow_none=True)
     owners = fields.List(fields.Integer())
-    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    normalize_columns = fields.Boolean(load_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
 class DatasetPutSchema(Schema):
@@ -91,9 +137,12 @@ class DatasetPutSchema(Schema):
     sql = fields.String(allow_none=True)
     filter_select_enabled = fields.Boolean(allow_none=True)
     fetch_values_predicate = fields.String(allow_none=True, validate=Length(0, 1000))
+    catalog = fields.String(allow_none=True, validate=Length(0, 250))
     schema = fields.String(allow_none=True, validate=Length(0, 255))
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
+    normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
     offset = fields.Integer(allow_none=True)
     default_endpoint = fields.String(allow_none=True)
     cache_timeout = fields.Integer(allow_none=True)
@@ -102,9 +151,26 @@ class DatasetPutSchema(Schema):
     owners = fields.List(fields.Integer())
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
+    folders = fields.List(fields.Nested(FolderSchema), required=False)
     extra = fields.String(allow_none=True)
-    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+
+    def handle_error(
+        self,
+        error: ValidationError,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> None:
+        """
+        Return SIP-40 error.
+        """
+        raise SupersetMarshmallowValidationError(error, data)
+
+
+class DatasetDuplicateSchema(Schema):
+    base_model_id = fields.Integer(required=True)
+    table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
 
 
 class DatasetRelatedChart(Schema):
@@ -121,16 +187,18 @@ class DatasetRelatedDashboard(Schema):
 
 
 class DatasetRelatedCharts(Schema):
-    count = fields.Integer(description="Chart count")
+    count = fields.Integer(metadata={"description": "Chart count"})
     result = fields.List(
-        fields.Nested(DatasetRelatedChart), description="A list of dashboards"
+        fields.Nested(DatasetRelatedChart),
+        metadata={"description": "A list of dashboards"},
     )
 
 
 class DatasetRelatedDashboards(Schema):
-    count = fields.Integer(description="Dashboard count")
+    count = fields.Integer(metadata={"description": "Dashboard count"})
     result = fields.List(
-        fields.Nested(DatasetRelatedDashboard), description="A list of dashboards"
+        fields.Nested(DatasetRelatedDashboard),
+        metadata={"description": "A list of dashboards"},
     )
 
 
@@ -140,9 +208,9 @@ class DatasetRelatedObjectsResponse(Schema):
 
 
 class ImportV1ColumnSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
+    # pylint: disable=unused-argument
     @pre_load
-    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
         """
@@ -154,8 +222,8 @@ class ImportV1ColumnSchema(Schema):
     column_name = fields.String(required=True)
     extra = fields.Dict(allow_none=True)
     verbose_name = fields.String(allow_none=True)
-    is_dttm = fields.Boolean(default=False, allow_none=True)
-    is_active = fields.Boolean(default=True, allow_none=True)
+    is_dttm = fields.Boolean(dump_default=False, allow_none=True)
+    is_active = fields.Boolean(dump_default=True, allow_none=True)
     type = fields.String(allow_none=True)
     advanced_data_type = fields.String(allow_none=True)
     groupby = fields.Boolean()
@@ -166,9 +234,9 @@ class ImportV1ColumnSchema(Schema):
 
 
 class ImportV1MetricSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
+    # pylint: disable=unused-argument
     @pre_load
-    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
         """
@@ -183,19 +251,24 @@ class ImportV1MetricSchema(Schema):
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
     d3format = fields.String(allow_none=True)
+    currency = fields.String(allow_none=True, required=False)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
 
 
 class ImportV1DatasetSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
+    # pylint: disable=unused-argument
     @pre_load
-    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
         """
         if isinstance(data.get("extra"), str):
-            data["extra"] = json.loads(data["extra"])
+            try:
+                extra = data["extra"]
+                data["extra"] = json.loads(extra) if extra.strip() else None
+            except ValueError:
+                data["extra"] = None
 
         return data
 
@@ -206,6 +279,7 @@ class ImportV1DatasetSchema(Schema):
     offset = fields.Integer()
     cache_timeout = fields.Integer(allow_none=True)
     schema = fields.String(allow_none=True)
+    catalog = fields.String(allow_none=True)
     sql = fields.String(allow_none=True)
     params = fields.Dict(allow_none=True)
     template_params = fields.Dict(allow_none=True)
@@ -218,16 +292,70 @@ class ImportV1DatasetSchema(Schema):
     version = fields.String(required=True)
     database_uuid = fields.UUID(required=True)
     data = fields.URL()
-    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    normalize_columns = fields.Boolean(load_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
+    folders = fields.List(fields.Nested(FolderSchema), required=False, allow_none=True)
 
 
-class DatasetSchema(SQLAlchemyAutoSchema):
-    """
-    Schema for the ``Dataset`` model.
-    """
+class GetOrCreateDatasetSchema(Schema):
+    table_name = fields.String(required=True, metadata={"description": "Name of table"})
+    database_id = fields.Integer(
+        required=True, metadata={"description": "ID of database table belongs to"}
+    )
+    catalog = fields.String(
+        allow_none=True,
+        validate=Length(0, 250),
+        metadata={"description": "The catalog the table belongs to"},
+    )
+    schema = fields.String(
+        allow_none=True,
+        validate=Length(0, 250),
+        metadata={"description": "The schema the table belongs to"},
+    )
+    template_params = fields.String(
+        metadata={"description": "Template params for the table"}
+    )
+    normalize_columns = fields.Boolean(load_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
 
-    class Meta:  # pylint: disable=too-few-public-methods
-        model = Dataset
-        load_instance = True
-        include_relationships = True
+
+class DatasetCacheWarmUpRequestSchema(Schema):
+    db_name = fields.String(
+        required=True,
+        metadata={"description": "The name of the database where the table is located"},
+    )
+    table_name = fields.String(
+        required=True,
+        metadata={"description": "The name of the table to warm up cache for"},
+    )
+    dashboard_id = fields.Integer(
+        metadata={
+            "description": "The ID of the dashboard to get filters for when warming cache"  # noqa: E501
+        }
+    )
+    extra_filters = fields.String(
+        metadata={"description": "Extra filters to apply when warming up cache"}
+    )
+
+
+class DatasetCacheWarmUpResponseSingleSchema(Schema):
+    chart_id = fields.Integer(
+        metadata={"description": "The ID of the chart the status belongs to"}
+    )
+    viz_error = fields.String(
+        metadata={"description": "Error that occurred when warming cache for chart"}
+    )
+    viz_status = fields.String(
+        metadata={"description": "Status of the underlying query for the viz"}
+    )
+
+
+class DatasetCacheWarmUpResponseSchema(Schema):
+    result = fields.List(
+        fields.Nested(DatasetCacheWarmUpResponseSingleSchema),
+        metadata={
+            "description": "A list of each chart's warmup status and errors if any"
+        },
+    )

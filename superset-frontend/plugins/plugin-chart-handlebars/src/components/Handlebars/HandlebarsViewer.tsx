@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SafeMarkdown, styled } from '@superset-ui/core';
+import { SafeMarkdown, styled, t } from '@superset-ui/core';
 import Handlebars from 'handlebars';
-import moment from 'moment';
-import React, { useMemo, useState } from 'react';
+import dayjs from 'dayjs';
+import { useMemo, useState } from 'react';
 import { isPlainObject } from 'lodash';
 import Helpers from 'just-handlebars-helpers';
+import HandlebarsGroupBy from 'handlebars-group-by';
 
 export interface HandlebarsViewerProps {
   templateSource: string;
@@ -34,6 +35,13 @@ export const HandlebarsViewer = ({
 }: HandlebarsViewerProps) => {
   const [renderedTemplate, setRenderedTemplate] = useState('');
   const [error, setError] = useState('');
+  const appContainer = document.getElementById('app');
+  const { common } = JSON.parse(
+    appContainer?.getAttribute('data-bootstrap') || '{}',
+  );
+  const htmlSanitization = common?.conf?.HTML_SANITIZATION ?? true;
+  const htmlSchemaOverrides =
+    common?.conf?.HTML_SANITIZATION_SCHEMA_EXTENSIONS || {};
 
   useMemo(() => {
     try {
@@ -56,15 +64,21 @@ export const HandlebarsViewer = ({
   }
 
   if (renderedTemplate) {
-    return <SafeMarkdown source={renderedTemplate} />;
+    return (
+      <SafeMarkdown
+        source={renderedTemplate}
+        htmlSanitization={htmlSanitization}
+        htmlSchemaOverrides={htmlSchemaOverrides}
+      />
+    );
   }
-  return <p>Loading...</p>;
+  return <p>{t('Loading...')}</p>;
 };
 
 //  usage: {{dateFormat my_date format="MMMM YYYY"}}
 Handlebars.registerHelper('dateFormat', function (context, block) {
   const f = block.hash.format || 'YYYY-MM-DD';
-  return moment(context).format(f);
+  return dayjs(context).format(f);
 });
 
 // usage: {{  }}
@@ -75,4 +89,28 @@ Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
   return isPlainObject(obj) ? JSON.stringify(obj) : String(obj);
 });
 
+Handlebars.registerHelper(
+  'formatNumber',
+  function (number: any, locale = 'en-US') {
+    if (typeof number !== 'number') {
+      return number;
+    }
+    return number.toLocaleString(locale);
+  },
+);
+
+// usage: {{parseJson jsonString}}
+Handlebars.registerHelper('parseJson', (jsonString: string) => {
+  try {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    if (error instanceof Error) {
+      error.message = `Invalid JSON string: ${error.message}`;
+      throw error;
+    }
+    throw new Error(`Invalid JSON string: ${String(error)}`);
+  }
+});
+
 Helpers.registerHelpers(Handlebars);
+HandlebarsGroupBy.register(Handlebars);

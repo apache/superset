@@ -24,20 +24,9 @@ you'll probably want to run these commands manually and understand what
 they do prior to doing so.
 
 For coordinating on releases, on operational topics that require more
-synchronous communications, we recommend using the `#apache-releases` channel
+synchronous communications, we recommend using the release channel
 on the Superset Slack. People crafting releases and those interested in
 partaking in the process should join the channel.
-
-## Release notes for recent releases
-
-- [2.0](release-notes-2-0/README.md)
-- [1.5](release-notes-1-5/README.md)
-- [1.4](release-notes-1-4/README.md)
-- [1.3](release-notes-1-3/README.md)
-- [1.2](release-notes-1-2/README.md)
-- [1.1](release-notes-1-1/README.md)
-- [1.0](release-notes-1-0/README.md)
-- [0.38](release-notes-0-38/README.md)
 
 ## Release setup (First Time Only)
 
@@ -74,7 +63,7 @@ the repo directly from the main `apache/superset` repo to a new directory `super
 
 ```bash
 cd <MY PROJECTS PATH>
-git clone git@github.com:apache/superset.git superset-release
+git clone https://github.com/apache/superset.git superset-release
 cd superset-release
 ```
 
@@ -102,7 +91,7 @@ the same terminal session won't be used for crafting the release candidate and t
 final release. Therefore, it's a good idea to do the following every time you
 work on a new phase of the release process to make sure you aren't releasing
 the wrong files/using wrong names. There's a script to help you set correctly all the
-necessary environment variables. Change your current directory to `superset/RELEASING`
+necessary environment variables. Change your current directory to `RELEASING`
 and execute the `set_release_env.sh` script with the relevant parameters:
 
 Usage (MacOS/ZSH):
@@ -126,7 +115,7 @@ source set_release_env.sh 1.5.1rc1 myid@apache.org
 
 The script will output the exported variables. Here's example for 1.5.1rc1:
 
-```
+```env
 -------------------------------
 Set Release env variables
 SUPERSET_VERSION=1.5.1
@@ -134,10 +123,10 @@ SUPERSET_RC=1
 SUPERSET_GITHUB_BRANCH=1.5
 SUPERSET_PGP_FULLNAME=villebro@apache.org
 SUPERSET_VERSION_RC=1.5.1rc1
-SUPERSET_RELEASE=apache-superset-1.5.1
-SUPERSET_RELEASE_RC=apache-superset-1.5.1rc1
-SUPERSET_RELEASE_TARBALL=apache-superset-1.5.1-source.tar.gz
-SUPERSET_RELEASE_RC_TARBALL=apache-superset-1.5.1rc1-source.tar.gz
+SUPERSET_RELEASE=apache_superset-1.5.1
+SUPERSET_RELEASE_RC=apache_superset-1.5.1rc1
+SUPERSET_RELEASE_TARBALL=apache_superset-1.5.1-source.tar.gz
+SUPERSET_RELEASE_RC_TARBALL=apache_superset-1.5.1rc1-source.tar.gz
 SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-1.5.1
 -------------------------------
 ```
@@ -230,7 +219,7 @@ git push
 
 ### Updating changelog
 
-Next, update the `CHANGELOG.md` with all the changes that are included in the release.
+Next, update the `CHANGELOG/<version>.md` with all the changes that are included in the release.
 Make sure the branch has been pushed to `origin` to ensure the changelog generator
 can pick up changes since the previous release.
 Similar to `cherrytree`, the change log script requires a github token, either as an env var
@@ -238,7 +227,7 @@ Similar to `cherrytree`, the change log script requires a github token, either a
 
 #### Initial release (e.g. 1.5.0)
 
-When generating the changelog for an initial minor relese, you should compare with
+When generating the changelog for an initial minor release, you should compare with
 the previous release (in the example, the previous release branch is `1.4`, so remember to
 update it accordingly):
 
@@ -254,7 +243,7 @@ python changelog.py --previous_version 0.37 --current_version 0.38 changelog --a
 ```
 
 The script will checkout both branches, compare all the PRs, and output the lines that are needed to be added to the
-`CHANGELOG.md` file in the root of the repo. Remember to also make sure to update the branch id (with the above command
+`CHANGELOG/<version>.md` file in the root of the repo. Remember to also make sure to update the branch id (with the above command
 `1.5` needs to be changed to `1.5.0`)
 
 Then, in `UPDATING.md`, a file that contains a list of notifications around
@@ -275,13 +264,13 @@ python changelog.py --previous_version 1.5.0 --current_version ${SUPERSET_GITHUB
 
 Finally, bump the version number on `superset-frontend/package.json` (replace with whichever version is being released excluding the RC version):
 
-```
+```json
 "version": "0.38.0"
 ```
 
 Commit the change with the version number, then git tag the version with the release candidate and push to the branch:
 
-```
+```bash
 # add changed files and commit
 git add ...
 git commit ...
@@ -289,10 +278,6 @@ git commit ...
 git tag ${SUPERSET_VERSION_RC}
 git push origin ${SUPERSET_VERSION_RC}
 ```
-
-### Create a release on Github
-
-After submitting the tag, follow the steps [here](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to create the release. Use the vote email text as the content for the release description. Make sure to check the "This is a pre-release" checkbox for release canditates. You can check previous releases if you need an example.
 
 ## Preparing the release candidate
 
@@ -347,7 +332,11 @@ To build and run the recently created tarball **from SVN**:
 # login using admin/admin
 ```
 
-### Voting
+## Create a release on GitHub
+
+After submitting the tag and testing the release candidate, follow the steps [here](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to create the release on GitHub. Use the vote email text as the content for the release description. Make sure to check the "This is a pre-release" checkbox for release candidates. You can check previous releases if you need an example.
+
+## Voting
 
 Now you're ready to start the [VOTE] thread. Here's an example of a
 previous release vote thread:
@@ -377,7 +366,7 @@ The script will interactively ask for extra information needed to fill out the e
 voting description, it will generate a passing, non passing or non conclusive email.
 Here's an example:
 
-```
+```text
 A List of people with +1 binding vote (ex: Max,Grace,Krist): Daniel,Alan,Max,Grace
 A List of people with +1 non binding vote (ex: Ville): Ville
 A List of people with -1 vote (ex: John):
@@ -385,9 +374,25 @@ A List of people with -1 vote (ex: John):
 
 The script will generate the email text that should be sent to dev@superset.apache.org using an email client. The release version and release candidate number are fetched from the previously set environment variables.
 
-### Validating a release
+## Validating a release
 
+Official instructions:
 https://www.apache.org/info/verification.html
+
+We now have a handy script for anyone validating a release to use. The core of it is in this very folder, `verify_release.py`. Just make sure you have all three release files in the same directory (`{some version}.tar.gz`, `{some version}.tar.gz.asc` and `{some version}tar.gz.sha512`). Then you can pass this script the path to the `.gz` file like so:
+`python verify_release.py ~/path/tp/apache_superset-{version/candidate}-source.tar.gz`
+
+If all goes well, you will see this result in your terminal:
+
+```bash
+SHA-512 verified
+RSA key verified
+```
+
+There are also additional support scripts leveraging this to make it easy for those downloading a release to test it in-situ. You can do either of the following to validate these release assets:
+
+- `cd` into `superset-frontend` and run `npm run validate-release`
+- `cd` into `RELEASES` and run `./validate_this_release.sh`
 
 ## Publishing a successful release
 
@@ -416,11 +421,6 @@ git tag -f ${SUPERSET_VERSION}
 git push origin ${SUPERSET_VERSION}
 ```
 
-### Update CHANGELOG and UPDATING on superset
-
-Now that we have a final Apache source release we need to open a pull request on Superset
-with the changes on `CHANGELOG.md` and `UPDATING.md`.
-
 ### Publishing a Convenience Release to PyPI
 
 Extract the release to the `/tmp` folder to build the PiPY release. Files in the `/tmp` folder will be automatically deleted by the OS.
@@ -437,7 +437,7 @@ cd ${SUPERSET_RELEASE_RC}
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements/base.txt
-pip install twine
+pip install build twine
 ```
 
 Create the distribution
@@ -445,8 +445,19 @@ Create the distribution
 ```bash
 cd superset-frontend/
 npm ci && npm run build
+# Compile translations for the frontend
+npm run build-translation
+
 cd ../
-flask fab babel-compile --target superset/translations
+
+
+# Compile translations for the backend
+./scripts/translations/generate_mo_files.sh
+
+# update build version number
+sed -i '' "s/version_string = .*/version_string = \"$SUPERSET_VERSION\"/" setup.py
+
+# build the python distribution
 python setup.py sdist
 ```
 
@@ -458,7 +469,8 @@ an account first if you don't have one, and reference your username
 while requesting access to push packages.
 
 ```bash
-twine upload dist/apache-superset-${SUPERSET_VERSION}.tar.gz
+twine upload dist/apache_superset-${SUPERSET_VERSION}-py3-none-any.whl
+twine upload dist/apache_superset-${SUPERSET_VERSION}.tar.gz
 ```
 
 Set your username to `__token__`
@@ -486,3 +498,44 @@ click the 3-dot icon and select `Create Release`, paste the content of the ANNOU
 release notes, and publish the new release.
 
 At this point, a GitHub action will run that will check whether this release's version number is higher than the current 'latest' release. If that condition is true, this release sha will automatically be tagged as `latest` so that the most recent release can be referenced simply by using the 'latest' tag instead of looking up the version number. The existing version number tag will still exist, and can also be used for reference.
+
+### Update Superset files
+
+Now that we have a final Apache release we need to open a pull request on Superset with the changes on [CHANGELOG/\<version\>.md](../CHANGELOG) and [UPDATING.md](../UPDATING.md).
+
+We also need to update the Environment section of [ISSUE_TEMPLATE/bug-report.yml](../.github/ISSUE_TEMPLATE//bug-report.yml) to reflect the new release changes. This includes removing versions that are not supported anymore and adding new ones.
+
+### Docker Releases
+
+Docker release with proper tags should happen automatically as version
+tags get pushed to the `apache/superset` GitHub repository through this
+[GitHub action](https://github.com/apache/superset/blob/master/.github/workflows/docker.yml)
+
+Note that this GH action implements a `workflow_dispatch` trigger,
+meaning that it can be triggered manually from the GitHub UI. If anything
+was to go wrong in the automated process, it's possible to re-generate
+and re-push the proper images and tags through this interface. The action
+takes the version (ie `3.1.1`), the git reference (any SHA, tag or branch
+reference), and whether to force the `latest` Docker tag on the
+generated images.
+
+### Npm Release
+
+You might want to publish the latest @superset-ui release to npm
+
+```bash
+cd superset/superset-frontend
+```
+
+An automated GitHub action will run and generate a new tag, which will contain a version number provided as a parameter.
+
+```bash
+export GH_TOKEN={GITHUB_TOKEN}
+npx lerna version {VERSION} --conventional-commits --create-release github --no-private --yes --message {COMMIT_MESSAGE}
+```
+
+This action will publish the specified version to npm registry.
+
+```bash
+npx lerna publish from-package --yes
+```

@@ -18,6 +18,8 @@
  */
 import { ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
 import thumbnail from '../images/thumbnail.png';
+import example1 from '../images/example1.jpg';
+import example2 from '../images/example2.jpg';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -35,9 +37,10 @@ export default class HandlebarsChartPlugin extends ChartPlugin {
    */
   constructor() {
     const metadata = new ChartMetadata({
-      description: 'Write a handlebars template to render the data',
+      description: t('Write a handlebars template to render the data'),
       name: t('Handlebars'),
       thumbnail,
+      exampleGallery: [{ url: example1 }, { url: example2 }],
     });
 
     super({

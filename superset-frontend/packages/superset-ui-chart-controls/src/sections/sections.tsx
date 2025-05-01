@@ -38,11 +38,6 @@ export const legacyTimeseriesTime: ControlPanelSectionConfig = {
   ],
 };
 
-export const legacyRegularTime: ControlPanelSectionConfig = {
-  ...baseTimeSection,
-  controlSetRows: [['granularity_sqla'], ['time_range']],
-};
-
 export const datasourceAndVizType: ControlPanelSectionConfig = {
   label: t('Datasource & Chart Type'),
   expanded: true,

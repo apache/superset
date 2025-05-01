@@ -17,11 +17,17 @@
  * under the License.
  */
 
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import DatabaseErrorMessage from './DatabaseErrorMessage';
-import { ErrorLevel, ErrorSource, ErrorTypeEnum } from './types';
+
+jest.mock(
+  'src/components/Icons/AsyncIcon',
+  () =>
+    ({ fileName }: { fileName: string }) => (
+      <span role="img" aria-label={fileName.replace('_', '-')} />
+    ),
+);
 
 const mockedProps = {
   error: {
@@ -48,7 +54,14 @@ const mockedProps = {
 };
 
 test('should render', () => {
-  const { container } = render(<DatabaseErrorMessage {...mockedProps} />);
+  const nullExtraProps = {
+    ...mockedProps,
+    error: {
+      ...mockedProps.error,
+      extra: null,
+    },
+  };
+  const { container } = render(<DatabaseErrorMessage {...nullExtraProps} />);
   expect(container).toBeInTheDocument();
 });
 

@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
+import { ReactNode } from 'react';
+import { ErrorSource, t, SupersetError } from '@superset-ui/core';
 import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry';
-import { SupersetError, ErrorSource } from './types';
 import ErrorAlert from './ErrorAlert';
 
 const DEFAULT_TITLE = t('Unexpected error');
@@ -28,21 +27,28 @@ type Props = {
   title?: string;
   error?: SupersetError;
   link?: string;
-  subtitle?: React.ReactNode;
+  subtitle?: ReactNode;
   copyText?: string;
   stackTrace?: string;
   source?: ErrorSource;
+  description?: string;
+  descriptionDetails?: ReactNode;
   errorMitigationFunction?: () => void;
+  fallback?: ReactNode;
+  compact?: boolean;
 };
 
 export default function ErrorMessageWithStackTrace({
   title = DEFAULT_TITLE,
   error,
   subtitle,
-  copyText,
   link,
   stackTrace,
   source,
+  description,
+  descriptionDetails,
+  fallback,
+  compact,
 }: Props) {
   // Check if a custom error message component was registered for this message
   if (error) {
@@ -52,6 +58,7 @@ export default function ErrorMessageWithStackTrace({
     if (ErrorMessageComponent) {
       return (
         <ErrorMessageComponent
+          compact={compact}
           error={error}
           source={source}
           subtitle={subtitle}
@@ -60,26 +67,31 @@ export default function ErrorMessageWithStackTrace({
     }
   }
 
+  if (fallback) {
+    return <>{fallback}</>;
+  }
+  const computedDescriptionDetails =
+    descriptionDetails ||
+    (link || stackTrace ? (
+      <>
+        {link && (
+          <a href={link} target="_blank" rel="noopener noreferrer">
+            {t('Request Access')}
+          </a>
+        )}
+        <br />
+        {stackTrace && <pre>{stackTrace}</pre>}
+      </>
+    ) : undefined);
+
   return (
     <ErrorAlert
-      level="warning"
-      title={title}
-      subtitle={subtitle}
-      copyText={copyText}
-      source={source}
-      body={
-        link || stackTrace ? (
-          <>
-            {link && (
-              <a href={link} target="_blank" rel="noopener noreferrer">
-                (Request Access)
-              </a>
-            )}
-            <br />
-            {stackTrace && <pre>{stackTrace}</pre>}
-          </>
-        ) : undefined
-      }
+      type="error"
+      errorType={title}
+      message={subtitle}
+      description={description}
+      descriptionDetails={computedDescriptionDetails}
+      compact={compact}
     />
   );
 }

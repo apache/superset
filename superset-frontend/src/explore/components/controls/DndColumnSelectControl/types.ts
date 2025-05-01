@@ -30,7 +30,9 @@ export interface OptionProps {
   clickClose: (index: number) => void;
   withCaret?: boolean;
   isExtra?: boolean;
+  datasourceWarningMessage?: string;
   canDelete?: boolean;
+  tooltipOverlay?: ReactNode;
 }
 
 export interface OptionItemInterface {

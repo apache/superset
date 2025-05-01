@@ -19,12 +19,12 @@
 
 // These are control configurations that are shared ONLY within the DeckGL viz plugin repo.
 
-import React from 'react';
 import {
   FeatureFlag,
   isFeatureEnabled,
   t,
   validateNonEmpty,
+  validateMapboxStylesUrl,
 } from '@superset-ui/core';
 import { D3_FORMAT_OPTIONS, sharedControls } from '@superset-ui/chart-controls';
 import { columnChoices, PRIMARY_COLOR } from './controls';
@@ -38,8 +38,8 @@ const DEFAULT_VIEWPORT = {
 };
 
 const sandboxUrl =
-  'https://github.com/apache/incubator-superset/' +
-  'blob/master/superset-frontend/src/modules/sandbox.js';
+  'https://github.com/apache/superset/' +
+  'blob/master/superset-frontend/plugins/legacy-preset-chart-deckgl/src/utils/sandbox.ts';
 const jsFunctionInfo = (
   <div>
     {t(
@@ -71,12 +71,12 @@ function jsFunctionControl(
         {extraDescr}
       </div>
     ),
-    warning: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS)
+    warning: !isFeatureEnabled(FeatureFlag.EnableJavascriptControls)
       ? t(
           'This functionality is disabled in your environment for security reasons.',
         )
       : null,
-    readOnly: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS),
+    readOnly: !isFeatureEnabled(FeatureFlag.EnableJavascriptControls),
   };
 }
 
@@ -121,7 +121,7 @@ export const jsColumns = {
     label: t('Extra data for JS'),
     default: [],
     description: t(
-      'List of extra columns made available in Javascript functions',
+      'List of extra columns made available in JavaScript functions',
     ),
   },
 };
@@ -129,7 +129,7 @@ export const jsColumns = {
 export const jsDataMutator = {
   name: 'js_data_mutator',
   config: jsFunctionControl(
-    t('Javascript data interceptor'),
+    t('JavaScript data interceptor'),
     t(
       'Define a javascript function that receives the data array used in the visualization ' +
         'and is expected to return a modified version of that array. This can be used ' +
@@ -141,7 +141,7 @@ export const jsDataMutator = {
 export const jsTooltip = {
   name: 'js_tooltip',
   config: jsFunctionControl(
-    t('Javascript tooltip generator'),
+    t('JavaScript tooltip generator'),
     t(
       'Define a function that receives the input and outputs the content for a tooltip',
     ),
@@ -151,7 +151,7 @@ export const jsTooltip = {
 export const jsOnclickHref = {
   name: 'js_onclick_href',
   config: jsFunctionControl(
-    t('Javascript onClick href'),
+    t('JavaScript onClick href'),
     t('Define a function that returns a URL to navigate to when user clicks'),
   ),
 };
@@ -179,11 +179,11 @@ export const legendPosition = {
     clearable: false,
     default: 'tr',
     choices: [
-      [null, 'None'],
-      ['tl', 'Top left'],
-      ['tr', 'Top right'],
-      ['bl', 'Bottom left'],
-      ['br', 'Bottom right'],
+      [null, t('None')],
+      ['tl', t('Top left')],
+      ['tr', t('Top right')],
+      ['bl', t('Bottom left')],
+      ['br', t('Bottom right')],
     ],
     renderTrigger: true,
   },
@@ -210,7 +210,7 @@ export const lineWidth = {
     label: t('Line width'),
     renderTrigger: true,
     isInt: true,
-    default: 10,
+    default: 1,
     description: t('The width of the lines'),
   },
 };
@@ -270,7 +270,7 @@ export const extruded = {
     label: t('Extruded'),
     renderTrigger: true,
     default: true,
-    description: 'Whether to make the grid 3D',
+    description: t('Whether to make the grid 3D'),
   },
 };
 
@@ -347,9 +347,9 @@ export const lineType = {
     default: 'json',
     description: t('The encoding format of the lines'),
     choices: [
-      ['polyline', 'Polyline'],
-      ['json', 'JSON'],
-      ['geohash', 'geohash (square)'],
+      ['polyline', t('Polyline')],
+      ['json', t('JSON')],
+      ['geohash', t('geohash (square)')],
     ],
   },
 };
@@ -370,16 +370,21 @@ export const mapboxStyle = {
     label: t('Map Style'),
     clearable: false,
     renderTrigger: true,
+    freeForm: true,
+    validators: [validateMapboxStylesUrl],
     choices: [
-      ['mapbox://styles/mapbox/streets-v9', 'Streets'],
-      ['mapbox://styles/mapbox/dark-v9', 'Dark'],
-      ['mapbox://styles/mapbox/light-v9', 'Light'],
-      ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
-      ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
-      ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
+      ['mapbox://styles/mapbox/streets-v9', t('Streets')],
+      ['mapbox://styles/mapbox/dark-v9', t('Dark')],
+      ['mapbox://styles/mapbox/light-v9', t('Light')],
+      ['mapbox://styles/mapbox/satellite-streets-v9', t('Satellite Streets')],
+      ['mapbox://styles/mapbox/satellite-v9', t('Satellite')],
+      ['mapbox://styles/mapbox/outdoors-v9', t('Outdoors')],
     ],
     default: 'mapbox://styles/mapbox/light-v9',
-    description: t('Base layer map style'),
+    description: t(
+      'Base layer map style. See Mapbox documentation: %s',
+      'https://docs.mapbox.com/help/glossary/style-url/',
+    ),
   },
 };
 

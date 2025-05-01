@@ -17,12 +17,13 @@
  * under the License.
  */
 
-import React, { ReactNode } from 'react';
+import { Component, ReactNode } from 'react';
 import {
   SupersetClient,
   Method,
   makeApi,
   SupersetApiError,
+  t,
 } from '@superset-ui/core';
 import ErrorMessage from './ErrorMessage';
 
@@ -52,7 +53,7 @@ export const renderError = (error: Error) => (
   </div>
 );
 
-export default class VerifyCORS extends React.Component<Props, State> {
+export default class VerifyCORS extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { didVerify: false };
@@ -121,7 +122,7 @@ export default class VerifyCORS extends React.Component<Props, State> {
             className="btn btn-primary btn-sm"
             onClick={this.handleVerify}
           >
-            Verify
+            {t('Verify')}
           </button>
           <br />
           <br />

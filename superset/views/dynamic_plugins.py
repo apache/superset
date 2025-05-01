@@ -61,7 +61,6 @@ class DynamicPluginsView(ModelView):
     edit_title = _("Edit Plugin")
 
     @before_request
-    # pylint: disable=R0201
     def ensure_dynamic_plugins_enabled(self) -> Optional[Response]:
         if not is_feature_enabled("DYNAMIC_PLUGINS"):
             return make_response("Not found", 404)

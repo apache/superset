@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { styled } from '@superset-ui/core';
-import { Progress as AntdProgress } from 'antd';
-import { ProgressProps } from 'antd/lib/progress/progress';
+import { Progress as AntdProgress } from 'antd-v5';
+import { ProgressProps } from 'antd-v5/lib/progress/progress';
 
 export interface ProgressBarProps extends ProgressProps {
   striped?: boolean;
@@ -27,20 +26,13 @@ export interface ProgressBarProps extends ProgressProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ProgressBar = styled(({ striped, ...props }: ProgressBarProps) => (
-  <AntdProgress {...props} />
+  <AntdProgress data-test="progress-bar" {...props} />
 ))`
-  line-height: 0;
   position: static;
-  .ant-progress-inner {
+  .antd5-progress-inner {
     position: static;
   }
-  .ant-progress-outer {
-    ${({ percent }) => !percent && `display: none;`}
-  }
-  .ant-progress-text {
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  }
-  .ant-progress-bg {
+  .antd5-progress-bg {
     position: static;
     ${({ striped }) =>
       striped &&

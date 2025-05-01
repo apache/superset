@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import React from 'react';
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
+import Loader from 'src/assets/images/loading.gif';
 
 export type PositionOption =
   | 'floating'
@@ -35,6 +35,7 @@ export interface Props {
 const LoaderImg = styled.img`
   z-index: 99;
   width: 50px;
+  height: unset;
   position: relative;
   margin: 10px;
   &.inline {
@@ -57,17 +58,18 @@ const LoaderImg = styled.img`
 `;
 export default function Loading({
   position = 'floating',
-  image = '/static/assets/images/loading.gif',
+  image,
   className,
 }: Props) {
   return (
     <LoaderImg
       className={cls('loading', position, className)}
       alt="Loading..."
-      src={image}
+      src={image || Loader}
       role="status"
       aria-live="polite"
       aria-label="Loading"
+      data-test="loading-indicator"
     />
   );
 }

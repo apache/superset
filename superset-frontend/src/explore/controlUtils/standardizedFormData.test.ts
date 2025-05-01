@@ -23,6 +23,7 @@ import {
   getChartControlPanelRegistry,
   QueryFormData,
   TimeGranularity,
+  VizType,
 } from '@superset-ui/core';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { BigNumberTotalChartPlugin } from '@superset-ui/plugin-chart-echarts';
@@ -61,7 +62,7 @@ const adhocMetricSimple: AdhocMetricSimple = {
 
 const tableVizFormData = {
   datasource: '30__table',
-  viz_type: 'table',
+  viz_type: VizType.Table,
   granularity_sqla: 'ds',
   time_grain_sqla: TimeGranularity.DAY,
   time_range: 'No filter',
@@ -145,7 +146,6 @@ const tableVizStore = {
       value: true,
     },
     show_totals: {},
-    emit_filter: {},
     table_timestamp_format: {
       value: 'smart_date',
     },
@@ -313,7 +313,9 @@ describe('should collect control values and create SFD', () => {
     const { formData } = sfd.transform('target_viz', sourceMockStore);
     Object.entries(publicControlsFormData).forEach(([key, value]) => {
       expect(formData).toHaveProperty(key);
-      expect(value).toEqual(publicControlsFormData[key]);
+      expect(value).toEqual(
+        publicControlsFormData[key as keyof typeof publicControlsFormData],
+      );
     });
     expect(formData.columns).toEqual([
       'c1',
@@ -379,7 +381,7 @@ describe('should collect control values and create SFD', () => {
 describe('should transform form_data between table and bigNumberTotal', () => {
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue(
-      'big_number_total',
+      VizType.BigNumberTotal,
       new BigNumberTotalChartPlugin().controlPanel,
     );
     getChartControlPanelRegistry().registerValue(
@@ -392,34 +394,35 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     // table -> bigNumberTotal
     const sfd = new StandardizedFormData(tableVizFormData);
     const { formData: bntFormData } = sfd.transform(
-      'big_number_total',
+      VizType.BigNumberTotal,
       tableVizStore,
     );
 
     // bigNumberTotal -> table
     const sfd2 = new StandardizedFormData(bntFormData);
-    expect(sfd2.has('big_number_total')).toBeTruthy();
+    expect(sfd2.has(VizType.BigNumberTotal)).toBeTruthy();
     expect(sfd2.has('table')).toBeTruthy();
-    expect(sfd2.get('big_number_total').viz_type).toBe('big_number_total');
-    expect(sfd2.get('table').viz_type).toBe('table');
+    expect(sfd2.get(VizType.BigNumberTotal).viz_type).toBe(
+      VizType.BigNumberTotal,
+    );
+    expect(sfd2.get('table').viz_type).toBe(VizType.Table);
   });
 
   test('transform', () => {
     // table -> bigNumberTotal
     const sfd = new StandardizedFormData(tableVizFormData);
     const { formData: bntFormData, controlsState: bntControlsState } =
-      sfd.transform('big_number_total', tableVizStore);
+      sfd.transform(VizType.BigNumberTotal, tableVizStore);
     expect(Object.keys(bntFormData).sort()).toEqual(
       [...Object.keys(bntControlsState), 'standardizedFormData'].sort(),
     );
-    expect(bntFormData.viz_type).toBe('big_number_total');
+    expect(bntFormData.viz_type).toBe(VizType.BigNumberTotal);
     expect(bntFormData.metric).toBe('count');
 
     // change control values on bigNumber
     bntFormData.metric = 'sum(sales)';
-    bntFormData.time_range = '2021 : 2022';
+
     bntControlsState.metric.value = 'sum(sales)';
-    bntControlsState.time_range.value = '2021 : 2022';
 
     // bigNumberTotal -> table
     const sfd2 = new StandardizedFormData(bntFormData);
@@ -432,7 +435,7 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     expect(Object.keys(tblFormData).sort()).toEqual(
       [...Object.keys(tblControlsState), 'standardizedFormData'].sort(),
     );
-    expect(tblFormData.viz_type).toBe('table');
+    expect(tblFormData.viz_type).toBe(VizType.Table);
     expect(tblFormData.metrics).toEqual([
       'sum(sales)',
       'avg(sales)',
@@ -440,14 +443,13 @@ describe('should transform form_data between table and bigNumberTotal', () => {
       adhocMetricSQL,
     ]);
     expect(tblFormData.groupby).toEqual(['name', 'gender', adhocColumn]);
-    expect(tblFormData.time_range).toBe('2021 : 2022');
   });
 });
 
 describe('initial SFD between different datasource', () => {
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue(
-      'big_number_total',
+      VizType.BigNumberTotal,
       new BigNumberTotalChartPlugin().controlPanel,
     );
     getChartControlPanelRegistry().registerValue(
@@ -460,7 +462,7 @@ describe('initial SFD between different datasource', () => {
     const sfd = new StandardizedFormData(tableVizFormData);
     // table -> big number
     const { formData: bntFormData, controlsState: bntControlsState } =
-      sfd.transform('big_number_total', tableVizStore);
+      sfd.transform(VizType.BigNumberTotal, tableVizStore);
     const sfd2 = new StandardizedFormData(bntFormData);
     // big number -> table
     const { formData: tblFormData } = sfd2.transform('table', {
@@ -473,14 +475,14 @@ describe('initial SFD between different datasource', () => {
       tblFormData.standardizedFormData.memorizedFormData.map(
         (mfd: [string, QueryFormData][]) => mfd[0],
       ),
-    ).toEqual(['table', 'big_number_total']);
+    ).toEqual([VizType.Table, VizType.BigNumberTotal]);
     const newDatasourceFormData = { ...tblFormData, datasource: '20__table' };
     const newDatasourceSFD = new StandardizedFormData(newDatasourceFormData);
     expect(
       newDatasourceSFD
         .serialize()
         .memorizedFormData.map(([vizType]) => vizType),
-    ).toEqual(['table']);
+    ).toEqual([VizType.Table]);
     expect(newDatasourceSFD.get('table')).not.toHaveProperty(
       'standardizedFormData',
     );

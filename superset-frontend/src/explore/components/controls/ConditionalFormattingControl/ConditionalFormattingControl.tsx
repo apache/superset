@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { styled, css, t, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Comparator } from '@superset-ui/chart-controls';
+import { Icons } from 'src/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate';
 import { FormattingPopover } from './FormattingPopover';
 import {
-  COMPARATOR,
   ConditionalFormattingConfig,
   ConditionalFormattingControlProps,
 } from './types';
@@ -71,6 +70,8 @@ const ConditionalFormattingControl = ({
   onChange,
   columnOptions,
   verboseMap,
+  removeIrrelevantConditions,
+  extraColorChoices,
   ...props
 }: ConditionalFormattingControlProps) => {
   const theme = useTheme();
@@ -83,20 +84,20 @@ const ConditionalFormattingControl = ({
     }
   }, [conditionalFormattingConfigs, onChange]);
 
-  // remove formatter when corresponding column is removed from controls
-  const removeFormattersWhenColumnsChange = useCallback(() => {
-    const newFormattingConfigs = conditionalFormattingConfigs.filter(config =>
-      columnOptions.some(option => option?.value === config?.column),
-    );
-    if (
-      newFormattingConfigs.length !== conditionalFormattingConfigs.length &&
-      onChange
-    ) {
-      setConditionalFormattingConfigs(newFormattingConfigs);
-      onChange(newFormattingConfigs);
+  useEffect(() => {
+    if (removeIrrelevantConditions) {
+      // remove formatter when corresponding column is removed from controls
+      const newFormattingConfigs = conditionalFormattingConfigs.filter(config =>
+        columnOptions.some((option: any) => option?.value === config?.column),
+      );
+      if (
+        newFormattingConfigs.length !== conditionalFormattingConfigs.length &&
+        removeIrrelevantConditions
+      ) {
+        setConditionalFormattingConfigs(newFormattingConfigs);
+      }
     }
-  }, [JSON.stringify(columnOptions)]);
-  useComponentDidUpdate(removeFormattersWhenColumnsChange);
+  }, [conditionalFormattingConfigs, columnOptions, removeIrrelevantConditions]);
 
   const onDelete = (index: number) => {
     setConditionalFormattingConfigs(prevConfigs =>
@@ -123,16 +124,16 @@ const ConditionalFormattingControl = ({
   }: ConditionalFormattingConfig) => {
     const columnName = (column && verboseMap?.[column]) ?? column;
     switch (operator) {
-      case COMPARATOR.NONE:
+      case Comparator.None:
         return `${columnName}`;
-      case COMPARATOR.BETWEEN:
-        return `${targetValueLeft} ${COMPARATOR.LESS_THAN} ${columnName} ${COMPARATOR.LESS_THAN} ${targetValueRight}`;
-      case COMPARATOR.BETWEEN_OR_EQUAL:
-        return `${targetValueLeft} ${COMPARATOR.LESS_OR_EQUAL} ${columnName} ${COMPARATOR.LESS_OR_EQUAL} ${targetValueRight}`;
-      case COMPARATOR.BETWEEN_OR_LEFT_EQUAL:
-        return `${targetValueLeft} ${COMPARATOR.LESS_OR_EQUAL} ${columnName} ${COMPARATOR.LESS_THAN} ${targetValueRight}`;
-      case COMPARATOR.BETWEEN_OR_RIGHT_EQUAL:
-        return `${targetValueLeft} ${COMPARATOR.LESS_THAN} ${columnName} ${COMPARATOR.LESS_OR_EQUAL} ${targetValueRight}`;
+      case Comparator.Between:
+        return `${targetValueLeft} ${Comparator.LessThan} ${columnName} ${Comparator.LessThan} ${targetValueRight}`;
+      case Comparator.BetweenOrEqual:
+        return `${targetValueLeft} ${Comparator.LessOrEqual} ${columnName} ${Comparator.LessOrEqual} ${targetValueRight}`;
+      case Comparator.BetweenOrLeftEqual:
+        return `${targetValueLeft} ${Comparator.LessOrEqual} ${columnName} ${Comparator.LessThan} ${targetValueRight}`;
+      case Comparator.BetweenOrRightEqual:
+        return `${targetValueLeft} ${Comparator.LessThan} ${columnName} ${Comparator.LessOrEqual} ${targetValueRight}`;
       default:
         return `${columnName} ${operator} ${targetValue}`;
     }
@@ -145,7 +146,10 @@ const ConditionalFormattingControl = ({
         {conditionalFormattingConfigs.map((config, index) => (
           <FormatterContainer key={index}>
             <CloseButton onClick={() => onDelete(index)}>
-              <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
+              <Icons.CloseOutlined
+                iconSize="m"
+                iconColor={theme.colors.grayscale.light1}
+              />
             </CloseButton>
             <FormattingPopover
               title={t('Edit formatter')}
@@ -155,11 +159,18 @@ const ConditionalFormattingControl = ({
                 onEdit(newConfig, index)
               }
               destroyTooltipOnHide
+              extraColorChoices={extraColorChoices}
             >
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
                 <CaretContainer>
-                  <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
+                  <Icons.RightOutlined
+                    iconSize="m"
+                    css={css`
+                      margin-top: ${theme.gridUnit}px;
+                    `}
+                    iconColor={theme.colors.grayscale.light1}
+                  />
                 </CaretContainer>
               </OptionControlContainer>
             </FormattingPopover>
@@ -170,9 +181,17 @@ const ConditionalFormattingControl = ({
           columns={columnOptions}
           onChange={onSave}
           destroyTooltipOnHide
+          extraColorChoices={extraColorChoices}
         >
           <AddControlLabel>
-            <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
+            <Icons.PlusOutlined
+              iconSize="m"
+              iconColor={theme.colors.grayscale.light1}
+              css={theme => ({
+                margin: `auto ${theme.gridUnit}px auto 0`,
+                verticalAlign: 'baseline',
+              })}
+            />
             {t('Add new color formatter')}
           </AddControlLabel>
         </FormattingPopover>

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import { OptionSortType } from 'src/explore/types';
 import AdhocFilterEditPopover from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopover';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -36,13 +36,14 @@ interface AdhocFilterPopoverTriggerProps {
   visible?: boolean;
   togglePopover?: (visible: boolean) => void;
   closePopover?: () => void;
+  requireSave?: boolean;
 }
 
 interface AdhocFilterPopoverTriggerState {
   popoverVisible: boolean;
 }
 
-class AdhocFilterPopoverTrigger extends React.PureComponent<
+class AdhocFilterPopoverTrigger extends PureComponent<
   AdhocFilterPopoverTriggerProps,
   AdhocFilterPopoverTriggerState
 > {
@@ -96,6 +97,7 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
           sections={this.props.sections}
           operators={this.props.operators}
           onChange={this.props.onFilterEdit}
+          requireSave={this.props.requireSave}
         />
       </ExplorePopoverContent>
     );
@@ -104,9 +106,9 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
       <ControlPopover
         trigger="click"
         content={overlayContent}
-        defaultVisible={visible}
-        visible={visible}
-        onVisibleChange={togglePopover}
+        defaultOpen={visible}
+        open={visible}
+        onOpenChange={togglePopover}
         destroyTooltipOnHide
       >
         {this.props.children}

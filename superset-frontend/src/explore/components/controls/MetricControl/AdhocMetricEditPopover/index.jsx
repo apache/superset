@@ -17,14 +17,20 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, ensureIsArray, DatasourceType } from '@superset-ui/core';
+import {
+  isDefined,
+  t,
+  styled,
+  ensureIsArray,
+  DatasourceType,
+} from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { Form, FormItem } from 'src/components/Form';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
@@ -43,6 +49,7 @@ import {
   StyledMetricOption,
   StyledColumnOption,
 } from 'src/explore/components/optionRenderers';
+import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 
 const propTypes = {
   onChange: PropTypes.func.isRequired,
@@ -55,11 +62,14 @@ const propTypes = {
   savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
   savedMetric: savedMetricType,
   datasource: PropTypes.object,
+  isNewMetric: PropTypes.bool,
+  isLabelModified: PropTypes.bool,
 };
 
 const defaultProps = {
   columns: [],
   getCurrentTab: noOp,
+  isNewMetric: false,
 };
 
 const StyledSelect = styled(Select)`
@@ -76,14 +86,9 @@ const StyledSelect = styled(Select)`
 
 export const SAVED_TAB_KEY = 'SAVED';
 
-export default class AdhocMetricEditPopover extends React.PureComponent {
+export default class AdhocMetricEditPopover extends PureComponent {
   // "Saved" is a default tab unless there are no saved metrics for dataset
-  defaultActiveTabKey =
-    (this.props.savedMetric.metric_name || this.props.adhocMetric.isNew) &&
-    Array.isArray(this.props.savedMetricsOptions) &&
-    this.props.savedMetricsOptions.length > 0
-      ? SAVED_TAB_KEY
-      : this.props.adhocMetric.expressionType;
+  defaultActiveTabKey = this.getDefaultTab();
 
   constructor(props) {
     super(props);
@@ -99,6 +104,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     this.onTabChange = this.onTabChange.bind(this);
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
     this.refreshAceEditor = this.refreshAceEditor.bind(this);
+    this.getDefaultTab = this.getDefaultTab.bind(this);
 
     this.state = {
       adhocMetric: this.props.adhocMetric,
@@ -106,7 +112,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       width: POPOVER_INITIAL_WIDTH,
       height: POPOVER_INITIAL_HEIGHT,
     };
-
     document.addEventListener('mouseup', this.onMouseUp);
   }
 
@@ -135,6 +140,22 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
   componentWillUnmount() {
     document.removeEventListener('mouseup', this.onMouseUp);
     document.removeEventListener('mousemove', this.onMouseMove);
+  }
+
+  getDefaultTab() {
+    const { adhocMetric, savedMetric, savedMetricsOptions, isNewMetric } =
+      this.props;
+    if (isDefined(adhocMetric.column) || isDefined(adhocMetric.sqlExpression)) {
+      return adhocMetric.expressionType;
+    }
+    if (
+      (isNewMetric || savedMetric.metric_name) &&
+      Array.isArray(savedMetricsOptions) &&
+      savedMetricsOptions.length > 0
+    ) {
+      return SAVED_TAB_KEY;
+    }
+    return adhocMetric.expressionType;
   }
 
   onSave() {
@@ -228,7 +249,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
         POPOVER_INITIAL_WIDTH,
       ),
       height: Math.max(
-        this.dragStartHeight + (e.clientY - this.dragStartY) * 2,
+        this.dragStartHeight + (e.clientY - this.dragStartY),
         POPOVER_INITIAL_HEIGHT,
       ),
     });
@@ -252,7 +273,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
   refreshAceEditor() {
     setTimeout(() => {
       if (this.aceEditorRef) {
-        this.aceEditorRef.editor.resize();
+        this.aceEditorRef.editor?.resize?.();
       }
     }, 0);
   }
@@ -279,17 +300,12 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       onClose,
       onResize,
       datasource,
+      isNewMetric,
+      isLabelModified,
       ...popoverProps
     } = this.props;
     const { adhocMetric, savedMetric } = this.state;
-    const keywords = sqlKeywords.concat(
-      columns.map(column => ({
-        name: column.column_name,
-        value: column.column_name,
-        score: 50,
-        meta: 'column',
-      })),
-    );
+    const keywords = sqlKeywords.concat(getColumnKeywords(columns));
 
     const columnValue =
       (adhocMetric.column && adhocMetric.column.column_name) ||
@@ -325,6 +341,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
 
     const stateIsValid = adhocMetric.isValid() || savedMetric?.metric_name;
     const hasUnsavedChanges =
+      isLabelModified ||
+      isNewMetric ||
       !adhocMetric.equals(propsAdhocMetric) ||
       (!(
         typeof savedMetric?.metric_name === 'undefined' &&
@@ -371,16 +389,18 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                 />
               </FormItem>
             ) : datasource.type === DatasourceType.Table ? (
-              <EmptyStateSmall
+              <EmptyState
                 image="empty.svg"
+                size="small"
                 title={t('No saved metrics found')}
                 description={t(
                   'Add metrics to dataset in "Edit datasource" modal',
                 )}
               />
             ) : (
-              <EmptyStateSmall
+              <EmptyState
                 image="empty.svg"
+                size="small"
                 title={t('No saved metrics found')}
                 description={
                   <>
@@ -487,10 +507,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
             {t('Close')}
           </Button>
           <Button
-            disabled={!stateIsValid}
-            buttonStyle={
-              hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
-            }
+            disabled={!stateIsValid || !hasUnsavedChanges}
+            buttonStyle="primary"
             buttonSize="small"
             data-test="AdhocMetricEdit#save"
             onClick={this.onSave}
@@ -498,6 +516,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           >
             {t('Save')}
           </Button>
+          {/* TODO: Remove fa-icon */}
+          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
           <i
             role="button"
             aria-label="Resize"

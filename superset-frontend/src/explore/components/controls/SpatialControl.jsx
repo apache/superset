@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col } from 'src/components';
 import { t } from '@superset-ui/core';
@@ -47,7 +47,7 @@ const defaultProps = {
   choices: [],
 };
 
-export default class SpatialControl extends React.Component {
+export default class SpatialControl extends Component {
   constructor(props) {
     super(props);
     const v = props.value || {};
@@ -171,11 +171,11 @@ export default class SpatialControl extends React.Component {
         >
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              Longitude
+              {t('Longitude')}
               {this.renderSelect('lonCol', spatialTypes.latlong)}
             </Col>
             <Col xs={24} md={12}>
-              Latitude
+              {t('Latitude')}
               {this.renderSelect('latCol', spatialTypes.latlong)}
             </Col>
           </Row>
@@ -206,7 +206,7 @@ export default class SpatialControl extends React.Component {
         >
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              Column
+              {t('Column')}
               {this.renderSelect('geohashCol', spatialTypes.geohash)}
             </Col>
             <Col xs={24} md={12}>

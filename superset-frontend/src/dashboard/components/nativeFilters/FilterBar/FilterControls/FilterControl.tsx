@@ -16,29 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useContext, useMemo, useState } from 'react';
-import { styled, SupersetTheme } from '@superset-ui/core';
+import { memo, useContext, useMemo, useState } from 'react';
+import {
+  createHtmlPortalNode,
+  InPortal,
+  OutPortal,
+} from 'react-reverse-portal';
+import { styled, SupersetTheme, truncationCSS } from '@superset-ui/core';
 import { FormItem as StyledFormItem, Form } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
-import { FilterProps } from './types';
 import { FilterCard } from '../../FilterCard';
-import { FilterBarScrollContext } from '../index';
+import { FilterBarScrollContext } from '../Vertical';
+import { FilterControlProps } from './types';
+import { FilterCardPlacement } from '../../FilterCard/types';
+import { useIsFilterInScope } from '../../state';
 
-const StyledIcon = styled.div`
+const FilterStyledIcon = styled.div`
   position: absolute;
   right: 0;
 `;
 
-const StyledFilterControlTitle = styled.h4`
+const VerticalFilterControlTitle = styled.h4`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 `;
 
-const StyledFilterControlTitleBox = styled.div`
+const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
+  font-weight: ${({ theme }) => theme.typography.weights.normal};
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  ${truncationCSS};
+`;
+
+const HorizontalOverflowFilterControlTitle = styled(
+  HorizontalFilterControlTitle,
+)`
+  max-width: none;
+`;
+
+const VerticalFilterControlTitleBox = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -46,7 +66,17 @@ const StyledFilterControlTitleBox = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
 `;
 
-const StyledFilterControlContainer = styled(Form)`
+const HorizontalFilterControlTitleBox = styled(VerticalFilterControlTitleBox)`
+  margin-bottom: unset;
+`;
+
+const HorizontalOverflowFilterControlTitleBox = styled(
+  VerticalFilterControlTitleBox,
+)`
+  width: 100%;
+`;
+
+const VerticalFilterControlContainer = styled(Form)`
   width: 100%;
   && .ant-form-item-label > label {
     text-transform: none;
@@ -58,15 +88,124 @@ const StyledFilterControlContainer = styled(Form)`
   }
 `;
 
-const FormItem = styled(StyledFormItem)`
+const HorizontalFilterControlContainer = styled(Form)`
+  && .ant-form-item-label > label {
+    margin-bottom: 0;
+    text-transform: none;
+  }
+  .ant-form-item-tooltip {
+    margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
+const HorizontalOverflowFilterControlContainer = styled(
+  VerticalFilterControlContainer,
+)`
+  && .ant-form-item-label {
+    line-height: 1;
+    & > label {
+      padding-right: unset;
+    }
+  }
+`;
+
+const VerticalFormItem = styled(StyledFormItem)<{
+  inverseSelection: boolean;
+}>`
   .ant-form-item-label {
+    overflow: visible;
     label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
       &::after {
         display: none;
       }
     }
   }
+
+  .select-container {
+    ${({ inverseSelection }) =>
+      inverseSelection &&
+      `
+      width: 140px;
+    `}
+  }
 `;
+
+const HorizontalFormItem = styled(StyledFormItem)<{
+  inverseSelection: boolean;
+}>`
+  && {
+    margin-bottom: 0;
+    align-items: center;
+  }
+
+  .ant-form-item-label {
+    overflow: visible;
+    padding-bottom: 0;
+    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+    label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+      &::after {
+        display: none;
+      }
+    }
+
+    & > label::after {
+      display: none;
+    }
+  }
+
+  .ant-form-item-control {
+    width: ${({ inverseSelection }) => (inverseSelection ? 252 : 164)}px;
+  }
+
+  .select-container {
+    ${({ inverseSelection, theme }) =>
+      inverseSelection &&
+      `
+      width: 164px;
+    `}
+  }
+`;
+
+const HorizontalOverflowFormItem = VerticalFormItem;
+
+const useFilterControlDisplay = (
+  orientation: FilterBarOrientation,
+  overflow: boolean,
+  inverseSelection: boolean,
+) =>
+  useMemo(() => {
+    if (orientation === FilterBarOrientation.Horizontal) {
+      if (overflow) {
+        return {
+          FilterControlContainer: HorizontalOverflowFilterControlContainer,
+          FormItem: (props: any) => (
+            <HorizontalOverflowFormItem
+              {...props}
+              inverseSelection={inverseSelection}
+            />
+          ),
+          FilterControlTitleBox: HorizontalOverflowFilterControlTitleBox,
+          FilterControlTitle: HorizontalOverflowFilterControlTitle,
+        };
+      }
+      return {
+        FilterControlContainer: HorizontalFilterControlContainer,
+        FormItem: (props: any) => (
+          <HorizontalFormItem {...props} inverseSelection={inverseSelection} />
+        ),
+        FilterControlTitleBox: HorizontalFilterControlTitleBox,
+        FilterControlTitle: HorizontalFilterControlTitle,
+      };
+    }
+    return {
+      FilterControlContainer: VerticalFilterControlContainer,
+      FormItem: (props: any) => (
+        <VerticalFormItem {...props} inverseSelection={inverseSelection} />
+      ),
+      FilterControlTitleBox: VerticalFilterControlTitleBox,
+      FilterControlTitle: VerticalFilterControlTitle,
+    };
+  }, [orientation, overflow, inverseSelection]);
 
 const ToolTipContainer = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.m}px;
@@ -92,12 +231,15 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
       placement="right"
       overlayInnerStyle={{
         display: '-webkit-box',
-        overflow: 'hidden',
-        WebkitLineClamp: 20,
+        WebkitLineClamp: 10,
         WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
         textOverflow: 'ellipsis',
+        whiteSpace: 'normal',
       }}
     >
+      {/* TODO: Remove fa-icon */}
+      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
       <i
         className="fa fa-info-circle text-muted"
         css={(theme: SupersetTheme) => ({
@@ -109,68 +251,116 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
   </ToolTipContainer>
 );
 
-const FilterControl: React.FC<FilterProps> = ({
+const FilterControl = ({
   dataMaskSelected,
   filter,
   icon,
   onFilterSelectionChange,
-  directPathToChild,
   inView,
   showOverflow,
   parentRef,
-}) => {
+  orientation = FilterBarOrientation.Vertical,
+  overflow = false,
+}: FilterControlProps) => {
+  const portalNode = useMemo(() => createHtmlPortalNode(), []);
   const [isFilterActive, setIsFilterActive] = useState(false);
 
   const { name = '<undefined>' } = filter;
 
-  const isMissingRequiredValue = checkIsMissingRequiredValue(
-    filter,
-    filter.dataMask?.filterState,
-  );
+  const isFilterInScope = useIsFilterInScope();
+  const isMissingRequiredValue =
+    isFilterInScope(filter) &&
+    checkIsMissingRequiredValue(filter, filter.dataMask?.filterState);
+  const validateStatus = isMissingRequiredValue ? 'error' : undefined;
   const isRequired = !!filter.controlValues?.enableEmptyFilter;
+  const inverseSelection = !!filter.controlValues?.inverseSelection;
+
+  const {
+    FilterControlContainer,
+    FormItem,
+    FilterControlTitleBox,
+    FilterControlTitle,
+  } = useFilterControlDisplay(orientation, overflow, inverseSelection);
 
   const label = useMemo(
     () => (
-      <StyledFilterControlTitleBox>
-        <StyledFilterControlTitle data-test="filter-control-name">
+      <FilterControlTitleBox>
+        <FilterControlTitle
+          id={`filter-name-${filter.id}`}
+          data-test="filter-control-name"
+        >
           {name}
-        </StyledFilterControlTitle>
+        </FilterControlTitle>
         {isRequired && <RequiredFieldIndicator />}
-        {filter.description && filter.description.trim() && (
+        {filter.description?.trim() && (
           <DescriptionToolTip description={filter.description} />
         )}
-        <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
-      </StyledFilterControlTitleBox>
+        <FilterStyledIcon data-test="filter-icon">{icon}</FilterStyledIcon>
+      </FilterControlTitleBox>
     ),
-    [name, isRequired, filter.description, icon],
+    [
+      FilterControlTitleBox,
+      FilterControlTitle,
+      name,
+      isRequired,
+      filter.description,
+      icon,
+    ],
   );
 
   const isScrolling = useContext(FilterBarScrollContext);
+  const filterCardPlacement = useMemo(() => {
+    if (orientation === FilterBarOrientation.Horizontal) {
+      if (overflow) {
+        return FilterCardPlacement.Left;
+      }
+      return FilterCardPlacement.Bottom;
+    }
+    return FilterCardPlacement.Right;
+  }, [orientation, overflow]);
 
   return (
-    <StyledFilterControlContainer layout="vertical">
-      <FilterCard filter={filter} isVisible={!isFilterActive && !isScrolling}>
-        <div>
-          <FormItem
-            label={label}
-            required={filter?.controlValues?.enableEmptyFilter}
-            validateStatus={isMissingRequiredValue ? 'error' : undefined}
-          >
-            <FilterValue
-              dataMaskSelected={dataMaskSelected}
-              filter={filter}
-              showOverflow={showOverflow}
-              directPathToChild={directPathToChild}
-              onFilterSelectionChange={onFilterSelectionChange}
-              inView={inView}
-              parentRef={parentRef}
-              setFilterActive={setIsFilterActive}
-            />
-          </FormItem>
-        </div>
-      </FilterCard>
-    </StyledFilterControlContainer>
+    <>
+      <InPortal node={portalNode}>
+        <FilterValue
+          dataMaskSelected={dataMaskSelected}
+          filter={filter}
+          showOverflow={showOverflow}
+          onFilterSelectionChange={onFilterSelectionChange}
+          inView={inView}
+          parentRef={parentRef}
+          setFilterActive={setIsFilterActive}
+          orientation={orientation}
+          overflow={overflow}
+          validateStatus={validateStatus}
+        />
+      </InPortal>
+      <FilterControlContainer
+        layout={
+          orientation === FilterBarOrientation.Horizontal && !overflow
+            ? 'horizontal'
+            : 'vertical'
+        }
+      >
+        <FilterCard
+          filter={filter}
+          isVisible={!isFilterActive && !isScrolling}
+          placement={filterCardPlacement}
+        >
+          <div>
+            <FormItem
+              label={label}
+              htmlFor={filter.id}
+              required={filter?.controlValues?.enableEmptyFilter}
+              validateStatus={validateStatus}
+            >
+              <OutPortal node={portalNode} />
+            </FormItem>
+          </div>
+        </FilterCard>
+      </FilterControlContainer>
+    </>
   );
 };
 
-export default React.memo(FilterControl);
+export default memo(FilterControl);

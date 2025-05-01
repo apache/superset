@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, ChartLabel } from '@superset-ui/core';
 import transformProps from '../transformProps';
+import example from './images/example.jpg';
 import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
@@ -27,10 +28,11 @@ const metadata = new ChartMetadata({
   description: t(
     'Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.',
   ),
-  name: t('Bubble Chart'),
+  exampleGallery: [{ url: example }],
+  label: ChartLabel.Deprecated,
+  name: t('Bubble Chart (legacy)'),
   tags: [
     t('Multi-Dimensions'),
-    t('Aesthetic'),
     t('Comparison'),
     t('Legacy'),
     t('Scatter'),
@@ -42,6 +44,9 @@ const metadata = new ChartMetadata({
   useLegacyApi: true,
 });
 
+/**
+ * @deprecated in version 4.0.
+ */
 export default class BubbleChartPlugin extends ChartPlugin {
   constructor() {
     super({

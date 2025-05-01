@@ -14,15 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import re
-from typing import Any, Dict, Union
+from typing import Any, Mapping, Union
 
-from marshmallow import fields, post_load, Schema
+from marshmallow import fields, post_dump, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
 
-from superset.exceptions import SupersetException
-from superset.utils import core as utils
+from superset import security_manager
+from superset.tags.models import TagType
+from superset.utils import json
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -31,7 +31,19 @@ thumbnail_query_schema = {
     "type": "object",
     "properties": {"force": {"type": "boolean"}},
 }
-
+width_height_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+}
+screenshot_query_schema = {
+    "type": "object",
+    "properties": {
+        "force": {"type": "boolean"},
+        "permalink": {"type": "string"},
+        "window_size": width_height_schema,
+        "thumb_size": width_height_schema,
+    },
+}
 dashboard_title_description = "A title for the dashboard."
 slug_description = "Unique identifying part for the web address of the dashboard."
 owners_description = (
@@ -58,30 +70,26 @@ json_metadata_description = (
     " specific parameters."
 )
 published_description = (
-    "Determines whether or not this dashboard is visible in "
-    "the list of all dashboards."
+    "Determines whether or not this dashboard is visible in the list of all dashboards."
 )
 charts_description = (
     "The names of the dashboard's charts. Names are used for legacy reasons."
 )
 certified_by_description = "Person or group that has certified this dashboard"
 certification_details_description = "Details of the certification"
+tags_description = "Tags to be associated with the dashboard"
 
 openapi_spec_methods_override = {
-    "get": {"get": {"description": "Get a dashboard detail information."}},
+    "get": {"get": {"summary": "Get a dashboard detail information"}},
     "get_list": {
         "get": {
-            "description": "Get a list of dashboards, use Rison or JSON query "
+            "summary": "Get a list of dashboards",
+            "description": "Gets a list of dashboards, use Rison or JSON query "
             "parameters for filtering, sorting, pagination and "
             " for selecting specific columns and metadata.",
         }
     },
-    "info": {
-        "get": {
-            "description": "Several metadata information about dashboard API "
-            "endpoints.",
-        }
-    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
     "related": {
         "get": {"description": "Get a list of all possible owners for a dashboard."}
     },
@@ -90,8 +98,8 @@ openapi_spec_methods_override = {
 
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
-        utils.validate_json(value)
-    except SupersetException as ex:
+        json.validate_json(value)
+    except json.JSONDecodeError as ex:
         raise ValidationError("JSON not valid") from ex
 
 
@@ -100,21 +108,43 @@ def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
         return
     try:
         value_obj = json.loads(value)
-    except json.decoder.JSONDecodeError as ex:
+    except json.JSONDecodeError as ex:
         raise ValidationError("JSON not valid") from ex
     errors = DashboardJSONMetadataSchema().validate(value_obj, partial=False)
     if errors:
         raise ValidationError(errors)
 
 
+class SharedLabelsColorsField(fields.Field):
+    """
+    A custom field that accepts either a list of strings or a dictionary.
+    """
+
+    def _deserialize(
+        self,
+        value: Union[list[str], dict[str, str]],
+        attr: Union[str, None],
+        data: Union[Mapping[str, Any], None],
+        **kwargs: dict[str, Any],
+    ) -> list[str]:
+        if isinstance(value, list):
+            if all(isinstance(item, str) for item in value):
+                return value
+        elif isinstance(value, dict):
+            # Enforce list (for backward compatibility)
+            return []
+
+        raise ValidationError("Not a valid list")
+
+
 class DashboardJSONMetadataSchema(Schema):
-    show_native_filters = fields.Boolean()
     # native_filter_configuration is for dashboard-native filters
     native_filter_configuration = fields.List(fields.Dict(), allow_none=True)
     # chart_configuration for now keeps data about cross-filter scoping for charts
     chart_configuration = fields.Dict()
-    # filter_sets_configuration is for dashboard-native filters
-    filter_sets_configuration = fields.List(fields.Dict(), allow_none=True)
+    # global_chart_configuration keeps data about global cross-filter scoping
+    # for charts - can be overridden by chart_configuration for each chart
+    global_chart_configuration = fields.Dict()
     timed_refresh_immune_slices = fields.List(fields.Integer())
     # deprecated wrt dashboard-native filters
     filter_scopes = fields.Dict()
@@ -128,11 +158,32 @@ class DashboardJSONMetadataSchema(Schema):
     color_namespace = fields.Str(allow_none=True)
     positions = fields.Dict(allow_none=True)
     label_colors = fields.Dict()
-    shared_label_colors = fields.Dict()
+    shared_label_colors = SharedLabelsColorsField()
+    map_label_colors = fields.Dict()
     color_scheme_domain = fields.List(fields.Str())
+    cross_filters_enabled = fields.Boolean(dump_default=True)
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()
+    filter_bar_orientation = fields.Str(allow_none=True)
+    native_filter_migration = fields.Dict()
+
+    @pre_load
+    def remove_show_native_filters(  # pylint: disable=unused-argument
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """
+        Remove ``show_native_filters`` from the JSON metadata.
+
+        This field was removed in https://github.com/apache/superset/pull/23228, but might
+        be present in old exports.
+        """  # noqa: E501
+        if "show_native_filters" in data:
+            del data["show_native_filters"]
+
+        return data
 
 
 class UserSchema(Schema):
@@ -147,38 +198,60 @@ class RolesSchema(Schema):
     name = fields.String()
 
 
+class TagSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    type = fields.Enum(TagType, by_value=True)
+
+
 class DashboardGetResponseSchema(Schema):
     id = fields.Int()
     slug = fields.String()
     url = fields.String()
-    dashboard_title = fields.String(description=dashboard_title_description)
-    thumbnail_url = fields.String()
+    dashboard_title = fields.String(
+        metadata={"description": dashboard_title_description}
+    )
+    thumbnail_url = fields.String(allow_none=True)
     published = fields.Boolean()
-    css = fields.String(description=css_description)
-    json_metadata = fields.String(description=json_metadata_description)
-    position_json = fields.String(description=position_json_description)
-    certified_by = fields.String(description=certified_by_description)
-    certification_details = fields.String(description=certification_details_description)
+    css = fields.String(metadata={"description": css_description})
+    json_metadata = fields.String(metadata={"description": json_metadata_description})
+    position_json = fields.String(metadata={"description": position_json_description})
+    certified_by = fields.String(metadata={"description": certified_by_description})
+    certification_details = fields.String(
+        metadata={"description": certification_details_description}
+    )
     changed_by_name = fields.String()
-    changed_by_url = fields.String()
-    changed_by = fields.Nested(UserSchema)
+    changed_by = fields.Nested(UserSchema(exclude=["username"]))
     changed_on = fields.DateTime()
-    charts = fields.List(fields.String(description=charts_description))
-    owners = fields.List(fields.Nested(UserSchema))
+    created_by = fields.Nested(UserSchema(exclude=["username"]))
+    charts = fields.List(fields.String(metadata={"description": charts_description}))
+    owners = fields.List(fields.Nested(UserSchema(exclude=["username"])))
     roles = fields.List(fields.Nested(RolesSchema))
+    tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
-    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    created_on_humanized = fields.String(data_key="created_on_delta_humanized")
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+
+    # pylint: disable=unused-argument
+    @post_dump()
+    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        if security_manager.is_guest_user():
+            del serialized["owners"]
+            del serialized["changed_by_name"]
+            del serialized["changed_by"]
+        return serialized
 
 
 class DatabaseSchema(Schema):
     id = fields.Int()
     name = fields.String()
     backend = fields.String()
-    allow_multi_schema_metadata_fetch = fields.Bool()  # pylint: disable=invalid-name
     allows_subquery = fields.Bool()
     allows_cost_estimate = fields.Bool()
     allows_virtual_table_explore = fields.Bool()
     disable_data_preview = fields.Bool()
+    disable_drill_to_detail = fields.Bool()
+    allow_multi_catalog = fields.Bool()
     explore_database_id = fields.Int()
 
 
@@ -186,6 +259,7 @@ class DashboardDatasetSchema(Schema):
     id = fields.Int()
     uid = fields.Str()
     column_formats = fields.Dict()
+    currency_formats = fields.Dict()
     database = fields.Nested(DatabaseSchema)
     default_endpoint = fields.String()
     filter_select = fields.Bool()
@@ -210,17 +284,41 @@ class DashboardDatasetSchema(Schema):
     owners = fields.List(fields.Dict())
     columns = fields.List(fields.Dict())
     column_types = fields.List(fields.Int())
+    column_names = fields.List(fields.Str())
     metrics = fields.List(fields.Dict())
     order_by_choices = fields.List(fields.List(fields.Str()))
     verbose_map = fields.Dict(fields.Str(), fields.Str())
     time_grain_sqla = fields.List(fields.List(fields.Str()))
     granularity_sqla = fields.List(fields.List(fields.Str()))
+    normalize_columns = fields.Bool()
+    always_filter_main_dttm = fields.Bool()
+
+    # pylint: disable=unused-argument
+    @post_dump()
+    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        if security_manager.is_guest_user():
+            del serialized["owners"]
+            del serialized["database"]
+        return serialized
+
+
+class TabSchema(Schema):
+    # pylint: disable=W0108
+    children = fields.List(fields.Nested(lambda: TabSchema()))
+    value = fields.Str()
+    title = fields.Str()
+    parents = fields.List(fields.Str())
+
+
+class TabsPayloadSchema(Schema):
+    all_tabs = fields.Dict(keys=fields.String(), values=fields.String())
+    tab_tree = fields.List(fields.Nested(lambda: TabSchema))
 
 
 class BaseDashboardSchema(Schema):
-    # pylint: disable=no-self-use,unused-argument
+    # pylint: disable=unused-argument
     @post_load
-    def post_load(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def post_load(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if data.get("slug"):
             data["slug"] = data["slug"].strip()
             data["slug"] = data["slug"].replace(" ", "-")
@@ -230,72 +328,145 @@ class BaseDashboardSchema(Schema):
 
 class DashboardPostSchema(BaseDashboardSchema):
     dashboard_title = fields.String(
-        description=dashboard_title_description,
+        metadata={"description": dashboard_title_description},
         allow_none=True,
         validate=Length(0, 500),
     )
     slug = fields.String(
-        description=slug_description, allow_none=True, validate=[Length(1, 255)]
+        metadata={"description": slug_description},
+        allow_none=True,
+        validate=[Length(1, 255)],
     )
-    owners = fields.List(fields.Integer(description=owners_description))
-    roles = fields.List(fields.Integer(description=roles_description))
+    owners = fields.List(fields.Integer(metadata={"description": owners_description}))
+    roles = fields.List(fields.Integer(metadata={"description": roles_description}))
     position_json = fields.String(
-        description=position_json_description, validate=validate_json
+        metadata={"description": position_json_description}, validate=validate_json
     )
-    css = fields.String()
+    css = fields.String(metadata={"description": css_description})
     json_metadata = fields.String(
-        description=json_metadata_description,
+        metadata={"description": json_metadata_description},
         validate=validate_json_metadata,
     )
-    published = fields.Boolean(description=published_description)
-    certified_by = fields.String(description=certified_by_description, allow_none=True)
-    certification_details = fields.String(
-        description=certification_details_description, allow_none=True
+    published = fields.Boolean(metadata={"description": published_description})
+    certified_by = fields.String(
+        metadata={"description": certified_by_description}, allow_none=True
     )
-    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    certification_details = fields.String(
+        metadata={"description": certification_details_description}, allow_none=True
+    )
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+
+
+class DashboardCopySchema(Schema):
+    dashboard_title = fields.String(
+        metadata={"description": dashboard_title_description},
+        allow_none=True,
+        validate=Length(0, 500),
+    )
+    css = fields.String(metadata={"description": css_description})
+    json_metadata = fields.String(
+        metadata={"description": json_metadata_description},
+        validate=validate_json_metadata,
+        required=True,
+    )
+    duplicate_slices = fields.Boolean(
+        metadata={
+            "description": "Whether or not to also copy all charts on the dashboard"
+        }
+    )
 
 
 class DashboardPutSchema(BaseDashboardSchema):
     dashboard_title = fields.String(
-        description=dashboard_title_description,
+        metadata={"description": dashboard_title_description},
         allow_none=True,
         validate=Length(0, 500),
     )
     slug = fields.String(
-        description=slug_description, allow_none=True, validate=Length(0, 255)
+        metadata={"description": slug_description},
+        allow_none=True,
+        validate=Length(0, 255),
     )
     owners = fields.List(
-        fields.Integer(description=owners_description, allow_none=True)
+        fields.Integer(metadata={"description": owners_description}, allow_none=True)
     )
-    roles = fields.List(fields.Integer(description=roles_description, allow_none=True))
+    roles = fields.List(
+        fields.Integer(metadata={"description": roles_description}, allow_none=True)
+    )
     position_json = fields.String(
-        description=position_json_description, allow_none=True, validate=validate_json
+        metadata={"description": position_json_description},
+        allow_none=True,
+        validate=validate_json,
     )
-    css = fields.String(description=css_description, allow_none=True)
+    css = fields.String(metadata={"description": css_description}, allow_none=True)
     json_metadata = fields.String(
-        description=json_metadata_description,
+        metadata={"description": json_metadata_description},
         allow_none=True,
         validate=validate_json_metadata,
     )
-    published = fields.Boolean(description=published_description, allow_none=True)
-    certified_by = fields.String(description=certified_by_description, allow_none=True)
-    certification_details = fields.String(
-        description=certification_details_description, allow_none=True
+    published = fields.Boolean(
+        metadata={"description": published_description}, allow_none=True
     )
-    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    certified_by = fields.String(
+        metadata={"description": certified_by_description}, allow_none=True
+    )
+    certification_details = fields.String(
+        metadata={"description": certification_details_description}, allow_none=True
+    )
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    tags = fields.List(
+        fields.Integer(metadata={"description": tags_description}, allow_none=True)
+    )
+
+
+class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
+    deleted = fields.List(fields.String(), allow_none=False)
+    modified = fields.List(fields.Raw(), allow_none=False)
+    reordered = fields.List(fields.String(), allow_none=False)
+
+
+class DashboardColorsConfigUpdateSchema(BaseDashboardSchema):
+    color_namespace = fields.String(allow_none=True)
+    color_scheme = fields.String(allow_none=True)
+    map_label_colors = fields.Dict(allow_none=False)
+    shared_label_colors = SharedLabelsColorsField()
+    label_colors = fields.Dict(allow_none=False)
+    color_scheme_domain = fields.List(fields.String(), allow_none=False)
+
+
+class DashboardScreenshotPostSchema(Schema):
+    dataMask = fields.Dict(  # noqa: N815
+        keys=fields.Str(),
+        values=fields.Raw(),
+        metadata={"description": "An object representing the data mask."},
+    )
+    activeTabs = fields.List(  # noqa: N815
+        fields.Str(), metadata={"description": "A list representing active tabs."}
+    )
+    anchor = fields.String(
+        metadata={"description": "A string representing the anchor."}
+    )
+    urlParams = fields.List(  # noqa: N815
+        fields.Tuple(
+            (fields.Str(), fields.Str()),
+        ),
+        metadata={"description": "A list of tuples, each containing two strings."},
+    )
 
 
 class ChartFavStarResponseResult(Schema):
-    id = fields.Integer(description="The Chart id")
-    value = fields.Boolean(description="The FaveStar value")
+    id = fields.Integer(metadata={"description": "The Chart id"})
+    value = fields.Boolean(metadata={"description": "The FaveStar value"})
 
 
 class GetFavStarIdsSchema(Schema):
     result = fields.List(
         fields.Nested(ChartFavStarResponseResult),
-        description="A list of results for each corresponding chart in the request",
+        metadata={
+            "description": "A list of results for each corresponding chart in the request"  # noqa: E501
+        },
     )
 
 
@@ -308,8 +479,12 @@ class ImportV1DashboardSchema(Schema):
     position = fields.Dict()
     metadata = fields.Dict()
     version = fields.String(required=True)
-    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    certified_by = fields.String(allow_none=True)
+    certification_details = fields.String(allow_none=True)
+    published = fields.Boolean(allow_none=True)
+    tags = fields.List(fields.String(), allow_none=True)
 
 
 class EmbeddedDashboardConfigSchema(Schema):
@@ -322,3 +497,29 @@ class EmbeddedDashboardResponseSchema(Schema):
     dashboard_id = fields.String()
     changed_on = fields.DateTime()
     changed_by = fields.Nested(UserSchema)
+
+
+class DashboardCacheScreenshotResponseSchema(Schema):
+    cache_key = fields.String(metadata={"description": "The cache key"})
+    dashboard_url = fields.String(
+        metadata={"description": "The url to render the dashboard"}
+    )
+    image_url = fields.String(
+        metadata={"description": "The url to fetch the screenshot"}
+    )
+    task_status = fields.String(
+        metadata={"description": "The status of the async screenshot"}
+    )
+    task_updated_at = fields.String(
+        metadata={"description": "The timestamp of the last change in status"}
+    )
+
+
+class CacheScreenshotSchema(Schema):
+    dataMask = fields.Dict(keys=fields.Str(), values=fields.Raw(), required=False)  # noqa: N815
+    activeTabs = fields.List(fields.Str(), required=False)  # noqa: N815
+    anchor = fields.Str(required=False)
+    urlParams = fields.List(  # noqa: N815
+        fields.List(fields.Str(), validate=lambda x: len(x) == 2), required=False
+    )
+    permalinkKey = fields.Str(required=False)  # noqa: N815

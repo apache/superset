@@ -33,7 +33,7 @@ export const Row = styled.div`
       margin-bottom: 0;
     }
 
-    & .ant-tooltip-open {
+    & .antd5-tooltip-open {
       display: inline-flex;
     }
   `};
@@ -44,7 +44,6 @@ export const RowLabel = styled.span`
     color: ${theme.colors.grayscale.base};
     padding-right: ${theme.gridUnit * 4}px;
     margin-right: auto;
-    text-transform: uppercase;
     white-space: nowrap;
   `};
 `;
@@ -91,4 +90,10 @@ export const TooltipTrigger = styled.div`
   min-width: 0;
   display: inline-flex;
   white-space: nowrap;
+`;
+
+export const InternalRow = styled.div`
+  display: flex;
+  align-items: center;
+  overflow: hidden;
 `;

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t } from '@superset-ui/core';
 
 import { ErrorMessageComponentProps } from './types';
@@ -24,19 +23,15 @@ import ErrorAlert from './ErrorAlert';
 
 function DatasetNotFoundErrorMessage({
   error,
-  source = 'dashboard',
   subtitle,
 }: ErrorMessageComponentProps) {
   const { level, message } = error;
-
   return (
     <ErrorAlert
-      title={t('Missing dataset')}
-      subtitle={subtitle}
-      level={level}
-      source={source}
-      copyText={message}
-      body={null}
+      errorType={t('Missing dataset')}
+      message={subtitle}
+      description={message}
+      type={level}
     />
   );
 }

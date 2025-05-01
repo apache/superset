@@ -18,21 +18,31 @@
  */
 import rison from 'rison';
 import { useState, useEffect, useCallback } from 'react';
-import { makeApi, SupersetClient, t, JsonObject } from '@superset-ui/core';
+import {
+  makeApi,
+  SupersetClient,
+  t,
+  JsonObject,
+  getClientErrorObject,
+} from '@superset-ui/core';
 
 import {
   createErrorHandler,
   getAlreadyExists,
   getPasswordsNeeded,
   hasTerminalValidation,
+  getSSHPasswordsNeeded,
+  getSSHPrivateKeysNeeded,
+  getSSHPrivateKeyPasswordsNeeded,
 } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
 import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import SupersetText from 'src/utils/textUtils';
-import { FavoriteStatus, ImportResourceName, DatabaseObject } from './types';
+import { DatabaseObject } from 'src/features/databases/types';
+import { FavoriteStatus, ImportResourceName } from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -68,6 +78,7 @@ export function useListViewResource<D extends object = any>(
   defaultCollectionValue: D[] = [],
   baseFilters?: FilterValue[], // must be memoized
   initialLoadingState = true,
+  selectColumns?: string[],
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
@@ -135,9 +146,11 @@ export function useListViewResource<D extends object = any>(
         },
         loading: true,
       });
-
       const filterExps = (baseFilters || [])
         .concat(filterValues)
+        .filter(
+          ({ value }) => value !== '' && value !== null && value !== undefined,
+        )
         .map(({ id, operator: opr, value }) => ({
           col: id,
           opr,
@@ -153,6 +166,7 @@ export function useListViewResource<D extends object = any>(
         page: pageIndex,
         page_size: pageSize,
         ...(filterExps.length ? { filters: filterExps } : {}),
+        ...(selectColumns?.length ? { select_columns: selectColumns } : {}),
       });
 
       return SupersetClient.get({
@@ -221,6 +235,7 @@ export function useSingleViewResource<D extends object = any>(
   resourceName: string,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
+  path_suffix = '',
 ) {
   const [state, setState] = useState<SingleViewResourceState<D>>({
     loading: false,
@@ -239,8 +254,11 @@ export function useSingleViewResource<D extends object = any>(
         loading: true,
       });
 
+      const baseEndpoint = `/api/v1/${resourceName}/${resourceID}`;
+      const endpoint =
+        path_suffix !== '' ? `${baseEndpoint}/${path_suffix}` : baseEndpoint;
       return SupersetClient.get({
-        endpoint: `/api/v1/${resourceName}/${resourceID}`,
+        endpoint,
       })
         .then(
           ({ json = {} }) => {
@@ -386,6 +404,9 @@ interface ImportResourceState {
   loading: boolean;
   passwordsNeeded: string[];
   alreadyExists: string[];
+  sshPasswordNeeded: string[];
+  sshPrivateKeyNeeded: string[];
+  sshPrivateKeyPasswordNeeded: string[];
   failed: boolean;
 }
 
@@ -398,6 +419,9 @@ export function useImportResource(
     loading: false,
     passwordsNeeded: [],
     alreadyExists: [],
+    sshPasswordNeeded: [],
+    sshPrivateKeyNeeded: [],
+    sshPrivateKeyPasswordNeeded: [],
     failed: false,
   });
 
@@ -409,6 +433,9 @@ export function useImportResource(
     (
       bundle: File,
       databasePasswords: Record<string, string> = {},
+      sshTunnelPasswords: Record<string, string> = {},
+      sshTunnelPrivateKey: Record<string, string> = {},
+      sshTunnelPrivateKeyPasswords: Record<string, string> = {},
       overwrite = false,
     ) => {
       // Set loading state
@@ -419,6 +446,10 @@ export function useImportResource(
 
       const formData = new FormData();
       formData.append('formData', bundle);
+
+      const RE_EXPORT_TEXT = t(
+        'Please re-export your file and try importing again',
+      );
 
       /* The import bundle never contains database passwords; if required
        * they should be provided by the user during import.
@@ -432,6 +463,33 @@ export function useImportResource(
       if (overwrite) {
         formData.append('overwrite', 'true');
       }
+      /* The import bundle may contain ssh tunnel passwords; if required
+       * they should be provided by the user during import.
+       */
+      if (sshTunnelPasswords) {
+        formData.append(
+          'ssh_tunnel_passwords',
+          JSON.stringify(sshTunnelPasswords),
+        );
+      }
+      /* The import bundle may contain ssh tunnel private_key; if required
+       * they should be provided by the user during import.
+       */
+      if (sshTunnelPrivateKey) {
+        formData.append(
+          'ssh_tunnel_private_keys',
+          JSON.stringify(sshTunnelPrivateKey),
+        );
+      }
+      /* The import bundle may contain ssh tunnel private_key_password; if required
+       * they should be provided by the user during import.
+       */
+      if (sshTunnelPrivateKeyPasswords) {
+        formData.append(
+          'ssh_tunnel_private_key_passwords',
+          JSON.stringify(sshTunnelPrivateKeyPasswords),
+        );
+      }
 
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/import/`,
@@ -442,6 +500,9 @@ export function useImportResource(
           updateState({
             passwordsNeeded: [],
             alreadyExists: [],
+            sshPasswordNeeded: [],
+            sshPrivateKeyNeeded: [],
+            sshPrivateKeyPasswordNeeded: [],
             failed: false,
           });
           return true;
@@ -468,13 +529,18 @@ export function useImportResource(
                   resourceLabel,
                   [
                     ...error.errors.map(payload => payload.message),
-                    t('Please re-export your file and try importing again.'),
+                    RE_EXPORT_TEXT,
                   ].join('.\n'),
                 ),
               );
             } else {
               updateState({
                 passwordsNeeded: getPasswordsNeeded(error.errors),
+                sshPasswordNeeded: getSSHPasswordsNeeded(error.errors),
+                sshPrivateKeyNeeded: getSSHPrivateKeysNeeded(error.errors),
+                sshPrivateKeyPasswordNeeded: getSSHPrivateKeyPasswordsNeeded(
+                  error.errors,
+                ),
                 alreadyExists: getAlreadyExists(error.errors),
               });
             }
@@ -489,11 +555,6 @@ export function useImportResource(
   );
 
   return { state, importResource };
-}
-
-enum FavStarClassName {
-  CHART = 'slice',
-  DASHBOARD = 'Dashboard',
 }
 
 type FavoriteStatusResponse = {
@@ -514,10 +575,15 @@ const favoriteApis = {
     method: 'GET',
     endpoint: '/api/v1/dashboard/favorite_status/',
   }),
+  tag: makeApi<Array<string | number>, FavoriteStatusResponse>({
+    requestType: 'rison',
+    method: 'GET',
+    endpoint: '/api/v1/tag/favorite_status/',
+  }),
 };
 
 export function useFavoriteStatus(
-  type: 'chart' | 'dashboard',
+  type: 'chart' | 'dashboard' | 'tag',
   ids: Array<string | number>,
   handleErrorMsg: (message: string) => void,
 ) {
@@ -532,10 +598,13 @@ export function useFavoriteStatus(
     }
     favoriteApis[type](ids).then(
       ({ result }) => {
-        const update = result.reduce((acc, element) => {
-          acc[element.id] = element.value;
-          return acc;
-        }, {});
+        const update = result.reduce<Record<string, boolean>>(
+          (acc, element) => {
+            acc[element.id] = element.value;
+            return acc;
+          },
+          {},
+        );
         updateFavoriteStatus(update);
       },
       createErrorHandler(errMsg =>
@@ -548,15 +617,17 @@ export function useFavoriteStatus(
 
   const saveFaveStar = useCallback(
     (id: number, isStarred: boolean) => {
-      const urlSuffix = isStarred ? 'unselect' : 'select';
-      SupersetClient.get({
-        endpoint: `/superset/favstar/${
-          type === 'chart' ? FavStarClassName.CHART : FavStarClassName.DASHBOARD
-        }/${id}/${urlSuffix}/`,
-      }).then(
-        ({ json }) => {
+      const endpoint = `/api/v1/${type}/${id}/favorites/`;
+      const apiCall = isStarred
+        ? SupersetClient.delete({
+            endpoint,
+          })
+        : SupersetClient.post({ endpoint });
+
+      apiCall.then(
+        () => {
           updateFavoriteStatus({
-            [id]: (json as { count: number })?.count > 0,
+            [id]: !isStarred,
           });
         },
         createErrorHandler(errMsg =>
@@ -618,7 +689,7 @@ export const copyQueryLink = (
 ) => {
   copyTextToClipboard(() =>
     Promise.resolve(
-      `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+      `${window.location.origin}${ensureAppRoot(`/sqllab?savedQueryId=${id}`)}`,
     ),
   )
     .then(() => {
@@ -636,12 +707,12 @@ export const getDatabaseDocumentationLinks = () =>
   SupersetText.DB_CONNECTION_DOC_LINKS;
 
 export const testDatabaseConnection = (
-  connection: DatabaseObject,
+  connection: Partial<DatabaseObject>,
   handleErrorMsg: (errorMsg: string) => void,
   addSuccessToast: (arg0: string) => void,
 ) => {
   SupersetClient.post({
-    endpoint: 'api/v1/database/test_connection',
+    endpoint: 'api/v1/database/test_connection/',
     body: JSON.stringify(connection),
     headers: { 'Content-Type': 'application/json' },
   }).then(
@@ -668,128 +739,152 @@ export function useAvailableDatabases() {
   return [availableDbs, getAvailable] as const;
 }
 
+const transformDB = (db: Partial<DatabaseObject> | null) => {
+  if (db && Array.isArray(db?.catalog)) {
+    return {
+      ...db,
+      catalog: Object.assign(
+        {},
+        ...db.catalog.map((x: { name: string; value: string }) => ({
+          [x.name]: x.value,
+        })),
+      ),
+    };
+  }
+  return db;
+};
+
 export function useDatabaseValidation() {
   const [validationErrors, setValidationErrors] = useState<JsonObject | null>(
     null,
   );
   const getValidation = useCallback(
-    (database: Partial<DatabaseObject> | null, onCreate = false) =>
-      SupersetClient.post({
-        endpoint: '/api/v1/database/validate_parameters',
-        body: JSON.stringify(database),
-        headers: { 'Content-Type': 'application/json' },
-      })
-        .then(() => {
-          setValidationErrors(null);
+    (database: Partial<DatabaseObject> | null, onCreate = false) => {
+      if (database?.parameters?.ssh) {
+        // TODO: /validate_parameters/ and related utils should support ssh tunnel
+        setValidationErrors(null);
+        return [];
+      }
+
+      return (
+        SupersetClient.post({
+          endpoint: '/api/v1/database/validate_parameters/',
+          body: JSON.stringify(transformDB(database)),
+          headers: { 'Content-Type': 'application/json' },
         })
-        // eslint-disable-next-line consistent-return
-        .catch(e => {
-          if (typeof e.json === 'function') {
-            return e.json().then(({ errors = [] }: JsonObject) => {
-              const parsedErrors = errors
-                .filter((error: { error_type: string }) => {
-                  const skipValidationError = ![
-                    'CONNECTION_MISSING_PARAMETERS_ERROR',
-                    'CONNECTION_ACCESS_DENIED_ERROR',
-                  ].includes(error.error_type);
-                  return skipValidationError || onCreate;
-                })
-                .reduce(
-                  (
-                    obj: {},
-                    {
-                      error_type,
-                      extra,
-                      message,
-                    }: {
-                      error_type: string;
-                      extra: {
-                        invalid?: string[];
-                        missing?: string[];
-                        name: string;
-                        catalog: {
+          .then(() => {
+            setValidationErrors(null);
+          })
+          // eslint-disable-next-line consistent-return
+          .catch(e => {
+            if (typeof e.json === 'function') {
+              return e.json().then(({ errors = [] }: JsonObject) => {
+                const parsedErrors = errors
+                  .filter((error: { error_type: string }) => {
+                    const skipValidationError = ![
+                      'CONNECTION_MISSING_PARAMETERS_ERROR',
+                      'CONNECTION_ACCESS_DENIED_ERROR',
+                    ].includes(error.error_type);
+                    return skipValidationError || onCreate;
+                  })
+                  .reduce(
+                    (
+                      obj: {},
+                      {
+                        error_type,
+                        extra,
+                        message,
+                      }: {
+                        error_type: string;
+                        extra: {
+                          invalid?: string[];
+                          missing?: string[];
                           name: string;
-                          url: string;
-                          idx: number;
+                          catalog: {
+                            name: string;
+                            url: string;
+                            idx: number;
+                          };
+                          issue_codes?: {
+                            code?: number;
+                            message?: string;
+                          }[];
                         };
-                        issue_codes?: {
-                          code?: number;
-                          message?: string;
-                        }[];
-                      };
-                      message: string;
-                    },
-                  ) => {
-                    if (extra.catalog) {
-                      if (extra.catalog.name) {
+                        message: string;
+                      },
+                    ) => {
+                      if (extra.catalog) {
+                        if (extra.catalog.name) {
+                          return {
+                            ...obj,
+                            error_type,
+                            [extra.catalog.idx]: {
+                              name: message,
+                            },
+                          };
+                        }
+                        if (extra.catalog.url) {
+                          return {
+                            ...obj,
+                            error_type,
+                            [extra.catalog.idx]: {
+                              url: message,
+                            },
+                          };
+                        }
+
                         return {
                           ...obj,
                           error_type,
                           [extra.catalog.idx]: {
                             name: message,
-                          },
-                        };
-                      }
-                      if (extra.catalog.url) {
-                        return {
-                          ...obj,
-                          error_type,
-                          [extra.catalog.idx]: {
                             url: message,
                           },
                         };
                       }
+                      // if extra.invalid doesn't exist then the
+                      // error can't be mapped to a parameter
+                      // so leave it alone
+                      if (extra.invalid) {
+                        return {
+                          ...obj,
+                          [extra.invalid[0]]: message,
+                          error_type,
+                        };
+                      }
+                      if (extra.missing) {
+                        return {
+                          ...obj,
+                          error_type,
+                          ...Object.assign(
+                            {},
+                            ...extra.missing.map(field => ({
+                              [field]: 'This is a required field',
+                            })),
+                          ),
+                        };
+                      }
+                      if (extra.issue_codes?.length) {
+                        return {
+                          ...obj,
+                          error_type,
+                          description: message || extra.issue_codes[0]?.message,
+                        };
+                      }
 
-                      return {
-                        ...obj,
-                        error_type,
-                        [extra.catalog.idx]: {
-                          name: message,
-                          url: message,
-                        },
-                      };
-                    }
-                    // if extra.invalid doesn't exist then the
-                    // error can't be mapped to a parameter
-                    // so leave it alone
-                    if (extra.invalid) {
-                      return {
-                        ...obj,
-                        [extra.invalid[0]]: message,
-                        error_type,
-                      };
-                    }
-                    if (extra.missing) {
-                      return {
-                        ...obj,
-                        error_type,
-                        ...Object.assign(
-                          {},
-                          ...extra.missing.map(field => ({
-                            [field]: 'This is a required field',
-                          })),
-                        ),
-                      };
-                    }
-                    if (extra.issue_codes?.length) {
-                      return {
-                        ...obj,
-                        error_type,
-                        description: message || extra.issue_codes[0]?.message,
-                      };
-                    }
-
-                    return obj;
-                  },
-                  {},
-                );
-              setValidationErrors(parsedErrors);
-              return parsedErrors;
-            });
-          }
-          // eslint-disable-next-line no-console
-          console.error(e);
-        }),
+                      return obj;
+                    },
+                    {},
+                  );
+                setValidationErrors(parsedErrors);
+                return parsedErrors;
+              });
+            }
+            // eslint-disable-next-line no-console
+            console.error(e);
+          })
+      );
+    },
     [setValidationErrors],
   );
 
@@ -804,5 +899,5 @@ export const reportSelector = (
   if (resourceId) {
     return state.reports[resourceType]?.[resourceId];
   }
-  return {};
+  return null;
 };

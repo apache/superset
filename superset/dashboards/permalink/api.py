@@ -16,44 +16,36 @@
 # under the License.
 import logging
 
-from flask import request, Response
-from flask_appbuilder.api import BaseApi, expose, protect, safe
+from flask import request, Response, url_for
+from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dashboards.commands.exceptions import (
+from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
     DashboardNotFoundError,
 )
-from superset.dashboards.permalink.commands.create import (
-    CreateDashboardPermalinkCommand,
-)
-from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
+from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.dashboards.permalink.exceptions import DashboardPermalinkInvalidStateError
-from superset.dashboards.permalink.schemas import DashboardPermalinkPostSchema
+from superset.dashboards.permalink.schemas import DashboardPermalinkStateSchema
 from superset.extensions import event_logger
 from superset.key_value.exceptions import KeyValueAccessDeniedError
-from superset.views.base_api import requires_json
+from superset.views.base_api import BaseSupersetApi, requires_json
 
 logger = logging.getLogger(__name__)
 
 
-class DashboardPermalinkRestApi(BaseApi):
-    add_model_schema = DashboardPermalinkPostSchema()
+class DashboardPermalinkRestApi(BaseSupersetApi):
+    add_model_schema = DashboardPermalinkStateSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
-    include_route_methods = {
-        RouteMethod.POST,
-        RouteMethod.PUT,
-        RouteMethod.GET,
-        RouteMethod.DELETE,
-    }
     allow_browser_login = True
     class_permission_name = "DashboardPermalinkRestApi"
     resource_name = "dashboard"
     openapi_spec_tag = "Dashboard Permanent Link"
-    openapi_spec_component_schemas = (DashboardPermalinkPostSchema,)
+    openapi_spec_component_schemas = (DashboardPermalinkStateSchema,)
 
-    @expose("/<pk>/permalink", methods=["POST"])
+    @expose("/<pk>/permalink", methods=("POST",))
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -62,11 +54,10 @@ class DashboardPermalinkRestApi(BaseApi):
     )
     @requires_json
     def post(self, pk: str) -> Response:
-        """Stores a new permanent link.
+        """Create a new dashboard's permanent link.
         ---
         post:
-          description: >-
-            Stores a new permanent link.
+          summary: Create a new dashboard's permanent link
           parameters:
           - in: path
             schema:
@@ -77,7 +68,76 @@ class DashboardPermalinkRestApi(BaseApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/DashboardPermalinkPostSchema'
+                  $ref: '#/components/schemas/DashboardPermalinkStateSchema'
+                examples:
+                  time_grain_filter:
+                    summary: "Time Grain Filter"
+                    value:
+                      dataMask:
+                        id: NATIVE_FILTER_ID
+                        extraFormData:
+                          time_grain_sqla: "P1W/1970-01-03T00:00:00Z"
+                        filterState:
+                          label: "Week ending Saturday"
+                          value:
+                            - "P1W/1970-01-03T00:00:00Z"
+                  timecolumn_filter:
+                    summary: "Time Column Filter"
+                    value:
+                      dataMask:
+                        id: NATIVE_FILTER_ID
+                        extraFormData:
+                          granularity_sqla: "order_date"
+                        filterState:
+                          value:
+                            - "order_date"
+                  time_range_filter:
+                    summary: "Time Range Filter"
+                    value:
+                      dataMask:
+                        id: NATIVE_FILTER_ID
+                        extraFormData:
+                          time_range: >-
+                            DATEADD(DATETIME("2025-01-16T00:00:00"), -7, day)
+                            : 2025-01-16T00:00:00
+                        filterState:
+                          value: >-
+                            DATEADD(DATETIME("2025-01-16T00:00:00"), -7, day)
+                            : 2025-01-16T00:00:00
+                  numerical_range_filter:
+                    summary: "Numerical Range Filter"
+                    value:
+                      dataMask:
+                        id: NATIVE_FILTER_ID
+                        extraFormData:
+                          filters:
+                            - col: "tz_offset"
+                              op: ">="
+                              val:
+                                - 1000
+                            - col: "tz_offset"
+                              op: "<="
+                              val:
+                                - 2000
+                        filterState:
+                          value:
+                            - 1000
+                            - 2000
+                          label: "1000 <= x <= 200"
+                  value_filter:
+                    summary: "Value Filter"
+                    value:
+                      dataMask:
+                        id: NATIVE_FILTER_ID
+                        extraFormData:
+                          filters:
+                            - col: "real_name"
+                              op: "IN"
+                              val:
+                                - "John Doe"
+                        filterState:
+                          value:
+                            - "John Doe"
           responses:
             201:
               description: The permanent link was stored successfully.
@@ -107,8 +167,7 @@ class DashboardPermalinkRestApi(BaseApi):
                 dashboard_id=pk,
                 state=state,
             ).run()
-            http_origin = request.headers.environ.get("HTTP_ORIGIN")
-            url = f"{http_origin}/superset/dashboard/p/{key}/"
+            url = url_for("Superset.dashboard_permalink", key=key, _external=True)
             return self.response(201, key=key, url=url)
         except (ValidationError, DashboardPermalinkInvalidStateError) as ex:
             return self.response(400, message=str(ex))
@@ -120,7 +179,7 @@ class DashboardPermalinkRestApi(BaseApi):
         except DashboardNotFoundError as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/permalink/<string:key>", methods=["GET"])
+    @expose("/permalink/<string:key>", methods=("GET",))
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -128,11 +187,10 @@ class DashboardPermalinkRestApi(BaseApi):
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
-        """Retrives permanent link state for dashboard.
+        """Get dashboard's permanent link state.
         ---
         get:
-          description: >-
-            Retrives dashboard state associated with a permanent link.
+          summary: Get dashboard's permanent link state
           parameters:
           - in: path
             schema:

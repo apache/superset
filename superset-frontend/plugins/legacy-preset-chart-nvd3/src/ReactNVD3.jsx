@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { reactify, styled } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import Component from './NVD3Vis';
@@ -152,7 +151,7 @@ export default styled(NVD3)`
       white-space: nowrap;
       font-weight: ${({ theme }) => theme.typography.weights.bold};
     }
-    tbody tr:not(.tooltip-header) td:nth-child(2) {
+    tbody tr:not(.tooltip-header) td:nth-of-type(2) {
       word-break: break-word;
     }
   }

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactNode } from 'react';
 import { ClassNames } from '@emotion/react';
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, useTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 
 const StyledTooltip = (props: any) => {
@@ -28,7 +28,7 @@ const StyledTooltip = (props: any) => {
       {({ css }) => (
         <Tooltip
           overlayClassName={css`
-            .ant-tooltip-inner {
+            .antd5-tooltip-inner {
               max-width: ${theme.gridUnit * 125}px;
               word-wrap: break-word;
               text-align: center;
@@ -60,9 +60,9 @@ const iconMap = {
 };
 
 const tooltipTitleMap = {
-  pk: 'Primary key',
-  fk: 'Foreign key',
-  index: 'Index',
+  pk: t('Primary key'),
+  fk: t('Foreign key'),
+  index: t('Index'),
 };
 
 export type ColumnKeyTypeType = keyof typeof tooltipTitleMap;
@@ -80,7 +80,7 @@ const NowrapDiv = styled.div`
 `;
 
 const ColumnElement = ({ column }: ColumnElementProps) => {
-  let columnName: React.ReactNode = column.name;
+  let columnName: ReactNode = column.name;
   let icons;
   if (column.keys && column.keys.length > 0) {
     columnName = <strong>{column.name}</strong>;

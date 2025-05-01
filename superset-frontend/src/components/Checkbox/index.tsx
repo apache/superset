@@ -16,5 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default, CheckboxProps } from 'src/components/Checkbox/Checkbox';
+export { default } from 'src/components/Checkbox/Checkbox';
+export type { CheckboxProps } from 'src/components/Checkbox/Checkbox';
 export * from 'src/components/Checkbox/CheckboxIcons';

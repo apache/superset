@@ -17,10 +17,10 @@
  * under the License.
  */
 export enum ToastType {
-  INFO = 'INFO_TOAST',
-  SUCCESS = 'SUCCESS_TOAST',
-  WARNING = 'WARNING_TOAST',
-  DANGER = 'DANGER_TOAST',
+  Info = 'INFO_TOAST',
+  Success = 'SUCCESS_TOAST',
+  Warning = 'WARNING_TOAST',
+  Danger = 'DANGER_TOAST',
 }
 
 export interface ToastMeta {
@@ -31,4 +31,6 @@ export interface ToastMeta {
   /** Whether to skip displaying this message if there are another toast
    * with the same message. */
   noDuplicate?: boolean;
+  /** For security reasons, HTML rendering is disabled by default. Use this property to enable it. */
+  allowHtml?: boolean;
 }

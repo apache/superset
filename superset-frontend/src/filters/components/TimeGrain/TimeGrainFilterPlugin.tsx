@@ -23,9 +23,10 @@ import {
   TimeGranularity,
   tn,
 } from '@superset-ui/core';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Select } from 'src/components';
-import { FormItemProps } from 'antd/lib/form';
+// eslint-disable-next-line no-restricted-imports
+import { FormItemProps } from 'antd/lib/form'; // TODO: Remove antd
 import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
 
@@ -38,6 +39,8 @@ export default function PluginFilterTimegrain(
     height,
     width,
     setDataMask,
+    setHoveredFilter,
+    unsetHoveredFilter,
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
@@ -119,13 +122,16 @@ export default function PluginFilterTimegrain(
         {...formItemData}
       >
         <Select
+          name={formData.nativeFilterId}
           allowClear
           value={value}
           placeholder={placeholderText}
           // @ts-ignore
           onChange={handleChange}
-          onMouseEnter={setFocusedFilter}
-          onMouseLeave={unsetFocusedFilter}
+          onBlur={unsetFocusedFilter}
+          onFocus={setFocusedFilter}
+          onMouseEnter={setHoveredFilter}
+          onMouseLeave={unsetHoveredFilter}
           ref={inputRef}
           options={options}
           onDropdownVisibleChange={setFilterActive}

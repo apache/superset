@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
+import logging
 import random
 
 import geohash
@@ -24,77 +25,81 @@ from sqlalchemy import DateTime, Float, inspect, String
 import superset.utils.database as database_utils
 from superset import db
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils.core import DatasourceType
 
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None:
     """Loading lat/long data from a csv file in the repo"""
     tbl_name = "long_lat"
     database = database_utils.get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
-    table_exists = database.has_table_by_name(tbl_name)
+    with database.get_sqla_engine() as engine:
+        schema = inspect(engine).default_schema_name
+        table_exists = database.has_table(Table(tbl_name, schema))
 
-    if not only_metadata and (not table_exists or force):
-        data = get_example_data("san_francisco.csv.gz", make_bytes=True)
-        pdf = pd.read_csv(data, encoding="utf-8")
-        start = datetime.datetime.now().replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-        pdf["datetime"] = [
-            start + datetime.timedelta(hours=i * 24 / (len(pdf) - 1))
-            for i in range(len(pdf))
-        ]
-        pdf["occupancy"] = [random.randint(1, 6) for _ in range(len(pdf))]
-        pdf["radius_miles"] = [random.uniform(1, 3) for _ in range(len(pdf))]
-        pdf["geohash"] = pdf[["LAT", "LON"]].apply(lambda x: geohash.encode(*x), axis=1)
-        pdf["delimited"] = pdf["LAT"].map(str).str.cat(pdf["LON"].map(str), sep=",")
-        pdf.to_sql(
-            tbl_name,
-            engine,
-            schema=schema,
-            if_exists="replace",
-            chunksize=500,
-            dtype={
-                "longitude": Float(),
-                "latitude": Float(),
-                "number": Float(),
-                "street": String(100),
-                "unit": String(10),
-                "city": String(50),
-                "district": String(50),
-                "region": String(50),
-                "postcode": Float(),
-                "id": String(100),
-                "datetime": DateTime(),
-                "occupancy": Float(),
-                "radius_miles": Float(),
-                "geohash": String(12),
-                "delimited": String(60),
-            },
-            index=False,
-        )
-        print("Done loading table!")
-        print("-" * 80)
+        if not only_metadata and (not table_exists or force):
+            url = get_example_url("san_francisco.csv.gz")
+            pdf = pd.read_csv(url, encoding="utf-8", compression="gzip")
+            start = datetime.datetime.now().replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            pdf["datetime"] = [
+                start + datetime.timedelta(hours=i * 24 / (len(pdf) - 1))
+                for i in range(len(pdf))
+            ]
+            pdf["occupancy"] = [random.randint(1, 6) for _ in range(len(pdf))]  # noqa: S311
+            pdf["radius_miles"] = [random.uniform(1, 3) for _ in range(len(pdf))]  # noqa: S311
+            pdf["geohash"] = pdf[["LAT", "LON"]].apply(
+                lambda x: geohash.encode(*x), axis=1
+            )
+            pdf["delimited"] = pdf["LAT"].map(str).str.cat(pdf["LON"].map(str), sep=",")
+            pdf.to_sql(
+                tbl_name,
+                engine,
+                schema=schema,
+                if_exists="replace",
+                chunksize=500,
+                dtype={
+                    "longitude": Float(),
+                    "latitude": Float(),
+                    "number": Float(),
+                    "street": String(100),
+                    "unit": String(10),
+                    "city": String(50),
+                    "district": String(50),
+                    "region": String(50),
+                    "postcode": Float(),
+                    "id": String(100),
+                    "datetime": DateTime(),
+                    "occupancy": Float(),
+                    "radius_miles": Float(),
+                    "geohash": String(12),
+                    "delimited": String(60),
+                },
+                index=False,
+            )
+        logger.debug("Done loading table!")
+        logger.debug("-" * 80)
 
-    print("Creating table reference")
+    logger.debug("Creating table reference")
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
         obj = table(table_name=tbl_name, schema=schema)
+        db.session.add(obj)
     obj.main_dttm_col = "datetime"
     obj.database = database
     obj.filter_select_enabled = True
-    db.session.merge(obj)
-    db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 
@@ -110,7 +115,7 @@ def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None
         "row_limit": 500000,
     }
 
-    print("Creating a slice")
+    logger.debug("Creating a slice")
     slc = Slice(
         slice_name="Mapbox Long/Lat",
         viz_type="mapbox",

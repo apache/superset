@@ -1,14 +1,15 @@
 ---
 name: SIP
-about: Superset Improvement Proposal
-labels: "#SIP"
-
+about: "Superset Improvement Proposal. See SIP-0 (https://github.com/apache/superset/issues/5602) for details. A SIP introduces any major change into Apache Superset's code or process."
+labels: sip
+title: "[SIP] Your Title Here (do not add SIP number)"
+assignees: "apache/superset-committers"
 ---
 
 *Please make sure you are familiar with the SIP process documented*
-(here)[https://github.com/apache/superset/issues/5602]. The SIP number should be the next number after the latest SIP listed [here](https://github.com/apache/superset/issues?q=is%3Aissue+label%3Asip).
+[here](https://github.com/apache/superset/issues/5602). The SIP will be numbered by a committer upon acceptance.
 
-## [SIP-\<number>] Proposal for <title>
+## [SIP] Proposal for ...<title>
 
 ### Motivation
 

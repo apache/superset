@@ -14,25 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Loads datasets, dashboards and slices in a new superset instance"""
-import json
+import logging
 import textwrap
 
 from superset import db
 from superset.models.dashboard import Dashboard
+from superset.utils import json
 
 from .helpers import update_slice_ids
+
+logger = logging.getLogger(__name__)
 
 
 def load_tabbed_dashboard(_: bool = False) -> None:
     """Creating a tabbed dashboard"""
 
-    print("Creating a dashboard with nested tabs")
+    logger.debug("Creating a dashboard with nested tabs")
     slug = "tabbed_dash"
     dash = db.session.query(Dashboard).filter_by(slug=slug).first()
 
     if not dash:
         dash = Dashboard()
+        db.session.add(dash)
 
     js = textwrap.dedent(
         """
@@ -137,6 +140,25 @@ def load_tabbed_dashboard(_: bool = False) -> None:
       ],
       "type": "CHART"
     },
+    "CHART-dxV7Il666H": {
+      "children": [],
+      "id": "CHART-dxV7Il666H",
+      "meta": {
+        "chartId": 5539,
+        "height": 50,
+        "sliceName": "Trends",
+        "width": 4
+      },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-gcQJxApOZS",
+        "TABS-afnrUvdxYF",
+        "TAB-jNNd4WWar1",
+        "ROW-7ygtD666Q"
+      ],
+      "type": "CHART"
+    },
     "CHART-jJ5Yj1Ptaz": {
       "children": [],
       "id": "CHART-jJ5Yj1Ptaz",
@@ -228,6 +250,19 @@ def load_tabbed_dashboard(_: bool = False) -> None:
     "ROW-7ygtDczaQ": {
       "children": ["CHART-dxV7Il74hH"],
       "id": "ROW-7ygtDczaQ",
+      "meta": { "background": "BACKGROUND_TRANSPARENT" },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-gcQJxApOZS",
+        "TABS-afnrUvdxYF",
+        "TAB-jNNd4WWar1"
+      ],
+      "type": "ROW"
+    },
+    "ROW-7ygtD666Q": {
+      "children": ["CHART-dxV7Il666H"],
+      "id": "ROW-7ygtD666Q",
       "meta": { "background": "BACKGROUND_TRANSPARENT" },
       "parents": [
         "ROOT_ID",
@@ -386,7 +421,7 @@ def load_tabbed_dashboard(_: bool = False) -> None:
       "type": "TAB"
     },
     "TAB-jNNd4WWar1": {
-      "children": ["ROW-7ygtDczaQ"],
+      "children": ["ROW-7ygtDczaQ", "ROW-7ygtD666Q"],
       "id": "TAB-jNNd4WWar1",
       "meta": { "text": "New Tab" },
       "parents": [
@@ -524,6 +559,3 @@ def load_tabbed_dashboard(_: bool = False) -> None:
     dash.slices = slices
     dash.dashboard_title = "Tabbed Dashboard"
     dash.slug = slug
-
-    db.session.merge(dash)
-    db.session.commit()

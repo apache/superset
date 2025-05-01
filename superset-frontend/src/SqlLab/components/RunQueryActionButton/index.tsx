@@ -16,34 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
-import { t, styled, useTheme } from '@superset-ui/core';
+import { useMemo, FC, ReactElement } from 'react';
 
-import { Menu } from 'src/components/Menu';
+import { t, styled, useTheme, SupersetTheme } from '@superset-ui/core';
+
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import {
+  LOG_ACTIONS_SQLLAB_RUN_QUERY,
+  LOG_ACTIONS_SQLLAB_STOP_QUERY,
+} from 'src/logger/LogUtils';
+import useLogAction from 'src/logger/useLogAction';
 
-interface Props {
+export interface RunQueryActionButtonProps {
+  queryEditorId: string;
   allowAsync: boolean;
   queryState?: string;
   runQuery: (c?: boolean) => void;
-  selectedText?: string;
   stopQuery: () => void;
-  sql: string;
-  overlayCreateAsMenu: typeof Menu | null;
+  overlayCreateAsMenu: ReactElement | null;
 }
 
 const buildText = (
   shouldShowStopButton: boolean,
   selectedText: string | undefined,
+  theme: SupersetTheme,
 ): string | JSX.Element => {
   if (shouldShowStopButton) {
     return (
       <>
-        <i className="fa fa-stop" /> {t('Stop')}
+        <Icons.Square iconSize="xs" iconColor={theme.colors.primary.light5} />
+        {t('Stop')}
       </>
     );
   }
@@ -58,7 +65,13 @@ const onClick = (
   allowAsync: boolean,
   runQuery: (c?: boolean) => void = () => undefined,
   stopQuery = () => {},
+  logAction: (name: string, payload: Record<string, any>) => void,
 ): void => {
+  const eventName = shouldShowStopButton
+    ? LOG_ACTIONS_SQLLAB_STOP_QUERY
+    : LOG_ACTIONS_SQLLAB_RUN_QUERY;
+
+  logAction(eventName, { shortcut: false });
   if (shouldShowStopButton) return stopQuery();
   if (allowAsync) {
     return runQuery(true);
@@ -83,25 +96,32 @@ const StyledButton = styled.span`
 
 const RunQueryActionButton = ({
   allowAsync = false,
+  queryEditorId,
   queryState,
-  selectedText,
-  sql = '',
   overlayCreateAsMenu,
   runQuery,
   stopQuery,
-}: Props) => {
+}: RunQueryActionButtonProps) => {
   const theme = useTheme();
-
+  const logAction = useLogAction({ queryEditorId });
   const userOS = detectOS();
+
+  const { selectedText, sql } = useQueryEditor(queryEditorId, [
+    'selectedText',
+    'sql',
+  ]);
 
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
 
-  const ButtonComponent: React.FC<QueryButtonProps> = overlayCreateAsMenu
-    ? (DropdownButton as React.FC)
+  const ButtonComponent: FC<QueryButtonProps> = overlayCreateAsMenu
+    ? (DropdownButton as FC)
     : Button;
 
-  const isDisabled = !sql.trim();
+  const sqlContent = selectedText || sql || '';
+  const isDisabled = !sqlContent
+    ?.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '')
+    .trim();
 
   const stopButtonTooltipText = useMemo(
     () =>
@@ -114,8 +134,9 @@ const RunQueryActionButton = ({
   return (
     <StyledButton>
       <ButtonComponent
+        data-test="run-query-action"
         onClick={() =>
-          onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery)
+          onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery, logAction)
         }
         disabled={isDisabled}
         tooltip={
@@ -129,20 +150,21 @@ const RunQueryActionButton = ({
           ? {
               overlay: overlayCreateAsMenu,
               icon: (
-                <Icons.CaretDown
+                <Icons.DownOutlined
                   iconColor={
                     isDisabled
                       ? theme.colors.grayscale.base
                       : theme.colors.grayscale.light5
                   }
-                  name="caret-down"
                 />
               ),
               trigger: 'click',
             }
-          : { buttonStyle: 'primary' })}
+          : {
+              buttonStyle: shouldShowStopBtn ? 'warning' : 'primary',
+            })}
       >
-        {buildText(shouldShowStopBtn, selectedText)}
+        {buildText(shouldShowStopBtn, selectedText, theme)}
       </ButtonComponent>
     </StyledButton>
   );

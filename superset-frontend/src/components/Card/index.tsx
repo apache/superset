@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { SupersetTheme } from '@superset-ui/core';
-import AntdCard, { CardProps as AntdCardProps } from 'antd/lib/card';
+import { Card as AntdCard } from 'antd-v5';
+import { CardProps as AntdCardProps } from 'antd-v5/lib/card';
 
 export interface CardProps extends AntdCardProps {
   padded?: boolean;
@@ -28,13 +28,15 @@ const Card = ({ padded, ...props }: CardProps) => (
   <AntdCard
     {...props}
     css={(theme: SupersetTheme) => ({
-      backgroundColor: theme.colors.grayscale.light4,
-      borderRadius: theme.borderRadius,
-      '.ant-card-body': {
+      // 'border-radius': `${theme.gridUnit}px`,
+      border: `1px solid ${theme.colors.grayscale.light2}`,
+      '.antd5-card-body': {
         padding: padded ? theme.gridUnit * 4 : theme.gridUnit,
       },
     })}
   />
 );
 
-export default Card;
+export default Object.assign(Card, {
+  Meta: AntdCard.Meta,
+});

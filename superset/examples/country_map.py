@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
+import logging
 
 import pandas as pd
 from sqlalchemy import BigInteger, Date, inspect, String
@@ -24,71 +25,72 @@ import superset.utils.database as database_utils
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils.core import DatasourceType
 
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def load_country_map_data(only_metadata: bool = False, force: bool = False) -> None:
     """Loading data for map with country map"""
     tbl_name = "birth_france_by_region"
     database = database_utils.get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
-    table_exists = database.has_table_by_name(tbl_name)
 
-    if not only_metadata and (not table_exists or force):
-        csv_bytes = get_example_data(
-            "birth_france_data_for_country_map.csv", is_gzip=False, make_bytes=True
-        )
-        data = pd.read_csv(csv_bytes, encoding="utf-8")
-        data["dttm"] = datetime.datetime.now().date()
-        data.to_sql(
-            tbl_name,
-            engine,
-            schema=schema,
-            if_exists="replace",
-            chunksize=500,
-            dtype={
-                "DEPT_ID": String(10),
-                "2003": BigInteger,
-                "2004": BigInteger,
-                "2005": BigInteger,
-                "2006": BigInteger,
-                "2007": BigInteger,
-                "2008": BigInteger,
-                "2009": BigInteger,
-                "2010": BigInteger,
-                "2011": BigInteger,
-                "2012": BigInteger,
-                "2013": BigInteger,
-                "2014": BigInteger,
-                "dttm": Date(),
-            },
-            index=False,
-        )
-        print("Done loading table!")
-        print("-" * 80)
+    with database.get_sqla_engine() as engine:
+        schema = inspect(engine).default_schema_name
+        table_exists = database.has_table(Table(tbl_name, schema))
 
-    print("Creating table reference")
+        if not only_metadata and (not table_exists or force):
+            url = get_example_url("birth_france_data_for_country_map.csv")
+            data = pd.read_csv(url, encoding="utf-8")
+            data["dttm"] = datetime.datetime.now().date()
+            data.to_sql(
+                tbl_name,
+                engine,
+                schema=schema,
+                if_exists="replace",
+                chunksize=500,
+                dtype={
+                    "DEPT_ID": String(10),
+                    "2003": BigInteger,
+                    "2004": BigInteger,
+                    "2005": BigInteger,
+                    "2006": BigInteger,
+                    "2007": BigInteger,
+                    "2008": BigInteger,
+                    "2009": BigInteger,
+                    "2010": BigInteger,
+                    "2011": BigInteger,
+                    "2012": BigInteger,
+                    "2013": BigInteger,
+                    "2014": BigInteger,
+                    "dttm": Date(),
+                },
+                index=False,
+            )
+        logger.debug("Done loading table!")
+        logger.debug("-" * 80)
+
+    logger.debug("Creating table reference")
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
         obj = table(table_name=tbl_name, schema=schema)
+        db.session.add(obj)
     obj.main_dttm_col = "dttm"
     obj.database = database
     obj.filter_select_enabled = True
     if not any(col.metric_name == "avg__2004" for col in obj.metrics):
         col = str(column("2004").compile(db.engine))
         obj.metrics.append(SqlMetric(metric_name="avg__2004", expression=f"AVG({col})"))
-    db.session.merge(obj)
-    db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 
@@ -109,7 +111,7 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
         "select_country": "france",
     }
 
-    print("Creating a slice")
+    logger.debug("Creating a slice")
     slc = Slice(
         slice_name="Birth in France by department in 2016",
         viz_type="country_map",

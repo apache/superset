@@ -1,17 +1,18 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-rose",
-  "version": "0.18.25",
+  "version": "0.20.3",
   "description": "Superset Legacy Chart - Nightingale Rose Diagram",
   "keywords": [
     "superset"
   ],
-  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/legacy-plugin-chart-rose#readme",
   "bugs": {
-    "url": "https://github.com/apache-superset/superset-ui/issues"
+    "url": "https://github.com/apache/superset/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache-superset/superset-ui.git"
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/plugins/legacy-plugin-chart-rose"
   },
   "license": "Apache-2.0",
   "author": "Superset",
@@ -24,13 +25,13 @@
   "dependencies": {
     "d3": "^3.5.17",
     "nvd3-fork": "^2.0.5",
-    "prop-types": "^15.6.2"
+    "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@emotion/react": "^11.4.1",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^16.13.1"
+    "react": "^17.0.2"
   },
   "publishConfig": {
     "access": "public"

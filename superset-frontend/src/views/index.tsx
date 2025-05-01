@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import 'src/public-path';
+
 import ReactDOM from 'react-dom';
 import App from './App';
 

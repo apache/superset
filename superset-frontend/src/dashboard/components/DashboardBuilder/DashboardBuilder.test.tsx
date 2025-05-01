@@ -16,56 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Store } from 'redux';
-import React from 'react';
 import fetchMock from 'fetch-mock';
-import { render } from 'spec/helpers/testing-library';
-import { fireEvent, within } from '@testing-library/react';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { fireEvent, render, within } from 'spec/helpers/testing-library';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
-import useStoredFilterBarWidth from 'src/dashboard/components/DashboardBuilder/useStoredFilterBarWidth';
+import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
   fetchFaveStar,
-  setActiveTabs,
+  setActiveTab,
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
 import {
   dashboardLayout as undoableDashboardLayout,
   dashboardLayoutWithTabs as undoableDashboardLayoutWithTabs,
 } from 'spec/fixtures/mockDashboardLayout';
-import { mockStoreWithTabs, storeWithState } from 'spec/fixtures/mockStore';
+import { storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import * as useNativeFiltersModule from './state';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
+fetchMock.put('glob:*/api/v1/dashboard/*', {});
+// Add mock for logging endpoint
+fetchMock.post('glob:*/superset/log/?*', {});
 
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
   fetchFaveStar: jest.fn(),
-  setActiveTabs: jest.fn(),
+  setActiveTab: jest.fn(),
   setDirectPathToChild: jest.fn(),
 }));
-jest.mock('src/featureFlags');
-jest.mock('src/dashboard/components/DashboardBuilder/useStoredFilterBarWidth');
+jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 
-// mock following dependant components to fix the prop warnings
-jest.mock('src/components/Icons/Icon', () => () => (
-  <div data-test="mock-icon" />
-));
-jest.mock('src/components/Select/WindowedSelect', () => () => (
-  <div data-test="mock-windowed-select" />
-));
-jest.mock('src/components/Select', () => () => (
-  <div data-test="mock-deprecated-select" />
-));
+// mock following dependent components to fix the prop warnings
 jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-select" />
 ));
 jest.mock('src/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-async-select" />
-));
-jest.mock('src/dashboard/components/Header/HeaderActionsDropdown', () => () => (
-  <div data-test="mock-header-actions-dropdown" />
 ));
 jest.mock('src/components/PageHeaderWithActions', () => ({
   PageHeaderWithActions: () => (
@@ -95,23 +82,22 @@ describe('DashboardBuilder', () => {
     favStarStub = (fetchFaveStar as jest.Mock).mockReturnValue({
       type: 'mock-action',
     });
-    activeTabsStub = (setActiveTabs as jest.Mock).mockReturnValue({
+    activeTabsStub = (setActiveTab as jest.Mock).mockReturnValue({
       type: 'mock-action',
     });
-    (useStoredFilterBarWidth as jest.Mock).mockImplementation(() => [
+    (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
       100,
       jest.fn(),
     ]);
-    (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
   });
 
   afterAll(() => {
     favStarStub.mockReset();
     activeTabsStub.mockReset();
-    (useStoredFilterBarWidth as jest.Mock).mockReset();
+    (useStoredSidebarWidth as jest.Mock).mockReset();
   });
 
-  function setup(overrideState = {}, overrideStore?: Store) {
+  function setup(overrideState = {}) {
     return render(<DashboardBuilder />, {
       useRedux: true,
       store: storeWithState({
@@ -125,7 +111,7 @@ describe('DashboardBuilder', () => {
 
   it('should render a StickyContainer with class "dashboard"', () => {
     const { getByTestId } = setup();
-    const stickyContainer = getByTestId('dashboard-content');
+    const stickyContainer = getByTestId('dashboard-content-wrapper');
     expect(stickyContainer).toHaveClass('dashboard');
   });
 
@@ -133,21 +119,20 @@ describe('DashboardBuilder', () => {
     const { getByTestId } = setup({
       dashboardState: { ...mockState.dashboardState, editMode: true },
     });
-    const stickyContainer = getByTestId('dashboard-content');
+    const stickyContainer = getByTestId('dashboard-content-wrapper');
     expect(stickyContainer).toHaveClass('dashboard dashboard--editing');
   });
 
   it('should render a DragDroppable DashboardHeader', () => {
     const { queryByTestId } = setup();
     const header = queryByTestId('dashboard-header-container');
-    expect(header).toBeTruthy();
+    expect(header).toBeInTheDocument();
   });
 
   it('should render a Sticky top-level Tabs if the dashboard has tabs', async () => {
-    const { findAllByTestId } = setup(
-      { dashboardLayout: undoableDashboardLayoutWithTabs },
-      mockStoreWithTabs,
-    );
+    const { findAllByTestId } = setup({
+      dashboardLayout: undoableDashboardLayoutWithTabs,
+    });
     const sticky = await findAllByTestId('nav-list');
 
     expect(sticky.length).toBe(1);
@@ -184,7 +169,7 @@ describe('DashboardBuilder', () => {
     const expectedCount =
       undoableDashboardLayoutWithTabs.present.TABS_ID.children.length;
     const tabPanels = within(parentSize).getAllByRole('tabpanel', {
-      // to include invisiable tab panels
+      // to include invisible tab panels
       hidden: true,
     });
     expect(tabPanels.length).toBe(expectedCount);
@@ -205,7 +190,7 @@ describe('DashboardBuilder', () => {
     const expectedCount =
       undoableDashboardLayoutWithTabs.present.TABS_ID.children.length;
     const tabPanels = within(parentSize).getAllByRole('tabpanel', {
-      // to include invisiable tab panels
+      // to include invisible tab panels
       hidden: true,
     });
     expect(tabPanels.length).toBe(expectedCount);
@@ -221,7 +206,9 @@ describe('DashboardBuilder', () => {
   });
 
   it('should render a BuilderComponentPane if editMode=true and user selects "Insert Components" pane', () => {
-    const { queryAllByTestId } = setup({ dashboardState: { editMode: true } });
+    const { queryAllByTestId } = setup({
+      dashboardState: { ...mockState.dashboardState, editMode: true },
+    });
     const builderComponents = queryAllByTestId('mock-builder-component-pane');
     expect(builderComponents.length).toBeGreaterThanOrEqual(1);
   });
@@ -231,12 +218,9 @@ describe('DashboardBuilder', () => {
       type: 'type',
       arg0,
     }));
-    const { findByRole } = setup(
-      {
-        dashboardLayout: undoableDashboardLayoutWithTabs,
-      },
-      mockStoreWithTabs,
-    );
+    const { findByRole } = setup({
+      dashboardLayout: undoableDashboardLayoutWithTabs,
+    });
     const tabList = await findByRole('tablist');
     const tabs = within(tabList).getAllByRole('tab');
     expect(setDirectPathToChild).toHaveBeenCalledTimes(0);
@@ -249,32 +233,75 @@ describe('DashboardBuilder', () => {
     (setDirectPathToChild as jest.Mock).mockReset();
   });
 
-  describe('when nativeFiltersEnabled', () => {
-    beforeEach(() => {
-      (isFeatureEnabled as jest.Mock).mockImplementation(
-        flag => flag === FeatureFlag.DASHBOARD_NATIVE_FILTERS,
-      );
-    });
-    afterEach(() => {
-      (isFeatureEnabled as jest.Mock).mockReset();
+  it('should not display a loading spinner when saving is not in progress', () => {
+    const { queryByAltText } = setup();
+
+    expect(queryByAltText('Loading...')).not.toBeInTheDocument();
+  });
+
+  it('should display a loading spinner when saving is in progress', async () => {
+    const { findByAltText } = setup({
+      dashboardState: { ...mockState.dashboardState, dashboardIsSaving: true },
     });
 
-    it('should set FilterBar width by useStoredFilterBarWidth', () => {
-      const expectedValue = 200;
-      const setter = jest.fn();
-      (useStoredFilterBarWidth as jest.Mock).mockImplementation(() => [
-        expectedValue,
-        setter,
-      ]);
-      const { getByTestId } = setup({
-        dashboardInfo: {
-          ...mockState.dashboardInfo,
-          dash_edit_perm: true,
-          metadata: { show_native_filters: true },
-        },
-      });
-      const filterbar = getByTestId('dashboard-filters-panel');
-      expect(filterbar).toHaveStyleRule('width', `${expectedValue}px`);
+    expect(await findByAltText('Loading...')).toBeVisible();
+  });
+
+  it('should set FilterBar width by useStoredSidebarWidth', () => {
+    const expectedValue = 200;
+    const setter = jest.fn();
+    (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+      expectedValue,
+      setter,
+    ]);
+    const { getByTestId } = setup({
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        dash_edit_perm: true,
+      },
     });
+    const filterbar = getByTestId('dashboard-filters-panel');
+    expect(filterbar).toHaveStyleRule('width', `${expectedValue}px`);
+  });
+
+  it('should not render the filter bar when nativeFiltersEnabled is false', () => {
+    jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: false,
+    });
+    const { queryByTestId } = setup();
+
+    expect(queryByTestId('dashboard-filters-panel')).not.toBeInTheDocument();
+  });
+
+  it('should render the filter bar when nativeFiltersEnabled is true and not in edit mode', () => {
+    jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: true,
+    });
+    const { queryByTestId } = setup();
+
+    expect(queryByTestId('dashboard-filters-panel')).toBeInTheDocument();
+  });
+
+  it('should not render the filter bar when in edit mode even if nativeFiltersEnabled is true', () => {
+    jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: true,
+    });
+    const { queryByTestId } = setup({
+      dashboardState: { ...mockState.dashboardState, editMode: true },
+    });
+
+    expect(queryByTestId('dashboard-filters-panel')).not.toBeInTheDocument();
   });
 });

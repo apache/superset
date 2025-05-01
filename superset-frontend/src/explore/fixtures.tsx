@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
-import { DatasourceType, t } from '@superset-ui/core';
+import { DatasourceType, t, VizType } from '@superset-ui/core';
 import {
   ColumnMeta,
   ColumnOption,
@@ -58,9 +57,9 @@ export const controlPanelSectionsChartOptions: (ControlPanelSectionConfig | null
               label: t('Stacked Style'),
               renderTrigger: true,
               choices: [
-                ['stack', 'stack'],
-                ['stream', 'stream'],
-                ['expand', 'expand'],
+                ['stack', t('stack')],
+                ['stream', t('stream')],
+                ['expand', t('expand')],
               ],
               default: 'stack',
               description: '',
@@ -115,8 +114,7 @@ export const exploreInitialData: ExplorePageInitialData = {
     datasource: '8__table',
     metric: 'count',
     slice_id: 371,
-    time_range: 'No filter',
-    viz_type: 'table',
+    viz_type: VizType.Table,
   },
   slice: {
     cache_timeout: null,
@@ -128,16 +126,19 @@ export const exploreInitialData: ExplorePageInitialData = {
       datasource: '8__table',
       metric: 'count',
       slice_id: 371,
-      time_range: 'No filter',
-      viz_type: 'table',
+      viz_type: VizType.Table,
     },
   },
   dataset: {
     id: 8,
     type: DatasourceType.Table,
     columns: [{ column_name: 'a' }],
-    metrics: [{ metric_name: 'first' }, { metric_name: 'second' }],
-    column_format: {},
+    metrics: [
+      { metric_name: 'first', uuid: '1' },
+      { metric_name: 'second', uuid: '2' },
+    ],
+    column_formats: {},
+    currency_formats: {},
     verbose_map: {},
     main_dttm_col: '',
     datasource_name: '8__table',
@@ -148,14 +149,15 @@ export const exploreInitialData: ExplorePageInitialData = {
 export const fallbackExploreInitialData: ExplorePageInitialData = {
   form_data: {
     datasource: '0__table',
-    viz_type: 'table',
+    viz_type: VizType.Table,
   },
   dataset: {
     id: 0,
     type: DatasourceType.Table,
     columns: [],
     metrics: [],
-    column_format: {},
+    column_formats: {},
+    currency_formats: {},
     verbose_map: {},
     main_dttm_col: '',
     owners: [],

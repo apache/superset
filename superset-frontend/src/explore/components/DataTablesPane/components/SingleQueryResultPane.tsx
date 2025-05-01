@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { t } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import {
@@ -30,9 +30,11 @@ export const SingleQueryResultPane = ({
   data,
   colnames,
   coltypes,
+  rowcount,
   datasourceId,
   dataSize = 50,
   isVisible,
+  canDownload,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
 
@@ -44,6 +46,8 @@ export const SingleQueryResultPane = ({
     data,
     datasourceId,
     isVisible,
+    {}, // moreConfig
+    true, // allowHTML
   );
   const filteredData = useFilteredTableData(filterText, data);
 
@@ -53,9 +57,11 @@ export const SingleQueryResultPane = ({
         data={filteredData}
         columnNames={colnames}
         columnTypes={coltypes}
+        rowcount={rowcount}
         datasourceId={datasourceId}
         onInputChange={input => setFilterText(input)}
         isLoading={false}
+        canDownload={canDownload}
       />
       <TableView
         columns={columns}

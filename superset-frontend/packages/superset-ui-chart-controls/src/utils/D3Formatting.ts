@@ -16,31 +16,58 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, smartDateFormatter, NumberFormats } from '@superset-ui/core';
+import {
+  t,
+  SMART_DATE_ID,
+  NumberFormats,
+  getNumberFormatter,
+} from '@superset-ui/core';
 
 // D3 specific formatting config
 export const D3_FORMAT_DOCS = t(
   'D3 format syntax: https://github.com/d3/d3-format',
 );
 
+export const D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT = t(
+  'Only applies when "Label Type" is set to show values.',
+);
+export const D3_NUMBER_FORMAT_DESCRIPTION_PERCENTAGE_TEXT = t(
+  'Only applies when "Label Type" is not set to a percentage.',
+);
+
+const d3Formatted: [string, string][] = [
+  ',d',
+  '.1s',
+  '.3s',
+  ',.1%',
+  '.2%',
+  '.3%',
+  '.4r',
+  ',.1f',
+  ',.2f',
+  ',.3f',
+  '+,',
+  '$,.2f',
+].map(fmt => [fmt, `${fmt} (${getNumberFormatter(fmt).preview()})`]);
+
 // input choices & options
 export const D3_FORMAT_OPTIONS: [string, string][] = [
   [NumberFormats.SMART_NUMBER, t('Adaptive formatting')],
   ['~g', t('Original value')],
-  [',d', ',d (12345.432 => 12,345)'],
-  ['.1s', '.1s (12345.432 => 10k)'],
-  ['.3s', '.3s (12345.432 => 12.3k)'],
-  [',.1%', ',.1% (12345.432 => 1,234,543.2%)'],
-  ['.2%', '.2% (12345.432 => 1234543.20%)'],
-  ['.3%', '.3% (12345.432 => 1234543.200%)'],
-  ['.4r', '.4r (12345.432 => 12350)'],
-  [',.1f', ',.1f (12345.432 => 12,345.4)'],
-  [',.2f', ',.2f (12345.432 => 12,345.43)'],
-  [',.3f', ',.3f (12345.432 => 12,345.432)'],
-  ['+,', '+, (12345.432 => +12,345.432)'],
-  ['$,.2f', '$,.2f (12345.432 => $12,345.43)'],
+  ...d3Formatted,
   ['DURATION', t('Duration in ms (66000 => 1m 6s)')],
   ['DURATION_SUB', t('Duration in ms (1.40008 => 1ms 400µs 80ns)')],
+  ['DURATION_COL', t('Duration in ms (10500 => 0:10.5)')],
+  ['MEMORY_DECIMAL', t('Memory in bytes - decimal (1024B => 1.024kB)')],
+  ['MEMORY_BINARY', t('Memory in bytes - binary (1024B => 1KiB)')],
+  [
+    'MEMORY_TRANSFER_RATE_DECIMAL',
+    t('Memory transfer rate in bytes - decimal (1024B => 1.024kB/s)'),
+  ],
+  [
+    'MEMORY_TRANSFER_RATE_BINARY',
+    t('Memory transfer rate in bytes - binary (1024B => 1KiB/s)'),
+  ],
 ];
 
 export const D3_TIME_FORMAT_DOCS = t(
@@ -48,9 +75,10 @@ export const D3_TIME_FORMAT_DOCS = t(
 );
 
 export const D3_TIME_FORMAT_OPTIONS: [string, string][] = [
-  [smartDateFormatter.id, t('Adaptive formatting')],
+  [SMART_DATE_ID, t('Adaptive formatting')],
   ['%d/%m/%Y', '%d/%m/%Y | 14/01/2019'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
+  ['%d.%m.%Y', '%d.%m.%Y | 14.01.2019'],
   ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],
   ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S | 2019-01-14 01:32:10'],
   ['%d-%m-%Y %H:%M:%S', '%d-%m-%Y %H:%M:%S | 14-01-2019 01:32:10'],

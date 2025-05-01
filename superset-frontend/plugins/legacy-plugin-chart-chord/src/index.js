@@ -32,13 +32,7 @@ const metadata = new ChartMetadata({
     { url: example, caption: t('Relationships between community channels') },
   ],
   name: t('Chord Diagram'),
-  tags: [
-    t('Aesthetic'),
-    t('Circular'),
-    t('Legacy'),
-    t('Proportional'),
-    t('Relational'),
-  ],
+  tags: [t('Circular'), t('Legacy'), t('Proportional'), t('Relational')],
   thumbnail,
   useLegacyApi: true,
 });

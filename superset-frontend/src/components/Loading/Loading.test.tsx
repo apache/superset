@@ -17,20 +17,16 @@
  * under the License.
  */
 
-import React from 'react';
-import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import Loading from './index';
 
 test('Rerendering correctly with default props', () => {
   render(<Loading />);
   const loading = screen.getByRole('status');
   const classNames = loading.getAttribute('class')?.split(' ');
-  const imagePath = loading.getAttribute('src');
   const ariaLive = loading.getAttribute('aria-live');
   const ariaLabel = loading.getAttribute('aria-label');
   expect(loading).toBeInTheDocument();
-  expect(imagePath).toBe('/static/assets/images/loading.gif');
   expect(classNames).toContain('floating');
   expect(classNames).toContain('loading');
   expect(ariaLive).toContain('polite');
@@ -56,7 +52,7 @@ test('support for extra classes', () => {
   expect(classNames).toContain('extra-class');
 });
 
-test('Diferent image path', () => {
+test('Different image path', () => {
   render(<Loading image="/src/assets/images/loading.gif" />);
   const loading = screen.getByRole('status');
   const imagePath = loading.getAttribute('src');

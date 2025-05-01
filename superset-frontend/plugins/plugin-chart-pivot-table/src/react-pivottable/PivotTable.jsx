@@ -17,17 +17,16 @@
  * under the License.
  */
 
-import React from 'react';
-import { PivotData } from './utilities';
+import { PureComponent } from 'react';
 import { TableRenderer } from './TableRenderers';
 
-class PivotTable extends React.PureComponent {
+class PivotTable extends PureComponent {
   render() {
     return <TableRenderer {...this.props} />;
   }
 }
 
-PivotTable.propTypes = PivotData.propTypes;
-PivotTable.defaultProps = PivotData.defaultProps;
+PivotTable.propTypes = TableRenderer.propTypes;
+PivotTable.defaultProps = TableRenderer.defaultProps;
 
 export default PivotTable;

@@ -17,132 +17,75 @@
  * under the License.
  */
 
-import React from 'react';
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
-import { supersetTheme } from '@superset-ui/core';
+import { screen, fireEvent, render } from 'spec/helpers/testing-library';
 import ErrorAlert from './ErrorAlert';
-import { ErrorLevel, ErrorSource } from './types';
 
-const mockedProps = {
-  body: 'Error body',
-  level: 'warning' as ErrorLevel,
-  copyText: 'Copy text',
-  subtitle: 'Error subtitle',
-  title: 'Error title',
-  source: 'dashboard' as ErrorSource,
-};
+describe('ErrorAlert', () => {
+  it('renders the error message correctly', () => {
+    render(
+      <ErrorAlert
+        errorType="Error"
+        message="Something went wrong"
+        type="error"
+      />,
+    );
 
-test('should render', () => {
-  const { container } = render(<ErrorAlert {...mockedProps} />);
-  expect(container).toBeInTheDocument();
-});
+    expect(screen.getByText('Error')).toBeInTheDocument();
+    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+  });
 
-test('should render warning icon', () => {
-  render(<ErrorAlert {...mockedProps} />);
-  expect(
-    screen.getByRole('img', { name: 'warning-solid' }),
-  ).toBeInTheDocument();
-});
+  it('renders the description when provided', () => {
+    const description = 'This is a detailed description';
+    render(
+      <ErrorAlert
+        errorType="Error"
+        message="Something went wrong"
+        type="error"
+        description={description}
+      />,
+    );
 
-test('should render error icon', () => {
-  const errorProps = {
-    ...mockedProps,
-    level: 'error' as ErrorLevel,
-  };
-  render(<ErrorAlert {...errorProps} />);
-  expect(screen.getByRole('img', { name: 'error-solid' })).toBeInTheDocument();
-});
+    expect(screen.getByText(description)).toBeInTheDocument();
+  });
 
-test('should render the error title', () => {
-  const titleProps = {
-    ...mockedProps,
-    source: 'explore' as ErrorSource,
-  };
-  render(<ErrorAlert {...titleProps} />);
-  expect(screen.getByText('Error title')).toBeInTheDocument();
-});
+  it('toggles description details visibility when show more/less is clicked', () => {
+    const descriptionDetails = 'Additional details about the error.';
+    render(
+      <ErrorAlert
+        errorType="Error"
+        message="Something went wrong"
+        type="error"
+        descriptionDetails={descriptionDetails}
+        descriptionDetailsCollapsed
+      />,
+    );
 
-test('should render the error subtitle', () => {
-  render(<ErrorAlert {...mockedProps} />, { useRedux: true });
-  const button = screen.getByText('See more');
-  userEvent.click(button);
-  expect(screen.getByText('Error subtitle')).toBeInTheDocument();
-});
+    const showMoreButton = screen.getByText('See more');
+    expect(showMoreButton).toBeInTheDocument();
 
-test('should render the error body', () => {
-  render(<ErrorAlert {...mockedProps} />, { useRedux: true });
-  const button = screen.getByText('See more');
-  userEvent.click(button);
-  expect(screen.getByText('Error body')).toBeInTheDocument();
-});
+    fireEvent.click(showMoreButton);
+    expect(screen.getByText(descriptionDetails)).toBeInTheDocument();
 
-test('should render the See more button', () => {
-  const seemoreProps = {
-    ...mockedProps,
-    source: 'explore' as ErrorSource,
-  };
-  render(<ErrorAlert {...seemoreProps} />);
-  expect(screen.getByRole('button')).toBeInTheDocument();
-  expect(screen.getByText('See more')).toBeInTheDocument();
-});
+    const showLessButton = screen.getByText('See less');
+    fireEvent.click(showLessButton);
+    expect(screen.queryByText(descriptionDetails)).not.toBeInTheDocument();
+  });
 
-test('should render the modal', () => {
-  render(<ErrorAlert {...mockedProps} />, { useRedux: true });
-  const button = screen.getByText('See more');
-  userEvent.click(button);
-  expect(screen.getByRole('dialog')).toBeInTheDocument();
-  expect(screen.getByText('Close')).toBeInTheDocument();
-});
+  it('renders compact mode with a tooltip and modal', () => {
+    render(
+      <ErrorAlert
+        errorType="Error"
+        message="Compact mode example"
+        type="error"
+        compact
+        descriptionDetails="Detailed description in compact mode."
+      />,
+    );
 
-test('should NOT render the modal', () => {
-  const expandableProps = {
-    ...mockedProps,
-    source: 'explore' as ErrorSource,
-  };
-  render(<ErrorAlert {...expandableProps} />, { useRedux: true });
-  const button = screen.getByText('See more');
-  userEvent.click(button);
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-});
+    const iconTrigger = screen.getByText('Error');
+    expect(iconTrigger).toBeInTheDocument();
 
-test('should render the See less button', () => {
-  const expandableProps = {
-    ...mockedProps,
-    source: 'explore' as ErrorSource,
-  };
-  render(<ErrorAlert {...expandableProps} />);
-  const button = screen.getByText('See more');
-  userEvent.click(button);
-  expect(screen.getByText('See less')).toBeInTheDocument();
-  expect(screen.queryByText('See more')).not.toBeInTheDocument();
-});
-
-test('should render the Copy button', () => {
-  render(<ErrorAlert {...mockedProps} />, { useRedux: true });
-  const button = screen.getByText('See more');
-  userEvent.click(button);
-  expect(screen.getByText('Copy message')).toBeInTheDocument();
-});
-
-test('should render with warning theme', () => {
-  render(<ErrorAlert {...mockedProps} />);
-  expect(screen.getByRole('alert')).toHaveStyle(
-    `
-      backgroundColor: ${supersetTheme.colors.warning.light2};
-    `,
-  );
-});
-
-test('should render with error theme', () => {
-  const errorProps = {
-    ...mockedProps,
-    level: 'error' as ErrorLevel,
-  };
-  render(<ErrorAlert {...errorProps} />);
-  expect(screen.getByRole('alert')).toHaveStyle(
-    `
-      backgroundColor: ${supersetTheme.colors.error.light2};
-    `,
-  );
+    fireEvent.click(iconTrigger);
+    expect(screen.getByText('Compact mode example')).toBeInTheDocument();
+  });
 });

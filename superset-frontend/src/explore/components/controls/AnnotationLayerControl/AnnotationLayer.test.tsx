@@ -16,19 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import {
+  getChartMetadataRegistry,
+  ChartMetadata,
+  VizType,
+} from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import setupColors from 'src/setup/setupColors';
-import { ANNOTATION_TYPES_METADATA } from 'src/modules/AnnotationTypes';
+import { ANNOTATION_TYPES_METADATA } from './AnnotationTypes';
 import AnnotationLayer from './AnnotationLayer';
 
 const defaultProps = {
   value: '',
-  vizType: 'table',
+  vizType: VizType.Table,
   annotationType: ANNOTATION_TYPES_METADATA.FORMULA.value,
+};
+
+const nativeLayerApiRoute = 'glob:*/api/v1/annotation_layer/*';
+const chartApiRoute = /\/api\/v1\/chart\/\?q=.+/;
+const chartApiWithIdRoute = /\/api\/v1\/chart\/\w+\?q=.+/;
+
+const withIdResult = {
+  result: {
+    slice_name: 'Mocked Slice',
+    query_context: JSON.stringify({
+      form_data: {
+        groupby: ['country'],
+      },
+    }),
+    viz_type: VizType.Line,
+  },
 };
 
 beforeAll(() => {
@@ -36,13 +59,15 @@ beforeAll(() => {
     value => value.value,
   );
 
-  fetchMock.get('glob:*/annotationlayermodelview/api/read?*', {
-    result: [{ label: 'Chart A', value: 'a' }],
+  fetchMock.get(nativeLayerApiRoute, {
+    result: [{ name: 'Chart A', id: 'a' }],
   });
 
-  fetchMock.get('glob:*/superset/user_slices*', [
-    { id: 'a', title: 'Chart A', viz_type: 'table', data: {} },
-  ]);
+  fetchMock.get(chartApiRoute, {
+    result: [{ id: 'a', slice_name: 'Chart A', viz_type: VizType.Table }],
+  });
+
+  fetchMock.get(chartApiWithIdRoute, withIdResult);
 
   setupColors();
 
@@ -78,7 +103,7 @@ test('renders extra checkboxes when type is time series', async () => {
   userEvent.click(screen.getAllByText('Formula')[0]);
   userEvent.click(screen.getByText('Time series'));
   expect(
-    screen.getByRole('button', { name: 'Show Markers' }),
+    await screen.findByRole('button', { name: 'Show Markers' }),
   ).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Hide Line' })).toBeInTheDocument();
 });
@@ -86,7 +111,7 @@ test('renders extra checkboxes when type is time series', async () => {
 test('enables apply and ok buttons', async () => {
   const { container } = render(<AnnotationLayer {...defaultProps} />);
 
-  waitFor(() => {
+  await waitFor(() => {
     expect(container).toBeInTheDocument();
   });
 
@@ -99,7 +124,7 @@ test('enables apply and ok buttons', async () => {
   userEvent.type(nameInput, 'Name');
   userEvent.type(formulaInput, '2x');
 
-  waitFor(() => {
+  await waitFor(() => {
     expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'OK' })).toBeEnabled();
   });
@@ -142,7 +167,7 @@ test('triggers removeAnnotationLayer and close when remove button is clicked', a
   expect(close).toHaveBeenCalled();
 });
 
-test('renders chart options', async () => {
+test('fetches Superset annotation layer options', async () => {
   await waitForRender({
     annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
   });
@@ -150,13 +175,38 @@ test('renders chart options', async () => {
     screen.getByRole('combobox', { name: 'Annotation source type' }),
   );
   userEvent.click(screen.getByText('Superset annotation'));
-  expect(screen.getByText('Annotation layer')).toBeInTheDocument();
+  expect(await screen.findByText('Annotation layer')).toBeInTheDocument();
+  userEvent.click(
+    screen.getByRole('combobox', { name: 'Annotation layer value' }),
+  );
+  expect(await screen.findByText('Chart A')).toBeInTheDocument();
+  expect(fetchMock.calls(nativeLayerApiRoute).length).toBe(1);
+});
 
+test('fetches chart options', async () => {
+  await waitForRender({
+    annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+  });
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation source type' }),
   );
   userEvent.click(screen.getByText('Table'));
-  expect(screen.getByText('Chart')).toBeInTheDocument();
+  expect(await screen.findByText('Chart')).toBeInTheDocument();
+  userEvent.click(
+    screen.getByRole('combobox', { name: 'Annotation layer value' }),
+  );
+  expect(await screen.findByText('Chart A')).toBeInTheDocument();
+  expect(fetchMock.calls(chartApiRoute).length).toBe(1);
+});
+
+test('fetches chart on mount if value present', async () => {
+  await waitForRender({
+    name: 'Test',
+    value: 'a',
+    annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+    sourceType: 'Table',
+  });
+  expect(fetchMock.calls(chartApiWithIdRoute).length).toBe(1);
 });
 
 test('keeps apply disabled when missing required fields', async () => {
@@ -167,25 +217,26 @@ test('keeps apply disabled when missing required fields', async () => {
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer value' }),
   );
-  userEvent.click(await screen.findByText('Chart A'));
-  expect(
-    screen.getByText('Annotation Slice Configuration'),
-  ).toBeInTheDocument();
-
+  expect(await screen.findByText('Chart A')).toBeInTheDocument();
+  userEvent.click(screen.getByText('Chart A'));
+  await screen.findByText(/title column/i);
   userEvent.click(screen.getByRole('button', { name: 'Automatic Color' }));
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer title column' }),
   );
+  expect(await screen.findByText(/none/i)).toBeInTheDocument();
   userEvent.click(screen.getByText('None'));
   userEvent.click(screen.getByText('Style'));
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer stroke' }),
   );
+  expect(await screen.findByText('Dashed')).toBeInTheDocument();
   userEvent.click(screen.getByText('Dashed'));
   userEvent.click(screen.getByText('Opacity'));
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer opacity' }),
   );
+  expect(await screen.findByText(/0.5/i)).toBeInTheDocument();
   userEvent.click(screen.getByText('0.5'));
 
   const checkboxes = screen.getAllByRole('checkbox');
@@ -194,47 +245,61 @@ test('keeps apply disabled when missing required fields', async () => {
   expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
 });
 
-test.skip('Disable apply button if formula is incorrect', async () => {
-  // TODO: fix flaky test that passes locally but fails on CI
+test('Disable apply button if formula is incorrect', async () => {
   await waitForRender({ name: 'test' });
 
-  userEvent.clear(screen.getByLabelText('Formula'));
-  userEvent.type(screen.getByLabelText('Formula'), 'x+1');
+  const formulaInput = screen.getByRole('textbox', { name: 'Formula' });
+  const applyButton = screen.getByRole('button', { name: 'Apply' });
+  const okButton = screen.getByRole('button', { name: 'OK' });
+
+  userEvent.type(formulaInput, 'x+1');
+  expect(formulaInput).toHaveValue('x+1');
   await waitFor(() => {
-    expect(screen.getByLabelText('Formula')).toHaveValue('x+1');
-    expect(screen.getByRole('button', { name: 'OK' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
+    expect(okButton).toBeEnabled();
+    expect(applyButton).toBeEnabled();
   });
 
-  userEvent.clear(screen.getByLabelText('Formula'));
-  userEvent.type(screen.getByLabelText('Formula'), 'y = x*2+1');
+  userEvent.clear(formulaInput);
   await waitFor(() => {
-    expect(screen.getByLabelText('Formula')).toHaveValue('y = x*2+1');
-    expect(screen.getByRole('button', { name: 'OK' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
+    expect(formulaInput).toHaveValue('');
+  });
+  userEvent.type(formulaInput, 'y = x*2+1');
+  expect(formulaInput).toHaveValue('y = x*2+1');
+  await waitFor(() => {
+    expect(okButton).toBeEnabled();
+    expect(applyButton).toBeEnabled();
   });
 
-  userEvent.clear(screen.getByLabelText('Formula'));
-  userEvent.type(screen.getByLabelText('Formula'), 'y+1');
+  userEvent.clear(formulaInput);
   await waitFor(() => {
-    expect(screen.getByLabelText('Formula')).toHaveValue('y+1');
-    expect(screen.getByRole('button', { name: 'OK' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+    expect(formulaInput).toHaveValue('');
+  });
+  userEvent.type(formulaInput, 'y+1');
+  expect(formulaInput).toHaveValue('y+1');
+  await waitFor(() => {
+    expect(okButton).toBeDisabled();
+    expect(applyButton).toBeDisabled();
   });
 
-  userEvent.clear(screen.getByLabelText('Formula'));
-  userEvent.type(screen.getByLabelText('Formula'), 'x+');
+  userEvent.clear(formulaInput);
   await waitFor(() => {
-    expect(screen.getByLabelText('Formula')).toHaveValue('x+');
-    expect(screen.getByRole('button', { name: 'OK' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+    expect(formulaInput).toHaveValue('');
+  });
+  userEvent.type(formulaInput, 'x+');
+  expect(formulaInput).toHaveValue('x+');
+  await waitFor(() => {
+    expect(okButton).toBeDisabled();
+    expect(applyButton).toBeDisabled();
   });
 
-  userEvent.clear(screen.getByLabelText('Formula'));
-  userEvent.type(screen.getByLabelText('Formula'), 'y = z+1');
+  userEvent.clear(formulaInput);
   await waitFor(() => {
-    expect(screen.getByLabelText('Formula')).toHaveValue('y = z+1');
-    expect(screen.getByRole('button', { name: 'OK' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+    expect(formulaInput).toHaveValue('');
+  });
+  userEvent.type(formulaInput, 'y = z+1');
+  expect(formulaInput).toHaveValue('y = z+1');
+  await waitFor(() => {
+    expect(okButton).toBeDisabled();
+    expect(applyButton).toBeDisabled();
   });
 });

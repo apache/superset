@@ -18,24 +18,32 @@
  */
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import cx from 'classnames';
-import Interweave from 'interweave';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Icons from 'src/components/Icons';
+import { Interweave } from 'interweave';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Icons } from 'src/components/Icons';
 import { ToastType, ToastMeta } from './types';
 
 const ToastContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  ${({ theme }) => css`
+    display: flex;
+    justify-content: center;
+    align-items: center;
 
-  span {
-    padding: 0 11px;
-  }
+    span {
+      padding: 0 ${theme.gridUnit * 2}px;
+    }
+
+    .toast__close,
+    .toast__close span {
+      padding: 0;
+    }
+  `}
 `;
 
-const StyledIcon = (theme: SupersetTheme) => css`
+const notificationStyledIcon = (theme: SupersetTheme) => css`
   min-width: ${theme.gridUnit * 5}px;
   color: ${theme.colors.grayscale.base};
+  margin-right: 0;
 `;
 
 interface ToastPresenterProps {
@@ -77,16 +85,18 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
   }, [handleClosePress, toast.duration]);
 
   let className = 'toast--success';
-  let icon = <Icons.CircleCheckSolid css={theme => StyledIcon(theme)} />;
+  let icon = (
+    <Icons.CheckCircleFilled css={theme => notificationStyledIcon(theme)} />
+  );
 
-  if (toast.toastType === ToastType.WARNING) {
-    icon = <Icons.WarningSolid css={StyledIcon} />;
+  if (toast.toastType === ToastType.Warning) {
+    icon = <Icons.ExclamationCircleFilled css={notificationStyledIcon} />;
     className = 'toast--warning';
-  } else if (toast.toastType === ToastType.DANGER) {
-    icon = <Icons.ErrorSolid css={StyledIcon} />;
+  } else if (toast.toastType === ToastType.Danger) {
+    icon = <Icons.ExclamationCircleFilled css={notificationStyledIcon} />;
     className = 'toast--danger';
-  } else if (toast.toastType === ToastType.INFO) {
-    icon = <Icons.InfoSolid css={StyledIcon} />;
+  } else if (toast.toastType === ToastType.Info) {
+    icon = <Icons.InfoCircleFilled css={notificationStyledIcon} />;
     className = 'toast--info';
   }
 
@@ -97,9 +107,10 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
       role="alert"
     >
       {icon}
-      <Interweave content={toast.text} />
-      <i
-        className="fa fa-close pull-right pointer"
+      <Interweave content={toast.text} noHtml={!toast.allowHtml} />
+      <Icons.CloseOutlined
+        iconSize="m"
+        className="toast__close pointer"
         role="button"
         tabIndex={0}
         onClick={handleClosePress}

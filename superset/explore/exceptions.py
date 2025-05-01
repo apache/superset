@@ -27,11 +27,11 @@ from superset.commands.exceptions import (
 
 class DatasetAccessDeniedError(ForbiddenError):
     def __init__(
-        self, message: str, dataset_id: Optional[int], dataset_type: Optional[str]
+        self, message: str, datasource_id: Optional[int], datasource_type: Optional[str]
     ) -> None:
         self.message = message
-        self.dataset_id = dataset_id
-        self.dataset_type = dataset_type
+        self.datasource_id = datasource_id
+        self.datasource_type = datasource_type
         super().__init__(self.message)
 
 

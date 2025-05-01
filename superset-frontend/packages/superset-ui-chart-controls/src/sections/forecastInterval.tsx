@@ -22,6 +22,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
+import { displayTimeRelatedControls } from '../utils';
 
 export const FORECAST_DEFAULT_DATA = {
   forecastEnabled: false,
@@ -35,6 +36,7 @@ export const FORECAST_DEFAULT_DATA = {
 export const forecastIntervalControls: ControlPanelSectionConfig = {
   label: t('Predictive Analytics'),
   expanded: false,
+  visibility: displayTimeRelatedControls,
   controlSetRows: [
     [
       {
@@ -82,11 +84,11 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
         config: {
           type: 'SelectControl',
           freeForm: true,
-          label: 'Yearly seasonality',
+          label: t('Yearly seasonality'),
           choices: [
-            [null, 'default'],
-            [true, 'Yes'],
-            [false, 'No'],
+            [null, t('default')],
+            [true, t('Yes')],
+            [false, t('No')],
           ],
           default: FORECAST_DEFAULT_DATA.forecastSeasonalityYearly,
           description: t(
@@ -101,11 +103,11 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
         config: {
           type: 'SelectControl',
           freeForm: true,
-          label: 'Weekly seasonality',
+          label: t('Weekly seasonality'),
           choices: [
-            [null, 'default'],
-            [true, 'Yes'],
-            [false, 'No'],
+            [null, t('default')],
+            [true, t('Yes')],
+            [false, t('No')],
           ],
           default: FORECAST_DEFAULT_DATA.forecastSeasonalityWeekly,
           description: t(
@@ -120,11 +122,11 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
         config: {
           type: 'SelectControl',
           freeForm: true,
-          label: 'Daily seasonality',
+          label: t('Daily seasonality'),
           choices: [
-            [null, 'default'],
-            [true, 'Yes'],
-            [false, 'No'],
+            [null, t('default')],
+            [true, t('Yes')],
+            [false, t('No')],
           ],
           default: FORECAST_DEFAULT_DATA.forecastSeasonalityDaily,
           description: t(

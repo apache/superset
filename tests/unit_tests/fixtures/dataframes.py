@@ -116,11 +116,11 @@ names_df = DataFrame(
 categories_df = DataFrame(
     {
         "constant": ["dummy" for _ in range(0, 101)],
-        "category": [f"cat{i%3}" for i in range(0, 101)],
-        "dept": [f"dept{i%5}" for i in range(0, 101)],
+        "category": [f"cat{i % 3}" for i in range(0, 101)],
+        "dept": [f"dept{i % 5}" for i in range(0, 101)],
         "name": [f"person{i}" for i in range(0, 101)],
-        "asc_idx": [i for i in range(0, 101)],
-        "desc_idx": [i for i in range(100, -1, -1)],
+        "asc_idx": [i for i in range(0, 101)],  # noqa: C416
+        "desc_idx": [i for i in range(100, -1, -1)],  # noqa: C416
         "idx_nulls": [i if i % 5 == 0 else None for i in range(0, 101)],
     }
 )
@@ -128,6 +128,11 @@ categories_df = DataFrame(
 timeseries_df = DataFrame(
     index=to_datetime(["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]),
     data={"label": ["x", "y", "z", "q"], "y": [1.0, 2.0, 3.0, 4.0]},
+)
+
+timeseries_with_gap_df = DataFrame(
+    index=to_datetime(["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]),
+    data={"label": ["x", "y", "z", "q"], "y": [1.0, 2.0, None, 4.0]},
 )
 
 timeseries_df2 = DataFrame(

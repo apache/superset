@@ -23,13 +23,11 @@ import yaml
 from superset import db, security_manager
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.commands.query.exceptions import SavedQueryNotFoundError
+from superset.commands.query.export import ExportSavedQueriesCommand
+from superset.commands.query.importers.v1 import ImportSavedQueriesCommand
 from superset.models.core import Database
 from superset.models.sql_lab import SavedQuery
-from superset.queries.saved_queries.commands.exceptions import SavedQueryNotFoundError
-from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
-from superset.queries.saved_queries.commands.importers.v1 import (
-    ImportSavedQueriesCommand,
-)
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
@@ -49,7 +47,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
             sql="SELECT 42",
             label="The answer",
             schema="schema1",
-            description="Answer to the Ultimate Question of Life, the Universe, and Everything",
+            description="Answer to the Ultimate Question of Life, the Universe, and Everything",  # noqa: E501
         )
         db.session.add(self.example_query)
         db.session.commit()
@@ -57,6 +55,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
     def tearDown(self):
         db.session.delete(self.example_query)
         db.session.commit()
+        super().tearDown()
 
     @patch("superset.queries.saved_queries.filters.g")
     def test_export_query_command(self, mock_g):
@@ -72,11 +71,14 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         ]
         assert expected == list(contents.keys())
 
-        metadata = yaml.safe_load(contents["queries/examples/schema1/The_answer.yaml"])
+        metadata = yaml.safe_load(
+            contents["queries/examples/schema1/The_answer.yaml"]()
+        )
         assert metadata == {
+            "catalog": None,
             "schema": "schema1",
             "label": "The answer",
-            "description": "Answer to the Ultimate Question of Life, the Universe, and Everything",
+            "description": "Answer to the Ultimate Question of Life, the Universe, and Everything",  # noqa: E501
             "sql": "SELECT 42",
             "uuid": str(self.example_query.uuid),
             "version": "1.0.0",
@@ -108,7 +110,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
 
         command = ExportSavedQueriesCommand([self.example_query.id])
         contents = command.run()
-        with self.assertRaises(SavedQueryNotFoundError):
+        with self.assertRaises(SavedQueryNotFoundError):  # noqa: PT027
             next(contents)
 
     @patch("superset.queries.saved_queries.filters.g")
@@ -118,7 +120,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
 
         command = ExportSavedQueriesCommand([-1])
         contents = command.run()
-        with self.assertRaises(SavedQueryNotFoundError):
+        with self.assertRaises(SavedQueryNotFoundError):  # noqa: PT027
             next(contents)
 
     @patch("superset.queries.saved_queries.filters.g")
@@ -129,8 +131,11 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         command = ExportSavedQueriesCommand([self.example_query.id])
         contents = dict(command.run())
 
-        metadata = yaml.safe_load(contents["queries/examples/schema1/The_answer.yaml"])
+        metadata = yaml.safe_load(
+            contents["queries/examples/schema1/The_answer.yaml"]()
+        )
         assert list(metadata.keys()) == [
+            "catalog",
             "schema",
             "label",
             "description",
@@ -142,8 +147,12 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
 
 
 class TestImportSavedQueriesCommand(SupersetTestCase):
-    def test_import_v1_saved_queries(self):
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_saved_queries(self, mock_add_permissions, mock_g):
         """Test that we can import a saved query"""
+        mock_g.user = security_manager.find_user("admin")
+
         contents = {
             "metadata.yaml": yaml.safe_dump(saved_queries_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -169,8 +178,12 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_saved_queries_multiple(self):
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_saved_queries_multiple(self, mock_add_permissions, mock_g):
         """Test that a saved query can be imported multiple times"""
+        mock_g.user = security_manager.find_user("admin")
+
         contents = {
             "metadata.yaml": yaml.safe_dump(saved_queries_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),

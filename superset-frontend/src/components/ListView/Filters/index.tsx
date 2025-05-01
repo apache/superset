@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   createRef,
   forwardRef,
   useImperativeHandle,
   useMemo,
+  RefObject,
 } from 'react';
+
 import { withTheme } from '@superset-ui/core';
 
 import {
@@ -33,6 +35,7 @@ import {
 import SearchFilter from './Search';
 import SelectFilter from './Select';
 import DateRangeFilter from './DateRange';
+import NumericalRangeFilter from './NumericalRange';
 import { FilterHandler } from './Base';
 
 interface UIFiltersProps {
@@ -43,7 +46,7 @@ interface UIFiltersProps {
 
 function UIFilters(
   { filters, internalFilters = [], updateFilterValue }: UIFiltersProps,
-  ref: React.RefObject<{ clearFilters: () => void }>,
+  ref: RefObject<{ clearFilters: () => void }>,
 ) {
   const filterRefs = useMemo(
     () =>
@@ -62,9 +65,25 @@ function UIFilters(
   return (
     <>
       {filters.map(
-        ({ Header, fetchSelects, id, input, paginate, selects }, index) => {
-          const initialValue =
-            internalFilters[index] && internalFilters[index].value;
+        (
+          {
+            Header,
+            fetchSelects,
+            key,
+            id,
+            input,
+            paginate,
+            selects,
+            toolTipDescription,
+            onFilterUpdate,
+            loading,
+            dateFilterValueType,
+            min,
+            max,
+          },
+          index,
+        ) => {
+          const initialValue = internalFilters?.[index]?.value;
           if (input === 'select') {
             return (
               <SelectFilter
@@ -72,13 +91,24 @@ function UIFilters(
                 Header={Header}
                 fetchSelects={fetchSelects}
                 initialValue={initialValue}
-                key={id}
+                key={key}
                 name={id}
-                onSelect={(option: SelectOption | undefined) =>
-                  updateFilterValue(index, option)
-                }
+                onSelect={(
+                  option: SelectOption | undefined,
+                  isClear?: boolean,
+                ) => {
+                  if (onFilterUpdate) {
+                    // Filter change triggers both onChange AND onClear, only want to track onChange
+                    if (!isClear) {
+                      onFilterUpdate(option);
+                    }
+                  }
+
+                  updateFilterValue(index, option);
+                }}
                 paginate={paginate}
                 selects={selects}
+                loading={loading ?? false}
               />
             );
           }
@@ -88,9 +118,16 @@ function UIFilters(
                 ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
-                key={id}
+                key={key}
                 name={id}
-                onSubmit={(value: string) => updateFilterValue(index, value)}
+                toolTipDescription={toolTipDescription}
+                onSubmit={(value: string) => {
+                  if (onFilterUpdate) {
+                    onFilterUpdate(value);
+                  }
+
+                  updateFilterValue(index, value);
+                }}
               />
             );
           }
@@ -100,7 +137,22 @@ function UIFilters(
                 ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
-                key={id}
+                key={key}
+                name={id}
+                onSubmit={value => updateFilterValue(index, value)}
+                dateFilterValueType={dateFilterValueType || 'unix'}
+              />
+            );
+          }
+          if (input === 'numerical_range') {
+            return (
+              <NumericalRangeFilter
+                ref={filterRefs[index]}
+                Header={Header}
+                initialValue={initialValue}
+                min={min}
+                max={max}
+                key={key}
                 name={id}
                 onSubmit={value => updateFilterValue(index, value)}
               />

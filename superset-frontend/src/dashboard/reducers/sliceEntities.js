@@ -21,7 +21,8 @@ import { t } from '@superset-ui/core';
 import {
   FETCH_ALL_SLICES_FAILED,
   FETCH_ALL_SLICES_STARTED,
-  SET_ALL_SLICES,
+  ADD_SLICES,
+  SET_SLICES,
 } from '../actions/sliceEntities';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -48,11 +49,18 @@ export default function sliceEntitiesReducer(
         isLoading: true,
       };
     },
-    [SET_ALL_SLICES]() {
+    [ADD_SLICES]() {
       return {
         ...state,
         isLoading: false,
         slices: { ...state.slices, ...action.payload.slices },
+        lastUpdated: new Date().getTime(),
+      };
+    },
+    [SET_SLICES]() {
+      return {
+        isLoading: false,
+        slices: { ...action.payload.slices },
         lastUpdated: new Date().getTime(),
       };
     },

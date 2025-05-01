@@ -14,10 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Loads datasets, dashboards and slices in a new superset instance"""
-import json
+import logging
 import os
-from typing import List
 
 import pandas as pd
 from sqlalchemy import DateTime, inspect, String
@@ -25,15 +23,9 @@ from sqlalchemy.sql import column
 
 import superset.utils.database
 from superset import app, db
-from superset.connectors.sqla.models import SqlMetric
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
-from superset.utils import core as utils
-from superset.utils.core import DatasourceType
-
-from ..connectors.base.models import BaseDatasource
-from .helpers import (
-    get_example_data,
+from superset.connectors.sqla.models import BaseDatasource, SqlMetric
+from superset.examples.helpers import (
+    get_example_url,
     get_examples_folder,
     get_slice_json,
     get_table_connector_registry,
@@ -41,9 +33,16 @@ from .helpers import (
     misc_dash_slices,
     update_slice_ids,
 )
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.sql_parse import Table
+from superset.utils import core as utils, json
+from superset.utils.core import DatasourceType
+
+logger = logging.getLogger(__name__)
 
 
-def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-statements
+def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
     only_metadata: bool = False,
     force: bool = False,
     sample: bool = False,
@@ -51,43 +50,44 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = "wb_health_population"
     database = superset.utils.database.get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
-    table_exists = database.has_table_by_name(tbl_name)
+    with database.get_sqla_engine() as engine:
+        schema = inspect(engine).default_schema_name
+        table_exists = database.has_table(Table(tbl_name, schema))
 
-    if not only_metadata and (not table_exists or force):
-        data = get_example_data("countries.json.gz")
-        pdf = pd.read_json(data)
-        pdf.columns = [col.replace(".", "_") for col in pdf.columns]
-        if database.backend == "presto":
-            pdf.year = pd.to_datetime(pdf.year)
-            pdf.year = pdf.year.dt.strftime("%Y-%m-%d %H:%M%:%S")
-        else:
-            pdf.year = pd.to_datetime(pdf.year)
-        pdf = pdf.head(100) if sample else pdf
+        if not only_metadata and (not table_exists or force):
+            url = get_example_url("countries.json.gz")
+            pdf = pd.read_json(url, compression="gzip")
+            pdf.columns = [col.replace(".", "_") for col in pdf.columns]
+            if database.backend == "presto":
+                pdf.year = pd.to_datetime(pdf.year)
+                pdf.year = pdf.year.dt.strftime("%Y-%m-%d %H:%M%:%S")
+            else:
+                pdf.year = pd.to_datetime(pdf.year)
+            pdf = pdf.head(100) if sample else pdf
 
-        pdf.to_sql(
-            tbl_name,
-            engine,
-            schema=schema,
-            if_exists="replace",
-            chunksize=50,
-            dtype={
-                # TODO(bkyryliuk): use TIMESTAMP type for presto
-                "year": DateTime if database.backend != "presto" else String(255),
-                "country_code": String(3),
-                "country_name": String(255),
-                "region": String(255),
-            },
-            method="multi",
-            index=False,
-        )
+            pdf.to_sql(
+                tbl_name,
+                engine,
+                schema=schema,
+                if_exists="replace",
+                chunksize=50,
+                dtype={
+                    # TODO(bkyryliuk): use TIMESTAMP type for presto
+                    "year": DateTime if database.backend != "presto" else String(255),
+                    "country_code": String(3),
+                    "country_name": String(255),
+                    "region": String(255),
+                },
+                method="multi",
+                index=False,
+            )
 
-    print("Creating table [wb_health_population] reference")
+    logger.debug("Creating table [wb_health_population] reference")
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = table(table_name=tbl_name, schema=schema)
+        db.session.add(tbl)
     tbl.description = utils.readfile(
         os.path.join(get_examples_folder(), "countries.md")
     )
@@ -111,8 +111,6 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
                 SqlMetric(metric_name=metric, expression=f"{aggr_func}({col})")
             )
 
-    db.session.merge(tbl)
-    db.session.commit()
     tbl.fetch_metadata()
 
     slices = create_slices(tbl)
@@ -120,13 +118,14 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     for slc in slices:
         merge_slice(slc)
 
-    print("Creating a World's Health Bank dashboard")
+    logger.debug("Creating a World's Health Bank dashboard")
     dash_name = "World Bank's Data"
     slug = "world_health"
     dash = db.session.query(Dashboard).filter_by(slug=slug).first()
 
     if not dash:
         dash = Dashboard()
+        db.session.add(dash)
     dash.published = True
     pos = dashboard_positions
     slices = update_slice_ids(pos)
@@ -135,11 +134,9 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = slug
     dash.slices = slices
-    db.session.merge(dash)
-    db.session.commit()
 
 
-def create_slices(tbl: BaseDatasource) -> List[Slice]:
+def create_slices(tbl: BaseDatasource) -> list[Slice]:
     metric = "sum__SP_POP_TOTL"
     metrics = ["sum__SP_POP_TOTL"]
     secondary_metric = {
@@ -171,35 +168,6 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
 
     return [
         Slice(
-            slice_name="Region Filter",
-            viz_type="filter_box",
-            datasource_type=DatasourceType.TABLE,
-            datasource_id=tbl.id,
-            params=get_slice_json(
-                defaults,
-                viz_type="filter_box",
-                date_filter=False,
-                filter_configs=[
-                    {
-                        "asc": False,
-                        "clearable": True,
-                        "column": "region",
-                        "key": "2s98dfu",
-                        "metric": "sum__SP_POP_TOTL",
-                        "multiple": False,
-                    },
-                    {
-                        "asc": False,
-                        "clearable": True,
-                        "key": "li3j2lk",
-                        "column": "country_name",
-                        "metric": "sum__SP_POP_TOTL",
-                        "multiple": True,
-                    },
-                ],
-            ),
-        ),
-        Slice(
             slice_name="World's Population",
             viz_type="big_number",
             datasource_type=DatasourceType.TABLE,
@@ -227,12 +195,12 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         ),
         Slice(
             slice_name="Growth Rate",
-            viz_type="line",
+            viz_type="echarts_timeseries_line",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type="line",
+                viz_type="echarts_timeseries_line",
                 since="1960-01-01",
                 metrics=["sum__SP_POP_TOTL"],
                 num_period_compare="10",
@@ -298,13 +266,13 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         ),
         Slice(
             slice_name="Rural Breakdown",
-            viz_type="sunburst",
+            viz_type="sunburst_v2",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type="sunburst",
-                groupby=["region", "country_name"],
+                viz_type="sunburst_v2",
+                columns=["region", "country_name"],
                 since="2011-01-01",
                 until="2011-01-02",
                 metric=metric,
@@ -313,14 +281,14 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         ),
         Slice(
             slice_name="World's Pop Growth",
-            viz_type="area",
+            viz_type="echarts_area",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 since="1960-01-01",
                 until="now",
-                viz_type="area",
+                viz_type="echarts_area",
                 groupby=["region"],
                 metrics=metrics,
             ),
@@ -343,15 +311,15 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         ),
         Slice(
             slice_name="Treemap",
-            viz_type="treemap",
+            viz_type="treemap_v2",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 since="1960-01-01",
                 until="now",
-                viz_type="treemap",
-                metrics=["sum__SP_POP_TOTL"],
+                viz_type="treemap_v2",
+                metric="sum__SP_POP_TOTL",
                 groupby=["region", "country_code"],
             ),
         ),
@@ -375,18 +343,12 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
 
 
 dashboard_positions = {
-    "CHART-36bfc934": {
-        "children": [],
-        "id": "CHART-36bfc934",
-        "meta": {"chartId": 40, "height": 25, "sliceName": "Region Filter", "width": 2},
-        "type": "CHART",
-    },
     "CHART-37982887": {
         "children": [],
         "id": "CHART-37982887",
         "meta": {
             "chartId": 41,
-            "height": 25,
+            "height": 52,
             "sliceName": "World's Population",
             "width": 2,
         },
@@ -467,7 +429,7 @@ dashboard_positions = {
         "type": "COLUMN",
     },
     "COLUMN-fe3914b8": {
-        "children": ["CHART-36bfc934", "CHART-37982887"],
+        "children": ["CHART-37982887"],
         "id": "COLUMN-fe3914b8",
         "meta": {"background": "BACKGROUND_TRANSPARENT", "width": 2},
         "type": "COLUMN",

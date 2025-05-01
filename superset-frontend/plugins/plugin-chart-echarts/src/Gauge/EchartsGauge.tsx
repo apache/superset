@@ -16,84 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
-import { QueryObjectFilterClause } from '@superset-ui/core';
 import { GaugeChartTransformedProps } from './types';
 import Echart from '../components/Echart';
-import { Event, clickEventHandler } from '../utils/eventHandlers';
+import { allEventHandlers } from '../utils/eventHandlers';
 
-export default function EchartsGauge({
-  height,
-  width,
-  echartOptions,
-  setDataMask,
-  labelMap,
-  groupby,
-  selectedValues,
-  formData: { emitFilter },
-  onContextMenu,
-}: GaugeChartTransformedProps) {
-  const handleChange = useCallback(
-    (values: string[]) => {
-      if (!emitFilter) {
-        return;
-      }
+export default function EchartsGauge(props: GaugeChartTransformedProps) {
+  const { height, width, echartOptions, selectedValues, refs } = props;
 
-      const groupbyValues = values.map(value => labelMap[value]);
-
-      setDataMask({
-        extraFormData: {
-          filters:
-            values.length === 0
-              ? []
-              : groupby.map((col, idx) => {
-                  const val = groupbyValues.map(v => v[idx]);
-                  if (val === null || val === undefined)
-                    return {
-                      col,
-                      op: 'IS NULL',
-                    };
-                  return {
-                    col,
-                    op: 'IN',
-                    val: val as (string | number | boolean)[],
-                  };
-                }),
-        },
-        filterState: {
-          value: groupbyValues.length ? groupbyValues : null,
-          selectedValues: values.length ? values : null,
-        },
-      });
-    },
-    [groupby, labelMap, setDataMask, selectedValues],
-  );
-
-  const eventHandlers = {
-    click: clickEventHandler(selectedValues, handleChange),
-    contextmenu: (e: Event) => {
-      if (onContextMenu) {
-        e.event.stop();
-        const pointerEvent = e.event.event;
-        const filters: QueryObjectFilterClause[] = [];
-        if (groupby.length > 0) {
-          const values = e.name.split(',');
-          groupby.forEach((dimension, i) =>
-            filters.push({
-              col: dimension,
-              op: '==',
-              val: values[i].split(': ')[1],
-              formattedVal: values[i].split(': ')[1],
-            }),
-          );
-        }
-        onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
-      }
-    },
-  };
+  const eventHandlers = allEventHandlers(props);
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObject, SqlaFormData } from '@superset-ui/core';
+import { QueryObject, SqlaFormData, VizType } from '@superset-ui/core';
 import { rollingWindowOperator } from '@superset-ui/chart-controls';
 
 const formData: SqlaFormData = {
@@ -27,7 +27,7 @@ const formData: SqlaFormData = {
   time_range: '2015 : 2016',
   granularity: 'month',
   datasource: 'foo',
-  viz_type: 'table',
+  viz_type: VizType.Table,
 };
 const queryObject: QueryObject = {
   metrics: [
@@ -107,8 +107,8 @@ test('rolling_type: sum/mean/std', () => {
 });
 
 test('should append compared metrics when sets time compare type', () => {
-  const comparisionTypes = ['values', 'difference', 'percentage', 'ratio'];
-  comparisionTypes.forEach(cType => {
+  const comparisonTypes = ['values', 'difference', 'percentage', 'ratio'];
+  comparisonTypes.forEach(cType => {
     expect(
       rollingWindowOperator(
         {

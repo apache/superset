@@ -16,13 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { lazy, Suspense } from 'react';
+import 'src/public-path';
+
+import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { makeApi, t, logging } from '@superset-ui/core';
-import { Switchboard } from '@superset-ui/switchboard';
-import { bootstrapData } from 'src/preamble';
+import Switchboard from '@superset-ui/switchboard';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
+import setupPlugins from 'src/setup/setupPlugins';
+import { useUiConfig } from 'src/components/UiConfigContext';
 import { RootContextProviders } from 'src/views/RootContextProviders';
 import { store, USER_LOADED } from 'src/views/store';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -30,8 +34,13 @@ import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { embeddedApi } from './api';
+import { getDataMaskChangeTrigger } from './utils';
+
+setupPlugins();
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
+const bootstrapData = getBootstrapData();
 
 function log(...info: unknown[]) {
   if (debugMode) {
@@ -46,11 +55,38 @@ const LazyDashboardPage = lazy(
     ),
 );
 
+const EmbededLazyDashboardPage = () => {
+  const uiConfig = useUiConfig();
+
+  // Emit data mask changes to the parent window
+  if (uiConfig?.emitDataMasks) {
+    log('setting up Switchboard event emitter');
+
+    let previousDataMask = store.getState().dataMask;
+
+    store.subscribe(() => {
+      const currentState = store.getState();
+      const currentDataMask = currentState.dataMask;
+
+      // Only emit if the dataMask has changed
+      if (previousDataMask !== currentDataMask) {
+        Switchboard.emit('observeDataMask', {
+          ...currentDataMask,
+          ...getDataMaskChangeTrigger(currentDataMask, previousDataMask),
+        });
+        previousDataMask = currentDataMask;
+      }
+    });
+  }
+
+  return <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />;
+};
+
 const EmbeddedRoute = () => (
   <Suspense fallback={<Loading />}>
     <RootContextProviders>
       <ErrorBoundary>
-        <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />
+        <EmbededLazyDashboardPage />
       </ErrorBoundary>
       <ToastContainer position="top" />
     </RootContextProviders>
@@ -75,7 +111,9 @@ function showFailureMessage(message: string) {
 
 if (!window.parent || window.parent === window) {
   showFailureMessage(
-    'This page is intended to be embedded in an iframe, but it looks like that is not the case.',
+    t(
+      'This page is intended to be embedded in an iframe, but it looks like that is not the case.',
+    ),
   );
 }
 
@@ -136,7 +174,9 @@ function start() {
       // something is most likely wrong with the guest token
       logging.error(err);
       showFailureMessage(
-        'Something went wrong with embedded authentication. Check the dev console for details.',
+        t(
+          'Something went wrong with embedded authentication. Check the dev console for details.',
+        ),
       );
     },
   );
@@ -175,7 +215,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
   if (event.data.handshake === 'port transfer' && port) {
     log('message port received', event);
 
-    const switchboard = new Switchboard({
+    Switchboard.init({
       port,
       name: 'superset',
       debug: debugMode,
@@ -183,20 +223,25 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
 
     let started = false;
 
-    switchboard.defineMethod('guestToken', ({ guestToken }) => {
-      setupGuestClient(guestToken);
-      if (!started) {
-        start();
-        started = true;
-      }
-    });
+    Switchboard.defineMethod(
+      'guestToken',
+      ({ guestToken }: { guestToken: string }) => {
+        setupGuestClient(guestToken);
+        if (!started) {
+          start();
+          started = true;
+        }
+      },
+    );
 
-    switchboard.defineMethod('getScrollSize', () => ({
-      width: document.body.scrollWidth,
-      height: document.body.scrollHeight,
-    }));
-
-    switchboard.start();
+    Switchboard.defineMethod('getScrollSize', embeddedApi.getScrollSize);
+    Switchboard.defineMethod(
+      'getDashboardPermalink',
+      embeddedApi.getDashboardPermalink,
+    );
+    Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
+    Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
+    Switchboard.start();
   }
 });
 

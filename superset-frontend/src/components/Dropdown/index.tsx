@@ -16,10 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { RefObject } from 'react';
-import { AntdDropdown } from 'src/components';
-import { DropDownProps } from 'antd/lib/dropdown';
+import {
+  ReactElement,
+  ReactNode,
+  FocusEvent,
+  KeyboardEvent,
+  cloneElement,
+} from 'react';
+
+import {
+  Dropdown as AntdDropdown,
+  DropdownProps as AntdDropdownProps,
+} from 'antd-v5';
 import { styled } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
 
 const MenuDots = styled.div`
   width: ${({ theme }) => theme.gridUnit * 0.75}px;
@@ -66,28 +76,61 @@ const MenuDotsWrapper = styled.div`
   padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
-export interface DropdownProps {
-  overlay: React.ReactElement;
+export enum IconOrientation {
+  Vertical = 'vertical',
+  Horizontal = 'horizontal',
 }
 
-export const Dropdown = ({ overlay, ...rest }: DropdownProps) => (
-  <AntdDropdown overlay={overlay} {...rest}>
-    <MenuDotsWrapper data-test="dropdown-trigger">
+export interface MenuDotsDropdownProps extends AntdDropdownProps {
+  overlay: ReactElement;
+  iconOrientation?: IconOrientation;
+}
+
+const RenderIcon = (
+  iconOrientation: IconOrientation = IconOrientation.Vertical,
+) => {
+  const component =
+    iconOrientation === IconOrientation.Horizontal ? (
+      <Icons.EllipsisOutlined iconSize="xl" />
+    ) : (
       <MenuDots />
+    );
+  return component;
+};
+
+export const MenuDotsDropdown = ({
+  overlay,
+  iconOrientation = IconOrientation.Vertical,
+  ...rest
+}: MenuDotsDropdownProps) => (
+  <AntdDropdown dropdownRender={() => overlay} {...rest}>
+    <MenuDotsWrapper data-test="dropdown-trigger">
+      {RenderIcon(iconOrientation)}
     </MenuDotsWrapper>
   </AntdDropdown>
 );
 
-interface ExtendedDropDownProps extends DropDownProps {
-  ref?: RefObject<HTMLDivElement>;
+export interface NoAnimationDropdownProps extends AntdDropdownProps {
+  children: ReactNode;
+  onBlur?: (e: FocusEvent<HTMLDivElement>) => void;
+  onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
 }
 
-// @z-index-below-dashboard-header (100) - 1 = 99
-export const NoAnimationDropdown = (
-  props: ExtendedDropDownProps & { children?: React.ReactNode },
-) => (
-  <AntdDropdown
-    overlayStyle={{ zIndex: 99, animationDuration: '0s' }}
-    {...props}
-  />
+export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
+  const { children, onBlur, onKeyDown, ...rest } = props;
+  const childrenWithProps = cloneElement(children as ReactElement, {
+    onBlur,
+    onKeyDown,
+  });
+
+  return (
+    <AntdDropdown autoFocus overlayStyle={props.overlayStyle} {...rest}>
+      {childrenWithProps}
+    </AntdDropdown>
+  );
+};
+
+export type DropdownProps = AntdDropdownProps;
+export const Dropdown = (props: DropdownProps) => (
+  <AntdDropdown autoFocus {...props} />
 );

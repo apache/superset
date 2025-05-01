@@ -22,31 +22,31 @@ import { Datasource, RootState } from 'src/dashboard/types';
 
 // update datasources index for Dashboard
 export enum DatasourcesAction {
-  SET_DATASOURCES = 'SET_DATASOURCES',
-  SET_DATASOURCE = 'SET_DATASOURCE',
+  SetDatasources = 'SET_DATASOURCES',
+  SetDatasource = 'SET_DATASOURCE',
 }
 
 export type DatasourcesActionPayload =
   | {
-      type: DatasourcesAction.SET_DATASOURCES;
+      type: DatasourcesAction.SetDatasources;
       datasources: Datasource[] | null;
     }
   | {
-      type: DatasourcesAction.SET_DATASOURCE;
+      type: DatasourcesAction.SetDatasource;
       key: Datasource['uid'];
       datasource: Datasource;
     };
 
 export function setDatasources(datasources: Datasource[] | null) {
   return {
-    type: DatasourcesAction.SET_DATASOURCES,
+    type: DatasourcesAction.SetDatasources,
     datasources,
   };
 }
 
 export function setDatasource(datasource: Datasource, key: string) {
   return {
-    type: DatasourcesAction.SET_DATASOURCE,
+    type: DatasourcesAction.SetDatasource,
     key,
     datasource,
   };

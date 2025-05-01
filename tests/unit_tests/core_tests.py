@@ -30,7 +30,6 @@ from superset.utils.core import (
     get_metric_names,
     get_time_filter_status,
     is_adhoc_metric,
-    NO_TIME_RANGE,
 )
 from tests.unit_tests.fixtures.datasets import get_dataset_mock
 
@@ -90,31 +89,31 @@ def test_get_metric_name_invalid_metric():
     metric = deepcopy(SIMPLE_SUM_ADHOC_METRIC)
     del metric["label"]
     del metric["column"]
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         get_metric_name(metric)
 
     metric = deepcopy(SIMPLE_SUM_ADHOC_METRIC)
     del metric["label"]
     metric["expressionType"] = "FOO"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         get_metric_name(metric)
 
     metric = deepcopy(SQL_ADHOC_METRIC)
     del metric["label"]
     metric["expressionType"] = "FOO"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         get_metric_name(metric)
 
     metric = deepcopy(SQL_ADHOC_METRIC)
     del metric["expressionType"]
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         get_metric_name(metric)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         get_metric_name(None)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         get_metric_name(0)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         get_metric_name({})
 
 
@@ -161,7 +160,7 @@ def test_get_column_name_invalid_metric():
     column = deepcopy(SQL_ADHOC_COLUMN)
     del column["label"]
     del column["sqlExpression"]
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         get_column_name(column)
 
 

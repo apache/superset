@@ -17,22 +17,22 @@
 from typing import Optional
 
 from superset import security_manager
-from superset.charts.commands.exceptions import (
+from superset.commands.chart.exceptions import (
     ChartAccessDeniedError,
     ChartNotFoundError,
 )
-from superset.charts.dao import ChartDAO
+from superset.commands.dataset.exceptions import (
+    DatasetAccessDeniedError,
+    DatasetNotFoundError,
+)
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     DatasourceTypeInvalidError,
     QueryNotFoundValidationError,
 )
-from superset.datasets.commands.exceptions import (
-    DatasetAccessDeniedError,
-    DatasetNotFoundError,
-)
-from superset.datasets.dao import DatasetDAO
-from superset.queries.dao import QueryDAO
+from superset.daos.chart import ChartDAO
+from superset.daos.dataset import DatasetDAO
+from superset.daos.query import QueryDAO
 from superset.utils.core import DatasourceType
 
 

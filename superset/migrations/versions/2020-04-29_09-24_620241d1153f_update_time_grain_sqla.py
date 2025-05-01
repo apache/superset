@@ -26,15 +26,13 @@ Create Date: 2020-04-29 09:24:04.952368
 revision = "620241d1153f"
 down_revision = "f9a30386bd74"
 
-import json
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, ForeignKey, Integer, Text  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from alembic import op
-from sqlalchemy import Column, ForeignKey, Integer, Text
-from sqlalchemy.ext.declarative import declarative_base
-
-from superset import db, db_engine_specs
-from superset.databases.utils import make_url_safe
-from superset.utils.memoized import memoized
+from superset import db, db_engine_specs  # noqa: E402
+from superset.databases.utils import make_url_safe  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
@@ -70,7 +68,6 @@ class Slice(Base):
     datasource_id = Column(Integer)
 
 
-@memoized
 def duration_by_name(database: Database):
     return {grain.name: grain.duration for grain in database.grains()}
 
@@ -95,7 +92,7 @@ def upgrade():
             if granularity in duration_dict:
                 params["time_grain_sqla"] = duration_dict[granularity]
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()

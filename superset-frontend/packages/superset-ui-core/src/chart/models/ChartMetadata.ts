@@ -18,6 +18,7 @@
  */
 
 import { Behavior, ChartLabel } from '../types/Base';
+import { ParseMethod } from '../../connection';
 
 interface LookupTable {
   [key: string]: boolean;
@@ -35,7 +36,6 @@ export interface ChartMetadataConfig {
   description?: string;
   datasourceCount?: number;
   enableNoResults?: boolean;
-  show?: boolean;
   supportedAnnotationTypes?: string[];
   thumbnail: string;
   useLegacyApi?: boolean;
@@ -49,6 +49,10 @@ export interface ChartMetadataConfig {
   label?: ChartLabel | null;
   labelExplanation?: string | null;
   queryObjectCount?: number;
+  parseMethod?: ParseMethod;
+  // suppressContextMenu: true hides the default context menu for the chart.
+  // This is useful for viz plugins that define their own context menu.
+  suppressContextMenu?: boolean;
 }
 
 export default class ChartMetadata {
@@ -61,8 +65,6 @@ export default class ChartMetadata {
   credits: string[];
 
   description: string;
-
-  show: boolean;
 
   supportedAnnotationTypes: string[];
 
@@ -90,13 +92,16 @@ export default class ChartMetadata {
 
   queryObjectCount: number;
 
+  parseMethod: ParseMethod;
+
+  suppressContextMenu?: boolean;
+
   constructor(config: ChartMetadataConfig) {
     const {
       name,
       canBeAnnotationTypes = [],
       credits = [],
       description = '',
-      show = true,
       supportedAnnotationTypes = [],
       thumbnail,
       useLegacyApi = false,
@@ -110,12 +115,13 @@ export default class ChartMetadata {
       label = null,
       labelExplanation = null,
       queryObjectCount = 1,
+      parseMethod = 'json-bigint',
+      suppressContextMenu = false,
     } = config;
 
     this.name = name;
     this.credits = credits;
     this.description = description;
-    this.show = show;
     this.canBeAnnotationTypes = canBeAnnotationTypes;
     this.canBeAnnotationTypesLookup = canBeAnnotationTypes.reduce(
       (prev: LookupTable, type: string) => {
@@ -139,6 +145,8 @@ export default class ChartMetadata {
     this.label = label;
     this.labelExplanation = labelExplanation;
     this.queryObjectCount = queryObjectCount;
+    this.parseMethod = parseMethod;
+    this.suppressContextMenu = suppressContextMenu;
   }
 
   canBeAnnotationType(type: string): boolean {

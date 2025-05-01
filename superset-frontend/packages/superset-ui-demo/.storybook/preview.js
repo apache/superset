@@ -1,5 +1,4 @@
-import { addParameters, addDecorator } from '@storybook/react';
-import { jsxDecorator } from 'storybook-addon-jsx';
+import { withJsx } from '@mihkeleidast/storybook-addon-source';
 import {
   configure,
   getTimeFormatterRegistry,
@@ -11,16 +10,14 @@ import {
   SequentialCommon,
   SequentialD3,
 } from '@superset-ui/core';
-import { configureEncodable } from '@superset-ui/preset-chart-xy';
 import themeDecorator from './themeDecorator';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './storybook.css';
 
-addDecorator(jsxDecorator);
-addDecorator(themeDecorator);
+export const decorators = [withJsx, themeDecorator];
 
-addParameters({
+export const parameters = {
   passArgsFirst: false,
   options: {
     name: '✨ Superset UI',
@@ -37,28 +34,27 @@ addParameters({
     sortStoriesByKind: false,
     url: '#',
     storySort: (a, b) => {
-      if (a[1].kind === b[1].kind) {
+      if (a.kind === b.kind) {
         return 0;
       }
       if (
-        a[1].id.startsWith('core-packages') &&
-        !b[1].id.startsWith('core-packages')
+        a.id.startsWith('core-packages') &&
+        !b.id.startsWith('core-packages')
       ) {
         return -1;
       }
       if (
-        !a[1].id.startsWith('core-packages') &&
-        b[1].id.startsWith('core-packages')
+        !a.id.startsWith('core-packages') &&
+        b.id.startsWith('core-packages')
       ) {
         return 1;
       }
-      return a[1].id.localeCompare(b[1].id, undefined, { numeric: true });
+      return a.id.localeCompare(b.id, undefined, { numeric: true });
     },
   },
-});
+};
 
 // Superset setup
-
 configure();
 
 // Register color schemes
@@ -80,5 +76,3 @@ const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 getTimeFormatterRegistry()
   .registerValue('smart_date', smartDateFormatter)
   .setDefaultKey('smart_date');
-
-configureEncodable();

@@ -41,8 +41,16 @@ import {
   PostProcessingResample,
   PostProcessingRolling,
   PostProcessingSort,
+  PostProcessingHistogram,
+  isPostProcessingHistogram,
+  PostProcessingRename,
+  PostProcessingFlatten,
+  PostProcessingRank,
+  isPostProcessingRename,
+  isPostProcessingFlatten,
+  isPostProcessingRank,
 } from '@superset-ui/core';
-import { ComparisionType, RollingType, TimeGranularity } from '../../../src';
+import { ComparisonType, RollingType, TimeGranularity } from '../../../src';
 
 const AGGREGATES_OPTION: Aggregates = {
   bar: {
@@ -53,7 +61,7 @@ const AGGREGATES_OPTION: Aggregates = {
 };
 
 const AGGREGATE_RULE: PostProcessingAggregation = {
-  operation: 'aggregation',
+  operation: 'aggregate',
   options: {
     groupby: ['foo'],
     aggregates: AGGREGATES_OPTION,
@@ -74,7 +82,7 @@ const COMPARE_RULE: PostProcessingCompare = {
   options: {
     source_columns: ['foo'],
     compare_columns: ['bar'],
-    compare_type: ComparisionType.Percentage,
+    compare_type: ComparisonType.Percentage,
     drop_original_columns: false,
   },
 };
@@ -147,7 +155,39 @@ const ROLLING_RULE: PostProcessingRolling = {
 const SORT_RULE: PostProcessingSort = {
   operation: 'sort',
   options: {
-    columns: { foo: true },
+    by: 'foo',
+  },
+};
+
+const HISTOGRAM_RULE: PostProcessingHistogram = {
+  operation: 'histogram',
+  options: {
+    column: 'foo',
+    groupby: ['bar'],
+    bins: 5,
+    normalize: true,
+    cumulative: true,
+  },
+};
+
+const RENAME_RULE: PostProcessingRename = {
+  operation: 'rename',
+  options: {
+    columns: {
+      foo: 'bar',
+    },
+  },
+};
+
+const FLATTEN_RULE: PostProcessingFlatten = {
+  operation: 'flatten',
+};
+
+const RANK_RULE: PostProcessingRank = {
+  operation: 'rank',
+  options: {
+    metric: 'foo',
+    group_by: 'bar',
   },
 };
 
@@ -215,4 +255,28 @@ test('PostProcessingSort type guard', () => {
   expect(isPostProcessingSort(SORT_RULE)).toEqual(true);
   expect(isPostProcessingSort(AGGREGATE_RULE)).toEqual(false);
   expect(isPostProcessingSort(undefined)).toEqual(false);
+});
+
+test('PostProcessingHistogram type guard', () => {
+  expect(isPostProcessingHistogram(HISTOGRAM_RULE)).toEqual(true);
+  expect(isPostProcessingHistogram(AGGREGATE_RULE)).toEqual(false);
+  expect(isPostProcessingHistogram(undefined)).toEqual(false);
+});
+
+test('PostProcessingRename type guard', () => {
+  expect(isPostProcessingRename(RENAME_RULE)).toEqual(true);
+  expect(isPostProcessingRename(AGGREGATE_RULE)).toEqual(false);
+  expect(isPostProcessingRename(undefined)).toEqual(false);
+});
+
+test('PostProcessingFlatten type guard', () => {
+  expect(isPostProcessingFlatten(FLATTEN_RULE)).toEqual(true);
+  expect(isPostProcessingFlatten(AGGREGATE_RULE)).toEqual(false);
+  expect(isPostProcessingFlatten(undefined)).toEqual(false);
+});
+
+test('PostProcessingRank type guard', () => {
+  expect(isPostProcessingRank(RANK_RULE)).toEqual(true);
+  expect(isPostProcessingRank(AGGREGATE_RULE)).toEqual(false);
+  expect(isPostProcessingRank(undefined)).toEqual(false);
 });

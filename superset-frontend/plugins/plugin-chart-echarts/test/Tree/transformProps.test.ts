@@ -18,6 +18,7 @@
  */
 import { ChartProps, supersetTheme } from '@superset-ui/core';
 import transformProps from '../../src/Tree/transformProps';
+import { EchartsTreeChartProps } from '../../src/Tree/types';
 
 describe('EchartsTree transformProps', () => {
   const formData = {
@@ -70,7 +71,7 @@ describe('EchartsTree transformProps', () => {
     ];
 
     const chartProps = new ChartProps({ ...chartPropsConfig, queriesData });
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsTreeChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
@@ -137,7 +138,7 @@ describe('EchartsTree transformProps', () => {
     ];
 
     const chartProps = new ChartProps({ ...chartPropsConfig, queriesData });
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsTreeChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
@@ -223,7 +224,7 @@ describe('EchartsTree transformProps', () => {
     ];
 
     const chartProps = new ChartProps({ ...chartPropsConfig, queriesData });
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsTreeChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
@@ -299,7 +300,7 @@ describe('EchartsTree transformProps', () => {
     ];
 
     const chartProps = new ChartProps({ ...chartPropsConfig, queriesData });
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsTreeChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
@@ -385,7 +386,7 @@ describe('EchartsTree transformProps', () => {
     ];
 
     const chartProps = new ChartProps({ ...chartPropsConfig, queriesData });
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsTreeChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,

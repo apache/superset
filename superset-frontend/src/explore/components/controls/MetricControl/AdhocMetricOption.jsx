@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { OptionControlLabel } from 'src/explore/components/controls/OptionControls';
 import { DndItemType } from 'src/explore/components/DndItemType';
@@ -38,16 +38,17 @@ const propTypes = {
   index: PropTypes.number,
   type: PropTypes.string,
   multi: PropTypes.bool,
+  datasourceWarningMessage: PropTypes.string,
 };
 
-class AdhocMetricOption extends React.PureComponent {
+class AdhocMetricOption extends PureComponent {
   constructor(props) {
     super(props);
     this.onRemoveMetric = this.onRemoveMetric.bind(this);
   }
 
   onRemoveMetric(e) {
-    e.stopPropagation();
+    e?.stopPropagation();
     this.props.onRemoveMetric(this.props.index);
   }
 
@@ -64,7 +65,9 @@ class AdhocMetricOption extends React.PureComponent {
       index,
       type,
       multi,
+      datasourceWarningMessage,
     } = this.props;
+    const withCaret = !savedMetric.error_text;
 
     return (
       <AdhocMetricPopoverTrigger
@@ -84,9 +87,10 @@ class AdhocMetricOption extends React.PureComponent {
           onDropLabel={onDropLabel}
           index={index}
           type={type ?? DndItemType.AdhocMetricOption}
-          withCaret
+          withCaret={withCaret}
           isFunction
           multi={multi}
+          datasourceWarningMessage={datasourceWarningMessage}
         />
       </AdhocMetricPopoverTrigger>
     );

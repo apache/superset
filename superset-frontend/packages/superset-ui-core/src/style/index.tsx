@@ -22,10 +22,12 @@ import createCache from '@emotion/cache';
 
 export {
   css,
+  keyframes,
   jsx,
   ThemeProvider,
   CacheProvider as EmotionCacheProvider,
   withTheme,
+  type SerializedStyles,
 } from '@emotion/react';
 export { default as createEmotionCache } from '@emotion/cache';
 
@@ -97,13 +99,6 @@ const defaultTheme = {
       light2: '#FAEDEE',
     },
     warning: {
-      base: '#FF7F44',
-      dark1: '#BF5E33',
-      dark2: '#7F3F21',
-      light1: '#FEC0A1',
-      light2: '#FFF2EC',
-    },
-    alert: {
       base: '#FCC700',
       dark1: '#BC9501',
       dark2: '#7D6300',
@@ -160,6 +155,7 @@ const defaultTheme = {
   },
   transitionTiming: 0.3,
   gridUnit: 4,
+  brandIconMaxWidth: 37,
 };
 
 export type SupersetTheme = typeof defaultTheme;

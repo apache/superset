@@ -72,6 +72,6 @@ This is used by consumers who install the embedded sdk via npm, yarn, or other p
 Webpack is used to bundle the `bundle` directory,
 for use directly in the browser with no build step e.g. when importing via unpkg.
 
-Typescript outputs type definition files to the `dist` directory.
+TypeScript outputs type definition files to the `dist` directory.
 
 Which of these outputs is used by the library consumer is determined by our package.json's `main`, `module`, and `types` fields.

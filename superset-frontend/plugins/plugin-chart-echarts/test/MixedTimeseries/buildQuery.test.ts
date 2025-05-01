@@ -17,7 +17,7 @@
  * under the License.
  */
 import {
-  ComparisionType,
+  ComparisonType,
   FreeFormAdhocFilter,
   RollingType,
   TimeGranularity,
@@ -46,7 +46,6 @@ const formDataMixedChart = {
   row_limit: 10,
   timeseries_limit_metric: 'count',
   order_desc: true,
-  emit_filter: true,
   truncate_metric: true,
   show_empty_columns: true,
   //   -- query b
@@ -63,7 +62,6 @@ const formDataMixedChart = {
   row_limit_b: 100,
   timeseries_limit_metric_b: undefined,
   order_desc_b: false,
-  emit_filter_b: undefined,
   truncate_metric_b: true,
   show_empty_columns_b: true,
   // chart configs
@@ -74,14 +72,14 @@ const formDataMixedChartWithAA = {
   ...formDataMixedChart,
   rolling_type: RollingType.Cumsum,
   time_compare: ['1 years ago'],
-  comparison_type: ComparisionType.Values,
+  comparison_type: ComparisonType.Values,
   resample_rule: '1AS',
   resample_method: 'zerofill',
 
   rolling_type_b: RollingType.Sum,
   rolling_periods_b: 1,
   min_periods_b: 1,
-  comparison_type_b: ComparisionType.Difference,
+  comparison_type_b: ComparisonType.Difference,
   time_compare_b: ['3 years ago'],
   resample_rule_b: '1A',
   resample_method_b: 'asfreq',
@@ -107,9 +105,8 @@ test('should compile query object A', () => {
     row_limit: 10,
     row_offset: undefined,
     series_columns: ['foo'],
-    series_limit: undefined,
+    series_limit: 5,
     series_limit_metric: undefined,
-    timeseries_limit: 5,
     url_params: {},
     custom_params: {},
     custom_form_data: {},
@@ -167,9 +164,8 @@ test('should compile query object B', () => {
     row_limit: 100,
     row_offset: undefined,
     series_columns: [],
-    series_limit: undefined,
+    series_limit: 0,
     series_limit_metric: undefined,
-    timeseries_limit: 0,
     url_params: {},
     custom_params: {},
     custom_form_data: {},
@@ -202,6 +198,21 @@ test('should compile AA in query A', () => {
   // time comparison
   expect(query.time_offsets).toEqual(['1 years ago']);
 
+  // pivot
+  expect(
+    query.post_processing?.find(operator => operator?.operation === 'pivot'),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['__timestamp'],
+      columns: ['foo'],
+      drop_missing_columns: false,
+      aggregates: {
+        'sum(sales)': { operator: 'mean' },
+        'sum(sales)__1 years ago': { operator: 'mean' },
+      },
+    },
+  });
   // cumsum
   expect(
     // prettier-ignore
@@ -267,75 +278,56 @@ test('should compile AA in query B', () => {
   });
 });
 
-test('should compile query objects with x-axis', () => {
-  const { queries } = buildQuery({
-    ...formDataMixedChart,
-    x_axis: 'my_index',
-  });
-  expect(queries[0]).toEqual({
-    time_range: '1980 : 2000',
-    since: undefined,
-    until: undefined,
-    granularity: 'ds',
-    filters: [],
-    extras: {
-      having: '',
-      time_grain_sqla: 'P1W',
-      where: "(foo in ('a', 'b'))",
-    },
-    applied_time_extras: {},
-    columns: ['my_index', 'foo'],
-    metrics: ['sum(sales)'],
-    annotation_layers: [],
-    row_limit: 10,
-    row_offset: undefined,
-    series_columns: ['foo'],
-    series_limit: undefined,
-    series_limit_metric: undefined,
-    timeseries_limit: 5,
-    url_params: {},
-    custom_params: {},
-    custom_form_data: {},
-    is_timeseries: false,
-    time_offsets: [],
-    post_processing: [
-      {
-        operation: 'pivot',
-        options: {
-          aggregates: {
-            'sum(sales)': {
-              operator: 'mean',
+test("shouldn't convert a queryObject with axis", () => {
+  const { queries } = buildQuery(formDataMixedChart);
+  expect(queries[0]).toEqual(
+    expect.objectContaining({
+      granularity: 'ds',
+      columns: ['foo'],
+      series_columns: ['foo'],
+      metrics: ['sum(sales)'],
+      is_timeseries: true,
+      extras: {
+        time_grain_sqla: 'P1W',
+        having: '',
+        where: "(foo in ('a', 'b'))",
+      },
+      post_processing: [
+        {
+          operation: 'pivot',
+          options: {
+            aggregates: {
+              'sum(sales)': {
+                operator: 'mean',
+              },
             },
+            columns: ['foo'],
+            drop_missing_columns: false,
+            index: ['__timestamp'],
           },
-          columns: ['foo'],
-          drop_missing_columns: false,
-          index: ['my_index'],
         },
-      },
-      {
-        operation: 'rename',
-        options: {
-          columns: {
-            'sum(sales)': null,
-          },
-          inplace: true,
-          level: 0,
+        {
+          operation: 'rename',
+          options: { columns: { 'sum(sales)': null }, inplace: true, level: 0 },
         },
-      },
-      {
-        operation: 'flatten',
-      },
-    ],
-    orderby: [['count', false]],
-  });
-
-  // check the main props on the second query
+        {
+          operation: 'flatten',
+        },
+      ],
+    }),
+  );
   expect(queries[1]).toEqual(
     expect.objectContaining({
-      is_timeseries: false,
-      columns: ['my_index'],
+      granularity: 'ds',
+      columns: [],
       series_columns: [],
       metrics: ['count'],
+      is_timeseries: true,
+      extras: {
+        time_grain_sqla: 'P1W',
+        having: '',
+        where: "(name in ('c', 'd'))",
+      },
       post_processing: [
         {
           operation: 'pivot',
@@ -347,7 +339,7 @@ test('should compile query objects with x-axis', () => {
             },
             columns: [],
             drop_missing_columns: false,
-            index: ['my_index'],
+            index: ['__timestamp'],
           },
         },
         {
@@ -356,4 +348,27 @@ test('should compile query objects with x-axis', () => {
       ],
     }),
   );
+});
+
+test('ensure correct pivot columns', () => {
+  const query = buildQuery({ ...formDataMixedChartWithAA, x_axis: 'ds' })
+    .queries[0];
+
+  expect(query.time_offsets).toEqual(['1 years ago']);
+
+  // pivot
+  expect(
+    query.post_processing?.find(operator => operator?.operation === 'pivot'),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['ds'],
+      columns: ['foo'],
+      drop_missing_columns: false,
+      aggregates: {
+        'sum(sales)': { operator: 'mean' },
+        'sum(sales)__1 years ago': { operator: 'mean' },
+      },
+    },
+  });
 });

@@ -27,6 +27,7 @@ import {
   ChartDataResponseResult,
 } from '@superset-ui/core';
 import { RefObject } from 'react';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
 export type SelectValue = (number | string | null)[] | null | undefined;
@@ -35,6 +36,7 @@ export interface PluginFilterSelectCustomizeProps {
   defaultValue?: SelectValue;
   enableEmptyFilter: boolean;
   inverseSelection: boolean;
+  creatable: boolean;
   multiSelect: boolean;
   defaultToFirstItem: boolean;
   searchAllOptions: boolean;
@@ -61,6 +63,8 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   showOverflow: boolean;
   parentRef?: RefObject<any>;
   inputRef?: RefObject<any>;
+  filterBarOrientation?: FilterBarOrientation;
+  isOverflowingFilterBar?: boolean;
 } & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
@@ -68,6 +72,7 @@ export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   enableEmptyFilter: false,
   inverseSelection: false,
   defaultToFirstItem: false,
+  creatable: true,
   multiSelect: true,
   searchAllOptions: false,
   sortAscending: true,

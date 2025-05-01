@@ -17,11 +17,10 @@
 # pylint: disable=invalid-name
 from __future__ import annotations
 
-import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from pprint import pformat
-from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING
+from typing import Any, NamedTuple, TYPE_CHECKING
 
 from flask import g
 from flask_babel import gettext as _
@@ -34,23 +33,23 @@ from superset.exceptions import (
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
+from superset.extensions import event_logger
 from superset.sql_parse import sanitize_clause
 from superset.superset_typing import Column, Metric, OrderBy
-from superset.utils import pandas_postprocessing
+from superset.utils import json, pandas_postprocessing
 from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
     get_column_names,
     get_metric_names,
     is_adhoc_metric,
-    json_int_dttm_ser,
     QueryObjectFilterClause,
 )
-from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource
 
 logger = logging.getLogger(__name__)
 
@@ -78,62 +77,61 @@ DEPRECATED_EXTRAS_FIELDS = (
 
 class QueryObject:  # pylint: disable=too-many-instance-attributes
     """
-    The query object's schema matches the interfaces of DB connectors like sqla
-    and druid. The query objects are constructed on the client.
+    The query objects are constructed on the client.
     """
 
-    annotation_layers: List[Dict[str, Any]]
-    applied_time_extras: Dict[str, str]
+    annotation_layers: list[dict[str, Any]]
+    applied_time_extras: dict[str, str]
     apply_fetch_values_predicate: bool
-    columns: List[Column]
-    datasource: Optional[BaseDatasource]
-    extras: Dict[str, Any]
-    filter: List[QueryObjectFilterClause]
-    from_dttm: Optional[datetime]
-    granularity: Optional[str]
-    inner_from_dttm: Optional[datetime]
-    inner_to_dttm: Optional[datetime]
+    columns: list[Column]
+    datasource: BaseDatasource | None
+    extras: dict[str, Any]
+    filter: list[QueryObjectFilterClause]
+    from_dttm: datetime | None
+    granularity: str | None
+    inner_from_dttm: datetime | None
+    inner_to_dttm: datetime | None
     is_rowcount: bool
     is_timeseries: bool
-    metrics: Optional[List[Metric]]
+    metrics: list[Metric] | None
     order_desc: bool
-    orderby: List[OrderBy]
-    post_processing: List[Dict[str, Any]]
-    result_type: Optional[ChartDataResultType]
-    row_limit: Optional[int]
+    orderby: list[OrderBy]
+    post_processing: list[dict[str, Any]]
+    result_type: ChartDataResultType | None
+    row_limit: int | None
     row_offset: int
-    series_columns: List[Column]
+    series_columns: list[Column]
     series_limit: int
-    series_limit_metric: Optional[Metric]
-    time_offsets: List[str]
-    time_shift: Optional[timedelta]
-    time_range: Optional[str]
-    to_dttm: Optional[datetime]
+    series_limit_metric: Metric | None
+    time_offsets: list[str]
+    time_shift: str | None
+    time_range: str | None
+    to_dttm: datetime | None
 
-    def __init__(  # pylint: disable=too-many-locals
+    def __init__(  # pylint: disable=too-many-locals, too-many-arguments
         self,
         *,
-        annotation_layers: Optional[List[Dict[str, Any]]] = None,
-        applied_time_extras: Optional[Dict[str, str]] = None,
+        annotation_layers: list[dict[str, Any]] | None = None,
+        applied_time_extras: dict[str, str] | None = None,
         apply_fetch_values_predicate: bool = False,
-        columns: Optional[List[Column]] = None,
-        datasource: Optional[BaseDatasource] = None,
-        extras: Optional[Dict[str, Any]] = None,
-        filters: Optional[List[QueryObjectFilterClause]] = None,
-        granularity: Optional[str] = None,
+        columns: list[Column] | None = None,
+        datasource: BaseDatasource | None = None,
+        extras: dict[str, Any] | None = None,
+        filters: list[QueryObjectFilterClause] | None = None,
+        granularity: str | None = None,
         is_rowcount: bool = False,
-        is_timeseries: Optional[bool] = None,
-        metrics: Optional[List[Metric]] = None,
+        is_timeseries: bool | None = None,
+        metrics: list[Metric] | None = None,
         order_desc: bool = True,
-        orderby: Optional[List[OrderBy]] = None,
-        post_processing: Optional[List[Optional[Dict[str, Any]]]] = None,
-        row_limit: Optional[int],
-        row_offset: Optional[int] = None,
-        series_columns: Optional[List[Column]] = None,
+        orderby: list[OrderBy] | None = None,
+        post_processing: list[dict[str, Any] | None] | None = None,
+        row_limit: int | None = None,
+        row_offset: int | None = None,
+        series_columns: list[Column] | None = None,
         series_limit: int = 0,
-        series_limit_metric: Optional[Metric] = None,
-        time_range: Optional[str] = None,
-        time_shift: Optional[str] = None,
+        series_limit_metric: Metric | None = None,
+        time_range: str | None = None,
+        time_shift: str | None = None,
         **kwargs: Any,
     ):
         self._set_annotation_layers(annotation_layers)
@@ -156,7 +154,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.series_limit = series_limit
         self.series_limit_metric = series_limit_metric
         self.time_range = time_range
-        self.time_shift = parse_human_timedelta(time_shift)
+        self.time_shift = time_shift
         self.from_dttm = kwargs.get("from_dttm")
         self.to_dttm = kwargs.get("to_dttm")
         self.result_type = kwargs.get("result_type")
@@ -167,7 +165,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self._move_deprecated_extra_fields(kwargs)
 
     def _set_annotation_layers(
-        self, annotation_layers: Optional[List[Dict[str, Any]]]
+        self, annotation_layers: list[dict[str, Any]] | None
     ) -> None:
         self.annotation_layers = [
             layer
@@ -176,14 +174,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             if layer["annotationType"] != "FORMULA"
         ]
 
-    def _set_is_timeseries(self, is_timeseries: Optional[bool]) -> None:
+    def _set_is_timeseries(self, is_timeseries: bool | None) -> None:
         # is_timeseries is True if time column is in either columns or groupby
         # (both are dimensions)
         self.is_timeseries = (
             is_timeseries if is_timeseries is not None else DTTM_ALIAS in self.columns
         )
 
-    def _set_metrics(self, metrics: Optional[List[Metric]] = None) -> None:
+    def _set_metrics(self, metrics: list[Metric] | None = None) -> None:
         # Support metric reference/definition in the format of
         #   1. 'metric_name'   - name of predefined metric
         #   2. { label: 'label_name' }  - legacy format for a predefined metric
@@ -192,20 +190,21 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return isinstance(metric, str) or is_adhoc_metric(metric)
 
         self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"] for x in metrics  # type: ignore
+            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
+            for x in metrics
         ]
 
     def _set_post_processing(
-        self, post_processing: Optional[List[Optional[Dict[str, Any]]]]
+        self, post_processing: list[dict[str, Any] | None] | None
     ) -> None:
         post_processing = post_processing or []
         self.post_processing = [post_proc for post_proc in post_processing if post_proc]
 
     def _init_series_columns(
         self,
-        series_columns: Optional[List[Column]],
-        metrics: Optional[List[Metric]],
-        is_timeseries: Optional[bool],
+        series_columns: list[Column] | None,
+        metrics: list[Metric] | None,
+        is_timeseries: bool | None,
     ) -> None:
         if series_columns:
             self.series_columns = series_columns
@@ -214,7 +213,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         else:
             self.series_columns = []
 
-    def _rename_deprecated_fields(self, kwargs: Dict[str, Any]) -> None:
+    def _rename_deprecated_fields(self, kwargs: dict[str, Any]) -> None:
         # rename deprecated fields
         for field in DEPRECATED_FIELDS:
             if field.old_name in kwargs:
@@ -234,7 +233,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                         )
                     setattr(self, field.new_name, value)
 
-    def _move_deprecated_extra_fields(self, kwargs: Dict[str, Any]) -> None:
+    def _move_deprecated_extra_fields(self, kwargs: dict[str, Any]) -> None:
         # move deprecated extras fields to extras
         for field in DEPRECATED_EXTRAS_FIELDS:
             if field.old_name in kwargs:
@@ -257,19 +256,24 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     self.extras[field.new_name] = value
 
     @property
-    def metric_names(self) -> List[str]:
+    def metric_names(self) -> list[str]:
         """Return metrics names (labels), coerce adhoc metrics to strings."""
-        return get_metric_names(self.metrics or [])
+        return get_metric_names(
+            self.metrics or [],
+            self.datasource.verbose_map
+            if self.datasource and hasattr(self.datasource, "verbose_map")
+            else None,
+        )
 
     @property
-    def column_names(self) -> List[str]:
+    def column_names(self) -> list[str]:
         """Return column names (labels). Gives priority to groupbys if both groupbys
         and metrics are non-empty, otherwise returns column labels."""
         return get_column_names(self.columns)
 
     def validate(
-        self, raise_exceptions: Optional[bool] = True
-    ) -> Optional[QueryObjectValidationError]:
+        self, raise_exceptions: bool | None = True
+    ) -> QueryObjectValidationError | None:
         """Validate query object"""
         try:
             self._validate_there_are_no_missing_series()
@@ -278,7 +282,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return None
         except QueryObjectValidationError as ex:
             if raise_exceptions:
-                raise ex
+                raise
             return ex
 
     def _validate_no_have_duplicate_labels(self) -> None:
@@ -315,7 +319,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 )
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         query_object_dict = {
             "apply_fetch_values_predicate": self.apply_fetch_values_predicate,
             "columns": self.columns,
@@ -336,6 +340,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "series_limit": self.series_limit,
             "series_limit_metric": self.series_limit_metric,
             "to_dttm": self.to_dttm,
+            "time_shift": self.time_shift,
         }
         return query_object_dict
 
@@ -347,7 +352,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             default=str,
         )
 
-    def cache_key(self, **extra: Any) -> str:
+    def cache_key(self, **extra: Any) -> str:  # noqa: C901
         """
         The cache key is made out of the key/values from to_dict(), plus any
         other key/values in `extra`
@@ -360,7 +365,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
         # TODO: the below KVs can all be cleaned up and moved to `to_dict()` at some
         #  predetermined point in time when orgs are aware that the previously
-        #  chached results will be invalidated.
+        #  cached results will be invalidated.
         if not self.apply_fetch_values_predicate:
             del cache_dict["apply_fetch_values_predicate"]
         if self.datasource:
@@ -397,22 +402,24 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             cache_dict["annotation_layers"] = annotation_layers
 
         # Add an impersonation key to cache if impersonation is enabled on the db
-        if (
-            feature_flag_manager.is_feature_enabled("CACHE_IMPERSONATION")
-            and self.datasource
-            and hasattr(self.datasource, "database")
-            and self.datasource.database.impersonate_user
-        ):
+        # or if the CACHE_QUERY_BY_USER flag is on
+        try:
+            database = self.datasource.database  # type: ignore
+            if (
+                feature_flag_manager.is_feature_enabled("CACHE_IMPERSONATION")
+                and database.impersonate_user
+            ) or feature_flag_manager.is_feature_enabled("CACHE_QUERY_BY_USER"):
+                if key := database.db_engine_spec.get_impersonation_key(
+                    getattr(g, "user", None)
+                ):
+                    logger.debug(
+                        "Adding impersonation key to QueryObject cache dict: %s", key
+                    )
 
-            if key := self.datasource.database.db_engine_spec.get_impersonation_key(
-                getattr(g, "user", None)
-            ):
-
-                logger.debug(
-                    "Adding impersonation key to QueryObject cache dict: %s", key
-                )
-
-                cache_dict["impersonation_key"] = key
+                    cache_dict["impersonation_key"] = key
+        except AttributeError:
+            # datasource or database do not exist
+            pass
 
         return md5_sha_from_dict(cache_dict, default=json_int_dttm_ser, ignore_nan=True)
 
@@ -427,19 +434,20 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                  is incorrect
         """
         logger.debug("post_processing: \n %s", pformat(self.post_processing))
-        for post_process in self.post_processing:
-            operation = post_process.get("operation")
-            if not operation:
-                raise InvalidPostProcessingError(
-                    _("`operation` property of post processing object undefined")
-                )
-            if not hasattr(pandas_postprocessing, operation):
-                raise InvalidPostProcessingError(
-                    _(
-                        "Unsupported post processing operation: %(operation)s",
-                        type=operation,
+        with event_logger.log_context(f"{self.__class__.__name__}.post_processing"):
+            for post_process in self.post_processing:
+                operation = post_process.get("operation")
+                if not operation:
+                    raise InvalidPostProcessingError(
+                        _("`operation` property of post processing object undefined")
                     )
-                )
-            options = post_process.get("options", {})
-            df = getattr(pandas_postprocessing, operation)(df, **options)
-        return df
+                if not hasattr(pandas_postprocessing, operation):
+                    raise InvalidPostProcessingError(
+                        _(
+                            "Unsupported post processing operation: %(operation)s",
+                            type=operation,
+                        )
+                    )
+                options = post_process.get("options", {})
+                df = getattr(pandas_postprocessing, operation)(df, **options)
+            return df

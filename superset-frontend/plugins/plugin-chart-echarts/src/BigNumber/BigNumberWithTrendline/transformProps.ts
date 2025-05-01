@@ -17,43 +17,27 @@
  * under the License.
  */
 import {
-  DTTM_ALIAS,
   extractTimegrain,
   getNumberFormatter,
   NumberFormats,
-  QueryFormData,
   GenericDataType,
   getMetricLabel,
+  getXAxisLabel,
+  Metric,
+  getValueFormatter,
   t,
-  smartDateVerboseFormatter,
-  NumberFormatter,
-  TimeFormatter,
+  tooltipHtml,
 } from '@superset-ui/core';
-import { EChartsCoreOption, graphic } from 'echarts';
+import { EChartsCoreOption, graphic } from 'echarts/core';
 import {
+  BigNumberVizProps,
   BigNumberDatum,
   BigNumberWithTrendlineChartProps,
   TimeSeriesDatum,
 } from '../types';
 import { getDateFormatter, parseMetricValue } from '../utils';
-
-const defaultNumberFormatter = getNumberFormatter();
-export function renderTooltipFactory(
-  formatDate: TimeFormatter = smartDateVerboseFormatter,
-  formatValue: NumberFormatter | TimeFormatter = defaultNumberFormatter,
-) {
-  return function renderTooltip(params: { data: TimeSeriesDatum }[]) {
-    return `
-      ${formatDate(params[0].data[0])}
-      <br />
-      <strong>
-        ${
-          params[0].data[1] === null ? t('N/A') : formatValue(params[0].data[1])
-        }
-      </strong>
-    `;
-  };
-}
+import { getDefaultTooltip } from '../../utils/tooltip';
+import { Refs } from '../../types';
 
 const formatPercentChange = getNumberFormatter(
   NumberFormats.PERCENT_SIGNED_1_POINT,
@@ -61,7 +45,7 @@ const formatPercentChange = getNumberFormatter(
 
 export default function transformProps(
   chartProps: BigNumberWithTrendlineChartProps,
-) {
+): BigNumberVizProps {
   const {
     width,
     height,
@@ -71,6 +55,7 @@ export default function transformProps(
     theme,
     hooks,
     inContextMenu,
+    datasource: { currencyFormats = {}, columnFormats = {} },
   } = chartProps;
   const {
     colorPicker,
@@ -81,14 +66,18 @@ export default function transformProps(
     metric = 'value',
     showTimestamp,
     showTrendLine,
+    subtitle = '',
+    subtitleFontSize,
+    aggregation,
     startYAxisAtZero,
     subheader = '',
     subheaderFontSize,
     forceTimestampFormatting,
     yAxisFormat,
+    currencyFormat,
     timeRangeFixed,
   } = formData;
-  const granularity = extractTimegrain(rawFormData as QueryFormData);
+  const granularity = extractTimegrain(rawFormData);
   const {
     data = [],
     colnames = [],
@@ -96,6 +85,16 @@ export default function transformProps(
     from_dttm: fromDatetime,
     to_dttm: toDatetime,
   } = queriesData[0];
+
+  const aggregatedQueryData = queriesData.length > 1 ? queriesData[1] : null;
+
+  const hasAggregatedData =
+    aggregatedQueryData?.data &&
+    aggregatedQueryData.data.length > 0 &&
+    aggregation !== 'LAST_VALUE';
+
+  const aggregatedData = hasAggregatedData ? aggregatedQueryData.data[0] : null;
+  const refs: Refs = {};
   const metricName = getMetricLabel(metric);
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
@@ -103,22 +102,44 @@ export default function transformProps(
   const { r, g, b } = colorPicker;
   const mainColor = `rgb(${r}, ${g}, ${b})`;
 
-  let trendLineData;
+  const xAxisLabel = getXAxisLabel(rawFormData) as string;
+  let trendLineData: TimeSeriesDatum[] | undefined;
   let percentChange = 0;
   let bigNumber = data.length === 0 ? null : data[0][metricName];
-  let timestamp = data.length === 0 ? null : data[0][DTTM_ALIAS];
-  let bigNumberFallback;
-
-  const metricColtypeIndex = colnames.findIndex(name => name === metricName);
-  const metricColtype =
-    metricColtypeIndex > -1 ? coltypes[metricColtypeIndex] : null;
+  let timestamp = data.length === 0 ? null : data[0][xAxisLabel];
+  let bigNumberFallback = null;
+  let sortedData: [number | null, number | null][] = [];
 
   if (data.length > 0) {
-    const sortedData = (data as BigNumberDatum[])
-      .map(d => [d[DTTM_ALIAS], parseMetricValue(d[metricName])])
+    sortedData = (data as BigNumberDatum[])
+      .map(
+        d =>
+          [d[xAxisLabel], parseMetricValue(d[metricName])] as [
+            number | null,
+            number | null,
+          ],
+      )
       // sort in time descending order
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
+  }
+  if (hasAggregatedData && aggregatedData) {
+    if (
+      aggregatedData[metricName] !== null &&
+      aggregatedData[metricName] !== undefined
+    ) {
+      bigNumber = aggregatedData[metricName];
+    } else {
+      const metricKeys = Object.keys(aggregatedData).filter(
+        key =>
+          key !== xAxisLabel &&
+          aggregatedData[key] !== null &&
+          typeof aggregatedData[key] === 'number',
+      );
+      bigNumber = metricKeys.length > 0 ? aggregatedData[metricKeys[0]] : null;
+    }
 
+    timestamp = sortedData.length > 0 ? sortedData[0][0] : null;
+  } else if (sortedData.length > 0) {
     bigNumber = sortedData[0][1];
     timestamp = sortedData[0][0];
 
@@ -127,24 +148,28 @@ export default function transformProps(
       bigNumber = bigNumberFallback ? bigNumberFallback[1] : null;
       timestamp = bigNumberFallback ? bigNumberFallback[0] : null;
     }
+  }
 
-    if (compareLag > 0) {
-      const compareIndex = compareLag;
-      if (compareIndex < sortedData.length) {
-        const compareValue = sortedData[compareIndex][1];
-        // compare values must both be non-nulls
-        if (bigNumber !== null && compareValue !== null) {
-          percentChange = compareValue
-            ? (bigNumber - compareValue) / Math.abs(compareValue)
-            : 0;
-          formattedSubheader = `${formatPercentChange(
-            percentChange,
-          )} ${compareSuffix}`;
-        }
+  if (compareLag > 0 && sortedData.length > 0) {
+    const compareIndex = compareLag;
+    if (compareIndex < sortedData.length) {
+      const compareValue = sortedData[compareIndex][1];
+      // compare values must both be non-nulls
+      if (bigNumber !== null && compareValue !== null) {
+        percentChange = compareValue
+          ? (Number(bigNumber) - compareValue) / Math.abs(compareValue)
+          : 0;
+        formattedSubheader = `${formatPercentChange(
+          percentChange,
+        )} ${compareSuffix}`;
       }
     }
-    sortedData.reverse();
-    trendLineData = showTrendLine ? sortedData : undefined;
+  }
+
+  if (data.length > 0) {
+    const reversedData = [...sortedData].reverse();
+    // @ts-ignore
+    trendLineData = showTrendLine ? reversedData : undefined;
   }
 
   let className = '';
@@ -154,8 +179,12 @@ export default function transformProps(
     className = 'negative';
   }
 
-  let metricEntry;
-  if (chartProps.datasource && chartProps.datasource.metrics) {
+  const metricColtypeIndex = colnames.findIndex(name => name === metricName);
+  const metricColtype =
+    metricColtypeIndex > -1 ? coltypes[metricColtypeIndex] : null;
+
+  let metricEntry: Metric | undefined;
+  if (chartProps.datasource?.metrics) {
     metricEntry = chartProps.datasource.metrics.find(
       metricEntry => metricEntry.metric_name === metric,
     );
@@ -167,12 +196,20 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+    currencyFormat,
+  );
+
   const headerFormatter =
-    metricColtype === GenericDataType.TEMPORAL ||
-    metricColtype === GenericDataType.STRING ||
+    metricColtype === GenericDataType.Temporal ||
+    metricColtype === GenericDataType.String ||
     forceTimestampFormatting
       ? formatTime
-      : getNumberFormatter(yAxisFormat ?? metricEntry?.d3format ?? undefined);
+      : numberFormatter;
 
   if (trendLineData && timeRangeFixed && fromDatetime) {
     const toDatetimeOrToday = toDatetime ?? Date.now();
@@ -195,6 +232,7 @@ export default function transformProps(
             type: 'line',
             smooth: true,
             symbol: 'circle',
+            symbolSize: 10,
             showSymbol: false,
             color: mainColor,
             areaStyle: {
@@ -228,11 +266,21 @@ export default function transformProps(
           bottom: 0,
         },
         tooltip: {
-          appendToBody: true,
+          ...getDefaultTooltip(refs),
           show: !inContextMenu,
           trigger: 'axis',
-          confine: true,
-          formatter: renderTooltipFactory(formatTime, headerFormatter),
+          formatter: (params: { data: TimeSeriesDatum }[]) =>
+            tooltipHtml(
+              [
+                [
+                  metricName,
+                  params[0].data[1] === null
+                    ? t('N/A')
+                    : headerFormatter.format(params[0].data[1]),
+                ],
+              ],
+              formatTime(params[0].data[0]),
+            ),
         },
         aria: {
           enabled: true,
@@ -249,12 +297,15 @@ export default function transformProps(
     width,
     height,
     bigNumber,
+    // @ts-ignore
     bigNumberFallback,
     className,
     headerFormatter,
     formatTime,
     formData,
     headerFontSize,
+    subtitleFontSize,
+    subtitle,
     subheaderFontSize,
     mainColor,
     showTimestamp,
@@ -266,5 +317,6 @@ export default function transformProps(
     echartOptions,
     onContextMenu,
     xValueFormatter: formatTime,
+    refs,
   };
 }

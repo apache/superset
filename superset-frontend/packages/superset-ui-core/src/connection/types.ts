@@ -70,7 +70,13 @@ export type Method = RequestInit['method'];
 export type Mode = RequestInit['mode'];
 export type Redirect = RequestInit['redirect'];
 export type ClientTimeout = number | undefined;
-export type ParseMethod = 'json' | 'text' | 'raw' | null | undefined;
+export type ParseMethod =
+  | 'json'
+  | 'json-bigint'
+  | 'text'
+  | 'raw'
+  | null
+  | undefined;
 export type Signal = RequestInit['signal'];
 export type Stringify = boolean;
 export type Url = string;
@@ -126,9 +132,9 @@ export type CsrfPromise = Promise<string | undefined>;
 export type Protocol = 'http:' | 'https:';
 
 export interface ClientConfig {
-  baseUrl?: string;
   host?: Host;
   protocol?: Protocol;
+  appRoot?: string;
   credentials?: Credentials;
   csrfToken?: CsrfToken;
   guestToken?: string;

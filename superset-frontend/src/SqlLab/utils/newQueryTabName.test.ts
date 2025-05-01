@@ -17,9 +17,11 @@
  * under the License.
  */
 
+import { defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { newQueryTabName } from './newQueryTabName';
 
 const emptyEditor = {
+  ...defaultQueryEditor,
   title: '',
   schema: '',
   autorun: false,

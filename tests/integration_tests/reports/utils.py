@@ -15,14 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from uuid import uuid4
 
 from flask_appbuilder.security.sqla.models import User
 
 from superset import db, security_manager
+from superset.key_value.models import KeyValueEntry
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -35,63 +35,67 @@ from superset.reports.models import (
     ReportScheduleType,
     ReportState,
 )
-from tests.integration_tests.test_app import app
+from superset.utils import json
+from superset.utils.core import override_user
+from tests.integration_tests.test_app import app  # noqa: F401
 from tests.integration_tests.utils import read_fixture
 
 TEST_ID = str(uuid4())
 CSV_FILE = read_fixture("trends.csv")
 SCREENSHOT_FILE = read_fixture("sample.png")
-OWNER_EMAIL = "admin@fab.org"
+DEFAULT_OWNER_EMAIL = "admin@fab.org"
 
 
 def insert_report_schedule(
     type: str,
     name: str,
     crontab: str,
+    owners: list[User],
     timezone: Optional[str] = None,
     sql: Optional[str] = None,
     description: Optional[str] = None,
     chart: Optional[Slice] = None,
     dashboard: Optional[Dashboard] = None,
     database: Optional[Database] = None,
-    owners: Optional[List[User]] = None,
     validator_type: Optional[str] = None,
     validator_config_json: Optional[str] = None,
     log_retention: Optional[int] = None,
     last_state: Optional[ReportState] = None,
     grace_period: Optional[int] = None,
-    recipients: Optional[List[ReportRecipients]] = None,
+    recipients: Optional[list[ReportRecipients]] = None,
     report_format: Optional[ReportDataFormat] = None,
-    logs: Optional[List[ReportExecutionLog]] = None,
-    extra: Optional[Dict[Any, Any]] = None,
+    logs: Optional[list[ReportExecutionLog]] = None,
+    extra: Optional[dict[Any, Any]] = None,
     force_screenshot: bool = False,
 ) -> ReportSchedule:
     owners = owners or []
     recipients = recipients or []
     logs = logs or []
     last_state = last_state or ReportState.NOOP
-    report_schedule = ReportSchedule(
-        type=type,
-        name=name,
-        crontab=crontab,
-        timezone=timezone,
-        sql=sql,
-        description=description,
-        chart=chart,
-        dashboard=dashboard,
-        database=database,
-        owners=owners,
-        validator_type=validator_type,
-        validator_config_json=validator_config_json,
-        log_retention=log_retention,
-        grace_period=grace_period,
-        recipients=recipients,
-        logs=logs,
-        last_state=last_state,
-        report_format=report_format,
-        extra=extra,
-        force_screenshot=force_screenshot,
-    )
+
+    with override_user(owners[0]):
+        report_schedule = ReportSchedule(
+            type=type,
+            name=name,
+            crontab=crontab,
+            timezone=timezone,
+            sql=sql,
+            description=description,
+            chart=chart,
+            dashboard=dashboard,
+            database=database,
+            owners=owners,
+            validator_type=validator_type,
+            validator_config_json=validator_config_json,
+            log_retention=log_retention,
+            grace_period=grace_period,
+            recipients=recipients,
+            logs=logs,
+            last_state=last_state,
+            report_format=report_format,
+            extra=extra,
+            force_screenshot=force_screenshot,
+        )
     db.session.add(report_schedule)
     db.session.commit()
     return report_schedule
@@ -110,18 +114,28 @@ def create_report_notification(
     grace_period: Optional[int] = None,
     report_format: Optional[ReportDataFormat] = None,
     name: Optional[str] = None,
-    extra: Optional[Dict[str, Any]] = None,
+    extra: Optional[dict[str, Any]] = None,
     force_screenshot: bool = False,
+    owners: Optional[list[User]] = None,
+    ccTarget: Optional[str] = None,  # noqa: N803
+    bccTarget: Optional[str] = None,  # noqa: N803
+    use_slack_v2: bool = False,
 ) -> ReportSchedule:
-    owner = (
-        db.session.query(security_manager.user_model)
-        .filter_by(email=OWNER_EMAIL)
-        .one_or_none()
-    )
+    if not owners:
+        owners = [
+            (
+                db.session.query(security_manager.user_model)
+                .filter_by(email=DEFAULT_OWNER_EMAIL)
+                .one_or_none()
+            )
+        ]
 
     if slack_channel:
+        type = (
+            ReportRecipientType.SLACKV2 if use_slack_v2 else ReportRecipientType.SLACK
+        )
         recipient = ReportRecipients(
-            type=ReportRecipientType.SLACK,
+            type=type,
             recipient_config_json=json.dumps(
                 {
                     "target": slack_channel,
@@ -131,7 +145,9 @@ def create_report_notification(
     else:
         recipient = ReportRecipients(
             type=ReportRecipientType.EMAIL,
-            recipient_config_json=json.dumps({"target": email_target}),
+            recipient_config_json=json.dumps(
+                {"target": email_target, "ccTarget": ccTarget, "bccTarget": bccTarget}
+            ),
         )
 
     if name is None:
@@ -147,26 +163,30 @@ def create_report_notification(
         dashboard=dashboard,
         database=database,
         recipients=[recipient],
-        owners=[owner],
+        owners=owners,
         validator_type=validator_type,
         validator_config_json=validator_config_json,
         grace_period=grace_period,
-        report_format=report_format or ReportDataFormat.VISUALIZATION,
+        report_format=report_format or ReportDataFormat.PNG,
         extra=extra,
         force_screenshot=force_screenshot,
     )
     return report_schedule
 
 
-def cleanup_report_schedule(report_schedule: ReportSchedule) -> None:
-    db.session.query(ReportExecutionLog).filter(
-        ReportExecutionLog.report_schedule == report_schedule
-    ).delete()
-    db.session.query(ReportRecipients).filter(
-        ReportRecipients.report_schedule == report_schedule
-    ).delete()
-
-    db.session.delete(report_schedule)
+def cleanup_report_schedule(report_schedule: Optional[ReportSchedule] = None) -> None:
+    if report_schedule:
+        db.session.query(ReportExecutionLog).filter(
+            ReportExecutionLog.report_schedule == report_schedule
+        ).delete()
+        db.session.query(ReportRecipients).filter(
+            ReportRecipients.report_schedule == report_schedule
+        ).delete()
+        db.session.delete(report_schedule)
+    else:
+        db.session.query(ReportExecutionLog).delete()
+        db.session.query(ReportRecipients).delete()
+        db.session.query(ReportSchedule).delete()
     db.session.commit()
 
 
@@ -178,7 +198,7 @@ def create_dashboard_report(dashboard, extra, **kwargs):
         extra={
             "dashboard": extra,
         },
-        **kwargs
+        **kwargs,
     )
     error = None
 
@@ -192,3 +212,8 @@ def create_dashboard_report(dashboard, extra, **kwargs):
 
     if error:
         raise error
+
+
+def reset_key_values() -> None:
+    db.session.query(KeyValueEntry).delete()
+    db.session.commit()

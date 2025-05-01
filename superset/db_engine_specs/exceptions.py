@@ -29,7 +29,7 @@ class SupersetDBAPIDatabaseError(SupersetDBAPIError):
     pass
 
 
-class SupersetDBAPIDisconnectionError(SupersetDBAPIError):
+class SupersetDBAPIConnectionError(SupersetDBAPIError):
     pass
 
 
@@ -38,4 +38,4 @@ class SupersetDBAPIOperationalError(SupersetDBAPIError):
 
 
 class SupersetDBAPIProgrammingError(SupersetDBAPIError):
-    pass
+    status = 400

@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, QueryFormData, supersetTheme } from '@superset-ui/core';
+import {
+  ChartProps,
+  QueryFormData,
+  supersetTheme,
+  VizType,
+} from '@superset-ui/core';
 import { HandlebarsQueryFormData } from '../../src/types';
 import transformProps from '../../src/plugin/transformProps';
 
-describe('Handlebars tranformProps', () => {
+describe('Handlebars transformProps', () => {
   const formData: HandlebarsQueryFormData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
@@ -29,7 +34,7 @@ describe('Handlebars tranformProps', () => {
     groupby: ['name'],
     width: 500,
     height: 500,
-    viz_type: 'handlebars',
+    viz_type: VizType.Handlebars,
   };
   const data = [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }];
   const chartProps = new ChartProps<QueryFormData>({
@@ -40,7 +45,7 @@ describe('Handlebars tranformProps', () => {
     theme: supersetTheme,
   });
 
-  it('should tranform chart props for viz', () => {
+  it('should transform chart props for viz', () => {
     expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({
         width: 800,

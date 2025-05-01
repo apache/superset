@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { t } from '@superset-ui/core';
 
 import URLShortLinkButton, {
@@ -26,9 +26,10 @@ import getLocationHash from 'src/dashboard/util/getLocationHash';
 
 export type AnchorLinkProps = {
   id: string;
+  dashboardId?: number;
   scrollIntoView?: boolean;
   showShortLinkButton?: boolean;
-} & Pick<URLShortLinkButtonProps, 'dashboardId' | 'placement'>;
+} & Pick<URLShortLinkButtonProps, 'placement'>;
 
 export default function AnchorLink({
   id,
@@ -63,7 +64,7 @@ export default function AnchorLink({
   }, [id, scrollIntoView]);
 
   return (
-    <span className="anchor-link-container" id={id}>
+    <span className="anchor-link-container" id={id} data-test="anchor-link">
       {showShortLinkButton && dashboardId && (
         <URLShortLinkButton
           anchorLinkId={id}

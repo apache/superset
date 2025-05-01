@@ -17,37 +17,28 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import { FeatureFlag } from 'src/featureFlags';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { FeatureFlag, VizType } from '@superset-ui/core';
+import mockState from 'spec/fixtures/mockState';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
-jest.mock('src/components/Dropdown', () => {
-  const original = jest.requireActual('src/components/Dropdown');
-  return {
-    ...original,
-    NoAnimationDropdown: (props: any) => (
-      <div data-test="NoAnimationDropdown" className="ant-dropdown">
-        {props.overlay}
-        {props.children}
-      </div>
-    ),
-  };
-});
+const SLICE_ID = 371;
 
-const createProps = (viz_type = 'sunburst') =>
+const createProps = (viz_type = VizType.Sunburst) =>
   ({
     addDangerToast: jest.fn(),
     addSuccessToast: jest.fn(),
     exploreChart: jest.fn(),
     exportCSV: jest.fn(),
     exportFullCSV: jest.fn(),
+    exportXLSX: jest.fn(),
+    exportFullXLSX: jest.fn(),
     forceRefresh: jest.fn(),
     handleToggleFullSize: jest.fn(),
     toggleExpandSlice: jest.fn(),
+    logEvent: jest.fn(),
     slice: {
-      slice_id: 371,
+      slice_id: SLICE_ID,
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20371%7D',
       slice_name: 'Vaccine Candidates per Country & Stage',
       slice_description: 'Table of vaccine candidates for 100 countries',
@@ -55,7 +46,9 @@ const createProps = (viz_type = 'sunburst') =>
         adhoc_filters: [],
         color_scheme: 'supersetColors',
         datasource: '58__table',
-        groupby: ['product_category', 'clinical_stage'],
+        ...(viz_type === VizType.Sunburst
+          ? { columns: ['product_category', 'clinical_stage'] }
+          : { groupby: ['product_category', 'clinical_stage'] }),
         linear_color_scheme: 'schemeYlOrBr',
         metric: 'count',
         queryFields: {
@@ -64,7 +57,7 @@ const createProps = (viz_type = 'sunburst') =>
           secondary_metric: 'metrics',
         },
         row_limit: 10000,
-        slice_id: 371,
+        slice_id: SLICE_ID,
         time_range: 'No filter',
         url_params: {},
         viz_type,
@@ -83,31 +76,49 @@ const createProps = (viz_type = 'sunburst') =>
     updatedDttm: 1617213803803,
     supersetCanExplore: true,
     supersetCanCSV: true,
-    sliceCanEdit: false,
     componentId: 'CHART-fYo7IyvKZQ',
     dashboardId: 26,
     isFullSize: false,
     chartStatus: 'rendered',
     showControls: true,
     supersetCanShare: true,
-    formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst' },
+    formData: {
+      slice_id: 1,
+      datasource: '58__table',
+      viz_type: VizType.Sunburst,
+    },
     exploreUrl: '/explore',
-  } as SliceHeaderControlsProps);
+    defaultOpen: true,
+  }) as SliceHeaderControlsProps;
 
-const renderWrapper = (overrideProps?: SliceHeaderControlsProps) => {
+const renderWrapper = (
+  overrideProps?: SliceHeaderControlsProps,
+  roles?: Record<string, string[][]>,
+) => {
   const props = overrideProps || createProps();
   return render(<SliceHeaderControls {...props} />, {
     useRedux: true,
     useRouter: true,
+    initialState: {
+      ...mockState,
+      user: {
+        ...mockState.user,
+        roles: roles ?? {
+          Admin: [['can_samples', 'Datasource']],
+        },
+      },
+    },
   });
+};
+
+const openMenu = () => {
+  userEvent.click(screen.getByRole('button', { name: 'More Options' }));
 };
 
 test('Should render', () => {
   renderWrapper();
-  expect(
-    screen.getByRole('button', { name: 'More Options' }),
-  ).toBeInTheDocument();
-  expect(screen.getByTestId('NoAnimationDropdown')).toBeInTheDocument();
+  openMenu();
+  expect(screen.getByTestId(`slice_${SLICE_ID}-menu`)).toBeInTheDocument();
 });
 
 test('Should render default props', () => {
@@ -122,6 +133,8 @@ test('Should render default props', () => {
   // @ts-ignore
   delete props.exportCSV;
   // @ts-ignore
+  delete props.exportXLSX;
+  // @ts-ignore
   delete props.cachedDttm;
   // @ts-ignore
   delete props.updatedDttm;
@@ -129,110 +142,310 @@ test('Should render default props', () => {
   delete props.isCached;
   // @ts-ignore
   delete props.isExpanded;
-  // @ts-ignore
-  delete props.sliceCanEdit;
 
   renderWrapper(props);
-  expect(
-    screen.getByRole('menuitem', { name: 'Enter fullscreen' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: /Force refresh/ }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Show chart description' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Edit chart' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Download' }),
-  ).toBeInTheDocument();
-  expect(screen.getByRole('menuitem', { name: 'Share' })).toBeInTheDocument();
+  openMenu();
+  expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+  expect(screen.getByText('Force refresh')).toBeInTheDocument();
+  expect(screen.getByText('Show chart description')).toBeInTheDocument();
+  expect(screen.getByText('Edit chart')).toBeInTheDocument();
+  expect(screen.getByText('Download')).toBeInTheDocument();
+  expect(screen.getByText('Share')).toBeInTheDocument();
 
   expect(
     screen.getByRole('button', { name: 'More Options' }),
   ).toBeInTheDocument();
-  expect(screen.getByTestId('NoAnimationDropdown')).toBeInTheDocument();
+  expect(screen.getByTestId(`slice_${SLICE_ID}-menu`)).toBeInTheDocument();
 });
 
 test('Should "export to CSV"', async () => {
   const props = createProps();
   renderWrapper(props);
-  expect(props.exportCSV).toBeCalledTimes(0);
+  openMenu();
+  expect(props.exportCSV).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to .CSV'));
-  expect(props.exportCSV).toBeCalledTimes(1);
-  expect(props.exportCSV).toBeCalledWith(371);
+  expect(props.exportCSV).toHaveBeenCalledTimes(1);
+  expect(props.exportCSV).toHaveBeenCalledWith(371);
 });
 
-test('Should not show "Download" if slice is filter box', () => {
-  const props = createProps('filter_box');
+test('Should "export to Excel"', async () => {
+  const props = createProps();
   renderWrapper(props);
-  expect(screen.queryByText('Download')).not.toBeInTheDocument();
+  openMenu();
+  expect(props.exportXLSX).toHaveBeenCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to Excel'));
+  expect(props.exportXLSX).toHaveBeenCalledTimes(1);
+  expect(props.exportXLSX).toHaveBeenCalledWith(371);
 });
 
 test('Export full CSV is under featureflag', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: false,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
+  openMenu();
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
   expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
 });
 
 test('Should "export full CSV"', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
-  expect(props.exportFullCSV).toBeCalledTimes(0);
+  openMenu();
+  expect(props.exportFullCSV).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to full .CSV'));
-  expect(props.exportFullCSV).toBeCalledTimes(1);
-  expect(props.exportFullCSV).toBeCalledWith(371);
+  expect(props.exportFullCSV).toHaveBeenCalledTimes(1);
+  expect(props.exportFullCSV).toHaveBeenCalledWith(371);
 });
 
 test('Should not show export full CSV if report is not table', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
+  openMenu();
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
   expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
 });
 
+test('Export full Excel is under featureflag', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: false,
+  };
+  const props = createProps(VizType.Table);
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
+});
+
+test('Should "export full Excel"', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  const props = createProps(VizType.Table);
+  renderWrapper(props);
+  openMenu();
+  expect(props.exportFullXLSX).toHaveBeenCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to full Excel'));
+  expect(props.exportFullXLSX).toHaveBeenCalledTimes(1);
+  expect(props.exportFullXLSX).toHaveBeenCalledWith(371);
+});
+
+test('Should not show export full Excel if report is not table', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  renderWrapper();
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
+});
+
 test('Should "Show chart description"', () => {
   const props = createProps();
   renderWrapper(props);
-  expect(props.toggleExpandSlice).toBeCalledTimes(0);
+  openMenu();
+  expect(props.toggleExpandSlice).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByText('Show chart description'));
-  expect(props.toggleExpandSlice).toBeCalledTimes(1);
-  expect(props.toggleExpandSlice).toBeCalledWith(371);
+  expect(props.toggleExpandSlice).toHaveBeenCalledTimes(1);
+  expect(props.toggleExpandSlice).toHaveBeenCalledWith(371);
 });
 
 test('Should "Force refresh"', () => {
   const props = createProps();
   renderWrapper(props);
-  expect(props.forceRefresh).toBeCalledTimes(0);
+  openMenu();
+  expect(props.forceRefresh).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByText('Force refresh'));
-  expect(props.forceRefresh).toBeCalledTimes(1);
-  expect(props.forceRefresh).toBeCalledWith(371, 26);
-  expect(props.addSuccessToast).toBeCalledTimes(1);
+  expect(props.forceRefresh).toHaveBeenCalledTimes(1);
+  expect(props.forceRefresh).toHaveBeenCalledWith(371, 26);
+  expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
 });
 
 test('Should "Enter fullscreen"', () => {
   const props = createProps();
   renderWrapper(props);
+  openMenu();
 
-  expect(props.handleToggleFullSize).toBeCalledTimes(0);
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByText('Enter fullscreen'));
-  expect(props.handleToggleFullSize).toBeCalledTimes(1);
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
+});
+
+test('Drill to detail modal is under featureflag', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: false,
+  };
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should show "Drill to detail" with `can_explore` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = createProps();
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_explore', 'Superset'],
+    ],
+  });
+  openMenu();
+  expect(screen.getByText('Drill to detail')).toBeInTheDocument();
+});
+
+test('Should show "Drill to detail" with `can_drill` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_drill', 'Dashboard'],
+    ],
+  });
+  openMenu();
+  expect(screen.getByText('Drill to detail')).toBeInTheDocument();
+});
+
+test('Should show "Drill to detail" with both `canexplore` + `can_drill` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: true,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_drill', 'Dashboard'],
+    ],
+  });
+  openMenu();
+  expect(screen.getByText('Drill to detail')).toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" with neither of required perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+  openMenu();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" only `can_dril` perm', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_drill', 'Dashboard']],
+  });
+  openMenu();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should show "View query"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_view_query', 'Dashboard']],
+  });
+  openMenu();
+  expect(screen.getByText('View query')).toBeInTheDocument();
+});
+
+test('Should not show "View query"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+  openMenu();
+  expect(screen.queryByText('View query')).not.toBeInTheDocument();
+});
+
+test('Should show "View as table"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_view_chart_as_table', 'Dashboard']],
+  });
+  openMenu();
+  expect(screen.getByText('View as table')).toBeInTheDocument();
+});
+
+test('Should not show "View as table"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+  openMenu();
+  expect(screen.queryByText('View as table')).not.toBeInTheDocument();
+});
+
+test('Should not show the "Edit chart" button', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_view_query', 'Dashboard'],
+      ['can_view_chart_as_table', 'Dashboard'],
+    ],
+  });
+  openMenu();
+  expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
 });

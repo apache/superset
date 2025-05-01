@@ -16,20 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getMetricLabel, DataRecordValue } from '@superset-ui/core';
-import { EChartsCoreOption, TreeSeriesOption } from 'echarts';
 import {
+  getMetricLabel,
+  DataRecordValue,
+  tooltipHtml,
+} from '@superset-ui/core';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { TreeSeriesOption } from 'echarts/charts';
+import type {
   TreeSeriesCallbackDataParams,
   TreeSeriesNodeItemOption,
 } from 'echarts/types/src/chart/tree/TreeSeries';
-import { OptionName } from 'echarts/types/src/util/types';
+import type { OptionName } from 'echarts/types/src/util/types';
 import {
+  EchartsTreeChartProps,
   EchartsTreeFormData,
-  DEFAULT_FORM_DATA as DEFAULT_GRAPH_FORM_DATA,
   TreeDataRecord,
+  TreeTransformedProps,
 } from './types';
-import { DEFAULT_TREE_SERIES_OPTION } from './constants';
-import { EchartsProps } from '../types';
+import { DEFAULT_FORM_DATA, DEFAULT_TREE_SERIES_OPTION } from './constants';
+import { Refs } from '../types';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 export function formatTooltip({
   params,
@@ -42,15 +49,15 @@ export function formatTooltip({
   const treePath = (treeAncestors ?? [])
     .map(pathInfo => pathInfo?.name || '')
     .filter(path => path !== '');
-
-  return [
-    `<div>${treePath.join(' ▸ ')}</div>`,
-    value ? `${metricLabel}: ${value}` : '',
-  ].join('');
+  const row = value ? [metricLabel, String(value)] : [];
+  return tooltipHtml([row], treePath.join(' ▸ '));
 }
 
-export default function transformProps(chartProps: ChartProps): EchartsProps {
+export default function transformProps(
+  chartProps: EchartsTreeChartProps,
+): TreeTransformedProps {
   const { width, height, formData, queriesData } = chartProps;
+  const refs: Refs = {};
   const data: TreeDataRecord[] = queriesData[0].data || [];
 
   const {
@@ -67,7 +74,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     nodeLabelPosition,
     childLabelPosition,
     emphasis,
-  }: EchartsTreeFormData = { ...DEFAULT_GRAPH_FORM_DATA, ...formData };
+  }: EchartsTreeFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const metricLabel = getMetricLabel(metric);
 
   const nameColumn = name || id;
@@ -201,6 +208,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     animationEasing: DEFAULT_TREE_SERIES_OPTION.animationEasing,
     series,
     tooltip: {
+      ...getDefaultTooltip(refs),
       trigger: 'item',
       triggerOn: 'mousemove',
       formatter: (params: any) =>
@@ -212,8 +220,10 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   };
 
   return {
+    formData,
     width,
     height,
     echartOptions,
+    refs,
   };
 }

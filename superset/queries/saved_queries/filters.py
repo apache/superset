@@ -23,6 +23,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
 from superset.models.sql_lab import SavedQuery
+from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
 
@@ -45,15 +46,35 @@ class SavedQueryAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-met
         )
 
 
-class SavedQueryFavoriteFilter(
-    BaseFavoriteFilter
-):  # pylint: disable=too-few-public-methods
+class SavedQueryFavoriteFilter(BaseFavoriteFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET list that filters all saved queries that a user has
     favored
     """
 
     arg_name = "saved_query_is_fav"
+    class_name = "query"
+    model = SavedQuery
+
+
+class SavedQueryTagNameFilter(BaseTagNameFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all saved queries associated with
+    a certain tag (by its name).
+    """
+
+    arg_name = "saved_query_tags"
+    class_name = "query"
+    model = SavedQuery
+
+
+class SavedQueryTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all saved queries associated with
+    a certain tag (by its ID).
+    """
+
+    arg_name = "saved_query_tag_id"
     class_name = "query"
     model = SavedQuery
 

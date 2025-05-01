@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { DASHBOARD_INFO_UPDATED } from '../actions/dashboardInfo';
+import {
+  DASHBOARD_INFO_UPDATED,
+  SET_FILTER_BAR_ORIENTATION,
+  SET_CROSS_FILTERS_ENABLED,
+  DASHBOARD_INFO_FILTERS_CHANGED,
+} from '../actions/dashboardInfo';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export default function dashboardStateReducer(state = {}, action) {
@@ -29,11 +34,31 @@ export default function dashboardStateReducer(state = {}, action) {
         // server-side compare last_modified_time in second level
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
+    case DASHBOARD_INFO_FILTERS_CHANGED: {
+      return {
+        ...state,
+        metadata: {
+          ...state.metadata,
+          native_filter_configuration: action.newInfo,
+        },
+        last_modified_time: Math.round(new Date().getTime() / 1000),
+      };
+    }
     case HYDRATE_DASHBOARD:
       return {
         ...state,
         ...action.data.dashboardInfo,
         // set async api call data
+      };
+    case SET_FILTER_BAR_ORIENTATION:
+      return {
+        ...state,
+        filterBarOrientation: action.filterBarOrientation,
+      };
+    case SET_CROSS_FILTERS_ENABLED:
+      return {
+        ...state,
+        crossFiltersEnabled: action.crossFiltersEnabled,
       };
     default:
       return state;

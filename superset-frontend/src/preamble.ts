@@ -18,70 +18,60 @@
  */
 import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
-import moment from 'moment';
+import dayjs from 'dayjs';
 // eslint-disable-next-line no-restricted-imports
-import { configure, makeApi, supersetTheme } from '@superset-ui/core';
+import {
+  configure,
+  makeApi,
+  // eslint-disable-next-line no-restricted-imports
+  supersetTheme, // TODO: DO not import theme directly
+  initFeatureFlags,
+} from '@superset-ui/core';
 import { merge } from 'lodash';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
-import setupExtensions from './setup/setupExtensions';
 import setupFormatters from './setup/setupFormatters';
-import setupDashboardComponents from './setup/setupDasboardComponents';
-import { BootstrapUser, User } from './types/bootstrapTypes';
-import { initFeatureFlags } from './featureFlags';
+import setupDashboardComponents from './setup/setupDashboardComponents';
+import { User } from './types/bootstrapTypes';
+import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
 
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
 }
 
-setupExtensions();
-
 // eslint-disable-next-line import/no-mutable-exports
-export let bootstrapData: {
-  user?: BootstrapUser;
-  common?: any;
-  config?: any;
-  embedded?: {
-    dashboard_id: string;
-  };
-} = {};
+const bootstrapData = getBootstrapData();
 
 // Configure translation
 if (typeof window !== 'undefined') {
-  const root = document.getElementById('app');
-  bootstrapData = root
-    ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
-    : {};
-  if (bootstrapData.common && bootstrapData.common.language_pack) {
-    const languagePack = bootstrapData.common.language_pack;
-    configure({ languagePack });
-    moment.locale(bootstrapData.common.locale);
-  } else {
-    configure();
-  }
+  configure({ languagePack: bootstrapData.common.language_pack });
+  dayjs.locale(bootstrapData.common.locale);
 } else {
   configure();
 }
 
 // Configure feature flags
-initFeatureFlags(bootstrapData?.common?.feature_flags);
+initFeatureFlags(bootstrapData.common.feature_flags);
 
 // Setup SupersetClient
-setupClient();
+setupClient({ appRoot: applicationRoot() });
 
 setupColors(
-  bootstrapData?.common?.extra_categorical_color_schemes,
-  bootstrapData?.common?.extra_sequential_color_schemes,
+  bootstrapData.common.extra_categorical_color_schemes,
+  bootstrapData.common.extra_sequential_color_schemes,
 );
 
 // Setup number formatters
-setupFormatters();
+setupFormatters(
+  bootstrapData.common.d3_format,
+  bootstrapData.common.d3_time_format,
+);
 
 setupDashboardComponents();
 
 export const theme = merge(
   supersetTheme,
-  bootstrapData?.common?.theme_overrides ?? {},
+  bootstrapData.common.theme_overrides ?? {},
 );
 
 const getMe = makeApi<void, User>({

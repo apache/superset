@@ -21,8 +21,11 @@ Revises: 41f6a59a61f2
 Create Date: 2016-09-09 17:39:57.846309
 
 """
+
 import sqlalchemy as sa
 from alembic import op
+
+from superset.migrations.shared.utils import create_table
 
 # revision identifiers, used by Alembic.
 revision = "5e4a03ef0bf0"
@@ -30,7 +33,7 @@ down_revision = "b347b202819b"
 
 
 def upgrade():
-    op.create_table(
+    create_table(
         "access_request",
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),

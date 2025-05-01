@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, ReactNode } from 'react';
+import { useState, ReactNode } from 'react';
 import AntdSelect, { SelectProps as AntdSelectProps } from 'antd/lib/select';
 
 export const { Option }: any = AntdSelect;
@@ -83,9 +83,7 @@ export default function Select<VT extends string | number>({
         minWidth,
       }}
     >
-      {options?.map(([val, label]) => (
-        <Option value={val}>{label}</Option>
-      ))}
+      {options?.map(([val, label]) => <Option value={val}>{label}</Option>)}
       {children}
       {value && !optionsHasValue && (
         <Option key={value} value={value}>

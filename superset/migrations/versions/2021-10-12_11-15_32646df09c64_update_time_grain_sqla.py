@@ -26,14 +26,12 @@ Create Date: 2021-10-12 11:15:25.559532
 revision = "32646df09c64"
 down_revision = "60dc453f4e2e"
 
-import json
-from typing import Dict
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, Integer, Text  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from alembic import op
-from sqlalchemy import Column, Integer, Text
-from sqlalchemy.ext.declarative import declarative_base
-
-from superset import db
+from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
@@ -45,7 +43,7 @@ class Slice(Base):
     params = Column(Text)
 
 
-def migrate(mapping: Dict[str, str]) -> None:
+def migrate(mapping: dict[str, str]) -> None:
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
@@ -57,7 +55,7 @@ def migrate(mapping: Dict[str, str]) -> None:
             if time_grain_sqla in mapping:
                 params["time_grain_sqla"] = mapping[time_grain_sqla]
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()

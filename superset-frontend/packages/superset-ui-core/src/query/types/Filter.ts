@@ -27,12 +27,15 @@ import {
 } from './Operator';
 import { TimeGranularity } from '../../time-format';
 
-interface BaseSimpleAdhocFilter {
-  expressionType: 'SIMPLE';
+interface BaseAdhocFilter {
   clause: 'WHERE' | 'HAVING';
-  subject: string;
   timeGrain?: TimeGranularity;
   isExtra?: boolean;
+}
+
+interface BaseSimpleAdhocFilter extends BaseAdhocFilter {
+  expressionType: 'SIMPLE';
+  subject: string;
 }
 
 export type UnaryAdhocFilter = BaseSimpleAdhocFilter & {
@@ -54,10 +57,13 @@ export type SimpleAdhocFilter =
   | BinaryAdhocFilter
   | SetAdhocFilter;
 
-export interface FreeFormAdhocFilter {
+export interface FreeFormAdhocFilter extends BaseAdhocFilter {
   expressionType: 'SQL';
-  clause: 'WHERE' | 'HAVING';
   sqlExpression: string;
+}
+
+export interface LatestPartitionAdhocFilter extends BaseAdhocFilter {
+  datasource?: { schema?: string; datasource_name?: string };
 }
 
 export type AdhocFilter = SimpleAdhocFilter | FreeFormAdhocFilter;
@@ -70,6 +76,12 @@ export function isSimpleAdhocFilter(
   filter: AdhocFilter,
 ): filter is SimpleAdhocFilter {
   return filter.expressionType === 'SIMPLE';
+}
+
+export function isFreeFormAdhocFilter(
+  filter: AdhocFilter,
+): filter is FreeFormAdhocFilter {
+  return filter.expressionType === 'SQL';
 }
 
 export function isUnaryAdhocFilter(

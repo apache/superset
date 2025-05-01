@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/WorldMap1.jpg';
@@ -33,7 +33,6 @@ const metadata = new ChartMetadata({
   name: t('World Map'),
   tags: [
     t('2D'),
-    t('Aesthetic'),
     t('Comparison'),
     t('Intensity'),
     t('Legacy'),
@@ -41,10 +40,15 @@ const metadata = new ChartMetadata({
     t('Multi-Layers'),
     t('Multi-Variables'),
     t('Scatter'),
-    t('Popular'),
+    t('Featured'),
   ],
   thumbnail,
   useLegacyApi: true,
+  behaviors: [
+    Behavior.InteractiveChart,
+    Behavior.DrillToDetail,
+    Behavior.DrillBy,
+  ],
 });
 
 export default class WorldMapChartPlugin extends ChartPlugin {

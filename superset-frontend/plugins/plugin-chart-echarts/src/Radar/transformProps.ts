@@ -18,7 +18,6 @@
  */
 import {
   CategoricalColorNamespace,
-  DataRecordValue,
   ensureIsInt,
   getColumnLabel,
   getMetricLabel,
@@ -26,9 +25,10 @@ import {
   getTimeFormatter,
   NumberFormatter,
 } from '@superset-ui/core';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
-import { RadarSeriesDataItemOption } from 'echarts/types/src/chart/radar/RadarSeries';
-import { EChartsCoreOption, RadarSeriesOption } from 'echarts';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { RadarSeriesDataItemOption } from 'echarts/types/src/chart/radar/RadarSeries';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { RadarSeriesOption } from 'echarts/charts';
 import {
   DEFAULT_FORM_DATA as DEFAULT_RADAR_FORM_DATA,
   EchartsRadarChartProps,
@@ -43,7 +43,9 @@ import {
   getColtypesMapping,
   getLegendProps,
 } from '../utils/series';
-import { defaultGrid, defaultTooltip } from '../defaults';
+import { defaultGrid } from '../defaults';
+import { Refs } from '../types';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 export function formatLabel({
   params,
@@ -79,7 +81,9 @@ export default function transformProps(
     width,
     theme,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
+  const refs: Refs = {};
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
@@ -99,14 +103,12 @@ export default function transformProps(
     isCircle,
     columnConfig,
     sliceId,
-    emitFilter,
   }: EchartsRadarFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_RADAR_FORM_DATA,
     ...formData,
   };
   const { setDataMask = () => {}, onContextMenu } = hooks;
-
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const formatter = (params: CallbackDataParams) =>
@@ -120,7 +122,8 @@ export default function transformProps(
   const groupbyLabels = groupby.map(getColumnLabel);
 
   const metricLabelAndMaxValueMap = new Map<string, number>();
-  const columnsLabelMap = new Map<string, DataRecordValue[]>();
+  const metricLabelAndMinValueMap = new Map<string, number>();
+  const columnsLabelMap = new Map<string, string[]>();
   const transformedData: RadarSeriesDataItemOption[] = [];
   data.forEach(datum => {
     const joinedName = extractGroupbyLabel({
@@ -132,7 +135,7 @@ export default function transformProps(
     // map(joined_name: [columnLabel_1, columnLabel_2, ...])
     columnsLabelMap.set(
       joinedName,
-      groupbyLabels.map(col => datum[col]),
+      groupbyLabels.map(col => datum[col] as string),
     );
 
     // put max value of series into metricLabelAndMaxValueMap
@@ -151,6 +154,21 @@ export default function transformProps(
         );
       } else {
         metricLabelAndMaxValueMap.set(metricLabel, value as number);
+      }
+
+      if (metricLabelAndMinValueMap.has(metricLabel)) {
+        metricLabelAndMinValueMap.set(
+          metricLabel,
+          Math.min(
+            value as number,
+            ensureIsInt(
+              metricLabelAndMinValueMap.get(metricLabel),
+              Number.MAX_SAFE_INTEGER,
+            ),
+          ),
+        );
+      } else {
+        metricLabelAndMinValueMap.set(metricLabel, value as number);
       }
     }
 
@@ -196,6 +214,8 @@ export default function transformProps(
 
   const indicator = metricLabels.map(metricLabel => {
     const maxValueInControl = columnConfig?.[metricLabel]?.radarMetricMaxValue;
+    const minValueInControl = columnConfig?.[metricLabel]?.radarMetricMinValue;
+
     // Ensure that 0 is at the center of the polar coordinates
     const metricValueAsMax =
       metricLabelAndMaxValueMap.get(metricLabel) === 0
@@ -203,9 +223,23 @@ export default function transformProps(
         : metricLabelAndMaxValueMap.get(metricLabel);
     const max =
       maxValueInControl === null ? metricValueAsMax : maxValueInControl;
+
+    let min: number;
+    // If the min value doesn't exist, set it to 0 (default),
+    // if it is null, set it to the min value of the data,
+    // otherwise, use the value from the control
+    if (minValueInControl === undefined) {
+      min = 0;
+    } else if (minValueInControl === null) {
+      min = metricLabelAndMinValueMap.get(metricLabel) || 0;
+    } else {
+      min = minValueInControl;
+    }
+
     return {
       name: metricLabel,
       max,
+      min,
     };
   });
 
@@ -230,12 +264,12 @@ export default function transformProps(
       ...defaultGrid,
     },
     tooltip: {
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend),
+      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
       data: Array.from(columnsLabelMap.keys()),
     },
     series,
@@ -250,11 +284,13 @@ export default function transformProps(
     width,
     height,
     echartOptions,
-    emitFilter,
+    emitCrossFilters,
     setDataMask,
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues,
     onContextMenu,
+    refs,
+    coltypeMapping,
   };
 }

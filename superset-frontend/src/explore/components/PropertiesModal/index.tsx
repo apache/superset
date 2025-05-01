@@ -16,17 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
+
 import Modal from 'src/components/Modal';
 import { Input, TextArea } from 'src/components/Input';
 import Button from 'src/components/Button';
 import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
-import { SelectValue } from 'antd/lib/select';
+// eslint-disable-next-line no-restricted-imports
+import { SelectValue } from 'antd/lib/select'; // TODO: Remove antd
 import rison from 'rison';
-import { t, SupersetClient, styled } from '@superset-ui/core';
+import {
+  t,
+  SupersetClient,
+  styled,
+  isFeatureEnabled,
+  FeatureFlag,
+  getClientErrorObject,
+  ensureIsArray,
+  useTheme,
+  css,
+} from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { loadTags } from 'src/components/Tags/utils';
+import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
+import TagType from 'src/types/TagType';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -55,6 +70,7 @@ function PropertiesModal({
   show,
   addSuccessToast,
 }: PropertiesModalProps) {
+  const theme = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [form] = AntdForm.useForm();
   // values of form inputs
@@ -63,13 +79,23 @@ function PropertiesModal({
     null,
   );
 
+  const [tags, setTags] = useState<TagType[]>([]);
+
+  const tagsAsSelectValues = useMemo(() => {
+    const selectTags = tags.map((tag: { id: number; name: string }) => ({
+      value: tag.id,
+      label: tag.name,
+    }));
+    return selectTags;
+  }, [tags.length]);
+
   function showError({ error, statusText, message }: any) {
     let errorText = error || statusText || t('An error has occurred');
     if (message === 'Forbidden') {
       errorText = t('You do not have permission to edit this chart');
     }
     Modal.error({
-      title: 'Error',
+      title: t('Error'),
       content: errorText,
       okButtonProps: { danger: true, className: 'btn-danger' },
     });
@@ -107,12 +133,12 @@ function PropertiesModal({
         return SupersetClient.get({
           endpoint: `/api/v1/chart/related/owners?q=${query}`,
         }).then(response => ({
-          data: response.json.result.map(
-            (item: { value: number; text: string }) => ({
+          data: response.json.result
+            .filter((item: { extra: { active: boolean } }) => item.extra.active)
+            .map((item: { value: number; text: string }) => ({
               value: item.value,
               label: item.text,
-            }),
-          ),
+            })),
           totalCount: response.json.count,
         }));
       },
@@ -148,6 +174,10 @@ function PropertiesModal({
         }[]
       ).map(o => o.value);
     }
+    if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+      payload.tags = tags.map(tag => tag.id);
+    }
+
     try {
       const res = await SupersetClient.put({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
@@ -158,7 +188,9 @@ function PropertiesModal({
       const updatedChart = {
         ...payload,
         ...res.json.result,
+        tags,
         id: slice.slice_id,
+        owners: selectedOwners,
       };
       onSave(updatedChart);
       addSuccessToast(t('Chart properties updated'));
@@ -182,11 +214,52 @@ function PropertiesModal({
     setName(slice.slice_name || '');
   }, [slice.slice_name]);
 
+  useEffect(() => {
+    if (!isFeatureEnabled(FeatureFlag.TaggingSystem)) return;
+    try {
+      fetchTags(
+        {
+          objectType: OBJECT_TYPES.CHART,
+          objectId: slice.slice_id,
+          includeTypes: false,
+        },
+        (tags: TagType[]) => setTags(tags),
+        error => {
+          showError(error);
+        },
+      );
+    } catch (error) {
+      showError(error);
+    }
+  }, [slice.slice_id]);
+
+  const handleChangeTags = (tags: { label: string; value: number }[]) => {
+    const parsedTags: TagType[] = ensureIsArray(tags).map(r => ({
+      id: r.value,
+      name: r.label,
+    }));
+    setTags(parsedTags);
+  };
+
+  const handleClearTags = () => {
+    setTags([]);
+  };
+
   return (
     <Modal
       show={show}
       onHide={onHide}
-      title="Edit Chart Properties"
+      title={
+        <span>
+          <Icons.EditOutlined
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+            `}
+            data-test="edit-alt"
+          />
+          {t('Edit Chart Properties')}
+        </span>
+      }
       footer={
         <>
           <Button
@@ -246,7 +319,7 @@ function PropertiesModal({
                 data-test="properties-modal-name-input"
                 type="text"
                 value={name}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
                   setName(event.target.value ?? '')
                 }
               />
@@ -292,7 +365,7 @@ function PropertiesModal({
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t(
-                  "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.",
+                  "Duration (in seconds) of the caching timeout for this chart. Set to -1 to bypass the cache. Note this defaults to the dataset's timeout if undefined.",
                 )}
               </StyledHelpBlock>
             </FormItem>
@@ -314,6 +387,25 @@ function PropertiesModal({
                 )}
               </StyledHelpBlock>
             </FormItem>
+            {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
+              <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
+            )}
+            {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
+              <FormItem>
+                <AsyncSelect
+                  ariaLabel="Tags"
+                  mode="multiple"
+                  value={tagsAsSelectValues}
+                  options={loadTags}
+                  onChange={handleChangeTags}
+                  onClear={handleClearTags}
+                  allowClear
+                />
+                <StyledHelpBlock className="help-block">
+                  {t('A list of tags that have been applied to this chart.')}
+                </StyledHelpBlock>
+              </FormItem>
+            )}
           </Col>
         </Row>
       </AntdForm>

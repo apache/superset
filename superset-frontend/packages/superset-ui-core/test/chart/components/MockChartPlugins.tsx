@@ -18,7 +18,6 @@
  */
 
 /* eslint-disable max-classes-per-file */
-import React from 'react';
 import {
   QueryFormData,
   ChartMetadata,
@@ -52,8 +51,8 @@ export const TestComponent = ({
       style={{
         width,
         height,
-        backgroundColor: theme.colors.primary.base,
-        color: theme.colors.grayscale.light5,
+        backgroundColor: theme.colors.primary.light5,
+        color: theme.colors.grayscale.light3,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',

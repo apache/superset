@@ -33,7 +33,7 @@ else
   SUPERSET_RC="${2}"
   SUPERSET_PGP_FULLNAME="${3}"
   SUPERSET_VERSION_RC="${SUPERSET_VERSION}rc${SUPERSET_RC}"
-  SUPERSET_RELEASE_RC_TARBALL="apache-superset-${SUPERSET_VERSION_RC}-source.tar.gz"
+  SUPERSET_RELEASE_RC_TARBALL="apache_superset-${SUPERSET_VERSION_RC}-source.tar.gz"
 fi
 
 if [ -z "${SUPERSET_SVN_DEV_PATH}" ]; then

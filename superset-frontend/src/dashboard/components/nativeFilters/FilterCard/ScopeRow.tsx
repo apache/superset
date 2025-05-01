@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useRef } from 'react';
-import { t } from '@superset-ui/core';
+import { memo, useMemo } from 'react';
+import { t, useTruncation } from '@superset-ui/core';
 import { useFilterScope } from './useFilterScope';
 import {
   Row,
@@ -27,7 +27,6 @@ import {
   TooltipList,
   TooltipSectionLabel,
 } from './Styles';
-import { useTruncation } from './useTruncation';
 import { FilterCardRowProps } from './types';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 
@@ -43,11 +42,11 @@ const getTooltipSection = (items: string[] | undefined, label: string) =>
     </>
   ) : null;
 
-export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
+export const ScopeRow = memo(({ filter }: FilterCardRowProps) => {
   const scope = useFilterScope(filter);
-  const scopeRef = useRef<HTMLDivElement>(null);
 
-  const [elementsTruncated, hasHiddenElements] = useTruncation(scopeRef);
+  const [scopeRef, plusRef, elementsTruncated, hasHiddenElements] =
+    useTruncation();
   const tooltipText = useMemo(() => {
     if (elementsTruncated === 0 || !scope) {
       return null;
@@ -72,12 +71,16 @@ export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
             ? Object.values(scope)
                 .flat()
                 .map((element, index) => (
-                  <span>{index === 0 ? element : `, ${element}`}</span>
+                  <span key={element}>
+                    {index === 0 ? element : `, ${element}`}
+                  </span>
                 ))
             : t('None')}
         </RowValue>
-        {hasHiddenElements > 0 && (
-          <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
+        {hasHiddenElements && (
+          <RowTruncationCount ref={plusRef}>
+            +{elementsTruncated}
+          </RowTruncationCount>
         )}
       </TooltipWithTruncation>
     </Row>

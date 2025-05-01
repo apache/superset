@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  selectOption,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricEditPopover from '.';
 
@@ -35,12 +38,17 @@ const createProps = () => ({
   },
   savedMetricsOptions: [
     {
-      id: 65,
+      id: 64,
       metric_name: 'count',
       expression: 'COUNT(*)',
     },
+    {
+      id: 65,
+      metric_name: 'sum',
+      expression: 'sum(num)',
+    },
   ],
-  adhocMetric: new AdhocMetric({ isNew: true }),
+  adhocMetric: new AdhocMetric({}),
   datasource: {
     extra: '{}',
     type: 'table',
@@ -113,31 +121,55 @@ test('Should render correct elements for disallow ad-hoc metrics', () => {
 test('Clicking on "Close" should call onClose', () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} />);
-  expect(props.onClose).toBeCalledTimes(0);
+  expect(props.onClose).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'Close' }));
-  expect(props.onClose).toBeCalledTimes(1);
+  expect(props.onClose).toHaveBeenCalledTimes(1);
 });
 
-test('Clicking on "Save" should call onChange and onClose', () => {
+test('Clicking on "Save" should call onChange and onClose', async () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} />);
-  expect(props.onChange).toBeCalledTimes(0);
-  expect(props.onClose).toBeCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
-  expect(props.onChange).toBeCalledTimes(1);
-  expect(props.onChange).toBeCalledWith(
-    {
-      id: 64,
-      metric_name: 'count',
-      expression: 'COUNT(*)',
-    },
-    {
-      id: 64,
-      metric_name: 'count',
-      expression: 'COUNT(*)',
-    },
+  expect(props.onChange).toHaveBeenCalledTimes(0);
+  expect(props.onClose).toHaveBeenCalledTimes(0);
+  userEvent.click(
+    screen.getByRole('combobox', {
+      name: 'Select saved metrics',
+    }),
   );
-  expect(props.onClose).toBeCalledTimes(1);
+  await selectOption('sum');
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(props.onChange).toHaveBeenCalledTimes(1);
+  expect(props.onClose).toHaveBeenCalledTimes(1);
+});
+
+test('Clicking on "Save" should not call onChange and onClose', () => {
+  const props = createProps();
+  render(<AdhocMetricEditPopover {...props} />);
+  expect(props.onChange).toHaveBeenCalledTimes(0);
+  expect(props.onClose).toHaveBeenCalledTimes(0);
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(props.onChange).toHaveBeenCalledTimes(0);
+  expect(props.onClose).toHaveBeenCalledTimes(0);
+});
+
+test('Clicking on "Save" should call onChange and onClose for new metric', () => {
+  const props = createProps();
+  render(<AdhocMetricEditPopover {...props} isNewMetric />);
+  expect(props.onChange).toHaveBeenCalledTimes(0);
+  expect(props.onClose).toHaveBeenCalledTimes(0);
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(props.onChange).toHaveBeenCalledTimes(1);
+  expect(props.onClose).toHaveBeenCalledTimes(1);
+});
+
+test('Clicking on "Save" should call onChange and onClose for new title', () => {
+  const props = createProps();
+  render(<AdhocMetricEditPopover {...props} isLabelModified />);
+  expect(props.onChange).toHaveBeenCalledTimes(0);
+  expect(props.onClose).toHaveBeenCalledTimes(0);
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(props.onChange).toHaveBeenCalledTimes(1);
+  expect(props.onClose).toHaveBeenCalledTimes(1);
 });
 
 test('Should switch to tab:Simple', () => {
@@ -152,11 +184,11 @@ test('Should switch to tab:Simple', () => {
     screen.queryByRole('tabpanel', { name: 'Simple' }),
   ).not.toBeInTheDocument();
 
-  expect(props.getCurrentTab).toBeCalledTimes(1);
+  expect(props.getCurrentTab).toHaveBeenCalledTimes(1);
   const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement!;
   userEvent.click(tab);
 
-  expect(props.getCurrentTab).toBeCalledTimes(2);
+  expect(props.getCurrentTab).toHaveBeenCalledTimes(2);
 
   expect(
     screen.queryByRole('tabpanel', { name: 'Saved' }),
@@ -190,11 +222,11 @@ test('Should switch to tab:Custom SQL', () => {
     screen.queryByRole('tabpanel', { name: 'Custom SQL' }),
   ).not.toBeInTheDocument();
 
-  expect(props.getCurrentTab).toBeCalledTimes(1);
+  expect(props.getCurrentTab).toHaveBeenCalledTimes(1);
   const tab = screen.getByRole('tab', { name: 'Custom SQL' }).parentElement!;
   userEvent.click(tab);
 
-  expect(props.getCurrentTab).toBeCalledTimes(2);
+  expect(props.getCurrentTab).toHaveBeenCalledTimes(2);
 
   expect(
     screen.queryByRole('tabpanel', { name: 'Saved' }),

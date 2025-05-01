@@ -29,10 +29,6 @@ from superset.advanced_data_type.plugins.internet_address import internet_addres
 from superset.advanced_data_type.plugins.internet_port import internet_port as port
 
 
-# To run the unit tests below, use the following command in the root Superset folder:
-# tox -e py38 -- tests/unit_tests/advanced_data_type/types_tests.py
-
-
 def test_ip_func_valid_ip():
     """Test to see if the cidr_func behaves as expected when a valid IP is passed in"""
     cidr_request: AdvancedDataTypeRequest = {
@@ -57,7 +53,7 @@ def test_ip_func_valid_ip():
 
 
 def test_cidr_func_invalid_ip():
-    """Test to see if the cidr_func behaves as expected when an invalid IP is passed in"""
+    """Test to see if the cidr_func behaves as expected when an invalid IP is passed in"""  # noqa: E501
     cidr_request: AdvancedDataTypeRequest = {
         "advanced_data_type": "cidr",
         "values": ["abc"],
@@ -79,9 +75,32 @@ def test_cidr_func_invalid_ip():
     assert internet_address.translate_type(cidr_request) == cidr_response
 
 
+def test_cidr_func_empty_ip():
+    """Test to see if the cidr_func behaves as expected when no IP is passed in"""
+    cidr_request: AdvancedDataTypeRequest = {
+        "advanced_data_type": "cidr",
+        "values": [""],
+    }
+    cidr_response: AdvancedDataTypeResponse = {
+        "values": [""],
+        "error_message": "",
+        "display_value": "",
+        "valid_filter_operators": [
+            FilterStringOperators.EQUALS,
+            FilterStringOperators.GREATER_THAN_OR_EQUAL,
+            FilterStringOperators.GREATER_THAN,
+            FilterStringOperators.IN,
+            FilterStringOperators.LESS_THAN,
+            FilterStringOperators.LESS_THAN_OR_EQUAL,
+        ],
+    }
+
+    assert internet_address.translate_type(cidr_request) == cidr_response
+
+
 def test_port_translation_func_valid_port_number():
     """Test to see if the port_translation_func behaves as expected when a valid port number
-    is passed in"""
+    is passed in"""  # noqa: E501
     port_request: AdvancedDataTypeRequest = {
         "advanced_data_type": "port",
         "values": ["80"],
@@ -105,7 +124,7 @@ def test_port_translation_func_valid_port_number():
 
 def test_port_translation_func_valid_port_name():
     """Test to see if the port_translation_func behaves as expected when a valid port name
-    is passed in"""
+    is passed in"""  # noqa: E501
     port_request: AdvancedDataTypeRequest = {
         "advanced_data_type": "port",
         "values": ["https"],
@@ -129,7 +148,7 @@ def test_port_translation_func_valid_port_name():
 
 def test_port_translation_func_invalid_port_name():
     """Test to see if the port_translation_func behaves as expected when an invalid port name
-    is passed in"""
+    is passed in"""  # noqa: E501
     port_request: AdvancedDataTypeRequest = {
         "advanced_data_type": "port",
         "values": ["abc"],
@@ -175,6 +194,30 @@ def test_port_translation_func_invalid_port_number():
     assert port.translate_type(port_request) == port_response
 
 
+def test_port_translation_func_empty_port_number():
+    """Test to see if the port_translation_func behaves as expected when no port
+    number is passed in"""
+    port_request: AdvancedDataTypeRequest = {
+        "advanced_data_type": "port",
+        "values": [""],
+    }
+    port_response: AdvancedDataTypeResponse = {
+        "values": [[""]],
+        "error_message": "",
+        "display_value": "",
+        "valid_filter_operators": [
+            FilterStringOperators.EQUALS,
+            FilterStringOperators.GREATER_THAN_OR_EQUAL,
+            FilterStringOperators.GREATER_THAN,
+            FilterStringOperators.IN,
+            FilterStringOperators.LESS_THAN,
+            FilterStringOperators.LESS_THAN_OR_EQUAL,
+        ],
+    }
+
+    assert port.translate_type(port_request) == port_response
+
+
 def test_cidr_translate_filter_func_equals():
     """Test to see if the cidr_translate_filter_func behaves as expected when the EQUALS
     operator is used"""
@@ -192,7 +235,7 @@ def test_cidr_translate_filter_func_equals():
 
 def test_cidr_translate_filter_func_not_equals():
     """Test to see if the cidr_translate_filter_func behaves as expected when the NOT_EQUALS
-    operator is used"""
+    operator is used"""  # noqa: E501
 
     input_column = Column("user_ip", Integer)
     input_operation = FilterOperator.NOT_EQUALS
@@ -241,7 +284,7 @@ def test_cidr_translate_filter_func_greater_than():
 
 def test_cidr_translate_filter_func_less_than():
     """Test to see if the cidr_translate_filter_func behaves as expected when the LESS_THAN
-    operator is used"""
+    operator is used"""  # noqa: E501
 
     input_column = Column("user_ip", Integer)
     input_operation = FilterOperator.LESS_THAN
@@ -275,7 +318,7 @@ def test_cidr_translate_filter_func_less_than_or_equals():
 
 def test_cidr_translate_filter_func_in_single():
     """Test to see if the cidr_translate_filter_func behaves as expected when the IN operator
-    is used with a single IP"""
+    is used with a single IP"""  # noqa: E501
 
     input_column = Column("user_ip", Integer)
     input_operation = FilterOperator.IN
@@ -292,7 +335,7 @@ def test_cidr_translate_filter_func_in_single():
 
 def test_cidr_translate_filter_func_in_double():
     """Test to see if the cidr_translate_filter_func behaves as expected when the IN operator
-    is used with two IP's"""
+    is used with two IP's"""  # noqa: E501
 
     input_column = Column("user_ip", Integer)
     input_operation = FilterOperator.IN
@@ -364,7 +407,7 @@ def test_port_translate_filter_func_equals():
 
 def test_port_translate_filter_func_not_equals():
     """Test to see if the port_translate_filter_func behaves as expected when the NOT_EQUALS
-    operator is used"""
+    operator is used"""  # noqa: E501
 
     input_column = Column("user_ip", Integer)
     input_operation = FilterOperator.NOT_EQUALS
@@ -432,7 +475,7 @@ def test_port_translate_filter_func_less_than_or_equals():
 
 def test_port_translate_filter_func_less_than():
     """Test to see if the port_translate_filter_func behaves as expected when the LESS_THAN
-    operator is used"""
+    operator is used"""  # noqa: E501
 
     input_column = Column("user_ip", Integer)
     input_operation = FilterOperator.LESS_THAN
@@ -449,7 +492,7 @@ def test_port_translate_filter_func_less_than():
 
 def test_port_translate_filter_func_in_single():
     """Test to see if the port_translate_filter_func behaves as expected when the IN operator
-    is used with a single port"""
+    is used with a single port"""  # noqa: E501
 
     input_column = Column("user_ip", Integer)
     input_operation = FilterOperator.IN
@@ -466,7 +509,7 @@ def test_port_translate_filter_func_in_single():
 
 def test_port_translate_filter_func_in_double():
     """Test to see if the port_translate_filter_func behaves as expected when the IN operator
-    is used with two ports"""
+    is used with two ports"""  # noqa: E501
 
     input_column = Column("user_ip", Integer)
     input_operation = FilterOperator.IN

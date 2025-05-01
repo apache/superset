@@ -67,7 +67,6 @@ export default {
     ],
     where: '',
     having: '',
-    having_filters: [],
     filters: [
       { col: 'LAT', op: 'IS NOT NULL', val: '' },
       { col: 'LON', op: 'IS NOT NULL', val: '' },

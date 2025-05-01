@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
+import rison from 'rison';
 import { Dataset } from '@superset-ui/chart-controls';
 import { t, SupersetClient, QueryFormData } from '@superset-ui/core';
 import { Dispatch } from 'redux';
@@ -25,8 +26,7 @@ import {
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
-
-const FAVESTAR_BASE_URL = '/superset/favstar/slice';
+import { SaveActionType } from 'src/explore/types';
 
 export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
 export function updateFormDataByDatasource(
@@ -65,11 +65,9 @@ export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(sliceId: string) {
   return function (dispatch: Dispatch) {
     SupersetClient.get({
-      endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count/`,
+      endpoint: `/api/v1/chart/favorite_status/?q=${rison.encode([sliceId])}`,
     }).then(({ json }) => {
-      if (json.count > 0) {
-        dispatch(toggleFaveStar(true));
-      }
+      dispatch(toggleFaveStar(!!json?.result?.[0]?.value));
     });
   };
 }
@@ -77,10 +75,14 @@ export function fetchFaveStar(sliceId: string) {
 export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(sliceId: string, isStarred: boolean) {
   return function (dispatch: Dispatch) {
-    const urlSuffix = isStarred ? 'unselect' : 'select';
-    SupersetClient.get({
-      endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/`,
-    })
+    const endpoint = `/api/v1/chart/${sliceId}/favorites/`;
+    const apiCall = isStarred
+      ? SupersetClient.delete({
+          endpoint,
+        })
+      : SupersetClient.post({ endpoint });
+
+    apiCall
       .then(() => dispatch(toggleFaveStar(!isStarred)))
       .catch(() => {
         dispatch(
@@ -114,6 +116,11 @@ export function updateChartTitle(sliceName: string) {
   return { type: UPDATE_CHART_TITLE, sliceName };
 }
 
+export const SET_SAVE_ACTION = 'SET_SAVE_ACTION';
+export function setSaveAction(saveAction: SaveActionType | null) {
+  return { type: SET_SAVE_ACTION, saveAction };
+}
+
 export const CREATE_NEW_SLICE = 'CREATE_NEW_SLICE';
 export function createNewSlice(
   can_add: boolean,
@@ -145,6 +152,33 @@ export function setForceQuery(force: boolean) {
   };
 }
 
+export const SET_STASH_FORM_DATA = 'SET_STASH_FORM_DATA';
+export function setStashFormData(
+  isHidden: boolean,
+  fieldNames: ReadonlyArray<string>,
+) {
+  return {
+    type: SET_STASH_FORM_DATA,
+    isHidden,
+    fieldNames,
+  };
+}
+
+export const START_METADATA_LOADING = 'START_METADATA_LOADING';
+export function startMetaDataLoading() {
+  return { type: START_METADATA_LOADING };
+}
+
+export const STOP_METADATA_LOADING = 'STOP_METADATA_LOADING';
+export function stopMetaDataLoading() {
+  return { type: STOP_METADATA_LOADING };
+}
+
+export const SYNC_DATASOURCE_METADATA = 'SYNC_DATASOURCE_METADATA';
+export function syncDatasourceMetadata(datasource: Dataset) {
+  return { type: SYNC_DATASOURCE_METADATA, datasource };
+}
+
 export const exploreActions = {
   ...toastActions,
   fetchDatasourcesStarted,
@@ -154,10 +188,12 @@ export const exploreActions = {
   saveFaveStar,
   setControlValue,
   setExploreControls,
+  setStashFormData,
   updateChartTitle,
   createNewSlice,
   sliceUpdated,
   setForceQuery,
+  syncDatasourceMetadata,
 };
 
 export type ExploreActions = typeof exploreActions;

@@ -30,7 +30,7 @@ jest.mock('src/utils/hostNamesConfig', () => ({
   ],
 }));
 
-test('Should get next diferent domain on a loop, never the first on the list', () => {
+test('Should get next different domain on a loop, never the first on the list', () => {
   for (let loop = 3; loop > 0; loop -= 1) {
     expect(getHostName(true)).toBe('domain-b');
     expect(getHostName(true)).toBe('domain-c');

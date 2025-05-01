@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   css,
   t,
@@ -27,20 +27,18 @@ import {
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
 import { noOp } from 'src/utils/common';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { FilterPlugins } from 'src/constants';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from './VizTypeGallery';
 import { FastVizSwitcher } from './FastVizSwitcher';
+import { VizTypeControlProps } from './types';
 
-interface VizTypeControlProps {
-  description?: string;
-  label?: string;
-  name: string;
-  onChange: (vizType: string | null) => void;
-  value: string | null;
-  isModalOpenInit?: boolean;
-}
-
+const bootstrapData = getBootstrapData();
+const denyList: string[] = (
+  bootstrapData.common.conf.VIZ_TYPE_DENYLIST || []
+).concat(Object.values(FilterPlugins));
 const metadataRegistry = getChartMetadataRegistry();
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
@@ -53,12 +51,12 @@ function VizSupportValidation({ vizType }: { vizType: string }) {
   return (
     <div
       className="text-danger"
-      css={(theme: SupersetTheme) =>
-        css`
-          margin-top: ${theme.gridUnit}px;
-        `
-      }
+      css={(theme: SupersetTheme) => css`
+        margin-top: ${theme.gridUnit}px;
+      `}
     >
+      {/* TODO: Remove fa-icon */}
+      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
       <i className="fa fa-exclamation-circle text-danger" />{' '}
       <small>{t('This visualization type is not supported.')}</small>
     </div>
@@ -66,7 +64,7 @@ function VizSupportValidation({ vizType }: { vizType: string }) {
 }
 
 const UnpaddedModal = styled(Modal)`
-  .ant-modal-body {
+  .antd5-modal-body {
     padding: 0;
   }
 `;
@@ -111,15 +109,13 @@ const VizTypeControl = ({
         {initialValue && <VizSupportValidation vizType={initialValue} />}
       </div>
       <div
-        css={(theme: SupersetTheme) =>
-          css`
-            display: flex;
-            justify-content: flex-end;
-            margin-top: ${theme.gridUnit * 3}px;
-            color: ${theme.colors.grayscale.base};
-            text-decoration: underline;
-          `
-        }
+        css={(theme: SupersetTheme) => css`
+          display: flex;
+          justify-content: flex-end;
+          margin-top: ${theme.gridUnit * 3}px;
+          color: ${theme.colors.grayscale.base};
+          text-decoration: underline;
+        `}
       >
         <span role="button" tabIndex={0} onClick={openModal}>
           {t('View all charts')}
@@ -141,6 +137,7 @@ const VizTypeControl = ({
           selectedViz={selectedViz}
           onChange={setSelectedViz}
           onDoubleClick={onSubmit}
+          denyList={denyList}
         />
       </UnpaddedModal>
     </>

@@ -16,43 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean, select, text } from '@storybook/addon-knobs';
-import DashboardImg from 'src/assets/images/dashboard-card-fallback.svg';
-import ChartImg from 'src/assets/images/chart-card-fallback.svg';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import FaveStar from 'src/components/FaveStar';
 import ListViewCard from '.';
 
 export default {
   title: 'ListViewCard',
   component: ListViewCard,
-  decorators: [withKnobs],
-};
-
-const imgFallbackKnob = {
-  label: 'Fallback/Loading Image',
-  options: {
-    Dashboard: DashboardImg,
-    Chart: ChartImg,
+  argTypes: {
+    loading: { control: 'boolean', defaultValue: false },
+    imgURL: {
+      control: 'text',
+      defaultValue:
+        'https://images.unsplash.com/photo-1658163724548-29ef00812a54?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80',
+    },
+    imgFallbackURL: {
+      control: 'text',
+      defaultValue:
+        'https://images.unsplash.com/photo-1658208193219-e859d9771912?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80',
+    },
+    isStarred: { control: 'boolean', defaultValue: false },
   },
-  defaultValue: DashboardImg,
 };
 
-export const SupersetListViewCard = () => (
+export const SupersetListViewCard = ({
+  loading,
+  imgURL,
+  imgFallbackURL,
+  isStarred,
+}: {
+  loading: boolean;
+  imgURL: string;
+  imgFallbackURL: string;
+  isStarred: boolean;
+}) => (
   <ListViewCard
     title="Superset Card Title"
-    loading={boolean('loading', false)}
+    loading={loading}
     url="/superset/dashboard/births/"
-    imgURL={text('imgURL', 'https://picsum.photos/800/600')}
-    imgFallbackURL={select(
-      imgFallbackKnob.label,
-      imgFallbackKnob.options,
-      imgFallbackKnob.defaultValue,
-    )}
+    imgURL={imgURL}
+    imgFallbackURL={imgFallbackURL}
     description="Lorem ipsum dolor sit amet, consectetur adipiscing elit..."
     coverLeft="Left Section"
     coverRight="Right Section"
@@ -62,22 +68,22 @@ export const SupersetListViewCard = () => (
           itemId={0}
           fetchFaveStar={action('fetchFaveStar')}
           saveFaveStar={action('saveFaveStar')}
-          isStarred={boolean('isStarred', false)}
+          isStarred={isStarred}
         />
-        <AntdDropdown
-          overlay={
+        <Dropdown
+          dropdownRender={() => (
             <Menu>
               <Menu.Item role="button" tabIndex={0} onClick={action('Delete')}>
-                <Icons.Trash /> Delete
+                <Icons.DeleteOutlined /> Delete
               </Menu.Item>
               <Menu.Item role="button" tabIndex={0} onClick={action('Edit')}>
-                <Icons.EditAlt /> Edit
+                <Icons.EditOutlined /> Edit
               </Menu.Item>
             </Menu>
-          }
+          )}
         >
-          <Icons.MoreHoriz />
-        </AntdDropdown>
+          <Icons.EllipsisOutlined />
+        </Dropdown>
       </ListViewCard.Actions>
     }
   />

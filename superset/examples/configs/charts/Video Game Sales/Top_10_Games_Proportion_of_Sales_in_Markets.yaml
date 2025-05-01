@@ -1,0 +1,132 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: "Top 10 Games: Proportion of Sales in Markets"
+viz_type: echarts_timeseries_bar
+params:
+  adhoc_filters:
+    - clause: WHERE
+      comparator: "10"
+      expressionType: SIMPLE
+      filterOptionName: filter_juemdnqji5_d6fm8tuf4rc
+      isExtra: false
+      isNew: false
+      operator: <=
+      sqlExpression: null
+      subject: rank
+  bar_stacked: true
+  bottom_margin: auto
+  color_scheme: supersetColors
+  columns: []
+  contribution: true
+  datasource: 21__table
+  granularity_sqla: year
+  groupby:
+    - name
+  label_colors: {}
+  metrics:
+    - aggregate: SUM
+      column:
+        column_name: na_sales
+        description: null
+        expression: null
+        filterable: true
+        groupby: true
+        id: 883
+        is_dttm: false
+        optionName: _col_NA_Sales
+        python_date_format: null
+        type: DOUBLE PRECISION
+        verbose_name: null
+      expressionType: SIMPLE
+      hasCustomLabel: true
+      isNew: false
+      label: North America
+      optionName: metric_a943v7wg5g_0mm03hrsmpf
+      sqlExpression: null
+    - aggregate: SUM
+      column:
+        column_name: eu_sales
+        description: null
+        expression: null
+        filterable: true
+        groupby: true
+        id: 884
+        is_dttm: false
+        optionName: _col_EU_Sales
+        python_date_format: null
+        type: DOUBLE PRECISION
+        verbose_name: null
+      expressionType: SIMPLE
+      hasCustomLabel: true
+      isNew: false
+      label: Europe
+      optionName: metric_bibau54x0rb_dwrjtqkbyso
+      sqlExpression: null
+    - aggregate: SUM
+      column:
+        column_name: jp_sales
+        description: null
+        expression: null
+        filterable: true
+        groupby: true
+        id: 885
+        is_dttm: false
+        optionName: _col_JP_Sales
+        python_date_format: null
+        type: DOUBLE PRECISION
+        verbose_name: null
+      expressionType: SIMPLE
+      hasCustomLabel: true
+      isNew: false
+      label: Japan
+      optionName: metric_06whpr2oyhw_4l88xxu6zvd
+      sqlExpression: null
+    - aggregate: SUM
+      column:
+        column_name: other_sales
+        description: null
+        expression: null
+        filterable: true
+        groupby: true
+        id: 886
+        is_dttm: false
+        optionName: _col_Other_Sales
+        python_date_format: null
+        type: DOUBLE PRECISION
+        verbose_name: null
+      expressionType: SIMPLE
+      hasCustomLabel: true
+      isNew: false
+      label: Other
+      optionName: metric_pcx05ioxums_ibr16zvi74
+      sqlExpression: null
+  queryFields:
+    columns: groupby
+    groupby: groupby
+    metrics: metrics
+  row_limit: null
+  show_legend: true
+  slice_id: 3546
+  time_range: No filter
+  url_params: {}
+  viz_type: echarts_timeseries_bar
+  x_ticks_layout: staggered
+  y_axis_format: SMART_NUMBER
+cache_timeout: null
+uuid: a40879d5-653a-42fe-9314-bbe88ad26e92
+version: 1.0.0
+dataset_uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283

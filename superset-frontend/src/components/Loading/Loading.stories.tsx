@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import Loading, { Props, PositionOption } from './index';
 
 export default {
@@ -40,44 +39,32 @@ export const LoadingGallery = () => (
         }}
       >
         <h4>{position}</h4>
-        <Loading position={position} image="/src/assets/images/loading.gif" />
+        <Loading position={position} />
       </div>
     ))}
   </>
 );
 
-LoadingGallery.story = {
-  parameters: {
-    actions: {
-      disable: true,
-    },
-    controls: {
-      disable: true,
-    },
-    knobs: {
-      disable: true,
-    },
+LoadingGallery.parameters = {
+  actions: {
+    disable: true,
+  },
+  controls: {
+    disable: true,
   },
 };
 
 export const InteractiveLoading = (args: Props) => <Loading {...args} />;
 
-InteractiveLoading.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
-
 InteractiveLoading.args = {
-  image: '/src/assets/images/loading.gif',
+  image: '',
   className: '',
 };
 
 InteractiveLoading.argTypes = {
   position: {
     name: 'position',
-    control: { type: 'select', options: POSITIONS },
+    control: { type: 'select' },
+    options: POSITIONS,
   },
 };

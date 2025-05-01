@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import mexp from 'math-expression-evaluator';
+import Mexp from 'math-expression-evaluator';
+
+const mexp = new Mexp();
 
 const REPLACE_OPERATORS: [RegExp, string][] = [
   [new RegExp(/==/g), 'Eq'],
@@ -106,7 +108,7 @@ export function evalExpression(expression: string, value: number): number {
   const subExpressions = String(parsedExpression).split('=');
   parsedExpression = subExpressions[1] ?? subExpressions[0];
   // we can ignore the type requirement on `TOKENS`, as value is always `number`
-  // and doesn't need to consider `number | underfined`.
+  // and doesn't need to consider `number | undefined`.
   // @ts-ignore
   return Number(mexp.eval(parsedExpression, TOKENS, { x: value }));
 }

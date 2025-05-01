@@ -17,32 +17,40 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, t, css, useTheme, logging } from '@superset-ui/core';
-import { debounce, pick } from 'lodash';
+import {
+  styled,
+  t,
+  css,
+  useTheme,
+  logging,
+  useChangeEffect,
+  useComponentDidMount,
+  usePrevious,
+} from '@superset-ui/core';
+import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
-import { useChangeEffect } from 'src/hooks/useChangeEffect';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
-import { usePrevious } from 'src/hooks/usePrevious';
-import { useComponentDidMount } from 'src/hooks/useComponentDidMount';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import {
   getItem,
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
+import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
 import { areObjectsEqual } from 'src/reduxUtils';
 import * as logActions from 'src/logger/actions';
 import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from 'src/logger/LogUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
@@ -62,12 +70,16 @@ import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
+import ExploreContainer from '../ExploreContainer';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   dashboardId: PropTypes.number,
+  colorScheme: PropTypes.string,
+  ownColorScheme: PropTypes.string,
+  dashboardColorScheme: PropTypes.string,
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
   chart: chartPropShape.isRequired,
   slice: PropTypes.object,
@@ -80,14 +92,9 @@ const propTypes = {
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
   vizType: PropTypes.string,
+  saveAction: PropTypes.string,
+  isSaveModalVisible: PropTypes.bool,
 };
-
-const ExploreContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-`;
 
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
@@ -167,7 +174,9 @@ const updateHistory = debounce(
   ) => {
     const payload = { ...formData };
     const chartId = formData.slice_id;
-    const additionalParam = {};
+    const params = new URLSearchParams(window.location.search);
+    const additionalParam = Object.fromEntries(params);
+
     if (chartId) {
       additionalParam[URL_PARAMS.sliceId.name] = chartId;
     } else {
@@ -207,7 +216,7 @@ const updateHistory = debounce(
         stateModifier = 'pushState';
       }
       // avoid race condition in case user changes route before explore updates the url
-      if (window.location.pathname.startsWith('/explore')) {
+      if (window.location.pathname.startsWith(ensureAppRoot('/explore'))) {
         const url = mountExploreUrl(
           standalone ? URL_PARAMS.standalone.name : null,
           {
@@ -225,6 +234,20 @@ const updateHistory = debounce(
   1000,
 );
 
+const defaultSidebarsWidth = {
+  controls_width: 320,
+  datasource_width: 300,
+};
+
+function getSidebarWidths(key) {
+  return getItem(key, defaultSidebarsWidth[key]);
+}
+
+function setSidebarWidths(key, dimension) {
+  const newDimension = Number(getSidebarWidths(key)) + dimension.width;
+  setItem(key, newDimension);
+}
+
 function ExploreViewContainer(props) {
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
@@ -238,17 +261,13 @@ function ExploreViewContainer(props) {
     props.controls,
   );
 
-  const [showingModal, setShowingModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [shouldForceUpdate, setShouldForceUpdate] = useState(-1);
+  const [width, setWidth] = useState(
+    getSidebarWidths(LocalStorageKeys.DatasourceWidth),
+  );
   const tabId = useTabId();
 
   const theme = useTheme();
-
-  const defaultSidebarsWidth = {
-    controls_width: 320,
-    datasource_width: 300,
-  };
 
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {
@@ -336,16 +355,19 @@ function ExploreViewContainer(props) {
     }
   }
 
-  function toggleModal() {
-    setShowingModal(!showingModal);
-  }
-
   function toggleCollapse() {
     setIsCollapsed(!isCollapsed);
   }
 
   useComponentDidMount(() => {
-    props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
+    props.actions.logEvent(
+      LOG_ACTIONS_MOUNT_EXPLORER,
+      props.slice?.slice_id
+        ? {
+            slice_id: props.slice.slice_id,
+          }
+        : undefined,
+    );
   });
 
   useChangeEffect(tabId, (previous, current) => {
@@ -450,14 +472,21 @@ function ExploreViewContainer(props) {
 
   const chartIsStale = useMemo(() => {
     if (lastQueriedControls) {
-      const changedControlKeys = Object.keys(props.controls).filter(
-        key =>
-          typeof lastQueriedControls[key] !== 'undefined' &&
-          !areObjectsEqual(
-            props.controls[key].value,
-            lastQueriedControls[key].value,
-          ),
-      );
+      const { controls } = props;
+      const changedControlKeys = Object.keys(controls).filter(key => {
+        const lastControl = lastQueriedControls[key];
+        if (typeof lastControl === 'undefined') {
+          return false;
+        }
+        const { value: value1 } = controls[key];
+        const { value: value2 } = lastControl;
+        if (isObjectLike(value1) && isObjectLike(value2)) {
+          return !areObjectsEqual(value1, value2, {
+            ignoreFields: ['datasourceWarning'],
+          });
+        }
+        return !isEqual(value1, value2);
+      });
 
       return changedControlKeys.some(
         key =>
@@ -468,11 +497,11 @@ function ExploreViewContainer(props) {
     return false;
   }, [lastQueriedControls, props.controls]);
 
-  const saveAction = getUrlParam(URL_PARAMS.saveAction);
-  useChangeEffect(saveAction, () => {
-    if (['saveas', 'overwrite'].includes(saveAction)) {
+  useChangeEffect(props.saveAction, () => {
+    if (['saveas', 'overwrite'].includes(props.saveAction)) {
       onQuery();
       addHistory({ isReplace: true });
+      props.actions.setSaveAction(null);
     }
   });
 
@@ -534,15 +563,6 @@ function ExploreViewContainer(props) {
     );
   }
 
-  function getSidebarWidths(key) {
-    return getItem(key, defaultSidebarsWidth[key]);
-  }
-
-  function setSidebarWidths(key, dimension) {
-    const newDimension = Number(getSidebarWidths(key)) + dimension.width;
-    setItem(key, newDimension);
-  }
-
   if (props.standalone) {
     return renderChartContainer();
   }
@@ -554,6 +574,7 @@ function ExploreViewContainer(props) {
         canOverwrite={props.can_overwrite}
         canDownload={props.can_download}
         dashboardId={props.dashboardId}
+        colorScheme={props.dashboardColorScheme}
         isStarred={props.isStarred}
         slice={props.slice}
         sliceName={props.sliceName}
@@ -563,8 +584,8 @@ function ExploreViewContainer(props) {
         ownState={props.ownState}
         user={props.user}
         reports={props.reports}
-        onSaveChart={toggleModal}
         saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
+        metadata={props.metadata}
       />
       <ExplorePanelContainer id="explore-container">
         <Global
@@ -591,27 +612,16 @@ function ExploreViewContainer(props) {
             }
           `}
         />
-        {showingModal && (
-          <SaveModal
-            addDangerToast={props.addDangerToast}
-            onHide={toggleModal}
-            actions={props.actions}
-            form_data={props.form_data}
-            sliceName={props.sliceName}
-            dashboardId={props.dashboardId}
-            sliceDashboards={props.exploreState.sliceDashboards ?? []}
-          />
-        )}
         <Resizable
           onResizeStop={(evt, direction, ref, d) => {
-            setShouldForceUpdate(d?.width);
-            setSidebarWidths(LocalStorageKeys.datasource_width, d);
+            setWidth(ref.getBoundingClientRect().width);
+            setSidebarWidths(LocalStorageKeys.DatasourceWidth, d);
           }}
           defaultSize={{
-            width: getSidebarWidths(LocalStorageKeys.datasource_width),
+            width: getSidebarWidths(LocalStorageKeys.DatasourceWidth),
             height: '100%',
           }}
-          minWidth={defaultSidebarsWidth[LocalStorageKeys.datasource_width]}
+          minWidth={defaultSidebarsWidth[LocalStorageKeys.DatasourceWidth]}
           maxWidth="33%"
           enable={{ right: true }}
           className={
@@ -626,10 +636,13 @@ function ExploreViewContainer(props) {
               className="action-button"
               onClick={toggleCollapse}
             >
-              <Icons.Expand
+              <Icons.VerticalAlignTopOutlined
+                iconSize="xl"
+                css={css`
+                  transform: rotate(-90deg);
+                `}
                 className="collapse-icon"
                 iconColor={theme.colors.primary.base}
-                iconSize="l"
               />
             </span>
           </div>
@@ -638,7 +651,7 @@ function ExploreViewContainer(props) {
             datasource={props.datasource}
             controls={props.controls}
             actions={props.actions}
-            shouldForceUpdate={shouldForceUpdate}
+            width={width}
             user={props.user}
           />
         </Resizable>
@@ -652,10 +665,13 @@ function ExploreViewContainer(props) {
           >
             <span role="button" tabIndex={0} className="action-button">
               <Tooltip title={t('Open Datasource tab')}>
-                <Icons.Collapse
+                <Icons.VerticalAlignTopOutlined
+                  iconSize="xl"
+                  css={css`
+                    transform: rotate(90deg);
+                  `}
                   className="collapse-icon"
                   iconColor={theme.colors.primary.base}
-                  iconSize="l"
                 />
               </Tooltip>
             </span>
@@ -663,13 +679,13 @@ function ExploreViewContainer(props) {
         ) : null}
         <Resizable
           onResizeStop={(evt, direction, ref, d) =>
-            setSidebarWidths(LocalStorageKeys.controls_width, d)
+            setSidebarWidths(LocalStorageKeys.ControlsWidth, d)
           }
           defaultSize={{
-            width: getSidebarWidths(LocalStorageKeys.controls_width),
+            width: getSidebarWidths(LocalStorageKeys.ControlsWidth),
             height: '100%',
           }}
-          minWidth={defaultSidebarsWidth[LocalStorageKeys.controls_width]}
+          minWidth={defaultSidebarsWidth[LocalStorageKeys.ControlsWidth]}
           maxWidth="33%"
           enable={{ right: true }}
           className="col-sm-3 explore-column controls-column"
@@ -698,17 +714,54 @@ function ExploreViewContainer(props) {
           {renderChartContainer()}
         </div>
       </ExplorePanelContainer>
+      {props.isSaveModalVisible && (
+        <SaveModal
+          addDangerToast={props.addDangerToast}
+          actions={props.actions}
+          form_data={props.form_data}
+          sliceName={props.sliceName}
+          dashboardId={props.dashboardId}
+        />
+      )}
     </ExploreContainer>
   );
 }
 
 ExploreViewContainer.propTypes = propTypes;
 
+const retainQueryModeRequirements = hiddenFormData =>
+  Object.keys(hiddenFormData ?? {}).filter(
+    key => !QUERY_MODE_REQUISITES.has(key),
+  );
+
+function patchBigNumberTotalFormData(form_data, slice) {
+  if (
+    form_data.viz_type === 'big_number_total' &&
+    !form_data.subtitle &&
+    slice?.form_data?.subheader
+  ) {
+    return { ...form_data, subtitle: slice.form_data.subheader };
+  }
+  return form_data;
+}
+
 function mapStateToProps(state) {
-  const { explore, charts, common, impressionId, dataMask, reports, user } =
-    state;
-  const { controls, slice, datasource } = explore;
-  const form_data = getFormDataFromControls(controls);
+  const {
+    explore,
+    charts,
+    common,
+    impressionId,
+    dataMask,
+    reports,
+    user,
+    saveModal,
+  } = state;
+  const { controls, slice, datasource, metadata, hiddenFormData } = explore;
+  const hasQueryMode = !!controls.query_mode?.value;
+  const fieldsToOmit = hasQueryMode
+    ? retainQueryModeRequirements(hiddenFormData)
+    : Object.keys(hiddenFormData ?? {});
+  const form_data = omit(getFormDataFromControls(controls), fieldsToOmit);
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
@@ -717,11 +770,33 @@ function mapStateToProps(state) {
     },
   );
   const chart = charts[slice_id];
+  const colorScheme = explore.form_data?.color_scheme;
+  const ownColorScheme = explore.form_data?.own_color_scheme;
+  const dashboardColorScheme = explore.form_data?.dashboard_color_scheme;
 
   let dashboardId = Number(explore.form_data?.dashboardId);
   if (Number.isNaN(dashboardId)) {
     dashboardId = undefined;
   }
+
+  if (
+    form_data.viz_type === 'big_number_total' &&
+    slice?.form_data?.subheader &&
+    (!controls.subtitle?.value || controls.subtitle.value === '')
+  ) {
+    controls.subtitle = {
+      ...controls.subtitle,
+      value: slice.form_data.subheader,
+    };
+    if (slice?.form_data?.subheader_font_size) {
+      controls.subtitle_font_size = {
+        ...controls.subtitle_font_size,
+        value: slice.form_data.subheader_font_size,
+      };
+    }
+  }
+
+  const patchedFormData = patchBigNumberTotalFormData(form_data, slice);
 
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
@@ -729,6 +804,9 @@ function mapStateToProps(state) {
     datasource_type: datasource.type,
     datasourceId: datasource.datasource_id,
     dashboardId,
+    colorScheme,
+    ownColorScheme,
+    dashboardColorScheme,
     controls: explore.controls,
     can_add: !!explore.can_add,
     can_download: !!explore.can_download,
@@ -741,7 +819,7 @@ function mapStateToProps(state) {
     slice,
     sliceName: explore.sliceName ?? slice?.slice_name ?? null,
     triggerRender: explore.triggerRender,
-    form_data,
+    form_data: patchedFormData,
     table_name: datasource.table_name,
     vizType: form_data.viz_type,
     standalone: !!explore.standalone,
@@ -753,6 +831,9 @@ function mapStateToProps(state) {
     user,
     exploreState: explore,
     reports,
+    metadata,
+    saveAction: explore.saveAction,
+    isSaveModalVisible: saveModal.isVisible,
   };
 }
 
@@ -772,4 +853,4 @@ function mapDispatchToProps(dispatch) {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(withToasts(ExploreViewContainer));
+)(withToasts(memo(ExploreViewContainer)));

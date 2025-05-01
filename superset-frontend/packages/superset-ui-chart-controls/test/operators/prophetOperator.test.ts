@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DTTM_ALIAS, QueryObject, SqlaFormData } from '@superset-ui/core';
+import {
+  DTTM_ALIAS,
+  QueryObject,
+  SqlaFormData,
+  VizType,
+} from '@superset-ui/core';
 import { prophetOperator } from '@superset-ui/chart-controls';
 
 const formData: SqlaFormData = {
@@ -27,7 +32,7 @@ const formData: SqlaFormData = {
   time_range: '2015 : 2016',
   time_grain_sqla: 'P1Y',
   datasource: 'foo',
-  viz_type: 'table',
+  viz_type: VizType.Table,
 };
 const queryObject: QueryObject = {
   metrics: [
@@ -47,6 +52,7 @@ test('should do prophetOperator with default index', () => {
     prophetOperator(
       {
         ...formData,
+        granularity_sqla: 'time_column',
         forecastEnabled: true,
         forecastPeriods: '3',
         forecastInterval: '5',
@@ -107,7 +113,7 @@ test('should do prophetOperator over adhoc column', () => {
         x_axis: {
           label: 'my_case_expr',
           expressionType: 'SQL',
-          expression: 'case when a = 1 then 1 else 0 end',
+          sqlExpression: 'case when a = 1 then 1 else 0 end',
         },
         forecastEnabled: true,
         forecastPeriods: '3',

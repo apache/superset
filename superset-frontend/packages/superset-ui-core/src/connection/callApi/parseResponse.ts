@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import _JSONbig from 'json-bigint';
+import { cloneDeepWith } from 'lodash';
 
 import { ParseMethod, TextResponse, JsonResponse } from '../types';
+
+const JSONbig = _JSONbig({
+  constructorAction: 'preserve',
+});
 
 export default async function parseResponse<T extends ParseMethod = 'json'>(
   apiPromise: Promise<Response>,
@@ -25,11 +31,11 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
 ) {
   type ReturnType = T extends 'raw' | null
     ? Response
-    : T extends 'json' | undefined
-    ? JsonResponse
-    : T extends 'text'
-    ? TextResponse
-    : never;
+    : T extends 'json' | 'json-bigint' | undefined
+      ? JsonResponse
+      : T extends 'text'
+        ? TextResponse
+        : never;
   const response = await apiPromise;
   // reject failed HTTP requests with the raw response
   if (!response.ok) {
@@ -46,6 +52,28 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
     };
     return result as ReturnType;
   }
+  if (parseMethod === 'json-bigint') {
+    const rawData = await response.text();
+    const json = JSONbig.parse(rawData);
+    const result: JsonResponse = {
+      response,
+      json: cloneDeepWith(json, (value: any) => {
+        // `json-bigint` could not handle floats well, see sidorares/json-bigint#62
+        // TODO: clean up after json-bigint>1.0.1 is released
+        if (value?.isInteger?.() === false) {
+          return Number(value);
+        }
+        if (
+          value?.isGreaterThan?.(Number.MAX_SAFE_INTEGER) ||
+          value?.isLessThan?.(Number.MIN_SAFE_INTEGER)
+        ) {
+          return BigInt(value);
+        }
+        return undefined;
+      }),
+    };
+    return result as ReturnType;
+  }
   // by default treat this as json
   if (parseMethod === undefined || parseMethod === 'json') {
     const json = await response.json();
@@ -56,6 +84,6 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
     return result as ReturnType;
   }
   throw new Error(
-    `Expected parseResponse=json|text|raw|null, got '${parseMethod}'.`,
+    `Expected parseResponse=json|json-bigint|text|raw|null, got '${parseMethod}'.`,
   );
 }

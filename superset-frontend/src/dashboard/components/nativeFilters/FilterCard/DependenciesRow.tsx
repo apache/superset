@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useRef } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import { css, t, useTheme } from '@superset-ui/core';
+import { css, t, useTheme, useTruncation } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
-import Icons from 'src/components/Icons';
 import {
   DependencyItem,
   Row,
@@ -30,7 +30,6 @@ import {
   TooltipList,
 } from './Styles';
 import { useFilterDependencies } from './useFilterDependencies';
-import { useTruncation } from './useTruncation';
 import { DependencyValueProps, FilterCardRowProps } from './types';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 
@@ -52,10 +51,10 @@ const DependencyValue = ({
   );
 };
 
-export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
+export const DependenciesRow = memo(({ filter }: FilterCardRowProps) => {
   const dependencies = useFilterDependencies(filter);
-  const dependenciesRef = useRef<HTMLDivElement>(null);
-  const [elementsTruncated, hasHiddenElements] = useTruncation(dependenciesRef);
+  const [dependenciesRef, plusRef, elementsTruncated, hasHiddenElements] =
+    useTruncation();
   const theme = useTheme();
 
   const tooltipText = useMemo(
@@ -89,7 +88,7 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
             'Filter only displays values relevant to selections made in other filters.',
           )}
         >
-          <Icons.Info
+          <Icons.InfoCircleOutlined
             iconSize="m"
             iconColor={theme.colors.grayscale.light1}
             css={css`
@@ -102,13 +101,16 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
         <RowValue ref={dependenciesRef}>
           {dependencies.map((dependency, index) => (
             <DependencyValue
+              key={dependency.id}
               dependency={dependency}
               hasSeparator={index !== 0}
             />
           ))}
         </RowValue>
         {hasHiddenElements && (
-          <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
+          <RowTruncationCount ref={plusRef}>
+            +{elementsTruncated}
+          </RowTruncationCount>
         )}
       </TooltipWithTruncation>
     </Row>

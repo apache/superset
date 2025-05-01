@@ -37,24 +37,25 @@ UNICODE_TBL_NAME = "unicode_test"
 @pytest.fixture(scope="session")
 def load_unicode_data():
     with app.app_context():
-        _get_dataframe().to_sql(
-            UNICODE_TBL_NAME,
-            get_example_database().get_sqla_engine(),
-            if_exists="replace",
-            chunksize=500,
-            dtype={"phrase": String(500)},
-            index=False,
-            method="multi",
-            schema=get_example_default_schema(),
-        )
+        with get_example_database().get_sqla_engine() as engine:
+            _get_dataframe().to_sql(
+                UNICODE_TBL_NAME,
+                engine,
+                if_exists="replace",
+                chunksize=500,
+                dtype={"phrase": String(500)},
+                index=False,
+                method="multi",
+                schema=get_example_default_schema(),
+            )
 
     yield
     with app.app_context():
-        engine = get_example_database().get_sqla_engine()
-        engine.execute("DROP TABLE IF EXISTS unicode_test")
+        with get_example_database().get_sqla_engine() as engine:
+            engine.execute("DROP TABLE IF EXISTS unicode_test")
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_unicode_dashboard_with_slice(load_unicode_data):
     slice_name = "Unicode Cloud"
     with app.app_context():
@@ -63,7 +64,7 @@ def load_unicode_dashboard_with_slice(load_unicode_data):
         _cleanup(dash, slice_name)
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_unicode_dashboard_with_position(load_unicode_data):
     slice_name = "Unicode Cloud"
     position = "{}"
@@ -113,7 +114,8 @@ def _create_and_commit_unicode_slice(table: SqlaTable, title: str):
 
 def _cleanup(dash: Dashboard, slice_name: str) -> None:
     db.session.delete(dash)
-    if slice_name:
-        slice = db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+    if slice_name and (
+        slice := db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+    ):
         db.session.delete(slice)
     db.session.commit()

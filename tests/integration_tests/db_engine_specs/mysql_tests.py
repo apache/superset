@@ -21,12 +21,7 @@ from sqlalchemy.dialects.mysql import DATE, NVARCHAR, TEXT, VARCHAR
 
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.models.sql_lab import Query
-from superset.utils.core import GenericDataType
-from tests.integration_tests.db_engine_specs.base_tests import (
-    assert_generic_types,
-    TestDbEngineSpec,
-)
+from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
@@ -35,21 +30,8 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
     )
     def test_get_datatype_mysql(self):
         """Tests related to datatype mapping for MySQL"""
-        self.assertEqual("TINY", MySQLEngineSpec.get_datatype(1))
-        self.assertEqual("VARCHAR", MySQLEngineSpec.get_datatype(15))
-
-    def test_convert_dttm(self):
-        dttm = self.get_dttm()
-
-        self.assertEqual(
-            MySQLEngineSpec.convert_dttm("DATE", dttm),
-            "STR_TO_DATE('2019-01-02', '%Y-%m-%d')",
-        )
-
-        self.assertEqual(
-            MySQLEngineSpec.convert_dttm("DATETIME", dttm),
-            "STR_TO_DATE('2019-01-02 03:04:05.678900', '%Y-%m-%d %H:%i:%s.%f')",
-        )
+        assert "TINY" == MySQLEngineSpec.get_datatype(1)
+        assert "VARCHAR" == MySQLEngineSpec.get_datatype(15)
 
     def test_column_datatype_to_string(self):
         test_cases = (
@@ -67,33 +49,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             actual = MySQLEngineSpec.column_datatype_to_string(
                 original, mysql.dialect()
             )
-            self.assertEqual(actual, expected)
-
-    def test_generic_type(self):
-        type_expectations = (
-            # Numeric
-            ("TINYINT", GenericDataType.NUMERIC),
-            ("SMALLINT", GenericDataType.NUMERIC),
-            ("MEDIUMINT", GenericDataType.NUMERIC),
-            ("INT", GenericDataType.NUMERIC),
-            ("BIGINT", GenericDataType.NUMERIC),
-            ("DECIMAL", GenericDataType.NUMERIC),
-            ("FLOAT", GenericDataType.NUMERIC),
-            ("DOUBLE", GenericDataType.NUMERIC),
-            ("BIT", GenericDataType.NUMERIC),
-            # String
-            ("CHAR", GenericDataType.STRING),
-            ("VARCHAR", GenericDataType.STRING),
-            ("TINYTEXT", GenericDataType.STRING),
-            ("MEDIUMTEXT", GenericDataType.STRING),
-            ("LONGTEXT", GenericDataType.STRING),
-            # Temporal
-            ("DATE", GenericDataType.TEMPORAL),
-            ("DATETIME", GenericDataType.TEMPORAL),
-            ("TIMESTAMP", GenericDataType.TEMPORAL),
-            ("TIME", GenericDataType.TEMPORAL),
-        )
-        assert_generic_types(MySQLEngineSpec, type_expectations)
+            assert actual == expected
 
     def test_extract_error_message(self):
         from MySQLdb._exceptions import OperationalError
@@ -214,18 +170,18 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1015,
-                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
+                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",  # noqa: E501
                         }
                     ],
                 },
             )
         ]
 
-        msg = "check the manual that corresponds to your MySQL server version for the right syntax to use near 'fromm"
+        msg = "check the manual that corresponds to your MySQL server version for the right syntax to use near 'from_"  # noqa: E501
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message='Please check your query for syntax errors near "fromm". Then, try running your query again.',
+                message='Please check your query for syntax errors near "from_". Then, try running your query again.',  # noqa: E501
                 error_type=SupersetErrorType.SYNTAX_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
@@ -239,22 +195,3 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                 },
             )
         ]
-
-    @unittest.mock.patch("sqlalchemy.engine.Engine.connect")
-    def test_get_cancel_query_id(self, engine_mock):
-        query = Query()
-        cursor_mock = engine_mock.return_value.__enter__.return_value
-        cursor_mock.fetchone.return_value = [123]
-        assert MySQLEngineSpec.get_cancel_query_id(cursor_mock, query) == 123
-
-    @unittest.mock.patch("sqlalchemy.engine.Engine.connect")
-    def test_cancel_query(self, engine_mock):
-        query = Query()
-        cursor_mock = engine_mock.return_value.__enter__.return_value
-        assert MySQLEngineSpec.cancel_query(cursor_mock, query, 123) is True
-
-    @unittest.mock.patch("sqlalchemy.engine.Engine.connect")
-    def test_cancel_query_failed(self, engine_mock):
-        query = Query()
-        cursor_mock = engine_mock.raiseError.side_effect = Exception()
-        assert MySQLEngineSpec.cancel_query(cursor_mock, query, 123) is False

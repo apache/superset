@@ -21,18 +21,18 @@ Revises: f2672aa8350a
 Create Date: 2020-08-12 00:24:39.617899
 
 """
-import collections
-import json
+
 import logging
 import uuid
 from collections import defaultdict
 
 from alembic import op
-from sqlalchemy import and_, Column, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 from superset import db
+from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "978245563a02"
@@ -77,7 +77,7 @@ class Dashboard(Base):
 def create_new_markdown_component(chart_position, url):
     return {
         "type": "MARKDOWN",
-        "id": "MARKDOWN-{}".format(uuid.uuid4().hex[:8]),
+        "id": f"MARKDOWN-{uuid.uuid4().hex[:8]}",
         "children": [],
         "parents": chart_position["parents"],
         "meta": {
@@ -121,7 +121,7 @@ def upgrade():
         )
         for i, dashboard in enumerate(dashboards):
             print(
-                f"scanning dashboard ({i + 1}/{len(dashboards)}) dashboard: {dashboard.id} >>>>"
+                f"scanning dashboard ({i + 1}/{len(dashboards)}) dashboard: {dashboard.id} >>>>"  # noqa: E501
             )
 
             # remove iframe slices from dashboard
@@ -164,7 +164,6 @@ def upgrade():
                     separators=(",", ":"),
                     sort_keys=True,
                 )
-                session.merge(dashboard)
 
         # remove iframe, separator and markup charts
         slices_to_remove = (

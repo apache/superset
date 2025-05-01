@@ -20,11 +20,21 @@
 import { Dispatch, AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import { Dataset } from '@superset-ui/chart-controls';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { updateFormDataByDatasource } from './exploreActions';
 import { ExplorePageState } from '../types';
+
+interface SaveDatasetRequest {
+  data: {
+    schema?: string;
+    sql?: string;
+    dbId?: number;
+    templateParams?: string;
+    datasourceName: string;
+    columns: unknown[];
+  };
+}
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';
 export interface SetDatasource {
@@ -35,6 +45,16 @@ export function setDatasource(datasource: Dataset) {
   return { type: SET_DATASOURCE, datasource };
 }
 
+export function changeDatasource(newDatasource: Dataset) {
+  return function (dispatch: Dispatch, getState: () => ExplorePageState) {
+    const {
+      explore: { datasource: prevDatasource },
+    } = getState();
+    dispatch(setDatasource(newDatasource));
+    dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
+  };
+}
+
 export function saveDataset({
   schema,
   sql,
@@ -42,25 +62,23 @@ export function saveDataset({
   templateParams,
   datasourceName,
   columns,
-}: Omit<SqlLabPostRequest['data'], 'dbId'> & { database: { id: number } }) {
+}: Omit<SaveDatasetRequest['data'], 'dbId'> & { database: { id: number } }) {
   return async function (dispatch: ThunkDispatch<any, undefined, AnyAction>) {
     // Create a dataset object
     try {
       const {
         json: { data },
       } = await SupersetClient.post({
-        endpoint: '/superset/sqllab_viz/',
-        postPayload: {
-          data: {
-            schema,
-            sql,
-            dbId: database?.id,
-            templateParams,
-            datasourceName,
-            metrics: [],
-            columns,
-          },
-        },
+        endpoint: '/api/v1/dataset/',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          database: database?.id,
+          table_name: datasourceName,
+          schema,
+          sql,
+          template_params: templateParams,
+          columns,
+        }),
       });
       // Update form_data to point to new dataset
       dispatch(changeDatasource(data));
@@ -71,16 +89,6 @@ export function saveDataset({
       });
       throw error;
     }
-  };
-}
-
-export function changeDatasource(newDatasource: Dataset) {
-  return function (dispatch: Dispatch, getState: () => ExplorePageState) {
-    const {
-      explore: { datasource: prevDatasource },
-    } = getState();
-    dispatch(setDatasource(newDatasource));
-    dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
   };
 }
 

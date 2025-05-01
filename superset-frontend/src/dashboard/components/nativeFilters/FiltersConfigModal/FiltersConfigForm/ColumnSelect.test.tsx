@@ -16,15 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import * as utils from 'src/utils/getClientErrorObject';
-import { Column, JsonObject } from '@superset-ui/core';
-import userEvent from '@testing-library/user-event';
+import { Column, JsonObject, getClientErrorObject } from '@superset-ui/core';
 import { ColumnSelect } from './ColumnSelect';
 
-fetchMock.get('glob:*/api/v1/dataset/123', {
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  getClientErrorObject: jest.fn(() => Promise.resolve({ error: 'Error' })),
+}));
+
+const mockedGetClientErrorObject = getClientErrorObject as jest.Mock;
+
+fetchMock.get('glob:*/api/v1/dataset/123?*', {
   body: {
     result: {
       columns: [
@@ -35,7 +44,7 @@ fetchMock.get('glob:*/api/v1/dataset/123', {
     },
   },
 });
-fetchMock.get('glob:*/api/v1/dataset/456', {
+fetchMock.get('glob:*/api/v1/dataset/456?*', {
   body: {
     result: {
       columns: [
@@ -47,7 +56,7 @@ fetchMock.get('glob:*/api/v1/dataset/456', {
   },
 });
 
-fetchMock.get('glob:*/api/v1/dataset/789', { status: 404 });
+fetchMock.get('glob:*/api/v1/dataset/789?*', { status: 404 });
 
 const createProps = (extraProps: JsonObject = {}) => ({
   filterId: 'filterId',
@@ -85,26 +94,25 @@ test('Should call "setFields" when "datasetId" changes', () => {
   const { rerender } = render(<ColumnSelect {...(props as any)} />, {
     useRedux: true,
   });
-  expect(props.form.setFields).not.toBeCalled();
+  expect(props.form.setFields).not.toHaveBeenCalled();
 
   props.datasetId = 456;
   rerender(<ColumnSelect {...(props as any)} />);
 
-  expect(props.form.setFields).toBeCalled();
+  expect(props.form.setFields).toHaveBeenCalled();
 });
 
 test('Should call "getClientErrorObject" when api returns an error', async () => {
   const props = createProps();
 
   props.datasetId = 789;
-  const spy = jest.spyOn(utils, 'getClientErrorObject');
 
-  expect(spy).not.toBeCalled();
+  expect(mockedGetClientErrorObject).not.toHaveBeenCalled();
   render(<ColumnSelect {...(props as any)} />, {
     useRedux: true,
   });
   await waitFor(() => {
-    expect(spy).toBeCalled();
+    expect(mockedGetClientErrorObject).toHaveBeenCalled();
   });
 });
 

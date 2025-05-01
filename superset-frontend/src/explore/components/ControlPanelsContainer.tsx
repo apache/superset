@@ -17,7 +17,8 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, {
+import {
+  isValidElement,
   ReactNode,
   useCallback,
   useContext,
@@ -36,6 +37,10 @@ import {
   css,
   SupersetTheme,
   useTheme,
+  isDefined,
+  JsonValue,
+  NO_TIME_RANGE,
+  usePrevious,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -43,27 +48,34 @@ import {
   CustomControlItem,
   Dataset,
   ExpandedControlItem,
+  isCustomControlItem,
+  isTemporalColumn,
   sections,
 } from '@superset-ui/chart-controls';
+import { useSelector } from 'react-redux';
+import { rgba } from 'emotion-rgba';
+import { kebabCase, isEqual } from 'lodash';
 
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
+import Modal from 'src/components/Modal';
 
-import { usePrevious } from 'src/hooks/usePrevious';
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
-
-import { rgba } from 'emotion-rgba';
-import { kebabCase } from 'lodash';
+import { Icons } from 'src/components/Icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
+import { Operators } from '../constants';
+import { Clauses } from './controls/FilterControl/types';
+import StashFormDataContainer from './StashFormDataContainer';
+
+const { confirm } = Modal;
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
@@ -181,9 +193,7 @@ const ControlPanelsTabs = styled(Tabs)`
 `;
 
 const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
-  !!section.label &&
-  (sections.legacyRegularTime.label === section.label ||
-    sections.legacyTimeseriesTime.label === section.label);
+  !!section.label && sections.legacyTimeseriesTime.label === section.label;
 
 const hasTimeColumn = (datasource: Dataset): boolean =>
   datasource?.columns?.some(c => c.is_dttm);
@@ -227,7 +237,7 @@ function getState(
       )
     ) {
       querySections.push(section);
-    } else {
+    } else if (section.controlSetRows.length > 0) {
       customizeSections.push(section);
     }
   });
@@ -264,14 +274,118 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const prevState = usePrevious(props.exploreState);
   const prevDatasource = usePrevious(props.exploreState.datasource);
+  const prevChartStatus = usePrevious(props.chart.chartStatus);
 
   const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const controlsTransferred = useSelector<
+    ExplorePageState,
+    string[] | undefined
+  >(state => state.explore.controlsTransferred);
+
+  const defaultTimeFilter = useSelector<ExplorePageState>(
+    state => state.common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE,
+  );
+
+  const { form_data, actions } = props;
+  const { setControlValue } = actions;
+  const { x_axis, adhoc_filters } = form_data;
+
+  const previousXAxis = usePrevious(x_axis);
+
+  useEffect(() => {
+    if (
+      x_axis &&
+      x_axis !== previousXAxis &&
+      isTemporalColumn(x_axis, props.exploreState.datasource)
+    ) {
+      const noFilter = !adhoc_filters?.find(
+        filter =>
+          filter.expressionType === 'SIMPLE' &&
+          filter.operator === Operators.TemporalRange &&
+          filter.subject === x_axis,
+      );
+      if (noFilter) {
+        confirm({
+          title: t('The X-axis is not on the filters list'),
+          content:
+            t(`The X-axis is not on the filters list which will prevent it from being used in
+            time range filters in dashboards. Would you like to add it to the filters list?`),
+          onOk: () => {
+            setControlValue('adhoc_filters', [
+              ...(adhoc_filters || []),
+              {
+                clause: Clauses.Where,
+                subject: x_axis,
+                operator: Operators.TemporalRange,
+                comparator: defaultTimeFilter,
+                expressionType: 'SIMPLE',
+              },
+            ]);
+          },
+        });
+      }
+    }
+  }, [
+    x_axis,
+    adhoc_filters,
+    setControlValue,
+    defaultTimeFilter,
+    previousXAxis,
+    props.exploreState.datasource,
+  ]);
+
+  useEffect(() => {
+    let shouldUpdateControls = false;
+    const removeDatasourceWarningFromControl = (
+      value: JsonValue | undefined,
+    ) => {
+      if (
+        typeof value === 'object' &&
+        isDefined(value) &&
+        'datasourceWarning' in value &&
+        value.datasourceWarning === true
+      ) {
+        shouldUpdateControls = true;
+        return { ...value, datasourceWarning: false };
+      }
+      return value;
+    };
+    if (
+      props.chart.chartStatus === 'success' &&
+      prevChartStatus !== 'success'
+    ) {
+      controlsTransferred?.forEach(controlName => {
+        shouldUpdateControls = false;
+        if (!isDefined(props.controls[controlName])) {
+          return;
+        }
+        const alteredControls = Array.isArray(props.controls[controlName].value)
+          ? ensureIsArray(props.controls[controlName].value)?.map(
+              removeDatasourceWarningFromControl,
+            )
+          : removeDatasourceWarningFromControl(
+              props.controls[controlName].value,
+            );
+        if (shouldUpdateControls) {
+          props.actions.setControlValue(controlName, alteredControls);
+        }
+      });
+    }
+  }, [
+    controlsTransferred,
+    prevChartStatus,
+    props.actions,
+    props.chart.chartStatus,
+    props.controls,
+  ]);
+
   useEffect(() => {
     if (
       prevDatasource &&
+      prevDatasource.type !== DatasourceType.Query &&
       (props.exploreState.datasource?.id !== prevDatasource.id ||
         props.exploreState.datasource?.type !== prevDatasource.type)
     ) {
@@ -292,15 +406,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   } = useMemo(
     () =>
       getState(
-        props.form_data.viz_type,
+        form_data.viz_type,
         props.exploreState.datasource,
         props.datasource_type,
       ),
-    [
-      props.exploreState.datasource,
-      props.form_data.viz_type,
-      props.datasource_type,
-    ],
+    [props.exploreState.datasource, form_data.viz_type, props.datasource_type],
   );
 
   const resetTransferredControls = useCallback(() => {
@@ -339,13 +449,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const renderControl = ({ name, config }: CustomControlItem) => {
     const { controls, chart, exploreState } = props;
-    const { visibility } = config;
+    const { visibility, hidden, disableStash, ...restConfig } = config;
 
     // If the control item is not an object, we have to look up the control data from
     // the centralized controls file.
     // When it is an object we read control data straight from `config` instead
     const controlData = {
-      ...config,
+      ...restConfig,
       ...controls[name],
       ...(shouldRecalculateControlState({ name, config })
         ? config?.mapStateToProps?.(exploreState, controls[name], chart)
@@ -367,6 +477,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       ? visibility.call(config, props, controlData)
       : undefined;
 
+    const isHidden =
+      typeof hidden === 'function'
+        ? hidden.call(config, props, controlData)
+        : hidden;
+
     const label =
       typeof baseLabel === 'function'
         ? baseLabel(exploreState, controls[name], chart)
@@ -377,44 +492,87 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         ? baseDescription(exploreState, controls[name], chart)
         : baseDescription;
 
+    if (name.includes('adhoc_filters')) {
+      restProps.canDelete = (
+        valueToBeDeleted: Record<string, any>,
+        values: Record<string, any>[],
+      ) => {
+        const isTemporalRange = (filter: Record<string, any>) =>
+          filter.operator === Operators.TemporalRange;
+        if (!controls?.time_range?.value && isTemporalRange(valueToBeDeleted)) {
+          const count = values.filter(isTemporalRange).length;
+          if (count === 1) {
+            // if temporal filter's value is "No filter", prevent deletion
+            // otherwise reset the value to "No filter"
+            if (valueToBeDeleted.comparator === defaultTimeFilter) {
+              return t(
+                `You cannot delete the last temporal filter as it's used for time range filters in dashboards.`,
+              );
+            }
+            props.actions.setControlValue(
+              name,
+              values.map(val => {
+                if (isEqual(val, valueToBeDeleted)) {
+                  return {
+                    ...val,
+                    comparator: defaultTimeFilter,
+                  };
+                }
+                return val;
+              }),
+            );
+            return false;
+          }
+        }
+        return true;
+      };
+    }
+
     return (
-      <Control
-        key={`control-${name}`}
-        name={name}
-        label={label}
-        description={description}
-        validationErrors={validationErrors}
-        actions={props.actions}
-        isVisible={isVisible}
-        {...restProps}
-      />
+      <StashFormDataContainer
+        shouldStash={isVisible === false && disableStash !== true}
+        fieldNames={[name]}
+        key={`control-container-${name}`}
+      >
+        <Control
+          key={`control-${name}`}
+          name={name}
+          label={label}
+          description={description}
+          validationErrors={validationErrors}
+          actions={props.actions}
+          isVisible={isVisible}
+          hidden={isHidden}
+          {...restProps}
+        />
+      </StashFormDataContainer>
     );
   };
 
   const sectionHasHadNoErrors = useResetOnChangeRef(
     () => ({}),
-    props.form_data.viz_type,
+    form_data.viz_type,
   );
 
   const renderControlPanelSection = (
     section: ExpandedControlPanelSectionConfig,
   ) => {
     const { controls } = props;
-    const { label, description } = section;
+    const { label, description, visibility } = section;
 
     // Section label can be a ReactNode but in some places we want to
     // have a string ID. Using forced type conversion for now,
     // should probably add a `id` field to sections in the future.
     const sectionId = String(label);
-
+    const isVisible = visibility?.call(this, props, controls) !== false;
     const hasErrors = section.controlSetRows.some(rows =>
       rows.some(item => {
         const controlName =
           typeof item === 'string'
             ? item
             : item && 'name' in item
-            ? item.name
-            : null;
+              ? item.name
+              : null;
         return (
           controlName &&
           controlName in controls &&
@@ -430,7 +588,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     const errorColor = sectionHasHadNoErrors.current[sectionId]
       ? colors.error.base
-      : colors.alert.base;
+      : colors.warning.base;
 
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
@@ -438,6 +596,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           css={(theme: SupersetTheme) => css`
             font-size: ${theme.typography.sizes.m}px;
             line-height: 1.3;
+            font-weight: ${theme.typography.weights.medium};
           `}
         >
           {label}
@@ -450,11 +609,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         {hasErrors && (
           <Tooltip
             id={`${kebabCase('validation-errors')}-tooltip`}
-            title="This section contains validation errors"
+            title={t('This section contains validation errors')}
           >
             <Icons.InfoCircleOutlined
               css={css`
-                ${iconStyles}
+                ${iconStyles};
                 color: ${errorColor};
               `}
             />
@@ -464,67 +623,84 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
 
     return (
-      <Collapse.Panel
-        css={theme => css`
-          margin-bottom: 0;
-          box-shadow: none;
+      <>
+        <StashFormDataContainer
+          key={`sectionId-${sectionId}`}
+          shouldStash={!isVisible}
+          fieldNames={section.controlSetRows
+            .flat()
+            .map(item =>
+              item && typeof item === 'object'
+                ? 'name' in item
+                  ? item.name
+                  : ''
+                : String(item || ''),
+            )
+            .filter(Boolean)}
+        />
+        {isVisible && (
+          <Collapse.Panel
+            css={theme => css`
+              margin-bottom: 0;
+              box-shadow: none;
 
-          &:last-child {
-            padding-bottom: ${theme.gridUnit * 16}px;
-            border-bottom: 0;
-          }
+              &:last-child {
+                padding-bottom: ${theme.gridUnit * 16}px;
+                border-bottom: 0;
+              }
 
-          .panel-body {
-            margin-left: ${theme.gridUnit * 4}px;
-            padding-bottom: 0;
-          }
+              .panel-body {
+                margin-left: ${theme.gridUnit * 4}px;
+                padding-bottom: 0;
+              }
 
-          span.label {
-            display: inline-block;
+              span.label {
+                display: inline-block;
+              }
+              ${!section.label &&
+              `
+          .ant-collapse-header {
+            display: none;
           }
-          ${!section.label &&
-          `
-            .ant-collapse-header {
-              display: none;
-            }
-          `}
         `}
-        header={<PanelHeader />}
-        key={sectionId}
-      >
-        {section.controlSetRows.map((controlSets, i) => {
-          const renderedControls = controlSets
-            .map(controlItem => {
-              if (!controlItem) {
-                // When the item is invalid
+            `}
+            header={<PanelHeader />}
+            key={sectionId}
+          >
+            {section.controlSetRows.map((controlSets, i) => {
+              const renderedControls = controlSets
+                .map(controlItem => {
+                  if (!controlItem) {
+                    // When the item is invalid
+                    return null;
+                  }
+                  if (isValidElement(controlItem)) {
+                    // When the item is a React element
+                    return controlItem;
+                  }
+                  if (
+                    isCustomControlItem(controlItem) &&
+                    controlItem.name !== 'datasource'
+                  ) {
+                    return renderControl(controlItem);
+                  }
+                  return null;
+                })
+                .filter(x => x !== null);
+              // don't show the row if it is empty
+              if (renderedControls.length === 0) {
                 return null;
               }
-              if (React.isValidElement(controlItem)) {
-                // When the item is a React element
-                return controlItem;
-              }
-              if (
-                controlItem.name &&
-                controlItem.config &&
-                controlItem.name !== 'datasource'
-              ) {
-                return renderControl(controlItem);
-              }
-              return null;
-            })
-            .filter(x => x !== null);
-          // don't show the row if it is empty
-          if (renderedControls.length === 0) {
-            return null;
-          }
-          return (
-            <ControlRow
-              key={`controlsetrow-${i}`}
-              controls={renderedControls}
-            />
-          );
-        })}
-      </Collapse.Panel>
+              return (
+                <ControlRow
+                  key={`controlsetrow-${i}`}
+                  controls={renderedControls}
+                />
+              );
+            })}
+          </Collapse.Panel>
+        )}
+      </>
     );
   };
 
@@ -561,7 +737,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const dataTabHasHadNoErrors = useResetOnChangeRef(
     () => false,
-    props.form_data.viz_type,
+    form_data.viz_type,
   );
 
   const dataTabTitle = useMemo(() => {
@@ -571,7 +747,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     const errorColor = dataTabHasHadNoErrors.current
       ? colors.error.base
-      : colors.alert.base;
+      : colors.warning.base;
 
     return (
       <>
@@ -590,7 +766,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             >
               <Icons.ExclamationCircleOutlined
                 css={css`
-                  ${iconStyles}
+                  ${iconStyles};
                   color: ${errorColor};
                 `}
               />
@@ -601,16 +777,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
   }, [
     colors.error.base,
-    colors.alert.base,
+    colors.warning.base,
     dataTabHasHadNoErrors,
     props.errorMessage,
   ]);
 
   const controlPanelRegistry = getChartControlPanelRegistry();
-  if (
-    !controlPanelRegistry.has(props.form_data.viz_type) &&
-    pluginContext.loading
-  ) {
+  if (!controlPanelRegistry.has(form_data.viz_type) && pluginContext.loading) {
     return <Loading />;
   }
 

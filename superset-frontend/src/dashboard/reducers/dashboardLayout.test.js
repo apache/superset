@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import layoutReducer from 'src/dashboard/reducers/dashboardLayout';
+import layoutReducer, {
+  recursivelyDeleteChildren,
+} from 'src/dashboard/reducers/dashboardLayout';
 
 import {
   UPDATE_COMPONENTS,
@@ -454,5 +456,24 @@ describe('dashboardLayout reducer', () => {
     const newId = result[DASHBOARD_GRID_ID].children[1];
     expect(result[DASHBOARD_GRID_ID].children).toHaveLength(2);
     expect(result[newId].type).toBe(ROW_TYPE);
+  });
+
+  it('recursivelyDeleteChildren should be error proof with bad inputs', () => {
+    /*
+     ** The recursivelyDeleteChildren function was missing runtime safety checks before operating
+     ** on sub properties of object causing runtime errors when a componentId lookup returned and unexpected value
+     ** These test are to ensure this function is fault tolerant if provided any bad values while recursively looping
+     ** through the data structure of
+     */
+    const componentId = '123';
+    const componentParentId = '456';
+    const nextComponents = [];
+    expect(() => {
+      recursivelyDeleteChildren(componentId, componentParentId, nextComponents);
+    }).not.toThrow();
+
+    expect(() => {
+      recursivelyDeleteChildren(null, null, null);
+    }).not.toThrow();
   });
 });

@@ -16,15 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  AnnotationType,
-  Behavior,
-  ChartMetadata,
-  ChartPlugin,
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-} from '@superset-ui/core';
+import { AnnotationType, Behavior, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './Regular/Line/controlPanel';
 import transformProps from './transformProps';
@@ -34,8 +26,9 @@ import {
   EchartsTimeseriesFormData,
 } from './types';
 import example from './images/Time-series_Chart.jpg';
+import { EchartsChartPlugin } from '../types';
 
-export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {
@@ -44,17 +37,17 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('./EchartsTimeseries'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+      metadata: {
+        behaviors: [
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-          ? t(
-              'Swiss army knife for visualizing data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.',
-            )
-          : t(
-              'Swiss army knife for visualizing time series data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.',
-            ),
+        description: t(
+          'Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.',
+        ),
         exampleGallery: [{ url: example }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
@@ -62,19 +55,16 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-          ? t('Generic Chart')
-          : t('Time-series Chart'),
+        name: t('Generic Chart'),
         tags: [
           t('Advanced-Analytics'),
-          t('Aesthetic'),
           t('Line'),
           t('Predictive'),
           t('Time'),
           t('Transformable'),
         ],
         thumbnail,
-      }),
+      },
       transformProps,
     });
   }

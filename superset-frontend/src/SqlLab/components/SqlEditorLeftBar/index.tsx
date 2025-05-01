@@ -16,61 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useEffect,
-  useRef,
-  useCallback,
-  useMemo,
-  useState,
-  Dispatch,
-  SetStateAction,
-} from 'react';
+import { useEffect, useCallback, useMemo, useState } from 'react';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import querystring from 'query-string';
+
+import { SqlLabRootState, Table } from 'src/SqlLab/types';
+import {
+  queryEditorSetDb,
+  addTable,
+  removeTables,
+  collapseTable,
+  expandTable,
+  queryEditorSetCatalog,
+  queryEditorSetSchema,
+  setDatabases,
+  addDangerToast,
+  resetState,
+} from 'src/SqlLab/actions/sqlLab';
 import Button from 'src/components/Button';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
-import { QueryEditor } from 'src/SqlLab/types';
-import { DatabaseObject } from 'src/components/DatabaseSelector';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import type { DatabaseObject } from 'src/components/DatabaseSelector';
+import { EmptyState } from 'src/components/EmptyState';
 import {
   getItem,
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import TableElement, { Table, TableElementProps } from '../TableElement';
+import TableElement from '../TableElement';
 
-interface ExtendedTable extends Table {
-  expanded: boolean;
-}
-
-interface actionsTypes {
-  queryEditorSetDb: (queryEditor: QueryEditor, dbId: number) => void;
-  queryEditorSetFunctionNames: (queryEditor: QueryEditor, dbId: number) => void;
-  collapseTable: (table: Table) => void;
-  expandTable: (table: Table) => void;
-  addTable: (queryEditor: any, database: any, value: any, schema: any) => void;
-  setDatabases: (arg0: any) => {};
-  addDangerToast: (msg: string) => void;
-  queryEditorSetSchema: (queryEditor: QueryEditor, schema?: string) => void;
-  queryEditorSetSchemaOptions: () => void;
-  queryEditorSetTableOptions: (
-    queryEditor: QueryEditor,
-    options: Array<any>,
-  ) => void;
-  resetState: () => void;
-}
-
-interface SqlEditorLeftBarProps {
-  queryEditor: QueryEditor;
+export interface SqlEditorLeftBarProps {
+  queryEditorId: string;
   height?: number;
-  tables?: ExtendedTable[];
-  actions: actionsTypes & TableElementProps['actions'];
-  database: DatabaseObject;
-  setEmptyState: Dispatch<SetStateAction<boolean>>;
-  showDisabled: boolean;
+  database?: DatabaseObject;
 }
 
 const StyledScrollbarContainer = styled.div`
@@ -91,55 +73,80 @@ const collapseStyles = (theme: SupersetTheme) => css`
     padding: 0px ${theme.gridUnit * 4}px 0px 0px !important;
   }
   .ant-collapse-arrow {
-    top: ${theme.gridUnit * 2}px !important;
+    padding: 0 !important;
+    bottom: ${theme.gridUnit}px !important;
+    right: ${theme.gridUnit * 4}px !important;
     color: ${theme.colors.primary.dark1} !important;
-    &: hover {
+    &:hover {
       color: ${theme.colors.primary.dark2} !important;
     }
   }
 `;
 
-export default function SqlEditorLeftBar({
-  actions,
+const LeftBarStyles = styled.div`
+  ${({ theme }) => css`
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .divider {
+      border-bottom: 1px solid ${theme.colors.grayscale.light4};
+      margin: ${theme.gridUnit * 4}px 0;
+    }
+  `}
+`;
+
+const SqlEditorLeftBar = ({
   database,
-  queryEditor,
-  tables = [],
+  queryEditorId,
   height = 500,
-  setEmptyState,
-}: SqlEditorLeftBarProps) {
-  // Ref needed to avoid infinite rerenders on handlers
-  // that require and modify the queryEditor
-  const queryEditorRef = useRef<QueryEditor>(queryEditor);
-  const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
+}: SqlEditorLeftBarProps) => {
+  const allSelectedTables = useSelector<SqlLabRootState, Table[]>(
+    ({ sqlLab }) =>
+      sqlLab.tables.filter(table => table.queryEditorId === queryEditorId),
+    shallowEqual,
+  );
+  const dispatch = useDispatch();
+  const queryEditor = useQueryEditor(queryEditorId, [
+    'dbId',
+    'catalog',
+    'schema',
+  ]);
+
+  const [_emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
+  );
+  const { dbId, catalog, schema } = queryEditor;
+  const tables = useMemo(
+    () =>
+      allSelectedTables.filter(
+        table => table.dbId === dbId && table.schema === schema,
+      ),
+    [allSelectedTables, dbId, schema],
   );
 
   useEffect(() => {
     const bool = querystring.parse(window.location.search).db;
     const userSelected = getItem(
-      LocalStorageKeys.db,
+      LocalStorageKeys.Database,
       null,
     ) as DatabaseObject | null;
 
     if (bool && userSelected) {
       setUserSelected(userSelected);
-      setItem(LocalStorageKeys.db, null);
-    } else setUserSelected(database);
+      setItem(LocalStorageKeys.Database, null);
+    } else if (database) {
+      setUserSelected(database);
+    }
+  }, [database]);
+
+  const onEmptyResults = useCallback((searchText?: string) => {
+    setEmptyResultsWithSearch(!!searchText);
   }, []);
 
-  useEffect(() => {
-    queryEditorRef.current = queryEditor;
-  }, [queryEditor, database]);
-
-  const onEmptyResults = (searchText?: string) => {
-    setEmptyResultsWithSearch(!!searchText);
-  };
-
   const onDbChange = ({ id: dbId }: { id: number }) => {
-    setEmptyState(false);
-    actions.queryEditorSetDb(queryEditor, dbId);
-    actions.queryEditorSetFunctionNames(queryEditor, dbId);
+    dispatch(queryEditorSetDb(queryEditor, dbId));
   };
 
   const selectedTableNames = useMemo(
@@ -147,7 +154,11 @@ export default function SqlEditorLeftBar({
     [tables],
   );
 
-  const onTablesChange = (tableNames: string[], schemaName: string) => {
+  const onTablesChange = (
+    tableNames: string[],
+    catalogName: string | null,
+    schemaName: string,
+  ) => {
     if (!schemaName) {
       return;
     }
@@ -163,22 +174,22 @@ export default function SqlEditorLeftBar({
       return true;
     });
 
-    tablesToAdd.forEach(tableName =>
-      actions.addTable(queryEditor, database, tableName, schemaName),
-    );
+    tablesToAdd.forEach(tableName => {
+      dispatch(addTable(queryEditor, tableName, catalogName, schemaName));
+    });
 
-    actions.removeTables(currentTables);
+    dispatch(removeTables(currentTables));
   };
 
   const onToggleTable = (updatedTables: string[]) => {
-    tables.forEach((table: ExtendedTable) => {
+    tables.forEach(table => {
       if (!updatedTables.includes(table.id.toString()) && table.expanded) {
-        actions.collapseTable(table);
+        dispatch(collapseTable(table));
       } else if (
         updatedTables.includes(table.id.toString()) &&
         !table.expanded
       ) {
-        actions.expandTable(table);
+        dispatch(expandTable(table));
       }
     });
   };
@@ -205,54 +216,56 @@ export default function SqlEditorLeftBar({
   const shouldShowReset = window.location.search === '?reset=1';
   const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
-  const emptyStateComponent = (
-    <EmptyStateSmall
-      image="empty.svg"
-      title={
-        emptyResultsWithSearch
-          ? t('No databases match your search')
-          : t('There are no databases available')
+  const handleCatalogChange = useCallback(
+    (catalog: string | null) => {
+      if (queryEditor) {
+        dispatch(queryEditorSetCatalog(queryEditor, catalog));
       }
-      description={
-        <p>
-          {t('Manage your databases')}{' '}
-          <a href="/databaseview/list">{t('here')}</a>
-        </p>
-      }
-    />
+    },
+    [dispatch, queryEditor],
   );
+
   const handleSchemaChange = useCallback(
     (schema: string) => {
-      if (queryEditorRef.current) {
-        actions.queryEditorSetSchema(queryEditorRef.current, schema);
+      if (queryEditor) {
+        dispatch(queryEditorSetSchema(queryEditor, schema));
       }
     },
-    [actions],
+    [dispatch, queryEditor],
   );
 
-  const handleTablesLoad = React.useCallback(
-    (options: Array<any>) => {
-      if (queryEditorRef.current) {
-        actions.queryEditorSetTableOptions(queryEditorRef.current, options);
-      }
+  const handleDbList = useCallback(
+    (result: DatabaseObject) => {
+      dispatch(setDatabases(result));
     },
-    [actions],
+    [dispatch],
   );
+
+  const handleError = useCallback(
+    (message: string) => {
+      dispatch(addDangerToast(message));
+    },
+    [dispatch],
+  );
+
+  const handleResetState = useCallback(() => {
+    dispatch(resetState());
+  }, [dispatch]);
 
   return (
-    <div className="SqlEditorLeftBar">
+    <LeftBarStyles data-test="sql-editor-left-bar">
       <TableSelectorMultiple
         onEmptyResults={onEmptyResults}
-        emptyState={emptyStateComponent}
+        emptyState={<EmptyState />}
         database={userSelectedDb}
-        getDbList={actions.setDatabases}
-        handleError={actions.addDangerToast}
+        getDbList={handleDbList}
+        handleError={handleError}
         onDbChange={onDbChange}
+        onCatalogChange={handleCatalogChange}
+        catalog={catalog}
         onSchemaChange={handleSchemaChange}
-        onSchemasLoad={actions.queryEditorSetSchemaOptions}
+        schema={schema}
         onTableSelectChange={onTablesChange}
-        onTablesLoad={handleTablesLoad}
-        schema={queryEditor.schema}
         tableValue={selectedTableNames}
         sqlLabMode
       />
@@ -274,7 +287,7 @@ export default function SqlEditorLeftBar({
             expandIcon={renderExpandIconWithTooltip}
           >
             {tables.map(table => (
-              <TableElement table={table} key={table.id} actions={actions} />
+              <TableElement table={table} key={table.id} />
             ))}
           </Collapse>
         </div>
@@ -283,11 +296,15 @@ export default function SqlEditorLeftBar({
         <Button
           buttonSize="small"
           buttonStyle="danger"
-          onClick={actions.resetState}
+          onClick={handleResetState}
         >
+          {/* TODO: Remove fa-icon */}
+          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
           <i className="fa fa-bomb" /> {t('Reset state')}
         </Button>
       )}
-    </div>
+    </LeftBarStyles>
   );
-}
+};
+
+export default SqlEditorLeftBar;
