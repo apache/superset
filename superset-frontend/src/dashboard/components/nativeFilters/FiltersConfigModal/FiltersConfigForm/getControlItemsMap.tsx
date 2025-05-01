@@ -131,7 +131,10 @@ export default function getControlItemsMap({
               filterId={filterId}
               datasetId={datasetId}
               filterValues={column =>
-                doesColumnMatchFilterType(formFilter?.filterType || '', column)
+                doesColumnMatchFilterType(
+                  formFilter?.filterType || '',
+                  column,
+                ) && !!column?.filterable
               }
               onChange={() => {
                 // We need reset default value when column changed

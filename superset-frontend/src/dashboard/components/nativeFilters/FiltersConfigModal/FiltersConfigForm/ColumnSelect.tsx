@@ -99,6 +99,7 @@ export function ColumnSelect({
             'columns.column_name',
             'columns.is_dttm',
             'columns.type_generic',
+            'columns.filterable',
           ],
         })}`,
       })
