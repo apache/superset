@@ -214,6 +214,47 @@ export default function exploreReducer(state = {}, action) {
         currentControlsState = transformed.controlsState;
       }
 
+      const dependantControls = Object.entries(state.controls)
+        .filter(
+          ([, item]) =>
+            Array.isArray(item?.validationDependancies) &&
+            item.validationDependancies.includes(controlName),
+        )
+        .map(([key, item]) => ({
+          controlState: item,
+          dependantControlName: key,
+        }));
+
+      let updatedControlStates = {};
+      if (dependantControls.length > 0) {
+        const updatedControls = dependantControls.map(
+          ({ controlState, dependantControlName }) => {
+            const controlWithUpdatedVal = {
+              ...controlState,
+              [controlName]: action.value,
+            };
+
+            return {
+              controlState: getControlStateFromControlConfig(
+                controlWithUpdatedVal,
+                state,
+                controlState?.value,
+                true,
+              ),
+              dependantControlName,
+            };
+          },
+        );
+
+        updatedControlStates = updatedControls.reduce(
+          (acc, { controlState, dependantControlName }) => {
+            acc[dependantControlName] = { ...controlState };
+            return acc;
+          },
+          {},
+        );
+      }
+
       return {
         ...state,
         form_data: new_form_data,
@@ -227,6 +268,7 @@ export default function exploreReducer(state = {}, action) {
             },
           }),
           ...rerenderedControls,
+          ...updatedControlStates,
         },
       };
     },

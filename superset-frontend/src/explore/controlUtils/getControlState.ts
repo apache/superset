@@ -86,15 +86,31 @@ function handleMissingChoice<T = ControlType>(control: ControlState<T>) {
 export function applyMapStateToPropsToControl<T = ControlType>(
   controlState: ControlState<T>,
   controlPanelState: Partial<ControlPanelState> | null,
+  isDependancy?: boolean,
 ) {
   const { mapStateToProps } = controlState;
   let state = { ...controlState };
   let { value } = state; // value is current user-input value
   if (mapStateToProps && controlPanelState) {
+    let mappedState = mapStateToProps.call(
+      controlState,
+      controlPanelState,
+      controlState,
+    );
+    const validationDependancies = controlState?.validationDependancies || [];
+    if (validationDependancies.length > 0 && isDependancy) {
+      mappedState = Object.fromEntries(
+        Object.entries(mappedState).filter(
+          ([key]) => !controlState.validationDependancies?.includes(key),
+        ),
+      );
+    }
+
     state = {
       ...controlState,
-      ...mapStateToProps.call(controlState, controlPanelState, controlState),
+      ...mappedState,
     };
+
     // `mapStateToProps` may also provide a value
     value = value || state.value;
   }
@@ -137,6 +153,7 @@ export function getControlStateFromControlConfig<T = ControlType>(
   controlConfig: ControlConfig<T> | null,
   controlPanelState: Partial<ControlPanelState> | null,
   value?: JsonValue,
+  isDependancy?: boolean,
 ) {
   // skip invalid config values
   if (!controlConfig) {
@@ -146,7 +163,11 @@ export function getControlStateFromControlConfig<T = ControlType>(
   // only apply mapStateToProps when control states have been initialized
   // or when explicitly didn't provide control panel state (mostly for testing)
   if (controlPanelState?.controls || controlPanelState === null) {
-    return applyMapStateToPropsToControl(controlState, controlPanelState);
+    return applyMapStateToPropsToControl(
+      controlState,
+      controlPanelState,
+      isDependancy,
+    );
   }
   return controlState;
 }
