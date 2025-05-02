@@ -26,6 +26,7 @@ from superset import conf
 from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
 from superset.utils import json
+from superset.utils.date_parser import get_since_until
 
 logger = logging.getLogger("alembic")
 
@@ -113,14 +114,33 @@ class MigrateViz:
         }
 
         if isinstance(granularity_sqla, dict):
-            temporal_filter["comparator"] = None
-            temporal_filter["expressionType"] = "SQL"
-            temporal_filter["subject"] = granularity_sqla["label"]
-            temporal_filter["sqlExpression"] = granularity_sqla["sqlExpression"]
+            since, until = get_since_until(time_range=time_range)
+            if not since and not until:
+                temporal_filter = {}
+            else:
+                temporal_filter["comparator"] = None
+                temporal_filter["expressionType"] = "SQL"
+                temporal_filter["subject"] = granularity_sqla["label"]
 
-        rv_data["adhoc_filters"] = (rv_data.get("adhoc_filters") or []) + [
-            temporal_filter
-        ]
+                start_date = since.isoformat() if since else None
+                end_date = until.isoformat() if until else None
+                if start_date and end_date:
+                    temporal_filter["sqlExpression"] = (
+                        f"{granularity_sqla['sqlExpression']} >= '{start_date}' AND "
+                        f"{granularity_sqla['sqlExpression']} < '{end_date}'"
+                    )
+                elif start_date:
+                    temporal_filter["sqlExpression"] = (
+                        f"{granularity_sqla['sqlExpression']} >= '{start_date}'"
+                    )
+                elif end_date:
+                    temporal_filter["sqlExpression"] = (
+                        f"{granularity_sqla['sqlExpression']} < '{end_date}'"
+                    )
+
+        rv_data["adhoc_filters"] = rv_data.get("adhoc_filters") or []
+        if temporal_filter:
+            rv_data["adhoc_filters"].append(temporal_filter)
 
     @classmethod
     def upgrade_slice(cls, slc: Slice) -> None:
