@@ -186,7 +186,6 @@ const ConditionalFormattingControl = ({
           <AddControlLabel>
             <Icons.PlusOutlined
               iconSize="m"
-              iconColor={theme.colors.grayscale.light1}
               css={theme => ({
                 margin: `auto ${theme.sizeUnit}px auto 0`,
                 verticalAlign: 'baseline',

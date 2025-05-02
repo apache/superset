@@ -18,7 +18,7 @@
  */
 import { ReactNode, useCallback, useContext, useEffect, useMemo } from 'react';
 import { useDrop } from 'react-dnd';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {
   AddControlLabel,
@@ -54,7 +54,6 @@ export default function DndSelectLabel({
   isLoading,
   ...props
 }: DndSelectLabelProps) {
-  const theme = useTheme();
   const canDropProp = props.canDrop;
   const canDropValueProp = props.canDropValue;
 
@@ -100,13 +99,7 @@ export default function DndSelectLabel({
         cancelHover={!props.onClickGhostButton}
         onClick={props.onClickGhostButton}
       >
-        <Icons.PlusOutlined
-          iconSize="m"
-          iconColor={theme.colors.grayscale.light1}
-          css={theme => ({
-            margin: `auto ${theme.sizeUnit}px auto 0`,
-          })}
-        />
+        <Icons.PlusOutlined iconSize="m" />
         {t(props.ghostButtonText)}
       </AddControlLabel>
     );

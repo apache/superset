@@ -24,6 +24,7 @@
  */
 export { AntdThemeProvider } from './AntdThemeProvider';
 export { Alert, type AlertProps } from './Alert';
+export { Icons } from './Icons';
 export {
   AsyncEsmComponent,
   type PlaceholderProps as AsyncEsmPlaceholderProps,

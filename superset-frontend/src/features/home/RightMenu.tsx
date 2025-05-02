@@ -434,7 +434,7 @@ const RightMenu = ({
             data-test="new-dropdown"
             title={
               <Icons.PlusOutlined
-                iconColor={theme.colors.primary.dark1}
+                iconColor={theme.colorPrimary}
                 data-test="new-dropdown-icon"
               />
             }

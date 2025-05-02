@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { css, t, SupersetClient, useTheme } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
@@ -89,7 +89,6 @@ const isActiveOptions = [
 ];
 
 function UsersList({ user }: UsersListProps) {
-  const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
   const {
     state: {
@@ -377,14 +376,7 @@ function UsersList({ user }: UsersListProps) {
       {
         name: (
           <>
-            <Icons.PlusOutlined
-              iconColor={theme.colors.primary.light5}
-              iconSize="m"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-                vertical-align: text-top;
-              `}
-            />
+            <Icons.PlusOutlined iconSize="m" />
             {t('User')}
           </>
         ),
@@ -512,14 +504,7 @@ function UsersList({ user }: UsersListProps) {
       },
       buttonText: (
         <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-              vertical-align: text-top;
-            `}
-          />
+          <Icons.PlusOutlined iconSize="m" />
           {t('User')}
         </>
       ),

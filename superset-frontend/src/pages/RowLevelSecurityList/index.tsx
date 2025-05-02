@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled, SupersetClient, useTheme, css } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 import { useMemo, useState } from 'react';
 import {
   ConfirmStatusChange,
@@ -38,10 +38,6 @@ import { RLSObject } from 'src/features/rls/types';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
-const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
-`;
-
 interface RLSProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -56,7 +52,6 @@ function RowLevelSecurityList(props: RLSProps) {
   const { addDangerToast, addSuccessToast, user } = props;
   const [ruleModalOpen, setRuleModalOpen] = useState<boolean>(false);
   const [currentRule, setCurrentRule] = useState(null);
-  const theme = useTheme();
 
   const {
     state: {
@@ -176,7 +171,7 @@ function RowLevelSecurityList(props: RLSProps) {
             );
           const handleEdit = () => handleRuleEdit(original);
           return (
-            <Actions className="actions">
+            <div className="actions">
               {canWrite && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
@@ -225,7 +220,7 @@ function RowLevelSecurityList(props: RLSProps) {
                   </span>
                 </Tooltip>
               )}
-            </Actions>
+            </div>
           );
         },
         Header: t('Actions'),
@@ -257,15 +252,7 @@ function RowLevelSecurityList(props: RLSProps) {
     buttonAction: () => handleRuleEdit(null),
     buttonText: canEdit ? (
       <>
-        <Icons.PlusOutlined
-          iconColor={theme.colors.primary.light5}
-          iconSize="m"
-          css={css`
-            margin: auto ${theme.sizeUnit * 2}px auto 0;
-            vertical-align: text-top;
-          `}
-          data-test="add-rule-empty"
-        />
+        <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />
         {t('Rule')}
       </>
     ) : null,
@@ -332,15 +319,7 @@ function RowLevelSecurityList(props: RLSProps) {
     subMenuButtons.push({
       name: (
         <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-              vertical-align: text-top;
-            `}
-            data-test="add-rule"
-          />
+          <Icons.PlusOutlined iconSize="m" data-test="add-rule" />
           {t('Rule')}
         </>
       ),

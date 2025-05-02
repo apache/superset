@@ -22,7 +22,6 @@ import { useParams, Link, useHistory } from 'react-router-dom';
 import {
   css,
   t,
-  useTheme,
   styled,
   SupersetClient,
   getClientErrorObject,
@@ -74,7 +73,6 @@ function AnnotationList({
   addDangerToast,
   addSuccessToast,
 }: AnnotationListProps) {
-  const theme = useTheme();
   const { annotationLayerId }: any = useParams();
   const {
     state: {
@@ -240,14 +238,7 @@ function AnnotationList({
   subMenuButtons.push({
     name: (
       <>
-        <Icons.PlusOutlined
-          iconColor={theme.colors.primary.light5}
-          iconSize="m"
-          css={css`
-            margin: auto ${theme.sizeUnit * 2}px auto 0;
-            vertical-align: text-top;
-          `}
-        />
+        <Icons.PlusOutlined iconSize="m" />
         {t('Annotation')}
       </>
     ),
@@ -281,14 +272,7 @@ function AnnotationList({
     },
     buttonText: (
       <>
-        <Icons.PlusOutlined
-          iconColor={theme.colors.primary.light5}
-          iconSize="m"
-          css={css`
-            margin: auto ${theme.sizeUnit * 2}px auto 0;
-            vertical-align: text-top;
-          `}
-        />
+        <Icons.PlusOutlined iconSize="m" />
         {t('Annotation')}
       </>
     ),

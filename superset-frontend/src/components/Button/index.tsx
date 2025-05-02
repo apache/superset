@@ -43,6 +43,7 @@ export function Button(props: ButtonProps) {
     children,
     href,
     showMarginRight = true,
+    icon,
     ...restProps
   } = props;
 
@@ -68,6 +69,8 @@ export function Button(props: ButtonProps) {
 
   if (!buttonStyle || buttonStyle === 'primary') {
     variant = 'solid';
+    antdType = 'primary';
+    color = 'primary';
   } else if (buttonStyle === 'secondary') {
     variant = 'filled';
     color = 'primary';
@@ -77,11 +80,11 @@ export function Button(props: ButtonProps) {
   } else if (buttonStyle === 'dashed') {
     color = 'primary';
     variant = 'dashed';
+    antdType = 'dashed';
   } else if (buttonStyle === 'danger') {
     color = 'danger';
   } else if (buttonStyle === 'link') {
     variant = 'link';
-    antdType = 'default';
   }
 
   const element = children as ReactElement;
@@ -132,6 +135,7 @@ export function Button(props: ButtonProps) {
           marginRight: firstChildMargin,
         },
       }}
+      icon={icon}
       {...restProps}
     >
       {children}

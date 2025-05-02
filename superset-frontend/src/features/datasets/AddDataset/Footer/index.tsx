@@ -114,7 +114,9 @@ function Footer({
 
   return (
     <>
-      <Button onClick={cancelButtonOnClick}>{t('Cancel')}</Button>
+      <Button buttonStyle="secondary" onClick={cancelButtonOnClick}>
+        {t('Cancel')}
+      </Button>
       <Button
         buttonStyle="primary"
         disabled={disabledCheck}
