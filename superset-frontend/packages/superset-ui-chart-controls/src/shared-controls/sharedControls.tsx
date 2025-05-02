@@ -229,13 +229,14 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   clearable: false,
   mapStateToProps: state => ({
     maxValue: state?.common?.conf?.SQL_MAX_ROW,
-    serverPagination: state?.form_data?.server_pagination,
+    server_pagination: state?.form_data?.server_pagination,
   }),
   validators: [
     legacyValidateInteger,
     (v, state) => validateMaxValue(v, state?.maxValue || DEFAULT_MAX_ROW),
-    (v, state) => validateServerPagination(v, state?.serverPagination),
+    (v, state) => validateServerPagination(v, state?.server_pagination),
   ],
+  validationDependancies: ['server_pagination'],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   description: t(
