@@ -47,6 +47,8 @@ services:
       - path: docker/.env-local # optional override
         required: false
     image: postgres:16
+    ports:
+      - 5432:5432
     container_name: superset_db
     restart: unless-stopped
     volumes:
