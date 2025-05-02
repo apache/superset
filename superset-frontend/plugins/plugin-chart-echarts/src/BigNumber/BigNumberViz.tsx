@@ -143,7 +143,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     const fontSize = computeMaxFontSize({
       text,
       maxWidth: width,
-      maxHeight,
+      maxHeight: maxHeight * 0.8, // Reduce max height to prevent overflow
       className: 'kicker',
       container,
     });
@@ -155,6 +155,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         style={{
           fontSize,
           height: 'auto',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
         }}
       >
         {text}
@@ -165,13 +167,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
   renderHeader(maxHeight: number) {
     const { bigNumber, headerFormatter, width, colorThresholdFormatters } =
       this.props;
-    // Convert bigNumber to a number if possible, otherwise use null
-    const numericValue =
-      typeof bigNumber === 'number' ? bigNumber : Number(bigNumber);
-    const text =
-      bigNumber === null || Number.isNaN(numericValue)
-        ? t('No data')
-        : headerFormatter(numericValue);
+    // @ts-ignore
+    const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
 
     const hasThresholdColorFormatter =
       Array.isArray(colorThresholdFormatters) &&
@@ -180,8 +177,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     let numberColor;
     if (hasThresholdColorFormatter) {
       colorThresholdFormatters!.forEach(formatter => {
-        const formatterResult = !Number.isNaN(numericValue)
-          ? formatter.getColorFromValue(numericValue)
+        const formatterResult = bigNumber
+          ? formatter.getColorFromValue(bigNumber as number)
           : false;
         if (formatterResult) {
           numberColor = formatterResult;
@@ -196,7 +193,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     const fontSize = computeMaxFontSize({
       text,
       maxWidth: width * 0.9, // reduced it's max width
-      maxHeight,
+      maxHeight: maxHeight * 0.8,
       className: 'header-line',
       container,
     });
@@ -218,6 +215,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
           fontSize,
           height: 'auto',
           color: numberColor,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
         }}
         onContextMenu={onContextMenu}
       >
@@ -239,7 +238,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         fontSize = computeMaxFontSize({
           text,
           maxWidth: width * 0.9,
-          maxHeight,
+          maxHeight: maxHeight * 0.8, // Reduce max height to prevent overflow
           className: 'subheader-line',
           container,
         });
@@ -253,6 +252,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
           style={{
             fontSize,
             height: 'auto',
+            overflow: 'auto',
+            textOverflow: 'ellipsis',
           }}
         >
           {text}
@@ -285,7 +286,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       fontSize = computeMaxFontSize({
         text,
         maxWidth: width * 0.9,
-        maxHeight,
+        maxHeight: maxHeight * 0.8,
         className: 'subtitle-line',
         container,
       });
@@ -296,8 +297,10 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
           <div
             className="subtitle-line subheader-line"
             style={{
-              fontSize: `${fontSize}px`,
+              fontSize,
               height: maxHeight,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {text}
@@ -417,12 +420,12 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
 }
 
 export default styled(BigNumberVis)`
-  ${({ theme, showMetricName, subtitle }) => `
+  ${({ theme }) => `
     font-family: ${theme.typography.families.sansSerif};
     position: relative;
     display: flex;
     flex-direction: column;
-    justify-content: ${showMetricName && subtitle.length > 0 ? 'flex-start' : 'center'};
+    justify-content: center;
     align-items: flex-start;
 
     &.no-trendline .subheader-line {
