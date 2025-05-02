@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { logging } from '@superset-ui/core';
 import { commands as commandsType } from '@apache-superset/types';
 import { Disposable } from '@apache-superset/primitives';
 
@@ -27,7 +28,9 @@ const registerCommand: typeof commandsType.registerCommand = (
   thisArg,
 ) => {
   if (commandRegistry.has(command)) {
-    throw new Error(`Command "${command}" is already registered.`);
+    logging.warn(
+      `Command "${command}" is already registered. Overwriting the existing command.`,
+    );
   }
   const boundCallback = thisArg ? callback.bind(thisArg) : callback;
   commandRegistry.set(command, boundCallback);
