@@ -33,7 +33,6 @@ const parseLabel = value => {
     if (anchorMatch) {
       const href = anchorMatch[1];
       const label = anchorMatch[2];
-      console.log('>', href, label);
 
       return (
         <a
