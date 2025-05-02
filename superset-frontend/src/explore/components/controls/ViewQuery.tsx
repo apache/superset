@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, KeyboardEvent, MouseEvent, useCallback, useState } from 'react';
+import {
+  FC,
+  KeyboardEvent,
+  MouseEvent,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import rison from 'rison';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
@@ -28,7 +35,8 @@ import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbar
 import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import { useHistory } from 'react-router-dom';
-import { Button } from 'src/components';
+import { Switch } from 'src/components/Switch';
+import { Button, Skeleton } from 'src/components';
 
 const CopyButtonViewQuery = styled(CopyButton)`
   && {
@@ -56,13 +64,23 @@ const StyledSyntaxContainer = styled.div`
 const StyledHeaderMenuContainer = styled.div`
   display: flex;
   flex-direction: row;
-  column-gap: ${({ theme }) => theme.gridUnit * 2}px;
+  justify-content: space-between;
   margin-top: ${({ theme }) => -theme.gridUnit * 4}px;
-  align-items: baseline;
+  align-items: flex-end;
+`;
+
+const StyledHeaderActionContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  column-gap: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
   flex: 1;
+`;
+
+const StyledLabel = styled.label`
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
 `;
 
 const DATASET_BACKEND_QUERY = {
@@ -74,7 +92,7 @@ const ViewQuery: FC<ViewQueryProps> = props => {
   const { sql, language = 'sql', datasource } = props;
   const datasetId = datasource.split('__')[0];
   const [formattedSQL, setFormattedSQL] = useState<string>();
-  const [showFormatSQL, setShowFormatSQL] = useState(false);
+  const [showFormatSQL, setShowFormatSQL] = useState(true);
   const history = useHistory();
   const currentSQL = (showFormatSQL ? formattedSQL : sql) ?? sql;
 
@@ -125,28 +143,42 @@ const ViewQuery: FC<ViewQueryProps> = props => {
     [history, datasource, currentSQL],
   );
 
+  useEffect(() => {
+    formatCurrentQuery();
+  }, [sql]);
+
   return (
     <StyledSyntaxContainer key={sql}>
       <StyledHeaderMenuContainer>
-        <CopyToClipboard
-          text={currentSQL}
-          shouldShowText={false}
-          copyNode={
-            <CopyButtonViewQuery buttonSize="small">
-              {t('Copy')}
-            </CopyButtonViewQuery>
-          }
-        />
-        <div>
-          <Button onClick={formatCurrentQuery}>
-            {showFormatSQL ? t('Show Original') : t('Format SQL')}
-          </Button>
+        <StyledHeaderActionContainer>
+          <CopyToClipboard
+            text={currentSQL}
+            shouldShowText={false}
+            copyNode={
+              <CopyButtonViewQuery buttonSize="small">
+                {t('Copy')}
+              </CopyButtonViewQuery>
+            }
+          />
           <Button onClick={navToSQLLab}>{t('View in SQL Lab')}</Button>
-        </div>
+        </StyledHeaderActionContainer>
+        <StyledHeaderActionContainer>
+          <Switch
+            id="formatSwitch"
+            checked={showFormatSQL}
+            onChange={formatCurrentQuery}
+          />
+          <StyledLabel htmlFor="formatSwitch">
+            {t('Show formatted SQL')}
+          </StyledLabel>
+        </StyledHeaderActionContainer>
       </StyledHeaderMenuContainer>
-      <StyledSyntaxHighlighter language={language} style={github}>
-        {currentSQL}
-      </StyledSyntaxHighlighter>
+      {!formattedSQL && <Skeleton active />}
+      {formattedSQL && (
+        <StyledSyntaxHighlighter language={language} style={github}>
+          {currentSQL}
+        </StyledSyntaxHighlighter>
+      )}
     </StyledSyntaxContainer>
   );
 };

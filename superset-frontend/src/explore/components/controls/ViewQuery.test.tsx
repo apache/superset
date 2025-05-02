@@ -49,6 +49,7 @@ const mockProps = {
 const datasetApiEndpoint = 'glob:*/api/v1/dataset/1?**';
 const formatSqlEndpoint = 'glob:*/api/v1/sqllab/format_sql/';
 const formattedSQL = 'SELECT * FROM table;';
+
 beforeEach(() => {
   fetchMock.get(datasetApiEndpoint, {
     result: {
@@ -67,12 +68,20 @@ afterEach(() => {
   fetchMock.restore();
 });
 
-it('renders the component with SQL and buttons', () => {
+const getFormatSwitch = () =>
+  screen.getByRole('switch', { name: 'Show formatted SQL' });
+
+it('renders the component with Formatted SQL and buttons', async () => {
   const { container } = setup(mockProps);
   expect(screen.getByText('Copy')).toBeInTheDocument();
-  expect(screen.getByText('Format SQL')).toBeInTheDocument();
+  expect(getFormatSwitch()).toBeInTheDocument();
   expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
-  expect(container).toHaveTextContent(mockProps.sql);
+
+  await waitFor(() =>
+    expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1),
+  );
+
+  expect(container).toHaveTextContent(formattedSQL);
 });
 
 it('copies the SQL to the clipboard when Copy button is clicked', async () => {
@@ -85,34 +94,36 @@ it('copies the SQL to the clipboard when Copy button is clicked', async () => {
   expect(copyTextToClipboard as jest.Mock).toHaveBeenCalled();
 });
 
-it('formats the SQL when Format SQL button is clicked', async () => {
+it('shows the original SQL when Format switch is unchecked', async () => {
   const { container } = setup(mockProps);
-  const formatButton = screen.getByText('Format SQL');
-
-  fireEvent.click(formatButton);
+  const formatButton = getFormatSwitch();
 
   await waitFor(() =>
     expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1),
   );
-  expect(container).toHaveTextContent(formattedSQL);
+
+  fireEvent.click(formatButton);
+
+  expect(container).toHaveTextContent(mockProps.sql);
 });
 
-it('toggles back to original SQL when Show Original button is clicked', async () => {
+it('toggles back to formatted SQL when Format switch is clicked', async () => {
   const { container } = setup(mockProps);
-  const formatButton = screen.getByText('Format SQL');
+  const formatButton = getFormatSwitch();
+
+  await waitFor(() =>
+    expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1),
+  );
 
   // Click to format SQL
   fireEvent.click(formatButton);
 
-  await waitFor(() =>
-    expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1),
-  );
-
-  // Click to show original SQL
-  const showOriginalButton = screen.getByText('Show Original');
-  fireEvent.click(showOriginalButton);
-
   await waitFor(() => expect(container).toHaveTextContent(mockProps.sql));
+
+  // Toggle format switch
+  fireEvent.click(formatButton);
+
+  await waitFor(() => expect(container).toHaveTextContent(formattedSQL));
 });
 
 it('navigates to SQL Lab when View in SQL Lab button is clicked', () => {
