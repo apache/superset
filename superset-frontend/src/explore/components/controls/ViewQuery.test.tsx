@@ -69,7 +69,7 @@ afterEach(() => {
 });
 
 const getFormatSwitch = () =>
-  screen.getByRole('switch', { name: 'Show formatted SQL' });
+  screen.getByRole('switch', { name: 'Show original SQL' });
 
 it('renders the component with Formatted SQL and buttons', async () => {
   const { container } = setup(mockProps);

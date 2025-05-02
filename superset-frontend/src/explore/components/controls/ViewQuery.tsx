@@ -165,11 +165,11 @@ const ViewQuery: FC<ViewQueryProps> = props => {
         <StyledHeaderActionContainer>
           <Switch
             id="formatSwitch"
-            checked={showFormatSQL}
+            checked={!showFormatSQL}
             onChange={formatCurrentQuery}
           />
           <StyledLabel htmlFor="formatSwitch">
-            {t('Show formatted SQL')}
+            {t('Show original SQL')}
           </StyledLabel>
         </StyledHeaderActionContainer>
       </StyledHeaderMenuContainer>
