@@ -65,6 +65,11 @@ const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
   flex: 1;
 `;
 
+const DATASET_BACKEND_QUERY = {
+  keys: ['none'],
+  columns: ['database.backend'],
+};
+
 const ViewQuery: FC<ViewQueryProps> = props => {
   const { sql, language = 'sql', datasource } = props;
   const datasetId = datasource.split('__')[0];
@@ -77,25 +82,27 @@ const ViewQuery: FC<ViewQueryProps> = props => {
     if (formattedSQL) {
       setShowFormatSQL(val => !val);
     } else {
-      const queryParams = rison.encode({
-        keys: ['none'],
-        columns: ['database.backend'],
-      });
+      const queryParams = rison.encode(DATASET_BACKEND_QUERY);
       SupersetClient.get({
         endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
-      }).then(({ json }) => {
-        SupersetClient.post({
-          endpoint: `/api/v1/sqllab/format_sql/`,
-          body: JSON.stringify({
-            sql,
-            engine: json.result.database.backend,
-          }),
-          headers: { 'Content-Type': 'application/json' },
-        }).then(({ json }) => {
+      })
+        .then(({ json }) => {
+          return SupersetClient.post({
+            endpoint: `/api/v1/sqllab/format_sql/`,
+            body: JSON.stringify({
+              sql,
+              engine: json.result.database.backend,
+            }),
+            headers: { 'Content-Type': 'application/json' },
+          });
+        })
+        .then(({ json }) => {
           setFormattedSQL(json.result);
           setShowFormatSQL(true);
+        })
+        .catch(() => {
+          setShowFormatSQL(true);
         });
-      });
     }
   }, [sql, datasetId, formattedSQL]);
 
