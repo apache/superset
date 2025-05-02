@@ -245,6 +245,7 @@ const AIAssistantOptions = ({
                   loading={tables.status === 'loading'}
                   error={tables.error}
                   onSchemasChange={onSchemasChange}
+                  maxContentHeight={500}
                 />
               </div>
               <div className="helper">

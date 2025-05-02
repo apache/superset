@@ -173,7 +173,7 @@ class GeminiLlm(BaseLlm):
                         cached_content=cache_name,
                     ),
                 )
-            except genai.exceptions.ServerError as e:
+            except genai.errors.ServerError as e:
                 logger.error(f"Server error: {e}")
                 return f"-- Failed to generate SQL: {e.message}"
 

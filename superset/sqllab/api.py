@@ -517,46 +517,6 @@ class SqlLabRestApi(BaseSupersetApi):
         result = dispatcher.generate_context_for_db(params["database_id"])
         return json_success(json.dumps(result), 200)
 
-    @expose("/generate_all_db_context/", methods=("POST",))
-    @protect()
-    @statsd_metrics
-    @requires_json
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".generate_all_db_context",
-        log_to_statsd=False,
-    )
-    def generate_all_db_context(self) -> FlaskResponse:
-        """Generate database context information for generating queries with an LLM.
-        ---
-        post:
-          summary: Generate database context information for generating queries with an LLM
-          requestBody:
-            description: Database ID
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/GenerateDbContextSchema'
-          responses:
-            202:
-              description: Query execution result, query still running
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/GenerateDbContextResponseSchema'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        result = dispatcher.generate_all_db_contexts()
-        return json_success(json.dumps(result), 200)
-
     @expose("/db_context_status/")
     @protect()
     @statsd_metrics

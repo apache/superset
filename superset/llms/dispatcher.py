@@ -202,7 +202,3 @@ def generate_context_for_db(pk: int):
     return {
         "status": "Started"
     }
-
-def generate_all_db_contexts():
-    task = check_for_expired_llm_context.delay()
-    logger.info(f"Created context task {task.id}")

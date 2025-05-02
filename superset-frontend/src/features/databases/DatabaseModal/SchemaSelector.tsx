@@ -1,5 +1,5 @@
 import {
-  t,
+  t, useTheme,
 } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import {
@@ -62,14 +62,28 @@ const CaretButton = styled.button`
   `}
 `;
 
+const EmptyCaret = styled.div`
+  ${({ theme }) => css`
+    width: 14px;
+    height: 14px;
+    margin-right: ${theme.gridUnit * 2}px;
+    padding: 0;
+  `}
+`;
+
 const CheckboxContainer = styled.div`
   display: flex;
   align-items: center;
-`;
 
-const SchemaLabel = styled.label`
-  font-weight: 500;
-  cursor: pointer;
+  label {
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  label.disabled {
+    font-weight: 400;
+    color: ${props => props.theme.colors.grayscale.light1};
+  }
 `;
 
 const TablesList = styled.div`
@@ -137,15 +151,32 @@ const SchemaSelector = ({
   loading,
   error,
   onSchemasChange,
+  maxContentHeight = null,
 }: {
   value: string[];
   options: Record<string, string[]>;
   loading: boolean;
   error: Error | null;
   onSchemasChange: Function;
+  maxContentHeight?: number | null;
 }) => {
+  const theme = useTheme();
   const [expandedSchema, setExpandedSchema] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<{[key: string]: boolean}>({});
+  const [filterText, setFilterText] = useState('');
+  const [filteredOptions, setFilteredOptions] = useState<Record<string, string[]>>({});
+  useEffect(() => {
+    const filtered = filterText ? Object.keys(options).reduce((acc, schema) => {
+      const filteredTables = options[schema].filter(table =>
+        table.toLowerCase().includes(filterText.toLowerCase())
+      );
+      if (filteredTables.length > 0) {
+        acc[schema] = filteredTables;
+      }
+      return acc;
+    }, {} as Record<string, string[]>) : options;
+    setFilteredOptions(filtered);
+  }, [options, filterText]);
 
   useEffect(() => {
     const initialSelections: {[key: string]: boolean} = {};
@@ -158,6 +189,9 @@ const SchemaSelector = ({
   }, [options, value]);
 
   const areAllChildrenSelected = (schema: string) => {
+    if (options[schema].length === 0) {
+      return false;
+    }
     return options[schema].every(
       table => selectedItems[`${schema}.${table}`]
     );
@@ -233,21 +267,52 @@ const SchemaSelector = ({
           <Header>
             <div><a onClick={handleSelectAll}>Select all</a></div>
             <div><a onClick={handleUnselectAll}>Select none</a></div>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              <input
+              type="text"
+              placeholder={t('Filter tables')}
+              style={{
+                padding: '2px 8px',
+                border: 'none',
+                borderRadius: 0,
+                borderBottom: `1px solid ${theme.colors.grayscale.light2}`,
+                minWidth: 180,
+              }}
+              value={filterText}
+              onChange={e => setFilterText(e.target.value)}
+              aria-label={t('Filter tables')}
+              />
+            </div>
           </Header>
           
-          <SchemaList>
-            {Object.keys(options).map(schema => (
+          <SchemaList
+            style={
+              maxContentHeight !== null
+              ? {
+                maxHeight: maxContentHeight,
+                overflowY: 'auto',
+                marginRight: `-${theme.gridUnit * 2}px`,
+                paddingRight: `${theme.gridUnit * 2}px`,
+              }
+              : undefined
+            }
+          >
+            {Object.keys(filteredOptions).map(schema => (
               <SchemaItem key={schema}>
                 <SchemaHeader>
-                  <CaretButton 
-                    onClick={() => toggleExpanded(schema)}
-                    aria-label={expandedSchema === schema ? "Collapse" : "Expand"}
-                  >
-                    {expandedSchema === schema ? 
-                      <CaretDownFilled size={18} /> : 
-                      <CaretRightFilled size={18} />
-                    }
-                  </CaretButton>
+                  {filteredOptions[schema].length > 0 ? (
+                    <CaretButton
+                      onClick={() => toggleExpanded(schema)}
+                      aria-label={expandedSchema === schema ? "Collapse" : "Expand"}
+                    >
+                      {expandedSchema === schema ?
+                        <CaretDownFilled size={18} /> :
+                        <CaretRightFilled size={18} />
+                      }
+                    </CaretButton>
+                  ) : (
+                    <EmptyCaret />
+                  )}
                   
                   <CheckboxContainer>
                     <IndeterminateCheckbox
@@ -256,26 +321,27 @@ const SchemaSelector = ({
                       indeterminate={areSomeChildrenSelected(schema)}
                       onChange={() => handleSchemaCheckboxChange(schema)}
                     />
-                    <SchemaLabel 
-                      htmlFor={`schema-${schema}`} 
-                      onClick={() => toggleExpanded(schema)}
+                    <label
+                      htmlFor={`schema-${schema}`}
+                      className={options[schema].length === 0 ? 'disabled' : ''}
+                      onClick={() => options[schema].length > 0 && toggleExpanded(schema)}
                     >
                       {schema}
-                    </SchemaLabel>
+                    </label>
                   </CheckboxContainer>
                 </SchemaHeader>
                 
                 {expandedSchema === schema && (
                   <TablesList>
-                    {options[schema].map(table => (
+                    {filteredOptions[schema].map(table => (
                       <TableItem key={table}>
-                        <IndeterminateCheckbox
-                          id="`${schema}-${table}`"
-                          indeterminate={false}
-                          checked={selectedItems[`${schema}.${table}`] || false}
-                          onChange={() => handleChildCheckboxChange(schema, table)}
-                          labelText={table}
-                        />
+                      <IndeterminateCheckbox
+                        id="`${schema}-${table}`"
+                        indeterminate={false}
+                        checked={selectedItems[`${schema}.${table}`] || false}
+                        onChange={() => handleChildCheckboxChange(schema, table)}
+                        labelText={table}
+                      />
                       </TableItem>
                     ))}
                   </TablesList>
