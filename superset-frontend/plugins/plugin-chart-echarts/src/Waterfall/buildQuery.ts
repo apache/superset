@@ -28,11 +28,16 @@ export default function buildQuery(formData: QueryFormData) {
     ...ensureIsArray(x_axis || granularity_sqla),
     ...ensureIsArray(groupby),
   ];
+
+  if (columns.indexOf(formData.seriesOrderByColumn) === -1) {
+    columns.push(formData.seriesOrderByColumn);
+  }
+
   if (formData.seriesOrderByColumn && formData.seriesOrderDirection) {
     return buildQueryContext(formData, baseQueryObject => [
       {
         ...baseQueryObject,
-        columns: [...columns, formData.seriesOrderByColumn],
+        columns,
         orderby: [
           [
             formData.seriesOrderByColumn,

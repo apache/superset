@@ -40,10 +40,7 @@ export default function EchartsWaterfall(
       showTotal,
       useFirstValueAsSubtotal,
       totalColor,
-      xAxisLabelDistance,
-      yAxisLabelDistance,
-      boldTotal,
-      boldSubTotal,
+      boldLabels,
     },
     emitCrossFilters,
   } = props;
@@ -333,12 +330,12 @@ export default function EchartsWaterfall(
     const { xTicksLayout, xTicksWrapLength } = props.formData;
 
     // If no formatting needed, return original options
-    if (!boldTotal && !boldSubTotal && xTicksLayout !== 'flat') {
+    if (boldLabels === 'none' && xTicksLayout !== 'flat') {
       return options;
     }
 
     // Get total indices for bold formatting
-    const totalsIndex = boldTotal
+    const totalsIndex = ['total', 'both'].includes(boldLabels)
       ? ((options.series as any[]) || [])
           .find(series => series.name === 'Total')
           ?.data.map((dataPoint: any, index: number) =>
@@ -352,17 +349,17 @@ export default function EchartsWaterfall(
       let formattedValue = value;
 
       if (orientation === 'vertical') {
-        if (index === 0 && boldSubTotal) {
+        if (index === 0 && ['subtotal', 'both'].includes(boldLabels)) {
           formattedValue = `{subtotal|${value}}`;
-        } else if (totalsIndex.includes(index) && boldTotal) {
+        } else if (totalsIndex.includes(index) && ['total', 'both'].includes(boldLabels)) {
           formattedValue = `{total|${value}}`;
         }
       } else {
         const axisData = (options.yAxis as { data?: any[] })?.data || [];
         const isLast = index === axisData.length - 1;
-        if (isLast && boldSubTotal) {
+        if (isLast && ['subtotal', 'both'].includes(boldLabels)) {
           formattedValue = `{subtotal|${value}}`;
-        } else if (totalsIndex.includes(index) && boldTotal) {
+        } else if (totalsIndex.includes(index) && ['total', 'both'].includes(boldLabels)) {
           formattedValue = `{total|${value}}`;
         }
       }
@@ -441,8 +438,8 @@ export default function EchartsWaterfall(
             overflow: 'break',
             rich: {
               ...(options.xAxis as any)?.axisLabel?.rich,
-              subtotal: boldSubTotal ? { fontWeight: 'bold' } : undefined,
-              total: boldTotal ? { fontWeight: 'bold' } : undefined,
+              subtotal: ['subtotal', 'both'].includes(boldLabels) ? { fontWeight: 'bold' } : undefined,
+              total: ['total', 'both'].includes(boldLabels) ? { fontWeight: 'bold' } : undefined,
             },
           },
         },
@@ -459,34 +456,10 @@ export default function EchartsWaterfall(
           overflow: 'break',
           rich: {
             ...(options.yAxis as any)?.axisLabel?.rich,
-            subtotal: boldSubTotal ? { fontWeight: 'bold' } : undefined,
-            total: boldTotal ? { fontWeight: 'bold' } : undefined,
+            subtotal: ['subtotal', 'both'].includes(boldLabels) ? { fontWeight: 'bold' } : undefined,
+            total: ['total', 'both'].includes(boldLabels) ? { fontWeight: 'bold' } : undefined,
           },
         },
-      },
-    };
-  };
-
-  const getLabelDistanceOptions = (options: EChartsCoreOption) => {
-    if (Number.isNaN(Number(xAxisLabelDistance))) {
-      console.error('xAxisLabelDistance should be a number');
-      return options;
-    }
-
-    if (Number.isNaN(Number(yAxisLabelDistance))) {
-      console.error('yAxisLabelDistance should be a number');
-      return options;
-    }
-
-    return {
-      ...options,
-      xAxis: {
-        ...(options.xAxis as any),
-        nameGap: Number(xAxisLabelDistance),
-      },
-      yAxis: {
-        ...(options.yAxis as any),
-        nameGap: Number(yAxisLabelDistance),
       },
     };
   };
@@ -496,14 +469,13 @@ export default function EchartsWaterfall(
   const sortedEchartOptions = getSortedOptions(showTotalOptions);
   const flippedEchartOptions = getFlippedOptions(sortedEchartOptions);
   const formattedAxisOptions = getFormattedAxisOptions(flippedEchartOptions);
-  const labelDistanceOptions = getLabelDistanceOptions(formattedAxisOptions);
 
   return (
     <Echart
       ref={chartRef}
       height={height}
       width={width}
-      echartOptions={labelDistanceOptions}
+      echartOptions={formattedAxisOptions}
       eventHandlers={eventHandlers}
       refs={refs}
     />

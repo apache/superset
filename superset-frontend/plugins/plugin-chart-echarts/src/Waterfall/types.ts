@@ -51,13 +51,11 @@ export type EchartsWaterfallFormData = QueryFormData &
     decreaseColor: RgbaColor;
     orientation: 'vertical' | 'horizontal';
     showTotal: boolean;
-    boldTotal: boolean;
-    boldSubTotal: boolean;
+    boldLabels: string;
     totalColor: RgbaColor;
     metric: QueryFormMetric;
     xAxis: QueryFormColumn;
     xAxisLabel: string;
-    xAxisLabelDistance: string;
     xAxisTimeFormat?: string;
     xTicksLayout?: WaterfallFormXTicksLayout;
     yAxisLabel: string;

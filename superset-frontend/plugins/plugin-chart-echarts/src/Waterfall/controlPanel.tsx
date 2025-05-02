@@ -51,14 +51,14 @@ const config: ControlPanelConfig = {
               ),
               mapStateToProps: state => ({
                 choices: [
-                  [null, t('None')],
                   ...(state.datasource?.columns || []).map(col => [
                     col.column_name,
                     col.column_name,
                   ]),
                 ],
+                default: state.form_data?.x_axis || '',
               }),
-              default: null,
+              clearable: false,
               renderTrigger: true,
             },
           },
@@ -70,11 +70,11 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Order Direction'),
               choices: [
-                [null, t('None')],
                 ['ASC', t('Ascending')],
                 ['DESC', t('Descending')],
               ],
-              default: null,
+              default: 'ASC',
+              clearable: false,
               renderTrigger: true,
               description: t(
                 'Ordering direction for the series, to be used with "Order Series By Column"',
@@ -115,20 +115,6 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'bold_total',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Bold Total'),
-              default: true,
-              renderTrigger: true,
-              description: t(
-                'Bold the total axis label in the waterfall chart',
-              ),
-            },
-          },
-        ],
-        [
-          {
             name: 'useFirstValueAsSubtotal',
             config: {
               type: 'CheckboxControl',
@@ -141,14 +127,20 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'bold_sub_total',
+            name: 'bold_labels',
             config: {
-              type: 'CheckboxControl',
-              label: t('Bold first value as subtotal'),
-              default: true,
+              type: 'SelectControl',
+              label: t('Bold Labels'),
+              default: 'both',
+              choices: [
+                ['none', t('None')],
+                ['total', t('Total Only')],
+                ['subtotal', t('Subtotal Only')],
+                ['both', t('Both Total and Subtotal')],
+              ],
               renderTrigger: true,
               description: t(
-                'Bold the first bar axis label in the waterfall chart',
+                'Choose which labels to display in bold in the waterfall chart',
               ),
             },
           },
@@ -196,20 +188,6 @@ const config: ControlPanelConfig = {
               label: t('X Axis Label'),
               renderTrigger: true,
               default: '',
-            },
-          },
-        ],
-        [
-          {
-            name: 'x_axis_label_distance',
-            config: {
-              type: 'TextControl',
-              label: t('X Axis Label Distance'),
-              description: t('Distance of the label from X axis (in pixels)'),
-              renderTrigger: true,
-              default: '25',
-              isInt: true,
-              // validators: [v => !Number.isNaN(v) && v >= 0],
             },
           },
         ],
@@ -299,20 +277,6 @@ const config: ControlPanelConfig = {
               label: t('Y Axis Label'),
               renderTrigger: true,
               default: '',
-            },
-          },
-        ],
-        [
-          {
-            name: 'y_axis_label_distance',
-            config: {
-              type: 'TextControl',
-              label: t('Y Axis Label Distance'),
-              description: t('Distance of the label from Y axis (in pixels)'),
-              renderTrigger: true,
-              default: '25',
-              isInt: true,
-              // validators: [v => !Number.isNaN(v) && v >= 0],
             },
           },
         ],
