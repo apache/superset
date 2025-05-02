@@ -2,8 +2,6 @@
 #    uv pip compile pyproject.toml requirements/base.in -o requirements/base.txt
 -e ./superset-primitives
     # via apache-superset (pyproject.toml)
--e ./superset-sdk
-    # via apache-superset (pyproject.toml)
 alembic==1.15.1
     # via flask-migrate
 amqp==5.3.1
@@ -63,7 +61,6 @@ charset-normalizer==3.4.1
 click==8.1.8
     # via
     #   apache-superset (pyproject.toml)
-    #   apache-superset-sdk
     #   celery
     #   click-didyoumean
     #   click-option-group
@@ -387,8 +384,6 @@ sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
 tabulate==0.8.10
     # via apache-superset (pyproject.toml)
-tomli==2.2.1
-    # via apache-superset-sdk
 trio==0.28.0
     # via
     #   selenium

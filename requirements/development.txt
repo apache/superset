@@ -826,7 +826,6 @@ tabulate==0.8.10
     #   apache-superset
 tomli==2.2.1
     # via
-    #   -c requirements/base-constraint.txt
     #   apache-superset-sdk
     #   coverage
     #   pytest

@@ -35,7 +35,6 @@ classifiers = [
 ]
 dependencies = [
     "apache-superset-primitives>=0.0.1, <0.2",
-    "apache-superset-sdk>=0.0.1, <0.2",
     "backoff>=1.8.0",
     "celery>=5.3.6, <6.0.0",
     "click>=8.0.3",
@@ -188,6 +187,7 @@ doris = ["pydoris>=1.0.0, <2.0.0"]
 oceanbase = ["oceanbase_py>=0.0.1"]
 ydb = ["ydb-sqlalchemy>=0.1.2"]
 development = [
+    "apache-superset-sdk>=0.0.1, <0.2",
     "docker",
     "flask-testing",
     "freezegun",
