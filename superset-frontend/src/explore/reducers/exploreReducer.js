@@ -234,10 +234,20 @@ export default function exploreReducer(state = {}, action) {
               [controlName]: action.value,
             };
 
+            // overwrite state form data with current control value as the redux state will not
+            // have latest action value
+            const overWrittenState = {
+              ...state,
+              form_data: {
+                ...state.form_data,
+                [controlName]: action.value,
+              },
+            };
+
             return {
               controlState: getControlStateFromControlConfig(
                 controlWithUpdatedVal,
-                state,
+                overWrittenState,
                 controlState?.value,
                 true,
               ),
