@@ -25,14 +25,40 @@ import { Styles } from './Styles';
 
 const parseLabel = value => {
   if (typeof value === 'string') {
-    if (value === 'metric') return t('metric');
+    // Match anchor tag with href and label
+    const anchorMatch = value.match(
+      /<a\s+[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/i,
+    );
+
+    if (anchorMatch) {
+      const href = anchorMatch[1];
+      const label = anchorMatch[2];
+
+      return (
+        <a
+          href={href}
+          target="_blank"
+        >
+          {label}
+        </a>
+      );
+    }
+
+    // Translate if value is "metric"
+    if (value === 'metric') {
+      return t('metric');
+    }
+
     return value;
   }
+
   if (typeof value === 'number') {
     return value;
   }
-  return String(value);
+
+  return String(value ?? '');
 };
+
 
 function displayHeaderCell(
   needToggle,
