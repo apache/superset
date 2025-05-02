@@ -179,7 +179,7 @@ class ExtensionsRestApi(BaseSupersetApi):
                   type: object
                   properties:
                     bundle:
-                      description: extension bundle (ZIP)
+                      description: extension bundle
                       type: string
                       format: binary
           responses:
