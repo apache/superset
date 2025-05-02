@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO: Remove fa-icon
-/* eslint-disable icons/no-fa-icons-usage */
-import { FC } from 'react';
-import { styled } from '@superset-ui/core';
+import { FC, KeyboardEvent, MouseEvent, useCallback, useState } from 'react';
+import rison from 'rison';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import CopyToClipboard from 'src/components/CopyToClipboard';
@@ -28,6 +27,8 @@ import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/mar
 import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
 import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
+import { useHistory } from 'react-router-dom';
+import { Button } from 'src/components';
 
 const CopyButtonViewQuery = styled(CopyButton)`
   && {
@@ -40,8 +41,9 @@ SyntaxHighlighter.registerLanguage('html', htmlSyntax);
 SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
 SyntaxHighlighter.registerLanguage('json', jsonSyntax);
 
-interface ViewQueryProps {
+export interface ViewQueryProps {
   sql: string;
+  datasource: string;
   language?: string;
 }
 
@@ -51,25 +53,92 @@ const StyledSyntaxContainer = styled.div`
   flex-direction: column;
 `;
 
+const StyledHeaderMenuContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  column-gap: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-top: ${({ theme }) => -theme.gridUnit * 4}px;
+  align-items: baseline;
+`;
+
 const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
   flex: 1;
 `;
 
 const ViewQuery: FC<ViewQueryProps> = props => {
-  const { sql, language = 'sql' } = props;
+  const { sql, language = 'sql', datasource } = props;
+  const datasetId = datasource.split('__')[0];
+  const [formattedSQL, setFormattedSQL] = useState<string>();
+  const [showFormatSQL, setShowFormatSQL] = useState(false);
+  const history = useHistory();
+  const currentSQL = (showFormatSQL ? formattedSQL : sql) ?? sql;
+
+  const formatCurrentQuery = useCallback(() => {
+    if (formattedSQL) {
+      setShowFormatSQL(val => !val);
+    } else {
+      const queryParams = rison.encode({
+        keys: ['none'],
+        columns: ['database.backend'],
+      });
+      SupersetClient.get({
+        endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
+      }).then(({ json }) => {
+        SupersetClient.post({
+          endpoint: `/api/v1/sqllab/format_sql/`,
+          body: JSON.stringify({
+            sql,
+            engine: json.result.database.backend,
+          }),
+          headers: { 'Content-Type': 'application/json' },
+        }).then(({ json }) => {
+          setFormattedSQL(json.result);
+          setShowFormatSQL(true);
+        });
+      });
+    }
+  }, [sql, datasetId, formattedSQL]);
+
+  const navToSQLLab = useCallback(
+    (domEvent: KeyboardEvent<HTMLElement> | MouseEvent<HTMLElement>) => {
+      const requestedQuery = {
+        datasourceKey: datasource,
+        sql: currentSQL,
+      };
+      if (domEvent.metaKey || domEvent.ctrlKey) {
+        domEvent.preventDefault();
+        window.open(
+          `/sqllab?datasourceKey=${datasource}&sql=${currentSQL}`,
+          '_blank',
+        );
+      } else {
+        history.push('/sqllab', { state: { requestedQuery } });
+      }
+    },
+    [history, datasource, currentSQL],
+  );
+
   return (
     <StyledSyntaxContainer key={sql}>
-      <CopyToClipboard
-        text={sql}
-        shouldShowText={false}
-        copyNode={
-          <CopyButtonViewQuery buttonSize="xsmall">
-            <i className="fa fa-clipboard" />
-          </CopyButtonViewQuery>
-        }
-      />
+      <StyledHeaderMenuContainer>
+        <CopyToClipboard
+          text={currentSQL}
+          shouldShowText={false}
+          copyNode={
+            <CopyButtonViewQuery buttonSize="small">
+              {t('Copy')}
+            </CopyButtonViewQuery>
+          }
+        />
+        <div>
+          <Button onClick={formatCurrentQuery}>
+            {showFormatSQL ? t('Show Original') : t('Format SQL')}
+          </Button>
+          <Button onClick={navToSQLLab}>{t('View in SQL Lab')}</Button>
+        </div>
+      </StyledHeaderMenuContainer>
       <StyledSyntaxHighlighter language={language} style={github}>
-        {sql}
+        {currentSQL}
       </StyledSyntaxHighlighter>
     </StyledSyntaxContainer>
   );
