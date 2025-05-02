@@ -82,6 +82,7 @@ def build() -> None:  # noqa: C901
     manifest: dict[str, Any] = {}
     manifest["name"] = extension["name"]
     manifest["version"] = extension["version"]
+    manifest["permissions"] = extension["permissions"]
     backend = extension.get("backend", {})
     frontend = extension.get("frontend", {})
     manifest["dependencies"] = extension.get("dependencies", [])
