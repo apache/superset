@@ -104,16 +104,16 @@ const ViewQuery: FC<ViewQueryProps> = props => {
       SupersetClient.get({
         endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
       })
-        .then(({ json }) => {
-          return SupersetClient.post({
+        .then(({ json }) =>
+          SupersetClient.post({
             endpoint: `/api/v1/sqllab/format_sql/`,
             body: JSON.stringify({
               sql,
               engine: json.result.database.backend,
             }),
             headers: { 'Content-Type': 'application/json' },
-          });
-        })
+          }),
+        )
         .then(({ json }) => {
           setFormattedSQL(json.result);
           setShowFormatSQL(true);
