@@ -35,9 +35,7 @@ jest.mock('react-router-dom', () => ({
   }),
 }));
 
-jest.mock('src/utils/copy', () =>
-  jest.fn().mockImplementation(fn => Promise.resolve(fn())),
-);
+jest.mock('src/utils/copy');
 
 function setup(props: ViewQueryProps) {
   return render(<ViewQuery {...props} />, { useRouter: true, useRedux: true });
@@ -77,11 +75,15 @@ it('renders the component with SQL and buttons', () => {
   expect(container).toHaveTextContent(mockProps.sql);
 });
 
-// it('copies the SQL to the clipboard when Copy button is clicked', async () => {
-//   setup(mockProps);
-//   const copyButton = screen.getByText('Copy');
-//   fireEvent.click(copyButton);
-// });
+it('copies the SQL to the clipboard when Copy button is clicked', async () => {
+  setup(mockProps);
+
+  (copyTextToClipboard as jest.Mock).mockResolvedValue('');
+  const copyButton = screen.getByText('Copy');
+  expect(copyTextToClipboard as jest.Mock).not.toHaveBeenCalled();
+  fireEvent.click(copyButton);
+  expect(copyTextToClipboard as jest.Mock).toHaveBeenCalled();
+});
 
 it('formats the SQL when Format SQL button is clicked', async () => {
   const { container } = setup(mockProps);
