@@ -172,6 +172,20 @@ export type DeckGLGeoJsonProps = {
   width: number;
 };
 
+export function getPoints(data: JsonObject[]) {
+  return data.reduce(
+    (acc: [number, number, number, number][], feature: any) => {
+      const bounds = geojsonExtent(feature);
+      if (bounds) {
+        return [...acc, [bounds[0], bounds[1]], [bounds[2], bounds[3]]];
+      }
+
+      return acc;
+    },
+    [],
+  );
+}
+
 const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
   const containerRef = useRef<DeckGLContainerHandle>();
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
@@ -186,24 +200,13 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
 
   const viewport: Viewport = useMemo(() => {
     if (formData.autozoom) {
-      const points =
-        payload?.data?.features?.reduce?.(
-          (acc: [number, number, number, number][], feature: any) => {
-            const bounds = geojsonExtent(feature);
-            if (bounds) {
-              return [...acc, [bounds[0], bounds[1]], [bounds[2], bounds[3]]];
-            }
-
-            return acc;
-          },
-          [],
-        ) || [];
+      const points = getPoints(payload.data.features) || [];
 
       if (points.length) {
         return fitViewport(props.viewport, {
           width,
           height,
-          points,
+          points: getPoints(payload.data.features) || [],
         });
       }
     }
