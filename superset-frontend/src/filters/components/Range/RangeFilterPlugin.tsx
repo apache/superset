@@ -306,7 +306,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       return;
     }
 
-    // Handle error case
     if (filterState.validateStatus === 'error') {
       setError(filterState.validateMessage);
 
@@ -422,11 +421,9 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         } else if (enableSingleValue === SingleValueType.Maximum) {
           newInputValue = [null, singleValue];
         } else {
-          // Exact - use the same value for both
           newInputValue = [singleValue, singleValue];
         }
       } else {
-        // Regular range case - value is an array
         const arrayValue = Array.isArray(value) ? value : [min, max];
         const [sliderMin, sliderMax] =
           arrayValue.length >= 2 ? [arrayValue[0], arrayValue[1]] : [min, max];
