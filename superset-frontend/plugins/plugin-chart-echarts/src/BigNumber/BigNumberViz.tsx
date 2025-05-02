@@ -459,7 +459,6 @@ export default styled(BigNumberVis)`
 
     .header-line {
       position: relative;
-      line-height: 1em;
       white-space: nowrap;
       margin-bottom:${theme.gridUnit * 2}px;
       span {
