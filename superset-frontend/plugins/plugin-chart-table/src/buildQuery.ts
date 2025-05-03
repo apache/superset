@@ -251,13 +251,16 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       ];
     }
 
+    // Now since row limit control is always visible even
+    // in case of server pagination
+    // we must use row limit from form data
     if (formData.server_pagination) {
       return [
         { ...queryObject },
         {
           ...queryObject,
           time_offsets: [],
-          row_limit: 0,
+          row_limit: formData?.row_limit ?? 0,
           row_offset: 0,
           post_processing: [],
           is_rowcount: true,
