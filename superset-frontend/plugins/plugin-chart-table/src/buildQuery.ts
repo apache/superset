@@ -191,8 +191,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
-    // Build Query flag to check if its for either download as csv , json or excel
-    const isDownloadQuery = ['csv', 'xlsx', 'json'].includes(
+    // Build Query flag to check if its for either download as csv  or excel
+    const isDownloadQuery = ['csv', 'xlsx'].includes(
       formData?.result_format || '',
     );
 
