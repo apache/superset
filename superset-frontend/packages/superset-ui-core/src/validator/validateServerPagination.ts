@@ -21,8 +21,9 @@ import { t } from '../translation';
 export default function validateServerPagination(
   v: unknown,
   serverPagination: boolean,
+  max: number,
 ) {
-  if (Number(v) > 100000 && !serverPagination) {
+  if (Number(v) > +max && !serverPagination) {
     return t('Server pagination needs to be enabled for values over 100,000');
   }
   return false;

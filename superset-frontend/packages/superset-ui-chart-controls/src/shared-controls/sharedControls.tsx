@@ -59,7 +59,11 @@ import {
   DEFAULT_TIME_FORMAT,
   DEFAULT_NUMBER_FORMAT,
 } from '../utils';
-import { DEFAULT_MAX_ROW, TIME_FILTER_LABELS } from '../constants';
+import {
+  DEFAULT_MAX_ROW,
+  DEFAULT_MAX_ROW_WITHOUT_PAGINATION,
+  TIME_FILTER_LABELS,
+} from '../constants';
 import {
   SharedControlConfig,
   Dataset,
@@ -230,12 +234,20 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   mapStateToProps: state => ({
     maxValue: state?.common?.conf?.SQL_MAX_ROW,
     server_pagination: state?.form_data?.server_pagination,
+    maxValueWithoutServerPagination: state?.common?.conf?.TABLE_VIZ_MAX_ROW,
   }),
   validators: [
     legacyValidateInteger,
     (v, state) => validateMaxValue(v, state?.maxValue || DEFAULT_MAX_ROW),
-    (v, state) => validateServerPagination(v, state?.server_pagination),
+    (v, state) =>
+      validateServerPagination(
+        v,
+        state?.server_pagination,
+        state?.maxValueWithoutServerPagination ||
+          DEFAULT_MAX_ROW_WITHOUT_PAGINATION,
+      ),
   ],
+  // Re run the validations when this control value
   validationDependancies: ['server_pagination'],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
