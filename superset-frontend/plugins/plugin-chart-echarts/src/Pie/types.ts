@@ -98,5 +98,5 @@ export interface PieChartDataItem {
     color: string;
     opacity: number;
   };
-  [key: string]: unknown;
+  isOther?: boolean;
 }

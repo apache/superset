@@ -46,7 +46,8 @@ function parseValue(value: string | number | null | undefined) {
   if (value === null || value === undefined || value === '') {
     return undefined;
   }
-  return Number(value);
+  const num = Number(value);
+  return Number.isNaN(num) ? undefined : num;
 }
 
 export default function NumberControl({
