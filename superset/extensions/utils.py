@@ -17,9 +17,24 @@
 
 import importlib.abc
 import importlib.util
-import pathlib
+import json
+import logging
+import os
+import re
 import sys
-from typing import Any, Tuple
+from pathlib import Path
+from typing import Any, Generator, Iterable, Tuple
+from zipfile import ZipFile
+
+from flask import current_app
+
+from superset.extensions.types import BundleFile, LoadedExtension, Manifest
+from superset.utils.core import check_is_safe_zip
+
+logger = logging.getLogger(__name__)
+
+FRONTEND_REGEX = re.compile(r"^frontend/dist/([^/]+)$")
+BACKEND_REGEX = re.compile(r"^backend/src/(.+)$")
 
 
 class InMemoryLoader(importlib.abc.Loader):
@@ -49,12 +64,12 @@ class InMemoryFinder(importlib.abc.MetaPathFinder):
             self.modules[mod_name] = (code, is_package, path)
 
     def _get_module_name(self, file_path: str) -> Tuple[str, bool]:
-        parts = list(pathlib.Path(file_path).parts)
+        parts = list(Path(file_path).parts)
         is_package = parts[-1] == "__init__.py"
         if is_package:
             parts = parts[:-1]
         else:
-            parts[-1] = pathlib.Path(parts[-1]).stem
+            parts[-1] = Path(parts[-1]).stem
 
         mod_name = ".".join(parts)
         return mod_name, is_package
@@ -80,3 +95,83 @@ def eager_import(module_name: str) -> Any:
     if module_name in sys.modules:
         return sys.modules[module_name]
     return importlib.import_module(module_name)
+
+
+def get_bundle_files_from_zip(zip_file: ZipFile) -> Generator[BundleFile, None, None]:
+    check_is_safe_zip(zip_file)
+    for name in zip_file.namelist():
+        raw = zip_file.read(name)
+        content = raw.decode("utf-8")
+        yield BundleFile(name=name, content=content)
+
+
+def get_bundle_files_from_path(base_path: str) -> Generator[BundleFile, None, None]:
+    dist_path = os.path.join(base_path, "dist")
+
+    if not os.path.isdir(dist_path):
+        raise Exception(f"Expected directory {dist_path} does not exist.")
+
+    for root, _, files in os.walk(dist_path):
+        for file in files:
+            full_path = os.path.join(root, file)
+            rel_path = os.path.relpath(full_path, dist_path).replace(os.sep, "/")
+            with open(full_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            yield BundleFile(name=rel_path, content=content)
+
+
+def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
+    manifest: Manifest = {}
+    frontend: dict[str, str] = {}
+    backend: dict[str, str] = {}
+
+    for file in files:
+        filename = file.name
+        content = file.content
+
+        if filename == "manifest.json":
+            try:
+                manifest = json.loads(content)
+                if "name" not in manifest:
+                    raise Exception("Missing 'name' in manifest")
+            except Exception as e:
+                raise Exception(f"Invalid manifest.json: {e}") from e
+
+        elif (match := FRONTEND_REGEX.match(filename)) is not None:
+            frontend[match.group(1)] = content
+
+        elif (match := BACKEND_REGEX.match(filename)) is not None:
+            backend[match.group(1)] = content
+
+        else:
+            raise Exception(f"Unexpected file in bundle: {filename}")
+
+    name = manifest["name"]
+    return LoadedExtension(
+        name=name, manifest=manifest, frontend=frontend, backend=backend
+    )
+
+
+def get_extensions() -> dict[str, LoadedExtension]:
+    from superset.daos.extension import ExtensionDAO
+
+    extensions: dict[str, LoadedExtension] = {}
+    for path in current_app.config["LOCAL_EXTENSIONS"]:
+        files = get_bundle_files_from_path(path)
+        extension = get_loaded_extension(files)
+        extensions[extension.name] = extension
+        logger.info(f"Loading extension {extension.name} from local filesystem")
+
+    for db_extension in ExtensionDAO.get_enabled_extensions():
+        if db_extension.name not in extensions:
+            extension = LoadedExtension(
+                name=db_extension.name,
+                manifest=db_extension.manifest_dict,
+                backend=db_extension.backend_dict or {},
+                frontend=db_extension.frontend_dict or {},
+            )
+            extensions[extension.name] = extension
+        else:
+            logger.info(f"not loading extension {db_extension.name} from metastore")
+
+    return extensions

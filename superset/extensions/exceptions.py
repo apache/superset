@@ -38,3 +38,7 @@ class ExtensionDeleteFailedError(DeleteFailedError):
 
 class ExtensionUpdateFailedError(UpdateFailedError):
     message = _("An error occurred while updating the extension.")
+
+
+class BundleValidationError(Exception):
+    pass

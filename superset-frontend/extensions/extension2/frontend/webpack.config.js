@@ -32,6 +32,8 @@ module.exports = {
   },
   output: {
     clean: true,
+    filename: '[name].[contenthash].js',
+    chunkFilename: '[name].[contenthash].js',
     path: path.resolve(__dirname, 'dist'),
     publicPath: `/api/v1/extensions/${packageConfig.name}/`,
   },
@@ -54,7 +56,7 @@ module.exports = {
   plugins: [
     new ModuleFederationPlugin({
       name: 'extension2',
-      filename: 'remoteEntry.js',
+      filename: 'remoteEntry.[contenthash].js',
       exposes: {
         './index': './src/index.tsx',
       },

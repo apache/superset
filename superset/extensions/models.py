@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-from typing import Any
 
 from flask_appbuilder import Model
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from superset import security_manager
+from superset.extensions.types import Manifest
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 
 
@@ -43,9 +43,13 @@ class Extension(AuditMixinNullable, ImportExportMixin, Model):
     changed_by = relationship(security_manager.user_model, foreign_keys=[changed_by_fk])
 
     @property
+    def frontend_dict(self) -> dict[str, str] | None:
+        return json.loads(self.frontend) if self.frontend else None
+
+    @property
     def backend_dict(self) -> dict[str, str] | None:
         return json.loads(self.backend) if self.backend else None
 
     @property
-    def manifest_dict(self) -> dict[str, Any]:
+    def manifest_dict(self) -> Manifest:
         return json.loads(self.manifest)

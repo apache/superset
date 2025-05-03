@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from dataclasses import dataclass
 from typing import TypedDict
 
 
@@ -25,17 +26,40 @@ class ModuleFederationConfig(TypedDict):
     remotes: dict[str, str]
 
 
+class FrontendContributionConfig(TypedDict):
+    commands: dict[str, list[dict[str, str]]]
+    views: dict[str, list[dict[str, str]]]
+    menus: dict[str, list[dict[str, str]]]
+
+
 class FrontendManifest(TypedDict):
+    contributions: FrontendContributionConfig
     moduleFederation: ModuleFederationConfig
+    remoteEntry: str
 
 
 class BackendManifest(TypedDict):
-    entryPoint: str
+    entryPoints: list[str]
 
 
-class Manifest(TypedDict):
+class Manifest(TypedDict, total=False):
     name: str
     description: str
     version: str
     frontend: FrontendManifest
     backend: BackendManifest
+    permissions: list[str]
+
+
+@dataclass
+class BundleFile:
+    name: str
+    content: str
+
+
+@dataclass
+class LoadedExtension:
+    name: str
+    manifest: Manifest
+    frontend: dict[str, str]
+    backend: dict[str, str]

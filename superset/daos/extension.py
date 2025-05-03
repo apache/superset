@@ -18,11 +18,12 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import Any, cast
 
 from superset import db
 from superset.daos.base import BaseDAO
 from superset.extensions.models import Extension
+from superset.extensions.types import Manifest
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +40,12 @@ class ExtensionDAO(BaseDAO[Extension]):
     @staticmethod
     def upsert(
         name: str,
-        manifest: dict[str, Any],
+        manifest: Manifest,
         frontend: dict[str, Any],
         backend: dict[str, Any],
         enabled: bool,
     ) -> Extension:
-        manifest_str = json_dumps_compact(manifest)
+        manifest_str = json_dumps_compact(cast(dict[str, Any], manifest))
         frontend_str = json_dumps_compact(frontend) if frontend else None
         backend_str = json_dumps_compact(backend) if backend else None
         if extension := ExtensionDAO.get_by_name(name):

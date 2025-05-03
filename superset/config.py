@@ -1951,6 +1951,8 @@ CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 SYNC_DB_PERMISSIONS_IN_ASYNC_MODE: bool = False
 
 
+LOCAL_EXTENSIONS: list[str] = []
+
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
 # -------------------------------------------------------------------

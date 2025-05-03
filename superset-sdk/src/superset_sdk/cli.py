@@ -16,6 +16,7 @@
 # under the License.
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -26,6 +27,8 @@ from typing import Any
 import click
 
 from superset_sdk.utils import read_json, read_toml
+
+REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
 
 
 @click.group(help="CLI for validating and bundling Superset extensions.")
@@ -94,18 +97,28 @@ def build() -> None:  # noqa: C901
     if entry_points := backend.get("entryPoints", ""):
         manifest["backend"]["entryPoints"] = entry_points
 
+    # Copy frontend/dist files into dist/
+    if package:
+        remote_entry: str | None = None
+        for file in (frontend_dir / "dist").rglob("*"):
+            if file.is_file():
+                if REMOTE_ENTRY_REGEX.match(file.name):
+                    remote_entry = file.name
+                target_path = dist_dir / file.relative_to(cwd)
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(file, target_path)
+
+        if not remote_entry:
+            click.secho("❌ No remote entry file found.", err=True, fg="red")
+            click.echo(result.stderr, err=True)
+            sys.exit(1)
+
+        manifest["frontend"]["remoteEntry"] = remote_entry
+
     # Write manifest
     (dist_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True)
     )
-
-    # Copy frontend/dist files into dist/
-    if package:
-        for file in (frontend_dir / "dist").rglob("*"):
-            if file.is_file():
-                target_path = dist_dir / file.relative_to(cwd)
-                target_path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(file, target_path)
 
     # Copy backend files into dist/
     if pyproject:
