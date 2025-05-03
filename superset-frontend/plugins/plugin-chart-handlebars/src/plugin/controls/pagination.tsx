@@ -46,7 +46,7 @@ export const serverPageLengthControlSetItem: ControlSetItem = {
     label: t('Server Page Length'),
     default: 10,
     choices: PAGE_SIZE_OPTIONS,
-    description: t('Rows per page, 0 means no pagination'),
+    description: t('Rows per page, All means no pagination'),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.server_pagination?.value),
   },
