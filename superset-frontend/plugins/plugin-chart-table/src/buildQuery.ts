@@ -191,10 +191,11 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
-    // Build Query flag to check if its for either download as csv  or excel
-    const isDownloadQuery = ['csv', 'xlsx'].includes(
-      formData?.result_format || '',
-    );
+    // Build Query flag to check if its for either download as csv, excel or json
+    const isDownloadQuery =
+      ['csv', 'xlsx'].includes(formData?.result_format || '') ||
+      (formData?.result_format === 'json' &&
+        formData?.result_type === 'results');
 
     if (isDownloadQuery) {
       moreProps.row_limit = Number(formDataCopy.row_limit) || 0;
