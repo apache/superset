@@ -191,11 +191,19 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
-    if (formDataCopy.server_pagination) {
-      moreProps.row_limit =
-        ownState.pageSize ?? formDataCopy.server_page_length;
-      moreProps.row_offset =
-        (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
+    const isCSV = formData?.result_format === 'csv';
+
+    if (isCSV) {
+      moreProps.row_limit = Number(formDataCopy.row_limit) || 0;
+      moreProps.row_offset = 0;
+    }
+
+    if (!isCSV && formDataCopy.server_pagination) {
+      const pageSize = ownState.pageSize ?? formDataCopy.server_page_length;
+      const currentPage = ownState.currentPage ?? 0;
+
+      moreProps.row_limit = pageSize;
+      moreProps.row_offset = currentPage * pageSize;
     }
 
     let queryObject = {
@@ -254,7 +262,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     // Now since row limit control is always visible even
     // in case of server pagination
     // we must use row limit from form data
-    if (formData.server_pagination) {
+    if (formData.server_pagination && !isCSV) {
       return [
         { ...queryObject },
         {
