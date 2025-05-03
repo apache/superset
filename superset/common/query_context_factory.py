@@ -70,7 +70,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                 datasource_model_instance,
                 form_data,
                 self._query_object_factory.create(
-                    result_type, datasource=datasource, **query_obj
+                    result_type, datasource=datasource, **query_obj, form_data=form_data
                 ),
             )
             for query_obj in queries

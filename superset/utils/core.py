@@ -1764,6 +1764,24 @@ def apply_max_row_limit(
     return max_limit
 
 
+def apply_max_row_limit_table(
+    limit: int,
+    max_limit: int | None = None,
+) -> int:
+    """
+    Override row limit for table viz type if max table limit is defined
+
+    :param limit: requested row limit
+    :param max_limit: Maximum allowed row limit for table viz
+    :return: Capped row limit
+    """
+    if max_limit is None:
+        max_limit = current_app.config["TABLE_VIZ_MAX_ROW"]
+    if limit != 0:
+        return min(max_limit, limit)
+    return max_limit
+
+
 def create_zip(files: dict[str, Any]) -> BytesIO:
     buf = BytesIO()
     with ZipFile(buf, "w") as bundle:

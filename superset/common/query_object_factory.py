@@ -25,6 +25,7 @@ from superset.constants import NO_TIME_RANGE
 from superset.superset_typing import Column
 from superset.utils.core import (
     apply_max_row_limit,
+    apply_max_row_limit_table,
     DatasourceDict,
     DatasourceType,
     FilterOperator,
@@ -57,6 +58,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         row_limit: int | None = None,
         time_range: str | None = None,
         time_shift: str | None = None,
+        form_data: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> QueryObject:
         datasource_model_instance = None
@@ -64,7 +66,16 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             datasource_model_instance = self._convert_to_model(datasource)
         processed_extras = self._process_extras(extras)
         result_type = kwargs.setdefault("result_type", parent_result_type)
+
         row_limit = self._process_row_limit(row_limit, result_type)
+
+        if (
+            form_data
+            and form_data.get("viz_type") == "table"
+            and not form_data.get("server_pagination")
+        ):
+            row_limit = self._process_row_limit_table(row_limit, result_type)
+
         processed_time_range = self._process_time_range(
             time_range, kwargs.get("filters"), kwargs.get("columns")
         )
@@ -104,6 +115,20 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             else self._config["ROW_LIMIT"]
         )
         return apply_max_row_limit(row_limit or default_row_limit)
+
+    def _process_row_limit_table(
+        self, row_limit: int | None, result_type: ChartDataResultType
+    ) -> int:
+        """Process row limit for table visualization.
+
+        This limit is applied when server pagination is disabled.
+        """
+        default_row_limit = (
+            self._config["SAMPLES_ROW_LIMIT"]
+            if result_type == ChartDataResultType.SAMPLES
+            else self._config["ROW_LIMIT"]
+        )
+        return apply_max_row_limit_table(row_limit or default_row_limit)
 
     @staticmethod
     def _process_time_range(
