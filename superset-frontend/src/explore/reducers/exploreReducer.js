@@ -250,7 +250,6 @@ export default function exploreReducer(state = {}, action) {
                 controlWithUpdatedVal,
                 overWrittenState,
                 controlState?.value,
-                true,
               ),
               dependantControlName,
             };
