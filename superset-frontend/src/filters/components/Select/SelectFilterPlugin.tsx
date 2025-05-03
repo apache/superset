@@ -331,7 +331,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       return;
     }
 
-    // Case 2: Handle empty filter enabled case
+    // Case 2: Handle the default to first Value case
     if (defaultToFirstItem) {
       // Set to first item if defaultToFirstItem is true
       const firstItem: SelectValue = data[0]
@@ -341,7 +341,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         updateDataMask(firstItem);
       }
     } else if (formData?.defaultValue) {
-      // Set to defaultValue if available
+      // Case 3 : Handle defalut value case
       updateDataMask(formData.defaultValue);
     }
   }, [
