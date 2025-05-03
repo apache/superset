@@ -332,29 +332,17 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     }
 
     // Case 2: Handle empty filter enabled case
-    if (enableEmptyFilter) {
-      if (defaultToFirstItem) {
-        // Set to first item if defaultToFirstItem is true
-        const firstItem: SelectValue = data[0]
-          ? (groupby.map(col => data[0][col]) as string[])
-          : null;
-        if (firstItem?.[0] !== undefined) {
-          updateDataMask(firstItem);
-        }
-      } else if (formData?.defaultValue) {
-        // Set to defaultValue if available
-        updateDataMask(formData.defaultValue);
-      }
-      return;
-    }
-    // Case 3 : Default to first item is enabled without enable Empty filter
     if (defaultToFirstItem) {
+      // Set to first item if defaultToFirstItem is true
       const firstItem: SelectValue = data[0]
         ? (groupby.map(col => data[0][col]) as string[])
         : null;
       if (firstItem?.[0] !== undefined) {
         updateDataMask(firstItem);
       }
+    } else if (formData?.defaultValue) {
+      // Set to defaultValue if available
+      updateDataMask(formData.defaultValue);
     }
   }, [
     isDisabled,
