@@ -319,6 +319,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [formData.sortAscending],
   );
 
+  // Use effect for initialisation for filter plugin
+  // this should run only once when filter is configured & saved
+  // & shouldnt run when the component is remounted on change of
+  // orientation of filter bar
   useEffect(() => {
     // Skip if only orientation changed
     if (hasOnlyOrientationChanged.current) {
