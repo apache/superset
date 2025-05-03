@@ -6259,10 +6259,10 @@ escape-string-regexp@^5.0.0:
   resolved "https://registry.yarnpkg.com/escape-string-regexp/-/escape-string-regexp-5.0.0.tgz#4683126b500b61762f2dbebace1806e8be31b1c8"
   integrity sha512-/veY75JbMK4j1yjvuUxuVsiS/hr/4iHs9FTT6cgTexxdE0Ly/glccBAkloH/DofkjRbZU3bnoj38mOmhkZ0lHw==
 
-eslint-config-prettier@^10.1.1:
-  version "10.1.1"
-  resolved "https://registry.yarnpkg.com/eslint-config-prettier/-/eslint-config-prettier-10.1.1.tgz#cf0ff6e5c4e7e15f129f1f1ce2a5ecba92dec132"
-  integrity sha512-4EQQr6wXwS+ZJSzaR5ZCrYgLxqvUjdXctaEtBqHcbkW944B1NQyO4qpdHQbXBONfwxXdkAY81HH4+LUfrg+zPw==
+eslint-config-prettier@^10.1.2:
+  version "10.1.2"
+  resolved "https://registry.yarnpkg.com/eslint-config-prettier/-/eslint-config-prettier-10.1.2.tgz#31a4b393c40c4180202c27e829af43323bf85276"
+  integrity sha512-Epgp/EofAUeEpIdZkW60MHKvPyru1ruQJxPL+WIycnaPApuseK0Zpkrh/FwL9oIpQvIhJwV7ptOy0DWUjTlCiA==
 
 eslint-plugin-prettier@^4.0.0:
   version "4.2.1"
