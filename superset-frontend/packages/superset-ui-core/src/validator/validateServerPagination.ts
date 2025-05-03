@@ -24,7 +24,7 @@ export default function validateServerPagination(
   max: number,
 ) {
   if (Number(v) > +max && !serverPagination) {
-    return t('Server pagination needs to be enabled for values over 100,000');
+    return t('Server pagination needs to be enabled for values over %s', max);
   }
   return false;
 }
