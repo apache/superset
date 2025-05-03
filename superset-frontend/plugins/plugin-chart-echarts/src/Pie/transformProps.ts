@@ -215,29 +215,23 @@ export default function transformProps(
       numberFormatter(otherSum),
       percentFormatter(contributionSum),
     ]);
-    otherDatum = {
-      name: otherName,
-      value: otherSum,
-      itemStyle: {
-        color: theme.colors.grayscale.dark1,
-        opacity:
-          filterState.selectedValues &&
-          !filterState.selectedValues.includes(otherName)
-            ? OpacityEnum.SemiTransparent
-            : OpacityEnum.NonTransparent,
-      },
-      isOther: true,
-    };
+    if (otherSum) {
+      otherDatum = {
+        name: otherName,
+        value: otherSum,
+        itemStyle: {
+          color: theme.colors.grayscale.dark1,
+          opacity:
+            filterState.selectedValues &&
+            !filterState.selectedValues.includes(otherName)
+              ? OpacityEnum.SemiTransparent
+              : OpacityEnum.NonTransparent,
+        },
+        isOther: true,
+      };
+    }
   }
 
-  const keys = data.map(datum =>
-    extractGroupbyLabel({
-      datum,
-      groupby: groupbyLabels,
-      coltypeMapping,
-      timeFormatter: getTimeFormatter(dateFormat),
-    }),
-  );
   const labelMap = data.reduce((acc: Record<string, string[]>, datum) => {
     const label = extractGroupbyLabel({
       datum,
@@ -283,6 +277,10 @@ export default function transformProps(
       },
     };
   });
+  if (otherDatum) {
+    transformedData.push(otherDatum);
+    totalValue += otherSum;
+  }
 
   const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
@@ -412,11 +410,6 @@ export default function transformProps(
     },
   ];
 
-  if (otherDatum) {
-    transformedData.push(otherDatum);
-    totalValue += otherSum;
-  }
-
   const echartOptions: EChartsCoreOption = {
     grid: {
       ...defaultGrid,
@@ -442,7 +435,7 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: keys,
+      data: transformedData.map(datum => datum.name),
     },
     graphic: showTotal
       ? {
