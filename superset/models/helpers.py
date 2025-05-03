@@ -1585,10 +1585,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # use the existing instance.
                     col = metrics_exprs_by_expr.get(str(col), col)
                     need_groupby = True
-            elif col in columns_by_name:
-                col = self.convert_tbl_column_to_sqla_col(
-                    columns_by_name[col], template_processor=template_processor
-                )
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
                 need_groupby = True
@@ -1597,6 +1593,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     template_processor=template_processor
                 )
                 need_groupby = True
+            elif col in columns_by_name:
+                col = self.convert_tbl_column_to_sqla_col(
+                    columns_by_name[col], template_processor=template_processor
+                )
 
             if isinstance(col, ColumnElement):
                 orderby_exprs.append(col)
