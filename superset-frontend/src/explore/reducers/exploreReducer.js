@@ -229,11 +229,6 @@ export default function exploreReducer(state = {}, action) {
       if (dependantControls.length > 0) {
         const updatedControls = dependantControls.map(
           ({ controlState, dependantControlName }) => {
-            const controlWithUpdatedVal = {
-              ...controlState,
-              [controlName]: action.value,
-            };
-
             // overwrite state form data with current control value as the redux state will not
             // have latest action value
             const overWrittenState = {
@@ -247,7 +242,7 @@ export default function exploreReducer(state = {}, action) {
             return {
               // Re run validation for dependant controls
               controlState: getControlStateFromControlConfig(
-                controlWithUpdatedVal,
+                controlState,
                 overWrittenState,
                 controlState?.value,
               ),
