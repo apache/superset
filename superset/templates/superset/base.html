@@ -21,7 +21,7 @@
 
 {% block head_css %}
   {{ super() }}
-  {% set favicons = appbuilder.app.config['FAVICONS'] %}
+  {% set favicons = current_app.config['FAVICONS'] %}
   {% for favicon in favicons %}
     <link
       rel="{{favicon.rel if favicon.rel else "icon"}}"

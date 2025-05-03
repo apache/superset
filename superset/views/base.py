@@ -26,6 +26,7 @@ from typing import Any, Callable
 from babel import Locale
 from flask import (
     abort,
+    current_app,
     flash,
     g,
     get_flashed_messages,
@@ -223,10 +224,10 @@ class BaseSupersetView(BaseView):
 
 def get_environment_tag() -> dict[str, Any]:
     # Whether flask is in debug mode (--debug)
-    debug = appbuilder.app.config["DEBUG"]
+    debug = current_app.config["DEBUG"]
 
     # Getting the configuration option for ENVIRONMENT_TAG_CONFIG
-    env_tag_config = appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]
+    env_tag_config = current_app.config["ENVIRONMENT_TAG_CONFIG"]
 
     # These are the predefined templates define in the config
     env_tag_templates = env_tag_config.get("values")
@@ -251,7 +252,7 @@ def menu_data(user: User) -> dict[str, Any]:
         for lang in appbuilder.languages
     }
 
-    if callable(brand_text := appbuilder.app.config["LOGO_RIGHT_TEXT"]):
+    if callable(brand_text := current_app.config["LOGO_RIGHT_TEXT"]):
         brand_text = brand_text()
 
     return {
@@ -261,22 +262,22 @@ def menu_data(user: User) -> dict[str, Any]:
             or url_for("Superset.welcome"),
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
-            "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
+            "tooltip": current_app.config["LOGO_TOOLTIP"],
             "text": brand_text,
         },
         "environment_tag": get_environment_tag(),
         "navbar_right": {
             # show the watermark if the default app icon has been overridden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
-            "bug_report_url": appbuilder.app.config["BUG_REPORT_URL"],
-            "bug_report_icon": appbuilder.app.config["BUG_REPORT_ICON"],
-            "bug_report_text": appbuilder.app.config["BUG_REPORT_TEXT"],
-            "documentation_url": appbuilder.app.config["DOCUMENTATION_URL"],
-            "documentation_icon": appbuilder.app.config["DOCUMENTATION_ICON"],
-            "documentation_text": appbuilder.app.config["DOCUMENTATION_TEXT"],
-            "version_string": appbuilder.app.config["VERSION_STRING"],
-            "version_sha": appbuilder.app.config["VERSION_SHA"],
-            "build_number": appbuilder.app.config["BUILD_NUMBER"],
+            "bug_report_url": current_app.config["BUG_REPORT_URL"],
+            "bug_report_icon": current_app.config["BUG_REPORT_ICON"],
+            "bug_report_text": current_app.config["BUG_REPORT_TEXT"],
+            "documentation_url": current_app.config["DOCUMENTATION_URL"],
+            "documentation_icon": current_app.config["DOCUMENTATION_ICON"],
+            "documentation_text": current_app.config["DOCUMENTATION_TEXT"],
+            "version_string": current_app.config["VERSION_STRING"],
+            "version_sha": current_app.config["VERSION_SHA"],
+            "build_number": current_app.config["BUILD_NUMBER"],
             "languages": languages,
             "show_language_picker": len(languages) > 1,
             "user_is_anonymous": user.is_anonymous,
@@ -406,9 +407,7 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
         else:
             view_menu = security_manager.find_view_menu(item.get_perm())
             pvs = (
-                security_manager.get_session.query(
-                    security_manager.permissionview_model
-                )
+                db.session.query(security_manager.permissionview_model)
                 .filter_by(view_menu=view_menu)
                 .all()
             )
@@ -417,10 +416,10 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
                 self.post_delete(item)
 
                 for pv in pvs:
-                    security_manager.get_session.delete(pv)
+                    db.session.delete(pv)
 
                 if view_menu:
-                    security_manager.get_session.delete(view_menu)
+                    db.session.delete(view_menu)
 
                 db.session.commit()  # pylint: disable=consider-using-transaction
 
