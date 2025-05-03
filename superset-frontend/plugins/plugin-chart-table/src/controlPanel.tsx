@@ -343,12 +343,6 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'row_limit',
-            override: {
-              default: 1000,
-            },
-          },
-          {
             name: 'server_page_length',
             config: {
               type: 'SelectControl',
@@ -359,6 +353,14 @@ const config: ControlPanelConfig = {
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'row_limit',
+            override: {
+              default: 1000,
             },
           },
         ],
