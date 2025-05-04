@@ -24,6 +24,7 @@ import {
   MutableRefObject,
   CSSProperties,
   DragEvent,
+  useEffect,
 } from 'react';
 
 import {
@@ -50,6 +51,7 @@ import SimplePagination from './components/Pagination';
 import useSticky from './hooks/useSticky';
 import { PAGE_SIZE_OPTIONS } from '../consts';
 import { sortAlphanumericCaseInsensitive } from './utils/sortAlphanumericCaseInsensitive';
+import { SortByItem } from '../types';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;
@@ -62,7 +64,11 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   height?: string | number;
   serverPagination?: boolean;
   onServerPaginationChange: (pageNumber: number, pageSize: number) => void;
-  serverPaginationData: { pageSize?: number; currentPage?: number };
+  serverPaginationData: {
+    pageSize?: number;
+    currentPage?: number;
+    sortBy?: SortByItem[];
+  };
   pageSize?: number;
   noResults?: string | ((filterString: string) => ReactNode);
   sticky?: boolean;
@@ -71,6 +77,8 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   onColumnOrderChange: () => void;
   renderGroupingHeaders?: () => JSX.Element;
   renderTimeComparisonDropdown?: () => JSX.Element;
+  handleSortByChange: (sortBy: SortByItem[]) => void;
+  sortByFromParent: SortByItem[];
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -105,6 +113,8 @@ export default typedMemo(function DataTable<D extends object>({
   onColumnOrderChange,
   renderGroupingHeaders,
   renderTimeComparisonDropdown,
+  handleSortByChange,
+  sortByFromParent = [],
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -115,6 +125,7 @@ export default typedMemo(function DataTable<D extends object>({
     doSticky ? useSticky : [],
     hooks || [],
   ].flat();
+  console.log('sort by from parent', sortByFromParent);
   const columnNames = Object.keys(data?.[0] || {});
   const previousColumnNames = usePrevious(columnNames);
   const resultsSize = serverPagination ? rowCount : data.length;
@@ -127,7 +138,8 @@ export default typedMemo(function DataTable<D extends object>({
     ...initialState_,
     // zero length means all pages, the `usePagination` plugin does not
     // understand pageSize = 0
-    sortBy: sortByRef.current,
+    // sortBy: sortByRef.current,
+    sortBy: serverPagination ? sortByFromParent : sortByRef.current,
     pageSize: initialPageSize > 0 ? initialPageSize : resultsSize || 10,
   };
   const defaultWrapperRef = useRef<HTMLDivElement>(null);
@@ -188,7 +200,13 @@ export default typedMemo(function DataTable<D extends object>({
     wrapStickyTable,
     setColumnOrder,
     allColumns,
-    state: { pageIndex, pageSize, globalFilter: filterValue, sticky = {} },
+    state: {
+      pageIndex,
+      pageSize,
+      globalFilter: filterValue,
+      sticky = {},
+      sortBy,
+    },
   } = useTable<D>(
     {
       columns,
@@ -198,10 +216,19 @@ export default typedMemo(function DataTable<D extends object>({
       globalFilter: defaultGlobalFilter,
       sortTypes,
       autoResetSortBy: !isEqual(columnNames, previousColumnNames),
+      manualSortBy: true,
       ...moreUseTableOptions,
     },
     ...tableHooks,
   );
+
+  // updating the sort by to the own State of table viz
+  useEffect(() => {
+    if (!isEqual(sortBy, serverPaginationData?.sortBy || [])) {
+      handleSortByChange(sortBy as SortByItem[]);
+    }
+  }, [sortBy]);
+
   // make setPageSize accept 0
   const setPageSize = (size: number) => {
     if (serverPagination) {

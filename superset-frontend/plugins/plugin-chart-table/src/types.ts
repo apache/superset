@@ -114,13 +114,22 @@ export type BasicColorFormatterType = {
   mainArrow: string;
 };
 
+export type SortByItem = {
+  id: string;
+  desc: boolean;
+};
+
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   timeGrain?: TimeGranularity;
   height: number;
   width: number;
   rowCount?: number;
   serverPagination: boolean;
-  serverPaginationData: { pageSize?: number; currentPage?: number };
+  serverPaginationData: {
+    pageSize?: number;
+    currentPage?: number;
+    sortBy?: SortByItem[];
+  };
   setDataMask: SetDataMaskHook;
   isRawRecords?: boolean;
   data: D[];

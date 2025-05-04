@@ -66,6 +66,7 @@ import { isEmpty } from 'lodash';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
+  SortByItem,
   TableChartTransformedProps,
 } from './types';
 import DataTable, {
@@ -1119,6 +1120,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const { width: widthFromState, height: heightFromState } = tableSize;
 
+  const handleSortByChange = useCallback(
+    (sortBy: SortByItem[]) => {
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        sortBy,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    },
+    [setDataMask],
+  );
+
   return (
     <Styles>
       <DataTable<D>
@@ -1134,6 +1146,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}
         onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
+        sortByFromParent={serverPaginationData?.sortBy || []}
         // 9 page items in > 340px works well even for 100+ pages
         maxPageItemCount={width > 340 ? 9 : 7}
         noResults={getNoResultsMessage}
@@ -1147,6 +1160,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         renderTimeComparisonDropdown={
           isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
         }
+        handleSortByChange={handleSortByChange}
       />
     </Styles>
   );
