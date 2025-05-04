@@ -152,6 +152,10 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   startDateOffset?: string;
+  // For explore page to reset the server Pagination data
+  // if server page length is changed from control panel
+  hasServerPageLengthChanged: boolean;
+  serverPageLength: number;
 }
 
 export enum ColorSchemeEnum {

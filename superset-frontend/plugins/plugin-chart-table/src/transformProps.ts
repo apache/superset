@@ -90,6 +90,8 @@ const processDataRecords = memoizeOne(function processDataRecords(
   return data;
 });
 
+let cachedServerPageLength: Number | undefined;
+
 const calculateDifferences = (
   originalValue: number,
   comparisonValue: number,
@@ -675,6 +677,17 @@ const transformProps = (
     conditionalFormatting,
   );
 
+  let hasServerPageLengthChanged = false;
+
+  if (
+    cachedServerPageLength !== undefined &&
+    cachedServerPageLength !== serverPageLength
+  ) {
+    hasServerPageLengthChanged = true;
+  }
+
+  cachedServerPageLength = serverPageLength;
+
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   return {
     height,
@@ -697,7 +710,9 @@ const transformProps = (
     includeSearch,
     rowCount,
     pageSize: serverPagination
-      ? serverPageLength
+      ? serverPaginationData?.pageSize
+        ? serverPaginationData?.pageSize
+        : serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
     filters: filterState.filters,
     emitCrossFilters,
@@ -711,6 +726,8 @@ const transformProps = (
     basicColorFormatters,
     startDateOffset,
     basicColorColumnFormatters,
+    hasServerPageLengthChanged,
+    serverPageLength,
   };
 };
 

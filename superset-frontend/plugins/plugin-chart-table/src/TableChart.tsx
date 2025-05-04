@@ -24,6 +24,7 @@ import {
   useState,
   MouseEvent,
   KeyboardEvent as ReactKeyboardEvent,
+  useEffect,
 } from 'react';
 
 import {
@@ -267,6 +268,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isUsingTimeComparison,
     basicColorFormatters,
     basicColorColumnFormatters,
+    hasServerPageLengthChanged,
+    serverPageLength,
   } = props;
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
@@ -1064,6 +1067,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     },
     [setDataMask],
   );
+
+  useEffect(() => {
+    if (hasServerPageLengthChanged) {
+      updateExternalFormData(setDataMask, 0, serverPageLength);
+    }
+  }, []);
 
   const handleSizeChange = useCallback(
     ({ width, height }: { width: number; height: number }) => {
