@@ -30,3 +30,11 @@ export const updateExternalFormData = (
       pageSize,
     },
   });
+
+export const updateTableOwnState = (
+  setDataMask: SetDataMaskHook = () => {},
+  modifiedOwnState: object,
+) =>
+  setDataMask({
+    ownState: modifiedOwnState,
+  });

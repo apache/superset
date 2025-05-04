@@ -78,7 +78,7 @@ import DataTable, {
 import Styles from './Styles';
 import { formatColumnValue } from './utils/formatValue';
 import { PAGE_SIZE_OPTIONS } from './consts';
-import { updateExternalFormData } from './DataTable/utils/externalAPIs';
+import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
 
 type ValueRange = [number, number];
@@ -1063,14 +1063,24 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
-      updateExternalFormData(setDataMask, pageNumber, pageSize);
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        currentPage: pageNumber,
+        pageSize,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
     },
     [setDataMask],
   );
 
   useEffect(() => {
     if (hasServerPageLengthChanged) {
-      updateExternalFormData(setDataMask, 0, serverPageLength);
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        currentPage: 0,
+        pageSize: serverPageLength,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
     }
   }, []);
 
