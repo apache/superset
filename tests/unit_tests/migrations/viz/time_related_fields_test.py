@@ -40,7 +40,7 @@ def test_migration() -> None:
     target["adhoc_filters"] = [
         {
             "clause": "WHERE",
-            "comparator": "100 years ago : today",
+            "comparator": "1925-04-24 : 2025-04-24",
             "expressionType": "SIMPLE",
             "operator": "TEMPORAL_RANGE",
             "subject": "ds",
