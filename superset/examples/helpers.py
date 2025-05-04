@@ -16,15 +16,17 @@
 # under the License.
 """Helpers for loading Superset example datasets.
 
-Historically we fetched the sample files straight from
-``raw.githubusercontent.com``.  Anonymous requests are limited to **60 per
-hour per IP** on GitHub, so our busy CI matrix started to hit 429s.
+All Superset example data files (CSV, JSON, etc.) are fetched via the
+jsDelivr CDN instead of raw.githubusercontent.com to avoid GitHub API
+rate limits (60 anonymous requests/hour/IP).
 
-We now point to **jsDelivr** – a multi‑CDN cache in front of every public
-GitHub repo.  It doesn’t consume the GitHub API quota and advertises
-unlimited bandwidth for OSS.
+jsDelivr is a multi‑CDN front for public GitHub repos and supports
+arbitrary paths including nested folders. It doesn’t use the GitHub REST API
+and advertises unlimited bandwidth for open-source use.
 
-*Docs →* https://www.jsdelivr.com/github
+Example URL::
+
+    https://cdn.jsdelivr.net/gh/apache-superset/examples-data@master/datasets/examples/slack/messages.csv
 
 Environment knobs
 -----------------
@@ -36,14 +38,6 @@ Environment knobs
     (internal mirror, S3 bucket, ASF downloads, …).  **Include any query
     string required by your hosting (e.g. ``?raw=true`` if you point back
     to a GitHub *blob* URL).**
-
-jsDelivr URL pattern::
-
-    https://cdn.jsdelivr.net/gh/<owner>/<repo>@<ref>/<path>
-
-Example::
-
-    https://cdn.jsdelivr.net/gh/apache-superset/examples-data@master/iris.csv
 """
 
 from __future__ import annotations
@@ -75,19 +69,16 @@ misc_dash_slices: set[str] = set()
 
 def get_table_connector_registry() -> Any:
     """Return the SqlaTable registry so we can mock it in unit tests."""
-
     return SqlaTable
 
 
 def get_examples_folder() -> str:
     """Return local path to the examples folder (when vendored)."""
-
     return os.path.join(app.config["BASE_DIR"], "examples")
 
 
 def update_slice_ids(pos: dict[Any, Any]) -> list[Slice]:
     """Update slice ids in ``position_json`` and return the slices found."""
-
     slice_components = [
         component
         for component in pos.values()
@@ -108,7 +99,6 @@ def update_slice_ids(pos: dict[Any, Any]) -> list[Slice]:
 
 def merge_slice(slc: Slice) -> None:
     """Upsert a Slice by name."""
-
     existing = db.session.query(Slice).filter_by(slice_name=slc.slice_name).first()
     if existing:
         db.session.delete(existing)
@@ -117,7 +107,6 @@ def merge_slice(slc: Slice) -> None:
 
 def get_slice_json(defaults: dict[Any, Any], **kwargs: Any) -> str:
     """Return JSON string for a chart definition, merging extra kwargs."""
-
     defaults_copy = defaults.copy()
     defaults_copy.update(kwargs)
     return json.dumps(defaults_copy, indent=4, sort_keys=True)
@@ -126,9 +115,7 @@ def get_slice_json(defaults: dict[Any, Any], **kwargs: Any) -> str:
 def get_example_url(filepath: str) -> str:
     """Return an absolute URL to *filepath* under the examples‑data repo.
 
-    The function simply concatenates ``BASE_URL`` and ``filepath``.
-    If your override in ``SUPERSET_EXAMPLES_BASE_URL`` needs a query string
-    (for instance GitHub’s ``...?raw=true``) include it **in the override**.
+    All calls are routed through jsDelivr unless overridden. Supports nested
+    paths like ``datasets/examples/slack/messages.csv``.
     """
-
     return f"{BASE_URL}{filepath}"
