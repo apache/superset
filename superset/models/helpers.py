@@ -1888,12 +1888,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     elif op in {
                         utils.FilterOperator.ILIKE.value,
                         utils.FilterOperator.LIKE.value,
+                        utils.FilterOperator.TEXT_SEARCH.value,
                     }:
                         if target_generic_type != GenericDataType.STRING:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
                         if op == utils.FilterOperator.LIKE.value:
                             where_clause_and.append(sqla_col.like(eq))
+                        elif op == utils.FilterOperator.TEXT_SEARCH.value:
+                            # Convert to string and handle None case
+                            search_value = str(eq) if eq is not None else ""
+                            if (
+                                search_value
+                            ):  # Only add clause if search value is not empty
+                                pattern = search_value.lower()
+                                where_clause_and.append(
+                                    sa.or_(
+                                        sqla_col.ilike(f"{pattern}%"),
+                                        sqla_col.ilike(f"% {pattern}%"),
+                                    )
+                                )
                         else:
                             where_clause_and.append(sqla_col.ilike(eq))
                     elif op in {utils.FilterOperator.NOT_LIKE.value}:
