@@ -25,6 +25,7 @@ import {
   SafeMarkdown,
   SupersetTheme,
 } from '@superset-ui/core';
+import { Typography } from 'antd-v5';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
@@ -61,13 +62,6 @@ export function MetricOption({
   url = '',
 }: MetricOptionProps) {
   const verbose = metric.verbose_name || metric.metric_name || metric.label;
-  const link = url ? (
-    <a href={url} target={openInNewWindow ? '_blank' : ''} rel="noreferrer">
-      {verbose}
-    </a>
-  ) : (
-    verbose
-  );
 
   const label = (
     <span
@@ -77,7 +71,17 @@ export function MetricOption({
       `}
       ref={labelRef}
     >
-      {link}
+      {url ? (
+        <Typography.Link
+          href={url}
+          target={openInNewWindow ? '_blank' : ''}
+          rel="noreferrer"
+        >
+          {verbose}
+        </Typography.Link>
+      ) : (
+        verbose
+      )}
     </span>
   );
 
