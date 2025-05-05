@@ -183,12 +183,15 @@ export default function DatabaseSelector({
       )
     } else {
       setCurrentSchema(
-        Array.isArray(schema) ?
-          schema.map(schema => ({
+        Array.isArray(schema)
+          ? schema.map(schema => ({
             label: schema,
             value: schema,
             title: schema,
-          })) : [],
+          }))
+          : typeof schema === 'string' && schema
+          ? [{ label: schema, value: schema, title: schema }]
+          : [],
       );
     }
   }, [schema]);

@@ -83,7 +83,7 @@ const AIAssistantOptions = ({
   const tables = useDatabaseTables(db?.id || 0);
   const contextJson: LlmContextJson = JSON.parse(db?.llm_context_options || '{}');
 
-  useLlmContextStatus({
+  const contextStatus = useLlmContextStatus({
     dbId: db?.id || 0,
     onSuccess: result => {
       setRegenerating(result.status === 'building');
@@ -326,6 +326,7 @@ const AIAssistantOptions = ({
                   setTimeout(() => {
                     setRegenerating(savedContext?.status === 'building');
                   }, 10000);
+                  contextStatus.refetch();
                 });
               }}
               loading={regenerating}

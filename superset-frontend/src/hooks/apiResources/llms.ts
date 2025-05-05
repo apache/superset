@@ -67,7 +67,10 @@ export function useLlmContextStatus(options: FetchLlmContextStatusQueryParams) {
 
   const result = useContextStatusQuery(
     { dbId },
-    { pollingInterval: pollingInterval.current },
+    {
+      pollingInterval: pollingInterval.current,
+      refetchOnMountOrArgChange: true,
+    },
   );
 
   // Adjust polling interval based on status
