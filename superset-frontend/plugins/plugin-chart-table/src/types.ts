@@ -116,7 +116,8 @@ export type BasicColorFormatterType = {
 
 export type SortByItem = {
   id: string;
-  desc: boolean;
+  key: string;
+  desc?: boolean;
 };
 
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {

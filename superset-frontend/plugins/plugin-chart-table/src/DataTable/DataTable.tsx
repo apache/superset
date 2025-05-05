@@ -125,7 +125,6 @@ export default typedMemo(function DataTable<D extends object>({
     doSticky ? useSticky : [],
     hooks || [],
   ].flat();
-  console.log('sort by from parent', sortByFromParent);
   const columnNames = Object.keys(data?.[0] || {});
   const previousColumnNames = usePrevious(columnNames);
   const resultsSize = serverPagination ? rowCount : data.length;
@@ -224,8 +223,24 @@ export default typedMemo(function DataTable<D extends object>({
 
   // updating the sort by to the own State of table viz
   useEffect(() => {
-    if (!isEqual(sortBy, serverPaginationData?.sortBy || [])) {
-      handleSortByChange(sortBy as SortByItem[]);
+    const serverSortBy = serverPaginationData?.sortBy || [];
+
+    if (
+      !isEqual(sortBy, serverSortBy) &&
+      Array.isArray(sortBy) &&
+      sortBy.length > 0
+    ) {
+      const [sortByItem] = sortBy;
+      const matchingColumn = columns.find(col => col?.id === sortByItem?.id);
+
+      if (matchingColumn && 'columnKey' in matchingColumn) {
+        const sortByWithColumnKey: SortByItem = {
+          ...sortByItem,
+          key: (matchingColumn as { columnKey: string }).columnKey,
+        };
+
+        handleSortByChange([sortByWithColumnKey]);
+      }
     }
   }, [sortBy]);
 

@@ -683,7 +683,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const getColumnConfigs = useCallback(
-    (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
+    (
+      column: DataColumnMeta,
+      i: number,
+    ): ColumnWithLooseAccessor<D> & {
+      columnKey: string;
+    } => {
       const {
         key,
         label: originalLabel,
@@ -770,6 +775,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // must use custom accessor to allow `.` in column names
         // typing is incorrect in current version of `@types/react-table`
         // so we ask TS not to check.
+        columnKey: key,
         accessor: ((datum: D) => datum[key]) as never,
         Cell: ({ value, row }: { value: DataRecordValue; row: Row<D> }) => {
           const [isHtml, text] = formatColumnValue(column, value);
