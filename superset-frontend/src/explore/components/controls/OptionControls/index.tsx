@@ -133,7 +133,7 @@ export const DndLabelsContainer = styled.div<{
   padding: ${theme.sizeUnit}px;
   border: ${
     !isLoading && isDragging
-      ? `dashed 1px ${canDrop ? theme.colorBorder : theme.colorErrorBgHover}`
+      ? `dashed 1px ${canDrop ? theme.colorSplit : theme.colorErrorBgHover}`
       : `solid 1px ${
           isLoading && isDragging
             ? theme.colorWarningBgHover
@@ -198,7 +198,7 @@ export const AddControlLabel = styled.div<{
   padding-left: ${({ theme }) => theme.sizeUnit}px;
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
-  border: dashed 1px ${({ theme }) => theme.colors.grayscale.light2};
+  border: dashed 1px ${({ theme }) => theme.colorSplit};
   border-radius: ${({ theme }) => theme.sizeUnit}px;
   cursor: ${({ cancelHover }) => (cancelHover ? 'inherit' : 'pointer')};
 
@@ -210,6 +210,9 @@ export const AddControlLabel = styled.div<{
   :active {
     background-color: ${({ cancelHover, theme }) =>
       cancelHover ? 'inherit' : theme.colors.grayscale.light3};
+  }
+  svg {
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
