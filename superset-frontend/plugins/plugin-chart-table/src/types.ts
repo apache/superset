@@ -120,17 +120,20 @@ export type SortByItem = {
   desc?: boolean;
 };
 
+export interface ServerPaginationData {
+  pageSize?: number;
+  currentPage?: number;
+  sortBy?: SortByItem[];
+  searchText?: string;
+}
+
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   timeGrain?: TimeGranularity;
   height: number;
   width: number;
   rowCount?: number;
   serverPagination: boolean;
-  serverPaginationData: {
-    pageSize?: number;
-    currentPage?: number;
-    sortBy?: SortByItem[];
-  };
+  serverPaginationData: ServerPaginationData;
   setDataMask: SetDataMaskHook;
   isRawRecords?: boolean;
   data: D[];

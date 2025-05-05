@@ -33,6 +33,7 @@ const BINARY_OPERATORS = [
   'NOT LIKE',
   'REGEX',
   'TEMPORAL_RANGE',
+  'TEXT_SEARCH',
 ] as const;
 
 /** List of operators that require another operand that is a set */

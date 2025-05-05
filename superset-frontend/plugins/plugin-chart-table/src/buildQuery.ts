@@ -275,6 +275,23 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       ];
     }
 
+    if (formData.server_pagination) {
+      // Add search filter if search text exists
+      if (ownState.searchText) {
+        queryObject = {
+          ...queryObject,
+          filters: [
+            ...(queryObject.filters || []),
+            {
+              col: '*',
+              op: 'TEXT_SEARCH',
+              val: ownState.searchText,
+            },
+          ],
+        };
+      }
+    }
+
     // Now since row limit control is always visible even
     // in case of server pagination
     // we must use row limit from form data

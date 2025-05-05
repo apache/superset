@@ -79,6 +79,9 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   renderTimeComparisonDropdown?: () => JSX.Element;
   handleSortByChange: (sortBy: SortByItem[]) => void;
   sortByFromParent: SortByItem[];
+  manualSearch?: boolean;
+  onSearchChange?: (searchText: string) => void;
+  initialSearchText?: string;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -115,6 +118,9 @@ export default typedMemo(function DataTable<D extends object>({
   renderTimeComparisonDropdown,
   handleSortByChange,
   sortByFromParent = [],
+  manualSearch = false,
+  onSearchChange,
+  initialSearchText,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -125,6 +131,7 @@ export default typedMemo(function DataTable<D extends object>({
     doSticky ? useSticky : [],
     hooks || [],
   ].flat();
+
   const columnNames = Object.keys(data?.[0] || {});
   const previousColumnNames = usePrevious(columnNames);
   const resultsSize = serverPagination ? rowCount : data.length;
@@ -219,6 +226,17 @@ export default typedMemo(function DataTable<D extends object>({
       ...moreUseTableOptions,
     },
     ...tableHooks,
+  );
+
+  const handleSearchChange = useCallback(
+    (query: string) => {
+      if (manualSearch && onSearchChange) {
+        onSearchChange(query);
+      } else {
+        setGlobalFilter(query);
+      }
+    },
+    [manualSearch, onSearchChange, setGlobalFilter],
   );
 
   // updating the sort by to the own State of table viz
@@ -397,6 +415,7 @@ export default typedMemo(function DataTable<D extends object>({
     resultOnPageChange = (pageNumber: number) =>
       onServerPaginationChange(pageNumber, serverPageSize);
   }
+
   return (
     <div
       ref={wrapperRef}
@@ -429,8 +448,10 @@ export default typedMemo(function DataTable<D extends object>({
                     typeof searchInput === 'boolean' ? undefined : searchInput
                   }
                   preGlobalFilteredRows={preGlobalFilteredRows}
-                  setGlobalFilter={setGlobalFilter}
-                  filterValue={filterValue}
+                  setGlobalFilter={
+                    manualSearch ? handleSearchChange : setGlobalFilter
+                  }
+                  filterValue={manualSearch ? initialSearchText : filterValue}
                 />
               </div>
             ) : null}

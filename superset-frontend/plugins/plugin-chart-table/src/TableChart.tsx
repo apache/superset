@@ -62,7 +62,7 @@ import {
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { isEmpty } from 'lodash';
+import { debounce, isEmpty } from 'lodash';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
@@ -1138,6 +1138,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [setDataMask, serverPagination],
   );
 
+  const handleSearch = (searchText: string) => {
+    const modifiedOwnState = {
+      ...(serverPaginationData || {}),
+      searchText,
+      currentPage: 0, // Reset to first page when searching
+    };
+    updateTableOwnState(setDataMask, modifiedOwnState);
+  };
+
+  const debouncedSearch = debounce(handleSearch, 500);
+
   return (
     <Styles>
       <DataTable<D>
@@ -1153,6 +1164,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}
         onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
+        initialSearchText={serverPaginationData?.searchText || ''}
         sortByFromParent={serverPaginationData?.sortBy || []}
         // 9 page items in > 340px works well even for 100+ pages
         maxPageItemCount={width > 340 ? 9 : 7}
@@ -1168,6 +1180,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
         }
         handleSortByChange={handleSortByChange}
+        manualSearch={serverPagination}
+        onSearchChange={debouncedSearch}
       />
     </Styles>
   );
