@@ -40,7 +40,6 @@ import {
   FilterType,
   IdType,
   Row,
-  Column,
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
 import { styled, typedMemo, usePrevious } from '@superset-ui/core';
@@ -57,6 +56,7 @@ import { PAGE_SIZE_OPTIONS } from '../consts';
 import { sortAlphanumericCaseInsensitive } from './utils/sortAlphanumericCaseInsensitive';
 import { SortByItem } from '../types';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
+import { SearchOption } from '../TableChart';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;
@@ -73,6 +73,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
     pageSize?: number;
     currentPage?: number;
     sortBy?: SortByItem[];
+    searchColumn?: string;
   };
   pageSize?: number;
   noResults?: string | ((filterString: string) => ReactNode);
@@ -88,6 +89,8 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   onSearchChange?: (searchText: string) => void;
   initialSearchText?: string;
   searchInputId?: string;
+  onSearchColChange: (searchCol: string) => void;
+  searchOptions: SearchOption[];
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -142,12 +145,10 @@ export default typedMemo(function DataTable<D extends object>({
   onSearchChange,
   initialSearchText,
   searchInputId,
+  onSearchColChange,
+  searchOptions,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
-  const [selectedSearchColumn, setSelectedSearchColumn] = useState<
-    string | undefined
-  >();
-
   const tableHooks: PluginHook<D>[] = [
     useGlobalFilter,
     useSortBy,
@@ -471,13 +472,10 @@ export default typedMemo(function DataTable<D extends object>({
                 {serverPagination && (
                   <div className="search-select-container">
                     <span className="search-by-label">Search by: </span>
-                    <SearchSelectDropdown<D>
-                      columns={
-                        columns as unknown as Column<D> &
-                          { columnKey: string }[]
-                      }
-                      value={selectedSearchColumn}
-                      onChange={setSelectedSearchColumn}
+                    <SearchSelectDropdown
+                      searchOptions={searchOptions}
+                      value={serverPaginationData?.searchColumn || ''}
+                      onChange={onSearchColChange}
                     />
                   </div>
                 )}

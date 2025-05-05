@@ -1,37 +1,29 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { styled, t } from '@superset-ui/core';
 import { Select } from 'src/components';
-import { ColumnWithLooseAccessor } from 'react-table';
+import { SearchOption } from '../DataTable';
 
 const StyledSelect = styled(Select)`
   width: 120px;
   margin-right: 8px;
 `;
 
-interface SearchSelectDropdownProps<D extends object> {
-  columns: ColumnWithLooseAccessor<D> &
-    { columnKey: string; sortType: string }[];
+interface SearchSelectDropdownProps {
   value?: string;
-  onChange: (column: string) => void;
+  onChange: (searchCol: string) => void;
+  searchOptions: SearchOption[];
 }
 
-function SearchSelectDropdown<D extends object>({
-  columns,
+function SearchSelectDropdown({
   value,
   onChange,
-}: SearchSelectDropdownProps<D>) {
-  const options = columns
-    .filter(col => col?.sortType === 'alphanumeric')
-    .map(column => ({
-      value: column.columnKey,
-      label: column?.columnKey,
-    }));
-
+  searchOptions,
+}: SearchSelectDropdownProps) {
   return (
     <StyledSelect
       ariaLabel={t('Search column')}
-      value={value || options[0]?.value}
-      options={options}
+      value={value || searchOptions?.[0]?.value}
+      options={searchOptions}
       onChange={(value: string) => {
         onChange(value);
       }}

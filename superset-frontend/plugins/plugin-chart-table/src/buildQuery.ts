@@ -277,13 +277,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     if (formData.server_pagination) {
       // Add search filter if search text exists
-      if (ownState.searchText) {
+      if (ownState.searchText && ownState?.searchColumn) {
         queryObject = {
           ...queryObject,
           filters: [
             ...(queryObject.filters || []),
             {
-              col: '*',
+              col: ownState?.searchColumn,
               op: 'TEXT_SEARCH',
               val: ownState.searchText,
             },

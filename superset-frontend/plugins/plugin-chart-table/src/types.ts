@@ -125,6 +125,7 @@ export interface ServerPaginationData {
   currentPage?: number;
   sortBy?: SortByItem[];
   searchText?: string;
+  searchColumn?: string;
 }
 
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {

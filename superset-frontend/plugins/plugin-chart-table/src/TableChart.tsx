@@ -62,7 +62,7 @@ import {
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { debounce, isEmpty } from 'lodash';
+import { debounce, isEmpty, isEqual } from 'lodash';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
@@ -88,6 +88,11 @@ interface TableSize {
   width: number;
   height: number;
 }
+
+export type SearchOption = {
+  value: string;
+  label: string;
+};
 
 const ACTION_KEYS = {
   enter: 'Enter',
@@ -1075,6 +1080,27 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [visibleColumnsMeta, getColumnConfigs],
   );
 
+  const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
+
+  useEffect(() => {
+    const options = (
+      columns as unknown as ColumnWithLooseAccessor &
+        {
+          columnKey: string;
+          sortType?: string;
+        }[]
+    )
+      .filter(col => col?.sortType === 'alphanumeric')
+      .map(column => ({
+        value: column.columnKey,
+        label: column.columnKey,
+      }));
+
+    if (!isEqual(options, searchOptions)) {
+      setSearchOptions(options || []);
+    }
+  }, [columns]);
+
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
       const modifiedOwnState = {
@@ -1148,6 +1174,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const handleSearch = (searchText: string) => {
     const modifiedOwnState = {
       ...(serverPaginationData || {}),
+      searchColumn:
+        serverPaginationData?.searchColumn || searchOptions[0]?.value,
       searchText,
       currentPage: 0, // Reset to first page when searching
     };
@@ -1155,6 +1183,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   };
 
   const debouncedSearch = debounce(handleSearch, 800);
+
+  const handleChangeSearchCol = (searchCol: string) => {
+    if (!isEqual(searchCol, serverPaginationData?.searchColumn)) {
+      const modifiedOwnState = {
+        ...(serverPaginationData || {}),
+        searchColumn: searchCol,
+        searchText: '',
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    }
+  };
 
   return (
     <Styles>
@@ -1188,8 +1227,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
         }
         handleSortByChange={handleSortByChange}
+        onSearchColChange={handleChangeSearchCol}
         manualSearch={serverPagination}
         onSearchChange={debouncedSearch}
+        searchOptions={searchOptions}
       />
     </Styles>
   );
