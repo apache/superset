@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, useTheme } from '@superset-ui/core';
-import { Button, type OnClickHandler, IconTooltip } from 'src/components';
-import { Icons } from 'src/components/Icons';
+import { t } from '@superset-ui/core';
+import { Button, type OnClickHandler, Icons } from 'src/components';
 
 export interface ExploreResultsButtonProps {
   database?: {
@@ -37,17 +36,13 @@ const ExploreResultsButton = ({
     <Button
       buttonSize="small"
       buttonStyle="secondary"
-      showMarginRight={false}
+      icon={<Icons.LineChartOutlined />}
       onClick={onClick}
       disabled={!allowsSubquery}
+      role="button"
       tooltip={t('Explore the result set in the data exploration view')}
       data-test="explore-results-button"
     >
-      <IconTooltip placement="top" tooltip={t('Explore')} />
-      <Icons.LineChartOutlined
-        iconSize="m"
-        iconColor={theme.colors.primary.dark2}
-      />
       {t('Create Chart')}
     </Button>
   );

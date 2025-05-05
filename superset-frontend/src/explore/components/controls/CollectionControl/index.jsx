@@ -157,16 +157,12 @@ class CollectionControl extends Component {
   }
 
   render() {
-    const { theme } = this.props;
     return (
       <div data-test="CollectionControl" className="CollectionControl">
         <HeaderContainer>
           <ControlHeader {...this.props} />
           <AddIconButton onClick={this.onAdd}>
-            <Icons.PlusOutlined
-              iconSize="s"
-              iconColor={theme.colors.grayscale.light5}
-            />
+            <Icons.PlusOutlined iconSize="s" />
           </AddIconButton>
         </HeaderContainer>
         {this.renderList()}

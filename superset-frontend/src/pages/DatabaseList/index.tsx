@@ -21,8 +21,6 @@ import {
   styled,
   SupersetClient,
   t,
-  useTheme,
-  css,
 } from '@superset-ui/core';
 import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
@@ -88,8 +86,6 @@ interface DatabaseListProps {
 }
 
 const Actions = styled.div`
-  color: ${({ theme }) => theme.colorText};
-
   .action-button {
     display: inline-block;
     height: 100%;
@@ -97,11 +93,10 @@ const Actions = styled.div`
 `;
 
 function BooleanDisplay({ value }: { value: Boolean }) {
-  const theme = useTheme();
   return value ? (
-    <Icons.CheckOutlined iconSize="s" iconColor={theme.colorText} />
+    <Icons.CheckOutlined iconSize="s" />
   ) : (
-    <Icons.CloseOutlined iconSize="s" iconColor={theme.colorText} />
+    <Icons.CloseOutlined iconSize="s" />
   );
 }
 
@@ -111,7 +106,6 @@ function DatabaseList({
   addSuccessToast,
   user,
 }: DatabaseListProps) {
-  const theme = useTheme();
   const {
     state: {
       loading,
@@ -323,13 +317,7 @@ function DatabaseList({
         'data-test': 'btn-create-database',
         name: (
           <>
-            <Icons.PlusOutlined
-              css={css`
-                vertical-align: text-top;
-              `}
-              iconColor={theme.colors.primary.light5}
-              iconSize="m"
-            />
+            <Icons.PlusOutlined iconSize="m" />
             {t('Database')}
           </>
         ),

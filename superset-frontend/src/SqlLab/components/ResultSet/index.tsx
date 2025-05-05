@@ -375,11 +375,7 @@ const ResultSet = ({
                   }
                 }}
               >
-                <Icons.DownloadOutlined
-                  iconSize="m"
-                  iconColor={theme.colors.primary.dark2}
-                />{' '}
-                {t('Download to CSV')}
+                <Icons.DownloadOutlined iconSize="m" /> {t('Download to CSV')}
               </Button>
             )}
 
@@ -394,11 +390,7 @@ const ResultSet = ({
                     buttonStyle="secondary"
                     data-test="copy-to-clipboard-button"
                   >
-                    <Icons.CopyOutlined
-                      iconSize="s"
-                      iconColor={theme.colors.primary.dark2}
-                    />{' '}
-                    {t('Copy to Clipboard')}
+                    <Icons.CopyOutlined iconSize="s" /> {t('Copy to Clipboard')}
                   </Button>
                 }
                 hideTooltip
