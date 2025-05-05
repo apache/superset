@@ -26,7 +26,6 @@ import {
   CSSProperties,
   DragEvent,
   useEffect,
-  useState,
 } from 'react';
 
 import {

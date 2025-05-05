@@ -120,6 +120,11 @@ export type SortByItem = {
   desc?: boolean;
 };
 
+export type SearchOption = {
+  value: string;
+  label: string;
+};
+
 export interface ServerPaginationData {
   pageSize?: number;
   currentPage?: number;

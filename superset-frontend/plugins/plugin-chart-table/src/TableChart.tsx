@@ -66,6 +66,7 @@ import { debounce, isEmpty, isEqual } from 'lodash';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
+  SearchOption,
   SortByItem,
   TableChartTransformedProps,
 } from './types';
@@ -88,11 +89,6 @@ interface TableSize {
   width: number;
   height: number;
 }
-
-export type SearchOption = {
-  value: string;
-  label: string;
-};
 
 const ACTION_KEYS = {
   enter: 'Enter',
