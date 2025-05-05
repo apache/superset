@@ -343,7 +343,7 @@ holidays==0.25
     #   -c requirements/base.txt
     #   apache-superset
     #   prophet
-humanize==4.12.2
+humanize==4.12.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -473,7 +473,6 @@ numpy==1.26.4
     #   pandas
     #   pandas-gbq
     #   prophet
-    #   pyarrow
 oauthlib==3.2.2
     # via requests-oauthlib
 odfpy==1.4.1

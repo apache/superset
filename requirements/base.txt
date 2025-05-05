@@ -167,7 +167,7 @@ hashids==1.3.1
     # via apache-superset (pyproject.toml)
 holidays==0.25
     # via apache-superset (pyproject.toml)
-humanize==4.12.2
+humanize==4.12.3
     # via apache-superset (pyproject.toml)
 idna==3.10
     # via
@@ -236,7 +236,6 @@ numpy==1.26.4
     #   bottleneck
     #   numexpr
     #   pandas
-    #   pyarrow
 odfpy==1.4.1
     # via pandas
 openpyxl==3.1.5
