@@ -35,7 +35,7 @@ import {
 } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import { TableChartFormData } from './types';
-import { updateExternalFormData } from './DataTable/utils/externalAPIs';
+import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 
 /**
  * Infer query mode from form data. If `all_columns` is set, then raw records mode,
@@ -239,11 +239,12 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         JSON.stringify(queryObject.filters)
     ) {
       queryObject = { ...queryObject, row_offset: 0 };
-      updateExternalFormData(
-        options?.hooks?.setDataMask,
-        0,
-        queryObject.row_limit ?? 0,
-      );
+      const modifiedOwnState = {
+        ...(options?.ownState || {}),
+        currentPage: 0,
+        pageSize: queryObject.row_limit ?? 0,
+      };
+      updateTableOwnState(options?.hooks?.setDataMask, modifiedOwnState);
     }
     // Because we use same buildQuery for all table on the page we need split them by id
     options?.hooks?.setCachedChanges({
