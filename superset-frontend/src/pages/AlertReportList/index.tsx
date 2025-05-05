@@ -21,8 +21,6 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   t,
-  css,
-  useTheme,
   SupersetClient,
   makeApi,
   styled,
@@ -114,7 +112,6 @@ function AlertList({
   user,
   addSuccessToast,
 }: AlertListProps) {
-  const theme = useTheme();
   const title = isReportEnabled ? t('Report') : t('Alert');
   const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
@@ -432,14 +429,7 @@ function AlertList({
     subMenuButtons.push({
       name: (
         <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-              vertical-align: text-top;
-            `}
-          />
+          <Icons.PlusOutlined iconSize="m" />
           {title}
         </>
       ),
@@ -465,12 +455,7 @@ function AlertList({
     buttonText: canCreate ? (
       <>
         <Icons.PlusOutlined
-          iconColor={theme.colors.primary.light5}
           iconSize="m"
-          css={css`
-            margin: auto ${theme.sizeUnit * 2}px auto 0;
-            vertical-align: text-top;
-          `}
           data-test="add-annotation-layer-button"
         />
         {title}{' '}

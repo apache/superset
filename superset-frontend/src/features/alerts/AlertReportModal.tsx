@@ -408,13 +408,7 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
 
   return (
     <StyledNotificationAddButton className={status} onClick={checkStatus}>
-      <Icons.PlusOutlined
-        iconSize="m"
-        css={theme => ({
-          margin: `auto ${theme.sizeUnit * 2}px auto 0`,
-          verticalAlign: 'middle',
-        })}
-      />
+      <Icons.PlusOutlined iconSize="m" />
       {status === 'active'
         ? t('Add another notification method')
         : t('Add delivery method')}

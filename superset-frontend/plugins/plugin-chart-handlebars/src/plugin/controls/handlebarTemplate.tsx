@@ -71,7 +71,7 @@ ${helperDescriptions
         <div>
           {props.label}
           <InfoTooltipWithTrigger
-            iconsStyle={{ marginLeft: theme.sizeUnit }}
+            iconStyle={{ marginLeft: theme.sizeUnit }}
             tooltip={<SafeMarkdown source={helpersTooltipContent} />}
           />
         </div>

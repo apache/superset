@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { css, t, SupersetClient, useTheme } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import RoleListAddModal from 'src/features/roles/RoleListAddModal';
 import RoleListEditModal from 'src/features/roles/RoleListEditModal';
@@ -71,7 +71,6 @@ enum ModalType {
 }
 
 function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
-  const theme = useTheme();
   const {
     state: {
       loading,
@@ -330,14 +329,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
       {
         name: (
           <>
-            <Icons.PlusOutlined
-              iconColor={theme.colors.primary.light5}
-              iconSize="m"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-                vertical-align: text-top;
-              `}
-            />
+            <Icons.PlusOutlined iconSize="m" />
             {t('Role')}
           </>
         ),
@@ -404,14 +396,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
       },
       buttonText: (
         <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-              vertical-align: text-top;
-            `}
-          />
+          <Icons.PlusOutlined iconSize="m" />
           {t('Role')}
         </>
       ),

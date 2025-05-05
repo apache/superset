@@ -20,7 +20,6 @@ import { useState, useEffect } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
-
 import { Badge, ConfigEditor, Tooltip } from 'src/components';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { FAST_DEBOUNCE } from 'src/constants';
@@ -107,8 +106,7 @@ const TemplateParamsEditor = ({
             <Badge count={paramCount} />
             {!isValid && (
               <InfoTooltipWithTrigger
-                icon="exclamation-triangle"
-                bsStyle="danger"
+                type="error"
                 tooltip={t('Invalid JSON')}
                 label="invalid-json"
               />

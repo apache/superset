@@ -272,6 +272,7 @@ function PropertiesModal({
             htmlType="button"
             buttonSize="small"
             onClick={onHide}
+            buttonStyle="secondary"
             cta
           >
             {t('Cancel')}

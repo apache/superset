@@ -965,11 +965,19 @@ class AnnotationLayer extends PureComponent {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           {isNew ? (
-            <Button buttonSize="small" onClick={() => this.props.close()}>
+            <Button
+              buttonSize="small"
+              buttonStyle="secondary"
+              onClick={() => this.props.close()}
+            >
               {t('Cancel')}
             </Button>
           ) : (
-            <Button buttonSize="small" onClick={this.deleteAnnotation}>
+            <Button
+              buttonSize="small"
+              buttonStyle="secondary"
+              onClick={this.deleteAnnotation}
+            >
               {t('Remove')}
             </Button>
           )}
