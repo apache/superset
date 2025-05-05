@@ -78,8 +78,8 @@ const DeckMulti = (props: DeckMultiProps) => {
       ...getPointsHeatmap(props.payload.data.features.deck_heatmap || []),
       ...getPointsHex(props.payload.data.features.deck_hex || []),
       ...getPointsArc(props.payload.data.features.deck_arc || []),
-      ...getPointsGeojson(props.payload.data.features.deck_geojaon || []),
-      ...getPointsScreengrid(props.payload.data.features.deck_geojaon || []),
+      ...getPointsGeojson(props.payload.data.features.deck_geojson || []),
+      ...getPointsScreengrid(props.payload.data.features.deck_screengrid || []),
     ];
 
     if (props.formData) {
