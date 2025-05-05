@@ -20,6 +20,7 @@ from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.dataset.exceptions import (
@@ -43,7 +44,16 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
-    @transaction(on_error=partial(on_error, reraise=DatasetCreateFailedError))
+    @transaction(
+        on_error=partial(
+            on_error,
+            catches=(
+                SQLAlchemyError,
+                SupersetSecurityException,
+            ),
+            reraise=DatasetCreateFailedError,
+        )
+    )
     def run(self) -> Model:
         self.validate()
 
