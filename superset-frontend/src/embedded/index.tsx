@@ -248,7 +248,6 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
         log('Received setThemeConfig request:', themeConfig);
 
         try {
-          console.log({ themeConfig });
           themeObject.setConfig(themeConfig);
           return { success: true, message: 'Theme applied (placeholder)' };
         } catch (error) {
