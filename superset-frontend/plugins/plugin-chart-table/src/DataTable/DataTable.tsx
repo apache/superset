@@ -215,7 +215,7 @@ export default typedMemo(function DataTable<D extends object>({
       globalFilter: defaultGlobalFilter,
       sortTypes,
       autoResetSortBy: !isEqual(columnNames, previousColumnNames),
-      manualSortBy: true,
+      manualSortBy: !!serverPagination,
       ...moreUseTableOptions,
     },
     ...tableHooks,
@@ -225,7 +225,7 @@ export default typedMemo(function DataTable<D extends object>({
   useEffect(() => {
     const serverSortBy = serverPaginationData?.sortBy || [];
 
-    if (!isEqual(sortBy, serverSortBy)) {
+    if (serverPagination && !isEqual(sortBy, serverSortBy)) {
       if (Array.isArray(sortBy) && sortBy.length > 0) {
         const [sortByItem] = sortBy;
         const matchingColumn = columns.find(col => col?.id === sortByItem?.id);
