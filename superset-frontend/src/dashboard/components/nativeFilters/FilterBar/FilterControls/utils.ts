@@ -47,3 +47,9 @@ export const dispatchFocusAction = debounce(
   },
   FAST_DEBOUNCE,
 );
+
+export const formatDateRange = (startDate: Date, endDate: Date): string => {
+  const start = startDate.toISOString().split('T')[0];
+  const end = endDate.toISOString().split('T')[0];
+  return `${start} to ${end}`;
+};
