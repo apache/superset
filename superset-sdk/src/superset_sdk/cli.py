@@ -20,15 +20,31 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import zipfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import click
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 from superset_sdk.utils import read_json, read_toml
 
 REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
+FRONTEND_DIST_REGEX = re.compile(r"\/frontend\/dist")
+
+
+class FrontendChangeHandler(FileSystemEventHandler):
+    def __init__(self, trigger_build: Callable[[], None]):
+        self.trigger_build = trigger_build
+
+    def on_any_event(self, event: Any) -> None:
+        # Ignore changes in dist/
+        if FRONTEND_DIST_REGEX.search(event.src_path):
+            return
+        click.secho(f"🔁 Change detected in: {event.src_path}", fg="yellow")
+        self.trigger_build()
 
 
 @click.group(help="CLI for validating and bundling Superset extensions.")
@@ -64,7 +80,6 @@ def build() -> None:  # noqa: C901
     result = subprocess.run(  # noqa: S603
         ["npm", "run", "build"],  # noqa: S607
         cwd=frontend_dir,
-        capture_output=True,
         text=True,
     )
 
@@ -178,6 +193,44 @@ def bundle(ctx: click.Context, output: Path | None) -> None:
         sys.exit(1)
 
     click.secho(f"✅ Bundle created: {zip_path}", fg="green")
+
+
+@app.command()
+def dev() -> None:
+    """
+    Watch frontend/ directory and rebuild on file changes.
+    """
+    cwd = Path.cwd()
+    frontend_dir = cwd / "frontend"
+
+    def build_on_change() -> None:
+        click.echo()
+        click.secho("⚙️  Rebuilding extension...", fg="cyan")
+        result = subprocess.run(  # noqa: S603
+            ["superset-sdk", "build"],  # noqa: S607
+            cwd=cwd,
+            stdin=sys.stdin,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+        )
+        if result.returncode != 0:
+            click.secho("❌ Build failed.", fg="red")
+
+    click.secho(f"👀 Watching for changes in: {frontend_dir}", fg="green")
+
+    event_handler = FrontendChangeHandler(trigger_build=build_on_change)
+    observer = Observer()
+    observer.schedule(event_handler, str(frontend_dir), recursive=True)
+    observer.start()
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        click.secho("\n🛑 Stopping watch mode.", fg="blue")
+        observer.stop()
+
+    observer.join()
 
 
 if __name__ == "__main__":
