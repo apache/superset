@@ -90,7 +90,14 @@ const processDataRecords = memoizeOne(function processDataRecords(
   return data;
 });
 
-let cachedServerPageLength: Number | undefined;
+// Create a map to store cached values per slice
+const sliceCache = new Map<
+  number,
+  {
+    cachedServerLength: number;
+    passedColumns?: DataColumnMeta[];
+  }
+>();
 
 const calculateDifferences = (
   originalValue: number,
@@ -678,16 +685,25 @@ const transformProps = (
     conditionalFormatting,
   );
 
+  // Get cached values for this slice
+  const cachedValues = sliceCache.get(slice_id);
   let hasServerPageLengthChanged = false;
 
   if (
-    cachedServerPageLength !== undefined &&
-    cachedServerPageLength !== serverPageLength
+    cachedValues?.cachedServerLength !== undefined &&
+    cachedValues.cachedServerLength !== serverPageLength
   ) {
     hasServerPageLengthChanged = true;
   }
 
-  cachedServerPageLength = serverPageLength;
+  // Update cache with new values
+  sliceCache.set(slice_id, {
+    cachedServerLength: serverPageLength,
+    passedColumns:
+      Array.isArray(passedColumns) && passedColumns?.length > 0
+        ? passedColumns
+        : cachedValues?.passedColumns,
+  });
 
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   return {
@@ -696,7 +712,10 @@ const transformProps = (
     isRawRecords: queryMode === QueryMode.Raw,
     data: passedData,
     totals,
-    columns: passedColumns,
+    columns:
+      Array.isArray(passedColumns) && passedColumns?.length > 0
+        ? passedColumns
+        : cachedValues?.passedColumns || [],
     serverPagination,
     metrics,
     percentMetrics,
