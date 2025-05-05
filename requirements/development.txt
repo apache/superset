@@ -101,6 +101,10 @@ grpcio==1.62.1
     #   grpcio-status
 grpcio-status==1.60.1
     # via google-api-core
+h11==0.16.0
+    # via
+    #   -c requirements/base.txt
+    #   wsproto
 identify==2.5.36
     # via pre-commit
 ijson==3.2.3
