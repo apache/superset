@@ -882,6 +882,8 @@ vine==5.1.0
     #   kombu
 virtualenv==20.29.2
     # via pre-commit
+watchdog==6.0.0
+    # via apache-superset-sdk
 wcwidth==0.2.13
     # via
     #   -c requirements/base-constraint.txt

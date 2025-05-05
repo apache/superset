@@ -30,15 +30,12 @@ classifiers = [
 ]
 dependencies = [
     "click>=8.0.3",
-    "tomli>=2.2.1; python_version < '3.11'"
+    "tomli>=2.2.1; python_version < '3.11'",
+    "watchdog>=6.0.0",
 ]
 
 [build-system]
-requires = [
-    "setuptools>=76.0.0",
-    "watchdog>=6.0.0",
-    "wheel",
-]
+requires = ["setuptools>=76.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
