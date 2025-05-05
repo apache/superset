@@ -161,7 +161,7 @@ greenlet==3.1.1
     #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
-h11==0.14.0
+h11==0.16.0
     # via wsproto
 hashids==1.3.1
     # via apache-superset (pyproject.toml)
@@ -236,7 +236,6 @@ numpy==1.26.4
     #   bottleneck
     #   numexpr
     #   pandas
-    #   pyarrow
 odfpy==1.4.1
     # via pandas
 openpyxl==3.1.5
