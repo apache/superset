@@ -82,6 +82,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   manualSearch?: boolean;
   onSearchChange?: (searchText: string) => void;
   initialSearchText?: string;
+  searchInputId?: string;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -121,6 +122,7 @@ export default typedMemo(function DataTable<D extends object>({
   manualSearch = false,
   onSearchChange,
   initialSearchText,
+  searchInputId,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -452,6 +454,7 @@ export default typedMemo(function DataTable<D extends object>({
                     manualSearch ? handleSearchChange : setGlobalFilter
                   }
                   filterValue={manualSearch ? initialSearchText : filterValue}
+                  id={searchInputId}
                 />
               </div>
             ) : null}

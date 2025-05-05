@@ -178,20 +178,26 @@ function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
   return sortIcon;
 }
 
-function SearchInput({ count, value, onChange }: SearchInputProps) {
-  return (
-    <span className="dt-global-filter">
-      {t('Search')}{' '}
-      <input
-        aria-label={t('Search %s records', count)}
-        className="form-control input-sm"
-        placeholder={tn('search.num_records', count)}
-        value={value}
-        onChange={onChange}
-      />
-    </span>
-  );
-}
+const SearchInput = ({
+  count,
+  value,
+  onChange,
+  onBlur,
+  inputRef,
+}: SearchInputProps) => (
+  <span className="dt-global-filter">
+    {t('Search')}{' '}
+    <input
+      ref={inputRef}
+      aria-label={t('Search %s records', count)}
+      className="form-control input-sm"
+      placeholder={tn('search.num_records', count)}
+      value={value}
+      onChange={onChange}
+      onBlur={onBlur}
+    />
+  </span>
+);
 
 function SelectPageSize({
   options,
@@ -271,6 +277,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     basicColorColumnFormatters,
     hasServerPageLengthChanged,
     serverPageLength,
+    slice_id,
   } = props;
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
@@ -1147,7 +1154,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     updateTableOwnState(setDataMask, modifiedOwnState);
   };
 
-  const debouncedSearch = debounce(handleSearch, 500);
+  const debouncedSearch = debounce(handleSearch, 800);
 
   return (
     <Styles>
@@ -1166,6 +1173,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
         initialSearchText={serverPaginationData?.searchText || ''}
         sortByFromParent={serverPaginationData?.sortBy || []}
+        searchInputId={`${slice_id}-search`}
         // 9 page items in > 340px works well even for 100+ pages
         maxPageItemCount={width > 340 ? 9 : 7}
         noResults={getNoResultsMessage}

@@ -169,6 +169,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   // if server page length is changed from control panel
   hasServerPageLengthChanged: boolean;
   serverPageLength: number;
+  slice_id: number;
 }
 
 export enum ColorSchemeEnum {
