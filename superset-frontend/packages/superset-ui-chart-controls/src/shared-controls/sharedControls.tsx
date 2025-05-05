@@ -94,7 +94,9 @@ const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
 export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
-const ROW_LIMIT_OPTIONS = [
+const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
+
+const ROW_LIMIT_OPTIONS_TABLE = [
   10, 50, 100, 250, 500, 1000, 5000, 10000, 50000, 100000, 150000, 200000,
   250000, 300000, 350000, 400000, 450000, 500000,
 ];
@@ -231,6 +233,23 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   freeForm: true,
   label: t('Row limit'),
   clearable: false,
+  mapStateToProps: state => ({ maxValue: state?.common?.conf?.SQL_MAX_ROW }),
+  validators: [
+    legacyValidateInteger,
+    (v, state) => validateMaxValue(v, state?.maxValue || DEFAULT_MAX_ROW),
+  ],
+  default: 10000,
+  choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
+  description: t(
+    'Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
+  ),
+};
+
+const row_limit_table: SharedControlConfig<'SelectControl'> = {
+  type: 'SelectControl',
+  freeForm: true,
+  label: t('Row limit'),
+  clearable: false,
   mapStateToProps: state => ({
     maxValue: state?.common?.conf?.SQL_MAX_ROW,
     server_pagination: state?.form_data?.server_pagination,
@@ -250,7 +269,7 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   // Re run the validations when this control value
   validationDependancies: ['server_pagination'],
   default: 10000,
-  choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
+  choices: formatSelectOptions(ROW_LIMIT_OPTIONS_TABLE),
   description: t(
     'Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
   ),
@@ -418,6 +437,7 @@ export default {
   time_grain_sqla,
   time_range,
   row_limit,
+  row_limit_table,
   limit,
   timeseries_limit_metric: dndSortByControl,
   orderby: dndSortByControl,

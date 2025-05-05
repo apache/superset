@@ -358,7 +358,7 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'row_limit',
+            name: 'row_limit_table',
             override: {
               default: 1000,
             },
