@@ -236,7 +236,6 @@ numpy==1.26.4
     #   bottleneck
     #   numexpr
     #   pandas
-    #   pyarrow
 odfpy==1.4.1
     # via pandas
 openpyxl==3.1.5
@@ -374,7 +373,7 @@ sqlalchemy-utils==0.38.3
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
-sqlglot==26.16.2
+sqlglot==26.16.4
     # via apache-superset (pyproject.toml)
 sqlparse==0.5.3
     # via apache-superset (pyproject.toml)
