@@ -192,7 +192,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
       return (
         <InfoTooltipWithTrigger
           label="validation-errors"
-          bsStyle="danger"
+          type="error"
           tooltip={annotationError[anno.name]}
         />
       );
