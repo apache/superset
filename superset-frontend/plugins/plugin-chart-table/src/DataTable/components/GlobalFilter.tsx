@@ -44,6 +44,8 @@ export interface GlobalFilterProps<D extends object> {
   setGlobalFilter: (filterValue: FilterValue) => void;
   searchInput?: ComponentType<SearchInputProps>;
   id?: string; // Make id optional with default value
+  serverPagination: boolean;
+  rowCount: number;
 }
 
 function DefaultSearchInput({
@@ -76,8 +78,10 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
   searchInput,
   setGlobalFilter,
   id = '',
+  serverPagination,
+  rowCount,
 }: GlobalFilterProps<D>) {
-  const count = preGlobalFilteredRows.length;
+  const count = serverPagination ? rowCount : preGlobalFilteredRows.length;
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [value, setValue] = useAsyncState(
@@ -91,6 +95,7 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
   // Only preserve focus if search is focused for this instance
   useEffect(() => {
     if (
+      serverPagination &&
       isSearchFocused.get(id) &&
       document.activeElement !== inputRef.current
     ) {

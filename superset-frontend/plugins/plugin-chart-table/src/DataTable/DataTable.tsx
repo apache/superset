@@ -489,6 +489,8 @@ export default typedMemo(function DataTable<D extends object>({
                   }
                   filterValue={manualSearch ? initialSearchText : filterValue}
                   id={searchInputId}
+                  serverPagination={!!serverPagination}
+                  rowCount={rowCount}
                 />
               </StyledSpace>
             ) : null}
