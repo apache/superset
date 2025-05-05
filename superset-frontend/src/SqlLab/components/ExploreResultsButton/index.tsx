@@ -30,7 +30,6 @@ const ExploreResultsButton = ({
   database,
   onClick,
 }: ExploreResultsButtonProps) => {
-  const theme = useTheme();
   const allowsSubquery = database?.allows_subquery ?? false;
   return (
     <Button
