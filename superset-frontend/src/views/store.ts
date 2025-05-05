@@ -139,7 +139,7 @@ const reducers = {
   reports,
   saveModal,
   explore,
-  database:databaseReducer
+  database: databaseReducer,
 };
 
 /* In some cases the jinja template injects two separate React apps into basic.html

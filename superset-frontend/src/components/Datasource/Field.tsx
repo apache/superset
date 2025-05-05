@@ -64,35 +64,42 @@ export default function Field<V>({
     onChange: onControlChange,
   });
   return (
-      <div css={additionalControl && css`position: relative;`}>
-        {additionalControl}  
-        <FormItem
-          label={
-              <FormLabel className="m-r-5">
-                {label || fieldKey}
-                {compact && description && (
-                  <Tooltip id="field-descr" placement="right" title={description}>
-                    {/* TODO: Remove fa-icon */}
-                    {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-                    <i className="fa fa-info-circle m-l-5" />
-                  </Tooltip>
-                )}            
-            </FormLabel>
-          }
-          css={inline && formItemInlineCss}
-        >
-          {hookedControl}
-          {!compact && description && (
-            <div
-              css={(theme: SupersetTheme) => ({
-                color: theme.colors.grayscale.base,
-                [inline ? 'marginLeft' : 'marginTop']: theme.gridUnit,
-              })}
-            >
-              {description}
-            </div>
-          )}
-        </FormItem>
-    </div>    
+    <div
+      css={
+        additionalControl &&
+        css`
+          position: relative;
+        `
+      }
+    >
+      {additionalControl}
+      <FormItem
+        label={
+          <FormLabel className="m-r-5">
+            {label || fieldKey}
+            {compact && description && (
+              <Tooltip id="field-descr" placement="right" title={description}>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
+                <i className="fa fa-info-circle m-l-5" />
+              </Tooltip>
+            )}
+          </FormLabel>
+        }
+        css={inline && formItemInlineCss}
+      >
+        {hookedControl}
+        {!compact && description && (
+          <div
+            css={(theme: SupersetTheme) => ({
+              color: theme.colors.grayscale.base,
+              [inline ? 'marginLeft' : 'marginTop']: theme.gridUnit,
+            })}
+          >
+            {description}
+          </div>
+        )}
+      </FormItem>
+    </div>
   );
 }
