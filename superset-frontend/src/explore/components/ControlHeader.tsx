@@ -163,7 +163,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           {danger && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={danger}>
-                <Icons.ExclamationCircleOutlined
+                <Icons.CloseCircleOutlined
                   iconColor={theme.colorErrorText}
                   iconSize="s"
                 />
@@ -177,12 +177,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <Icons.ExclamationCircleOutlined
-                  css={css`
-                    ${iconStyles};
-                    color: ${labelColor};
-                  `}
-                />
+                <Icons.CloseCircleOutlined iconColor={theme.colorErrorText} />
               </Tooltip>{' '}
             </span>
           )}
