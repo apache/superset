@@ -1,7 +1,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { styled, t } from '@superset-ui/core';
 import { Select } from 'src/components';
-import { Column } from 'react-table';
+import { ColumnWithLooseAccessor } from 'react-table';
 
 const StyledSelect = styled(Select)`
   width: 120px;
@@ -9,7 +9,8 @@ const StyledSelect = styled(Select)`
 `;
 
 interface SearchSelectDropdownProps<D extends object> {
-  columns: Column<D> & { columnKey: string }[];
+  columns: ColumnWithLooseAccessor<D> &
+    { columnKey: string; sortType: string }[];
   value?: string;
   onChange: (column: string) => void;
 }
@@ -19,10 +20,12 @@ function SearchSelectDropdown<D extends object>({
   value,
   onChange,
 }: SearchSelectDropdownProps<D>) {
-  const options = columns.map(column => ({
-    value: column.columnKey,
-    label: column?.columnKey,
-  }));
+  const options = columns
+    .filter(col => col?.sortType === 'alphanumeric')
+    .map(column => ({
+      value: column.columnKey,
+      label: column?.columnKey,
+    }));
 
   return (
     <StyledSelect
@@ -32,7 +35,6 @@ function SearchSelectDropdown<D extends object>({
       onChange={(value: string) => {
         onChange(value);
       }}
-      placeholder={t('Search column...')}
     />
   );
 }
