@@ -138,7 +138,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             position: relative;
           `}
         >
-          {leftNode && <span>{leftNode}</span>}
+          {leftNode && <span>{leftNode} </span>}
           <span
             role="button"
             tabIndex={0}
