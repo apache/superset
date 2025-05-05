@@ -138,7 +138,7 @@ croniter==6.0.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-cryptography==44.0.2
+cryptography==44.0.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -473,7 +473,6 @@ numpy==1.26.4
     #   pandas
     #   pandas-gbq
     #   prophet
-    #   pyarrow
 oauthlib==3.2.2
     # via requests-oauthlib
 odfpy==1.4.1
