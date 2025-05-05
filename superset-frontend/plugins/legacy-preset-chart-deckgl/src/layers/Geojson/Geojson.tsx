@@ -39,6 +39,7 @@ import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
 import { TooltipProps } from '../../components/Tooltip';
+import { Point } from '../../types';
 
 type ProcessedFeature = Feature<Geometry, GeoJsonProperties> & {
   properties: JsonObject;
@@ -172,18 +173,15 @@ export type DeckGLGeoJsonProps = {
   width: number;
 };
 
-export function getPoints(data: JsonObject[]) {
-  return data.reduce(
-    (acc: [number, number, number, number][], feature: any) => {
-      const bounds = geojsonExtent(feature);
-      if (bounds) {
-        return [...acc, [bounds[0], bounds[1]], [bounds[2], bounds[3]]];
-      }
+export function getPoints(data: Point[]) {
+  return data.reduce((acc: Array<any>, feature: any) => {
+    const bounds = geojsonExtent(feature);
+    if (bounds) {
+      return [...acc, [bounds[0], bounds[1]], [bounds[2], bounds[3]]];
+    }
 
-      return acc;
-    },
-    [],
-  );
+    return acc;
+  }, []);
 }
 
 const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {

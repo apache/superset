@@ -35,7 +35,7 @@ export function getPoints(data: JsonObject[]) {
     points.push(d.sourcePosition);
     points.push(d.targetPosition);
   });
-  console.log(points);
+
   return points;
 }
 
@@ -69,7 +69,6 @@ export function getLayer(
   const data = payload.data.features;
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
-  console.log(fd);
 
   return new ArcLayer({
     data,

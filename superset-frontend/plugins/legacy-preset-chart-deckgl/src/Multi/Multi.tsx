@@ -49,6 +49,8 @@ import { getPoints as getPointsScatter } from '../layers/Scatter/Scatter';
 import { getPoints as getPointsContour } from '../layers/Contour/Contour';
 import { getPoints as getPointsHeatmap } from '../layers/Heatmap/Heatmap';
 import { getPoints as getPointsHex } from '../layers/Hex/Hex';
+import { getPoints as getPointsGeojson } from '../layers/Geojson/Geojson';
+import { getPoints as getPointsScreengrid } from '../layers/Screengrid/Screengrid';
 
 export type DeckMultiProps = {
   formData: QueryFormData;
@@ -76,6 +78,8 @@ const DeckMulti = (props: DeckMultiProps) => {
       ...getPointsHeatmap(props.payload.data.features.deck_heatmap || []),
       ...getPointsHex(props.payload.data.features.deck_hex || []),
       ...getPointsArc(props.payload.data.features.deck_arc || []),
+      ...getPointsGeojson(props.payload.data.features.deck_geojaon || []),
+      ...getPointsScreengrid(props.payload.data.features.deck_geojaon || []),
     ];
 
     if (props.formData) {
@@ -172,7 +176,6 @@ const DeckMulti = (props: DeckMultiProps) => {
   const prevDeckSlices = usePrevious(props.formData.deck_slices);
   useEffect(() => {
     const { formData, payload } = props;
-    console.log(props);
     const hasChanges = !isEqual(prevDeckSlices, formData.deck_slices);
     if (hasChanges) {
       loadLayers(formData, payload);
