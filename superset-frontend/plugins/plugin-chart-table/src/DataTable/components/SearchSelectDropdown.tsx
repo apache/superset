@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable import/no-extraneous-dependencies */
-import { styled, t } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import { Select } from 'antd';
 import { SearchOption } from '../../types';
 
