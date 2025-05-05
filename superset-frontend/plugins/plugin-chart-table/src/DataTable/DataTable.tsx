@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable import/no-extraneous-dependencies */
 import {
   useCallback,
   useRef,
@@ -25,6 +26,7 @@ import {
   CSSProperties,
   DragEvent,
   useEffect,
+  useState,
 } from 'react';
 
 import {
@@ -38,10 +40,12 @@ import {
   FilterType,
   IdType,
   Row,
+  Column,
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
-import { typedMemo, usePrevious } from '@superset-ui/core';
+import { styled, typedMemo, usePrevious } from '@superset-ui/core';
 import { isEqual } from 'lodash';
+import { Space } from 'src/components/Space';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, {
   SelectPageSizeProps,
@@ -52,6 +56,7 @@ import useSticky from './hooks/useSticky';
 import { PAGE_SIZE_OPTIONS } from '../consts';
 import { sortAlphanumericCaseInsensitive } from './utils/sortAlphanumericCaseInsensitive';
 import { SortByItem } from '../types';
+import SearchSelectDropdown from './components/SearchSelectDropdown';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;
@@ -93,6 +98,20 @@ const sortTypes = {
   alphanumeric: sortAlphanumericCaseInsensitive,
 };
 
+const StyledSpace = styled(Space)`
+  display: flex;
+  justify-content: flex-end;
+
+  .search-select-container {
+    display: flex;
+  }
+
+  .search-by-label {
+    align-self: center;
+    margin-right: 4px;
+  }
+`;
+
 // Be sure to pass our updateMyData and the skipReset option
 export default typedMemo(function DataTable<D extends object>({
   tableClassName,
@@ -125,6 +144,10 @@ export default typedMemo(function DataTable<D extends object>({
   searchInputId,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
+  const [selectedSearchColumn, setSelectedSearchColumn] = useState<
+    string | undefined
+  >();
+
   const tableHooks: PluginHook<D>[] = [
     useGlobalFilter,
     useSortBy,
@@ -444,7 +467,20 @@ export default typedMemo(function DataTable<D extends object>({
               ) : null}
             </div>
             {searchInput ? (
-              <div className="col-sm-6">
+              <StyledSpace className="col-sm-6">
+                {serverPagination && (
+                  <div className="search-select-container">
+                    <span className="search-by-label">Search by: </span>
+                    <SearchSelectDropdown<D>
+                      columns={
+                        columns as unknown as Column<D> &
+                          { columnKey: string }[]
+                      }
+                      value={selectedSearchColumn}
+                      onChange={setSelectedSearchColumn}
+                    />
+                  </div>
+                )}
                 <GlobalFilter<D>
                   searchInput={
                     typeof searchInput === 'boolean' ? undefined : searchInput
@@ -456,7 +492,7 @@ export default typedMemo(function DataTable<D extends object>({
                   filterValue={manualSearch ? initialSearchText : filterValue}
                   id={searchInputId}
                 />
-              </div>
+              </StyledSpace>
             ) : null}
             {renderTimeComparisonDropdown ? (
               <div
