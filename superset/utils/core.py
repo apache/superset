@@ -1777,12 +1777,12 @@ def apply_max_row_limit_table(
     :return: Capped row limit
     """
     max_limit = None
-    if max_limit is None:
-        # Use different max limits based on server pagination
-        if form_data and form_data.get("server_pagination"):
-            max_limit = current_app.config["TABLE_VIZ_MAX_ROW_SERVER"]
-        else:
-            max_limit = current_app.config["TABLE_VIZ_MAX_ROW_CLIENT"]
+
+    # Use different max limits based on server pagination
+    if form_data and form_data.get("server_pagination"):
+        max_limit = current_app.config["TABLE_VIZ_MAX_ROW_SERVER"]
+    else:
+        max_limit = current_app.config["TABLE_VIZ_MAX_ROW_CLIENT"]
 
     if limit != 0:
         return min(max_limit, limit)
