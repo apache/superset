@@ -665,7 +665,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         if count == 0:
             return self.response(200, count=count, result=[])
         query = self.appbuilder.get_session.query(
-            distinct(getattr(self.datamodel.obj, column_name))
+            distinct(tuple_(getattr(self.datamodel.obj, column_name), pk))
         )
         # Apply generic base filters with added request filter
         query = self.datamodel.apply_filters(query, filters)
