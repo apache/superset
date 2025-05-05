@@ -1766,17 +1766,24 @@ def apply_max_row_limit(
 
 def apply_max_row_limit_table(
     limit: int,
-    max_limit: int | None = None,
+    form_data: dict[str, Any] | None = None,
 ) -> int:
     """
-    Override row limit for table viz type if max table limit is defined
+    Override row limit for table viz type based on server pagination setting
 
     :param limit: requested row limit
     :param max_limit: Maximum allowed row limit for table viz
+    :param form_data: Form data containing server_pagination setting
     :return: Capped row limit
     """
+    max_limit = None
     if max_limit is None:
-        max_limit = current_app.config["TABLE_VIZ_MAX_ROW"]
+        # Use different max limits based on server pagination
+        if form_data and form_data.get("server_pagination"):
+            max_limit = current_app.config["TABLE_VIZ_MAX_ROW_SERVER"]
+        else:
+            max_limit = current_app.config["TABLE_VIZ_MAX_ROW_CLIENT"]
+
     if limit != 0:
         return min(max_limit, limit)
     return max_limit

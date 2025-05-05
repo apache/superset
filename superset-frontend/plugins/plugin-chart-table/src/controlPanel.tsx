@@ -28,7 +28,10 @@ import {
   ControlStateMapping,
   D3_TIME_FORMAT_OPTIONS,
   Dataset,
+  DEFAULT_MAX_ROW_TABLE_CLIENT,
+  DEFAULT_MAX_ROW_TABLE_SERVER,
   defineSavedMetrics,
+  formatSelectOptions,
   getStandardizedControls,
   QueryModeLabel,
   sections,
@@ -40,14 +43,18 @@ import {
   getMetricLabel,
   isAdhocColumn,
   isPhysicalColumn,
+  legacyValidateInteger,
   QueryFormColumn,
   QueryFormMetric,
   QueryMode,
   SMART_DATE_ID,
   t,
+  validateMaxValue,
+  validateServerPagination,
 } from '@superset-ui/core';
 
 import { isEmpty, last } from 'lodash';
+import { ROW_LIMIT_OPTIONS_TABLE } from 'packages/superset-ui-chart-controls/src/shared-controls/sharedControls';
 import { PAGE_SIZE_OPTIONS } from './consts';
 import { ColorSchemeEnum } from './types';
 
@@ -358,7 +365,41 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'row_limit_table',
+            name: 'row_limit',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Row limit'),
+              clearable: false,
+              mapStateToProps: state => ({
+                maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
+                server_pagination: state?.form_data?.server_pagination,
+                maxValueWithoutServerPagination:
+                  state?.common?.conf?.TABLE_VIZ_MAX_ROW_CLIENT,
+              }),
+              validators: [
+                legacyValidateInteger,
+                (v, state) =>
+                  validateMaxValue(
+                    v,
+                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
+                  ),
+                (v, state) =>
+                  validateServerPagination(
+                    v,
+                    state?.server_pagination,
+                    state?.maxValueWithoutServerPagination ||
+                      DEFAULT_MAX_ROW_TABLE_CLIENT,
+                  ),
+              ],
+              // Re run the validations when this control value
+              validationDependancies: ['server_pagination'],
+              default: 10000,
+              choices: formatSelectOptions(ROW_LIMIT_OPTIONS_TABLE),
+              description: t(
+                'Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
+              ),
+            },
             override: {
               default: 1000,
             },

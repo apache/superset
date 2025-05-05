@@ -25,8 +25,9 @@ import {
 } from '@superset-ui/core';
 import { ColumnMeta, SortSeriesData, SortSeriesType } from './types';
 
-export const DEFAULT_MAX_ROW = 500000;
-export const DEFAULT_MAX_ROW_WITHOUT_PAGINATION = 100000;
+export const DEFAULT_MAX_ROW = 100000;
+export const DEFAULT_MAX_ROW_TABLE_CLIENT = 100000;
+export const DEFAULT_MAX_ROW_TABLE_SERVER = 500000;
 
 // eslint-disable-next-line import/prefer-default-export
 export const TIME_FILTER_LABELS = {
