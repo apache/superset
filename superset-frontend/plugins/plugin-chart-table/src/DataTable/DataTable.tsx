@@ -43,7 +43,7 @@ import {
 import { matchSorter, rankings } from 'match-sorter';
 import { styled, typedMemo, usePrevious } from '@superset-ui/core';
 import { isEqual } from 'lodash';
-import { Space } from 'src/components/Space';
+import { Space } from 'antd';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, {
   SelectPageSizeProps,
