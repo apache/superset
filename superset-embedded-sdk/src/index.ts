@@ -251,7 +251,6 @@ export async function embedDashboard({
       ourPort.emit('setThemeConfig', { themeConfig });
       log('Theme config sent successfully (or at least message dispatched)');
     } catch (error) {
-      console.error('Failed to send theme config:', error);
       log(
         'Error sending theme config. Ensure the iframe side implements the "setThemeConfig" method.',
       );
