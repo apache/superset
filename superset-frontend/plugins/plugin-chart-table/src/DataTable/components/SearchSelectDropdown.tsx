@@ -18,7 +18,7 @@
  */
 /* eslint-disable import/no-extraneous-dependencies */
 import { styled, t } from '@superset-ui/core';
-import { Select } from 'src/components';
+import { Select } from 'antd';
 import { SearchOption } from '../../types';
 
 const StyledSelect = styled(Select)`
@@ -39,7 +39,6 @@ function SearchSelectDropdown({
 }: SearchSelectDropdownProps) {
   return (
     <StyledSelect
-      ariaLabel={t('Search column')}
       value={value || searchOptions?.[0]?.value}
       options={searchOptions}
       onChange={(value: string) => {
