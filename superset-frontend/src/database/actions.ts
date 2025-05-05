@@ -8,7 +8,7 @@ export const executeQueryApi = makeApi<
   QueryExecuteResponse
 >({
   method: 'POST',
-  endpoint: '/api/v1/database/sql_query/execute',
+  endpoint: '/api/v1/sqllab/execute',
 });
 
 export function setQueryIsLoading(isLoading: boolean) {
