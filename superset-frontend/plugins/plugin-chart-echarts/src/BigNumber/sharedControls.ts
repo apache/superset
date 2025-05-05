@@ -129,8 +129,5 @@ export const subtitleControl: CustomControlItem = {
     label: t('Subtitle'),
     renderTrigger: true,
     description: t('Description text that shows up below your Big Number'),
-    mapStateToProps: state => ({
-      value: state.form_data.subheader || state.form_data.subtitle,
-    }),
   },
 };
