@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+from base64 import b64encode
 from typing import Any, cast
 
 from superset import db
@@ -32,6 +33,17 @@ def json_dumps_compact(value: dict[str, Any]) -> str:
     return json.dumps(value, indent=None, separators=(",", ":"), sort_keys=True)
 
 
+def _dump_asset_dict(value: dict[str, bytes] | None) -> str | None:
+    if not value:
+        return None
+
+    encoded_assets = {
+        filename: b64encode(content).decode("utf-8")
+        for filename, content in value.items()
+    }
+    return json_dumps_compact(encoded_assets)
+
+
 class ExtensionDAO(BaseDAO[Extension]):
     @staticmethod
     def get_by_name(name: str) -> Extension | None:
@@ -41,13 +53,13 @@ class ExtensionDAO(BaseDAO[Extension]):
     def upsert(
         name: str,
         manifest: Manifest,
-        frontend: dict[str, Any],
-        backend: dict[str, Any],
+        frontend: dict[str, bytes],
+        backend: dict[str, bytes],
         enabled: bool,
     ) -> Extension:
         manifest_str = json_dumps_compact(cast(dict[str, Any], manifest))
-        frontend_str = json_dumps_compact(frontend) if frontend else None
-        backend_str = json_dumps_compact(backend) if backend else None
+        frontend_str = _dump_asset_dict(frontend)
+        backend_str = _dump_asset_dict(backend)
         if extension := ExtensionDAO.get_by_name(name):
             extension.manifest = manifest_str
             extension.frontend = frontend_str

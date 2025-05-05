@@ -57,11 +57,11 @@ class InMemoryLoader(importlib.abc.Loader):
 
 
 class InMemoryFinder(importlib.abc.MetaPathFinder):
-    def __init__(self, file_dict: dict[str, str]) -> None:
+    def __init__(self, file_dict: dict[str, bytes]) -> None:
         self.modules: dict[str, Tuple[Any, Any, Any]] = {}
-        for path, code in file_dict.items():
+        for path, content in file_dict.items():
             mod_name, is_package = self._get_module_name(path)
-            self.modules[mod_name] = (code, is_package, path)
+            self.modules[mod_name] = (content, is_package, path)
 
     def _get_module_name(self, file_path: str) -> Tuple[str, bool]:
         parts = list(Path(file_path).parts)
@@ -86,7 +86,7 @@ class InMemoryFinder(importlib.abc.MetaPathFinder):
         return None
 
 
-def install_in_memory_importer(file_dict: dict[str, str]) -> None:
+def install_in_memory_importer(file_dict: dict[str, bytes]) -> None:
     finder = InMemoryFinder(file_dict)
     sys.meta_path.insert(0, finder)
 
@@ -100,8 +100,7 @@ def eager_import(module_name: str) -> Any:
 def get_bundle_files_from_zip(zip_file: ZipFile) -> Generator[BundleFile, None, None]:
     check_is_safe_zip(zip_file)
     for name in zip_file.namelist():
-        raw = zip_file.read(name)
-        content = raw.decode("utf-8")
+        content = zip_file.read(name)
         yield BundleFile(name=name, content=content)
 
 
@@ -115,15 +114,15 @@ def get_bundle_files_from_path(base_path: str) -> Generator[BundleFile, None, No
         for file in files:
             full_path = os.path.join(root, file)
             rel_path = os.path.relpath(full_path, dist_path).replace(os.sep, "/")
-            with open(full_path, "r", encoding="utf-8") as f:
+            with open(full_path, "rb") as f:
                 content = f.read()
             yield BundleFile(name=rel_path, content=content)
 
 
 def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
     manifest: Manifest = {}
-    frontend: dict[str, str] = {}
-    backend: dict[str, str] = {}
+    frontend: dict[str, bytes] = {}
+    backend: dict[str, bytes] = {}
 
     for file in files:
         filename = file.name

@@ -54,12 +54,12 @@ class Manifest(TypedDict, total=False):
 @dataclass
 class BundleFile:
     name: str
-    content: str
+    content: bytes
 
 
 @dataclass
 class LoadedExtension:
     name: str
     manifest: Manifest
-    frontend: dict[str, str]
-    backend: dict[str, str]
+    frontend: dict[str, bytes]
+    backend: dict[str, bytes]

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from base64 import b64decode
 
 from flask_appbuilder import Model
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
@@ -23,6 +24,13 @@ from sqlalchemy.orm import relationship
 from superset import security_manager
 from superset.extensions.types import Manifest
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
+
+
+def _decode_assets(value: str | None) -> dict[str, bytes] | None:
+    if not value:
+        return None
+
+    return {file: b64decode(contents) for file, contents in json.loads(value).items()}
 
 
 class Extension(AuditMixinNullable, ImportExportMixin, Model):
@@ -43,12 +51,12 @@ class Extension(AuditMixinNullable, ImportExportMixin, Model):
     changed_by = relationship(security_manager.user_model, foreign_keys=[changed_by_fk])
 
     @property
-    def frontend_dict(self) -> dict[str, str] | None:
-        return json.loads(self.frontend) if self.frontend else None
+    def frontend_dict(self) -> dict[str, bytes] | None:
+        return _decode_assets(self.frontend)
 
     @property
-    def backend_dict(self) -> dict[str, str] | None:
-        return json.loads(self.backend) if self.backend else None
+    def backend_dict(self) -> dict[str, bytes] | None:
+        return _decode_assets(self.backend)
 
     @property
     def manifest_dict(self) -> Manifest:

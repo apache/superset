@@ -21,6 +21,7 @@
 import React from 'react';
 import { Avatar } from '@apache-superset/primitives';
 import { commands } from '@apache-superset/types';
+import binaryImage from './assets/binary.jpg';
 
 const Component: React.FC = () => {
   const containerStyle: React.CSSProperties = {
@@ -34,16 +35,19 @@ const Component: React.FC = () => {
   };
 
   return (
-    <div style={containerStyle}>
-      <div>
-        <Avatar
-          onClick={() => commands.registerCommand('my_command', () => {})}
-        >
-          M
-        </Avatar>
+    <>
+      <div style={containerStyle}>
+        <div>
+          <Avatar
+            onClick={() => commands.registerCommand('my_command', () => {})}
+          >
+            M
+          </Avatar>
+        </div>
+        <div>This avatar was imported from Superset!</div>
       </div>
-      <div>This avatar was imported from Superset!</div>
-    </div>
+      <img src={binaryImage} alt="Binary is here" />
+    </>
   );
 };
 

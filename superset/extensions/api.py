@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import mimetypes
 from io import BytesIO
 from typing import Any
 from zipfile import is_zipfile, ZipFile
@@ -148,14 +149,11 @@ class ExtensionsRestApi(BaseSupersetApi):
         if not chunk:
             return self.response_404()
 
-        chunk_bytes = BytesIO(chunk.encode("utf-8"))
-        chunk_bytes.seek(0)
-        return send_file(
-            chunk_bytes,
-            as_attachment=True,
-            mimetype="application/javascript",
-            download_name=file,
-        )
+        mimetype, _ = mimetypes.guess_type(file)
+        if not mimetype:
+            mimetype = "application/octet-stream"
+
+        return send_file(BytesIO(chunk), mimetype=mimetype)
 
     @expose("/import/", methods=("POST",))
     @protect()
