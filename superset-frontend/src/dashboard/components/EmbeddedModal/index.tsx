@@ -194,7 +194,6 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
             <span>
               {t('Allowed Domains (comma separated)')}{' '}
               <InfoTooltipWithTrigger
-                type="info"
                 placement="top"
                 tooltip={t(
                   'A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.',

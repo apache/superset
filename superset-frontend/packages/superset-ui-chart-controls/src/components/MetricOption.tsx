@@ -117,7 +117,7 @@ export function MetricOption({
           label={`warn-${metric.metric_name}`}
           iconStyle={{ marginLeft: 0 }}
           {...(metric.error_text && {
-            type: 'warning',
+            type: 'error',
           })}
         />
       )}
