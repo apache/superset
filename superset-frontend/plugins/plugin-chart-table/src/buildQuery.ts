@@ -22,6 +22,7 @@ import {
   ensureIsArray,
   getMetricLabel,
   isPhysicalColumn,
+  QueryFormOrderBy,
   QueryMode,
   QueryObject,
   removeDuplicates,
@@ -210,11 +211,21 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       moreProps.row_offset = currentPage * pageSize;
     }
 
+    // getting sort by in case of server pagination from own state
+    let sortByFromOwnState: QueryFormOrderBy[] | undefined;
+    if (Array.isArray(ownState?.sortBy) && ownState?.sortBy.length > 0) {
+      const sortByItem = ownState?.sortBy[0];
+      sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
+    }
+
     let queryObject = {
       ...baseQueryObject,
       columns,
       extras,
-      orderby,
+      orderby:
+        formData.server_pagination && sortByFromOwnState
+          ? sortByFromOwnState
+          : orderby,
       metrics,
       post_processing: postProcessing,
       time_offsets: timeOffsets,
