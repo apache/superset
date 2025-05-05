@@ -33,9 +33,9 @@ import { ErrorBoundary, Loading } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { AnyThemeConfig } from 'packages/superset-ui-core/src/theme/types';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
-import { AnyThemeConfig } from 'packages/superset-ui-core/src/theme/types';
 
 setupPlugins();
 
