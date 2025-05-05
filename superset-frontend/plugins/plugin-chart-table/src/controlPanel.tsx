@@ -54,7 +54,6 @@ import {
 } from '@superset-ui/core';
 
 import { isEmpty, last } from 'lodash';
-import { ROW_LIMIT_OPTIONS_TABLE } from 'packages/superset-ui-chart-controls/src/shared-controls/sharedControls';
 import { PAGE_SIZE_OPTIONS } from './consts';
 import { ColorSchemeEnum } from './types';
 
@@ -194,6 +193,15 @@ const processComparisonColumns = (columns: any[], suffix: string) =>
       return [];
     })
     .flat();
+
+/*
+Options for row limit control
+*/
+
+export const ROW_LIMIT_OPTIONS_TABLE = [
+  10, 50, 100, 250, 500, 1000, 5000, 10000, 50000, 100000, 150000, 200000,
+  250000, 300000, 350000, 400000, 450000, 500000,
+];
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
