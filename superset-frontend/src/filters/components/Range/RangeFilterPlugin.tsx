@@ -368,10 +368,22 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       if (row?.min === undefined && row?.max === undefined) {
         return;
       }
+
+      // When using increment/decrement buttons on an empty input,
+      // use the dataset min/max as the base value
+      let adjustedValue = newValue;
+      if (newValue !== null && inputValue[index] === null) {
+        if (index === minIndex) {
+          adjustedValue = min + (newValue === 1 ? 1 : -1);
+        } else if (index === maxIndex) {
+          adjustedValue = max + (newValue === 1 ? 1 : -1);
+        }
+      }
+
       const newInputValue: [number | null, number | null] =
         index === minIndex
-          ? [newValue, inputValue[maxIndex]]
-          : [inputValue[minIndex], newValue];
+          ? [adjustedValue, inputValue[maxIndex]]
+          : [inputValue[minIndex], adjustedValue];
 
       setInputValue(newInputValue);
 
