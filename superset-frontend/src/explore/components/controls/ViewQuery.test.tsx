@@ -71,7 +71,7 @@ afterEach(() => {
 const getFormatSwitch = () =>
   screen.getByRole('switch', { name: 'Show original SQL' });
 
-it('renders the component with Formatted SQL and buttons', async () => {
+test('renders the component with Formatted SQL and buttons', async () => {
   const { container } = setup(mockProps);
   expect(screen.getByText('Copy')).toBeInTheDocument();
   expect(getFormatSwitch()).toBeInTheDocument();
@@ -84,7 +84,7 @@ it('renders the component with Formatted SQL and buttons', async () => {
   expect(container).toHaveTextContent(formattedSQL);
 });
 
-it('copies the SQL to the clipboard when Copy button is clicked', async () => {
+test('copies the SQL to the clipboard when Copy button is clicked', async () => {
   setup(mockProps);
 
   (copyTextToClipboard as jest.Mock).mockResolvedValue('');
@@ -94,7 +94,7 @@ it('copies the SQL to the clipboard when Copy button is clicked', async () => {
   expect(copyTextToClipboard as jest.Mock).toHaveBeenCalled();
 });
 
-it('shows the original SQL when Format switch is unchecked', async () => {
+test('shows the original SQL when Format switch is unchecked', async () => {
   const { container } = setup(mockProps);
   const formatButton = getFormatSwitch();
 
@@ -107,7 +107,7 @@ it('shows the original SQL when Format switch is unchecked', async () => {
   expect(container).toHaveTextContent(mockProps.sql);
 });
 
-it('toggles back to formatted SQL when Format switch is clicked', async () => {
+test('toggles back to formatted SQL when Format switch is clicked', async () => {
   const { container } = setup(mockProps);
   const formatButton = getFormatSwitch();
 
@@ -126,7 +126,7 @@ it('toggles back to formatted SQL when Format switch is clicked', async () => {
   await waitFor(() => expect(container).toHaveTextContent(formattedSQL));
 });
 
-it('navigates to SQL Lab when View in SQL Lab button is clicked', () => {
+test('navigates to SQL Lab when View in SQL Lab button is clicked', () => {
   setup(mockProps);
 
   const viewInSQLLabButton = screen.getByText('View in SQL Lab');
@@ -142,7 +142,7 @@ it('navigates to SQL Lab when View in SQL Lab button is clicked', () => {
   });
 });
 
-it('opens SQL Lab in a new tab when View in SQL Lab button is clicked with meta key', () => {
+test('opens SQL Lab in a new tab when View in SQL Lab button is clicked with meta key', () => {
   window.open = jest.fn();
 
   setup(mockProps);
