@@ -28,7 +28,7 @@ from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 from marshmallow import fields, Schema
-from sqlalchemy import and_, distinct, func, tuple_
+from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
 
 from superset import is_feature_enabled
@@ -657,15 +657,14 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         # Create generic base filters with added request filter
         filters = self._get_distinct_filter(column_name, args.get("filter"))
         # Make the query
-        pk = self.datamodel.get_pk()
         query_count = self.appbuilder.get_session.query(
-            func.count(distinct(tuple_(getattr(self.datamodel.obj, column_name), pk)))
+            func.count(distinct(getattr(self.datamodel.obj, column_name)))
         )
         count = self.datamodel.apply_filters(query_count, filters).scalar()
         if count == 0:
             return self.response(200, count=count, result=[])
         query = self.appbuilder.get_session.query(
-            distinct(tuple_(getattr(self.datamodel.obj, column_name), pk))
+            distinct(getattr(self.datamodel.obj, column_name))
         )
         # Apply generic base filters with added request filter
         query = self.datamodel.apply_filters(query, filters)
