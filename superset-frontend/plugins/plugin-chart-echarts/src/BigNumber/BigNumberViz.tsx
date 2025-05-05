@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent, MouseEvent } from 'react';
+import { PureComponent, MouseEvent, createRef } from 'react';
 import {
   t,
   getNumberFormatter,
@@ -43,7 +43,12 @@ const PROPORTION = {
   TRENDLINE: 0.3,
 };
 
-class BigNumberVis extends PureComponent<BigNumberVizProps> {
+type BigNumberVisState = {
+  elementsRendered: boolean;
+  recalculateTrigger: boolean;
+};
+
+class BigNumberVis extends PureComponent<BigNumberVizProps, BigNumberVisState> {
   static defaultProps = {
     className: '',
     headerFormatter: defaultNumberFormatter,
@@ -60,6 +65,40 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     subheaderFontSize: PROPORTION.SUBHEADER,
     timeRangeFixed: false,
   };
+
+  // Create refs for each component to measure heights
+  metricNameRef = createRef<HTMLDivElement>();
+
+  kickerRef = createRef<HTMLDivElement>();
+
+  headerRef = createRef<HTMLDivElement>();
+
+  subheaderRef = createRef<HTMLDivElement>();
+
+  subtitleRef = createRef<HTMLDivElement>();
+
+  state = {
+    elementsRendered: false,
+    recalculateTrigger: false,
+  };
+
+  componentDidMount() {
+    // Wait for elements to render and then calculate heights
+    setTimeout(() => {
+      this.setState({ elementsRendered: true });
+    }, 0);
+  }
+
+  componentDidUpdate(prevProps: BigNumberVizProps) {
+    if (
+      prevProps.height !== this.props.height ||
+      prevProps.showTrendLine !== this.props.showTrendLine
+    ) {
+      this.setState(prevState => ({
+        recalculateTrigger: !prevState.recalculateTrigger,
+      }));
+    }
+  }
 
   getClassName() {
     const { className, showTrendLine, bigNumberFallback } = this.props;
@@ -114,6 +153,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
 
     return (
       <div
+        ref={this.metricNameRef}
         className="metric-name"
         style={{
           fontSize,
@@ -143,7 +183,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     const fontSize = computeMaxFontSize({
       text,
       maxWidth: width,
-      maxHeight: maxHeight * 0.8, // Reduce max height to prevent overflow
+      maxHeight,
       className: 'kicker',
       container,
     });
@@ -151,12 +191,11 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
 
     return (
       <div
+        ref={this.kickerRef}
         className="kicker"
         style={{
           fontSize,
           height: 'auto',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
         }}
       >
         {text}
@@ -193,7 +232,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     const fontSize = computeMaxFontSize({
       text,
       maxWidth: width * 0.9, // reduced it's max width
-      maxHeight: maxHeight * 0.8,
+      maxHeight,
       className: 'header-line',
       container,
     });
@@ -208,6 +247,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
 
     return (
       <div
+        ref={this.headerRef}
         className="header-line"
         style={{
           display: 'flex',
@@ -215,8 +255,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
           fontSize,
           height: 'auto',
           color: numberColor,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
         }}
         onContextMenu={onContextMenu}
       >
@@ -238,7 +276,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         fontSize = computeMaxFontSize({
           text,
           maxWidth: width * 0.9,
-          maxHeight: maxHeight * 0.8, // Reduce max height to prevent overflow
+          maxHeight,
           className: 'subheader-line',
           container,
         });
@@ -248,12 +286,11 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
 
       return (
         <div
+          ref={this.subheaderRef}
           className="subheader-line"
           style={{
             fontSize,
-            height: 'auto',
-            overflow: 'auto',
-            textOverflow: 'ellipsis',
+            height: maxHeight,
           }}
         >
           {text}
@@ -286,7 +323,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       fontSize = computeMaxFontSize({
         text,
         maxWidth: width * 0.9,
-        maxHeight: maxHeight * 0.8,
+        maxHeight,
         className: 'subtitle-line',
         container,
       });
@@ -295,12 +332,11 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       return (
         <>
           <div
+            ref={this.subtitleRef}
             className="subtitle-line subheader-line"
             style={{
-              fontSize,
+              fontSize: `${fontSize}px`,
               height: maxHeight,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
             }}
           >
             {text}
@@ -357,6 +393,35 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     );
   }
 
+  getTotalElementsHeight() {
+    const marginPerElement = 8; // theme.gridUnit = 4, so margin-bottom = 8px
+
+    const refs = [
+      this.metricNameRef,
+      this.kickerRef,
+      this.headerRef,
+      this.subheaderRef,
+      this.subtitleRef,
+    ];
+
+    // Filter refs to only those with a current element
+    const visibleRefs = refs.filter(ref => ref.current);
+
+    const totalHeight = visibleRefs.reduce((sum, ref, index) => {
+      const height = ref.current?.offsetHeight || 0;
+      const margin = index < visibleRefs.length - 1 ? marginPerElement : 0;
+      return sum + height + margin;
+    }, 0);
+
+    return totalHeight;
+  }
+
+  shouldApplyOverflow(availableHeight: number) {
+    if (!this.state.elementsRendered) return false;
+    const totalHeight = this.getTotalElementsHeight();
+    return totalHeight > availableHeight;
+  }
+
   render() {
     const {
       showTrendLine,
@@ -372,10 +437,25 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     if (showTrendLine) {
       const chartHeight = Math.floor(PROPORTION.TRENDLINE * height);
       const allTextHeight = height - chartHeight;
+      const shouldApplyOverflow = this.shouldApplyOverflow(allTextHeight);
 
       return (
         <div className={className}>
-          <div className="text-container" style={{ height: allTextHeight }}>
+          <div
+            className="text-container"
+            style={{
+              height: allTextHeight,
+              ...(shouldApplyOverflow
+                ? {
+                    display: 'block',
+                    boxSizing: 'border-box',
+                    overflowX: 'hidden',
+                    overflowY: 'auto',
+                    width: '100%',
+                  }
+                : {}),
+            }}
+          >
             {this.renderFallbackWarning()}
             {this.renderMetricName(
               Math.ceil(
@@ -403,17 +483,33 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         </div>
       );
     }
-
+    const shouldApplyOverflow = this.shouldApplyOverflow(height);
     return (
-      <div className={className} style={{ height }}>
-        {this.renderFallbackWarning()}
-        {this.renderMetricName((metricNameFontSize || 0) * height)}
-        {this.renderKicker((kickerFontSize || 0) * height)}
-        {this.renderHeader(Math.ceil(headerFontSize * height))}
-        {this.rendermetricComparisonSummary(
-          Math.ceil(subheaderFontSize * height),
-        )}
-        {this.renderSubtitle(Math.ceil(subtitleFontSize * height))}
+      <div
+        className={className}
+        style={{
+          height,
+          ...(shouldApplyOverflow
+            ? {
+                display: 'block',
+                boxSizing: 'border-box',
+                overflowX: 'hidden',
+                overflowY: 'auto',
+                width: '100%',
+              }
+            : {}),
+        }}
+      >
+        <div className="text-container">
+          {this.renderFallbackWarning()}
+          {this.renderMetricName((metricNameFontSize || 0) * height)}
+          {this.renderKicker((kickerFontSize || 0) * height)}
+          {this.renderHeader(Math.ceil(headerFontSize * height))}
+          {this.rendermetricComparisonSummary(
+            Math.ceil(subheaderFontSize * height),
+          )}
+          {this.renderSubtitle(Math.ceil(subtitleFontSize * height))}
+        </div>
       </div>
     );
   }
@@ -433,10 +529,10 @@ export default styled(BigNumberVis)`
     }
 
     .text-container {
-      box-sizing: border-box;
-      overflow-x: hidden;
-      overflow-y: auto;
-      width: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
       .alert {
         font-size: ${theme.typography.sizes.s};
         margin: -0.5em 0 0.4em;
@@ -448,17 +544,17 @@ export default styled(BigNumberVis)`
 
     .kicker {
       line-height: 1em;
-      white-space: nowrap;
       margin-bottom: ${theme.gridUnit * 2}px;
     }
+
     .metric-name {
-     line-height: 1em;
-     white-space: nowrap;
-     margin-bottom: ${theme.gridUnit * 2}px;
-   }
+      line-height: 1em;
+      margin-bottom: ${theme.gridUnit * 2}px;
+    }
 
     .header-line {
       position: relative;
+      line-height: 1em;
       white-space: nowrap;
       margin-bottom:${theme.gridUnit * 2}px;
       span {
@@ -469,12 +565,12 @@ export default styled(BigNumberVis)`
 
     .subheader-line {
       line-height: 1em;
-      padding-bottom: 0;
+      margin-bottom: ${theme.gridUnit * 2}px;
     }
 
     .subtitle-line {
       line-height: 1em;
-      padding-bottom: 0;
+      margin-bottom: ${theme.gridUnit * 2}px;
     }
 
     &.is-fallback-value {
