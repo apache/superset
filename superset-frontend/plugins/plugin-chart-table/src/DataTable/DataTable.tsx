@@ -225,21 +225,21 @@ export default typedMemo(function DataTable<D extends object>({
   useEffect(() => {
     const serverSortBy = serverPaginationData?.sortBy || [];
 
-    if (
-      !isEqual(sortBy, serverSortBy) &&
-      Array.isArray(sortBy) &&
-      sortBy.length > 0
-    ) {
-      const [sortByItem] = sortBy;
-      const matchingColumn = columns.find(col => col?.id === sortByItem?.id);
+    if (!isEqual(sortBy, serverSortBy)) {
+      if (Array.isArray(sortBy) && sortBy.length > 0) {
+        const [sortByItem] = sortBy;
+        const matchingColumn = columns.find(col => col?.id === sortByItem?.id);
 
-      if (matchingColumn && 'columnKey' in matchingColumn) {
-        const sortByWithColumnKey: SortByItem = {
-          ...sortByItem,
-          key: (matchingColumn as { columnKey: string }).columnKey,
-        };
+        if (matchingColumn && 'columnKey' in matchingColumn) {
+          const sortByWithColumnKey: SortByItem = {
+            ...sortByItem,
+            key: (matchingColumn as { columnKey: string }).columnKey,
+          };
 
-        handleSortByChange([sortByWithColumnKey]);
+          handleSortByChange([sortByWithColumnKey]);
+        }
+      } else {
+        handleSortByChange([]);
       }
     }
   }, [sortBy]);
