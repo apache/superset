@@ -21,6 +21,7 @@ import { useCallback, ReactNode, ReactElement, cloneElement } from 'react';
 import { css, SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormItem, FormLabel } from 'src/components/Form';
+import { Icons } from 'src/components/Icons';
 
 const formItemInlineCss = css`
   .ant-form-item-control-input-content {
@@ -28,7 +29,6 @@ const formItemInlineCss = css`
     flex-direction: row;
   }
 `;
-
 interface FieldProps<V> {
   fieldKey: string;
   value?: V;
@@ -39,6 +39,7 @@ interface FieldProps<V> {
   onChange: (fieldKey: string, newValue: V) => void;
   compact: boolean;
   inline: boolean;
+  errorMessage?: string;
 }
 
 export default function Field<V>({
@@ -51,6 +52,7 @@ export default function Field<V>({
   onChange = () => {},
   compact = false,
   inline,
+  errorMessage,
 }: FieldProps<V>) {
   const onControlChange = useCallback(
     newValue => {
@@ -79,9 +81,7 @@ export default function Field<V>({
             {label || fieldKey}
             {compact && description && (
               <Tooltip id="field-descr" placement="right" title={description}>
-                {/* TODO: Remove fa-icon */}
-                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-                <i className="fa fa-info-circle m-l-5" />
+                <Icons.InfoCircleFilled iconSize="s" className="m-l-5" />
               </Tooltip>
             )}
           </FormLabel>
@@ -100,6 +100,16 @@ export default function Field<V>({
           </div>
         )}
       </FormItem>
+      {errorMessage && (
+        <div
+          css={(theme: SupersetTheme) => ({
+            color: theme.colors.error.base,
+            marginTop: -16,
+          })}
+        >
+          {errorMessage}
+        </div>
+      )}
     </div>
   );
 }

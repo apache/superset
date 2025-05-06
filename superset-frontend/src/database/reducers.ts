@@ -4,6 +4,7 @@ const initialState: QueryAdhocState = {
   isLoading: null,
   sql: null,
   queryResult: null,
+  error: null,
 };
 
 export default function databaseReducer(
@@ -21,6 +22,12 @@ export default function databaseReducer(
         ...state,
         sql: action.payload.query.sql ?? '',
         queryResult: action.payload,
+        error: null,
+      };
+    case 'SET_QUERY_ERROR':
+      return {
+        ...initialState,
+        error: action.payload,
       };
     case 'RESET_DATABASE_STATE':
       return initialState;

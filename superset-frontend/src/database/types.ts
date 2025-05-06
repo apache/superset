@@ -34,4 +34,5 @@ export interface QueryAdhocState {
   isLoading: boolean | null;
   sql: string | null;
   queryResult: QueryExecuteResponse | null;
+  error: string | null;
 }

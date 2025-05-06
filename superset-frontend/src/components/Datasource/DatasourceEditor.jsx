@@ -1141,16 +1141,19 @@ class DatasourceEditor extends PureComponent {
                         </Button>
                       </div>
                     }
+                    errorMessage={
+                      this.props.queryError && t('Error executing query.')
+                    }
                   />
-                  {this.props.sql_result && (
+                  {this.props.sqlResult && (
                     <ResultTable
-                      data={this.props.sql_result.data}
-                      queryId={this.props.sql_result.query.id}
-                      orderedColumnKeys={this.props.sql_result.columns.map(
+                      data={this.props.sqlResult.data}
+                      queryId={this.props.sqlResult.query.id}
+                      orderedColumnKeys={this.props.sqlResult.columns.map(
                         col => col.column_name,
                       )}
                       height={100}
-                      expandedColumns={this.props.sql_result.expandedColumns}
+                      expandedColumns={this.props.sqlResult.expandedColumns}
                       allowHTML
                     />
                   )}
@@ -1550,7 +1553,8 @@ const mapDispatchToProps = dispatch => ({
   resetQuery: () => dispatch(resetDatabaseState()),
 });
 const mapStateToProps = state => ({
-  sql_result: state.database.queryResult,
+  sqlResult: state.database.queryResult,
+  queryError: state.database.error,
 });
 export default withToasts(
   connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent),

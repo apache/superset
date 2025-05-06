@@ -28,6 +28,12 @@ export function resetDatabaseState() {
     type: 'RESET_DATABASE_STATE',
   };
 }
+export function setQueryError(error: string) {
+  return {
+    type: 'SET_QUERY_ERROR',
+    payload: error,
+  };
+}
 export function executeQuery(payload: QueryExecutePayload) {
   return async function (dispatch: ThunkDispatch<any, undefined, AnyAction>) {
     try {
@@ -35,17 +41,9 @@ export function executeQuery(payload: QueryExecutePayload) {
       const result = await executeQueryApi(payload);
       dispatch(setQueryResult(result as QueryExecuteResponse));
     } catch (error) {
-      // TODO handle error and show feedback to user
-      console.error('Error executing query', error);
+      dispatch(setQueryError(error.message));
     } finally {
       dispatch(setQueryIsLoading(false));
     }
   };
 }
-
-export const databaseActions = {
-  setQueryIsLoading,
-  setQueryResult,
-  executeQuery,
-  resetDatabaseState,
-};
