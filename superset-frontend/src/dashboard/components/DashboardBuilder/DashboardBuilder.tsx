@@ -216,7 +216,7 @@ const DashboardContentWrapper = styled.div`
 
       .grid-row:after,
       .dashboard-component-tabs > .hover-menu + div:after {
-        border: 1px dashed ${theme.colors.grayscale.light2};
+        border: 1px dashed ${theme.colorBorder};
       }
 
       /* provide hit area in case row contents is edge to edge */

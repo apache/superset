@@ -129,7 +129,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
       <ControlHeader {...props} />
       <div
         css={{
-          border: `1px solid ${theme.colors.grayscale.light2}`,
+          border: `1px solid ${theme.colorBorder}`,
           borderRadius: theme.borderRadius,
         }}
       >

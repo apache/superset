@@ -48,7 +48,7 @@ const BackgroundStyleOption = styled.div`
       background: transparent;
       &:before {
         background: ${theme.colors.grayscale.light5};
-        border: 1px solid ${theme.colors.grayscale.light2};
+        border: 1px solid ${theme.colorBorder};
       }
     }
     /* Create the transparent rect icon */

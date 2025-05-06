@@ -279,7 +279,7 @@ export const StyledInputContainer = styled.div`
     input[type='number'] {
       padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 2}px;
       border-style: none;
-      border: 1px solid ${theme.colors.grayscale.light2};
+      border: 1px solid ${theme.colorBorder};
       border-radius: ${theme.borderRadius}px;
 
       &[name='name'] {

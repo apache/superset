@@ -83,7 +83,7 @@ const ColumnStyles = styled.div`
       left: 0;
       z-index: 1;
       pointer-events: none;
-      border: 1px dashed ${theme.colors.grayscale.light2};
+      border: 1px dashed ${theme.colorBorder};
     }
     .dashboard--editing .resizable-container--resizing:hover > &:after,
     .dashboard--editing .hover-menu:hover + &:after {

@@ -222,7 +222,7 @@ const IconsPane = styled.div`
 
 const DetailsPane = (theme: SupersetTheme) => css`
   grid-area: details;
-  border-top: 1px solid ${theme.colors.grayscale.light2};
+  border-top: 1px solid ${theme.colorBorder};
 `;
 
 const DetailsPopulated = (theme: SupersetTheme) => css`
@@ -263,7 +263,7 @@ const Examples = styled.div`
   img {
     height: 100%;
     border-radius: ${({ theme }) => theme.borderRadius}px;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border: 1px solid ${({ theme }) => theme.colorBorder};
   }
 `;
 
@@ -275,7 +275,7 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   img {
     min-width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
     min-height: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
-    border: 1px solid ${theme.colors.grayscale.light2};
+    border: 1px solid ${theme.colorBorder};
     border-radius: ${theme.borderRadius}px;
     transition: border-color ${theme.motionDurationMid};
   }
@@ -285,7 +285,7 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   }
 
   &:hover:not(.selected) img {
-    border: 1px solid ${theme.colors.grayscale.light1};
+    border: 1px solid ${theme.colorBorder};
   }
 
   .viztype-label {
