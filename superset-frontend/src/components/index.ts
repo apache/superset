@@ -197,6 +197,8 @@ export { Skeleton, type SkeletonProps } from './Skeleton';
 
 export { Switch, type SwitchProps } from './Switch';
 
+export { Tag } from './Tag';
+
 export { TreeSelect, type TreeSelectProps } from './TreeSelect';
 
 export { Typography, type TypographyProps } from './Typography';
