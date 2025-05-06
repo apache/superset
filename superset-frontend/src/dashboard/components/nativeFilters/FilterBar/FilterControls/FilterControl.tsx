@@ -128,6 +128,14 @@ const VerticalFormItem = styled(StyledFormItem)<{
       width: 140px;
     `}
   }
+
+  .select-bulk-actions {
+    ${({ inverseSelection }) =>
+      inverseSelection &&
+      `
+      flex-direction: column;
+    `}
+  }
 `;
 
 const HorizontalFormItem = styled(StyledFormItem)<{
@@ -163,6 +171,10 @@ const HorizontalFormItem = styled(StyledFormItem)<{
       `
       width: 164px;
     `}
+  }
+
+  .select-bulk-actions {
+    flex-direction: column;
   }
 `;
 
