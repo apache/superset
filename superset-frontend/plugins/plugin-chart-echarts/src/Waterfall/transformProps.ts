@@ -807,7 +807,6 @@ export default function transformProps(
     formData,
     width,
     height,
-    // echartOptions,
     echartOptions: finalEchartOptions,
     setDataMask,
     onContextMenu,
