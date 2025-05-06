@@ -117,7 +117,7 @@ const StyledHeader = styled.div`
       left: ${theme.sizeUnit}px;
       top: ${theme.sizeUnit}px;
       border: 1px dashed transparent;
-      border-radius: ${theme.sizeUnit}px;
+      border-radius: ${theme.borderRadius}px;
       opacity: 0.5;
     }
   `}

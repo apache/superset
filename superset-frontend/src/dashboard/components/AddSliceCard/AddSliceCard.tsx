@@ -126,7 +126,7 @@ const SliceAddedBadgePlaceholder: FC<{
     css={(theme: Theme) => css`
       /* Display styles */
       border: 1px solid ${theme.colorBorder};
-      border-radius: ${theme.sizeUnit}px;
+      border-radius: ${theme.borderRadius}px;
       color: ${theme.colorPrimaryText};
       font-size: ${theme.fontSizeXS}px;
       letter-spacing: 0.02em;
@@ -152,7 +152,7 @@ const SliceAddedBadge: FC<{ placeholder?: HTMLDivElement }> = ({
     css={(theme: Theme) => css`
       /* Display styles */
       border: 1px solid ${theme.colorBorder};
-      border-radius: ${theme.sizeUnit}px;
+      border-radius: ${theme.borderRadius}px;
       color: ${theme.colorPrimaryText};
       font-size: ${theme.fontSizeXS}px;
       letter-spacing: 0.02em;
@@ -206,7 +206,7 @@ const AddSliceCard: FC<{
         data-test="chart-card"
         css={(theme: Theme) => css`
           border: 1px solid ${theme.colorBorder};
-          border-radius: ${theme.sizeUnit}px;
+          border-radius: ${theme.borderRadius}px;
           padding: ${theme.sizeUnit * 4}px;
           margin: 0 ${theme.sizeUnit * 3}px ${theme.sizeUnit * 3}px
             ${theme.sizeUnit * 3}px;

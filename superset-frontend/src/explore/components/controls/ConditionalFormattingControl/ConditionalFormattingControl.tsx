@@ -37,7 +37,7 @@ const FormattersContainer = styled.div`
   ${({ theme }) => css`
     padding: ${theme.sizeUnit}px;
     border: solid 1px ${theme.colors.grayscale.light2};
-    border-radius: ${theme.sizeUnit}px;
+    border-radius: ${theme.borderRadius}px;
   `}
 `;
 

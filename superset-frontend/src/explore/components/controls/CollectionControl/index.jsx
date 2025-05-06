@@ -111,7 +111,7 @@ class CollectionControl extends Component {
         onSortEnd={this.onSortEnd.bind(this)}
         bordered
         css={theme => ({
-          borderRadius: theme.sizeUnit,
+          borderRadius: theme.borderRadius,
         })}
       >
         {this.props.value.map((o, i) => {

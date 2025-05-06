@@ -130,7 +130,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
       <div
         css={{
           border: `1px solid ${theme.colors.grayscale.light2}`,
-          borderRadius: theme.sizeUnit,
+          borderRadius: theme.borderRadius,
         }}
       >
         {columnsWithChildInfo.map(col => (

@@ -262,7 +262,7 @@ const Examples = styled.div`
 
   img {
     height: 100%;
-    border-radius: ${({ theme }) => theme.sizeUnit}px;
+    border-radius: ${({ theme }) => theme.borderRadius}px;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
 `;
@@ -276,7 +276,7 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
     min-width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
     min-height: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
     border: 1px solid ${theme.colors.grayscale.light2};
-    border-radius: ${theme.sizeUnit}px;
+    border-radius: ${theme.borderRadius}px;
     transition: border-color ${theme.motionDurationMid};
   }
 
@@ -298,7 +298,7 @@ const HighlightLabel = styled.div`
   ${({ theme }) => `
     border: 1px solid ${theme.colorPrimaryText};
     box-sizing: border-box;
-    border-radius: ${theme.sizeUnit}px;
+    border-radius: ${theme.borderRadius}px;
     background: ${theme.colors.grayscale.light5};
     line-height: ${theme.sizeUnit * 2.5}px;
     color: ${theme.colorPrimaryText};

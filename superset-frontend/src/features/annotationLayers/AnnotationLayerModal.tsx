@@ -64,7 +64,7 @@ const LayerContainer = styled.div`
     padding: ${({ theme }) => theme.sizeUnit * 1.5}px
       ${({ theme }) => theme.sizeUnit * 2}px;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.sizeUnit}px;
+    border-radius: ${({ theme }) => theme.borderRadius}px;
     width: 50%;
   }
 

@@ -104,7 +104,7 @@ export const HeaderContainer = styled.div`
 export const LabelsContainer = styled.div`
   padding: ${({ theme }) => theme.sizeUnit}px;
   border: solid 1px ${({ theme }) => theme.colorSplit};
-  border-radius: ${({ theme }) => theme.sizeUnit}px;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
 const borderPulse = keyframes`
@@ -140,12 +140,12 @@ export const DndLabelsContainer = styled.div<{
             : theme.colorBorder
         }`
   };
-  border-radius: ${theme.sizeUnit}px;
+  border-radius: ${theme.borderRadius}px;
   &:before,
   &:after {
     content: ' ';
     position: absolute;
-    border-radius: ${theme.sizeUnit}px;
+    border-radius: ${theme.borderRadius}px;
   }
   &:before {
     display: ${isDragging || isLoading ? 'block' : 'none'};
@@ -199,7 +199,7 @@ export const AddControlLabel = styled.div<{
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
   border: dashed 1px ${({ theme }) => theme.colorSplit};
-  border-radius: ${({ theme }) => theme.sizeUnit}px;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
   cursor: ${({ cancelHover }) => (cancelHover ? 'inherit' : 'pointer')};
 
   :hover {

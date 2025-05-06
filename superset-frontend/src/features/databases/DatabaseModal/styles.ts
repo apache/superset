@@ -280,7 +280,7 @@ export const StyledInputContainer = styled.div`
       padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 2}px;
       border-style: none;
       border: 1px solid ${theme.colors.grayscale.light2};
-      border-radius: ${theme.sizeUnit}px;
+      border-radius: ${theme.borderRadius}px;
 
       &[name='name'] {
         flex: 0 1 auto;
@@ -307,8 +307,8 @@ export const StyledInputContainer = styled.div`
 
 export const StyledJsonEditor = styled(JsonEditor)`
   flex: 1 1 auto;
-  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: ${({ theme }) => theme.sizeUnit}px;
+  border: 1px solid ${({ theme }) => theme.colorBorder};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
 export const StyledExpandableForm = styled.div`
@@ -414,8 +414,8 @@ export const CredentialInfoForm = styled.div`
   .input-form {
     height: 100px;
     width: 100%;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.sizeUnit}px;
+    border: 1px solid ${({ theme }) => theme.colorBorder};
+    border-radius: ${({ theme }) => theme.borderRadius}px;
     resize: vertical;
     padding: ${({ theme }) => theme.sizeUnit * 1.5}px
       ${({ theme }) => theme.sizeUnit * 2}px;

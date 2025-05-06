@@ -44,7 +44,7 @@ const Container = styled.div`
 `;
 
 const StyledInput = styled(Input)`
-  border-radius: ${({ theme }) => theme.sizeUnit}px;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
 function SearchFilter(
