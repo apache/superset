@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import os
+import traceback
 from datetime import datetime
 from typing import Any, Type
 
@@ -117,26 +118,39 @@ def run(id: int | None = None) -> None:
 
     inconsistent_slices = []
     for slice_item in slices:
-        migration_obj = viz_migration_map.get(slice_item.viz_type)(slice_item.params)
-        query_obj = migration_obj.build_query()
+        try:
+            migration_obj = viz_migration_map.get(slice_item.viz_type)(slice_item.params)
+            query_obj = migration_obj.build_query()
 
-        generated_queries_obj = query_obj["queries"]
-        stored_queries_obj = json.loads(slice_item.query_context)["queries"]
+            generated_queries_obj = query_obj["queries"]
+            stored_queries_obj = json.loads(slice_item.query_context)["queries"]
 
-        sorted_generated = sort_and_clean_object(generated_queries_obj)
-        sorted_stored = sort_and_clean_object(stored_queries_obj)
+            sorted_generated = sort_and_clean_object(generated_queries_obj)
+            sorted_stored = sort_and_clean_object(stored_queries_obj)
 
-        if sorted_generated != sorted_stored:
-            result = json.dumps(sorted_generated, sort_keys=True)
-            query_context = json.dumps(sorted_stored, sort_keys=True)
+            if sorted_generated != sorted_stored:
+                result = json.dumps(sorted_generated, sort_keys=True)
+                query_context = json.dumps(sorted_stored, sort_keys=True)
+                inconsistent_slices.append(
+                    {
+                        "slice_id": slice_item.id,
+                        "viz_type": slice_item.viz_type,
+                        "generated_queries": result,
+                        "slice_queries": query_context,
+                    }
+                )
+        except Exception as err:
+            error_trace = traceback.format_exc()
+            error_result = json.dumps({"error": str(err), "traceback": error_trace}, sort_keys=True)
             inconsistent_slices.append(
                 {
                     "slice_id": slice_item.id,
                     "viz_type": slice_item.viz_type,
-                    "generated_queries": result,
-                    "slice_queries": query_context,
+                    "generated_queries": error_result,
+                    "slice_queries": "",
                 }
             )
+
     if inconsistent_slices:
         output_folder = "query_context_results"
         os.makedirs(output_folder, exist_ok=True)
