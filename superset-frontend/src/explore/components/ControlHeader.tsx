@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ReactNode, useMemo, useRef } from 'react';
+import { FC, ReactNode } from 'react';
 import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { FormLabel, Tooltip } from 'src/components';
@@ -64,22 +64,6 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   danger,
 }) => {
   const theme = useTheme();
-  const hasHadNoErrors = useRef(false);
-  const labelColor = useMemo(() => {
-    if (!validationErrors.length) {
-      hasHadNoErrors.current = true;
-    }
-
-    if (hasHadNoErrors.current) {
-      if (validationErrors.length) {
-        return theme.colorErrorText;
-      }
-
-      return 'unset';
-    }
-
-    return theme.colorWarningText;
-  }, [theme.colorErrorText, theme.colorWarningText, validationErrors.length]);
 
   if (!label) {
     return null;

@@ -281,7 +281,7 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   }
 
   &.selected img {
-    border: 2px solid ${theme.colors.primary.light2};
+    border: 2px solid ${theme.colorPrimaryBorder};
   }
 
   &:hover:not(.selected) img {

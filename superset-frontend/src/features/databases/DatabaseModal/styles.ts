@@ -179,8 +179,8 @@ export const formHelperStyles = (theme: SupersetTheme) => css`
 
 export const wideButton = (theme: SupersetTheme) => css`
   width: 100%;
-  border: 1px solid ${theme.colors.primary.dark2};
-  color: ${theme.colors.primary.dark2};
+  border: 1px solid ${theme.colorPrimaryText};
+  color: ${theme.colorPrimaryText};
   &:hover,
   &:focus {
     border: 1px solid ${theme.colorPrimary};
@@ -367,7 +367,7 @@ export const TabHeader = styled.div`
 `;
 
 export const CreateHeaderTitle = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
   font-weight: ${({ theme }) => theme.fontWeightStrong};
   font-size: ${({ theme }) => theme.fontSize}px;
 `;
