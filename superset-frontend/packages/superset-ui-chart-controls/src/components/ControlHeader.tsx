@@ -17,7 +17,9 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t } from '@superset-ui/core';
+import { t, css } from '@superset-ui/core';
+import { InfoCircleOutlined } from '@ant-design/icons';
+import { Typography } from 'antd-v5';
 import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';
 import { Tooltip } from './Tooltip';
 
@@ -88,10 +90,19 @@ export function ControlHeader({
     return null;
   }
   const labelClass = validationErrors.length > 0 ? 'text-danger' : '';
+  const labelColor = validationErrors.length > 0 ? 'danger' : undefined;
+  const labelStyle = { cursor: onClick ? 'pointer' : undefined };
+
   return (
     <div className="ControlHeader" data-test={`${name}-header`}>
       <div className="pull-left">
-        <label className="control-label" htmlFor={name}>
+        <Typography.Text
+          className="control-label"
+          type={labelColor}
+          onClick={onClick}
+          style={labelStyle}
+          strong
+        >
           {leftNode && <span>{leftNode}</span>}
           <span
             role="button"
@@ -105,18 +116,24 @@ export function ControlHeader({
           {warning && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={warning}>
-                {/* TODO: Remove fa-icon */}
-                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-                <i className="fa fa-exclamation-circle text-warning" />
+                <InfoCircleOutlined
+                  css={theme => css`
+                    font-size: ${theme.sizeUnit * 3}px;
+                    color: ${theme.colorError};
+                  `}
+                />
               </Tooltip>{' '}
             </span>
           )}
           {danger && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={danger}>
-                {/* TODO: Remove fa-icon */}
-                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-                <i className="fa fa-exclamation-circle text-danger" />
+                <InfoCircleOutlined
+                  css={theme => css`
+                    font-size: ${theme.sizeUnit * 3}px;
+                    color: ${theme.colorError};
+                  `}
+                />{' '}
               </Tooltip>{' '}
             </span>
           )}
@@ -127,9 +144,12 @@ export function ControlHeader({
                 placement="top"
                 title={validationErrors.join(' ')}
               >
-                {/* TODO: Remove fa-icon */}
-                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-                <i className="fa fa-exclamation-circle text-danger" />
+                <InfoCircleOutlined
+                  css={theme => css`
+                    font-size: ${theme.sizeUnit * 3}px;
+                    color: ${theme.colorError};
+                  `}
+                />{' '}
               </Tooltip>{' '}
             </span>
           )}
@@ -139,7 +159,7 @@ export function ControlHeader({
               <strong>*</strong>
             </span>
           )}
-        </label>
+        </Typography.Text>
       </div>
       {rightNode && <div className="pull-right">{rightNode}</div>}
       <div className="clearfix" />
