@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import {
   CustomControlItem,
   InfoTooltipWithTrigger,
@@ -71,57 +72,35 @@ export default function getControlItemsMap({
   removed,
 }: ControlItemsProps) {
   const controlPanelRegistry = getChartControlPanelRegistry();
-  const controlItems =
-    getControlItems(controlPanelRegistry.get(filterType)) ?? [];
-  const mapControlItems: Record<
-    string,
-    { element: React.ReactNode; checked: boolean }
-  > = {};
-  const mapMainControlItems: Record<
-    string,
-    { element: React.ReactNode; checked: boolean }
-  > = {};
+  const controlItems = getControlItems(controlPanelRegistry.get(filterType)) ?? [];
+  const mapControlItems: Record<string, { element: React.ReactNode; checked: boolean }> = {};
+  const mapMainControlItems: Record<string, { element: React.ReactNode; checked: boolean }> = {};
 
   controlItems
-    .filter(
-      (mainControlItem: CustomControlItem) =>
-        mainControlItem?.name === 'groupby',
-    )
+    .filter((mainControlItem: CustomControlItem) => mainControlItem?.name === 'groupby')
     .forEach(mainControlItem => {
-      const initialValue =
-        filterToEdit?.controlValues?.[mainControlItem.name] ??
-        mainControlItem?.config?.default;
-      const initColumn = filterToEdit?.targets[0]?.column?.name;
+      const initialValue = filterToEdit?.controlValues?.[mainControlItem.name] ?? mainControlItem?.config?.default;
+      const initColumn = filterToEdit?.targets?.[0]?.column?.name;
 
       const element = (
         <>
           <CleanFormItem
             name={['filters', filterId, 'requiredFirst', mainControlItem.name]}
             hidden
-            initialValue={
-              mainControlItem?.config?.requiredFirst &&
-              filterToEdit?.requiredFirst
-            }
+            initialValue={mainControlItem?.config?.requiredFirst && filterToEdit?.requiredFirst}
           />
           <StyledFormItem
-            // don't show the column select unless we have a dataset
             name={['filters', filterId, 'column']}
             initialValue={initColumn}
-            label={
-              <StyledLabel>
-                {mainControlItem.config?.label || t('Column')}
-              </StyledLabel>
-            }
-            rules={[
-              {
-                required: mainControlItem.config?.required && !removed, // TODO: need to move ColumnSelect settings to controlPanel for all filters
-                message: t('Column is required'),
-              },
-            ]}
+            label={<StyledLabel>{mainControlItem.config?.label || t('Column')}</StyledLabel>}
+            rules={[{
+              required: mainControlItem.config?.required && !removed,
+              message: t('Column is required'),
+            }]}
             data-test="field-input"
           >
             <ColumnSelect
-              mode={mainControlItem.config?.multiple && 'multiple'}
+              mode={mainControlItem.config?.multiple ? 'multiple' : undefined}
               form={form}
               filterId={filterId}
               datasetId={datasetId}
@@ -129,7 +108,6 @@ export default function getControlItemsMap({
                 doesColumnMatchFilterType(formFilter?.filterType || '', column)
               }
               onChange={() => {
-                // We need reset default value when column changed
                 setNativeFilterFieldValues(form, filterId, {
                   defaultDataMask: null,
                 });
@@ -144,32 +122,26 @@ export default function getControlItemsMap({
         checked: initialValue,
       };
     });
+
   controlItems
-    .filter(
-      (controlItem: CustomControlItem) =>
-        controlItem?.config?.renderTrigger &&
-        controlItem.name !== 'sortAscending' &&
-        controlItem.name !== 'enableSingleValue',
-    )
+    .filter((controlItem: CustomControlItem) =>
+      controlItem?.config?.renderTrigger &&
+      controlItem.name !== 'sortAscending' &&
+      controlItem.name !== 'enableSingleValue')
     .forEach(controlItem => {
-      const initialValue =
-        filterToEdit?.controlValues?.[controlItem.name] ??
-        controlItem?.config?.default;
+      const initialValue = filterToEdit?.controlValues?.[controlItem.name] ?? controlItem?.config?.default;
       const element = (
         <>
           <CleanFormItem
             name={['filters', filterId, 'requiredFirst', controlItem.name]}
             hidden
-            initialValue={
-              controlItem?.config?.requiredFirst && filterToEdit?.requiredFirst
-            }
+            initialValue={controlItem?.config?.requiredFirst && filterToEdit?.requiredFirst}
           />
           <Tooltip
             key={controlItem.name}
             placement="left"
             title={
-              controlItem.config.affectsDataMask &&
-              disabled &&
+              controlItem.config.affectsDataMask && disabled &&
               t('Populate "Default value" to enable this control')
             }
           >
@@ -214,6 +186,7 @@ export default function getControlItemsMap({
       );
       mapControlItems[controlItem.name] = { element, checked: initialValue };
     });
+
   return {
     controlItems: mapControlItems,
     mainControlItems: mapMainControlItems,
