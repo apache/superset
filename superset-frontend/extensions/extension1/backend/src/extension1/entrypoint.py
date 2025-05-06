@@ -15,6 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from superset_primitives.api import add_api
+
+from .api import Extension1API
 from .utils import foo
 
 print(foo())
+
+add_api(Extension1API)

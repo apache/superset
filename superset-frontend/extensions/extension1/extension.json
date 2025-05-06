@@ -79,6 +79,7 @@
   },
   "dependencies": [],
   "permissions": [
+    "can_read",
     "can_view",
     "can_copy_query",
     "can_prettify",
