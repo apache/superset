@@ -80,4 +80,8 @@ export interface WaterfallChartTransformedProps
   filterState?: {
     value?: string;
   };
+  handleCrossFilter: (
+    value: string,
+    isCurrentValue: boolean,
+  ) => { extraFormData: any; filterState: any } | null;
 }

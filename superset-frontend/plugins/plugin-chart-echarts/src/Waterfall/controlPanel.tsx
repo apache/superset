@@ -45,7 +45,7 @@ const config: ControlPanelConfig = {
             name: 'seriesOrderByColumn',
             config: {
               type: 'SelectControl',
-              label: t('Order Series By Column'),
+              label: t('Order series by column'),
               description: t(
                 'Column to use for ordering the waterfall series with columns not in the chart',
               ),
@@ -56,10 +56,10 @@ const config: ControlPanelConfig = {
                     col.column_name,
                   ]),
                 ],
-                default: state.form_data?.x_axis || '',
+                default: state.form_data.x_axis,
               }),
               clearable: false,
-              renderTrigger: true,
+              visibility: ({ controls }) => Boolean(controls?.x_axis?.value),
             },
           },
         ],
@@ -68,14 +68,13 @@ const config: ControlPanelConfig = {
             name: 'seriesOrderDirection',
             config: {
               type: 'SelectControl',
-              label: t('Order Direction'),
+              label: t('Order direction'),
               choices: [
                 ['ASC', t('Ascending')],
                 ['DESC', t('Descending')],
               ],
               default: 'ASC',
               clearable: false,
-              renderTrigger: true,
               description: t(
                 'Ordering direction for the series, to be used with "Order Series By Column"',
               ),
@@ -85,7 +84,7 @@ const config: ControlPanelConfig = {
       ],
     },
     {
-      label: t('Chart Options'),
+      label: t('Chart options'),
       expanded: true,
       controlSetRows: [
         [showValueControl],
@@ -106,7 +105,7 @@ const config: ControlPanelConfig = {
             name: 'show_total',
             config: {
               type: 'CheckboxControl',
-              label: t('Show Total'),
+              label: t('Show total'),
               default: true,
               renderTrigger: true,
               description: t('Show the total value in the waterfall chart'),
@@ -130,13 +129,13 @@ const config: ControlPanelConfig = {
             name: 'bold_labels',
             config: {
               type: 'SelectControl',
-              label: t('Bold Labels'),
+              label: t('Bold labels'),
               default: 'both',
               choices: [
                 ['none', t('None')],
-                ['total', t('Total Only')],
-                ['subtotal', t('Subtotal Only')],
-                ['both', t('Both Total and Subtotal')],
+                ['total', t('Total only')],
+                ['subtotal', t('Subtotal only')],
+                ['both', t('Both total and subtotal')],
               ],
               renderTrigger: true,
               description: t(
@@ -179,13 +178,13 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
+        [<ControlSubSectionHeader>{t('X axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'x_axis_label',
             config: {
               type: 'TextControl',
-              label: t('X Axis Label'),
+              label: t('X axis label'),
               renderTrigger: true,
               default: '',
             },
@@ -206,7 +205,7 @@ const config: ControlPanelConfig = {
             name: 'x_ticks_layout',
             config: {
               type: 'SelectControl',
-              label: t('X Tick Layout'),
+              label: t('X tick layout'),
               choices: formatSelectOptions([
                 'auto',
                 'flat',
@@ -240,7 +239,7 @@ const config: ControlPanelConfig = {
             name: 'sort_x_axis',
             config: {
               type: 'SelectControl',
-              label: t('Sort X Axis'),
+              label: t('Sort x axis'),
               default: 'none',
               choices: [
                 ['none', t('None')],
@@ -268,13 +267,13 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
+        [<ControlSubSectionHeader>{t('Y axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'y_axis_label',
             config: {
               type: 'TextControl',
-              label: t('Y Axis Label'),
+              label: t('Y axis label'),
               renderTrigger: true,
               default: '',
             },
