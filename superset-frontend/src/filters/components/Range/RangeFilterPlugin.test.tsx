@@ -136,7 +136,7 @@ describe('RangeFilterPlugin', () => {
       extraFormData: {},
       filterState: {
         label: '',
-        validateMessage: 'Min value cannot be greater than max value',
+        validateMessage: 'Numbers must be within 10 and 100',
         validateStatus: 'error',
         value: null,
       },

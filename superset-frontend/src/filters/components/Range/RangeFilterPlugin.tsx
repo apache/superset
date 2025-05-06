@@ -178,26 +178,22 @@ const validateRange = (
     };
   }
 
-  // Check individual value bounds if provided
-  if (inputMin !== null && (inputMin < min || inputMin > max)) {
-    return {
-      isValid: false,
-      errorMessage: rangeError,
-    };
-  }
-
-  if (inputMax !== null && (inputMax < min || inputMax > max)) {
-    return {
-      isValid: false,
-      errorMessage: rangeError,
-    };
-  }
-
   // Check relationship between min and max when both are provided
   if (inputMin !== null && inputMax !== null && inputMin > inputMax) {
     return {
       isValid: false,
       errorMessage: t('Min value cannot be greater than max value'),
+    };
+  }
+
+  //   Check individual value bounds if provided
+  if (
+    (inputMin !== null && inputMin < min) ||
+    (inputMax !== null && inputMax > max)
+  ) {
+    return {
+      isValid: false,
+      errorMessage: rangeError,
     };
   }
 
@@ -373,10 +369,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       // use the dataset min/max as the base value
       let adjustedValue = newValue;
       if (newValue !== null && inputValue[index] === null) {
-        if (index === minIndex) {
-          adjustedValue = min + (newValue === 1 ? 1 : -1);
-        } else if (index === maxIndex) {
-          adjustedValue = max + (newValue === 1 ? 1 : -1);
+        if (index === minIndex && newValue === 1) {
+          adjustedValue = min + 1;
+        } else if (index === minIndex && newValue === -1) {
+          adjustedValue = min - 1;
+        } else if (index === maxIndex && newValue === 1) {
+          adjustedValue = max + 1;
+        } else if (index === maxIndex && newValue === -1) {
+          adjustedValue = max - 1;
         }
       }
 
