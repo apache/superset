@@ -92,7 +92,7 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
     200,
   );
 
-  // Only preserve focus if search is focused for this instance
+  // Preserve focus during server-side filtering to maintain a better user experience
   useEffect(() => {
     if (
       serverPagination &&
@@ -101,7 +101,7 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
     ) {
       inputRef.current?.focus();
     }
-  }, [value, id]);
+  }, [value, serverPagination]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement;

@@ -18,6 +18,7 @@
  */
 
 import { SetDataMaskHook } from '@superset-ui/core';
+import { TableOwnState } from '../types/react-table';
 
 export const updateExternalFormData = (
   setDataMask: SetDataMaskHook = () => {},
@@ -33,7 +34,7 @@ export const updateExternalFormData = (
 
 export const updateTableOwnState = (
   setDataMask: SetDataMaskHook = () => {},
-  modifiedOwnState: object,
+  modifiedOwnState: TableOwnState,
 ) =>
   setDataMask({
     ownState: modifiedOwnState,
