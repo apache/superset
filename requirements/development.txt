@@ -415,7 +415,7 @@ mako==1.3.10
     #   -c requirements/base.txt
     #   alembic
     #   apache-superset
-markdown==3.7
+markdown==3.8
     # via
     #   -c requirements/base.txt
     #   apache-superset
