@@ -41,6 +41,8 @@ jobs:
           node-version-file: './docs/.nvmrc'
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
+      - name: Update openapi docs
+        run: superset update_api_docs
       - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
