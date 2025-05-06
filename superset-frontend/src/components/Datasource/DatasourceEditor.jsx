@@ -1112,20 +1112,20 @@ class DatasourceEditor extends PureComponent {
                     }
                     additionalControl={
                       <div
-                        css={{
-                          position: 'absolute',
-                          right: 0,
-                          top: 0,
-                          zIndex: 2,
-                        }}
+                        css={css`
+                          position: absolute;
+                          right: 0;
+                          top: 0;
+                          z-index: 2;
+                        `}
                       >
                         <Button
-                          css={{
-                            alignSelf: 'flex-end',
-                            height: 24,
-                            paddingLeft: 6,
-                            paddingRight: 6,
-                          }}
+                          css={css`
+                            align-self: flex-end;
+                            height: 24px;
+                            padding-left: 6px;
+                            padding-right: 6px;
+                          `}
                           size="small"
                           buttonStyle="primary"
                           onClick={() => {
