@@ -138,7 +138,7 @@ croniter==6.0.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-cryptography==44.0.2
+cryptography==44.0.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
