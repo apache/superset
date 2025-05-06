@@ -396,7 +396,7 @@ export default styled(BigNumberVis)`
         margin: -0.5em 0 0.4em;
         line-height: 1;
         padding: ${theme.sizeUnit}px;
-        border-radius: ${theme.sizeUnit}px;
+        border-radius: ${theme.borderRadius}px;
       }
     }
 

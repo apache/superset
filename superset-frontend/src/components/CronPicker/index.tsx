@@ -186,7 +186,7 @@ export const CronPicker = styled((props: CronProps) => (
 
     .react-js-cron-custom-select .antd5-select-selection-placeholder {
       flex: auto;
-      border-radius: ${theme.sizeUnit}px;
+      border-radius: ${theme.borderRadius}px;
     }
 
     .react-js-cron-custom-select .antd5-select-selection-overflow-item {
@@ -195,7 +195,7 @@ export const CronPicker = styled((props: CronProps) => (
 
     .react-js-cron-select > div:first-of-type,
     .react-js-cron-custom-select {
-      border-radius: ${theme.sizeUnit}px;
+      border-radius: ${theme.borderRadius}px;
     }
   `}
 `;

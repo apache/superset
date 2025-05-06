@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ReactNode, useMemo, useRef } from 'react';
+import { FC, ReactNode } from 'react';
 import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { FormLabel, Tooltip } from 'src/components';
@@ -64,22 +64,6 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   danger,
 }) => {
   const theme = useTheme();
-  const hasHadNoErrors = useRef(false);
-  const labelColor = useMemo(() => {
-    if (!validationErrors.length) {
-      hasHadNoErrors.current = true;
-    }
-
-    if (hasHadNoErrors.current) {
-      if (validationErrors.length) {
-        return theme.colorErrorText;
-      }
-
-      return 'unset';
-    }
-
-    return theme.colorWarningText;
-  }, [theme.colorErrorText, theme.colorWarningText, validationErrors.length]);
 
   if (!label) {
     return null;
@@ -138,7 +122,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             position: relative;
           `}
         >
-          {leftNode && <span>{leftNode}</span>}
+          {leftNode && <span>{leftNode} </span>}
           <span
             role="button"
             tabIndex={0}
@@ -163,7 +147,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           {danger && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={danger}>
-                <Icons.ExclamationCircleOutlined
+                <Icons.CloseCircleOutlined
                   iconColor={theme.colorErrorText}
                   iconSize="s"
                 />
@@ -177,12 +161,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <Icons.ExclamationCircleOutlined
-                  css={css`
-                    ${iconStyles};
-                    color: ${labelColor};
-                  `}
-                />
+                <Icons.CloseCircleOutlined iconColor={theme.colorErrorText} />
               </Tooltip>{' '}
             </span>
           )}

@@ -60,7 +60,7 @@ const SymbolWrapper = styled.span<PopKPIComparisonSymbolStyleProps>`
     background-color: ${backgroundColor};
     color: ${textColor};
     padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
-    border-radius: ${theme.sizeUnit * 2}px;
+    border-radius: ${theme.borderRadius}px;
     margin-right: ${theme.sizeUnit}px;
   `}
 `;

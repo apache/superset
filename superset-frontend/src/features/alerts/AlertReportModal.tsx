@@ -315,7 +315,7 @@ export const StyledInputContainer = styled.div`
       padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
       border-style: none;
       border: 1px solid ${theme.colorBorder};
-      border-radius: ${theme.sizeUnit}px;
+      border-radius: ${theme.borderRadius}px;
 
       &[name='description'] {
         flex: 1 1 auto;

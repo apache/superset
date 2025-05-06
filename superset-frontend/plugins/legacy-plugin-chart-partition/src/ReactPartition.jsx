@@ -68,7 +68,7 @@ export default styled(Partition)`
       padding: ${theme.sizeUnit}px;
       pointer-events: none;
       background-color: ${theme.colors.grayscale.dark2};
-      border-radius: ${theme.sizeUnit}px;
+      border-radius: ${theme.borderRadius}px;
     }
 
     .partition-tooltip td {

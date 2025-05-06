@@ -65,7 +65,7 @@ export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
           readOnly
           wrapEnabled
           style={{
-            border: `1px solid ${theme.colors.grayscale.light2}`,
+            border: `1px solid ${theme.colorBorder}`,
             background: theme.colorPrimaryBg,
             maxWidth: theme.sizeUnit * 100,
           }}
