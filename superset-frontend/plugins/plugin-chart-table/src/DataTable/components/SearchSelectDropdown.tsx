@@ -42,6 +42,7 @@ function SearchSelectDropdown({
 }: SearchSelectDropdownProps) {
   return (
     <StyledSelect
+      className="search-select"
       value={value || (searchOptions?.[0]?.value ?? '')}
       options={searchOptions}
       onChange={onChange}
