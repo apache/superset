@@ -105,6 +105,7 @@ export default function Field<V>({
           css={(theme: SupersetTheme) => ({
             color: theme.colors.error.base,
             marginTop: -16,
+            fontSize: theme.typography.sizes.s,
           })}
         >
           {errorMessage}
