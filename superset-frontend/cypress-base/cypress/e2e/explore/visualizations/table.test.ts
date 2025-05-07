@@ -325,4 +325,59 @@ describe('Visualization > Table', () => {
     // Verify tooltip content separately
     cy.get('.antd5-tooltip-inner').should('contain', 'Value cannot exceed');
   });
+
+  it('Test sorting with server pagination enabled', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      metrics: ['count'],
+      groupby: ['name'],
+      row_limit: 100000,
+      server_pagination: true, // Enable server pagination
+    });
+
+    // Wait for the initial data load
+    cy.wait('@chartData');
+
+    // Get the first column header (name)
+    cy.get('.chart-container th').contains('name').as('nameHeader');
+
+    // Click to sort ascending
+    cy.get('@nameHeader').click();
+    cy.wait('@chartData');
+
+    // Verify first row starts with 'A'
+    cy.get('.chart-container td:first').invoke('text').should('match', /^[Aa]/);
+
+    // Click again to sort descending
+    cy.get('@nameHeader').click();
+    cy.wait('@chartData');
+
+    // Verify first row starts with 'Z'
+    cy.get('.chart-container td:first').invoke('text').should('match', /^[Zz]/);
+
+    // Test numeric sorting
+    cy.get('.chart-container th').contains('COUNT').as('countHeader');
+
+    // Click to sort ascending by count
+    cy.get('@countHeader').click();
+    cy.wait('@chartData');
+
+    // Get first two count values and verify ascending order
+    cy.get('.chart-container td:nth-child(2)').then($cells => {
+      const first = parseFloat($cells[0].textContent || '0');
+      const second = parseFloat($cells[1].textContent || '0');
+      expect(first).to.be.at.most(second);
+    });
+
+    // Click again to sort descending
+    cy.get('@countHeader').click();
+    cy.wait('@chartData');
+
+    // Get first two count values and verify descending order
+    cy.get('.chart-container td:nth-child(2)').then($cells => {
+      const first = parseFloat($cells[0].textContent || '0');
+      const second = parseFloat($cells[1].textContent || '0');
+      expect(first).to.be.at.least(second);
+    });
+  });
 });
