@@ -252,4 +252,77 @@ describe('Visualization > Table', () => {
     });
     cy.get('td').contains(/\d*%/);
   });
+
+  it('Test row limit with server pagination toggle', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      metrics: ['count'],
+      row_limit: 100,
+    });
+
+    // Enable server pagination
+    cy.get('[data-test="server_pagination-header"] div.pull-left').click();
+
+    // Click row limit control and select high value (200k)
+    cy.get('div[aria-label="Row limit"]').click();
+
+    // Type 200000 and press enter to select the option
+    cy.get('div[aria-label="Row limit"]')
+      .find('.ant-select-selection-search-input:visible')
+      .type('200000{enter}');
+
+    // Verify that there is no error tooltip when server pagination is enabled
+    cy.get('[data-test="error-tooltip"]').should('not.exist');
+
+    // Disable server pagination
+    cy.get('[data-test="server_pagination-header"] div.pull-left').click();
+
+    // Verify error tooltip appears
+    cy.get('[data-test="error-tooltip"]').should('be.visible');
+
+    // Trigger mouseover and verify tooltip text
+    cy.get('[data-test="error-tooltip"]').trigger('mouseover');
+
+    // Verify tooltip content
+    cy.get('.antd5-tooltip-inner').should('be.visible');
+    cy.get('.antd5-tooltip-inner').should(
+      'contain',
+      'Server pagination needs to be enabled for values over',
+    );
+
+    // Hide the tooltip by adding display:none style
+    cy.get('.antd5-tooltip').invoke('attr', 'style', 'display: none');
+
+    // Enable server pagination again
+    cy.get('[data-test="server_pagination-header"] div.pull-left').click();
+
+    cy.get('[data-test="error-tooltip"]').should('not.exist');
+
+    cy.get('div[aria-label="Row limit"]').click();
+
+    // Type 1000000
+    cy.get('div[aria-label="Row limit"]')
+      .find('.ant-select-selection-search-input:visible')
+      .type('1000000');
+
+    // Wait for 1 second
+    cy.wait(1000);
+
+    // Press enter
+    cy.get('div[aria-label="Row limit"]')
+      .find('.ant-select-selection-search-input:visible')
+      .type('{enter}');
+
+    // Wait for error tooltip to appear and verify its content
+    cy.get('[data-test="error-tooltip"]')
+      .should('be.visible')
+      .trigger('mouseover');
+
+    // Wait for tooltip content and verify
+    cy.get('.antd5-tooltip-inner').should('exist');
+    cy.get('.antd5-tooltip-inner').should('be.visible');
+
+    // Verify tooltip content separately
+    cy.get('.antd5-tooltip-inner').should('contain', 'Value cannot exceed');
+  });
 });
