@@ -62,6 +62,8 @@ export type PopKPIProps = PopKPIStylesProps &
     data: TimeseriesDataRecord[];
     metrics: Metric[];
     metricName: string;
+    metricNameFontSize?: number;
+    showMetricName: boolean;
     bigNumber: string;
     prevNumber: string;
     subtitle?: string;

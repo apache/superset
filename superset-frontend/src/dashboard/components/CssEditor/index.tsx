@@ -50,7 +50,7 @@ const StyledWrapper = styled.div`
       }
     }
     .css-editor {
-      border: 1px solid ${theme.colors.grayscale.light1};
+      border: 1px solid ${theme.colorBorder};
     }
   `}
 `;

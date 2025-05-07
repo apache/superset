@@ -78,7 +78,7 @@ const EmptyStateContainer = styled.div`
       color: inherit;
       text-decoration: underline;
       &:hover {
-        color: ${theme.colors.grayscale.base};
+        color: ${theme.colorText};
       }
     }
   `}

@@ -27,7 +27,7 @@ import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 const StyledConfigEditor = styled(ConfigEditor)`
   &.ace_editor {
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border: 1px solid ${({ theme }) => theme.colorBorder};
   }
 `;
 

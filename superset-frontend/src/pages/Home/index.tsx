@@ -104,7 +104,7 @@ const WelcomeContainer = styled.div`
   }
 
   .antd5-card.ant-card-bordered {
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border: 1px solid ${({ theme }) => theme.colorBorder};
   }
 
   .loading-cards {
