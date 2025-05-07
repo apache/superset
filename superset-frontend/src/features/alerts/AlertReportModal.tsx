@@ -1600,7 +1600,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     return (
       <Select
-        ariaLabel={t('Value')}
+        ariaLabel={t('Select Value')}
         placeholder={t('Select Value')}
         disabled={!filter?.optionFilterValues}
         value={filter?.filterValues}
