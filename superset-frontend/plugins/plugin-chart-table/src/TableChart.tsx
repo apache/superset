@@ -202,7 +202,6 @@ function SelectPageSize({
 
   return (
     <>
-      <Typography.Text>{t('Select page size')}</Typography.Text>
       {t('Show')}{' '}
       <Select<number>
         id="pageSizeSelect"
