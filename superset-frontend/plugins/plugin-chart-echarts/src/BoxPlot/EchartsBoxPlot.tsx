@@ -21,9 +21,23 @@ import { allEventHandlers } from '../utils/eventHandlers';
 import { BoxPlotChartTransformedProps } from './types';
 
 export default function EchartsBoxPlot(props: BoxPlotChartTransformedProps) {
-  const { height, width, echartOptions, selectedValues, refs } = props;
+  const { height, width, echartOptions, selectedValues, refs, formData } =
+    props;
 
   const eventHandlers = allEventHandlers(props);
+  if (formData.showRangeFilter) {
+    echartOptions.dataZoom = [
+      {
+        show: true,
+        type: 'slider',
+        left: '0rem', // Adjust the left position as needed
+        yAxisIndex: [0],
+        width: '20rem', // Adjust the width as needed
+        filterMode: 'filter',
+        labelFormatter: () => '', // Hide labels on the data zoom slider
+      },
+    ];
+  }
 
   return (
     <Echart
