@@ -109,7 +109,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
     force means whether to force refresh the cache and is treated as False by default,
     except force = True is passed to the decorated function.
 
-    timeout of cache is set to 600 seconds by default,
+    timeout of cache is set to CACHE_DEFAULT_TIMEOUT seconds by default,
     except cache_timeout = {timeout in seconds} is passed to the decorated function.
 
     :param key: a callable function that takes function arguments and returns
@@ -121,7 +121,9 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
         def wrapped_f(*args: Any, **kwargs: Any) -> Any:
             should_cache = kwargs.pop("cache", True)
             force = kwargs.pop("force", False)
-            cache_timeout = kwargs.pop("cache_timeout", 0)
+            cache_timeout = kwargs.pop(
+                "cache_timeout", app.config["CACHE_DEFAULT_TIMEOUT"]
+            )
 
             if not should_cache:
                 return f(*args, **kwargs)
