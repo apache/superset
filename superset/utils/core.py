@@ -1753,19 +1753,17 @@ def apply_max_row_limit(
     >>> apply_max_row_limit(600000, server_pagination=True)  # Server pagination
     500000
     >>> apply_max_row_limit(600000, server_pagination=False)  # No pagination
-    100000
+    50000
     >>> apply_max_row_limit(5000, server_pagination=True)  # Respects lower limits
     5000
     >>> apply_max_row_limit(0, server_pagination=False)  # Zero returns max limit
-    100000
+    50000
     """
-    # Use different max limits based on server pagination
     max_limit = (
         current_app.config["TABLE_VIZ_MAX_ROW_SERVER"]
         if server_pagination
         else current_app.config["SQL_MAX_ROW"]
     )
-
     if limit != 0:
         return min(max_limit, limit)
     return max_limit
