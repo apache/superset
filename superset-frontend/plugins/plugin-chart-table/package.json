@@ -33,7 +33,8 @@
     "memoize-one": "^5.2.1",
     "react-table": "^7.8.0",
     "regenerator-runtime": "^0.14.1",
-    "xss": "^1.0.15"
+    "xss": "^1.0.15",
+    "antd-v5": "npm:antd@^5.24.6"
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.2.6",

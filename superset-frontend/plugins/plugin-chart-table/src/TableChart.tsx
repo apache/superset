@@ -51,6 +51,7 @@ import {
   t,
   tn,
   useTheme,
+  SupersetTheme,
 } from '@superset-ui/core';
 import { Dropdown, Menu, Tooltip } from '@superset-ui/chart-controls';
 import {
@@ -62,6 +63,7 @@ import {
   TableOutlined,
 } from '@ant-design/icons';
 import { isEmpty } from 'lodash';
+import { Input, Space, Select, Typography } from 'antd-v5';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
@@ -178,16 +180,16 @@ function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
 
 function SearchInput({ count, value, onChange }: SearchInputProps) {
   return (
-    <span className="dt-global-filter">
-      {t('Search')}{' '}
-      <input
+    <Space direction="horizontal" size={4}>
+      {t('Search')}
+      <Input
+        size="small"
         aria-label={t('Search %s records', count)}
-        className="form-control input-sm"
         placeholder={tn('search.num_records', count)}
         value={value}
         onChange={onChange}
       />
-    </span>
+    </Space>
   );
 }
 
@@ -196,23 +198,20 @@ function SelectPageSize({
   current,
   onChange,
 }: SelectPageSizeRendererProps) {
+  const { Option } = Select;
+
   return (
-    <span
-      className="dt-select-page-size form-inline"
-      role="group"
-      aria-label={t('Select page size')}
-    >
-      <label htmlFor="pageSizeSelect" className="sr-only">
-        {t('Select page size')}
-      </label>
+    <>
+      <Typography.Text>{t('Select page size')}</Typography.Text>
       {t('Show')}{' '}
-      <select
+      <Select<number>
         id="pageSizeSelect"
-        className="form-control input-sm"
         value={current}
-        onChange={e => {
-          onChange(Number((e.target as HTMLSelectElement).value));
-        }}
+        onChange={value => onChange(value)}
+        size="small"
+        css={(theme: SupersetTheme) => css`
+          width: ${theme.sizeUnit * 18}px;
+        `}
         aria-label={t('Show entries per page')}
       >
         {options.map(option => {
@@ -220,14 +219,14 @@ function SelectPageSize({
             ? option
             : [option, option];
           return (
-            <option key={size} value={size}>
+            <Option key={size} value={Number(size)}>
               {text}
-            </option>
+            </Option>
           );
         })}
-      </select>{' '}
+      </Select>{' '}
       {t('entries per page')}
-    </span>
+    </>
   );
 }
 

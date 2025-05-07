@@ -193,7 +193,9 @@ describe('Visualization > Table', () => {
     });
 
     // should display in raw records mode
-    cy.get('div[data-test="query_mode"] .btn.active').contains('Raw records');
+    cy.get('div[data-test="query_mode"] .antd5-radio-button-checked').contains(
+      'Raw records',
+    );
     cy.get('div[data-test="all_columns"]').should('be.visible');
     cy.get('div[data-test="groupby"]').should('not.exist');
 
@@ -201,8 +203,12 @@ describe('Visualization > Table', () => {
     cy.get('[data-test="row-count-label"]').contains('100 rows');
 
     // should allow switch back to aggregate mode
-    cy.get('div[data-test="query_mode"] .btn').contains('Aggregate').click();
-    cy.get('div[data-test="query_mode"] .btn.active').contains('Aggregate');
+    cy.get('div[data-test="query_mode"] .antd5-radio-button')
+      .contains('Aggregate')
+      .click();
+    cy.get('div[data-test="query_mode"] .antd5-radio-button-checked').contains(
+      'Aggregate',
+    );
     cy.get('div[data-test="all_columns"]').should('not.exist');
     cy.get('div[data-test="groupby"]').should('be.visible');
   });

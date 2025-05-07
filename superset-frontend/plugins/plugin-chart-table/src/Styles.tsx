@@ -101,8 +101,21 @@ export default styled.div`
       /* use padding instead of margin so clientHeight can capture it */
       padding-top: 0.5em;
     }
-    .dt-pagination .pagination {
-      margin: 0;
+
+    .dt-pagination .pagination > li > a,
+    .dt-pagination .pagination > li > span {
+      background-color: ${theme.colorBgBase};
+      color: ${theme.colorText};
+    }
+
+    .dt-pagination .pagination > li.active > a,
+    .dt-pagination .pagination > li.active > span,
+    .dt-pagination .pagination > li.active > a:focus,
+    .dt-pagination .pagination > li.active > a:hover,
+    .dt-pagination .pagination > li.active > span:focus,
+    .dt-pagination .pagination > li.active > span:hover {
+      background-color: ${theme.colorPrimary};
+      color: ${theme.colorBgContainer};
     }
 
     .pagination > li > span.dt-pagination-ellipsis:focus,
