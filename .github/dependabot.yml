@@ -9,9 +9,13 @@ updates:
 
   - package-ecosystem: "npm"
     ignore:
-      # not until React >= 18.0.0
+      # TODO: remove once project's React >= 18.0.0
       - dependency-name: "storybook"
       - dependency-name: "@storybook*"
+      # has to coordinate with the version in pre-commit as well
+      # and prettify whole codebase to avoid breaking CI
+      # TODO: agentic AI can do this?
+      - dependency-name: "prettier"
     directory: "/superset-frontend/"
     schedule:
       interval: "monthly"
@@ -329,7 +333,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-core/"
     ignore:
-      # not until React >= 18.0.0
+      # TODO: remove once project's React >= 18.0.0
       - dependency-name: "react-markdown"
       - dependency-name: "remark-gfm"
     schedule:
@@ -342,6 +346,10 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-demo/"
+    ignore:
+      # TODO: remove once project's React >= 18.0.0
+      - dependency-name: "storybook"
+      - dependency-name: "@storybook*"
     schedule:
       interval: "monthly"
     labels:
