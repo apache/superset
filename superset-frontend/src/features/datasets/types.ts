@@ -41,7 +41,7 @@ export type ColumnObject = {
 
 type MetricObject = {
   id: number;
-  uuid: number;
+  uuid: string;
   expression?: string;
   description?: string;
   metric_name: string;
@@ -78,7 +78,6 @@ export type DatasetObject = {
   always_filter_main_dttm: boolean;
   type: DatasourceType;
   column_formats: Record<string, string>;
-  currency_formats: Record<string, Currency>;
   datasource_name: string | null;
   verbose_map: Record<string, string>;
 };

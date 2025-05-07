@@ -51,9 +51,11 @@ describe('controlUtils', () => {
       id: 1,
       type: DatasourceType.Table,
       columns: [{ column_name: 'a' }],
-      metrics: [{ metric_name: 'first' }, { metric_name: 'second' }],
+      metrics: [
+        { metric_name: 'first', uuid: '1' },
+        { metric_name: 'second', uuid: '2' },
+      ],
       column_formats: {},
-      currency_formats: {},
       verbose_map: {},
       main_dttm_col: '',
       datasource_name: '1__table',

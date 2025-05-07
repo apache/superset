@@ -170,7 +170,7 @@ describe('Native filters', () => {
         testItems.datasetForNativeFilter,
       );
       saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
-      cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
+      cy.intercept(`**/api/v1/chart/data?form_data=**`).as('chart');
       cy.get(nativeFilters.modal.container).should('not.exist');
       // assert that native filter is created
       validateFilterNameOnDashboard(testItems.filterType.timeColumn);

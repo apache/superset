@@ -22,28 +22,26 @@ Create Date: 2024-05-02 13:40:23.126659
 
 """
 
+from alembic import op
+
+from superset.migrations.shared.utils import create_index, drop_index
+
 # revision identifiers, used by Alembic.
 revision = "3dfd0e78650e"
 down_revision = "5f57af97bc3f"
-
-from alembic import op  # noqa: E402
-
-from superset.migrations.shared.utils import table_has_index  # noqa: E402
 
 table = "query"
 index = "ix_sql_editor_id"
 
 
 def upgrade():
-    if not table_has_index(table, index):
-        op.create_index(
-            op.f(index),
-            table,
-            ["sql_editor_id"],
-            unique=False,
-        )
+    create_index(
+        table,
+        op.f(index),
+        ["sql_editor_id"],
+        unique=False,
+    )
 
 
 def downgrade():
-    if table_has_index(table, index):
-        op.drop_index(op.f(index), table_name=table)
+    drop_index(index_name=op.f(index), table_name=table)
