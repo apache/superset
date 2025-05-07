@@ -95,8 +95,7 @@ const StyledSpace = styled(Space)<{
 
   &.antd5-space {
     .antd5-space-item {
-      width: ${({ $inverseSelection }) =>
-        !$inverseSelection ? '100%' : 'auto'};
+      width: ${({ inverseSelection }) => (!inverseSelection ? '100%' : 'auto')};
     }
   }
 `;

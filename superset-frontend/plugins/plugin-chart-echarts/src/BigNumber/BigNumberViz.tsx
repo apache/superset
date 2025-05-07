@@ -396,7 +396,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps, BigNumberVisState> {
   }
 
   getTotalElementsHeight() {
-    const marginPerElement = 8; // theme.gridUnit = 4, so margin-bottom = 8px
+    const marginPerElement = 8; // theme.sizeUnit = 4, so margin-bottom = 8px
 
     const refs = [
       this.metricNameRef,
@@ -546,12 +546,12 @@ export default styled(BigNumberVis)`
 
     .kicker {
       line-height: 1em;
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
 
     .metric-name {
       line-height: 1em;
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
 
     .header-line {
@@ -567,12 +567,12 @@ export default styled(BigNumberVis)`
 
     .subheader-line {
       line-height: 1em;
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
 
     .subtitle-line {
       line-height: 1em;
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
 
     &.is-fallback-value {
