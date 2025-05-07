@@ -284,8 +284,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
             ...(queryObject.filters || []),
             {
               col: ownState?.searchColumn,
-              op: 'TEXT_SEARCH',
-              val: ownState.searchText,
+              op: 'ILIKE',
+              val: `${ownState.searchText}%`,
             },
           ],
         };

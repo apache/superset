@@ -229,7 +229,6 @@ class FilterOperator(StrEnum):
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
     TEMPORAL_RANGE = "TEMPORAL_RANGE"
-    TEXT_SEARCH = "TEXT_SEARCH"
 
 
 class FilterStringOperators(StrEnum):
