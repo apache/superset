@@ -1742,47 +1742,30 @@ def parse_boolean_string(bool_str: str | None) -> bool:
 
 def apply_max_row_limit(
     limit: int,
-    max_limit: int | None = None,
+    server_pagination: bool = False,
 ) -> int:
     """
-    Override row limit if max global limit is defined
+    Override row limit based on server pagination setting
 
     :param limit: requested row limit
-    :param max_limit: Maximum allowed row limit
+    :param server_pagination: whether server-side pagination is enabled
     :return: Capped row limit
 
-    >>> apply_max_row_limit(100000, 10)
-    10
-    >>> apply_max_row_limit(10, 100000)
-    10
-    >>> apply_max_row_limit(0, 10000)
-    10000
+    >>> apply_max_row_limit(600000, server_pagination=True)  # Server pagination
+    500000
+    >>> apply_max_row_limit(600000, server_pagination=False)  # No pagination
+    100000
+    >>> apply_max_row_limit(5000, server_pagination=True)  # Respects lower limits
+    5000
+    >>> apply_max_row_limit(0, server_pagination=False)  # Zero returns max limit
+    100000
     """
-    if max_limit is None:
-        max_limit = current_app.config["SQL_MAX_ROW"]
-    if limit != 0:
-        return min(max_limit, limit)
-    return max_limit
-
-
-def apply_max_row_limit_table(
-    limit: int,
-    form_data: dict[str, Any] | None = None,
-) -> int:
-    """
-    Override row limit for table viz type based on server pagination setting
-
-    :param limit: requested row limit
-    :param form_data: Form data containing server_pagination setting
-    :return: Capped row limit
-    """
-    max_limit = None
-
     # Use different max limits based on server pagination
-    if form_data and form_data.get("server_pagination"):
-        max_limit = current_app.config["TABLE_VIZ_MAX_ROW_SERVER"]
-    else:
-        max_limit = current_app.config["SQL_MAX_ROW"]
+    max_limit = (
+        current_app.config["TABLE_VIZ_MAX_ROW_SERVER"]
+        if server_pagination
+        else current_app.config["SQL_MAX_ROW"]
+    )
 
     if limit != 0:
         return min(max_limit, limit)

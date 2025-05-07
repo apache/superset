@@ -25,7 +25,6 @@ from superset.constants import NO_TIME_RANGE
 from superset.superset_typing import Column
 from superset.utils.core import (
     apply_max_row_limit,
-    apply_max_row_limit_table,
     DatasourceDict,
     DatasourceType,
     FilterOperator,
@@ -58,7 +57,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         row_limit: int | None = None,
         time_range: str | None = None,
         time_shift: str | None = None,
-        form_data: dict[str, Any] | None = None,
+        server_pagination: bool = False,
         **kwargs: Any,
     ) -> QueryObject:
         datasource_model_instance = None
@@ -67,11 +66,10 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         processed_extras = self._process_extras(extras)
         result_type = kwargs.setdefault("result_type", parent_result_type)
 
-        # Process row limit based on viz_type
-        if form_data and form_data.get("viz_type") == "table":
-            row_limit = self._process_row_limit_table(row_limit, result_type, form_data)
-        else:
-            row_limit = self._process_row_limit(row_limit, result_type)
+        # Process row limit taking server pagination into account
+        row_limit = self._process_row_limit(
+            row_limit, result_type, server_pagination=server_pagination
+        )
 
         processed_time_range = self._process_time_range(
             time_range, kwargs.get("filters"), kwargs.get("columns")
@@ -104,29 +102,26 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         return extras
 
     def _process_row_limit(
-        self, row_limit: int | None, result_type: ChartDataResultType
-    ) -> int:
-        default_row_limit = (
-            self._config["SAMPLES_ROW_LIMIT"]
-            if result_type == ChartDataResultType.SAMPLES
-            else self._config["ROW_LIMIT"]
-        )
-        return apply_max_row_limit(row_limit or default_row_limit)
-
-    def _process_row_limit_table(
         self,
         row_limit: int | None,
         result_type: ChartDataResultType,
-        form_data: dict[str, Any] | None = None,
+        server_pagination: bool = False,
     ) -> int:
-        """Process row limit for table visualization."""
+        """Process row limit taking into account server pagination.
+
+        :param row_limit: The requested row limit
+        :param result_type: The type of result being processed
+        :param server_pagination: Whether server-side pagination is enabled
+        :return: The processed row limit
+        """
         default_row_limit = (
             self._config["SAMPLES_ROW_LIMIT"]
             if result_type == ChartDataResultType.SAMPLES
             else self._config["ROW_LIMIT"]
         )
-        return apply_max_row_limit_table(
-            row_limit or default_row_limit, form_data=form_data
+        return apply_max_row_limit(
+            row_limit or default_row_limit,
+            server_pagination=server_pagination,
         )
 
     @staticmethod
