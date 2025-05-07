@@ -380,4 +380,87 @@ describe('Visualization > Table', () => {
       expect(first).to.be.at.least(second);
     });
   });
+
+  it('Test search with server pagination enabled', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      metrics: ['count'],
+      groupby: ['name', 'state'],
+      row_limit: 100000,
+      server_pagination: true,
+      include_search: true,
+    });
+
+    cy.wait('@chartData');
+
+    // Basic search test
+    cy.get('span.dt-global-filter input.form-control.input-sm').should(
+      'be.visible',
+    );
+
+    cy.get('span.dt-global-filter input.form-control.input-sm').type('John');
+
+    cy.wait('@chartData');
+
+    cy.get('.chart-container tbody tr').each($row => {
+      cy.wrap($row).contains(/John/i);
+    });
+
+    // Clear and test case-insensitive search
+    cy.get('span.dt-global-filter input.form-control.input-sm').clear();
+
+    cy.wait('@chartData');
+
+    cy.get('span.dt-global-filter input.form-control.input-sm').type('mary');
+
+    cy.wait('@chartData');
+
+    cy.get('.chart-container tbody tr').each($row => {
+      cy.wrap($row).contains(/Mary/i);
+    });
+
+    // Test special characters
+    cy.get('span.dt-global-filter input.form-control.input-sm').clear();
+
+    cy.get('span.dt-global-filter input.form-control.input-sm').type('Nicole');
+
+    cy.wait('@chartData');
+
+    cy.get('.chart-container tbody tr').each($row => {
+      cy.wrap($row).contains(/Nicole/i);
+    });
+
+    // Test no results
+    cy.get('span.dt-global-filter input.form-control.input-sm').clear();
+
+    cy.get('span.dt-global-filter input.form-control.input-sm').type('XYZ123');
+
+    cy.wait('@chartData');
+
+    cy.get('.chart-container').contains('No records found');
+
+    // Test column-specific search
+    cy.get('.search-select').should('be.visible');
+
+    cy.get('.search-select').click();
+
+    cy.get('.ant-select-dropdown').should('be.visible');
+
+    cy.get('.ant-select-item-option').contains('state').should('be.visible');
+
+    cy.get('.ant-select-item-option').contains('state').click();
+
+    cy.get('span.dt-global-filter input.form-control.input-sm').clear();
+
+    cy.get('span.dt-global-filter input.form-control.input-sm').type('CA');
+
+    cy.wait('@chartData');
+    cy.wait(1000);
+
+    cy.get('td[aria-labelledby="header-state"]').should('be.visible');
+
+    cy.get('td[aria-labelledby="header-state"]')
+      .first()
+      .should('contain', 'CA');
+  });
 });
