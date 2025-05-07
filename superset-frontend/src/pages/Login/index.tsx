@@ -104,15 +104,11 @@ export default function Login() {
             >
               {oauthProviders.map(provider => (
                 <Form.Item<LoginType>>
-                  <Button
-                    block
-                    type="primary"
-                    htmlType="submit"
-                    loading={loading}
-                    icon={providerIcons[provider.icon]}
+                  <Typography.Link
+                    href={`/login/${provider.name.toLowerCase()}`}
                   >
                     {t('Sign in with')} {provider.name}
-                  </Button>
+                  </Typography.Link>
                 </Form.Item>
               ))}
             </Form>
