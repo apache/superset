@@ -16,32 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  COLUMN_TYPE,
-  CHART_TYPE,
-  MARKDOWN_TYPE,
-  DYNAMIC_TYPE,
-  IKI_DEEPCAST_TYPE,
-  IKI_RUN_PIPELINE_TYPE,
-  IKI_FORECAST_MODULE_TYPE,
-  IKI_DATASET_DOWNLOAD_TYPE,
-  IKI_DYNAMIC_MARKDOWN_TYPE,
-  IKI_DYNAMIC_MARKDOWN_LIST_TYPE,
-} from './componentTypes';
+import React from 'react';
+import { t } from '@superset-ui/core';
+import { IKI_DYNAMIC_MARKDOWN_LIST_TYPE } from '../../../../util/componentTypes';
+import { NEW_DYNAMIC_COMPONENT } from '../../../../util/constants';
+import DraggableNewComponent from '../DraggableNewComponent';
 
-export default function componentIsResizable(entity: { type: string }) {
+export default function DraggableNewDivider() {
   return (
-    [
-      COLUMN_TYPE,
-      CHART_TYPE,
-      MARKDOWN_TYPE,
-      DYNAMIC_TYPE,
-      IKI_RUN_PIPELINE_TYPE,
-      IKI_DEEPCAST_TYPE,
-      IKI_FORECAST_MODULE_TYPE,
-      IKI_DATASET_DOWNLOAD_TYPE,
-      IKI_DYNAMIC_MARKDOWN_TYPE,
-      IKI_DYNAMIC_MARKDOWN_LIST_TYPE,
-    ].indexOf(entity.type) > -1
+    <DraggableNewComponent
+      id={NEW_DYNAMIC_COMPONENT}
+      type={IKI_DYNAMIC_MARKDOWN_LIST_TYPE}
+      label={t('Custom Component')}
+      description="yo"
+      className="fa fa-mouse-pointer"
+    />
   );
 }

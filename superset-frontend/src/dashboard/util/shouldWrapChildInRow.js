@@ -27,6 +27,7 @@ import {
   IKI_FORECAST_MODULE_TYPE,
   IKI_DATASET_DOWNLOAD_TYPE,
   IKI_DYNAMIC_MARKDOWN_TYPE,
+  IKI_DYNAMIC_MARKDOWN_LIST_TYPE,
 } from './componentTypes';
 
 const typeToWrapChildLookup = {
@@ -39,6 +40,7 @@ const typeToWrapChildLookup = {
     [IKI_FORECAST_MODULE_TYPE]: true,
     [IKI_DATASET_DOWNLOAD_TYPE]: true,
     [IKI_DYNAMIC_MARKDOWN_TYPE]: true,
+    [IKI_DYNAMIC_MARKDOWN_LIST_TYPE]: true,
   },
 
   [TAB_TYPE]: {
@@ -50,6 +52,7 @@ const typeToWrapChildLookup = {
     [IKI_FORECAST_MODULE_TYPE]: true,
     [IKI_DATASET_DOWNLOAD_TYPE]: true,
     [IKI_DYNAMIC_MARKDOWN_TYPE]: true,
+    [IKI_DYNAMIC_MARKDOWN_LIST_TYPE]: true,
   },
 };
 

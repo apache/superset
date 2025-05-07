@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import React from 'react';
+import React, { useEffect } from 'react';
 import Tabs from 'src/components/Tabs';
 import { StickyContainer, Sticky } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
@@ -39,6 +39,7 @@ import NewIkiRunPipeline from '../gridComponents/new/components/NewIkiRunPipelin
 import NewDeepCast from '../gridComponents/new/components/NewDeepCast';
 import NewIkiEitlRow from '../gridComponents/new/components/NewIkiEitlRow';
 import NewIkiEitlColumn from '../gridComponents/new/components/NewIkiEitlColumn';
+import NewDynamicMarkdownList from '../gridComponents/new/components/NewDynamicMarkdownList';
 import NewDyanmicMarkdown from '../gridComponents/new/components/NewDynamicMarkdown';
 // import NewIkiExplainability from '../gridComponents/new/NewIkiExplainability';
 import NewIkiModelMetrics from '../gridComponents/new/NewIkiModelMetrics';
@@ -46,6 +47,7 @@ import NewIkiDatasetDownload from '../gridComponents/new/components/NewIkiDatase
 import NewExternalDatasets from '../gridComponents/new/components/NewExternalDatasets';
 import NewForecast from '../gridComponents/new/components/NewForecast';
 import NewForecastModule from '../gridComponents/new/components/NewForecastModule';
+import { useSelector } from 'react-redux';
 
 export interface BCPProps {
   isStandalone: boolean;
@@ -84,88 +86,126 @@ const DashboardBuilderSidepane = styled.div<{
 const BuilderComponentPane: React.FC<BCPProps> = ({
   isStandalone,
   topOffset = 0,
-}) => (
-  <DashboardBuilderSidepane
-    topOffset={topOffset}
-    className="dashboard-builder-sidepane"
-  >
-    <ParentSize>
-      {({ height }) => (
-        <StickyContainer>
-          <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
-            {({ style, isSticky }: { style: any; isSticky: boolean }) => {
-              const { pageYOffset } = window;
-              const hasHeader =
-                pageYOffset < SUPERSET_HEADER_HEIGHT && !isStandalone;
-              const withHeaderTopOffset =
-                topOffset +
-                (SUPERSET_HEADER_HEIGHT - pageYOffset - SIDEPANE_ADJUST_OFFSET);
+}) => {
+  const ikigaiOrigin = useSelector(
+    (state: any) => state.dashboardState?.ikigaiOrigin,
+  );
 
-              return (
-                <div
-                  className="viewport"
-                  style={{
-                    ...style,
-                    top: hasHeader ? withHeaderTopOffset : topOffset,
-                  }}
-                >
-                  <BuilderComponentPaneTabs
-                    id="tabs"
-                    className="tabs-components"
-                    data-test="dashboard-builder-component-pane-tabs-navigation"
+  useEffect(() => {
+    const message = {
+      info: 'superset-to-platform/custom-markdowns',
+      payload: 'request-custom-markdowns',
+    };
+
+    window.parent.postMessage(message, ikigaiOrigin);
+  }, [ikigaiOrigin]);
+
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== ikigaiOrigin) return;
+
+      const message = event.data;
+
+      switch (message.info) {
+        case 'platform-to-superset/custom-markdowns':
+          console.log('Received message:', message.payload);
+          break;
+
+        default:
+          break;
+      }
+    }
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [ikigaiOrigin]);
+
+  return (
+    <DashboardBuilderSidepane
+      topOffset={topOffset}
+      className="dashboard-builder-sidepane"
+    >
+      <ParentSize>
+        {({ height }) => (
+          <StickyContainer>
+            <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
+              {({ style, isSticky }: { style: any; isSticky: boolean }) => {
+                const { pageYOffset } = window;
+                const hasHeader =
+                  pageYOffset < SUPERSET_HEADER_HEIGHT && !isStandalone;
+                const withHeaderTopOffset =
+                  topOffset +
+                  (SUPERSET_HEADER_HEIGHT -
+                    pageYOffset -
+                    SIDEPANE_ADJUST_OFFSET);
+
+                return (
+                  <div
+                    className="viewport"
+                    style={{
+                      ...style,
+                      top: hasHeader ? withHeaderTopOffset : topOffset,
+                    }}
                   >
-                    <Tabs.TabPane key={1} tab={t('Layout')}>
-                      <NewTabs />
-                      <NewRow />
-                      <NewColumn />
-                      <NewHeader />
-                      <NewMarkdown />
-                      <NewDivider />
-                    </Tabs.TabPane>
-                    <Tabs.TabPane key={2} tab={t('Components')}>
-                      <NewDyanmicMarkdown />
-                      <NewIkiTable />
-                      <NewIkiProcessBuilder />
-                      <NewIkiRunPipeline />
-                      <NewDeepCast />
-                      <NewIkiEitlRow />
-                      <NewIkiEitlColumn />
-                      <NewForecastModule />
-                      <NewIkiDatasetDownload />
-                      <NewIkiModelMetrics />
-                      <NewExternalDatasets />
-                      <NewForecast />
-
-                      {/* <NewIkiExplainability /> */}
-                      {dashboardComponents
-                        .getAll()
-                        .map(({ key: componentKey, metadata }) => (
-                          <NewDynamicComponent
-                            metadata={metadata}
-                            componentKey={componentKey}
-                          />
-                        ))}
-                    </Tabs.TabPane>
-                    <Tabs.TabPane
-                      key={3}
-                      tab={t('Charts')}
-                      className="tab-charts"
+                    <BuilderComponentPaneTabs
+                      id="tabs"
+                      className="tabs-components"
+                      data-test="dashboard-builder-component-pane-tabs-navigation"
                     >
-                      <SliceAdder
-                        height={
-                          height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)
-                        }
-                      />
-                    </Tabs.TabPane>
-                  </BuilderComponentPaneTabs>
-                </div>
-              );
-            }}
-          </Sticky>
-        </StickyContainer>
-      )}
-    </ParentSize>
-  </DashboardBuilderSidepane>
-);
+                      <Tabs.TabPane key={1} tab={t('Layout')}>
+                        <NewTabs />
+                        <NewRow />
+                        <NewColumn />
+                        <NewHeader />
+                        <NewMarkdown />
+                        <NewDivider />
+                      </Tabs.TabPane>
+                      <Tabs.TabPane key={2} tab={t('Components')}>
+                        <NewDynamicMarkdownList />
+                        <NewDyanmicMarkdown />
+                        <NewIkiTable />
+                        <NewIkiProcessBuilder />
+                        <NewIkiRunPipeline />
+                        <NewDeepCast />
+                        <NewIkiEitlRow />
+                        <NewIkiEitlColumn />
+                        <NewForecastModule />
+                        <NewIkiDatasetDownload />
+                        <NewIkiModelMetrics />
+                        <NewExternalDatasets />
+                        <NewForecast />
+
+                        {/* <NewIkiExplainability /> */}
+                        {dashboardComponents
+                          .getAll()
+                          .map(({ key: componentKey, metadata }) => (
+                            <NewDynamicComponent
+                              metadata={metadata}
+                              componentKey={componentKey}
+                            />
+                          ))}
+                      </Tabs.TabPane>
+                      <Tabs.TabPane
+                        key={3}
+                        tab={t('Charts')}
+                        className="tab-charts"
+                      >
+                        <SliceAdder
+                          height={
+                            height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)
+                          }
+                        />
+                      </Tabs.TabPane>
+                    </BuilderComponentPaneTabs>
+                  </div>
+                );
+              }}
+            </Sticky>
+          </StickyContainer>
+        )}
+      </ParentSize>
+    </DashboardBuilderSidepane>
+  );
+};
 
 export default BuilderComponentPane;
