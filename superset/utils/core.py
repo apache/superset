@@ -1773,7 +1773,6 @@ def apply_max_row_limit_table(
     Override row limit for table viz type based on server pagination setting
 
     :param limit: requested row limit
-    :param max_limit: Maximum allowed row limit for table viz
     :param form_data: Form data containing server_pagination setting
     :return: Capped row limit
     """
