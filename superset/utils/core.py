@@ -1783,7 +1783,7 @@ def apply_max_row_limit_table(
     if form_data and form_data.get("server_pagination"):
         max_limit = current_app.config["TABLE_VIZ_MAX_ROW_SERVER"]
     else:
-        max_limit = current_app.config["TABLE_VIZ_MAX_ROW_CLIENT"]
+        max_limit = current_app.config["SQL_MAX_ROW"]
 
     if limit != 0:
         return min(max_limit, limit)

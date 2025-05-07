@@ -383,7 +383,7 @@ const config: ControlPanelConfig = {
                 maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
                 server_pagination: state?.form_data?.server_pagination,
                 maxValueWithoutServerPagination:
-                  state?.common?.conf?.TABLE_VIZ_MAX_ROW_CLIENT,
+                  state?.common?.conf?.SQL_MAX_ROW,
               }),
               validators: [
                 legacyValidateInteger,
