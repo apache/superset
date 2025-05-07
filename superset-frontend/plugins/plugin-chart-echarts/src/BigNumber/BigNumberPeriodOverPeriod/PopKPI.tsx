@@ -38,11 +38,11 @@ import { useOverflowDetection } from './useOverflowDetection';
 
 const MetricNameText = styled.div<{ metricNameFontSize?: number }>`
   ${({ theme, metricNameFontSize }) => `
-    font-family: ${theme.typography.families.sansSerif};
-    font-weight: ${theme.typography.weights.normal};
-    font-size: ${metricNameFontSize || theme.typography.sizes.s * 2}px;
+    font-family: ${theme.fontFamily};
+    font-weight: ${theme.fontWeightNormal};
+    font-size: ${metricNameFontSize || theme.fontSizeSM * 2}px;
     text-align: center;
-    margin-bottom: ${theme.gridUnit * 3}px;
+    margin-bottom: ${theme.sizeUnit * 3}px;
   `}
 `;
 
