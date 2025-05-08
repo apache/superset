@@ -292,7 +292,7 @@ const ScopeSelector = styled.div`
         right: ${theme.sizeUnit * 4}px;
         top: ${theme.sizeUnit * 4}px;
         border-radius: ${theme.borderRadius}px;
-        border: 1px solid ${theme.colors.grayscale.light2};
+        border: 1px solid ${theme.colorBorder};
         padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
         font-size: ${theme.fontSize}px;
         outline: none;

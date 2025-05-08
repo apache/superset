@@ -42,7 +42,7 @@ const StyledTitle = styled.h2`
 const StyledEditor = styled.div`
   ${({ theme }) => `
      table {
-       border: 1px ${theme.colors.grayscale.light2} solid;
+       border: 1px ${theme.colorBorder} solid;
      }
      pre {
        font-size: 11px;

@@ -192,7 +192,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
       return (
         <InfoTooltipWithTrigger
           label="validation-errors"
-          bsStyle="danger"
+          type="error"
           tooltip={annotationError[anno.name]}
         />
       );
@@ -238,7 +238,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 
     return (
       <div>
-        <List bordered css={theme => ({ borderRadius: theme.sizeUnit })}>
+        <List bordered css={theme => ({ borderRadius: theme.borderRadius })}>
           {annotations}
           <ControlPopover
             trigger="click"

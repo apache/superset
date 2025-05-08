@@ -63,7 +63,7 @@ export default function PopoverSection({
               margin-right: ${theme.sizeUnit}px;
             `}
           >
-            <Icons.InfoCircleFilled
+            <Icons.InfoCircleOutlined
               role="img"
               iconSize="s"
               iconColor={theme.colors.grayscale.light1}

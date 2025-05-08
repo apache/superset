@@ -95,7 +95,7 @@ export const focusStyle = (theme: SupersetTheme) => css`
   .header-controls span {
     &:focus-visible {
       box-shadow: 0 0 0 2px ${theme.colorPrimaryText};
-      border-radius: ${theme.sizeUnit / 2}px;
+      border-radius: ${theme.borderRadius}px;
       outline: none;
       text-decoration: none;
     }

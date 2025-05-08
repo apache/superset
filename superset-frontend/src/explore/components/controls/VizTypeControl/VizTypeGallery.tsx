@@ -222,7 +222,7 @@ const IconsPane = styled.div`
 
 const DetailsPane = (theme: SupersetTheme) => css`
   grid-area: details;
-  border-top: 1px solid ${theme.colors.grayscale.light2};
+  border-top: 1px solid ${theme.colorBorder};
 `;
 
 const DetailsPopulated = (theme: SupersetTheme) => css`
@@ -262,8 +262,8 @@ const Examples = styled.div`
 
   img {
     height: 100%;
-    border-radius: ${({ theme }) => theme.sizeUnit}px;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-radius: ${({ theme }) => theme.borderRadius}px;
+    border: 1px solid ${({ theme }) => theme.colorBorder};
   }
 `;
 
@@ -275,17 +275,17 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   img {
     min-width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
     min-height: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
-    border: 1px solid ${theme.colors.grayscale.light2};
-    border-radius: ${theme.sizeUnit}px;
+    border: 1px solid ${theme.colorBorder};
+    border-radius: ${theme.borderRadius}px;
     transition: border-color ${theme.motionDurationMid};
   }
 
   &.selected img {
-    border: 2px solid ${theme.colors.primary.light2};
+    border: 2px solid ${theme.colorPrimaryBorder};
   }
 
   &:hover:not(.selected) img {
-    border: 1px solid ${theme.colors.grayscale.light1};
+    border: 1px solid ${theme.colorBorder};
   }
 
   .viztype-label {
@@ -298,7 +298,7 @@ const HighlightLabel = styled.div`
   ${({ theme }) => `
     border: 1px solid ${theme.colorPrimaryText};
     box-sizing: border-box;
-    border-radius: ${theme.sizeUnit}px;
+    border-radius: ${theme.borderRadius}px;
     background: ${theme.colors.grayscale.light5};
     line-height: ${theme.sizeUnit * 2.5}px;
     color: ${theme.colorPrimaryText};

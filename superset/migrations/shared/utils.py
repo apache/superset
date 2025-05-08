@@ -22,7 +22,17 @@ from typing import Any, Callable, Optional, Union
 from uuid import uuid4
 
 from alembic import op
-from sqlalchemy import Column, inspect
+from sqlalchemy import (
+    Column,
+    inspect,
+    JSON,
+    MetaData,
+    select,
+    String,
+    Table,
+    text,
+    update,
+)
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect  # noqa: E402
@@ -468,3 +478,116 @@ def create_fks_for_table(
             remote_cols,
             ondelete=ondelete,
         )
+
+
+def cast_text_column_to_json(
+    table: str,
+    column: str,
+    pk: str = "id",
+    nullable: bool = True,
+    suffix: str = "_tmp",
+) -> None:
+    """
+    Cast a text column to JSON.
+
+    SQLAlchemy now has a nice abstraction for JSON columns, even if the underlying
+    database doesn't support the type natively. We should always use it when storing
+    JSON payloads.
+
+    :param table: The name of the table.
+    :param column: The name of the column to be cast.
+    :param pk: The name of the primary key column.
+    :param nullable: Whether the new column should be nullable.
+    :param suffix: The suffix to be added to the temporary column name.
+    """
+    conn = op.get_bind()
+
+    if isinstance(conn.dialect, PGDialect):
+        conn.execute(
+            text(
+                f"""
+                ALTER TABLE {table}
+                ALTER COLUMN {column} TYPE jsonb
+                USING {column}::jsonb
+                """
+            )
+        )
+        return
+
+    tmp_column = column + suffix
+    op.add_column(
+        table,
+        Column(tmp_column, JSON(), nullable=nullable),
+    )
+
+    meta = MetaData()
+    t = Table(table, meta, autoload_with=conn)
+    stmt_select = select(t.c[pk], t.c[column]).where(t.c[column].is_not(None))
+
+    for row_pk, value in conn.execute(stmt_select):
+        stmt_update = update(t).where(t.c[pk] == row_pk).values({tmp_column: value})
+        conn.execute(stmt_update)
+
+    op.drop_column(table, column)
+    op.alter_column(table, tmp_column, existing_type=JSON(), new_column_name=column)
+
+    return
+
+
+def cast_json_column_to_text(
+    table: str,
+    column: str,
+    pk: str = "id",
+    nullable: bool = True,
+    suffix: str = "_tmp",
+    length: int = 128,
+) -> None:
+    """
+    Cast a JSON column back to text.
+
+    :param table: The name of the table.
+    :param column: The name of the column to be cast.
+    :param pk: The name of the primary key column.
+    :param nullable: Whether the new column should be nullable.
+    :param suffix: The suffix to be added to the temporary column name.
+    :param length: The length of the text column.
+    """
+    conn = op.get_bind()
+
+    if isinstance(conn.dialect, PGDialect):
+        conn.execute(
+            text(
+                f"""
+                ALTER TABLE {table}
+                ALTER COLUMN {column} TYPE text
+                USING {column}::text
+                """
+            )
+        )
+        return
+
+    tmp_column = column + suffix
+    op.add_column(
+        table,
+        Column(tmp_column, String(length=length), nullable=nullable),
+    )
+
+    meta = MetaData()
+    t = Table(table, meta, autoload_with=conn)
+    stmt_select = select(t.c[pk], t.c[column]).where(t.c[column].is_not(None))
+
+    for row_pk, value in conn.execute(stmt_select):
+        stmt_update = (
+            update(t).where(t.c[pk] == row_pk).values({tmp_column: json.dumps(value)})
+        )
+        conn.execute(stmt_update)
+
+    op.drop_column(table, column)
+    op.alter_column(
+        table,
+        tmp_column,
+        existing_type=String(length=length),
+        new_column_name=column,
+    )
+
+    return
