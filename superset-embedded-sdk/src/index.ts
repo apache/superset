@@ -89,7 +89,7 @@ export type EmbeddedDashboard = {
     callbackFn: ObserveDataMaskCallbackFn,
   ) => void;
   getDataMask: () => Record<string, any>;
-  setThemeConfig: (themeConfig: Record<string, any>) => void;
+  setThemeConfig: (themeConfig: any) => void;
 };
 
 /**
@@ -246,7 +246,7 @@ export async function embedDashboard({
     ourPort.start();
     ourPort.defineMethod('observeDataMask', callbackFn);
   };
-  const setThemeConfig = async (themeConfig: Record<string, any>): Promise<void> => {
+  const setThemeConfig = async (themeConfig: any): Promise<void> => {
     try {
       ourPort.emit('setThemeConfig', { themeConfig });
       log('Theme config sent successfully (or at least message dispatched)');
