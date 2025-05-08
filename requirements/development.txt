@@ -2,7 +2,7 @@
 #    uv pip compile requirements/development.in -c requirements/base.txt -o requirements/development.txt
 -e .
     # via -r requirements/development.in
-alembic==1.15.1
+alembic==1.15.2
     # via
     #   -c requirements/base.txt
     #   flask-migrate
@@ -838,7 +838,7 @@ trio-websocket==0.11.1
     # via
     #   -c requirements/base.txt
     #   selenium
-typing-extensions==4.12.2
+typing-extensions==4.13.2
     # via
     #   -c requirements/base.txt
     #   alembic
