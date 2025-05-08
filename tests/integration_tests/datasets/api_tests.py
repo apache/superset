@@ -1798,7 +1798,6 @@ class TestDatasetApi(SupersetTestCase):
             database=db_connection,
             sql="select 1 as one",
             schema="first_schema",
-            catalog="test_catalog",
             fetch_metadata=False,
         )
         second_schema_dataset = self.insert_dataset(
@@ -1807,7 +1806,6 @@ class TestDatasetApi(SupersetTestCase):
             database=db_connection,
             sql="select 1 as one",
             schema="second_schema",
-            catalog="test_catalog",
             fetch_metadata=False,
         )
         new_db_conn_dataset = self.insert_dataset(
@@ -1816,12 +1814,11 @@ class TestDatasetApi(SupersetTestCase):
             database=new_db_connection,
             sql="select 1 as one",
             schema="first_schema",
-            catalog="test_catalog",
             fetch_metadata=False,
         )
 
         with patch.object(
-            db_connection, "get_default_catalog", return_value="test_catalog"
+            db_connection, "get_default_catalog", return_value=None,
         ):
             payload = {"schema": "second_schema"}
             uri = f"api/v1/dataset/{first_schema_dataset.id}"
@@ -1830,12 +1827,12 @@ class TestDatasetApi(SupersetTestCase):
             assert rv.status_code == 422
             assert response["message"] == {
                 "table": [
-                    "Dataset test_catalog.second_schema.test_dataset already exists"
+                    "Dataset second_schema.test_dataset already exists"
                 ]
             }
 
         with patch.object(
-            new_db_connection, "get_default_catalog", return_value="test_catalog"
+            new_db_connection, "get_default_catalog", return_value=None,
         ):
             payload["database_id"] = new_db_connection.id
             uri = f"api/v1/dataset/{first_schema_dataset.id}"
