@@ -28,10 +28,10 @@ class RollingType(Enum):
 
 
 class ComparisonType(Enum):
-    VALUES = "values"
-    DIFFERENCE = "difference"
-    PERCENTAGE = "percentage"
-    RATIO = "ratio"
+    Values = "values"
+    Difference = "difference"
+    Percentage = "percentage"
+    Ratio = "ratio"
 
 
 class DatasourceType(Enum):
