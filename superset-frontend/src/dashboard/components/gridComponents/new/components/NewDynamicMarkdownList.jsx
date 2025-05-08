@@ -22,14 +22,15 @@ import { IKI_DYNAMIC_MARKDOWN_LIST_TYPE } from '../../../../util/componentTypes'
 import { NEW_DYNAMIC_COMPONENT } from '../../../../util/constants';
 import DraggableNewComponent from '../DraggableNewComponent';
 
-export default function DraggableNewDivider() {
+export default function DraggableNewDivider({ customMarkdown }) {
   return (
     <DraggableNewComponent
       id={NEW_DYNAMIC_COMPONENT}
       type={IKI_DYNAMIC_MARKDOWN_LIST_TYPE}
-      label={t('Custom Component')}
-      description="yo"
+      label={t(`Custom Component ${customMarkdown.custom_markdown_id}`)}
+      description="Individual custom component"
       className="fa fa-mouse-pointer"
+      meta={{ customMarkdown }}
     />
   );
 }

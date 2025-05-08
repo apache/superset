@@ -27,12 +27,10 @@ import {
 import { refreshChart } from 'src/components/Chart/chartAction';
 import { isEqual } from 'lodash';
 
-const IkiDynamicMarkdownList = () => {
-  useEffect(() => {
-    console.log('useEffect');
-  }, []);
+const IkiDynamicMarkdownList = ({ component }) => {
+  const { customMarkdown } = component.meta;
 
-  return <>hey</>;
+  return <div>{customMarkdown.custom_markdown_id}</div>;
 };
 
 export default IkiDynamicMarkdownList;

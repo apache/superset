@@ -18,6 +18,7 @@
  */
 /* eslint-env browser */
 import React, { useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import Tabs from 'src/components/Tabs';
 import { StickyContainer, Sticky } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
@@ -47,7 +48,6 @@ import NewIkiDatasetDownload from '../gridComponents/new/components/NewIkiDatase
 import NewExternalDatasets from '../gridComponents/new/components/NewExternalDatasets';
 import NewForecast from '../gridComponents/new/components/NewForecast';
 import NewForecastModule from '../gridComponents/new/components/NewForecastModule';
-import { useSelector } from 'react-redux';
 
 export interface BCPProps {
   isStandalone: boolean;
@@ -87,6 +87,8 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
   isStandalone,
   topOffset = 0,
 }) => {
+  const [customMarkdowns, setCustomMarkdowns] = React.useState<any[]>([]);
+
   const ikigaiOrigin = useSelector(
     (state: any) => state.dashboardState?.ikigaiOrigin,
   );
@@ -109,6 +111,7 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
       switch (message.info) {
         case 'platform-to-superset/custom-markdowns':
           console.log('Received message:', message.payload);
+          setCustomMarkdowns(message.payload);
           break;
 
         default:
@@ -161,8 +164,14 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                         <NewDivider />
                       </Tabs.TabPane>
                       <Tabs.TabPane key={2} tab={t('Components')}>
-                        <NewDynamicMarkdownList />
-                        <NewDyanmicMarkdown />
+                        {customMarkdowns.map(customMarkdown => (
+                          <NewDynamicMarkdownList
+                            key={customMarkdown.custom_markdown_id}
+                            customMarkdown={customMarkdown}
+                          />
+                        ))}
+
+                        {/* <NewDyanmicMarkdown />
                         <NewIkiTable />
                         <NewIkiProcessBuilder />
                         <NewIkiRunPipeline />
@@ -173,7 +182,7 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                         <NewIkiDatasetDownload />
                         <NewIkiModelMetrics />
                         <NewExternalDatasets />
-                        <NewForecast />
+                        <NewForecast /> */}
 
                         {/* <NewIkiExplainability /> */}
                         {dashboardComponents
