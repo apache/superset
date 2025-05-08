@@ -74,7 +74,6 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Allow creation of new values'),
               default: creatable,
-              resetConfig: true,
               affectsDataMask: true,
               renderTrigger: true,
             },

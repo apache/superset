@@ -26,12 +26,6 @@ import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
 
 const { Option } = AntdSelect;
 
-export const SELECT_ALL_VALUE: RawValue = 'Select All';
-export const selectAllOption = {
-  value: SELECT_ALL_VALUE,
-  label: String(SELECT_ALL_VALUE),
-};
-
 export function isObject(value: unknown): value is Record<string, unknown> {
   return (
     value !== null &&
@@ -158,6 +152,7 @@ export const dropDownRenderHelper = (
   optionsLength: number,
   helperText: string | undefined,
   errorComponent?: JSX.Element,
+  bulkSelectComponents?: JSX.Element,
 ) => {
   if (!isDropdownVisible) {
     originNode.ref?.current?.scrollTo({ top: 0 });
@@ -174,6 +169,7 @@ export const dropDownRenderHelper = (
         <StyledHelperText role="note">{helperText}</StyledHelperText>
       )}
       {originNode}
+      {bulkSelectComponents}
     </>
   );
 };
