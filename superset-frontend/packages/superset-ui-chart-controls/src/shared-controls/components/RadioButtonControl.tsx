@@ -72,19 +72,17 @@ export default function RadioButtonControl({
       }}
     >
       <ControlHeader {...props} />
-      <div className="btn-group btn-group-sm">
-        <Radio.Group
-          size="small"
-          value={currentValue}
-          onChange={e => onChange(e.target.value)}
-        >
-          {options.map(([val, label]) => (
-            <Radio.Button key={JSON.stringify(val)} value={val}>
-              {label}
-            </Radio.Button>
-          ))}
-        </Radio.Group>
-      </div>
+      <Radio.Group
+        size="small"
+        value={currentValue}
+        onChange={e => onChange(e.target.value)}
+      >
+        {options.map(([val, label]) => (
+          <Radio.Button key={JSON.stringify(val)} value={val}>
+            {label}
+          </Radio.Button>
+        ))}
+      </Radio.Group>
     </div>
   );
 }

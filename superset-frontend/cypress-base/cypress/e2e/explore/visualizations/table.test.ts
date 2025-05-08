@@ -193,9 +193,9 @@ describe('Visualization > Table', () => {
     });
 
     // should display in raw records mode
-    cy.get('div[data-test="query_mode"] .antd5-radio-button-checked').contains(
-      'Raw records',
-    );
+    cy.get(
+      'div[data-test="query_mode"] .antd5-radio-button-checked .antd5-radio-button-label',
+    ).contains('Raw records');
     cy.get('div[data-test="all_columns"]').should('be.visible');
     cy.get('div[data-test="groupby"]').should('not.exist');
 
@@ -206,9 +206,9 @@ describe('Visualization > Table', () => {
     cy.get('div[data-test="query_mode"] .antd5-radio-button')
       .contains('Aggregate')
       .click();
-    cy.get('div[data-test="query_mode"] .antd5-radio-button-checked').contains(
-      'Aggregate',
-    );
+    cy.get(
+      'div[data-test="query_mode"] .antd5-radio-button-checked antd5-radio-button-label',
+    ).contains('Aggregate');
     cy.get('div[data-test="all_columns"]').should('not.exist');
     cy.get('div[data-test="groupby"]').should('be.visible');
   });
