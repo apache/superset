@@ -57,7 +57,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         row_limit: int | None = None,
         time_range: str | None = None,
         time_shift: str | None = None,
-        server_pagination: bool = False,
+        server_pagination: bool | None = None,
         **kwargs: Any,
     ) -> QueryObject:
         datasource_model_instance = None
@@ -105,7 +105,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         self,
         row_limit: int | None,
         result_type: ChartDataResultType,
-        server_pagination: bool = False,
+        server_pagination: bool | None = None,
     ) -> int:
         """Process row limit taking into account server pagination.
 

@@ -1741,22 +1741,23 @@ def parse_boolean_string(bool_str: str | None) -> bool:
 
 def apply_max_row_limit(
     limit: int,
-    server_pagination: bool = False,
+    server_pagination: bool | None = None,
 ) -> int:
     """
     Override row limit based on server pagination setting
 
     :param limit: requested row limit
-    :param server_pagination: whether server-side pagination is enabled
+    :param server_pagination: whether server-side pagination
+    is enabled, defaults to None
     :return: Capped row limit
 
     >>> apply_max_row_limit(600000, server_pagination=True)  # Server pagination
     500000
     >>> apply_max_row_limit(600000, server_pagination=False)  # No pagination
     50000
-    >>> apply_max_row_limit(5000, server_pagination=True)  # Respects lower limits
+    >>> apply_max_row_limit(5000)  # No server_pagination specified
     5000
-    >>> apply_max_row_limit(0, server_pagination=False)  # Zero returns max limit
+    >>> apply_max_row_limit(0)  # Zero returns default max limit
     50000
     """
     max_limit = (
