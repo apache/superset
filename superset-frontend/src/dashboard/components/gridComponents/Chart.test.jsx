@@ -34,7 +34,7 @@ const props = {
   height: 100,
   updateSliceName() {},
   // from redux
-  maxRows: 666,
+  maxRows: 500, // will be overwritten with SQL_MAX_ROW from conf
   formData: chartQueries[queryId].form_data,
   datasource: mockDatasource[sliceEntities.slices[queryId].datasource],
   sliceName: sliceEntities.slices[queryId].slice_name,
@@ -78,7 +78,7 @@ const defaultState = {
     superset_can_explore: false,
     superset_can_share: false,
     superset_can_csv: false,
-    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0 } },
+    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
   },
 };
 

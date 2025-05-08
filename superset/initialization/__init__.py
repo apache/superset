@@ -88,8 +88,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         wtforms_json.init()
 
-        if not os.path.exists(self.config["DATA_DIR"]):
-            os.makedirs(self.config["DATA_DIR"])
+        os.makedirs(self.config["DATA_DIR"], exist_ok=True)
 
     def post_init(self) -> None:
         """
