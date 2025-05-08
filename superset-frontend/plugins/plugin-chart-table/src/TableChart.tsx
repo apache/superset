@@ -951,7 +951,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
-            id={`header-${column.key}`}
+            id={`header-${column.originalLabel}`}
             title={t('Shift + Click to sort by multiple columns')}
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
