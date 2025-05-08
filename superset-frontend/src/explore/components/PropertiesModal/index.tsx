@@ -201,11 +201,14 @@ function PropertiesModal({
       // convert the tags to the format used in the selectOwners back to original redux format
       const selectedOwnersArray = ensureIsArray(selectedOwners);
       const newOwners = selectedOwnersArray.map((owner: any) => {
-        const [first_name, ...last_name_parts] = owner.label.split(' ');
+        const nameParts = owner.label.split(' ');
+        const first_name = nameParts[0] || '';
+        const last_name =
+          nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
         return {
           id: owner.value,
           first_name,
-          last_name: last_name_parts.join(' '),
+          last_name,
         };
       });
       const updatedChart = {
