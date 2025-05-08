@@ -1788,6 +1788,12 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test the dataset uniqueness validation takes into
         consideration the new database connection.
         """
+        db = get_main_database()
+        if db.backend == "sqlite":
+            # Skip this test for SQLite as it doesn't support multiple
+            # schemas.
+            return
+
         self.login(ADMIN_USERNAME)
 
         db_connection = self.insert_database("db_connection")
@@ -1818,7 +1824,9 @@ class TestDatasetApi(SupersetTestCase):
         )
 
         with patch.object(
-            db_connection, "get_default_catalog", return_value=None,
+            db_connection,
+            "get_default_catalog",
+            return_value=None,
         ):
             payload = {"schema": "second_schema"}
             uri = f"api/v1/dataset/{first_schema_dataset.id}"
@@ -1826,13 +1834,13 @@ class TestDatasetApi(SupersetTestCase):
             response = json.loads(rv.data.decode("utf-8"))
             assert rv.status_code == 422
             assert response["message"] == {
-                "table": [
-                    "Dataset second_schema.test_dataset already exists"
-                ]
+                "table": ["Dataset second_schema.test_dataset already exists"]
             }
 
         with patch.object(
-            new_db_connection, "get_default_catalog", return_value=None,
+            new_db_connection,
+            "get_default_catalog",
+            return_value=None,
         ):
             payload["database_id"] = new_db_connection.id
             uri = f"api/v1/dataset/{first_schema_dataset.id}"
