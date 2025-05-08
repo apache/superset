@@ -21,7 +21,7 @@ import { useRef, ReactNode } from 'react';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { styled, t, useTheme, keyframes, css } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { Tooltip } from 'src/components';
+import { Flex, Tooltip } from 'src/components';
 import { Icons } from 'src/components/Icons';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
@@ -78,9 +78,10 @@ const LabelText = styled.span`
   text-overflow: ellipsis;
 `;
 
-export const CaretContainer = styled.div`
+export const CaretContainer = styled(Flex)`
   height: 100%;
   border-left: solid 1px ${({ theme }) => theme.colors.grayscale.dark2}0C;
+  padding: ${({ theme }) => theme.sizeUnit}px;
   margin-left: auto;
 `;
 
@@ -410,12 +411,9 @@ export const OptionControlLabel = ({
         />
       )}
       {withCaret && (
-        <CaretContainer>
+        <CaretContainer justify="center" align="center">
           <Icons.RightOutlined
             iconSize="m"
-            css={css`
-              margin-top: ${theme.sizeUnit}px;
-            `}
             iconColor={theme.colors.grayscale.light1}
           />
         </CaretContainer>

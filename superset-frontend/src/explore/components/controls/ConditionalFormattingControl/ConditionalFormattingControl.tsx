@@ -160,13 +160,8 @@ const ConditionalFormattingControl = ({
             >
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
-                <CaretContainer>
-                  <Icons.RightOutlined
-                    iconSize="m"
-                    css={css`
-                      margin-top: ${theme.sizeUnit}px;
-                    `}
-                  />
+                <CaretContainer justify="center" align="center">
+                  <Icons.RightOutlined iconSize="m" />
                 </CaretContainer>
               </OptionControlContainer>
             </FormattingPopover>
