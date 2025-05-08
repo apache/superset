@@ -1788,8 +1788,8 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test the dataset uniqueness validation takes into
         consideration the new database connection.
         """
-        db = get_main_database()
-        if db.backend == "sqlite":
+        test_db = get_main_database()
+        if test_db.backend == "sqlite":
             # Skip this test for SQLite as it doesn't support multiple
             # schemas.
             return
