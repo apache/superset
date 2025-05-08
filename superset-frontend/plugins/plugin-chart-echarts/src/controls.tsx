@@ -44,6 +44,20 @@ export const showLegendControl: ControlSetItem = {
   },
 };
 
+export const showLegendToggleControl: ControlSetItem = {
+  name: 'show_legend_toggle',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Show All/Invert buttons in legend'),
+    renderTrigger: true,
+    default: true,
+    description: t(
+      'Toggle to show/hide the "All/Invert" buttons in the legend.',
+    ),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_legend?.value), // ✅ Display only if the legend is on
+  },
+};
 const legendMarginControl: ControlSetItem = {
   name: 'legendMargin',
   config: {

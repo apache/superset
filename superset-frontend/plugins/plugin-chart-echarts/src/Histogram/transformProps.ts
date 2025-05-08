@@ -57,6 +57,7 @@ export default function transformProps(
     groupby = [],
     normalize,
     showLegend,
+    showLegendToggle,
     showValue,
     sliceId,
     xAxisFormat,
@@ -186,6 +187,8 @@ export default function transformProps(
         theme,
         false,
         legendState,
+        undefined,
+        showLegendToggle,
       ),
       data: legendOptions,
     },
@@ -195,7 +198,6 @@ export default function transformProps(
       formatter: tooltipFormatter,
     },
   };
-
   return {
     refs,
     formData,
