@@ -54,15 +54,6 @@ class DatabaseNotFoundValidationError(ValidationError):
         super().__init__([_("Database does not exist")], field_name="database")
 
 
-class DatabaseChangeValidationError(ValidationError):
-    """
-    Marshmallow validation error database changes are not allowed on update
-    """
-
-    def __init__(self) -> None:
-        super().__init__([_("Database not allowed to change")], field_name="database")
-
-
 class DatasetExistsValidationError(ValidationError):
     """
     Marshmallow validation error for dataset already exists

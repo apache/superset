@@ -105,7 +105,6 @@ def test_update_validation_errors(
     Test validation errors for the `UpdateDatasetCommand`.
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
-    mock_db_dao = mocker.patch("superset.commands.dataset.update.DatabaseDAO")
     mocker.patch(
         "superset.commands.dataset.update.security_manager.raise_for_ownership",
     )
@@ -121,7 +120,6 @@ def test_update_validation_errors(
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset_dao.find_by_id.return_value = mock_dataset
-    mock_db_dao.get_ssh_tunnel.return_value = None
 
     if exception == DatabaseNotFoundValidationError:
         mock_dataset_dao.get_database_by_id.return_value = None
