@@ -47,7 +47,7 @@ def connector_registry() -> Mock:
 
 def apply_max_row_limit(
     limit: int,
-    server_pagination: bool = False,
+    server_pagination: bool | None = None,
 ) -> int:
     max_limit = (
         create_app_config()["TABLE_VIZ_MAX_ROW_SERVER"]
