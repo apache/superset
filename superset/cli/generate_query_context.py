@@ -113,13 +113,19 @@ def run(id: int | None = None) -> None:
         slices.append(slice)
     else:
         slices = db.session.query(Slice).filter(
-            Slice.viz_type.in_(viz_migration_map.keys())
+            Slice.viz_type.in_(viz_migration_map.keys()),
+            Slice.query_context.isnot(None)
         )
 
     inconsistent_slices = []
+    
+    i = 0
     for slice_item in slices:
+        i += 1
         try:
-            migration_obj = viz_migration_map.get(slice_item.viz_type)(slice_item.params)
+            migration_obj = viz_migration_map.get(slice_item.viz_type)(
+                slice_item.params
+            )
             query_obj = migration_obj.build_query()
 
             generated_queries_obj = query_obj["queries"]
@@ -141,17 +147,20 @@ def run(id: int | None = None) -> None:
                 )
         except Exception as err:
             error_trace = traceback.format_exc()
-            error_result = json.dumps({"error": str(err), "traceback": error_trace}, sort_keys=True)
+            error_result = str(err) + ' ' + error_trace
+            
             inconsistent_slices.append(
                 {
                     "slice_id": slice_item.id,
                     "viz_type": slice_item.viz_type,
                     "generated_queries": error_result,
-                    "slice_queries": "",
+                    "slice_queries": "ERROR",
                 }
             )
+    print(f"Found {i} slices to process.")
 
     if inconsistent_slices:
+        print(f"Found {len(inconsistent_slices)} inconsistent slices.")
         output_folder = "query_context_results"
         os.makedirs(output_folder, exist_ok=True)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
