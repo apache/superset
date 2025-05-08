@@ -315,7 +315,7 @@ export const StyledInputContainer = styled.div`
       padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
       border-style: none;
       border: 1px solid ${theme.colorBorder};
-      border-radius: ${theme.sizeUnit}px;
+      border-radius: ${theme.borderRadius}px;
 
       &[name='description'] {
         flex: 1 1 auto;
@@ -407,13 +407,7 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
 
   return (
     <StyledNotificationAddButton className={status} onClick={checkStatus}>
-      <Icons.PlusOutlined
-        iconSize="m"
-        css={theme => ({
-          margin: `auto ${theme.sizeUnit * 2}px auto 0`,
-          verticalAlign: 'middle',
-        })}
-      />
+      <Icons.PlusOutlined iconSize="m" />
       {status === 'active'
         ? t('Add another notification method')
         : t('Add delivery method')}

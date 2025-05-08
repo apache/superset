@@ -29,12 +29,12 @@ export default function CustomListItem(props: CustomListItemProps) {
   const css: Record<string, Record<string, Record<string, number> | string>> = {
     '&.antd5-list-item': {
       ':first-of-type': {
-        borderTopLeftRadius: theme.sizeUnit,
-        borderTopRightRadius: theme.sizeUnit,
+        borderTopLeftRadius: theme.borderRadius,
+        borderTopRightRadius: theme.borderRadius,
       },
       ':last-of-type': {
-        borderBottomLeftRadius: theme.sizeUnit,
-        borderBottomRightRadius: theme.sizeUnit,
+        borderBottomLeftRadius: theme.borderRadius,
+        borderBottomRightRadius: theme.borderRadius,
       },
     },
   };

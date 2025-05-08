@@ -104,7 +104,7 @@ export const HeaderContainer = styled.div`
 export const LabelsContainer = styled.div`
   padding: ${({ theme }) => theme.sizeUnit}px;
   border: solid 1px ${({ theme }) => theme.colorSplit};
-  border-radius: ${({ theme }) => theme.sizeUnit}px;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
 const borderPulse = keyframes`
@@ -133,19 +133,19 @@ export const DndLabelsContainer = styled.div<{
   padding: ${theme.sizeUnit}px;
   border: ${
     !isLoading && isDragging
-      ? `dashed 1px ${canDrop ? theme.colorBorder : theme.colorErrorBgHover}`
+      ? `dashed 1px ${canDrop ? theme.colorSplit : theme.colorErrorBgHover}`
       : `solid 1px ${
           isLoading && isDragging
             ? theme.colorWarningBgHover
             : theme.colorBorder
         }`
   };
-  border-radius: ${theme.sizeUnit}px;
+  border-radius: ${theme.borderRadius}px;
   &:before,
   &:after {
     content: ' ';
     position: absolute;
-    border-radius: ${theme.sizeUnit}px;
+    border-radius: ${theme.borderRadius}px;
   }
   &:before {
     display: ${isDragging || isLoading ? 'block' : 'none'};
@@ -198,8 +198,8 @@ export const AddControlLabel = styled.div<{
   padding-left: ${({ theme }) => theme.sizeUnit}px;
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
-  border: dashed 1px ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: ${({ theme }) => theme.sizeUnit}px;
+  border: dashed 1px ${({ theme }) => theme.colorSplit};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
   cursor: ${({ cancelHover }) => (cancelHover ? 'inherit' : 'pointer')};
 
   :hover {
@@ -210,6 +210,9 @@ export const AddControlLabel = styled.div<{
   :active {
     background-color: ${({ cancelHover, theme }) =>
       cancelHover ? 'inherit' : theme.colors.grayscale.light3};
+  }
+  svg {
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -395,9 +398,8 @@ export const OptionControlLabel = ({
       </Label>
       {(!!datasourceWarningMessage || isExtra) && (
         <StyledInfoTooltipWithTrigger
-          icon="exclamation-triangle"
+          type="warning"
           placement="top"
-          bsStyle="warning"
           tooltip={
             datasourceWarningMessage ||
             t(`

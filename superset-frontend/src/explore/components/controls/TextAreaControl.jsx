@@ -83,7 +83,7 @@ class TextAreaControl extends Component {
     const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
       const style = {
-        border: `1px solid ${this.props.theme.colors.grayscale.light1}`,
+        border: `1px solid ${this.props.theme.colorBorder}`,
         minHeight: `${minLines}em`,
         width: 'auto',
         ...this.props.textAreaStyles,

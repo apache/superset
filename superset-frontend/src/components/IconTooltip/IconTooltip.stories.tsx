@@ -40,19 +40,20 @@ const PLACEMENTS = [
   'topRight',
 ];
 
-const theme = useTheme();
-
-export const InteractiveIconTooltip = (args: IconTooltipProps) => (
-  <div
-    css={css`
-      margin: ${theme.sizeUnit * 10}px ${theme.sizeUnit * 17.5}px;
-    `}
-  >
-    <IconTooltip {...args}>
-      <Icons.InfoCircleOutlined />
-    </IconTooltip>
-  </div>
-);
+export const InteractiveIconTooltip = (args: IconTooltipProps) => {
+  const theme = useTheme();
+  return (
+    <div
+      css={css`
+        margin: ${theme.sizeUnit * 10}px ${theme.sizeUnit * 17.5}px;
+      `}
+    >
+      <IconTooltip {...args}>
+        <Icons.InfoCircleOutlined />
+      </IconTooltip>
+    </div>
+  );
+};
 
 InteractiveIconTooltip.args = {
   tooltip: 'Tooltip',

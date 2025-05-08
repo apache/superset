@@ -70,7 +70,7 @@ const GridContent = styled.div`
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: ${theme.sizeUnit}px;
+      border-radius: ${theme.borderRadius}px;
       overflow: hidden;
 
       &:before {
@@ -79,7 +79,7 @@ const GridContent = styled.div`
         width: calc(100% - ${theme.sizeUnit * 2}px);
         height: calc(100% - ${theme.sizeUnit * 2}px);
         border: 1px dashed transparent;
-        border-radius: ${theme.sizeUnit}px;
+        border-radius: ${theme.borderRadius}px;
         opacity: 0.5;
       }
     }
@@ -210,10 +210,7 @@ class DashboardGrid extends PureComponent {
         size="large"
         buttonText={
           <>
-            <Icons.PlusOutlined
-              iconSize="m"
-              iconColor={theme.colors.primary.light5}
-            />
+            <Icons.PlusOutlined iconSize="m" color={theme.colorPrimary} />
             {t('Create a new chart')}
           </>
         }
@@ -235,10 +232,7 @@ class DashboardGrid extends PureComponent {
         )}
         buttonText={
           <>
-            <Icons.PlusOutlined
-              iconSize="m"
-              iconColor={theme.colors.primary.light5}
-            />
+            <Icons.PlusOutlined iconSize="m" color={theme.colorPrimary} />
             {t('Create a new chart')}
           </>
         }

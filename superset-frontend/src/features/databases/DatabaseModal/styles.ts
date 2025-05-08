@@ -179,8 +179,8 @@ export const formHelperStyles = (theme: SupersetTheme) => css`
 
 export const wideButton = (theme: SupersetTheme) => css`
   width: 100%;
-  border: 1px solid ${theme.colors.primary.dark2};
-  color: ${theme.colors.primary.dark2};
+  border: 1px solid ${theme.colorPrimaryText};
+  color: ${theme.colorPrimaryText};
   &:hover,
   &:focus {
     border: 1px solid ${theme.colorPrimary};
@@ -269,8 +269,8 @@ export const StyledInputContainer = styled.div`
     input[type='number'] {
       padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 2}px;
       border-style: none;
-      border: 1px solid ${theme.colors.grayscale.light2};
-      border-radius: ${theme.sizeUnit}px;
+      border: 1px solid ${theme.colorBorder};
+      border-radius: ${theme.borderRadius}px;
 
       &[name='name'] {
         flex: 0 1 auto;
@@ -294,8 +294,8 @@ export const StyledInputContainer = styled.div`
 
 export const StyledJsonEditor = styled(JsonEditor)`
   flex: 1 1 auto;
-  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: ${({ theme }) => theme.sizeUnit}px;
+  border: 1px solid ${({ theme }) => theme.colorBorder};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
 export const StyledExpandableForm = styled.div`
@@ -354,7 +354,7 @@ export const TabHeader = styled.div`
 `;
 
 export const CreateHeaderTitle = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
   font-weight: ${({ theme }) => theme.fontWeightStrong};
   font-size: ${({ theme }) => theme.fontSize}px;
 `;
@@ -401,8 +401,8 @@ export const CredentialInfoForm = styled.div`
   .input-form {
     height: 100px;
     width: 100%;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.sizeUnit}px;
+    border: 1px solid ${({ theme }) => theme.colorBorder};
+    border-radius: ${({ theme }) => theme.borderRadius}px;
     resize: vertical;
     padding: ${({ theme }) => theme.sizeUnit * 1.5}px
       ${({ theme }) => theme.sizeUnit * 2}px;

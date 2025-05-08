@@ -28,7 +28,7 @@ import {
   getColumnTypeTooltipNode,
 } from './labelUtils';
 import { SQLPopover } from './SQLPopover';
-import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
+import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';
 
 export type ColumnOptionProps = {
   column: ColumnMeta;
@@ -99,14 +99,12 @@ export function ColumnOption({
       )}
       {warningMarkdown && (
         <InfoTooltipWithTrigger
-          className="text-warning"
-          icon="warning"
+          type="warning"
           tooltip={<SafeMarkdown source={warningMarkdown} />}
           label={`warn-${column.column_name}`}
-          iconsStyle={{ marginLeft: 0 }}
+          iconStyle={{ marginLeft: 0 }}
           {...(column.error_text && {
-            className: 'text-danger',
-            icon: 'exclamation-circle',
+            type: 'error',
           })}
         />
       )}

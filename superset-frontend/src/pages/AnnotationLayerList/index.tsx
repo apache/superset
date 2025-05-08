@@ -19,7 +19,7 @@
 
 import { useMemo, useState } from 'react';
 import rison from 'rison';
-import { t, SupersetClient, useTheme, css } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
@@ -61,7 +61,6 @@ function AnnotationLayersList({
   addSuccessToast,
   user,
 }: AnnotationLayersListProps) {
-  const theme = useTheme();
   const {
     state: {
       loading,
@@ -231,13 +230,7 @@ function AnnotationLayersList({
     subMenuButtons.push({
       name: (
         <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              vertical-align: text-top;
-            `}
-          />
+          <Icons.PlusOutlined iconSize="m" />
           {t('Annotation layer')}
         </>
       ),
@@ -295,10 +288,7 @@ function AnnotationLayersList({
     buttonAction: () => handleAnnotationLayerEdit(null),
     buttonText: (
       <>
-        <Icons.PlusOutlined
-          iconSize="m"
-          iconColor={theme.colors.primary.light5}
-        />
+        <Icons.PlusOutlined iconSize="m" />
         {t('Annotation layer')}
       </>
     ),

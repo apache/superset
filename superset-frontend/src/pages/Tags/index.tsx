@@ -17,13 +17,7 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  t,
-  useTheme,
-  css,
-} from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
 import {
   Actions,
   createErrorHandler,
@@ -66,7 +60,6 @@ interface TagListProps {
 function TagList(props: TagListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
   const { userId } = user;
-  const theme = useTheme();
 
   const initialFilters = useMemo(
     () => [
@@ -143,15 +136,7 @@ function TagList(props: TagListProps) {
     buttonAction: () => setShowTagModal(true),
     buttonText: (
       <>
-        <Icons.PlusOutlined
-          iconSize="m"
-          iconColor={theme.colors.primary.light5}
-          css={css`
-            margin: auto ${theme.sizeUnit * 2}px auto 0;
-            vertical-align: text-top;
-          `}
-          data-test="add-rule-empty"
-        />
+        <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />
         Create a new Tag
       </>
     ),
@@ -344,14 +329,7 @@ function TagList(props: TagListProps) {
   subMenuButtons.push({
     name: (
       <>
-        <Icons.PlusOutlined
-          css={css`
-            vertical-align: text-top;
-          `}
-          iconSize="m"
-          iconColor={theme.colors.primary.light5}
-        />{' '}
-        {t('Tag')}
+        <Icons.PlusOutlined iconSize="m" /> {t('Tag')}
       </>
     ),
     buttonStyle: 'primary',

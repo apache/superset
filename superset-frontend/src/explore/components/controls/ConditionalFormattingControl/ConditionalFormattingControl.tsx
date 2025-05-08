@@ -36,8 +36,8 @@ import {
 const FormattersContainer = styled.div`
   ${({ theme }) => css`
     padding: ${theme.sizeUnit}px;
-    border: solid 1px ${theme.colors.grayscale.light2};
-    border-radius: ${theme.sizeUnit}px;
+    border: solid 1px ${theme.colorBorder};
+    border-radius: ${theme.borderRadius}px;
   `}
 `;
 
@@ -146,10 +146,7 @@ const ConditionalFormattingControl = ({
         {conditionalFormattingConfigs.map((config, index) => (
           <FormatterContainer key={index}>
             <CloseButton onClick={() => onDelete(index)}>
-              <Icons.CloseOutlined
-                iconSize="m"
-                iconColor={theme.colors.grayscale.light1}
-              />
+              <Icons.CloseOutlined iconSize="m" />
             </CloseButton>
             <FormattingPopover
               title={t('Edit formatter')}
@@ -169,7 +166,6 @@ const ConditionalFormattingControl = ({
                     css={css`
                       margin-top: ${theme.sizeUnit}px;
                     `}
-                    iconColor={theme.colors.grayscale.light1}
                   />
                 </CaretContainer>
               </OptionControlContainer>
@@ -186,7 +182,6 @@ const ConditionalFormattingControl = ({
           <AddControlLabel>
             <Icons.PlusOutlined
               iconSize="m"
-              iconColor={theme.colors.grayscale.light1}
               css={theme => ({
                 margin: `auto ${theme.sizeUnit}px auto 0`,
                 verticalAlign: 'baseline',

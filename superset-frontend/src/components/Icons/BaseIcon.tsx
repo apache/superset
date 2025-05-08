@@ -46,14 +46,12 @@ export const BaseIconComponent: React.FC<
   ...rest
 }) => {
   const theme = useTheme();
-  const iconCss = css`
-    color: ${iconColor || theme.colorIcon};
-    font-size: ${iconSize
-      ? `${themeObject.getFontSize(iconSize) || theme.fontSize}px`
-      : '24px'};
-  `;
   const whatRole = rest?.onClick ? 'button' : 'img';
   const ariaLabel = genAriaLabel(rest.fileName || '');
+  const style = {
+    color: iconColor,
+    fontSize: iconSize ? themeObject.getFontSize(iconSize) : theme.fontSize,
+  };
 
   return customIcons ? (
     <span
@@ -67,11 +65,11 @@ export const BaseIconComponent: React.FC<
           line-height: 0;
           vertical-align: middle;
         `,
-        iconCss,
       ]}
     >
       <Component
         viewBox={viewBox || '0 0 24 24'}
+        style={style}
         width={
           iconSize
             ? `${themeObject.getFontSize(iconSize) || theme.fontSize}px`
@@ -87,8 +85,8 @@ export const BaseIconComponent: React.FC<
     </span>
   ) : (
     <Component
-      css={iconCss}
       role={whatRole}
+      style={style}
       aria-label={ariaLabel}
       data-test={ariaLabel}
       {...(rest as AntdIconType)}

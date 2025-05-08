@@ -31,7 +31,7 @@ const PAGE_SIZE = 10;
 
 const AllEntitiesTableContainer = styled.div`
   text-align: left;
-  border-radius: ${({ theme }) => theme.sizeUnit * 1}px 0;
+  border-radius: ${({ theme }) => theme.borderRadius}px 0;
   .table {
     table-layout: fixed;
   }

@@ -47,7 +47,7 @@ const StyledCrossFilterColumn = styled('span')`
 
 const StyledTag = styled(Tag)`
   ${({ theme }) => `
-    border: 1px solid ${theme.colors.grayscale.light3};
+    border: 1px solid ${theme.colorBorder};
     border-radius: 2px;
     .anticon-close {
       vertical-align: middle;

@@ -16,65 +16,111 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CSSProperties } from 'react';
+import { KeyboardEvent, useMemo } from 'react';
+import { SerializedStyles, CSSObject } from '@emotion/react';
 import { kebabCase } from 'lodash';
-import { t } from '@superset-ui/core';
+import { css, t, useTheme, themeObject } from '@superset-ui/core';
+import {
+  CloseCircleOutlined,
+  InfoCircleOutlined,
+  WarningOutlined,
+  ThunderboltOutlined,
+  QuestionCircleOutlined,
+} from '@ant-design/icons';
+import { Button } from 'antd-v5';
 import { Tooltip, TooltipProps, TooltipPlacement } from './Tooltip';
 
 export interface InfoTooltipWithTriggerProps {
   label?: string;
   tooltip?: TooltipProps['title'];
-  icon?: string;
   onClick?: () => void;
   placement?: TooltipPlacement;
-  bsStyle?: string;
   className?: string;
-  iconsStyle?: CSSProperties;
+  iconStyle?: CSSObject | SerializedStyles;
+  type?: 'info' | 'warning' | 'notice' | 'error' | 'question';
+  iconSize?: 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl';
 }
 
-export function InfoTooltipWithTrigger({
+export const InfoTooltipWithTrigger = ({
+  type = 'info',
+  iconSize = 's',
   label,
   tooltip,
-  bsStyle,
   onClick,
-  icon = 'info-circle',
   className = 'text-muted',
   placement = 'right',
-  iconsStyle = {},
-}: InfoTooltipWithTriggerProps) {
-  const iconClass = `fa fa-${icon} ${className} ${
-    bsStyle ? `text-${bsStyle}` : ''
-  }`;
-  const iconEl = (
-    <i
-      role="button"
-      aria-label={t('Show info tooltip')}
-      tabIndex={0}
-      className={iconClass}
-      style={{ cursor: onClick ? 'pointer' : undefined, ...iconsStyle }}
-      onClick={onClick}
-      onKeyPress={
-        onClick &&
-        (event => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            onClick();
-          }
-        })
-      }
-    />
+  iconStyle,
+}: InfoTooltipWithTriggerProps) => {
+  const theme = useTheme();
+
+  const infoTooltipWithTriggerVariants = useMemo(
+    () => ({
+      info: { color: theme.colorIcon, icon: <InfoCircleOutlined /> },
+      question: { color: theme.colorIcon, icon: <QuestionCircleOutlined /> },
+      warning: { color: theme.colorWarning, icon: <WarningOutlined /> },
+      notice: { color: theme.colorWarning, icon: <ThunderboltOutlined /> },
+      error: { color: theme.colorError, icon: <CloseCircleOutlined /> },
+    }),
+    [theme],
   );
+
+  const variant = type ? infoTooltipWithTriggerVariants[type] : null;
+
+  const iconCss = css`
+    color: ${variant?.color ?? theme.colorIcon};
+    font-size: ${themeObject.getFontSize(iconSize)}px;
+  `;
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
+    if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+      onClick();
+    }
+  };
+
+  const iconEl = (
+    <Button
+      type="text"
+      variant="text"
+      aria-label={t('Show info tooltip')}
+      className={className}
+      css={[
+        theme => css`
+          vertical-align: text-bottom;
+          box-shadow: none;
+          padding: 0;
+          height: auto;
+          background: none;
+          &&&:hover,
+          &&&:focus,
+          &&&:active {
+            box-shadow: none;
+            background: none;
+            outline: none;
+            color: ${theme.colorTextTertiary};
+          }
+          ${onClick ? 'cursor: pointer;' : ''}
+        `,
+        iconCss,
+        iconStyle,
+      ]}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+    >
+      {variant?.icon}
+    </Button>
+  );
+
   if (!tooltip) {
     return iconEl;
   }
+
   return (
     <Tooltip
-      id={`${kebabCase(label)}-tooltip`}
+      id={`${kebabCase(label) || Math.floor(Math.random() * 10000)}-tooltip`}
       title={tooltip}
       placement={placement}
     >
       {iconEl}
     </Tooltip>
   );
-}
-
-export default InfoTooltipWithTrigger;
+};

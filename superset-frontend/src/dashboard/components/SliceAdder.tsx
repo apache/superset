@@ -360,16 +360,15 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
           <NewChartButton
             buttonStyle="link"
             buttonSize="xsmall"
+            icon={
+              <Icons.PlusOutlined iconSize="m" iconColor={theme.colorPrimary} />
+            }
             onClick={() =>
               navigateTo(`/chart/add?dashboard_id=${this.props.dashboardId}`, {
                 newWindow: true,
               })
             }
           >
-            <Icons.PlusOutlined
-              iconSize="m"
-              iconColor={theme.colors.primary.dark1}
-            />
             {t('Create new chart')}
           </NewChartButton>
         </NewChartButtonContainer>

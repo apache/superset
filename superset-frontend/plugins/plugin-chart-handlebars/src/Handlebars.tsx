@@ -23,7 +23,7 @@ import { HandlebarsProps, HandlebarsStylesProps } from './types';
 
 const Styles = styled.div<HandlebarsStylesProps>`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
-  border-radius: ${({ theme }) => theme.sizeUnit * 2}px;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
   height: ${({ height }) => height}px;
   width: ${({ width }) => width}px;
   overflow: auto;
