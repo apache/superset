@@ -43,6 +43,7 @@ class Slice(Base):  # type: ignore
 
 
 FORM_DATA_BAK_FIELD_NAME = "form_data_bak"
+QUERIES_BAK_FIELD_NAME = "queries_bak"
 
 
 class MigrateViz:
@@ -141,9 +142,26 @@ class MigrateViz:
                 {**clz.data, FORM_DATA_BAK_FIELD_NAME: form_data_bak}
             )
 
-            if "form_data" in (query_context := try_load_json(slc.query_context)):
-                query_context["form_data"] = clz.data
-                slc.query_context = json.dumps(query_context)
+            query_context = try_load_json(slc.query_context)
+
+            if query_context:
+
+                if "form_data" in query_context:
+                    query_context["form_data"] = clz.data
+
+                queries_bak = copy.deepcopy(query_context["queries"])
+
+                result = clz.build_query()
+                queries = result["queries"]
+                query_context["queries"] = queries
+
+                slc.query_context = json.dumps(
+                    {
+                        **query_context,
+                        QUERIES_BAK_FIELD_NAME: queries_bak,
+                    }
+                )
+
         except Exception as e:
             logger.warning(f"Failed to migrate slice {slc.id}: {e}")
 
@@ -157,9 +175,12 @@ class MigrateViz:
                 slc.params = json.dumps(form_data_bak)
                 slc.viz_type = form_data_bak.get("viz_type")
                 query_context = try_load_json(slc.query_context)
+                queries_bak = query_context.get(QUERIES_BAK_FIELD_NAME, {})
+                query_context["queries"] = queries_bak
                 if "form_data" in query_context:
                     query_context["form_data"] = form_data_bak
-                    slc.query_context = json.dumps(query_context)
+
+                slc.query_context = json.dumps(query_context)
         except Exception as e:
             logger.warning(f"Failed to downgrade slice {slc.id}: {e}")
 
