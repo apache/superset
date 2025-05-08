@@ -33,6 +33,18 @@ def get_dataset_exist_error_msg(table: Table) -> str:
     return _("Dataset %(table)s already exists", table=table)
 
 
+class MultiCatalogDisabledValidationError(ValidationError):
+    """
+    Validation error for using a non-default catalog when multi-catalog is disabled
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            [_("Only the default catalog is supported for this connection")],
+            field_name="catalog",
+        )
+
+
 class DatabaseNotFoundValidationError(ValidationError):
     """
     Marshmallow validation error for database does not exist
@@ -40,15 +52,6 @@ class DatabaseNotFoundValidationError(ValidationError):
 
     def __init__(self) -> None:
         super().__init__([_("Database does not exist")], field_name="database")
-
-
-class DatabaseChangeValidationError(ValidationError):
-    """
-    Marshmallow validation error database changes are not allowed on update
-    """
-
-    def __init__(self) -> None:
-        super().__init__([_("Database not allowed to change")], field_name="database")
 
 
 class DatasetExistsValidationError(ValidationError):
