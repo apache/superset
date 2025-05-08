@@ -15,78 +15,125 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import cast
-from unittest.mock import MagicMock
+from typing import Any, cast
 
 import pytest
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
-from superset import db
-from superset.commands.dataset.exceptions import DatasetInvalidError
+from superset.commands.dataset.exceptions import (
+    DatabaseNotFoundValidationError,
+    DatasetExistsValidationError,
+    DatasetForbiddenError,
+    DatasetInvalidError,
+    DatasetNotFoundError,
+    MultiCatalogDisabledValidationError,
+)
 from superset.commands.dataset.update import UpdateDatasetCommand, validate_folders
-from superset.connectors.sqla.models import SqlaTable
+from superset.commands.exceptions import OwnersNotFoundValidationError
 from superset.datasets.schemas import FolderSchema
-from superset.models.core import Database
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from tests.unit_tests.conftest import with_feature_flags
 
 
-@pytest.mark.usefixture("session")
-def test_update_uniqueness_error(mocker: MockerFixture) -> None:
+def test_update_dataset_not_found(mocker: MockerFixture) -> None:
     """
-    Test uniqueness validation in dataset update command.
+    Test updating an unexisting ID raises a `DatasetNotFoundError`.
     """
-    SqlaTable.metadata.create_all(db.session.get_bind())
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_dataset_dao.find_by_id.return_value = None
 
-    # First, make sure session is clean
-    db.session.rollback()
+    with pytest.raises(DatasetNotFoundError):
+        UpdateDatasetCommand(1, {"name": "test"}).run()
 
-    try:
-        # Set up test data
-        database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
-        bar = SqlaTable(table_name="bar", schema="foo", database=database)
-        baz = SqlaTable(table_name="baz", schema="qux", database=database)
-        db.session.add_all([database, bar, baz])
-        db.session.commit()
 
-        # Set up mocks
-        mock_g = mocker.patch("superset.security.manager.g")
-        mock_g.user = MagicMock()
-        mocker.patch(
-            "superset.views.base.security_manager.can_access_all_datasources",
-            return_value=True,
-        )
-        mocker.patch(
-            "superset.commands.dataset.update.security_manager.raise_for_ownership",
-            return_value=None,
-        )
-        mocker.patch.object(UpdateDatasetCommand, "compute_owners", return_value=[])
+def test_update_dataset_forbidden(mocker: MockerFixture) -> None:
+    """
+    Test try updating a dataset without permission raises a `DatasetForbiddenError`.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_dataset_dao.find_by_id.return_value = mocker.MagicMock()
 
-        # Run the test that should fail
-        with pytest.raises(DatasetInvalidError):
-            UpdateDatasetCommand(
-                bar.id,
-                {
-                    "table_name": "baz",
-                    "schema": "qux",
-                },
-            ).run()
-    except Exception:
-        db.session.rollback()
-        raise
-    finally:
-        # Clean up - this will run even if the test fails
-        try:
-            db.session.query(SqlaTable).filter(
-                SqlaTable.table_name.in_(["bar", "baz"]),
-                SqlaTable.schema.in_(["foo", "qux"]),
-            ).delete(synchronize_session=False)
-            db.session.query(Database).filter(Database.database_name == "my_db").delete(
-                synchronize_session=False
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                message="Sample message",
+                level=ErrorLevel.ERROR,
             )
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
+        ),
+    )
+
+    with pytest.raises(DatasetForbiddenError):
+        UpdateDatasetCommand(1, {"name": "test"}).run()
+
+
+@pytest.mark.parametrize(
+    ("payload, exception, error_msg"),
+    [
+        (
+            {"database_id": 2},
+            DatabaseNotFoundValidationError,
+            "Database does not exist",
+        ),
+        (
+            {"catalog": "test"},
+            MultiCatalogDisabledValidationError,
+            "Only the default catalog is supported for this connection",
+        ),
+        (
+            {"table_name": "table", "schema": "schema"},
+            DatasetExistsValidationError,
+            "Dataset catalog.schema.table already exists",
+        ),
+        (
+            {"owners": [1]},
+            OwnersNotFoundValidationError,
+            "Owners are invalid",
+        ),
+    ],
+)
+def test_update_validation_errors(
+    payload: dict[str, Any],
+    exception: Exception,
+    error_msg: str,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test validation errors for the `UpdateDatasetCommand`.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    mocker.patch(
+        "superset.commands.utils.security_manager.get_user_by_id", return_value=None
+    )
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_database.allow_multi_catalog = False
+    mock_dataset = mocker.MagicMock()
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+
+    if exception == DatabaseNotFoundValidationError:
+        mock_dataset_dao.get_database_by_id.return_value = None
+    else:
+        mock_dataset_dao.get_database_by_id.return_value = mock_database
+
+    if exception == DatasetExistsValidationError:
+        mock_dataset_dao.validate_update_uniqueness.return_value = False
+    else:
+        mock_dataset_dao.validate_update_uniqueness.return_value = True
+
+    with pytest.raises(DatasetInvalidError) as excinfo:
+        UpdateDatasetCommand(1, payload).run()
+    assert any(error_msg in str(exc) for exc in excinfo.value._exceptions)
 
 
 @with_feature_flags(DATASET_FOLDERS=True)
