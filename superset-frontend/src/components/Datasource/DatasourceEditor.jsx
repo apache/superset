@@ -708,7 +708,7 @@ class DatasourceEditor extends PureComponent {
 
   async onQueryRun() {
     this.props.runQuery({
-      client_id: this.props.clientId, // How this is generated?
+      client_id: this.props.clientId,
       database_id: this.state.datasource.database.id,
       json: true,
       runAsync: false,
@@ -718,7 +718,7 @@ class DatasourceEditor extends PureComponent {
       tmp_table_name: '',
       select_as_cta: false,
       ctas_method: 'TABLE',
-      queryLimit: 1000,
+      queryLimit: 25,
       expand_data: true,
     });
   }
