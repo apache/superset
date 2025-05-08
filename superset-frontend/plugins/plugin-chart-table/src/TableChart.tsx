@@ -63,7 +63,7 @@ import {
   TableOutlined,
 } from '@ant-design/icons';
 import { isEmpty } from 'lodash';
-import { Input, Space, Select, Typography } from 'antd-v5';
+import { Input, Space, Select } from 'antd-v5';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
