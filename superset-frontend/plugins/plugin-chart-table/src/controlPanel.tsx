@@ -28,7 +28,7 @@ import {
   ControlStateMapping,
   D3_TIME_FORMAT_OPTIONS,
   Dataset,
-  DEFAULT_MAX_ROW_TABLE_CLIENT,
+  DEFAULT_MAX_ROW,
   DEFAULT_MAX_ROW_TABLE_SERVER,
   defineSavedMetrics,
   formatSelectOptions,
@@ -396,8 +396,7 @@ const config: ControlPanelConfig = {
                   validateServerPagination(
                     v,
                     state?.server_pagination,
-                    state?.maxValueWithoutServerPagination ||
-                      DEFAULT_MAX_ROW_TABLE_CLIENT,
+                    state?.maxValueWithoutServerPagination || DEFAULT_MAX_ROW,
                   ),
               ],
               // Re run the validations when this control value

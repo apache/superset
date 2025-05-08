@@ -329,7 +329,7 @@ class ChartRenderer extends Component {
       : {};
     // By pass no result component when server pagination is enabled & the table has a backend search query
     const bypassNoResult = !(
-      formData?.server_pagination && (ownState?.searchText?.length || '') > 0
+      formData?.server_pagination && (ownState?.searchText?.length || 0) > 0
     );
 
     return (

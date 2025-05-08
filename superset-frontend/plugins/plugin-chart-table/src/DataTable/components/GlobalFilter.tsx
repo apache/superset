@@ -43,7 +43,7 @@ export interface GlobalFilterProps<D extends object> {
   filterValue: string;
   setGlobalFilter: (filterValue: FilterValue) => void;
   searchInput?: ComponentType<SearchInputProps>;
-  id?: string; // Make id optional with default value
+  id?: string;
   serverPagination: boolean;
   rowCount: number;
 }
