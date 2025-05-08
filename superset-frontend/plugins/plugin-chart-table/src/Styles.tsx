@@ -106,6 +106,7 @@ export default styled.div`
     .dt-pagination .pagination > li > span {
       background-color: ${theme.colorBgBase};
       color: ${theme.colorText};
+      border-color: ${theme.colorBorderSecondary};
     }
 
     .dt-pagination .pagination > li.active > a,
@@ -116,11 +117,13 @@ export default styled.div`
     .dt-pagination .pagination > li.active > span:hover {
       background-color: ${theme.colorPrimary};
       color: ${theme.colorBgContainer};
+      border-color: ${theme.colorBorderSecondary};
     }
 
     .pagination > li > span.dt-pagination-ellipsis:focus,
     .pagination > li > span.dt-pagination-ellipsis:hover {
       background: ${theme.colorBgLayout};
+      border-color: ${theme.colorBorderSecondary};
     }
 
     .dt-no-results {
