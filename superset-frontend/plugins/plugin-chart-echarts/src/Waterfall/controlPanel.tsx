@@ -25,6 +25,7 @@ import {
   formatSelectOptions,
   sharedControls,
 } from '@superset-ui/chart-controls';
+import React from 'react';
 import { showValueControl } from '../controls';
 
 const config: ControlPanelConfig = {
@@ -39,10 +40,51 @@ const config: ControlPanelConfig = {
         ['metric'],
         ['adhoc_filters'],
         ['row_limit'],
+        [
+          {
+            name: 'seriesOrderByColumn',
+            config: {
+              type: 'SelectControl',
+              label: t('Order series by column'),
+              description: t(
+                'Column to use for ordering the waterfall series with columns not in the chart',
+              ),
+              mapStateToProps: state => ({
+                choices: [
+                  ...(state.datasource?.columns || []).map(col => [
+                    col.column_name,
+                    col.column_name,
+                  ]),
+                ],
+                default: state.form_data.x_axis,
+              }),
+              clearable: false,
+              visibility: ({ controls }) => Boolean(controls?.x_axis?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'seriesOrderDirection',
+            config: {
+              type: 'SelectControl',
+              label: t('Order direction'),
+              choices: [
+                ['ASC', t('Ascending')],
+                ['DESC', t('Descending')],
+              ],
+              default: 'ASC',
+              clearable: false,
+              description: t(
+                'Ordering direction for the series, to be used with "Order Series By Column"',
+              ),
+            },
+          },
+        ],
       ],
     },
     {
-      label: t('Chart Options'),
+      label: t('Chart options'),
       expanded: true,
       controlSetRows: [
         [showValueControl],
@@ -55,6 +97,50 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: false,
               description: t('Whether to display a legend for the chart'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_total',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show total'),
+              default: true,
+              renderTrigger: true,
+              description: t('Show the total value in the waterfall chart'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'useFirstValueAsSubtotal',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Use first value as subtotal'),
+              default: false,
+              renderTrigger: true,
+              description: t('Render the first bar in the chart as a subtotal'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'bold_labels',
+            config: {
+              type: 'SelectControl',
+              label: t('Bold labels'),
+              default: 'both',
+              choices: [
+                ['none', t('None')],
+                ['total', t('Total only')],
+                ['subtotal', t('Subtotal only')],
+                ['both', t('Both total and subtotal')],
+              ],
+              renderTrigger: true,
+              description: t(
+                'Choose which labels to display in bold in the waterfall chart',
+              ),
             },
           },
         ],
@@ -92,13 +178,13 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
+        [<ControlSubSectionHeader>{t('X axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'x_axis_label',
             config: {
               type: 'TextControl',
-              label: t('X Axis Label'),
+              label: t('X axis label'),
               renderTrigger: true,
               default: '',
             },
@@ -119,7 +205,7 @@ const config: ControlPanelConfig = {
             name: 'x_ticks_layout',
             config: {
               type: 'SelectControl',
-              label: t('X Tick Layout'),
+              label: t('X tick layout'),
               choices: formatSelectOptions([
                 'auto',
                 'flat',
@@ -133,14 +219,61 @@ const config: ControlPanelConfig = {
               description: t('The way the ticks are laid out on the X-axis'),
             },
           },
+          {
+            name: 'x_ticks_wrap_length',
+            config: {
+              type: 'TextControl',
+              label: t('X Tick Wrap Length'),
+              description: t(
+                'Maximum line length for wrapped text (when Flat layout is selected)',
+              ),
+              default: '20',
+              renderTrigger: true,
+              visibility: ({ controls }) =>
+                controls.x_ticks_layout.value === 'flat',
+            },
+          },
         ],
-        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
+        [
+          {
+            name: 'sort_x_axis',
+            config: {
+              type: 'SelectControl',
+              label: t('Sort x axis'),
+              default: 'none',
+              choices: [
+                ['none', t('None')],
+                ['asc', t('Ascending')],
+                ['desc', t('Descending')],
+              ],
+              renderTrigger: true,
+              description: t('Sort X axis in ascending or descending order'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'orientation',
+            config: {
+              type: 'SelectControl',
+              label: t('Orientation'),
+              default: 'vertical',
+              choices: [
+                ['vertical', t('Vertical')],
+                ['horizontal', t('Horizontal')],
+              ],
+              renderTrigger: true,
+              description: t('Orientation of the chart'),
+            },
+          },
+        ],
+        [<ControlSubSectionHeader>{t('Y axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'y_axis_label',
             config: {
               type: 'TextControl',
-              label: t('Y Axis Label'),
+              label: t('Y axis label'),
               renderTrigger: true,
               default: '',
             },
