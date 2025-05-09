@@ -31,7 +31,7 @@ import { BinaryQueryObjectFilterClause, VizType } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import DrillDetailMenuItems, {
   DrillDetailMenuItemsProps,
-} from './DrillDetailMenuItems';
+} from './useDrillDetailMenuItems';
 import DrillDetailModal from './DrillDetailModal';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
