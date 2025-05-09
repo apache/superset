@@ -41,7 +41,6 @@ setupPlugins();
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 const bootstrapData = getBootstrapData();
-const appRootPath = process.env.SUPERSET_APP_ROOT || '';
 
 function log(...info: unknown[]) {
   if (debugMode) {
@@ -157,7 +156,7 @@ function guestUnauthorizedHandler() {
 function start() {
   const getMeWithRole = makeApi<void, { result: UserWithPermissionsAndRoles }>({
     method: 'GET',
-    endpoint: `${appRootPath}/api/v1/me/roles/`,
+    endpoint: '/api/v1/me/roles/',
   });
   return getMeWithRole().then(
     ({ result }) => {
