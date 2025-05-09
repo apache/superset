@@ -16,7 +16,7 @@
 # under the License.
 
 
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, validate
 from marshmallow.validate import Length, OneOf
 
 from superset.connectors.sqla.models import RowLevelSecurityFilter
@@ -106,12 +106,13 @@ class RLSPostSchema(Schema):
         metadata={"description": "name_description"},
         required=True,
         allow_none=False,
-        validate=Length(1, 255),
+        validate=[validate.And(Length(1, 255),validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'))],
     )
     description = fields.String(
         metadata={"description": "description_description"},
         required=False,
         allow_none=True,
+        validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'),
     )
     filter_type = fields.String(
         metadata={"description": "filter_type_description"},
@@ -138,9 +139,10 @@ class RLSPostSchema(Schema):
         metadata={"description": "group_key_description"},
         required=False,
         allow_none=True,
+        validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'),
     )
     clause = fields.String(
-        metadata={"description": "clause_description"}, required=True, allow_none=False
+        metadata={"description": "clause_description"}, required=True, allow_none=False, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
 
 
@@ -149,12 +151,13 @@ class RLSPutSchema(Schema):
         metadata={"description": "name_description"},
         required=False,
         allow_none=False,
-        validate=Length(1, 255),
+        validate=[validate.And(Length(1, 255),validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'))],
     )
     description = fields.String(
         metadata={"description": "description_description"},
         required=False,
         allow_none=True,
+        validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'),
     )
     filter_type = fields.String(
         metadata={"description": "filter_type_description"},
@@ -180,7 +183,8 @@ class RLSPutSchema(Schema):
         metadata={"description": "group_key_description"},
         required=False,
         allow_none=True,
+        validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'),
     )
     clause = fields.String(
-        metadata={"description": "clause_description"}, required=False, allow_none=False
+        metadata={"description": "clause_description"}, required=False, allow_none=False, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
