@@ -30,6 +30,7 @@ import FlashProvider from '../components/FlashProvider';
 import { theme } from '../preamble';
 import { EmbeddedUiConfigProvider } from '../components/UiConfigContext';
 import { DynamicPluginProvider } from '../components/DynamicPlugins';
+import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
 
 const { common } = getBootstrapData();
 
@@ -52,13 +53,15 @@ export const RootContextProviders: React.FC = ({ children }) => {
                     ReactRouterRoute={Route}
                     stringifyOptions={{ encode: false }}
                   >
-                    {RootContextProviderExtension ? (
-                      <RootContextProviderExtension>
-                        {children}
-                      </RootContextProviderExtension>
-                    ) : (
-                      children
-                    )}
+                    <ExtensionsProvider>
+                      {RootContextProviderExtension ? (
+                        <RootContextProviderExtension>
+                          {children}
+                        </RootContextProviderExtension>
+                      ) : (
+                        children
+                      )}
+                    </ExtensionsProvider>
                   </QueryParamProvider>
                 </DynamicPluginProvider>
               </EmbeddedUiConfigProvider>

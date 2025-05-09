@@ -20,6 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
+const { ModuleFederationPlugin } = webpack.container;
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -143,6 +144,27 @@ const plugins = [
     inject: true,
     chunks: [],
     filename: '500.html',
+  }),
+  new ModuleFederationPlugin({
+    name: 'superset',
+    filename: 'remoteEntry.js',
+    shared: {
+      react: {
+        singleton: true,
+        eager: true,
+        requiredVersion: '^17.0.0',
+      },
+      'react-dom': {
+        singleton: true,
+        eager: true,
+        requiredVersion: '^17.0.0',
+      },
+      'antd-v5': {
+        singleton: true,
+        eager: true,
+        requiredVersion: 'npm:antd@^5.18.0',
+      },
+    },
   }),
 ];
 
@@ -532,7 +554,10 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
   const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
   const dir = relativeDir.replace('file:', '');
 
-  if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
+  if (
+    (/^@superset-ui/.test(pkg) || /^@apache-superset/.test(pkg)) &&
+    fs.existsSync(srcPath)
+  ) {
     console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
     config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
   }

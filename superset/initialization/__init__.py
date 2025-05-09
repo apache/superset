@@ -55,6 +55,11 @@ from superset.extensions import (
     stats_logger_manager,
     talisman,
 )
+from superset.extensions.utils import (
+    eager_import,
+    get_extensions,
+    install_in_memory_importer,
+)
 from superset.security import SupersetSecurityManager
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
@@ -148,6 +153,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.explore.api import ExploreRestApi
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
+        from superset.extensions.api import ExtensionsRestApi
         from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
@@ -215,6 +221,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ExploreRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
         appbuilder.add_api(ExplorePermalinkRestApi)
+        appbuilder.add_api(ExtensionsRestApi)
         appbuilder.add_api(ImportExportRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
@@ -418,6 +425,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-lock",
         )
 
+    def init_extensions(self) -> None:
+        try:
+            extensions = get_extensions()
+            for extension in extensions.values():
+                if backend_files := extension.backend:
+                    install_in_memory_importer(backend_files)
+
+                backend = extension.manifest.get("backend")
+                if backend and (entrypoints := backend.get("entryPoints")):
+                    for entrypoint in entrypoints:
+                        eager_import(entrypoint)
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
+            # if the db hasn't been initialized yet, an exception will be raised.
+            # It's fine to ignore this, as in this case there are no extensions present
+            # yet.
+            pass
+
     def init_app_in_ctx(self) -> None:
         """
         Runs init logic in the context of the app
@@ -439,6 +463,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             register_sqla_event_listeners()
 
         self.init_views()
+        self.init_extensions()
 
     def check_secret_key(self) -> None:
         def log_default_secret_key_warning() -> None:
