@@ -21,7 +21,9 @@ import { styled } from '@superset-ui/core';
 
 export const FormItem = styled(Form.Item)`
   ${({ theme }) => `
-    margin-bottom: 0;
+    &.antd5-form-item > .antd5-row > .antd5-form-item-label {
+      padding-bottom: ${theme.paddingXXS}px;
+    }
     .antd5-form-item-label {
       & > label {
         &.antd5-form-item-required:not(.antd5-form-item-required-mark-optional) {

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { styled, css, t, useTheme } from '@superset-ui/core';
+import { styled, css, t } from '@superset-ui/core';
 import { Comparator } from '@superset-ui/chart-controls';
 import { Icons } from 'src/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -74,7 +74,6 @@ const ConditionalFormattingControl = ({
   extraColorChoices,
   ...props
 }: ConditionalFormattingControlProps) => {
-  const theme = useTheme();
   const [conditionalFormattingConfigs, setConditionalFormattingConfigs] =
     useState<ConditionalFormattingConfig[]>(value ?? []);
 
@@ -161,12 +160,7 @@ const ConditionalFormattingControl = ({
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
                 <CaretContainer>
-                  <Icons.RightOutlined
-                    iconSize="m"
-                    css={css`
-                      margin-top: ${theme.sizeUnit}px;
-                    `}
-                  />
+                  <Icons.RightOutlined iconSize="m" />
                 </CaretContainer>
               </OptionControlContainer>
             </FormattingPopover>

@@ -38,7 +38,7 @@ const CheckBoxControlWrapper = styled.div`
     .ControlHeader label {
       color: ${theme.colorText};
     }
-    span[role='checkbox'] {
+    span:has(label) {
       padding-right: ${theme.sizeUnit * 2}px;
     }
   `}

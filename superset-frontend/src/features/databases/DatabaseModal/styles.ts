@@ -199,10 +199,6 @@ export const formStyles = (theme: SupersetTheme) => css`
       }
     }
   }
-  .control-label {
-    color: ${theme.colorText};
-    font-size: ${theme.fontSizeSM}px;
-  }
   .helper {
     color: ${theme.colors.grayscale.light1};
     font-size: ${theme.fontSizeSM}px;
@@ -229,12 +225,6 @@ export const StyledInputContainer = styled.div`
       margin-bottom: 0;
     }
     &.mb-8 {
-      margin-bottom: ${theme.sizeUnit * 2}px;
-    }
-
-    .control-label {
-      color: ${theme.colorText};
-      font-size: ${theme.fontSizeSM}px;
       margin-bottom: ${theme.sizeUnit * 2}px;
     }
 
@@ -294,9 +284,6 @@ export const StyledInputContainer = styled.div`
       margin-left: ${theme.sizeUnit * 8}px;
       margin-bottom: 0;
       padding: 0;
-      .control-label {
-        margin-bottom: 0;
-      }
       &.open {
         height: ${CTAS_CVAS_SCHEMA_FORM_HEIGHT}px;
         padding-right: ${theme.sizeUnit * 5}px;
@@ -478,12 +465,6 @@ export const SelectDatabaseStyles = styled.div`
 
   .label-available-select {
     font-size: ${({ theme }) => theme.fontSizeSM}px;
-  }
-
-  .control-label {
-    color: ${({ theme }) => theme.colorTextLabel};
-    font-size: ${({ theme }) => theme.fontSizeSM}px;
-    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 `;
 
