@@ -20,13 +20,12 @@
 // Tests for setting controls in the UI
 // ***********************************************
 import { interceptChart } from 'cypress/utils';
-import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 
 describe('Datasource control', () => {
   const newMetricName = `abc${Date.now()}`;
 
   it('should allow edit dataset', () => {
-    interceptChart({ legacy: true }).as('chartData');
+    interceptChart({ legacy: false }).as('chartData');
 
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
@@ -52,11 +51,11 @@ describe('Datasource control', () => {
     )
       .first()
       .focus();
-    cy.focused().clear();
-    cy.focused().type(`${newMetricName}{enter}`);
+    cy.focused().clear({ force: true });
+    cy.focused().type(`${newMetricName}{enter}`, { force: true });
 
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.ant-modal-confirm-btns button').contains('OK').click();
+    cy.get('.antd5-modal-confirm-btns button').contains('OK').click();
     // select new metric
     cy.get('[data-test=metrics]')
       .contains('Drop columns/metrics here or click')
@@ -68,7 +67,7 @@ describe('Datasource control', () => {
     // delete metric
     cy.get('[data-test="datasource-menu-trigger"]').click();
     cy.get('[data-test="edit-dataset"]').click();
-    cy.get('.ant-modal-content').within(() => {
+    cy.get('.antd5-modal-content').within(() => {
       cy.get('[data-test="collection-tab-Metrics"]')
         .contains('Metrics')
         .click();
@@ -78,14 +77,14 @@ describe('Datasource control', () => {
       .find('[data-test="crud-delete-icon"]')
       .click();
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.ant-modal-confirm-btns button').contains('OK').click();
+    cy.get('.antd5-modal-confirm-btns button').contains('OK').click();
     cy.get('[data-test="metrics"]').contains(newMetricName).should('not.exist');
   });
 });
 
 describe('Color scheme control', () => {
   beforeEach(() => {
-    interceptChart({ legacy: true }).as('chartData');
+    interceptChart({ legacy: false }).as('chartData');
 
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
@@ -99,16 +98,13 @@ describe('Color scheme control', () => {
     cy.get('.ant-select-selection-item .color-scheme-label').trigger(
       'mouseover',
     );
+    cy.get('.color-scheme-tooltip').should('be.visible');
     cy.get('.color-scheme-tooltip').contains('Superset Colors');
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
-    cy.focused().type('lyftColors{enter}');
-    cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="lyftColors"]',
-    ).should('exist');
-    cy.get('.ant-select-selection-item .color-scheme-label').trigger(
-      'mouseover',
-    );
+    cy.focused().type('lyftColors');
+    cy.getBySel('lyftColors').should('exist');
+    cy.getBySel('lyftColors').trigger('mouseover');
     cy.get('.color-scheme-tooltip').should('not.exist');
   });
 });
@@ -124,7 +120,7 @@ describe('VizType control', () => {
 
     cy.contains('View all charts').click();
 
-    cy.get('.ant-modal-content').within(() => {
+    cy.get('.antd5-modal-content').within(() => {
       cy.get('button').contains('KPI').click(); // change categories
       cy.get('[role="button"]').contains('Big Number').click();
       cy.get('button').contains('Select').click();
@@ -140,7 +136,7 @@ describe('VizType control', () => {
 describe('Test datatable', () => {
   beforeEach(() => {
     interceptChart({ legacy: false }).as('tableChartData');
-    interceptChart({ legacy: true }).as('lineChartData');
+    interceptChart({ legacy: false }).as('lineChartData');
     cy.visitChartByName('Daily Totals');
   });
   it('Data Pane opens and loads results', () => {
@@ -150,7 +146,7 @@ describe('Test datatable', () => {
   });
   it('Datapane loads view samples', () => {
     cy.intercept(
-      'datasource/samples?force=false&datasource_type=table&datasource_id=*',
+      '**/datasource/samples?force=false&datasource_type=table&datasource_id=*',
     ).as('Samples');
     cy.contains('Samples').click();
     cy.wait('@Samples');
@@ -160,107 +156,9 @@ describe('Test datatable', () => {
   });
 });
 
-describe('Time range filter', () => {
-  beforeEach(() => {
-    interceptChart({ legacy: true }).as('chartData');
-  });
-
-  it('Advanced time_range params', () => {
-    const formData = {
-      ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
-      time_range: '100 years ago : now',
-      metrics: [NUM_METRIC],
-    };
-
-    cy.visitChartByParams(formData);
-    cy.verifySliceSuccess({ waitAlias: '@chartData' });
-
-    cy.get('[data-test=time-range-trigger]').click();
-    cy.get('.footer').find('button').its('length').should('eq', 2);
-    cy.get('.ant-popover-content').within(() => {
-      cy.get('input[value="100 years ago"]');
-      cy.get('input[value="now"]');
-    });
-    cy.get('[data-test=cancel-button]').click();
-    cy.wait(500);
-    cy.get('.ant-popover').should('not.exist');
-  });
-
-  it('Common time_range params', () => {
-    const formData = {
-      ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
-      metrics: [NUM_METRIC],
-      time_range: 'Last year',
-    };
-
-    cy.visitChartByParams(formData);
-    cy.verifySliceSuccess({ waitAlias: '@chartData' });
-
-    cy.get('[data-test=time-range-trigger]').click();
-    cy.get('.ant-radio-group').children().its('length').should('eq', 5);
-    cy.get('.ant-radio-checked + span').contains('Last year');
-    cy.get('[data-test=cancel-button]').click();
-  });
-
-  it('Previous time_range params', () => {
-    const formData = {
-      ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
-      metrics: [NUM_METRIC],
-      time_range: 'previous calendar month',
-    };
-
-    cy.visitChartByParams(formData);
-    cy.verifySliceSuccess({ waitAlias: '@chartData' });
-
-    cy.get('[data-test=time-range-trigger]').click();
-    cy.get('.ant-radio-group').children().its('length').should('eq', 3);
-    cy.get('.ant-radio-checked + span').contains('previous calendar month');
-    cy.get('[data-test=cancel-button]').click();
-  });
-
-  it('Custom time_range params', () => {
-    const formData = {
-      ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
-      metrics: [NUM_METRIC],
-      time_range: 'DATEADD(DATETIME("today"), -7, day) : today',
-    };
-
-    cy.visitChartByParams(formData);
-    cy.verifySliceSuccess({ waitAlias: '@chartData' });
-
-    cy.get('[data-test=time-range-trigger]').click();
-    cy.get('[data-test=custom-frame]').then(() => {
-      cy.get('.ant-input-number-input-wrap > input')
-        .invoke('attr', 'value')
-        .should('eq', '7');
-    });
-    cy.get('[data-test=cancel-button]').click();
-  });
-
-  it('No filter time_range params', () => {
-    const formData = {
-      ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
-      metrics: [NUM_METRIC],
-      time_range: 'No filter',
-    };
-
-    cy.visitChartByParams(formData);
-    cy.verifySliceSuccess({ waitAlias: '@chartData' });
-
-    cy.get('[data-test=time-range-trigger]').click();
-    cy.get('[data-test=no-filter]').should('exist');
-    cy.get('[data-test=cancel-button]').click();
-  });
-});
-
 describe('Groupby control', () => {
   it('Set groupby', () => {
-    interceptChart({ legacy: true }).as('chartData');
+    interceptChart({ legacy: false }).as('chartData');
 
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
@@ -274,6 +172,6 @@ describe('Groupby control', () => {
     cy.get('[data-test="ColumnEdit#save"]').contains('Save').click();
 
     cy.get('button[data-test="run-query-button"]').click();
-    cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'svg' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
   });
 });

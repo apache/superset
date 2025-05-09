@@ -36,7 +36,7 @@
  * under the License.
  */
 import JSONbig from 'json-bigint';
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
 import { JSONTree } from 'react-json-tree';
 import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
 import Button from '../Button';
@@ -46,6 +46,10 @@ import ModalTrigger from '../ModalTrigger';
 export function safeJsonObjectParse(
   data: unknown,
 ): null | unknown[] | Record<string, unknown> {
+  if (typeof data === 'object') {
+    return data as null | unknown[] | Record<string, unknown>;
+  }
+
   // First perform a cheap proxy to avoid calling JSON.parse on data that is clearly not a
   // JSON object or array
   if (
@@ -78,7 +82,7 @@ function renderBigIntStrToNumber(value: string | number) {
   return <>{convertBigIntStrToNumber(value)}</>;
 }
 
-type CellDataType = string | number | null;
+type CellDataType = string | number | null | object;
 
 export interface Props {
   modalTitle: string;
@@ -86,8 +90,13 @@ export interface Props {
   jsonValue: CellDataType;
 }
 
-const JsonModal: FC<Props> = ({ modalTitle, jsonObject, jsonValue }) => {
+export const JsonModal: FC<Props> = ({ modalTitle, jsonObject, jsonValue }) => {
   const jsonTreeTheme = useJsonTreeTheme();
+  const content = useMemo(
+    () =>
+      typeof jsonValue === 'object' ? JSON.stringify(jsonValue) : jsonValue,
+    [jsonValue],
+  );
 
   return (
     <ModalTrigger
@@ -100,13 +109,11 @@ const JsonModal: FC<Props> = ({ modalTitle, jsonObject, jsonValue }) => {
       }
       modalFooter={
         <Button>
-          <CopyToClipboard shouldShowText={false} text={jsonValue} />
+          <CopyToClipboard shouldShowText={false} text={content} />
         </Button>
       }
       modalTitle={modalTitle}
-      triggerNode={<>{jsonValue}</>}
+      triggerNode={<>{content}</>}
     />
   );
 };
-
-export default JsonModal;

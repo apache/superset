@@ -50,17 +50,18 @@ import type {
   CursorPosition,
 } from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { debounce, throttle, isBoolean, isEmpty } from 'lodash';
+import { debounce, throttle, isEmpty } from 'lodash';
 import Modal from 'src/components/Modal';
 import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
 import ResizableSidebar from 'src/components/ResizableSidebar';
-import { AntdDropdown, Skeleton } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
+import { Skeleton } from 'src/components';
 import { Switch } from 'src/components/Switch';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { detectOS } from 'src/utils/common';
 import {
   addNewQueryEditor,
@@ -100,7 +101,7 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import Alert from 'src/components/Alert';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import useLogAction from 'src/logger/useLogAction';
@@ -281,9 +282,10 @@ const SqlEditor: FC<Props> = ({
     if (unsavedQueryEditor?.id === queryEditor.id) {
       dbId = unsavedQueryEditor.dbId || dbId;
       latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
-      hideLeftBar = isBoolean(unsavedQueryEditor.hideLeftBar)
-        ? unsavedQueryEditor.hideLeftBar
-        : hideLeftBar;
+      hideLeftBar =
+        typeof unsavedQueryEditor.hideLeftBar === 'boolean'
+          ? unsavedQueryEditor.hideLeftBar
+          : hideLeftBar;
     }
     return {
       hasSqlStatement: Boolean(queryEditor.sql?.trim().length > 0),
@@ -484,20 +486,28 @@ const SqlEditor: FC<Props> = ({
           const cursorPosition = editor.getCursorPosition();
           const totalLine = session.getLength();
           const currentRow = editor.getFirstVisibleRow();
-          let end = editor.find(';', {
+          const semicolonEnd = editor.find(';', {
             backwards: false,
             skipCurrent: true,
-          })?.end;
+          });
+          let end;
+          if (semicolonEnd) {
+            ({ end } = semicolonEnd);
+          }
           if (!end || end.row < cursorPosition.row) {
             end = {
               row: totalLine + 1,
               column: 0,
             };
           }
-          let start = editor.find(';', {
+          const semicolonStart = editor.find(';', {
             backwards: true,
             skipCurrent: true,
-          })?.end;
+          });
+          let start;
+          if (semicolonStart) {
+            start = semicolonStart.end;
+          }
           let currentLine = start?.row;
           if (
             !currentLine ||
@@ -859,9 +869,14 @@ const SqlEditor: FC<Props> = ({
               <span>
                 <ShareSqlLabQuery queryEditorId={queryEditor.id} />
               </span>
-              <AntdDropdown overlay={renderDropdown()} trigger={['click']}>
-                <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
-              </AntdDropdown>
+              <Dropdown
+                dropdownRender={() => renderDropdown()}
+                trigger={['click']}
+              >
+                <Button buttonSize="xsmall" type="link" showMarginRight={false}>
+                  <Icons.EllipsisOutlined />
+                </Button>
+              </Dropdown>
             </div>
           </>
         )}
@@ -967,8 +982,9 @@ const SqlEditor: FC<Props> = ({
           <Skeleton active />
         </div>
       ) : showEmptyState && !hasSqlStatement ? (
-        <EmptyStateBig
+        <EmptyState
           image="vector.svg"
+          size="large"
           title={t('Select a database to write a query')}
           description={t(
             'Choose one of the available databases from the panel on the left.',

@@ -157,13 +157,13 @@ export default styled(Calendar)`
     }
 
     .cal-heatmap-container .q1 {
-      background-color: ${theme.colors.alert.light2};
-      fill: ${theme.colors.alert.light2};
+      background-color: ${theme.colors.warning.light2};
+      fill: ${theme.colors.warning.light2};
     }
 
     .cal-heatmap-container .q2 {
-      background-color: ${theme.colors.alert.light1};
-      fill: ${theme.colors.alert.light1};
+      background-color: ${theme.colors.warning.light1};
+      fill: ${theme.colors.warning.light1};
     }
 
     .cal-heatmap-container .q3 {

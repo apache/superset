@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ComparisonType, QueryObject, SqlaFormData } from '@superset-ui/core';
+import {
+  ComparisonType,
+  QueryObject,
+  SqlaFormData,
+  VizType,
+} from '@superset-ui/core';
 import { renameOperator } from '@superset-ui/chart-controls';
 
 const formData: SqlaFormData = {
@@ -26,7 +31,7 @@ const formData: SqlaFormData = {
   time_range: '2015 : 2016',
   granularity: 'month',
   datasource: 'foo',
-  viz_type: 'table',
+  viz_type: VizType.Table,
   truncate_metric: true,
 };
 const queryObject: QueryObject = {
@@ -38,12 +43,12 @@ const queryObject: QueryObject = {
   post_processing: [],
 };
 
-test('should skip renameOperator if exists multiple metrics', () => {
+test('should skip renameOperator for empty metrics', () => {
   expect(
     renameOperator(formData, {
       ...queryObject,
       ...{
-        metrics: ['count(*)', 'sum(sales)'],
+        metrics: [],
       },
     }),
   ).toEqual(undefined);
@@ -72,7 +77,23 @@ test('should skip renameOperator if does not exist x_axis and is_timeseries', ()
   ).toEqual(undefined);
 });
 
-test('should skip renameOperator if exists derived metrics', () => {
+test('should skip renameOperator if not is_timeseries and multi metrics', () => {
+  expect(
+    renameOperator(formData, {
+      ...queryObject,
+      ...{ is_timeseries: false, metrics: ['count(*)', 'sum(val)'] },
+    }),
+  ).toEqual(undefined);
+});
+
+test('should add renameOperator', () => {
+  expect(renameOperator(formData, queryObject)).toEqual({
+    operation: 'rename',
+    options: { columns: { 'count(*)': null }, inplace: true, level: 0 },
+  });
+});
+
+test('should add renameOperator if exists derived metrics', () => {
   [
     ComparisonType.Difference,
     ComparisonType.Ratio,
@@ -94,14 +115,14 @@ test('should skip renameOperator if exists derived metrics', () => {
           },
         },
       ),
-    ).toEqual(undefined);
-  });
-});
-
-test('should add renameOperator', () => {
-  expect(renameOperator(formData, queryObject)).toEqual({
-    operation: 'rename',
-    options: { columns: { 'count(*)': null }, inplace: true, level: 0 },
+    ).toEqual({
+      operation: 'rename',
+      options: {
+        columns: { [`${type}__count(*)__count(*)__1 year ago`]: '1 year ago' },
+        inplace: true,
+        level: 0,
+      },
+    });
   });
 });
 
@@ -158,6 +179,61 @@ test('should add renameOperator if exist "actual value" time comparison', () => 
         'count(*)': null,
         'count(*)__1 year ago': '1 year ago',
         'count(*)__1 year later': '1 year later',
+      },
+      inplace: true,
+      level: 0,
+    },
+  });
+});
+
+test('should add renameOperator if derived time comparison exists', () => {
+  expect(
+    renameOperator(
+      {
+        ...formData,
+        ...{
+          comparison_type: ComparisonType.Ratio,
+          time_compare: ['1 year ago', '1 year later'],
+        },
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'rename',
+    options: {
+      columns: {
+        'ratio__count(*)__count(*)__1 year ago': '1 year ago',
+        'ratio__count(*)__count(*)__1 year later': '1 year later',
+      },
+      inplace: true,
+      level: 0,
+    },
+  });
+});
+
+test('should add renameOperator if multiple metrics exist', () => {
+  expect(
+    renameOperator(
+      {
+        ...formData,
+        ...{
+          comparison_type: ComparisonType.Values,
+          time_compare: ['1 year ago'],
+        },
+      },
+      {
+        ...queryObject,
+        ...{
+          metrics: ['count(*)', 'sum(sales)'],
+        },
+      },
+    ),
+  ).toEqual({
+    operation: 'rename',
+    options: {
+      columns: {
+        'count(*)__1 year ago': 'count(*), 1 year ago',
+        'sum(sales)__1 year ago': 'sum(sales), 1 year ago',
       },
       inplace: true,
       level: 0,

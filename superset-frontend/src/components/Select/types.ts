@@ -22,12 +22,14 @@ import {
   ReactNode,
   RefObject,
 } from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
-} from 'antd/lib/select';
-import { TagProps } from 'antd/lib/tag';
+} from 'antd/lib/select'; // TODO: Remove antd
+// eslint-disable-next-line no-restricted-imports
+import { TagProps } from 'antd/lib/tag'; // TODO: Remove antd
 
 export type RawValue = string | number;
 
@@ -70,6 +72,10 @@ export type AntdExposedProps = Pick<
 export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;
 
 export interface BaseSelectProps extends AntdExposedProps {
+  /**
+   * Optional CSS class name to apply to the select container
+   */
+  className?: string;
   /**
    * It enables the user to create new options.
    * Can be used with standard or async select types.

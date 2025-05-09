@@ -37,10 +37,12 @@ from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.tags.models import Tag, TaggedObject, TagType, ObjectType
 from superset.utils.core import backend, override_user
+from superset.utils.screenshots import ScreenshotCachePayload
 from superset.utils import json
 
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
@@ -81,7 +83,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         "slug": "slug1_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
-        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',
+        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": [], "map_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',  # noqa: E501
         "published": False,
     }
 
@@ -94,7 +96,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         "reordered": [],
     }
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_dashboards(self):
         with self.create_app().app_context():
             dashboards = []
@@ -136,7 +138,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 db.session.delete(fav_dashboard)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_created_by_gamma_dashboards(self):
         with self.create_app().app_context():
             dashboards = []
@@ -157,7 +159,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 db.session.delete(dashboard)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_dashboard_with_report(self):
         with self.create_app().app_context():
             admin = self.get_user("admin")
@@ -218,7 +220,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             - ``fourth_dashboard`` is not associated with any tag
 
         Relies on the ``create_custom_tags`` fixture for the tag creation.
-        """
+        """  # noqa: E501
         with self.create_app().app_context():
             admin_user = self.get_user(ADMIN_USERNAME)
 
@@ -832,9 +834,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             assert data_by_id["count"] == data_by_name["count"], len(
                 expected_dashboards
             )
-            assert set(chart["id"] for chart in data_by_id["result"]) == set(
+            assert set(chart["id"] for chart in data_by_id["result"]) == set(  # noqa: C401
                 chart["id"] for chart in data_by_name["result"]
-            ), set(chart.id for chart in expected_dashboards)
+            ), set(chart.id for chart in expected_dashboards)  # noqa: C401
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_current_user_favorite_status(self):
@@ -1273,7 +1275,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         admin_id = self.get_user("admin").id
         dashboard_count = 4
-        dashboard_ids = list()
+        dashboard_ids = list()  # noqa: C408
         for dashboard_name_index in range(dashboard_count):
             dashboard_ids.append(
                 self.insert_dashboard(
@@ -1300,7 +1302,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         user = self.get_user("admin")
         dashboard_count = 4
-        dashboard_ids = list()
+        dashboard_ids = list()  # noqa: C408
         for dashboard_name_index in range(dashboard_count):
             dashboard_ids.append(
                 self.insert_dashboard(
@@ -1434,7 +1436,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         gamma_id = self.get_user("gamma").id
         dashboard_count = 4
-        dashboard_ids = list()
+        dashboard_ids = list()  # noqa: C408
         for dashboard_name_index in range(dashboard_count):
             dashboard_ids.append(
                 self.insert_dashboard(
@@ -1474,7 +1476,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         dashboard = self.insert_dashboard(
             "title", "slug1", [user_alpha1.id], slices=[existing_slice], published=True
         )
-        self.login(username="alpha2", password="password")
+        self.login(username="alpha2", password="password")  # noqa: S106
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.delete(uri)
         assert rv.status_code == 403
@@ -1499,7 +1501,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         )
 
         dashboard_count = 4
-        dashboards = list()
+        dashboards = list()  # noqa: C408
         for dashboard_name_index in range(dashboard_count):
             dashboards.append(
                 self.insert_dashboard(
@@ -1519,7 +1521,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             published=True,
         )
 
-        self.login(username="alpha2", password="password")
+        self.login(username="alpha2", password="password")  # noqa: S106
 
         # verify we can't delete not owned dashboards
         arguments = [dashboard.id for dashboard in dashboards]
@@ -2208,7 +2210,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         dashboard = self.insert_dashboard(
             "title", "slug1", [user_alpha1.id], slices=[existing_slice], published=True
         )
-        self.login(username="alpha2", password="password")
+        self.login(username="alpha2", password="password")  # noqa: S106
         dashboard_data = {"dashboard_title": "title1_changed", "slug": "slug1 changed"}
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.put_assert_metric(uri, dashboard_data, "put")
@@ -2442,7 +2444,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "dashboards/imported_dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",
+                        "dashboards/imported_dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",  # noqa: E501
                         "issue_codes": [
                             {
                                 "code": 1010,
@@ -3021,13 +3023,12 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         return self.client.post(uri, json=payload)
 
     def _get_screenshot(self, dashboard_id, cache_key, download_format):
-        uri = f"/api/v1/dashboard/{dashboard_id}/screenshot/{cache_key}/?download_format={download_format}"
+        uri = f"/api/v1/dashboard/{dashboard_id}/screenshot/{cache_key}/?download_format={download_format}"  # noqa: E501
         return self.client.get(uri)
 
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
-    @patch("superset.dashboards.api.is_feature_enabled")
-    def test_cache_dashboard_screenshot_success(self, is_feature_enabled):
-        is_feature_enabled.return_value = True
+    def test_cache_dashboard_screenshot_success(self):
         self.login(ADMIN_USERNAME)
         dashboard = (
             db.session.query(Dashboard)
@@ -3037,10 +3038,21 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = self._cache_screenshot(dashboard.id)
         assert response.status_code == 202
 
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
-    @patch("superset.dashboards.api.is_feature_enabled")
-    def test_cache_dashboard_screenshot_dashboard_validation(self, is_feature_enabled):
-        is_feature_enabled.return_value = True
+    def test_cache_dashboard_screenshot_success_permalink_payload(self):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        response = self._cache_screenshot(dashboard.id, {"permalinkKey": "1234"})
+        assert response.status_code == 202
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_dashboard_validation(self):
         self.login(ADMIN_USERNAME)
         dashboard = (
             db.session.query(Dashboard)
@@ -3056,28 +3068,26 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = self._cache_screenshot(dashboard.id, invalid_payload)
         assert response.status_code == 400
 
-    @patch("superset.dashboards.api.is_feature_enabled")
-    def test_cache_dashboard_screenshot_dashboard_not_found(self, is_feature_enabled):
-        is_feature_enabled.return_value = True
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    def test_cache_dashboard_screenshot_dashboard_not_found(self):
         self.login(ADMIN_USERNAME)
         non_existent_id = 999
         response = self._cache_screenshot(non_existent_id)
         assert response.status_code == 404
 
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
-    @patch("superset.dashboards.api.is_feature_enabled")
-    def test_screenshot_success_png(
-        self, is_feature_enabled, mock_get_cache, mock_cache_task
-    ):
+    def test_screenshot_success_png(self, mock_get_from_cache_key, mock_cache_task):
         """
         Validate screenshot returns png
         """
-        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_cache.return_value = BytesIO(b"fake image data")
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data"
+        )
 
         dashboard = (
             db.session.query(Dashboard)
@@ -3085,7 +3095,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .first()
         )
         cache_resp = self._cache_screenshot(dashboard.id)
-        assert cache_resp.status_code == 202
+        assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
         response = self._get_screenshot(dashboard.id, cache_key, "png")
@@ -3093,21 +3103,29 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert response.mimetype == "image/png"
         assert response.data == b"fake image data"
 
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload()
+        cache_resp = self._cache_screenshot(dashboard.id)
+        assert cache_resp.status_code == 202
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.build_pdf_from_screenshots")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
-    @patch("superset.dashboards.api.is_feature_enabled")
     def test_screenshot_success_pdf(
-        self, is_feature_enabled, mock_get_from_cache, mock_build_pdf, mock_cache_task
+        self,
+        mock_get_from_cache_key,
+        mock_build_pdf,
+        mock_cache_task,
     ):
         """
         Validate screenshot can return pdf.
         """
-        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache.return_value = BytesIO(b"fake image data")
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data"
+        )
         mock_build_pdf.return_value = b"fake pdf data"
 
         dashboard = (
@@ -3116,7 +3134,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .first()
         )
         cache_resp = self._cache_screenshot(dashboard.id)
-        assert cache_resp.status_code == 202
+        assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
         response = self._get_screenshot(dashboard.id, cache_key, "pdf")
@@ -3124,14 +3142,15 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert response.mimetype == "application/pdf"
         assert response.data == b"fake pdf data"
 
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload()
+        cache_resp = self._cache_screenshot(dashboard.id)
+        assert cache_resp.status_code == 202
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
-    @patch("superset.dashboards.api.is_feature_enabled")
-    def test_screenshot_not_in_cache(
-        self, is_feature_enabled, mock_get_cache, mock_cache_task
-    ):
-        is_feature_enabled.return_value = True
+    def test_screenshot_not_in_cache(self, mock_get_cache, mock_cache_task):
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
         mock_get_cache.return_value = None
@@ -3148,25 +3167,23 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = self._get_screenshot(dashboard.id, cache_key, "pdf")
         assert response.status_code == 404
 
-    @patch("superset.dashboards.api.is_feature_enabled")
-    def test_screenshot_dashboard_not_found(self, is_feature_enabled):
-        is_feature_enabled.return_value = True
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    def test_screenshot_dashboard_not_found(self):
         self.login(ADMIN_USERNAME)
         non_existent_id = 999
         response = self._get_screenshot(non_existent_id, "some_cache_key", "png")
         assert response.status_code == 404
 
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
-    @patch("superset.dashboards.api.is_feature_enabled")
     def test_screenshot_invalid_download_format(
-        self, is_feature_enabled, mock_get_cache, mock_cache_task
+        self, mock_get_from_cache_key, mock_cache_task
     ):
-        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_cache.return_value = BytesIO(b"fake png data")
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(b"fake png data")
 
         dashboard = (
             db.session.query(Dashboard)
@@ -3175,16 +3192,19 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         )
 
         cache_resp = self._cache_screenshot(dashboard.id)
-        assert cache_resp.status_code == 202
+        assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload()
+        cache_resp = self._cache_screenshot(dashboard.id)
+        assert cache_resp.status_code == 202
 
         response = self._get_screenshot(dashboard.id, cache_key, "invalid")
         assert response.status_code == 404
 
+    @with_feature_flags(THUMBNAILS=False, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
-    @patch("superset.dashboards.api.is_feature_enabled")
-    def test_cache_dashboard_screenshot_feature_disabled(self, is_feature_enabled):
-        is_feature_enabled.return_value = False
+    def test_cache_dashboard_screenshot_feature_thumbnails_ff_disabled(self):
         self.login(ADMIN_USERNAME)
 
         dashboard = (
@@ -3197,3 +3217,146 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         response = self._cache_screenshot(dashboard.id)
         assert response.status_code == 404
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=False)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_feature_screenshot_ff_disabled(self):
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        assert dashboard is not None
+
+        response = self._cache_screenshot(dashboard.id)
+        assert response.status_code == 404
+
+    @with_feature_flags(THUMBNAILS=False, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=False)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_feature_both_ff_disabled(self):
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        assert dashboard is not None
+
+        response = self._cache_screenshot(dashboard.id)
+        assert response.status_code == 404
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_put_dashboard_colors(self):
+        """
+        Dashboard API: Test updating dashboard colors
+        """
+        self.login(ADMIN_USERNAME)
+        dashboard = Dashboard.get("world_health")
+
+        colors = {
+            "label_colors": {"Sales": "#FF0000", "Profit": "#00FF00"},
+            "shared_label_colors": ["#0000FF", "#FFFF00"],
+            "map_label_colors": {"Revenue": "#FFFFFF"},
+            "color_scheme": "d3Category10",
+        }
+
+        uri = f"api/v1/dashboard/{dashboard.id}/colors"
+        rv = self.client.put(uri, json=colors)
+        assert rv.status_code == 200
+
+        updated_dashboard = db.session.query(Dashboard).get(dashboard.id)
+        updated_label_colors = json.loads(updated_dashboard.json_metadata).get(
+            "label_colors"
+        )
+        updated_shared_label_colors = json.loads(updated_dashboard.json_metadata).get(
+            "shared_label_colors"
+        )
+        updated_map_label_colors = json.loads(updated_dashboard.json_metadata).get(
+            "map_label_colors"
+        )
+        updated_color_scheme = json.loads(updated_dashboard.json_metadata).get(
+            "color_scheme"
+        )
+
+        assert updated_label_colors == colors["label_colors"]
+        assert updated_shared_label_colors == colors["shared_label_colors"]
+        assert updated_map_label_colors == colors["map_label_colors"]
+        assert updated_color_scheme == colors["color_scheme"]
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_put_dashboard_colors_no_mark_updated(self):
+        """
+        Dashboard API: Test updating dashboard colors without marking the dashboard as updated
+        """  # noqa: E501
+        self.login(ADMIN_USERNAME)
+        dashboard = Dashboard.get("world_health")
+
+        colors = {"color_scheme": "d3Category10"}
+
+        previous_changed_on = dashboard.changed_on
+        uri = f"api/v1/dashboard/{dashboard.id}/colors?mark_updated=false"
+        rv = self.client.put(uri, json=colors)
+        assert rv.status_code == 200
+
+        updated_dashboard = db.session.query(Dashboard).get(dashboard.id)
+        updated_color_scheme = json.loads(updated_dashboard.json_metadata).get(
+            "color_scheme"
+        )
+
+        assert updated_color_scheme == colors["color_scheme"]
+        assert updated_dashboard.changed_on == previous_changed_on
+
+    def test_put_dashboard_colors_not_found(self):
+        """
+        Dashboard API: Test updating colors for dashboard that does not exist
+        """
+        self.login(ADMIN_USERNAME)
+
+        colors = {"label_colors": {"Sales": "#FF0000"}}
+
+        invalid_id = self.get_nonexistent_numeric_id(Dashboard)
+        uri = f"api/v1/dashboard/{invalid_id}/colors"
+        rv = self.client.put(uri, json=colors)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_put_dashboard_colors_invalid(self):
+        """
+        Dashboard API: Test updating dashboard colors with invalid color format
+        """
+        self.login(ADMIN_USERNAME)
+        dashboard = Dashboard.get("world_health")
+
+        colors = {"test_invalid_prop": {"Sales": "invalid"}}
+
+        uri = f"api/v1/dashboard/{dashboard.id}/colors"
+        rv = self.client.put(uri, json=colors)
+        assert rv.status_code == 400
+
+    def test_put_dashboard_colors_not_authorized(self):
+        """
+        Dashboard API: Test updating colors without authorization
+        """
+        with self.create_app().app_context():
+            admin = security_manager.find_user("admin")
+            dashboard = self.insert_dashboard("title", None, [admin.id])
+
+            assert dashboard.id is not None
+
+            colors = {"label_colors": {"Sales": "#FF0000"}}
+
+            self.login(GAMMA_USERNAME)
+            uri = f"api/v1/dashboard/{dashboard.id}/colors"
+            rv = self.client.put(uri, json=colors)
+            assert rv.status_code == 403
+
+            yield dashboard
+
+            # Cleanup
+            db.session.delete(dashboard)
+            db.session.commit()

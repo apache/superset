@@ -26,12 +26,11 @@ from typing import Any, cast, TYPE_CHECKING
 
 import sqlparse
 from flask_babel import gettext as __
-from jinja2 import nodes
+from jinja2 import nodes, Template
 from sqlalchemy import and_
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
 from sqlparse.sql import (
-    Function,
     Identifier,
     IdentifierList,
     Parenthesis,
@@ -181,7 +180,7 @@ def check_sql_functions_exist(
     :param function_list: The list of functions to search for
     :param engine: The engine to use for parsing the SQL statement
     """
-    return ParsedQuery(sql, engine=engine).check_functions_exist(function_list)
+    return SQLScript(sql, engine=engine).check_functions_present(function_list)
 
 
 def strip_comments_from_sql(statement: str, engine: str = "base") -> str:
@@ -229,34 +228,6 @@ class ParsedQuery:
             self._tables = self._extract_tables_from_sql()
         return self._tables
 
-    def _check_functions_exist_in_token(
-        self, token: Token, functions: set[str]
-    ) -> bool:
-        if (
-            isinstance(token, Function)
-            and token.get_name() is not None
-            and token.get_name().lower() in functions
-        ):
-            return True
-        if hasattr(token, "tokens"):
-            for inner_token in token.tokens:
-                if self._check_functions_exist_in_token(inner_token, functions):
-                    return True
-        return False
-
-    def check_functions_exist(self, functions: set[str]) -> bool:
-        """
-        Check if the SQL statement contains any of the specified functions.
-
-        :param functions: A set of functions to search for
-        :return: True if the statement contains any of the specified functions
-        """
-        for statement in self._parsed:
-            for token in statement.tokens:
-                if self._check_functions_exist_in_token(token, functions):
-                    return True
-        return False
-
     def _extract_tables_from_sql(self) -> set[Table]:
         """
         Extract all table references in a query.
@@ -272,11 +243,12 @@ class ParsedQuery:
             logger.warning("Unable to parse SQL (%s): %s", self._dialect, self.sql)
             raise SupersetSecurityException(
                 SupersetError(
-                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
                     message=__(
                         "You may have an error in your SQL statement. {message}"
                     ).format(message=ex.error.message),
                     level=ErrorLevel.ERROR,
+                    extra=ex.error.extra,
                 )
             ) from ex
 
@@ -318,7 +290,7 @@ class ParsedQuery:
                     return False
         return True
 
-    def is_select(self) -> bool:
+    def is_select(self) -> bool:  # noqa: C901
         # make sure we strip comments; prevents a bug with comments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
         seen_select = False
@@ -333,7 +305,7 @@ class ParsedQuery:
                         ):
                             return False
                     except ValueError:
-                        # sqloxide was not able to parse the query, so let's continue with
+                        # sqloxide was not able to parse the query, so let's continue with  # noqa: E501
                         # sqlparse
                         pass
                 inner_cte = self.get_inner_cte_expression(statement.tokens) or []
@@ -753,7 +725,7 @@ def insert_rls_as_subquery(
     return token_list
 
 
-def insert_rls_in_predicate(
+def insert_rls_in_predicate(  # noqa: C901
     token_list: TokenList,
     database_id: int,
     default_schema: str | None,
@@ -807,7 +779,7 @@ def insert_rls_in_predicate(
             )
             state = InsertRLSState.SCANNING
 
-        # Found ON clause, insert RLS. The logic for ON is more complicated than the logic
+        # Found ON clause, insert RLS. The logic for ON is more complicated than the logic  # noqa: E501
         # for WHERE because in the former the comparisons are siblings, while on the
         # latter they are children.
         elif (
@@ -899,7 +871,7 @@ RE_JINJA_VAR = re.compile(r"\{\{[^\{\}]+\}\}")
 RE_JINJA_BLOCK = re.compile(r"\{[%#][^\{\}%#]+[%#]\}")
 
 
-def extract_table_references(
+def extract_table_references(  # noqa: C901
     sql_text: str, sqla_dialect: str, show_warning: bool = True
 ) -> set[Table]:
     """
@@ -909,7 +881,7 @@ def extract_table_references(
     tree = None
 
     if sqloxide_parse:
-        for dialect, sqla_dialects in SQLOXIDE_DIALECTS.items():
+        for dialect, sqla_dialects in SQLOXIDE_DIALECTS.items():  # noqa: B007
             if sqla_dialect in sqla_dialects:
                 break
         sql_text = RE_JINJA_BLOCK.sub(" ", sql_text)
@@ -999,10 +971,13 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
             node.fields = nodes.TemplateData.fields
             node.data = "NULL"
 
+    # re-render template back into a string
+    rendered_template = Template(template).render()
+
     return (
         tables
         | ParsedQuery(
-            sql_statement=processor.process_template(template),
+            sql_statement=processor.process_template(rendered_template),
             engine=database.db_engine_spec.engine,
         ).tables
     )

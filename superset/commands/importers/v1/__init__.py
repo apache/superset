@@ -14,7 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional
+
+from __future__ import annotations
+
+import logging
+from typing import Any
 
 from marshmallow import Schema, validate  # noqa: F401
 from marshmallow.exceptions import ValidationError
@@ -33,6 +37,8 @@ from superset.commands.importers.v1.utils import (
 from superset.daos.base import BaseDAO
 from superset.models.core import Database  # noqa: F401
 from superset.utils.decorators import transaction
+
+logger = logging.getLogger(__name__)
 
 
 class ImportModelsCommand(BaseCommand):
@@ -61,7 +67,12 @@ class ImportModelsCommand(BaseCommand):
         self._configs: dict[str, Any] = {}
 
     @staticmethod
-    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
+    # ruff: noqa: C901
+    def _import(
+        configs: dict[str, Any],
+        overwrite: bool = False,
+        contents: dict[str, Any] | None = None,
+    ) -> None:
         raise NotImplementedError("Subclasses MUST implement _import")
 
     @classmethod
@@ -73,7 +84,7 @@ class ImportModelsCommand(BaseCommand):
         self.validate()
 
         try:
-            self._import(self._configs, self.overwrite)
+            self._import(self._configs, self.overwrite, self.contents)
         except CommandException:
             raise
         except Exception as ex:
@@ -84,14 +95,14 @@ class ImportModelsCommand(BaseCommand):
 
         # verify that the metadata file is present and valid
         try:
-            metadata: Optional[dict[str, str]] = load_metadata(self.contents)
+            metadata: dict[str, str] | None = load_metadata(self.contents)
         except ValidationError as exc:
             exceptions.append(exc)
             metadata = None
         if self.dao.model_cls:
             validate_metadata_type(metadata, self.dao.model_cls.__name__, exceptions)
 
-        # load the configs and make sure we have confirmation to overwrite existing models
+        # load the configs and make sure we have confirmation to overwrite existing models  # noqa: E501
         self._configs = load_configs(
             self.contents,
             self.schemas,
@@ -104,6 +115,8 @@ class ImportModelsCommand(BaseCommand):
         self._prevent_overwrite_existing_model(exceptions)
 
         if exceptions:
+            for ex in exceptions:
+                logger.warning("Import Error: %s", ex)
             raise CommandInvalidError(
                 f"Error importing {self.model_name}",
                 exceptions,

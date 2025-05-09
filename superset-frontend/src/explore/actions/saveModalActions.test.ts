@@ -24,6 +24,7 @@ import {
   DatasourceType,
   QueryFormData,
   SimpleAdhocFilter,
+  VizType,
 } from '@superset-ui/core';
 import {
   createDashboard,
@@ -470,14 +471,14 @@ describe('getSlicePayload', () => {
   const sliceName = 'Test Slice';
   const formDataWithNativeFilters = {
     datasource: `${datasourceId}__${datasourceType}`,
-    viz_type: 'pie',
+    viz_type: VizType.Pie,
     adhoc_filters: [],
   };
   const dashboards = [5];
   const owners = [0];
   const formDataFromSlice: QueryFormData = {
     datasource: `${datasourceId}__${datasourceType}`,
-    viz_type: 'pie',
+    viz_type: VizType.Pie,
     adhoc_filters: [
       {
         clause: 'WHERE',
@@ -602,7 +603,7 @@ describe('getSlicePayload', () => {
 
     const formDataWithAdhocFiltersWithExtra: QueryFormData = {
       ...formDataWithNativeFilters,
-      viz_type: 'mixed_timeseries',
+      viz_type: VizType.MixedTimeseries,
       adhoc_filters: [
         {
           clause: 'WHERE',
@@ -649,7 +650,7 @@ describe('getSlicePayload', () => {
 
     const formDataWithAdhocFiltersWithExtra: QueryFormData = {
       ...formDataWithNativeFilters,
-      viz_type: 'mixed_timeseries',
+      viz_type: VizType.MixedTimeseries,
       adhoc_filters: [
         {
           clause: 'WHERE',

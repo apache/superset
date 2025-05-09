@@ -22,9 +22,10 @@ from typing import Any, Optional
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
-from superset import app, security_manager
+from superset import app, db, security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.dashboard.exceptions import (
+    DashboardColorsConfigUpdateFailedError,
     DashboardForbiddenError,
     DashboardInvalidError,
     DashboardNativeFiltersUpdateFailedError,
@@ -118,7 +119,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
 
-    def process_tab_diff(self) -> None:
+    def process_tab_diff(self) -> None:  # noqa: C901
         def find_deleted_tabs() -> list[str]:
             position_json = self._properties.get("position_json", "")
             current_tabs = self._model.tabs  # type: ignore
@@ -142,7 +143,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 """
                 The dashboard tab used in this report has been deleted and your report has been deactivated.
                 Please update your report settings to remove or change the tab used.
-                """
+                """  # noqa: E501
             )
 
             html_content = textwrap.dedent(
@@ -202,3 +203,29 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
         )
 
         return configuration
+
+
+class UpdateDashboardColorsConfigCommand(UpdateDashboardCommand):
+    def __init__(
+        self, model_id: int, data: dict[str, Any], mark_updated: bool = True
+    ) -> None:
+        super().__init__(model_id, data)
+        self._mark_updated = mark_updated
+
+    @transaction(
+        on_error=partial(on_error, reraise=DashboardColorsConfigUpdateFailedError)
+    )
+    def run(self) -> Model:
+        super().validate()
+        assert self._model
+
+        original_changed_on = self._model.changed_on
+
+        DashboardDAO.update_colors_config(self._model, self._properties)
+
+        if not self._mark_updated:
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            # restore the original changed_on value
+            self._model.changed_on = original_changed_on
+
+        return self._model

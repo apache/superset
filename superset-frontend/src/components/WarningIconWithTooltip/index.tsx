@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useTheme, SafeMarkdown } from '@superset-ui/core';
-import Icons, { IconType } from 'src/components/Icons';
+import { Icons, IconType } from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 
 export interface WarningIconWithTooltipProps {
@@ -37,8 +37,8 @@ function WarningIconWithTooltip({
       id="warning-tooltip"
       title={<SafeMarkdown source={warningMarkdown} />}
     >
-      <Icons.AlertSolid
-        iconColor={theme.colors.alert.base}
+      <Icons.WarningOutlined
+        iconColor={theme.colors.warning.base}
         iconSize={size}
         css={{ marginRight: marginRight ?? theme.gridUnit * 2 }}
       />

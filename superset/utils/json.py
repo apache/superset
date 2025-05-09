@@ -69,7 +69,7 @@ def format_timedelta(time_delta: timedelta) -> str:
     return str(time_delta)
 
 
-def base_json_conv(obj: Any) -> Any:
+def base_json_conv(obj: Any) -> Any:  # noqa: C901
     """
     Tries to convert additional types to JSON compatible forms.
 
@@ -95,6 +95,9 @@ def base_json_conv(obj: Any) -> Any:
         return str(obj)
     if isinstance(obj, timedelta):
         return format_timedelta(obj)
+    if isinstance(obj, pd.DateOffset):
+        offset_attrs = ", ".join(f"{k}={v}" for k, v in obj.kwds.items())
+        return f"DateOffset({offset_attrs})"
     if isinstance(obj, bytes):
         try:
             return obj.decode("utf-8")

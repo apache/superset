@@ -24,8 +24,8 @@ import {
   useEffect,
   useState,
   useCallback,
-  createContext,
   useRef,
+  useMemo,
 } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
@@ -45,6 +45,7 @@ import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
 import { logEvent } from 'src/logger/actions';
@@ -120,7 +121,16 @@ const publishDataMask = debounce(
     // replace params only when current page is /superset/dashboard
     // this prevents a race condition between updating filters and navigating to Explore
     if (window.location.pathname.includes('/superset/dashboard')) {
-      history.location.pathname = window.location.pathname;
+      // The history API is part of React router and understands that a basename may exist.
+      // Internally it treats all paths as if they are relative to the root and appends
+      // it when necessary. We strip any prefix so that history.replace adds it back and doesn't
+      // double it up.
+      const appRoot = applicationRoot();
+      let replacement_pathname = window.location.pathname;
+      if (appRoot !== '/' && replacement_pathname.startsWith(appRoot)) {
+        replacement_pathname = replacement_pathname.substring(appRoot.length);
+      }
+      history.location.pathname = replacement_pathname;
       history.replace({
         search: newParams.toString(),
       });
@@ -129,7 +139,6 @@ const publishDataMask = debounce(
   SLOW_DEBOUNCE,
 );
 
-export const FilterBarScrollContext = createContext(false);
 const FilterBar: FC<FiltersBarProps> = ({
   orientation = FilterBarOrientation.Vertical,
   verticalConfig,
@@ -144,8 +153,11 @@ const FilterBar: FC<FiltersBarProps> = ({
   const tabId = useTabId();
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
-  const filterValues = Object.values(filters);
-  const nativeFilterValues = filterValues.filter(isNativeFilter);
+  const filterValues = useMemo(() => Object.values(filters), [filters]);
+  const nativeFilterValues = useMemo(
+    () => filterValues.filter(isNativeFilter),
+    [filterValues],
+  );
   const dashboardId = useSelector<any, number>(
     ({ dashboardInfo }) => dashboardInfo?.id,
   );
@@ -189,7 +201,7 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   useEffect(() => {
     if (previousFilters && dashboardId === previousDashboardId) {
-      const updates = {};
+      const updates: Record<string, DataMaskWithId> = {};
       Object.values(filters).forEach(currentFilter => {
         const previousFilter = previousFilters?.[currentFilter.id];
         if (!previousFilter) {
@@ -206,20 +218,17 @@ const FilterBar: FC<FiltersBarProps> = ({
         const dataMaskChanged = !isEqual(currentDataMask, previousDataMask);
 
         if (typeChanged || targetsChanged || dataMaskChanged) {
-          updates[currentFilter.id] = getInitialDataMask(currentFilter.id);
+          updates[currentFilter.id] = getInitialDataMask(
+            currentFilter.id,
+          ) as DataMaskWithId;
         }
       });
 
       if (!isEmpty(updates)) {
         setDataMaskSelected(draft => ({ ...draft, ...updates }));
-        Object.keys(updates).forEach(key => dispatch(clearDataMask(key)));
       }
     }
-  }, [
-    JSON.stringify(filters),
-    JSON.stringify(previousFilters),
-    previousDashboardId,
-  ]);
+  }, [dashboardId, filters, previousDashboardId, setDataMaskSelected]);
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
 
@@ -276,16 +285,27 @@ const FilterBar: FC<FiltersBarProps> = ({
   );
   const isInitialized = useInitialization();
 
-  const actions = (
-    <ActionButtons
-      filterBarOrientation={orientation}
-      width={verticalConfig?.width}
-      onApply={handleApply}
-      onClearAll={handleClearAll}
-      dataMaskSelected={dataMaskSelected}
-      dataMaskApplied={dataMaskApplied}
-      isApplyDisabled={isApplyDisabled}
-    />
+  const actions = useMemo(
+    () => (
+      <ActionButtons
+        filterBarOrientation={orientation}
+        width={verticalConfig?.width}
+        onApply={handleApply}
+        onClearAll={handleClearAll}
+        dataMaskSelected={dataMaskSelected}
+        dataMaskApplied={dataMaskApplied}
+        isApplyDisabled={isApplyDisabled}
+      />
+    ),
+    [
+      orientation,
+      verticalConfig?.width,
+      handleApply,
+      handleClearAll,
+      dataMaskSelected,
+      dataMaskAppliedText,
+      isApplyDisabled,
+    ],
   );
 
   const filterBarComponent =

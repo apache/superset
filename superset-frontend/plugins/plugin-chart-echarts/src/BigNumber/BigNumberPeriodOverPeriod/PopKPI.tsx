@@ -36,13 +36,25 @@ import {
 } from './types';
 import { useOverflowDetection } from './useOverflowDetection';
 
+const MetricNameText = styled.div<{ metricNameFontSize?: number }>`
+  ${({ theme, metricNameFontSize }) => `
+    font-family: ${theme.typography.families.sansSerif};
+    font-weight: ${theme.typography.weights.normal};
+    font-size: ${metricNameFontSize || theme.typography.sizes.s * 2}px;
+    text-align: center;
+    margin-bottom: ${theme.gridUnit * 3}px;
+  `}
+`;
+
 const NumbersContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
   flex-direction: column;
   width: 100%;
+  height: 100%;
   overflow: auto;
+  padding: 12px;
 `;
 
 const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
@@ -73,6 +85,8 @@ export default function PopKPI(props: PopKPIProps) {
     prevNumber,
     valueDifference,
     percentDifferenceFormattedString,
+    metricName,
+    metricNameFontSize,
     headerFontSize,
     subheaderFontSize,
     comparisonColorEnabled,
@@ -81,9 +95,11 @@ export default function PopKPI(props: PopKPIProps) {
     currentTimeRangeFilter,
     startDateOffset,
     shift,
+    subtitle,
+    subtitleFontSize,
     dashboardTimeRange,
+    showMetricName,
   } = props;
-
   const [comparisonRange, setComparisonRange] = useState<string>('');
 
   useEffect(() => {
@@ -138,6 +154,16 @@ export default function PopKPI(props: PopKPIProps) {
     font-weight: ${theme.typography.weights.normal};
     text-align: center;
     margin-bottom: ${theme.gridUnit * 4}px;
+  `;
+
+  const SubtitleText = styled.div`
+    ${({ theme }) => `
+    font-family: ${theme.typography.families.sansSerif};
+    font-weight: ${theme.typography.weights.medium};
+    text-align: center;
+    margin-top: -10px;
+    margin-bottom: ${theme.gridUnit * 4}px;
+  `}
   `;
 
   const getArrowIndicatorColor = () => {
@@ -195,29 +221,45 @@ export default function PopKPI(props: PopKPIProps) {
   ]);
 
   const SYMBOLS_WITH_VALUES = useMemo(
-    () => [
-      {
-        symbol: '#',
-        value: prevNumber,
-        tooltipText: t('Data for %s', comparisonRange || 'previous range'),
-      },
-      {
-        symbol: '△',
-        value: valueDifference,
-        tooltipText: t('Value difference between the time periods'),
-      },
-      {
-        symbol: '%',
-        value: percentDifferenceFormattedString,
-        tooltipText: t('Percentage difference between the time periods'),
-      },
-    ],
+    () =>
+      [
+        {
+          defaultSymbol: '#',
+          value: prevNumber,
+          tooltipText: t('Data for %s', comparisonRange || 'previous range'),
+          columnKey: 'Previous value',
+        },
+        {
+          defaultSymbol: '△',
+          value: valueDifference,
+          tooltipText: t('Value difference between the time periods'),
+          columnKey: 'Delta',
+        },
+        {
+          defaultSymbol: '%',
+          value: percentDifferenceFormattedString,
+          tooltipText: t('Percentage difference between the time periods'),
+          columnKey: 'Percent change',
+        },
+      ].map(item => {
+        const config = props.columnConfig?.[item.columnKey];
+        return {
+          ...item,
+          symbol: config?.displayTypeIcon === false ? '' : item.defaultSymbol,
+          label: config?.customColumnName || item.columnKey,
+        };
+      }),
     [
       comparisonRange,
       prevNumber,
       valueDifference,
       percentDifferenceFormattedString,
+      props.columnConfig,
     ],
+  );
+
+  const visibleSymbols = SYMBOLS_WITH_VALUES.filter(
+    symbol => props.columnConfig?.[symbol.columnKey]?.visible !== false,
   );
 
   const { isOverflowing, symbolContainerRef, wrapperRef } =
@@ -232,9 +274,16 @@ export default function PopKPI(props: PopKPIProps) {
             width: fit-content;
             margin: auto;
             align-items: flex-start;
+            overflow: auto;
           `
         }
       >
+        {showMetricName && metricName && (
+          <MetricNameText metricNameFontSize={metricNameFontSize}>
+            {metricName}
+          </MetricNameText>
+        )}
+
         <div css={bigValueContainerStyles}>
           {bigNumber}
           {percentDifferenceNumber !== 0 && (
@@ -243,52 +292,67 @@ export default function PopKPI(props: PopKPIProps) {
             </span>
           )}
         </div>
+        {subtitle && (
+          <SubtitleText
+            style={{
+              fontSize: `${subtitleFontSize * height * 0.4}px`,
+            }}
+          >
+            {subtitle}
+          </SubtitleText>
+        )}
 
-        <div
-          css={[
-            css`
-              display: flex;
-              justify-content: space-around;
-              gap: ${flexGap}px;
-              min-width: 0;
-              flex-shrink: 1;
-            `,
-            isOverflowing
-              ? css`
-                  flex-direction: column;
-                  align-items: flex-start;
-                  width: fit-content;
-                `
-              : css`
-                  align-items: center;
-                  width: 100%;
-                `,
-          ]}
-          ref={symbolContainerRef}
-        >
-          {SYMBOLS_WITH_VALUES.map((symbol_with_value, index) => (
-            <ComparisonValue
-              key={`comparison-symbol-${symbol_with_value.symbol}`}
-              subheaderFontSize={subheaderFontSize}
-            >
-              <Tooltip
-                id="tooltip"
-                placement="top"
-                title={symbol_with_value.tooltipText}
+        {visibleSymbols.length > 0 && (
+          <div
+            css={[
+              css`
+                display: flex;
+                justify-content: space-around;
+                gap: ${flexGap}px;
+                min-width: 0;
+                flex-shrink: 1;
+              `,
+              isOverflowing
+                ? css`
+                    flex-direction: column;
+                    align-items: flex-start;
+                    width: fit-content;
+                  `
+                : css`
+                    align-items: center;
+                    width: 100%;
+                  `,
+            ]}
+            ref={symbolContainerRef}
+          >
+            {visibleSymbols.map((symbol_with_value, index) => (
+              <ComparisonValue
+                key={`comparison-symbol-${symbol_with_value.columnKey}`}
+                subheaderFontSize={subheaderFontSize}
               >
-                <SymbolWrapper
-                  backgroundColor={
-                    index > 0 ? backgroundColor : defaultBackgroundColor
-                  }
-                  textColor={index > 0 ? textColor : defaultTextColor}
+                <Tooltip
+                  id="tooltip"
+                  placement="top"
+                  title={symbol_with_value.tooltipText}
                 >
-                  {symbol_with_value.symbol}
-                </SymbolWrapper>
-                {symbol_with_value.value}
-              </Tooltip>
-            </ComparisonValue>
-          ))}
-        </div>
+                  {symbol_with_value.symbol && (
+                    <SymbolWrapper
+                      backgroundColor={
+                        index > 0 ? backgroundColor : defaultBackgroundColor
+                      }
+                      textColor={index > 0 ? textColor : defaultTextColor}
+                    >
+                      {symbol_with_value.symbol}
+                    </SymbolWrapper>
+                  )}
+                  {symbol_with_value.value}{' '}
+                  {props.columnConfig?.[symbol_with_value.columnKey]
+                    ?.customColumnName || ''}
+                </Tooltip>
+              </ComparisonValue>
+            ))}
+          </div>
+        )}
       </NumbersContainer>
     </div>
   );

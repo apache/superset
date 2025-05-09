@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ErrorLevel, styled, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 const StyledContainer = styled.div<{ level: ErrorLevel }>`
   display: flex;
@@ -58,11 +58,7 @@ export default function BasicErrorAlert({
 
   return (
     <StyledContainer level={level} role="alert">
-      {level === 'error' ? (
-        <Icons.ErrorSolid iconColor={iconColor} />
-      ) : (
-        <Icons.WarningSolid iconColor={iconColor} />
-      )}
+      <Icons.ExclamationCircleFilled iconColor={iconColor} />
       <StyledContent>
         <StyledTitle>{title}</StyledTitle>
         <p>{body}</p>

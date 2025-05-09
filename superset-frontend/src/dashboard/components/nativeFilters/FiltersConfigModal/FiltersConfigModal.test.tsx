@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Preset } from '@superset-ui/core';
-import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -27,6 +26,7 @@ import {
   fireEvent,
   render,
   screen,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import {
@@ -388,7 +388,9 @@ test('deletes a filter', async () => {
     createNewOnOpen: false,
     onSave,
   });
-  const removeButtons = screen.getAllByRole('img', { name: 'trash' });
+  const removeButtons = screen.getAllByRole('button', {
+    name: 'delete',
+  });
   userEvent.click(removeButtons[2]);
 
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
@@ -423,7 +425,9 @@ test('deletes a filter including dependencies', async () => {
     createNewOnOpen: false,
     onSave,
   });
-  const removeButtons = screen.getAllByRole('img', { name: 'trash' });
+  const removeButtons = screen.getAllByRole('button', {
+    name: 'delete',
+  });
   userEvent.click(removeButtons[1]);
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() =>
@@ -513,7 +517,9 @@ test('rearranges three filters and deletes one of them', async () => {
   });
 
   const draggableFilters = screen.getAllByRole('tab');
-  const deleteButtons = screen.getAllByRole('img', { name: 'trash' });
+  const deleteButtons = screen.getAllByRole('button', {
+    name: 'delete',
+  });
   userEvent.click(deleteButtons[1]);
 
   fireEvent.dragStart(draggableFilters[0]);

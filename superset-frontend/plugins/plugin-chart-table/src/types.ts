@@ -49,6 +49,9 @@ export type TableColumnConfig = {
   colorPositiveNegative?: boolean;
   truncateLongCells?: boolean;
   currencyFormat?: Currency;
+  visible?: boolean;
+  customColumnName?: string;
+  displayTypeIcon?: boolean;
 };
 
 export interface DataColumnMeta {
@@ -56,6 +59,8 @@ export interface DataColumnMeta {
   key: string;
   // `label` is verbose column name used for rendering
   label: string;
+  // `originalLabel` preserves the original label when time comparison transforms the labels
+  originalLabel?: string;
   dataType: GenericDataType;
   formatter?:
     | TimeFormatter
@@ -66,6 +71,7 @@ export interface DataColumnMeta {
   isPercentMetric?: boolean;
   isNumeric?: boolean;
   config?: TableColumnConfig;
+  isChildColumn?: boolean;
 }
 
 export interface TableChartData {

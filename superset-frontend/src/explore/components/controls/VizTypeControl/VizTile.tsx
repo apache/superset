@@ -80,8 +80,8 @@ export const VizTile = ({
   return (
     <Tooltip
       title={tooltipTitle}
-      onVisibleChange={visible => setTooltipVisible(visible)}
-      visible={tooltipVisible && !isTransitioning}
+      onOpenChange={visible => setTooltipVisible(visible)}
+      open={tooltipVisible && !isTransitioning}
       placement="top"
       mouseEnterDelay={0.4}
     >
@@ -96,7 +96,6 @@ export const VizTile = ({
           white-space: nowrap;
           overflow: hidden;
           max-width: fit-content;
-
           ${!isActive &&
           css`
             flex-shrink: 0;
@@ -123,7 +122,13 @@ export const VizTile = ({
           `}
         `}
       >
-        {vizMeta.icon}{' '}
+        <span
+          css={css`
+            padding: 0px ${theme.gridUnit}px;
+          `}
+        >
+          {vizMeta.icon}
+        </span>
         <span
           css={css`
             overflow: hidden;

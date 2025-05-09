@@ -56,13 +56,13 @@ export default function transformProps(chartProps: TableChartProps) {
     );
   } else {
     /* eslint-disable */
-    const metricMap = datasource.metrics.reduce(
+    const metricMap = datasource.metrics.reduce<Record<string, Metric>>(
       (acc, current) => {
         const map = acc;
         map[current.metric_name] = current;
         return map;
       },
-      {} as Record<string, Metric>,
+      {},
     );
     /* eslint-disable */
     rows = metrics.map(metric =>

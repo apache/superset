@@ -31,7 +31,7 @@ from tests.integration_tests.base_tests import SupersetTestCase
 
 
 class TestCreatePermalinkDataCommand(SupersetTestCase):
-    @pytest.fixture()
+    @pytest.fixture
     def create_dataset(self):
         with self.create_app().app_context():
             dataset = SqlaTable(
@@ -49,7 +49,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
             db.session.delete(dataset)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_slice(self):
         with self.create_app().app_context():
             dataset = (
@@ -73,7 +73,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
             db.session.delete(slice)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_query(self):
         with self.create_app().app_context():
             query = Query(

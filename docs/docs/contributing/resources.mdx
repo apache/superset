@@ -4,10 +4,96 @@ version: 1
 ---
 
 import InteractiveSVG from '../../src/components/InteractiveERDSVG';
+import Mermaid from '@theme/Mermaid';
 
 # Resources
 
-##  Entity-Relationship Diagram
+## High Level Architecture
+<div style={{ maxWidth: "600px", margin: "0 auto",  marginLeft: 0, marginRight: "auto" }}>
+```mermaid
+flowchart TD
+
+  %% Top Level
+  LB["<b>Load Balancer(s)</b><br/>(optional)"]
+  LB -.-> WebServers
+
+  %% Web Servers
+  subgraph WebServers ["<b>Web Server(s)</b>"]
+    WS1["<b>Frontend</b><br/>(React, AntD, ECharts, AGGrid)"]
+    WS2["<b>Backend</b><br/>(Python, Flask, SQLAlchemy, Pandas, ...)"]
+  end
+
+  %% Infra
+  subgraph InfraServices ["<b>Infra</b>"]
+    DB[("<b>Metadata Database</b><br/>(Postgres / MySQL)")]
+
+    subgraph Caching ["<b>Caching Subservices<br/></b>(Redis, memcache, S3, ...)"]
+      direction LR
+      DummySpace[" "]:::invisible
+      QueryCache["<b>Query Results Cache</b><br/>(Accelerated Dashboards)"]
+      CsvCache["<b>CSV Exports Cache</b>"]
+      ThumbnailCache["<b>Thumbnails Cache</b>"]
+      AlertImageCache["<b>Alert/Report Images Cache</b>"]
+	  QueryCache -- " " --> CsvCache
+	  linkStyle 1 stroke:transparent;
+      ThumbnailCache -- " " --> AlertImageCache
+	  linkStyle 2 stroke:transparent;
+    end
+
+    Broker(("<b>Message Queue</b><br/>(Redis / RabbitMQ / SQS)"))
+  end
+
+  AsyncBackend["<b>Async Workers (Celery)</b><br>required for Alerts & Reports, thumbnails, CSV exports, long-running workloads, ..."]
+
+  %% External DBs
+  subgraph ExternalDatabases ["<b>Analytics Databases</b>"]
+    direction LR
+    BigQuery[(BigQuery)]
+    Snowflake[(Snowflake)]
+    Redshift[(Redshift)]
+    Postgres[(Postgres)]
+    Postgres[(... any ...)]
+  end
+
+  %% Connections
+  LB -.-> WebServers
+  WebServers --> DB
+  WebServers -.-> Caching
+  WebServers -.-> Broker
+  WebServers -.-> ExternalDatabases
+
+  Broker -.-> AsyncBackend
+
+  AsyncBackend -.-> ExternalDatabases
+  AsyncBackend -.-> Caching
+
+
+
+  %% Legend styling
+  classDef requiredNode stroke-width:2px,stroke:black;
+  class Required requiredNode;
+  class Optional optionalNode;
+
+  %% Hide real arrow
+  linkStyle 0 stroke:transparent;
+
+  %% Styling
+  classDef optionalNode stroke-dasharray: 5 5, opacity:0.9;
+  class LB optionalNode;
+  class Caching optionalNode;
+  class AsyncBackend optionalNode;
+  class Broker optionalNode;
+  class QueryCache optionalNode;
+  class CsvCache optionalNode;
+  class ThumbnailCache optionalNode;
+  class AlertImageCache optionalNode;
+  class Celery optionalNode;
+
+  classDef invisible fill:transparent,stroke:transparent;
+```
+</div>
+
+## Entity-Relationship Diagram
 
 Here is our interactive ERD:
 

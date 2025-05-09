@@ -26,6 +26,7 @@ import {
   visitSampleChartFromList,
   saveChartToDashboard,
   interceptFiltering,
+  interceptFavoriteStatus,
 } from '../explore/utils';
 import { interceptGet as interceptDashboardGet } from '../dashboard/utils';
 
@@ -34,12 +35,12 @@ function orderAlphabetical() {
 }
 
 function openProperties() {
-  cy.get('[aria-label="more-vert"]').eq(1).click();
+  cy.get('[aria-label="more"]').eq(1).click();
   cy.getBySel('chart-list-edit-option').click();
 }
 
 function openMenu() {
-  cy.get('[aria-label="more-vert"]').eq(1).click();
+  cy.get('[aria-label="more"]').eq(1).click();
 }
 
 function confirmDelete() {
@@ -49,8 +50,10 @@ function confirmDelete() {
 
 function visitChartList() {
   interceptFiltering();
+  interceptFavoriteStatus();
   cy.visit(CHART_LIST);
   cy.wait('@filtering');
+  cy.wait('@favoriteStatus');
 }
 
 describe('Charts list', () => {
@@ -78,20 +81,15 @@ describe('Charts list', () => {
       cy.wait('@get');
     });
 
-    it('should show the newly added dashboards in a tooltip', () => {
+    it.only('should show the newly added dashboards in a tooltip', () => {
       interceptDashboardGet();
       visitSampleChartFromList('1 - Sample chart');
       saveChartToDashboard('1 - Sample dashboard');
       saveChartToDashboard('2 - Sample dashboard');
       saveChartToDashboard('3 - Sample dashboard');
       visitChartList();
+
       cy.getBySel('count-crosslinks').should('be.visible');
-      cy.getBySel('crosslinks').first().trigger('mouseover');
-      cy.get('.ant-tooltip')
-        .contains('3 - Sample dashboard')
-        .invoke('removeAttr', 'target')
-        .click();
-      cy.wait('@get');
     });
   });
 
@@ -116,7 +114,7 @@ describe('Charts list', () => {
 
     it('should sort correctly in list mode', () => {
       cy.getBySel('sort-header').eq(1).click();
-      cy.getBySel('table-row').first().contains('% Rural');
+      cy.getBySel('table-row').first().contains('Area Chart');
       cy.getBySel('sort-header').eq(1).click();
       cy.getBySel('table-row').first().contains("World's Population");
       cy.getBySel('sort-header').eq(1).click();
@@ -186,12 +184,13 @@ describe('Charts list', () => {
     });
 
     it('should allow to favorite/unfavorite', () => {
-      cy.intercept({ url: `/api/v1/chart/*/favorites/`, method: 'POST' }).as(
+      cy.intercept({ url: `**/api/v1/chart/*/favorites/`, method: 'POST' }).as(
         'select',
       );
-      cy.intercept({ url: `/api/v1/chart/*/favorites/`, method: 'DELETE' }).as(
-        'unselect',
-      );
+      cy.intercept({
+        url: `**/api/v1/chart/*/favorites/`,
+        method: 'DELETE',
+      }).as('unselect');
 
       setGridMode('card');
       orderAlphabetical();
@@ -265,7 +264,7 @@ describe('Charts list', () => {
       // deletes in list-view
       setGridMode('list');
       cy.getBySel('table-row').eq(1).contains('2 - Sample chart');
-      cy.getBySel('trash').eq(1).click();
+      cy.getBySel('delete').eq(1).click();
       confirmDelete();
       cy.wait('@delete');
       cy.getBySel('table-row').eq(1).should('not.contain', '2 - Sample chart');

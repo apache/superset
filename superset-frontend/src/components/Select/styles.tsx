@@ -17,9 +17,12 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
-import { Spin, Tag } from 'antd';
-import AntdSelect from 'antd/lib/select';
+import { Icons } from 'src/components/Icons';
+// eslint-disable-next-line no-restricted-imports
+import { Spin, Tag } from 'antd'; // TODO: Remove antd
+// eslint-disable-next-line no-restricted-imports
+import AntdSelect from 'antd/lib/select'; // TODO: Remove antd
+import { Space } from '../Space';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `
@@ -51,9 +54,6 @@ export const StyledSelect = styled(AntdSelect, {
     // This is fixed in version 4.16
     .ant-select-arrow .anticon:not(.ant-select-suffix) {
       pointer-events: none;
-    }
-    .select-all {
-      border-bottom: 1px solid ${theme.colors.grayscale.light3};
     }
     ${
       oneLine &&
@@ -135,4 +135,20 @@ export const StyledError = styled.div`
 export const StyledErrorMessage = styled.div`
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+
+export const StyledBulkActionsContainer = styled(Space)`
+  ${({ theme }) => `
+    padding: ${theme.gridUnit}px;
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid ${theme.colors.grayscale.light3};
+    .superset-button {
+      color: ${theme.colors.primary.dark1};
+      font-weight: ${theme.typography.weights.normal};
+    }
+    .superset-button:disabled {
+      background-color: transparent;
+    }
+  `}
 `;

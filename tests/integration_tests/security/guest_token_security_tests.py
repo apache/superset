@@ -190,7 +190,7 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
     def test_raise_for_access_dashboard_as_unauthorized_guest(self):
         g.user = self.unauthorized_guest
 
-        with self.assertRaises(SupersetSecurityException):
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(dashboard=self.dash)
 
     def test_raise_for_access_dashboard_as_guest_no_rbac(self):
@@ -214,7 +214,7 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         db.session.add(dash)
         db.session.commit()
 
-        with self.assertRaises(SupersetSecurityException):
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(dashboard=dash)
 
         db.session.delete(dash)
@@ -345,7 +345,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__no_dashboard_in_form_data(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -360,7 +360,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__no_chart_in_form_data(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -375,7 +375,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__chart_not_on_dashboard(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -391,7 +391,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__chart_doesnt_belong_to_datasource(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -407,7 +407,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__native_filter_no_id_in_form_data(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -427,7 +427,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__native_filter_datasource_not_associated(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -452,7 +452,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__embedded_feature_flag_off(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -468,7 +468,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__unauthorized_guest_user(self):
         g.user = self.unauthorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(

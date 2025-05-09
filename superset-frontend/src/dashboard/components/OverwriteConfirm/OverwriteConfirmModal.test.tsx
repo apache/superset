@@ -62,8 +62,10 @@ test('requests update dashboard api when save button is clicked', async () => {
     result: overwriteConfirmMetadata.data,
   });
   const store = mockStore({
-    dashboardLayout: {},
+    dashboardLayout: { present: {} },
     dashboardFilters: {},
+    dashboardInfo: { metadata: {} },
+    charts: {},
   });
   const { findByTestId } = render(
     <OverwriteConfirmModal

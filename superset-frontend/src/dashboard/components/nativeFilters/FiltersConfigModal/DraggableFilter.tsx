@@ -25,7 +25,7 @@ import {
   useDrop,
   XYCoord,
 } from 'react-dnd';
-import Icons, { IconType } from 'src/components/Icons';
+import { Icons, IconType } from 'src/components/Icons';
 
 interface TitleContainerProps {
   readonly isDragging: boolean;
@@ -48,7 +48,6 @@ const DragIcon = styled(Icons.Drag, {
 })<IconType & { isDragging: boolean }>`
   ${({ isDragging, theme }) => `
     font-size: ${theme.typography.sizes.m}px;
-    margin-top: 15px;
     cursor: ${isDragging ? 'grabbing' : 'grab'};
     padding-left: ${theme.gridUnit}px;
   `}

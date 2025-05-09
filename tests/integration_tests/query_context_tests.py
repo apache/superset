@@ -208,7 +208,7 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
         del payload["queries"][0]["granularity"]
 
-        # construct baseline query_cache_key from query_context with post processing operation
+        # construct baseline query_cache_key from query_context with post processing operation  # noqa: E501
         query_context: QueryContext = ChartDataQueryContextSchema().load(payload)
         query_object: QueryObject = query_context.queries[0]
         cache_key_original = query_context.query_cache_key(query_object)
@@ -222,7 +222,7 @@ class TestQueryContext(SupersetTestCase):
     def test_query_cache_key_changes_when_post_processing_is_updated(self):
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
 
-        # construct baseline query_cache_key from query_context with post processing operation
+        # construct baseline query_cache_key from query_context with post processing operation  # noqa: E501
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key_original = query_context.query_cache_key(query_object)
@@ -786,6 +786,8 @@ def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):
         "count, col2, row1": ["count", "col2, row1"],
         "count, col2, row2": ["count", "col2, row2"],
         "count, col2, row3": ["count", "col2, row3"],
+        "col2": ["col2"],
+        "count": ["count"],
     }
 
 

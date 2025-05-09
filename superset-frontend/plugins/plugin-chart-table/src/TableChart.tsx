@@ -61,7 +61,7 @@ import {
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { isEmpty, isNumber } from 'lodash';
+import { isEmpty } from 'lodash';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
@@ -197,33 +197,36 @@ function SelectPageSize({
   onChange,
 }: SelectPageSizeRendererProps) {
   return (
-    <span className="dt-select-page-size form-inline">
-      {t('page_size.show')}{' '}
+    <span
+      className="dt-select-page-size form-inline"
+      role="group"
+      aria-label={t('Select page size')}
+    >
+      <label htmlFor="pageSizeSelect" className="sr-only">
+        {t('Select page size')}
+      </label>
+      {t('Show')}{' '}
       <select
+        id="pageSizeSelect"
         className="form-control input-sm"
         value={current}
-        onBlur={() => {}}
         onChange={e => {
           onChange(Number((e.target as HTMLSelectElement).value));
         }}
+        aria-label={t('Show entries per page')}
       >
         {options.map(option => {
           const [size, text] = Array.isArray(option)
             ? option
             : [option, option];
-          const sizeLabel = size === 0 ? t('all') : size;
           return (
-            <option
-              aria-label={t('Show %s entries', sizeLabel)}
-              key={size}
-              value={size}
-            >
+            <option key={size} value={size}>
               {text}
             </option>
           );
         })}
       </select>{' '}
-      {t('page_size.entries')}
+      {t('entries per page')}
     </span>
   );
 }
@@ -602,6 +605,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Calculate the number of placeholder columns needed before the current header
       const startPosition = value[0];
       const colSpan = value.length;
+      // Retrieve the originalLabel from the first column in this group
+      const originalLabel = columnsMeta[value[0]]?.originalLabel || key;
 
       // Add placeholder <th> for columns before this header
       for (let i = currentColumnIndex; i < startPosition; i += 1) {
@@ -617,7 +622,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Add the current header <th>
       headers.push(
         <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
-          {key}
+          {originalLabel}
           <span
             css={css`
               float: right;
@@ -677,13 +682,33 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
       const {
         key,
-        label,
+        label: originalLabel,
         isNumeric,
         dataType,
         isMetric,
         isPercentMetric,
         config = {},
       } = column;
+      const label = config.customColumnName || originalLabel;
+      let displayLabel = label;
+
+      const isComparisonColumn = ['#', '△', '%', t('Main')].includes(
+        column.label,
+      );
+
+      if (isComparisonColumn) {
+        if (column.label === t('Main')) {
+          displayLabel = config.customColumnName || column.originalLabel || '';
+        } else if (config.customColumnName) {
+          displayLabel =
+            config.displayTypeIcon !== false
+              ? `${column.label} ${config.customColumnName}`
+              : config.customColumnName;
+        } else if (config.displayTypeIcon === false) {
+          displayLabel = '';
+        }
+      }
+
       const columnWidth = Number.isNaN(Number(config.columnWidth))
         ? config.columnWidth
         : Number(config.columnWidth);
@@ -790,6 +815,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
             background: ${backgroundColor || undefined};
+            padding-left: ${column.isChildColumn
+              ? `${theme.gridUnit * 5}px`
+              : `${theme.gridUnit}px`};
           `;
 
           const cellBarStyles = css`
@@ -896,7 +924,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   /* The following classes are added to support custom CSS styling */
                   className={cx(
                     'cell-bar',
-                    isNumber(value) && value < 0 ? 'negative' : 'positive',
+                    typeof value === 'number' && value < 0
+                      ? 'negative'
+                      : 'positive',
                   )}
                   css={cellBarStyles}
                   role="presentation"
@@ -963,14 +993,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 alignItems: 'flex-end',
               }}
             >
-              <span data-column-name={col.id}>{label}</span>
+              <span data-column-name={col.id}>{displayLabel}</span>
               <SortIcon column={col} />
             </div>
           </th>
         ),
+
         Footer: totals ? (
           i === 0 ? (
-            <th>
+            <th key={`footer-summary-${i}`}>
               <div
                 css={css`
                   display: flex;
@@ -992,7 +1023,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               </div>
             </th>
           ) : (
-            <td style={sharedStyle}>
+            <td key={`footer-total-${i}`} style={sharedStyle}>
               <strong>{formatColumnValue(column, totals[key])[1]}</strong>
             </td>
           )
@@ -1017,9 +1048,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     ],
   );
 
+  const visibleColumnsMeta = useMemo(
+    () => filteredColumnsMeta.filter(col => col.config?.visible !== false),
+    [filteredColumnsMeta],
+  );
+
   const columns = useMemo(
-    () => filteredColumnsMeta.map(getColumnConfigs),
-    [filteredColumnsMeta, getColumnConfigs],
+    () => visibleColumnsMeta.map(getColumnConfigs),
+    [visibleColumnsMeta, getColumnConfigs],
   );
 
   const handleServerPaginationChange = useCallback(

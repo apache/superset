@@ -64,7 +64,7 @@ class EncryptedFieldTest(SupersetTestCase):
         field = encrypted_field_factory.create(String(1024))
         assert isinstance(field, StringEncryptedType)
         assert not isinstance(field, EncryptedType)
-        assert getattr(field, "__created_by_enc_field_adapter__")
+        assert field.__created_by_enc_field_adapter__
         assert self.app.config["SECRET_KEY"] == field.key
 
     def test_ensure_encrypted_field_factory_is_used(self):
