@@ -30,6 +30,7 @@ import {
   Col,
   Input,
 } from 'src/components';
+import { Typography } from 'src/components/Typography';
 import rison from 'rison';
 import {
   ensureIsArray,
@@ -444,7 +445,9 @@ const PropertiesModal = ({
     return (
       <Row gutter={16}>
         <Col xs={24} md={12}>
-          <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
+          <Typography.Title level={3} style={{ marginTop: '1em' }}>
+            {t('Access')}
+          </Typography.Title>
           <StyledFormItem label={t('Owners')}>
             <AsyncSelect
               allowClear
@@ -465,7 +468,9 @@ const PropertiesModal = ({
           </p>
         </Col>
         <Col xs={24} md={12}>
-          <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
+          <Typography.Title level={3} style={{ marginTop: '1em' }}>
+            {t('Colors')}
+          </Typography.Title>
           <ColorSchemeControlWrapper
             hasCustomLabelsColor={hasCustomLabelsColor}
             onChange={onColorSchemeChange}
@@ -486,7 +491,9 @@ const PropertiesModal = ({
       <>
         <Row>
           <Col xs={24} md={24}>
-            <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
+            <Typography.Title level={3} style={{ marginTop: '1em' }}>
+              {t('Access')}
+            </Typography.Title>
           </Col>
         </Row>
         <Row gutter={16}>
@@ -646,7 +653,9 @@ const PropertiesModal = ({
       >
         <Row>
           <Col xs={24} md={24}>
-            <h3>{t('Basic information')}</h3>
+            <Typography.Title level={3}>
+              {t('Basic information')}
+            </Typography.Title>
           </Col>
         </Row>
         <Row gutter={16}>
@@ -673,7 +682,7 @@ const PropertiesModal = ({
           : getRowsWithoutRoles()}
         <Row>
           <Col xs={24} md={24}>
-            <h3>{t('Certification')}</h3>
+            <Typography.Title level={3}>{t('Certification')}</Typography.Title>
           </Col>
         </Row>
         <Row gutter={16}>
@@ -700,7 +709,9 @@ const PropertiesModal = ({
         {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
+              <Typography.Title level={3} css={{ marginTop: '1em' }}>
+                {t('Tags')}
+              </Typography.Title>
             </Col>
           </Row>
         ) : null}
@@ -725,7 +736,7 @@ const PropertiesModal = ({
         ) : null}
         <Row>
           <Col xs={24} md={24}>
-            <h3 style={{ marginTop: '1em' }}>
+            <Typography.Title level={3} style={{ marginTop: '1em' }}>
               <Button
                 buttonStyle="link"
                 onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
@@ -740,7 +751,7 @@ const PropertiesModal = ({
                 />
                 {t('Advanced')}
               </Button>
-            </h3>
+            </Typography.Title>
             {isAdvancedOpen && (
               <>
                 <StyledFormItem label={t('JSON metadata')}>

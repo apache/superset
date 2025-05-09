@@ -46,6 +46,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/Tag/utils';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import TagType from 'src/types/TagType';
+import { Typography } from 'src/components/Typography';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -316,7 +317,9 @@ function PropertiesModal({
       >
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <h3>{t('Basic information')}</h3>
+            <Typography.Title level={3}>
+              {t('Basic information')}
+            </Typography.Title>
             <FormItem label={t('Name')} required>
               <Input
                 aria-label={t('Name')}
@@ -339,7 +342,7 @@ function PropertiesModal({
                 )}
               </StyledHelpBlock>
             </FormItem>
-            <h3>{t('Certification')}</h3>
+            <Typography.Title level={3}>{t('Certification')}</Typography.Title>
             <FormItem>
               <StyledFormItem label={t('Certified by')} name="certified_by">
                 <Input aria-label={t('Certified by')} />
@@ -363,7 +366,7 @@ function PropertiesModal({
             </FormItem>
           </Col>
           <Col xs={24} md={12}>
-            <h3>{t('Configuration')}</h3>
+            <Typography.Title level={3}>{t('Configuration')}</Typography.Title>
             <FormItem>
               <StyledFormItem label={t('Cache timeout')} name="cache_timeout">
                 <Input aria-label="Cache timeout" />
@@ -374,7 +377,9 @@ function PropertiesModal({
                 )}
               </StyledHelpBlock>
             </FormItem>
-            <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
+            <Typography.Title level={3} style={{ marginTop: '1em' }}>
+              {t('Access')}
+            </Typography.Title>
             <FormItem label={ownersLabel}>
               <AsyncSelect
                 ariaLabel={ownersLabel}
@@ -393,7 +398,9 @@ function PropertiesModal({
               </StyledHelpBlock>
             </FormItem>
             {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
-              <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
+              <Typography.Title level={3} css={{ marginTop: '1em' }}>
+                {t('Tags')}
+              </Typography.Title>
             )}
             {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
               <FormItem>

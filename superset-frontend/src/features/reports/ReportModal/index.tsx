@@ -44,6 +44,7 @@ import {
 } from 'src/components';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { Icons } from 'src/components/Icons';
+import { Typography } from 'src/components/Typography';
 import { Radio, RadioChangeEvent } from 'src/components/Radio';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
@@ -254,7 +255,7 @@ function ReportModal({
   const renderMessageContentSection = (
     <>
       <StyledMessageContentTitle>
-        <h4>{t('Message content')}</h4>
+        <Typography.Title level={4}>{t('Message content')}</Typography.Title>
       </StyledMessageContentTitle>
       <div className="inline-container">
         <Radio.GroupWrapper
@@ -350,9 +351,12 @@ function ReportModal({
 
       <StyledBottomSection>
         <StyledScheduleTitle>
-          <h4 css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}>
+          <Typography.Title
+            level={5}
+            css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}
+          >
             {t('Schedule')}
-          </h4>
+          </Typography.Title>
           <p>{t('The report will be sent to your email at')}</p>
         </StyledScheduleTitle>
 

@@ -22,6 +22,7 @@ import {
   LabeledErrorBoundInput as ValidatedInput,
 } from 'src/components';
 import { Icons } from 'src/components/Icons';
+import { Typography } from 'src/components/Typography';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
 import { CatalogObject, FieldPropTypes } from '../../types';
 
@@ -36,9 +37,9 @@ export const TableCatalog = ({
   const catalogError = validationErrors || {};
   return (
     <StyledCatalogTable>
-      <h4 className="gsheet-title">
+      <Typography.Title level={4} className="gsheet-title">
         {t('Connect Google Sheets as tables to this database')}
-      </h4>
+      </Typography.Title>
       <div>
         {tableCatalog?.map((sheet: CatalogObject, idx: number) => (
           <>

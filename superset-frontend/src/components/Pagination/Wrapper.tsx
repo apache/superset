@@ -28,9 +28,9 @@ interface PaginationProps {
 }
 
 const PaginationList = styled.ul`
+  ${({ theme }) => `
   display: inline-block;
-  margin: 16px 0;
-  padding: 0;
+  padding: ${theme.sizeUnit * 3}px;
 
   li {
     display: inline;
@@ -39,16 +39,16 @@ const PaginationList = styled.ul`
     > span {
       padding: 8px 12px;
       text-decoration: none;
-      background-color: ${({ theme }) => theme.colorBgContainer};
-      border: 1px solid ${({ theme }) => theme.colorBorder};
-      border-radius: ${({ theme }) => theme.borderRadius}px;
-      color: ${({ theme }) => theme.colorText};
+      background-color: ${theme.colorBgContainer};
+      border: 1px solid ${theme.colorBorder};
+      border-radius: ${theme.borderRadius}px;
+      color: ${theme.colorText};
 
       &:hover,
       &:focus {
         z-index: 2;
-        color: ${({ theme }) => theme.colorText};
-        background-color: ${({ theme }) => theme.colorBgLayout};
+        color: ${theme.colorText};
+        background-color: ${theme.colorBgLayout};
       }
     }
 
@@ -65,9 +65,9 @@ const PaginationList = styled.ul`
     &.active {
       span {
         z-index: 3;
-        color: ${({ theme }) => theme.colorBgLayout};
+        color: ${theme.colorBgLayout};
         cursor: default;
-        background-color: ${({ theme }) => theme.colorPrimary};
+        background-color: ${theme.colorPrimary};
 
         &:focus {
           outline: none;
@@ -75,6 +75,7 @@ const PaginationList = styled.ul`
       }
     }
   }
+`}
 `;
 
 function Pagination({ children }: PaginationProps) {

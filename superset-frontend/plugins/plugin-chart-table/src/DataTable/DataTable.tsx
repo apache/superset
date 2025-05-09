@@ -25,7 +25,7 @@ import {
   CSSProperties,
   DragEvent,
 } from 'react';
-
+import { css, typedMemo, usePrevious } from '@superset-ui/core';
 import {
   useTable,
   usePagination,
@@ -39,7 +39,6 @@ import {
   Row,
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
-import { typedMemo, usePrevious } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, {
@@ -381,7 +380,13 @@ export default typedMemo(function DataTable<D extends object>({
               ) : null}
             </div>
             {searchInput ? (
-              <div className="col-sm-6">
+              <div
+                className="col-sm-6"
+                css={css`
+                  display: flex;
+                  justify-content: end;
+                `}
+              >
                 <GlobalFilter<D>
                   searchInput={
                     typeof searchInput === 'boolean' ? undefined : searchInput

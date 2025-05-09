@@ -71,13 +71,16 @@ describe('AnnotationLayerModal', () => {
   it('renders add header when no layer is included', async () => {
     const addWrapper = await mountAndWait({});
     expect(
-      addWrapper.find('[data-test="annotation-layer-modal-title"]').text(),
+      addWrapper
+        .find('[data-test="annotation-layer-modal-title"]')
+        .first()
+        .text(),
     ).toEqual('Add annotation layer');
   });
 
   it('renders edit header when layer prop is included', () => {
     expect(
-      wrapper.find('[data-test="annotation-layer-modal-title"]').text(),
+      wrapper.find('[data-test="annotation-layer-modal-title"]').first().text(),
     ).toEqual('Edit annotation layer properties');
   });
 

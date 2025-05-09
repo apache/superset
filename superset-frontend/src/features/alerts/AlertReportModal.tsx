@@ -78,6 +78,7 @@ import {
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Icons } from 'src/components/Icons';
+import { Typography } from 'src/components/Typography';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -1454,7 +1455,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       show={show}
       width="500px"
       centered
-      title={<h4 data-test="alert-report-modal-title">{getTitleText()}</h4>}
+      title={
+        <Typography.Title level={4} data-test="alert-report-modal-title">
+          {getTitleText()}
+        </Typography.Title>
+      }
     >
       <Collapse
         expandIconPosition="right"

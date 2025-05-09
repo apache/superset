@@ -22,6 +22,7 @@ import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import { Icons } from 'src/components/Icons';
+import { Typography } from 'src/components/Typography';
 import { Input, Modal } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
@@ -235,7 +236,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       show={show}
       width="55%"
       title={
-        <h4 data-test="annotation-layer-modal-title">
+        <Typography.Title level={4} data-test="annotation-layer-modal-title">
           {isEditMode ? (
             <Icons.EditOutlined
               iconSize="l"
@@ -255,11 +256,11 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
           {isEditMode
             ? t('Edit annotation layer properties')
             : t('Add annotation layer')}
-        </h4>
+        </Typography.Title>
       }
     >
       <StyledAnnotationLayerTitle>
-        <h4>{t('Basic information')}</h4>
+        <Typography.Title level={4}>{t('Basic information')}</Typography.Title>
       </StyledAnnotationLayerTitle>
       <LayerContainer>
         <div className="control-label">
