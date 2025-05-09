@@ -203,7 +203,7 @@ describe('Visualization > Table', () => {
     cy.get('[data-test="row-count-label"]').contains('100 rows');
 
     // should allow switch back to aggregate mode
-    cy.get('div[data-test="query_mode"] .antd5-radio-button')
+    cy.get('div[data-test="query_mode"] .antd5-radio-button-wrapper')
       .contains('Aggregate')
       .click();
     cy.get(
