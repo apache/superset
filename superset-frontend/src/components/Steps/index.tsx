@@ -16,18 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/*
- * Re-exporting of components in src/components to facilitate
- * their imports by other components.
- * E.g. import { Select } from 'src/components'
- */
-
-import { Steps as AntdSteps } from 'antd-v5';
-import { StepsProps as AntdStepsProps } from 'antd-v5/es/steps';
-
-export type StepsProps = AntdStepsProps;
-
-export const Steps: typeof AntdSteps = Object.assign(AntdSteps, {
-  Step: AntdSteps.Step,
-});
+export { Steps, type StepsProps } from 'antd-v5';

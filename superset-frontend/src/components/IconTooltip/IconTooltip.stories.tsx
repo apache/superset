@@ -18,10 +18,11 @@
  */
 import { Icons } from 'src/components/Icons';
 import { css, useTheme } from '@superset-ui/core';
-import { IconTooltip, Props } from '.';
+import { IconTooltip } from '.';
+import type { IconTooltipProps } from './types';
 
 export default {
-  title: 'IconTooltip',
+  title: 'Components/IconTooltip',
 };
 
 const PLACEMENTS = [
@@ -39,19 +40,20 @@ const PLACEMENTS = [
   'topRight',
 ];
 
-const theme = useTheme();
-
-export const InteractiveIconTooltip = (args: Props) => (
-  <div
-    css={css`
-      margin: ${theme.gridUnit * 10}px ${theme.gridUnit * 17.5}px;
-    `}
-  >
-    <IconTooltip {...args}>
-      <Icons.InfoCircleOutlined />
-    </IconTooltip>
-  </div>
-);
+export const InteractiveIconTooltip = (args: IconTooltipProps) => {
+  const theme = useTheme();
+  return (
+    <div
+      css={css`
+        margin: ${theme.sizeUnit * 10}px ${theme.sizeUnit * 17.5}px;
+      `}
+    >
+      <IconTooltip {...args}>
+        <Icons.InfoCircleOutlined />
+      </IconTooltip>
+    </div>
+  );
+};
 
 InteractiveIconTooltip.args = {
   tooltip: 'Tooltip',

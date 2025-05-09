@@ -38,16 +38,16 @@ const InputContainer = styled.div`
 `;
 
 const StyledDivider = styled.span`
-  margin: 0 ${({ theme }) => theme.gridUnit * 2}px;
+  margin: 0 ${({ theme }) => theme.sizeUnit * 2}px;
   color: ${({ theme }) => theme.colors.grayscale.base};
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  font-weight: ${({ theme }) => theme.fontWeightNormal};
+  font-size: ${({ theme }) => theme.fontSize}px;
 `;
 
 const ErrorMessage = styled.div`
   color: ${({ theme }) => theme.colors.error.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  font-weight: ${({ theme }) => theme.fontWeightNormal};
   position: absolute;
   bottom: -50%;
   left: 0;

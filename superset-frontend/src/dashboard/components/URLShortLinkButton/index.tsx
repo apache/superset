@@ -19,12 +19,13 @@
 import { useState } from 'react';
 import { getClientErrorObject, t, useTheme } from '@superset-ui/core';
 import Popover, { PopoverProps } from 'src/components/Popover';
-import CopyToClipboard from 'src/components/CopyToClipboard';
+import { CopyToClipboard } from 'src/components';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { shallowEqual, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 import { Icons } from 'src/components/Icons';
+import { Typography } from 'src/components/Typography';
 
 export type URLShortLinkButtonProps = {
   dashboardId: number;
@@ -97,12 +98,12 @@ export default function URLShortLinkButton({
             }
           />
           &nbsp;&nbsp;
-          <a href={emailLink} aria-label="Email link">
+          <Typography.Link href={emailLink} aria-label="Email link">
             <Icons.MailOutlined
               iconSize="m"
               iconColor={theme.colors.primary.dark1}
             />
-          </a>
+          </Typography.Link>
         </div>
       }
     >

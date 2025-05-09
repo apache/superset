@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Space } from 'src/components/Space';
-import { Icons } from 'src/components/Icons';
 import { css } from '@superset-ui/core';
-import { Radio, RadioProps, RadioGroupWrapperProps } from './index';
+import { Icons } from 'src/components/Icons';
+import { Space } from '../Space';
+import { Radio, type RadioProps, type RadioGroupWrapperProps } from '.';
 
 export default {
-  title: 'Radio',
+  title: 'Components/Radio',
   component: Radio,
   tags: ['autodocs'],
 };

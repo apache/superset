@@ -35,16 +35,16 @@ import {
 
 const FormattersContainer = styled.div`
   ${({ theme }) => css`
-    padding: ${theme.gridUnit}px;
-    border: solid 1px ${theme.colors.grayscale.light2};
-    border-radius: ${theme.gridUnit}px;
+    padding: ${theme.sizeUnit}px;
+    border: solid 1px ${theme.colorBorder};
+    border-radius: ${theme.borderRadius}px;
   `}
 `;
 
 export const FormatterContainer = styled(OptionControlContainer)`
   &,
   & > div {
-    margin-bottom: ${({ theme }) => theme.gridUnit}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit}px;
     :last-child {
       margin-bottom: 0;
     }
@@ -55,7 +55,7 @@ export const CloseButton = styled.button`
   ${({ theme }) => css`
     color: ${theme.colors.grayscale.light1};
     height: 100%;
-    width: ${theme.gridUnit * 6}px;
+    width: ${theme.sizeUnit * 6}px;
     border: none;
     border-right: solid 1px ${theme.colors.grayscale.dark2}0C;
     padding: 0;
@@ -146,10 +146,7 @@ const ConditionalFormattingControl = ({
         {conditionalFormattingConfigs.map((config, index) => (
           <FormatterContainer key={index}>
             <CloseButton onClick={() => onDelete(index)}>
-              <Icons.CloseOutlined
-                iconSize="m"
-                iconColor={theme.colors.grayscale.light1}
-              />
+              <Icons.CloseOutlined iconSize="m" />
             </CloseButton>
             <FormattingPopover
               title={t('Edit formatter')}
@@ -167,9 +164,8 @@ const ConditionalFormattingControl = ({
                   <Icons.RightOutlined
                     iconSize="m"
                     css={css`
-                      margin-top: ${theme.gridUnit}px;
+                      margin-top: ${theme.sizeUnit}px;
                     `}
-                    iconColor={theme.colors.grayscale.light1}
                   />
                 </CaretContainer>
               </OptionControlContainer>
@@ -186,9 +182,8 @@ const ConditionalFormattingControl = ({
           <AddControlLabel>
             <Icons.PlusOutlined
               iconSize="m"
-              iconColor={theme.colors.grayscale.light1}
               css={theme => ({
-                margin: `auto ${theme.gridUnit}px auto 0`,
+                margin: `auto ${theme.sizeUnit}px auto 0`,
                 verticalAlign: 'baseline',
               })}
             />

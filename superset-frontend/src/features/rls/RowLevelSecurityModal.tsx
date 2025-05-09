@@ -18,15 +18,17 @@
  */
 
 import { css, styled, SupersetClient, useTheme, t } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Icons } from 'src/components/Icons';
-import Select from 'src/components/Select/Select';
-import { TextArea } from 'src/components/Input';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
+import {
+  Modal,
+  Select,
+  AsyncSelect,
+  InfoTooltip,
+  LabeledErrorBoundInput,
+  Input,
+} from 'src/components';
 import rison from 'rison';
-import { LabeledErrorBoundInput } from 'src/components/Form';
-import InfoTooltip from 'src/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { FILTER_OPTIONS } from './constants';
 import { FilterType, RLSObject, RoleObject, TableObject } from './types';
@@ -52,20 +54,20 @@ const StyledSectionContainer = styled.div`
   ${({ theme }) => css`
     display: flex;
     flex-direction: column;
-    padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 4}px
-      ${theme.gridUnit * 2}px;
+    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px
+      ${theme.sizeUnit * 2}px;
 
     label,
     .control-label {
       display: flex;
-      font-size: ${theme.typography.sizes.s}px;
-      color: ${theme.colors.grayscale.base};
+      font-size: ${theme.fontSizeSM}px;
+      color: ${theme.colorTextLabel};
       align-items: center;
     }
 
     .info-solid-small {
       vertical-align: middle;
-      padding-bottom: ${theme.gridUnit / 2}px;
+      padding-bottom: ${theme.sizeUnit / 2}px;
     }
   `}
 `;
@@ -73,8 +75,8 @@ const StyledInputContainer = styled.div`
   ${({ theme }) => css`
     display: flex;
     flex-direction: column;
-    margin: ${theme.gridUnit}px;
-    margin-bottom: ${theme.gridUnit * 4}px;
+    margin: ${theme.sizeUnit}px;
+    margin-bottom: ${theme.sizeUnit * 4}px;
 
     .input-container {
       display: flex;
@@ -91,15 +93,15 @@ const StyledInputContainer = styled.div`
     }
 
     .required {
-      margin-left: ${theme.gridUnit / 2}px;
-      color: ${theme.colors.error.base};
+      margin-left: ${theme.sizeUnit / 2}px;
+      color: ${theme.colorErrorText};
     }
   `}
 `;
 
-const StyledTextArea = styled(TextArea)`
+const StyledTextArea = styled(Input.TextArea)`
   resize: none;
-  margin-top: ${({ theme }) => theme.gridUnit}px;
+  margin-top: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 export interface RowLevelSecurityModalProps {
@@ -337,14 +339,14 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
           {isEditMode ? (
             <Icons.EditOutlined
               css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
               `}
             />
           ) : (
             <Icons.PlusOutlined
               iconSize="l"
               css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
               `}
             />
           )}

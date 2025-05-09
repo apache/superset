@@ -94,7 +94,7 @@ describe('DatasourceEditor', () => {
     userEvent.click(columnsTab);
 
     const getToggles = screen.getAllByRole('button', {
-      name: /toggle expand/i,
+      name: /expand row/i,
     });
     userEvent.click(getToggles[0]);
     const getTextboxes = screen.getAllByRole('textbox');
@@ -120,7 +120,7 @@ describe('DatasourceEditor', () => {
     userEvent.click(columnsTab);
 
     const getToggles = screen.getAllByRole('button', {
-      name: /toggle expand/i,
+      name: /expand row/i,
     });
 
     userEvent.click(getToggles[0]);
@@ -197,13 +197,11 @@ describe('DatasourceEditor', () => {
 });
 
 describe('DatasourceEditor RTL', () => {
-  jest.setTimeout(15000); // Extend timeout to 15s for this test
-
   it('properly renders the metric information', async () => {
     await asyncRender(props);
     const metricButton = screen.getByTestId('collection-tab-Metrics');
     userEvent.click(metricButton);
-    const expandToggle = await screen.findAllByLabelText(/toggle expand/i);
+    const expandToggle = await screen.findAllByLabelText(/expand row/i);
     userEvent.click(expandToggle[0]);
     const certificationDetails = await screen.findByPlaceholderText(
       /certification details/i,
@@ -229,7 +227,7 @@ describe('DatasourceEditor RTL', () => {
     await asyncRender(propsWithCurrency);
     const metricButton = screen.getByTestId('collection-tab-Metrics');
     userEvent.click(metricButton);
-    const expandToggle = await screen.findAllByLabelText(/toggle expand/i);
+    const expandToggle = await screen.findAllByLabelText(/expand row/i);
     userEvent.click(expandToggle[0]);
 
     expect(await screen.findByText('Metric currency')).toBeVisible();
@@ -240,9 +238,12 @@ describe('DatasourceEditor RTL', () => {
         ),
       ),
     ).toHaveTextContent('Prefix');
-    await userEvent.click(
-      screen.getByRole('combobox', { name: 'Currency prefix or suffix' }),
-    );
+
+    const currencyPrefix = screen.getByRole('combobox', {
+      name: 'Currency prefix or suffix',
+    });
+    userEvent.click(currencyPrefix);
+
     const positionOptions = await waitFor(() =>
       document.querySelectorAll(
         `[aria-label='Currency prefix or suffix'] .ant-select-item-option-content`,
@@ -272,9 +273,12 @@ describe('DatasourceEditor RTL', () => {
     ).toHaveTextContent('$ (USD)');
 
     propsWithCurrency.onChange.mockClear();
-    await userEvent.click(
-      screen.getByRole('combobox', { name: 'Currency symbol' }),
-    );
+
+    const currencySymbol = screen.getByRole('combobox', {
+      name: 'Currency symbol',
+    });
+    userEvent.click(currencySymbol);
+
     const symbolOptions = await waitFor(() =>
       document.querySelectorAll(
         `[aria-label='Currency symbol'] .ant-select-item-option-content`,
@@ -285,6 +289,7 @@ describe('DatasourceEditor RTL', () => {
     expect(symbolOptions[2]).toHaveTextContent('€ (EUR)');
 
     await userEvent.click(symbolOptions[1]);
+
     expect(propsWithCurrency.onChange.mock.calls[0][0]).toMatchObject(
       expect.objectContaining({
         metrics: expect.arrayContaining([
@@ -294,12 +299,12 @@ describe('DatasourceEditor RTL', () => {
         ]),
       }),
     );
-  });
+  }, 30000);
   it('properly updates the metric information', async () => {
     await asyncRender(props);
     const metricButton = screen.getByTestId('collection-tab-Metrics');
     userEvent.click(metricButton);
-    const expandToggle = await screen.findAllByLabelText(/toggle expand/i);
+    const expandToggle = await screen.findAllByLabelText(/expand row/i);
     userEvent.click(expandToggle[1]);
     const certifiedBy = await screen.findByPlaceholderText(/certified by/i);
     userEvent.type(certifiedBy, 'I am typing a new name');

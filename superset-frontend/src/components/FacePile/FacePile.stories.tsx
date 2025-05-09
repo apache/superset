@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import FacePile from '.';
+import { FacePile } from '.';
 
 export default {
-  title: 'FacePile',
+  title: 'Components/FacePile',
   component: FacePile,
   argTypes: {
     maxCount: { control: 'number', defaultValue: 4 },

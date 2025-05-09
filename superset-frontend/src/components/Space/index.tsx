@@ -16,18 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/*
- * Re-exporting of components in src/components to facilitate
- * their imports by other components.
- * E.g. import { Select } from 'src/components'
- */
-
-import { Space as AntdSpace } from 'antd-v5';
-import type { SpaceProps } from 'antd-v5/es/space';
-
-export function Space(props: SpaceProps) {
-  return <AntdSpace {...props} />;
-}
-
-export { SpaceProps };
+export { Space, type SpaceProps } from 'antd-v5';

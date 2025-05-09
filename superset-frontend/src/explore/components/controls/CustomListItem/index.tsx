@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useTheme } from '@superset-ui/core';
-import { ListItemProps, List } from 'src/components/List';
+import { List, type ListItemProps } from 'src/components';
 
 export interface CustomListItemProps extends ListItemProps {
   selectable: boolean;
@@ -29,12 +29,12 @@ export default function CustomListItem(props: CustomListItemProps) {
   const css: Record<string, Record<string, Record<string, number> | string>> = {
     '&.antd5-list-item': {
       ':first-of-type': {
-        borderTopLeftRadius: theme.gridUnit,
-        borderTopRightRadius: theme.gridUnit,
+        borderTopLeftRadius: theme.borderRadius,
+        borderTopRightRadius: theme.borderRadius,
       },
       ':last-of-type': {
-        borderBottomLeftRadius: theme.gridUnit,
-        borderBottomRightRadius: theme.gridUnit,
+        borderBottomLeftRadius: theme.borderRadius,
+        borderBottomRightRadius: theme.borderRadius,
       },
     },
   };

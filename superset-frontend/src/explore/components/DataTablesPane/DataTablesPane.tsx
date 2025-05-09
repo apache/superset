@@ -11,8 +11,8 @@
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ * OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
@@ -38,41 +38,47 @@ import {
 } from './components';
 import { DataTablesPaneProps, ResultTypes } from './types';
 
+const StyledDiv = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    `}
+`;
+
 const SouthPane = styled.div`
   ${({ theme }) => `
     position: relative;
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgContainer};
     z-index: 5;
     overflow: hidden;
 
-    .ant-tabs {
+    .antd5-tabs {
       height: 100%;
     }
 
-    .ant-tabs-content-holder {
+    .antd5-tabs-content-holder {
       height: 100%;
     }
 
-    .ant-tabs-content {
+    .antd5-tabs-content {
       height: 100%;
     }
 
-    .ant-tabs-tabpane {
-      display: flex;
-      flex-direction: column;
+    .antd5-tabs-tabpane {
       height: 100%;
+      position: relative;
 
       .table-condensed {
         height: 100%;
         overflow: auto;
-        margin-bottom: ${theme.gridUnit * 4}px;
+        margin-bottom: ${theme.sizeUnit * 4}px;
 
         .table {
-          margin-bottom: ${theme.gridUnit * 2}px;
+          margin-bottom: ${theme.sizeUnit * 2}px;
         }
       }
-
-      .pagination-container > ul[role='navigation'] {
+     .pagination-container > ul[role='navigation'] {
         margin-top: 0;
       }
     }
@@ -197,37 +203,19 @@ export const DataTablesPane = ({
     actions,
     isVisible: ResultTypes.Results === activeTabKey,
     canDownload,
-  }).map((pane, idx) => {
-    if (idx === 0) {
-      return (
-        <Tabs.TabPane tab={t('Results')} key={ResultTypes.Results}>
-          {pane}
-        </Tabs.TabPane>
-      );
-    }
-    if (idx > 0) {
-      return (
-        <Tabs.TabPane
-          tab={t('Results %s', idx + 1)}
-          key={`${ResultTypes.Results} ${idx + 1}`}
-        >
-          {pane}
-        </Tabs.TabPane>
-      );
-    }
-    return null;
-  });
+  }).map((pane, idx) => ({
+    key: idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`,
+    label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
+    children: pane,
+  }));
 
-  return (
-    <SouthPane data-test="some-purposeful-instance">
-      <Tabs
-        fullWidth={false}
-        tabBarExtraContent={CollapseButton}
-        activeKey={panelOpen ? activeTabKey : ''}
-        onTabClick={handleTabClick}
-      >
-        {queryResultsPanes}
-        <Tabs.TabPane tab={t('Samples')} key={ResultTypes.Samples}>
+  const tabItems = [
+    ...queryResultsPanes,
+    {
+      key: ResultTypes.Samples,
+      label: t('Samples'),
+      children: (
+        <StyledDiv>
           <SamplesPane
             datasource={datasource}
             queryForce={queryForce}
@@ -236,8 +224,19 @@ export const DataTablesPane = ({
             isVisible={ResultTypes.Samples === activeTabKey}
             canDownload={canDownload}
           />
-        </Tabs.TabPane>
-      </Tabs>
+        </StyledDiv>
+      ),
+    },
+  ];
+
+  return (
+    <SouthPane data-test="some-purposeful-instance">
+      <Tabs
+        tabBarExtraContent={CollapseButton}
+        activeKey={panelOpen ? activeTabKey : ''}
+        onTabClick={handleTabClick}
+        items={tabItems}
+      />
     </SouthPane>
   );
 };

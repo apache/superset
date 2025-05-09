@@ -36,9 +36,9 @@ import {
 import rison from 'rison';
 import { isEqual } from 'lodash';
 import {
-  FetchDataConfig,
-  Filter,
-  FilterValue,
+  ListViewFetchDataConfig as FetchDataConfig,
+  ListViewFilter as Filter,
+  ListViewFilterValue as FilterValue,
   InnerFilterValue,
   InternalFilter,
   SortColumn,

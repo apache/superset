@@ -17,10 +17,8 @@
  * under the License.
  */
 import {
-  CSSProperties,
   cloneElement,
   forwardRef,
-  ReactElement,
   RefObject,
   useEffect,
   useImperativeHandle,
@@ -28,93 +26,25 @@ import {
   useMemo,
   useState,
   useRef,
-  ReactNode,
 } from 'react';
 
 import { Global } from '@emotion/react';
 import { css, t, useTheme, usePrevious } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
-import Badge from '../Badge';
-import { Icons } from '../Icons';
-import Button from '../Button';
-import Popover from '../Popover';
+import { Icons } from 'src/components/Icons';
+import { Badge } from '../Badge';
+import { Button } from '../Button';
 import { Tooltip } from '../Tooltip';
+import Popover from '../Popover';
+import type {
+  DropdownContainerProps,
+  DropdownItem,
+  DropdownRef,
+} from './types';
 
 const MAX_HEIGHT = 500;
 
-/**
- * Container item.
- */
-export interface Item {
-  /**
-   * String that uniquely identifies the item.
-   */
-  id: string;
-  /**
-   * The element to be rendered.
-   */
-  element: ReactElement;
-}
-
-/**
- * Horizontal container that displays overflowed items in a dropdown.
- * It shows an indicator of how many items are currently overflowing.
- */
-export interface DropdownContainerProps {
-  /**
-   * Array of items. The id property is used to uniquely identify
-   * the elements when rendering or dealing with event handlers.
-   */
-  items: Item[];
-  /**
-   * Event handler called every time an element moves between
-   * main container and dropdown.
-   */
-  onOverflowingStateChange?: (overflowingState: {
-    notOverflowed: string[];
-    overflowed: string[];
-  }) => void;
-  /**
-   * Option to customize the content of the dropdown.
-   */
-  dropdownContent?: (overflowedItems: Item[]) => ReactElement;
-  /**
-   * Dropdown ref.
-   */
-  dropdownRef?: RefObject<HTMLDivElement>;
-  /**
-   * Dropdown additional style properties.
-   */
-  dropdownStyle?: CSSProperties;
-  /**
-   * Displayed count in the dropdown trigger.
-   */
-  dropdownTriggerCount?: number;
-  /**
-   * Icon of the dropdown trigger.
-   */
-  dropdownTriggerIcon?: ReactElement;
-  /**
-   * Text of the dropdown trigger.
-   */
-  dropdownTriggerText?: string;
-  /**
-   * Text of the dropdown trigger tooltip
-   */
-  dropdownTriggerTooltip?: ReactNode | null;
-  /**
-   * Main container additional style properties.
-   */
-  style?: CSSProperties;
-  /**
-   * Force render popover content before it's first opened
-   */
-  forceRender?: boolean;
-}
-
-export type Ref = HTMLDivElement & { open: () => void };
-
-const DropdownContainer = forwardRef(
+export const DropdownContainer = forwardRef(
   (
     {
       items,
@@ -129,7 +59,7 @@ const DropdownContainer = forwardRef(
       forceRender,
       style,
     }: DropdownContainerProps,
-    outerRef: RefObject<Ref>,
+    outerRef: RefObject<DropdownRef>,
   ) => {
     const theme = useTheme();
     const { ref, width = 0 } = useResizeDetector<HTMLDivElement>();
@@ -147,7 +77,7 @@ const DropdownContainer = forwardRef(
 
     const [showOverflow, setShowOverflow] = useState(false);
 
-    const reduceItems = (items: Item[]): [Item[], string[]] =>
+    const reduceItems = (items: DropdownItem[]): [DropdownItem[], string[]] =>
       items.reduce(
         ([items, ids], item) => {
           items.push({
@@ -157,7 +87,7 @@ const DropdownContainer = forwardRef(
           ids.push(item.id);
           return [items, ids];
         },
-        [[], []] as [Item[], string[]],
+        [[], []] as [DropdownItem[], string[]],
       );
 
     const [notOverflowedItems, notOverflowedIds] = useMemo(
@@ -301,7 +231,7 @@ const DropdownContainer = forwardRef(
             css={css`
               display: flex;
               flex-direction: column;
-              gap: ${theme.gridUnit * 4}px;
+              gap: ${theme.sizeUnit * 4}px;
             `}
             data-test="dropdown-content"
             style={dropdownStyle}
@@ -315,7 +245,7 @@ const DropdownContainer = forwardRef(
       [
         dropdownContent,
         overflowingCount,
-        theme.gridUnit,
+        theme.sizeUnit,
         dropdownStyle,
         overflowedItems,
       ],
@@ -365,8 +295,8 @@ const DropdownContainer = forwardRef(
           css={css`
             display: flex;
             align-items: center;
-            gap: ${theme.gridUnit * 4}px;
-            margin-right: ${theme.gridUnit * 4}px;
+            gap: ${theme.sizeUnit * 4}px;
+            margin-right: ${theme.sizeUnit * 4}px;
             min-width: 0px;
           `}
           data-test="container"
@@ -400,9 +330,11 @@ const DropdownContainer = forwardRef(
             />
 
             <Popover
-              overlayInnerStyle={{
-                maxHeight: `${MAX_HEIGHT}px`,
-                overflow: showOverflow ? 'auto' : 'visible',
+              styles={{
+                body: {
+                  maxHeight: `${MAX_HEIGHT}px`,
+                  overflow: showOverflow ? 'auto' : 'visible',
+                },
               }}
               content={popoverContent}
               trigger="click"
@@ -422,12 +354,12 @@ const DropdownContainer = forwardRef(
                     count={dropdownTriggerCount ?? overflowingCount}
                     color={
                       (dropdownTriggerCount ?? overflowingCount) > 0
-                        ? theme.colors.primary.base
+                        ? theme.colorPrimary
                         : theme.colors.grayscale.light1
                     }
                     showZero
                     css={css`
-                      margin-left: ${theme.gridUnit * 2}px;
+                      margin-left: ${theme.sizeUnit * 2}px;
                     `}
                   />
                   <Icons.DownOutlined
@@ -449,4 +381,4 @@ const DropdownContainer = forwardRef(
   },
 );
 
-export default DropdownContainer;
+export type { DropdownItem, DropdownRef };

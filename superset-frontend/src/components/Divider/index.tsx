@@ -16,12 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import { css } from '@superset-ui/core';
 import { Divider as AntdDivider } from 'antd-v5';
-import type { DividerProps } from 'antd-v5/es/divider';
+import type { DividerProps } from './types';
 
 export function Divider(props: DividerProps) {
-  return <AntdDivider {...props} />;
+  return (
+    <AntdDivider
+      css={theme => css`
+        margin: ${theme.margin}px 0;
+      `}
+      {...props}
+    />
+  );
 }
-
-export { DividerProps };
+export type { DividerProps };

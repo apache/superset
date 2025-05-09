@@ -18,8 +18,7 @@
  */
 
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
-// eslint-disable-next-line no-restricted-imports
-import { UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
+import { UploadFile } from 'src/components/Upload';
 import { t } from '@superset-ui/core';
 import {
   EditHeaderTitle,
@@ -163,17 +162,19 @@ const ModalHeader = ({
   );
 
   const noDbHeader = (
-    <StyledFormHeader>
-      <div className="select-db">
-        <p className="helper-top">
-          {t('STEP %(stepCurr)s OF %(stepLast)s', {
-            stepCurr: 1,
-            stepLast: 3,
-          })}
-        </p>
-        <h4>{t('Select a database to connect')}</h4>
-      </div>
-    </StyledFormHeader>
+    <StyledStickyHeader>
+      <StyledFormHeader>
+        <div className="select-db">
+          <p className="helper-top">
+            {t('STEP %(stepCurr)s OF %(stepLast)s', {
+              stepCurr: 1,
+              stepLast: 3,
+            })}
+          </p>
+          <h4>{t('Select a database to connect')}</h4>
+        </div>
+      </StyledFormHeader>
+    </StyledStickyHeader>
   );
 
   const importDbHeader = (

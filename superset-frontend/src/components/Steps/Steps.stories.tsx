@@ -17,10 +17,10 @@
  * under the License.
  */
 import { Steps as AntdSteps } from 'antd-v5';
-import { Steps, StepsProps } from '.';
+import { Steps, type StepsProps } from '.';
 
 export default {
-  title: 'Steps',
+  title: 'Components/Steps',
   component: Steps as typeof AntdSteps,
 };
 

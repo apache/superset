@@ -21,7 +21,7 @@ import { extendedDayjs } from 'src/utils/dates';
 import { styled, t } from '@superset-ui/core';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
-import ListViewCard from 'src/components/ListViewCard';
+import { ListViewCard } from 'src/components';
 import { Dashboard, SavedQueryObject, TableTab } from 'src/views/CRUD/types';
 import { ActivityData, LoadingCards } from 'src/pages/Home';
 import {
@@ -66,7 +66,7 @@ interface ActivityProps {
 const Styles = styled.div`
   .recentCards {
     max-height: none;
-    grid-gap: ${({ theme }) => `${theme.gridUnit * 4}px`};
+    grid-gap: ${({ theme }) => `${theme.sizeUnit * 4}px`};
   }
 `;
 
@@ -195,7 +195,11 @@ export default function ActivityTable({
   }
   return (
     <Styles>
-      <SubMenu activeChild={activeChild} tabs={tabs} />
+      <SubMenu
+        activeChild={activeChild}
+        tabs={tabs}
+        backgroundColor="transparent"
+      />
       {Number(activityData[activeChild as keyof ActivityData]?.length) > 0 ||
       (activeChild === TableTab.Edited && editedCards?.length) ? (
         <CardContainer className="recentCards">

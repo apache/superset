@@ -24,7 +24,7 @@
 //
 // ## Gray and brand colors for use across Bootstrap.
 
-@gray-base: @darkest; // superset-var
+@gray-base: #141414; // superset-var
 @gray-darker: lighten(@gray-base, 13.5%);
 @gray-dark: lighten(@gray-base, 20%);
 @bs-gray: lighten(@gray-base, 33.5%);
@@ -42,9 +42,9 @@
 // ## Settings for some of the most global styles.
 
 // ** Background color for `<body>`.
-@body-bg: @gray-bg; // superset-var
+@body-bg: #ffffff;
 // ** Global text color on `<body>`.
-@text-color: @gray-dark;
+@text-color: #3d3d3d;
 
 // ** Global textual link color.
 @link-color: @link;
@@ -514,9 +514,9 @@
 // ** Tooltip max width
 @tooltip-max-width: 200px;
 // ** Tooltip text color
-@tooltip-color: @lightest; // superset-var
+@tooltip-color: #858585; // superset-var
 // ** Tooltip background color
-@tooltip-bg: @darkest; // superset-var
+@tooltip-bg: rgba(0,0,0,0.88);
 @tooltip-opacity: 0.9;
 
 // ** Tooltip arrow width
@@ -812,7 +812,7 @@
 //
 // ##
 
-@code-color: darken(@info, @colorstop-one);
+@code-color: darken(@info, 10%);
 @code-bg: @gray-bg; // superset-var
 
 @kbd-color: @lightest; // superset-var

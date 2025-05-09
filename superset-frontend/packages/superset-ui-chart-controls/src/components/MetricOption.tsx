@@ -25,7 +25,7 @@ import {
   SafeMarkdown,
   SupersetTheme,
 } from '@superset-ui/core';
-import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
+import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import Tooltip from './Tooltip';
@@ -37,7 +37,7 @@ const FlexRowContainer = styled.div`
   display: flex;
 
   > svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -73,7 +73,7 @@ export function MetricOption({
     <span
       className="option-label metric-option-label"
       css={(theme: SupersetTheme) => css`
-        margin-right: ${theme.gridUnit}px;
+        margin-right: ${theme.sizeUnit}px;
       `}
       ref={labelRef}
     >
@@ -112,14 +112,12 @@ export function MetricOption({
       )}
       {warningMarkdown && (
         <InfoTooltipWithTrigger
-          className="text-warning"
-          icon="warning"
+          type="warning"
           tooltip={<SafeMarkdown source={warningMarkdown} />}
           label={`warn-${metric.metric_name}`}
-          iconsStyle={{ marginLeft: 0 }}
+          iconStyle={{ marginLeft: 0 }}
           {...(metric.error_text && {
-            className: 'text-danger',
-            icon: 'exclamation-circle',
+            type: 'error',
           })}
         />
       )}

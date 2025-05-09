@@ -447,7 +447,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           'rgba(172, 225, 196, 1)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgb(255, 255, 255)',
+        );
       });
 
       it('render cell without color', () => {
@@ -487,9 +489,11 @@ describe('plugin-chart-table', () => {
           'rgba(172, 225, 196, 0.812)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          '',
+          'rgb(255, 255, 255)',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+          'rgb(255, 255, 255)',
+        );
       });
       it('should display originalLabel in grouped headers', () => {
         const props = transformProps(testData.comparison);

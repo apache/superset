@@ -19,7 +19,6 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
 import {
-  css,
   t,
   logging,
   SupersetClient,
@@ -43,7 +42,7 @@ import {
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
 import { Icons } from 'src/components/Icons';
-import Modal from 'src/components/Modal';
+import { Modal } from 'src/components';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilterOption from 'src/explore/components/controls/FilterControl/AdhocFilterOption';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -356,17 +355,13 @@ class AdhocFilterControl extends Component {
   }
 
   render() {
-    const { theme } = this.props;
     return (
       <div className="metrics-select" data-test="adhoc-filter-control">
         <HeaderContainer>
           <ControlHeader {...this.props} />
           {this.addNewFilterPopoverTrigger(
             <AddIconButton data-test="add-filter-button">
-              <Icons.PlusOutlined
-                iconSize="m"
-                iconColor={theme.colors.grayscale.light5}
-              />
+              <Icons.PlusOutlined iconSize="m" />
             </AddIconButton>,
           )}
         </HeaderContainer>
@@ -377,13 +372,7 @@ class AdhocFilterControl extends Component {
               )
             : this.addNewFilterPopoverTrigger(
                 <AddControlLabel>
-                  <Icons.PlusOutlined
-                    css={css`
-                      margin: auto ${theme.gridUnit}px auto 0;
-                    `}
-                    iconSize="m"
-                    iconColor={theme.colors.grayscale.light1}
-                  />
+                  <Icons.PlusOutlined iconSize="m" />
                   {t('Add filter')}
                 </AddControlLabel>,
               )}

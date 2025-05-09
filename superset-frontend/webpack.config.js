@@ -444,6 +444,7 @@ const config = {
                 modifyVars: {
                   'root-entry-name': 'default',
                 },
+                math: 'always',
               },
             },
           },

@@ -19,7 +19,7 @@
 import { ReactChild, RefObject, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import { css, t, useTheme } from '@superset-ui/core';
-import Button from 'src/components/Button';
+import { Button } from 'src/components';
 import ModalTrigger from 'src/components/ModalTrigger';
 
 export const ViewResultsModalTrigger = ({
@@ -52,8 +52,8 @@ export const ViewResultsModalTrigger = ({
       responsive
       resizable
       resizableConfig={{
-        minHeight: theme.gridUnit * 128,
-        minWidth: theme.gridUnit * 128,
+        minHeight: theme.sizeUnit * 128,
+        minWidth: theme.sizeUnit * 128,
         defaultSize: {
           width: 'auto',
           height: '75vh',
@@ -81,7 +81,7 @@ export const ViewResultsModalTrigger = ({
             buttonSize="small"
             onClick={handleCloseModal}
             css={css`
-              margin-left: ${theme.gridUnit * 2}px;
+              margin-left: ${theme.sizeUnit * 2}px;
             `}
           >
             {t('Close')}

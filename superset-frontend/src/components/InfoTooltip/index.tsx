@@ -18,32 +18,9 @@
  */
 
 import { styled, useTheme, css } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
-import { ActionType } from 'src/types/Action';
-
-export interface InfoTooltipProps {
-  iconStyle?: React.CSSProperties;
-  tooltip: string;
-  placement?:
-    | 'bottom'
-    | 'left'
-    | 'right'
-    | 'top'
-    | 'topLeft'
-    | 'topRight'
-    | 'bottomLeft'
-    | 'bottomRight'
-    | 'leftTop'
-    | 'leftBottom'
-    | 'rightTop'
-    | 'rightBottom'
-    | undefined;
-  trigger?: ActionType | ActionType[];
-  overlayStyle?: any;
-  bgColor?: string;
-  viewBox?: string;
-}
+import { Tooltip } from '../Tooltip';
+import type { InfoTooltipProps } from './types';
 
 const StyledTooltip = styled(Tooltip)`
   cursor: pointer;
@@ -67,24 +44,23 @@ const InfoIconContainer = styled.div`
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    margin-left: ${theme.gridUnit}px;
+    margin-left: ${theme.sizeUnit}px;
   `}
 `;
-const defaultColor = 'rgba(0,0,0,0.9)';
 
-export default function InfoTooltip({
+export function InfoTooltip({
   tooltip,
   iconStyle = {},
   placement = 'right',
   trigger = 'hover',
   overlayStyle = defaultOverlayStyle,
-  bgColor = defaultColor,
+  bgColor,
   viewBox = '0 -1 24 24',
 }: InfoTooltipProps) {
   const theme = useTheme();
   const alteredIconStyle = {
     ...iconStyle,
-    color: iconStyle.color || theme.colors.grayscale.base,
+    color: iconStyle.color || theme.colorIcon,
   };
   return (
     <StyledTooltip
@@ -106,3 +82,5 @@ export default function InfoTooltip({
     </StyledTooltip>
   );
 }
+
+export type { InfoTooltipProps };

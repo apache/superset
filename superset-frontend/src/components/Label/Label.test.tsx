@@ -18,7 +18,7 @@
  */
 import { fireEvent, render } from 'spec/helpers/testing-library';
 
-import Label from '.';
+import { Label } from '.';
 import { LabelGallery, options } from './Label.stories';
 
 // test the basic component
@@ -36,6 +36,7 @@ test('works with an onClick handler', () => {
 
 // test stories from the storybook!
 test('renders all the storybook gallery variants', () => {
+  // @ts-ignore: Suppress TypeScript error for LabelGallery usage
   const { container } = render(<LabelGallery />);
   const nonInteractiveLabelCount = 4;
   const renderedLabelCount = options.length * 2 + nonInteractiveLabelCount;

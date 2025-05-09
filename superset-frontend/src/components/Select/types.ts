@@ -16,39 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  JSXElementConstructor,
-  ReactElement,
-  ReactNode,
-  RefObject,
-} from 'react';
-// eslint-disable-next-line no-restricted-imports
+import { JSXElementConstructor, ReactElement, ReactNode, Ref } from 'react';
 import {
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
-} from 'antd/lib/select'; // TODO: Remove antd
-// eslint-disable-next-line no-restricted-imports
-import { TagProps } from 'antd/lib/tag'; // TODO: Remove antd
+  RefSelectProps,
+} from 'antd-v5/es/select';
+import { Interpolation, Theme } from '@emotion/react';
 
 export type RawValue = string | number;
 
 export type V = string | number | null | undefined;
 
-export type LabeledValue = { label?: ReactNode; value?: V };
+export type LabeledValue = AntdLabeledValue;
+
+export type CustomLabeledValue = { label?: ReactNode; value?: V };
 
 export type AntdProps = AntdSelectProps<AntdSelectValue>;
+
+export type SelectValue = AntdSelectValue | null;
+
+export type { RefSelectProps };
 
 export type AntdExposedProps = Pick<
   AntdProps,
   | 'allowClear'
   | 'autoClearSearchValue'
   | 'autoFocus'
+  | 'className'
+  | 'defaultValue'
   | 'disabled'
   | 'filterOption'
   | 'filterSort'
   | 'loading'
   | 'labelInValue'
+  | 'labelRender'
   | 'maxTagCount'
   | 'notFoundContent'
   | 'onChange'
@@ -60,11 +63,12 @@ export type AntdExposedProps = Pick<
   | 'onPopupScroll'
   | 'onSearch'
   | 'onDropdownVisibleChange'
+  | 'optionRender'
   | 'placeholder'
   | 'showArrow'
   | 'showSearch'
   | 'tokenSeparators'
-  | 'value'
+  | 'virtual'
   | 'getPopupContainer'
   | 'menuItemSelectedIcon'
 >;
@@ -158,10 +162,13 @@ export interface BaseSelectProps extends AntdExposedProps {
 
   suffixIcon?: ReactNode;
 
-  ref: RefObject<HTMLInputElement>;
+  value?: SelectValue | null;
+
+  ref: Ref<RefSelectProps>;
 }
 
 export interface SelectProps extends BaseSelectProps {
+  css?: Interpolation<Theme>;
   /**
    * It enables the user to select all options.
    * True by default.
@@ -174,7 +181,9 @@ export interface SelectProps extends BaseSelectProps {
   options: SelectOptionsType;
 }
 
-export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };
+export type AsyncSelectRef = RefSelectProps & {
+  clearCache: () => void;
+};
 
 export type SelectOptionsTypePage = {
   data: SelectOptionsType;
@@ -221,9 +230,3 @@ export interface AsyncSelectProps extends BaseSelectProps {
    */
   onError?: (error: string) => void;
 }
-
-export type CustomTagProps = HTMLSpanElement &
-  TagProps & {
-    label: ReactNode;
-    value: string;
-  };

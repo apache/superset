@@ -51,15 +51,19 @@ import type {
 } from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
 import { debounce, throttle, isEmpty } from 'lodash';
-import Modal from 'src/components/Modal';
 import Mousetrap from 'mousetrap';
-import Button from 'src/components/Button';
+import {
+  Input,
+  Button,
+  Alert,
+  Dropdown,
+  EmptyState,
+  Modal,
+} from 'src/components';
 import Timer from 'src/components/Timer';
 import ResizableSidebar from 'src/components/ResizableSidebar';
-import { Dropdown } from 'src/components/Dropdown';
-import { Skeleton } from 'src/components';
+import { Skeleton } from 'src/components/Skeleton';
 import { Switch } from 'src/components/Switch';
-import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
 import { Icons } from 'src/components/Icons';
 import { detectOS } from 'src/utils/common';
@@ -101,8 +105,6 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { EmptyState } from 'src/components/EmptyState';
-import Alert from 'src/components/Alert';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import useLogAction from 'src/logger/useLogAction';
 import {
@@ -134,13 +136,13 @@ const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
 const StyledToolbar = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
-  background: ${({ theme }) => theme.colors.grayscale.light5};
+  padding: ${({ theme }) => theme.sizeUnit * 2}px;
+  background: ${({ theme }) => theme.colorBgContainer};
   display: flex;
   justify-content: space-between;
-  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border: 1px solid ${({ theme }) => theme.colorBorder};
   border-top: 0;
-  column-gap: ${({ theme }) => theme.gridUnit}px;
+  column-gap: ${({ theme }) => theme.sizeUnit}px;
 
   form {
     margin-block-end: 0;
@@ -151,7 +153,7 @@ const StyledToolbar = styled.div`
     display: flex;
     align-items: center;
     & > span {
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
       display: inline-block;
 
       &:last-child {
@@ -168,10 +170,9 @@ const StyledToolbar = styled.div`
 const StyledSidebar = styled.div<{ width: number; hide: boolean | undefined }>`
   flex: 0 0 ${({ width }) => width}px;
   width: ${({ width }) => width}px;
-  padding: ${({ theme, hide }) => (hide ? 0 : theme.gridUnit * 2.5)}px;
+  padding: ${({ theme, hide }) => (hide ? 0 : theme.sizeUnit * 2.5)}px;
   border-right: 1px solid
-    ${({ theme, hide }) =>
-      hide ? 'transparent' : theme.colors.grayscale.light2};
+    ${({ theme, hide }) => (hide ? 'transparent' : theme.colorBorder)};
 `;
 
 const StyledSqlEditor = styled.div`
@@ -181,12 +182,12 @@ const StyledSqlEditor = styled.div`
     height: 100%;
 
     .schemaPane {
-      transition: transform ${theme.transitionTiming}s ease-in-out;
+      transition: transform ${theme.motionDurationMid} ease-in-out;
     }
 
     .queryPane {
       flex: 1 1 auto;
-      padding: ${theme.gridUnit * 2}px;
+      padding: ${theme.sizeUnit * 2}px;
       overflow-y: auto;
       overflow-x: scroll;
     }
@@ -203,7 +204,7 @@ const StyledSqlEditor = styled.div`
 
     .schemaPane-enter-active {
       transform: translateX(0);
-      max-width: ${theme.gridUnit * 75}px;
+      max-width: ${theme.sizeUnit * 75}px;
     }
 
     .schemaPane-enter,
@@ -218,8 +219,8 @@ const StyledSqlEditor = styled.div`
     }
 
     .gutter {
-      border-top: 1px solid ${theme.colors.grayscale.light2};
-      border-bottom: 1px solid ${theme.colors.grayscale.light2};
+      border-top: 1px solid ${theme.colorBorder};
+      border-bottom: 1px solid ${theme.colorBorder};
       width: 3%;
       margin: ${SQL_EDITOR_GUTTER_MARGIN}px 47%;
     }
@@ -657,11 +658,11 @@ const SqlEditor: FC<Props> = ({
     southPercent: number,
   ) => ({
     aceEditorHeight:
-      (height * northPercent) / (theme.gridUnit * 25) -
+      (height * northPercent) / (theme.sizeUnit * 25) -
       (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN) -
       SQL_TOOLBAR_HEIGHT,
     southPaneHeight:
-      (height * southPercent) / (theme.gridUnit * 25) -
+      (height * southPercent) / (theme.sizeUnit * 25) -
       (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN),
   });
 
@@ -705,7 +706,7 @@ const SqlEditor: FC<Props> = ({
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
     return (
-      <Menu css={{ width: theme.gridUnit * 50 }}>
+      <Menu css={{ width: theme.sizeUnit * 50 }}>
         <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
           {' '}
           <span>{t('Render HTML')}</span>{' '}
@@ -873,7 +874,11 @@ const SqlEditor: FC<Props> = ({
                 dropdownRender={() => renderDropdown()}
                 trigger={['click']}
               >
-                <Button buttonSize="xsmall" type="link" showMarginRight={false}>
+                <Button
+                  buttonSize="xsmall"
+                  showMarginRight={false}
+                  buttonStyle="link"
+                >
                   <Icons.EllipsisOutlined />
                 </Button>
               </Dropdown>
@@ -976,7 +981,7 @@ const SqlEditor: FC<Props> = ({
           data-test="sqlEditor-loading"
           css={css`
             flex: 1;
-            padding: ${theme.gridUnit * 4}px;
+            padding: ${theme.sizeUnit * 4}px;
           `}
         >
           <Skeleton active />

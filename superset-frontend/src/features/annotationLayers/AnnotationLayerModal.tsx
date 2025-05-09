@@ -22,7 +22,7 @@ import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import { Icons } from 'src/components/Icons';
-import Modal from 'src/components/Modal';
+import { Input, Modal } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import { OnlyKeyWithType } from 'src/utils/types';
@@ -43,28 +43,28 @@ interface AnnotationLayerModalProps {
 }
 
 const StyledAnnotationLayerTitle = styled.div`
-  margin: ${({ theme }) => theme.gridUnit * 2}px auto
-    ${({ theme }) => theme.gridUnit * 4}px auto;
+  margin: ${({ theme }) => theme.sizeUnit * 2}px auto
+    ${({ theme }) => theme.sizeUnit * 4}px auto;
 `;
 
 const LayerContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 10}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 10}px;
 
   .control-label {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   .required {
-    margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-    color: ${({ theme }) => theme.colors.error.base};
+    margin-left: ${({ theme }) => theme.sizeUnit / 2}px;
+    color: ${({ theme }) => theme.colorError};
   }
 
   textarea,
   input[type='text'] {
-    padding: ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 2}px;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.gridUnit}px;
+    padding: ${({ theme }) => theme.sizeUnit * 1.5}px
+      ${({ theme }) => theme.sizeUnit * 2}px;
+    border: 1px solid ${({ theme }) => theme.colorBorder};
+    border-radius: ${({ theme }) => theme.borderRadius}px;
     width: 50%;
   }
 
@@ -240,14 +240,14 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
             <Icons.EditOutlined
               iconSize="l"
               css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
               `}
             />
           ) : (
             <Icons.PlusOutlined
               iconSize="m"
               css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
                 vertical-align: text-top;
               `}
             />
@@ -266,7 +266,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
           {t('Annotation layer name')}
           <span className="required">*</span>
         </div>
-        <input
+        <Input
           name="name"
           onChange={onTextChange}
           type="text"
@@ -275,7 +275,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       </LayerContainer>
       <LayerContainer>
         <div className="control-label">{t('description')}</div>
-        <textarea
+        <Input.TextArea
           name="descr"
           value={currentLayer?.descr}
           placeholder={t('Description (this can be seen in the list)')}

@@ -19,35 +19,40 @@
 import {
   forwardRef,
   FocusEvent,
-  ReactElement,
   RefObject,
   useEffect,
   useMemo,
   useState,
   useCallback,
   ClipboardEvent,
+  Ref,
+  ReactElement,
 } from 'react';
 
-import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
-import { debounce, isEqual, uniq } from 'lodash';
-import { FAST_DEBOUNCE } from 'src/constants';
 import {
+  ensureIsArray,
+  FAST_DEBOUNCE,
+  t,
+  usePrevious,
+} from '@superset-ui/core';
+import {
+  LabeledValue as AntdLabeledValue,
+  RefSelectProps,
+} from 'antd-v5/es/select';
+import { debounce, isEqual, uniq } from 'lodash';
+import {
+  dropDownRenderHelper,
+  getOption,
+  getSuffixIcon,
   getValue,
+  handleFilterOptionHelper,
   hasOption,
   isLabeledValue,
-  renderSelectOptions,
-  sortSelectedFirstHelper,
-  sortComparatorWithSearchHelper,
-  handleFilterOptionHelper,
-  dropDownRenderHelper,
-  getSuffixIcon,
-  mapValues,
-  mapOptions,
-  hasCustomLabels,
-  getOption,
   isObject,
+  mapOptions,
+  mapValues,
+  sortComparatorWithSearchHelper,
+  sortSelectedFirstHelper,
   isEqual as utilsIsEqual,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
@@ -60,13 +65,14 @@ import {
   StyledStopOutlined,
 } from './styles';
 import {
+  DEFAULT_SORT_COMPARATOR,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
   TOKEN_SEPARATORS,
-  DEFAULT_SORT_COMPARATOR,
+  VIRTUAL_THRESHOLD,
 } from './constants';
-import { customTagRender } from './CustomTag';
-import Button from '../Button';
+import { Space } from '../Space';
+import { Button } from '../Button';
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -116,10 +122,10 @@ const Select = forwardRef(
       getPopupContainer,
       oneLine,
       maxTagCount: propsMaxTagCount,
-
+      virtual = undefined,
       ...props
     }: SelectProps,
-    ref: RefObject<HTMLInputElement>,
+    ref: Ref<RefSelectProps>,
   ) => {
     const isSingleMode = mode === 'single';
     const shouldShowSearch = allowNewOptions ? true : showSearch;
@@ -152,6 +158,7 @@ const Select = forwardRef(
         sortSelectedFirstHelper(a, b, selectValue),
       [selectValue],
     );
+
     const sortComparatorWithSearch = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
         sortComparatorWithSearchHelper(
@@ -161,13 +168,14 @@ const Select = forwardRef(
           sortSelectedFirst,
           sortComparator,
         ),
-      [inputValue, sortComparator, sortSelectedFirst],
+      [inputValue, sortComparator, isDropdownVisible],
     );
 
     const initialOptions = useMemo(
       () => (Array.isArray(options) ? options.slice() : EMPTY_OPTIONS),
       [options],
     );
+
     const initialOptionsSorted = useMemo(
       () => initialOptions.slice().sort(sortSelectedFirst),
       [initialOptions, sortSelectedFirst],
@@ -182,7 +190,7 @@ const Select = forwardRef(
       let groupedOptions: SelectOptionsType;
       if (selectOptions.some(opt => opt.options)) {
         groupedOptions = selectOptions.reduce(
-          (acc, group) => [...acc, ...group.options],
+          (acc, group) => [...acc, ...(group.options as SelectOptionsType)],
           [] as SelectOptionsType,
         );
       }
@@ -305,8 +313,14 @@ const Select = forwardRef(
             )
             .map(option =>
               labelInValue
-                ? { label: option.label, value: option.value }
+                ? {
+                    label: option.label,
+                    value: option.value,
+                  }
                 : option.value,
+            )
+            .filter(
+              (val): val is RawValue => val !== null && val !== undefined,
             ),
         );
       }
@@ -343,12 +357,17 @@ const Select = forwardRef(
       let updatedOptions = selectOptions;
 
       if (allowNewOptions) {
-        const newOption = searchValue &&
-          !hasOption(searchValue, fullSelectOptions, true) && {
-            label: searchValue,
-            value: searchValue,
-            isNewOption: true,
-          };
+        const optionsWithoutTemporary = ensureIsArray(fullSelectOptions).filter(
+          opt => !opt.isNewOption,
+        );
+        const shouldCreateNewOption =
+          searchValue && !hasOption(searchValue, optionsWithoutTemporary, true);
+
+        const newOption = shouldCreateNewOption && {
+          label: searchValue,
+          value: searchValue,
+          isNewOption: true,
+        };
         const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
           opt => !opt.isNewOption || hasOption(opt.value, selectValue),
         );
@@ -398,17 +417,14 @@ const Select = forwardRef(
       const currentValues = ensureIsArray(selectValue);
       const currentValuesSet = new Set(currentValues.map(getValue));
 
-      const newValues = [...currentValues] as AntdLabeledValue[];
+      const newValues = [...currentValues] as RawValue[];
       optionsToSelect.forEach(option => {
-        if (!option.disabled && !currentValuesSet.has(option.value)) {
-          if (labelInValue) {
-            newValues.push({
-              label: option.label,
-              value: option.value,
-            });
-          } else {
-            newValues.push(option.value);
-          }
+        if (
+          option.value &&
+          !option.disabled &&
+          !currentValuesSet.has(option.value)
+        ) {
+          newValues.push(option.value);
         }
       });
 
@@ -420,7 +436,6 @@ const Select = forwardRef(
       visibleOptions,
       enabledOptions,
       selectValue,
-      labelInValue,
       fireOnChange,
     ]);
 
@@ -440,9 +455,9 @@ const Select = forwardRef(
 
     const bulkSelectComponent = useMemo(
       () => (
-        <StyledBulkActionsContainer className="select-bulk-actions" size={0}>
+        <StyledBulkActionsContainer justify="center">
           <Button
-            type="link"
+            buttonStyle="link"
             buttonSize="xsmall"
             disabled={bulkSelectCounts.selectable === 0}
             onMouseDown={e => {
@@ -454,7 +469,7 @@ const Select = forwardRef(
             {`${t('Select all')} (${bulkSelectCounts.selectable})`}
           </Button>
           <Button
-            type="link"
+            buttonStyle="link"
             buttonSize="xsmall"
             disabled={bulkSelectCounts.deselectable === 0}
             onMouseDown={e => {
@@ -569,11 +584,6 @@ const Select = forwardRef(
       previousChangeCount,
       selectValue,
     ]);
-
-    const shouldRenderChildrenOptions = useMemo(
-      () => selectAllEnabled || hasCustomLabels(options),
-      [selectAllEnabled, options],
-    );
 
     const omittedCount = useMemo(() => {
       const num_selected = ensureIsArray(selectValue).length;
@@ -697,10 +707,13 @@ const Select = forwardRef(
           onSelect={handleOnSelect}
           onClear={handleClear}
           placeholder={placeholder}
-          showSearch={shouldShowSearch}
-          showArrow
           tokenSeparators={tokenSeparators}
           value={selectValue}
+          virtual={
+            virtual !== undefined
+              ? virtual
+              : fullSelectOptions.length > VIRTUAL_THRESHOLD
+          }
           suffixIcon={getSuffixIcon(
             isLoading,
             shouldShowSearch,
@@ -713,14 +726,14 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
-          options={shouldRenderChildrenOptions ? undefined : visibleOptions}
+          options={visibleOptions}
+          optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
-          tagRender={customTagRender}
+          css={props.css}
           {...props}
+          showSearch={shouldShowSearch}
           ref={ref}
-        >
-          {shouldRenderChildrenOptions && renderSelectOptions(visibleOptions)}
-        </StyledSelect>
+        />
       </StyledContainer>
     );
   },

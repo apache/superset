@@ -19,7 +19,7 @@
 import PopoverSection from '.';
 
 export default {
-  title: 'PopoverSection',
+  title: 'Components/PopoverSection',
 };
 
 export const InteractivePopoverSection = (args: any) => (

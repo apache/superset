@@ -26,9 +26,8 @@ import {
 } from 'react';
 import { css, getExtensionsRegistry, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip, EditableTitle } from 'src/components';
 import { useSelector } from 'react-redux';
-import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
@@ -57,16 +56,16 @@ const annotationsError = t('One or more annotation layers failed loading.');
 const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
   ${({ theme }) => `
     cursor: default;
-    color: ${theme.colors.primary.base};
+    color: ${theme.colorPrimary};
     line-height: 1.8;
   `}
 `;
 
 const ChartHeaderStyles = styled.div`
   ${({ theme }) => css`
-    font-size: ${theme.typography.sizes.l}px;
-    font-weight: ${theme.typography.weights.bold};
-    margin-bottom: ${theme.gridUnit}px;
+    font-size: ${theme.fontSizeLG}px;
+    font-weight: ${theme.fontWeightStrong};
+    margin-bottom: ${theme.sizeUnit}px;
     display: flex;
     max-width: 100%;
     align-items: flex-start;
@@ -107,18 +106,18 @@ const ChartHeaderStyles = styled.div`
     }
 
     .dropdown-menu.dropdown-menu-right {
-      top: ${theme.gridUnit * 5}px;
+      top: ${theme.sizeUnit * 5}px;
     }
 
     .divider {
-      margin: ${theme.gridUnit}px 0;
+      margin: ${theme.sizeUnit}px 0;
     }
 
     .refresh-tooltip {
       display: block;
-      height: ${theme.gridUnit * 4}px;
-      margin: ${theme.gridUnit}px 0;
-      color: ${theme.colors.text.label};
+      height: ${theme.sizeUnit * 4}px;
+      margin: ${theme.sizeUnit}px 0;
+      color: ${theme.colorTextLabel};
     }
   `}
 `;

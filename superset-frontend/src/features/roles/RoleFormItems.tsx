@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FormItem } from 'src/components/Form';
-import Select from 'src/components/Select/Select';
-import { Input } from 'src/components/Input';
+import { FormItem, Input, Select } from 'src/components';
 import { t } from '@superset-ui/core';
 import { FC } from 'react';
 import { FormattedPermission, UserObject } from './types';

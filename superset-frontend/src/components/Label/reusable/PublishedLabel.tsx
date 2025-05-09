@@ -17,8 +17,8 @@
  * under the License.
  */
 import { Icons } from 'src/components/Icons';
-import Label from 'src/components/Label';
 import { t, useTheme } from '@superset-ui/core';
+import { Label } from '..';
 
 // Define props for the PublishedLabel component
 interface PublishedLabelProps {
@@ -26,21 +26,18 @@ interface PublishedLabelProps {
   onClick?: () => void; // Optional click handler
 }
 
-const PublishedLabel: React.FC<PublishedLabelProps> = ({
+export const PublishedLabel: React.FC<PublishedLabelProps> = ({
   isPublished,
   onClick,
 }) => {
   const theme = useTheme();
   const label = isPublished ? t('Published') : t('Draft');
   const icon = isPublished ? (
-    <Icons.CheckCircleOutlined
-      iconSize="s"
-      iconColor={theme.colors.primary.dark2}
-    />
+    <Icons.CheckCircleOutlined iconSize="s" iconColor={theme.colorSuccess} />
   ) : (
-    <Icons.MinusCircleOutlined iconSize="s" />
+    <Icons.MinusCircleOutlined iconSize="s" iconColor={theme.colorPrimary} />
   );
-  const labelType = isPublished ? 'primary' : 'secondary';
+  const labelType = isPublished ? 'success' : 'primary';
 
   return (
     <Label type={labelType} icon={icon} onClick={onClick}>
@@ -48,5 +45,3 @@ const PublishedLabel: React.FC<PublishedLabelProps> = ({
     </Label>
   );
 };
-
-export default PublishedLabel;

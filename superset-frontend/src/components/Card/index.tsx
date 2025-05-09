@@ -18,25 +18,19 @@
  */
 import { SupersetTheme } from '@superset-ui/core';
 import { Card as AntdCard } from 'antd-v5';
-import { CardProps as AntdCardProps } from 'antd-v5/lib/card';
+import type { CardProps } from './types';
 
-export interface CardProps extends AntdCardProps {
-  padded?: boolean;
-}
-
-const Card = ({ padded, ...props }: CardProps) => (
+const CustomCard = ({ padded, ...props }: CardProps) => (
   <AntdCard
     {...props}
     css={(theme: SupersetTheme) => ({
-      // 'border-radius': `${theme.gridUnit}px`,
-      border: `1px solid ${theme.colors.grayscale.light2}`,
       '.antd5-card-body': {
-        padding: padded ? theme.gridUnit * 4 : theme.gridUnit,
+        padding: padded ? theme.sizeUnit * 4 : theme.sizeUnit,
       },
     })}
   />
 );
 
-export default Object.assign(Card, {
+export const Card = Object.assign(CustomCard, {
   Meta: AntdCard.Meta,
 });

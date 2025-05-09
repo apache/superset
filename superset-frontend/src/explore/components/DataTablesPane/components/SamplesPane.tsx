@@ -18,8 +18,7 @@
  */
 import { useState, useEffect, useMemo } from 'react';
 import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
-import { EmptyState } from 'src/components/EmptyState';
+import { EmptyState, Loading } from 'src/components';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import {
   useFilteredTableData,
@@ -30,7 +29,7 @@ import { TableControls } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
 
 const Error = styled.pre`
-  margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
+  margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
 `;
 
 const cache = new WeakSet();

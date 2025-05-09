@@ -20,9 +20,8 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
-import Modal from 'src/components/Modal';
+import { Modal, JsonEditor } from 'src/components';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { JsonEditor } from 'src/components/AsyncAceEditor';
 import { styledMount as mount } from 'spec/helpers/theming';
 import AnnotationModal from './AnnotationModal';
 

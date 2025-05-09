@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import EditableTitle, { EditableTitleProps } from '.';
+import { EditableTitle } from '.';
+import type { EditableTitleProps } from './types';
 
 export default {
-  title: 'EditableTitle',
+  title: 'Components/EditableTitle',
   component: EditableTitle,
 };
 
@@ -31,12 +32,13 @@ InteractiveEditableTitle.args = {
   canEdit: true,
   editing: false,
   emptyText: 'Empty text',
-  multiLine: true,
   noPermitTooltip: 'Not permitted',
   showTooltip: true,
   title: 'Title',
   defaultTitle: 'Default title',
   placeholder: 'Placeholder',
+  maxWidth: 100,
+  autoSize: true,
 };
 
 InteractiveEditableTitle.argTypes = {

@@ -34,9 +34,12 @@ jest.mock('../../src/components/ColumnTypeLabel/ColumnTypeLabel', () => ({
     <div data-test="mock-column-type-label">{type}</div>
   ),
 }));
-jest.mock('../../src/components/InfoTooltipWithTrigger', () => () => (
-  <div data-test="mock-info-tooltip-with-trigger" />
-));
+
+jest.mock('../../src/components/InfoTooltipWithTrigger', () => ({
+  InfoTooltipWithTrigger: () => (
+    <div data-test="mock-info-tooltip-with-trigger" />
+  ),
+}));
 
 const defaultProps: ColumnOptionProps = {
   column: {

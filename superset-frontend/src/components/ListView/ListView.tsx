@@ -18,26 +18,27 @@
  */
 import { t, styled } from '@superset-ui/core';
 import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
-import Alert from 'src/components/Alert';
 import cx from 'classnames';
-import Button from 'src/components/Button';
 import { Icons } from 'src/components/Icons';
-import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Pagination from 'src/components/Pagination';
 import TableCollection from 'src/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
+import type { EmptyStateProps } from '../EmptyState/types';
+import { EmptyState } from '../EmptyState';
+import { Checkbox } from '../Checkbox';
+import { Button } from '../Button';
+import { Alert } from '../Alert';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
 import {
-  FetchDataConfig,
-  Filters,
+  ListViewFetchDataConfig as FetchDataConfig,
+  ListViewFilters as Filters,
   SortColumn,
   CardSortSelectOption,
   ViewModeType,
 } from './types';
 import { ListViewError, useListViewState } from './utils';
-import { EmptyState, EmptyStateProps } from '../EmptyState';
 
 const ListViewStyles = styled.div`
   text-align: center;
@@ -45,17 +46,17 @@ const ListViewStyles = styled.div`
   .superset-list-view {
     text-align: left;
     border-radius: 4px 0;
-    margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
+    margin: 0 ${({ theme }) => theme.sizeUnit * 4}px;
 
     .header {
       display: flex;
-      padding-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+      padding-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
 
       & .controls {
         display: flex;
         flex-wrap: wrap;
-        column-gap: ${({ theme }) => theme.gridUnit * 6}px;
-        row-gap: ${({ theme }) => theme.gridUnit * 4}px;
+        column-gap: ${({ theme }) => theme.sizeUnit * 6}px;
+        row-gap: ${({ theme }) => theme.sizeUnit * 4}px;
       }
     }
 
@@ -78,11 +79,11 @@ const ListViewStyles = styled.div`
     display: flex;
     flex-direction: column;
     justify-content: center;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
   }
 
   .row-count-container {
-    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
     color: ${({ theme }) => theme.colors.grayscale.base};
   }
 `;
@@ -91,43 +92,43 @@ const BulkSelectWrapper = styled(Alert)`
   ${({ theme }) => `
     border-radius: 0;
     margin-bottom: 0;
-    color: ${theme.colors.grayscale.dark1};
-    background-color: ${theme.colors.primary.light4};
+    color: ${theme.colorText};
+    background-color: ${theme.colorPrimaryBg};
 
     .selectedCopy {
       display: inline-block;
-      padding: ${theme.gridUnit * 2}px 0;
+      padding: ${theme.sizeUnit * 2}px 0;
     }
 
     .deselect-all, .tag-btn {
-      color: ${theme.colors.primary.base};
-      margin-left: ${theme.gridUnit * 4}px;
+      color: ${theme.colorPrimary};
+      margin-left: ${theme.sizeUnit * 4}px;
     }
 
     .divider {
-      margin: ${`${-theme.gridUnit * 2}px 0 ${-theme.gridUnit * 2}px ${
-        theme.gridUnit * 4
+      margin: ${`${-theme.sizeUnit * 2}px 0 ${-theme.sizeUnit * 2}px ${
+        theme.sizeUnit * 4
       }px`};
       width: 1px;
-      height: ${theme.gridUnit * 8}px;
-      box-shadow: inset -1px 0px 0px ${theme.colors.grayscale.light2};
+      height: ${theme.sizeUnit * 8}px;
+      box-shadow: inset -1px 0px 0px ${theme.colorBorder};
       display: inline-flex;
       vertical-align: middle;
       position: relative;
     }
 
     .ant-alert-close-icon {
-      margin-top: ${theme.gridUnit * 1.5}px;
+      margin-top: ${theme.sizeUnit * 1.5}px;
     }
   `}
 `;
 
 const bulkSelectColumnConfig = {
   Cell: ({ row }: any) => (
-    <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} id={row.id} />
+    <Checkbox {...row.getToggleRowSelectedProps()} id={row.id} />
   ),
   Header: ({ getToggleAllRowsSelectedProps }: any) => (
-    <IndeterminateCheckbox
+    <Checkbox
       {...getToggleAllRowsSelectedProps()}
       id="header-toggle-all"
       data-test="header-toggle-all"
@@ -138,35 +139,35 @@ const bulkSelectColumnConfig = {
 };
 
 const ViewModeContainer = styled.div`
-  padding-right: ${({ theme }) => theme.gridUnit * 4}px;
-  margin-top: ${({ theme }) => theme.gridUnit * 5 + 1}px;
+  padding-right: ${({ theme }) => theme.sizeUnit * 4}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 5 + 1}px;
   white-space: nowrap;
   display: inline-block;
 
   .toggle-button {
     display: inline-block;
-    border-radius: ${({ theme }) => theme.gridUnit / 2}px;
-    padding: ${({ theme }) => theme.gridUnit}px;
-    padding-bottom: ${({ theme }) => theme.gridUnit * 0.5}px;
+    border-radius: ${({ theme }) => theme.borderRadius}px;
+    padding: ${({ theme }) => theme.sizeUnit}px;
+    padding-bottom: ${({ theme }) => theme.sizeUnit * 0.5}px;
 
     &:first-of-type {
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
 
   .active {
     background-color: ${({ theme }) => theme.colors.grayscale.base};
     svg {
-      color: ${({ theme }) => theme.colors.grayscale.light5};
+      color: ${({ theme }) => theme.colorBgLayout};
     }
   }
 `;
 
 const EmptyWrapper = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 40}px 0;
+  padding: ${({ theme }) => theme.sizeUnit * 40}px 0;
 
   &.table {
-    background: ${({ theme }) => theme.colors.grayscale.light5};
+    background: ${({ theme }) => theme.colorBgContainer};
   }
 `;
 
@@ -236,7 +237,7 @@ export interface ListViewProps<T extends object = any> {
   bulkTagResourceName?: string;
 }
 
-function ListView<T extends object = any>({
+export function ListView<T extends object = any>({
   columns,
   data,
   count,
@@ -438,11 +439,22 @@ function ListView<T extends object = any>({
               getTableBodyProps={getTableBodyProps}
               prepareRow={prepareRow}
               headerGroups={headerGroups}
+              setSortBy={setSortBy}
               rows={rows}
               columns={columns}
               loading={loading}
               highlightRowId={highlightRowId}
               columnsForWrapText={columnsForWrapText}
+              bulkSelectEnabled={bulkSelectEnabled}
+              selectedFlatRows={selectedFlatRows}
+              toggleRowSelected={(rowId, value) => {
+                const row = rows.find(r => r.id === rowId);
+                if (row) {
+                  prepareRow(row);
+                  row.toggleRowSelected(value);
+                }
+              }}
+              toggleAllRowsSelected={toggleAllRowsSelected}
             />
           )}
           {!loading && rows.length === 0 && (
@@ -490,5 +502,3 @@ function ListView<T extends object = any>({
     </ListViewStyles>
   );
 }
-
-export default ListView;

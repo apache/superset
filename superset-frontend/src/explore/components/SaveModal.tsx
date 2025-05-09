@@ -32,14 +32,18 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { Input } from 'src/components/Input';
-import { Form, FormItem } from 'src/components/Form';
-import Alert from 'src/components/Alert';
-import Modal from 'src/components/Modal';
+import {
+  Alert,
+  Button,
+  AsyncSelect,
+  Form,
+  FormItem,
+  Modal,
+  Input,
+  Loading,
+  Divider,
+} from 'src/components';
 import { Radio } from 'src/components/Radio';
-import Button from 'src/components/Button';
-import { AsyncSelect } from 'src/components';
-import Loading from 'src/components/Loading';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
@@ -78,8 +82,8 @@ export const StyledModal = styled(Modal)`
   }
   i {
     position: absolute;
-    top: -${({ theme }) => theme.gridUnit * 5.25}px;
-    left: ${({ theme }) => theme.gridUnit * 26.75}px;
+    top: -${({ theme }) => theme.sizeUnit * 5.25}px;
+    left: ${({ theme }) => theme.sizeUnit * 26.75}px;
   }
 `;
 
@@ -354,7 +358,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             {t('Save as...')}
           </Radio>
         </FormItem>
-        <hr />
+        <Divider />
         <FormItem label={t('Chart name')} required>
           <Input
             name="new_slice_name"

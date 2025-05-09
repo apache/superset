@@ -18,7 +18,7 @@
  * under the License.
  */
 import { Meta, StoryFn } from '@storybook/react';
-import { Row, Col } from 'antd';
+import { Row, Col } from 'antd'; // TODO: Remove antd
 import { EmptyState, imageMap } from '.';
 
 const emptyStates = [
@@ -31,7 +31,7 @@ const emptyStates = [
 ];
 
 export default {
-  title: 'Empty State Gallery',
+  title: 'Components/EmptyState',
   component: EmptyState,
   argTypes: {
     size: {

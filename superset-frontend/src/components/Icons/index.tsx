@@ -20,9 +20,8 @@
 import { FC } from 'react';
 import { antdEnhancedIcons } from './AntdEnhanced';
 import AsyncIcon from './AsyncIcon';
-import IconType from './types';
+import type { IconType } from './types';
 
-export type { IconType };
 /**
  * Filename is going to be inferred from the icon name.
  * i.e. BigNumberChartTile => assets/images/icons/big_number_chart_tile

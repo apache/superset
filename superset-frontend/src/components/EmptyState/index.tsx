@@ -18,7 +18,6 @@
  */
 import { ReactNode, SyntheticEvent } from 'react';
 import { styled, css, SupersetTheme, t } from '@superset-ui/core';
-import Button from 'src/components/Button';
 
 // Importing svg images
 import FilterResultsImage from 'src/assets/images/filter-results.svg';
@@ -36,7 +35,9 @@ import EmptySqlChartImage from 'src/assets/images/empty_sql_chart.svg';
 import EmptyQueryImage from 'src/assets/images/empty-query.svg';
 import EmptyTableImage from 'src/assets/images/empty-table.svg';
 import EmptyImage from 'src/assets/images/empty.svg';
+import { Button } from '../Button';
 import { Empty } from './Empty';
+import type { EmptyStateProps, EmptyStateSize } from './types';
 
 export const imageMap = {
   'chart.svg': <ChartImage />,
@@ -56,28 +57,16 @@ export const imageMap = {
   'vector.svg': <VectorImage />,
 };
 
-type EmptyStateSize = 'small' | 'medium' | 'large';
-
-export type EmptyStateProps = {
-  title?: ReactNode;
-  description?: ReactNode;
-  image?: ReactNode | string;
-  buttonText?: ReactNode;
-  buttonAction?: (event: SyntheticEvent) => void;
-  size?: EmptyStateSize;
-  children?: ReactNode;
-};
-
 const EmptyStateContainer = styled.div`
   ${({ theme }) => css`
     display: flex;
     flex-direction: column;
     width: 100%;
     height: 100%;
-    color: ${theme.colors.grayscale.light2};
+    color: ${theme.colorTextQuaternary};
     align-items: center;
     justify-content: center;
-    padding: ${theme.gridUnit * 4}px;
+    padding: ${theme.sizeUnit * 4}px;
     text-align: center;
 
     & .antd5-empty-image svg {
@@ -89,7 +78,7 @@ const EmptyStateContainer = styled.div`
       color: inherit;
       text-decoration: underline;
       &:hover {
-        color: ${theme.colors.grayscale.base};
+        color: ${theme.colorText};
       }
     }
   `}
@@ -97,29 +86,18 @@ const EmptyStateContainer = styled.div`
 
 const Title = styled.p<{ size: EmptyStateSize }>`
   ${({ theme, size }) => css`
-    font-size: ${size === 'large'
-      ? theme.typography.sizes.l
-      : theme.typography.sizes.m}px;
-    color: ${theme.colors.grayscale.light1};
-    margin-top: ${size === 'large' ? theme.gridUnit * 4 : theme.gridUnit * 2}px;
-    font-weight: ${theme.typography.weights.bold};
+    font-size: ${size === 'large' ? theme.fontSizeLG : theme.fontSize}px;
+    color: ${theme.colorTextQuaternary};
+    margin-top: ${size === 'large' ? theme.sizeUnit * 4 : theme.sizeUnit * 2}px;
+    font-weight: ${theme.fontWeightStrong};
   `}
 `;
 
 const Description = styled.p<{ size: EmptyStateSize }>`
   ${({ theme, size }) => css`
-    font-size: ${size === 'large'
-      ? theme.typography.sizes.m
-      : theme.typography.sizes.s}px;
-    color: ${theme.colors.grayscale.light1};
-    margin-top: ${theme.gridUnit * 2}px;
-  `}
-`;
-
-const ActionButton = styled(Button)`
-  ${({ theme }) => css`
-    margin-top: ${theme.gridUnit * 4}px;
-    z-index: 1;
+    font-size: ${size === 'large' ? theme.fontSize : theme.fontSizeSM}px;
+    color: ${theme.colorTextQuaternary};
+    margin-top: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -178,8 +156,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     <div
       css={(theme: SupersetTheme) => css`
         max-width: ${size === 'large'
-          ? theme.gridUnit * 150
-          : theme.gridUnit * 100}px;
+          ? theme.sizeUnit * 150
+          : theme.sizeUnit * 100}px;
       `}
     >
       {title && <Title size={size}>{title}</Title>}
@@ -189,15 +167,21 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         </Description>
       )}
       {buttonText && buttonAction && (
-        <ActionButton
+        <Button
           buttonStyle="primary"
           onClick={buttonAction}
           onMouseDown={handleMouseDown}
+          css={(theme: SupersetTheme) => css`
+            margin-top: ${theme.sizeUnit * 4}px;
+            z-index: 1;
+          `}
         >
           {buttonText}
-        </ActionButton>
+        </Button>
       )}
       {children}
     </div>
   </EmptyStateContainer>
 );
+
+export type { EmptyStateProps };

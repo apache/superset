@@ -24,7 +24,7 @@ interface IssueCodeProps {
   message: string;
 }
 
-export default function IssueCode({ code, message }: IssueCodeProps) {
+export function IssueCode({ code, message }: IssueCodeProps) {
   const theme = useTheme();
   return (
     <>

@@ -19,7 +19,7 @@
 // ***********************************************
 // Tests for setting controls in the UI
 // ***********************************************
-import { interceptChart } from 'cypress/utils';
+import { interceptChart, setSelectSearchInput } from 'cypress/utils';
 
 describe('Datasource control', () => {
   const newMetricName = `abc${Date.now()}`;
@@ -40,15 +40,11 @@ describe('Datasource control', () => {
     // create new metric
     cy.get('[data-test="crud-add-table-item"]', { timeout: 10000 }).click();
     cy.wait(1000);
-    cy.get(
-      '[data-test="table-content-rows"] [data-test="editable-title-input"]',
-    )
+    cy.get('.antd5-table-body [data-test="textarea-editable-title-input"]')
       .first()
       .click();
 
-    cy.get(
-      '[data-test="table-content-rows"] [data-test="editable-title-input"]',
-    )
+    cy.get('.antd5-table-body [data-test="textarea-editable-title-input"]')
       .first()
       .focus();
     cy.focused().clear({ force: true });
@@ -61,9 +57,12 @@ describe('Datasource control', () => {
       .contains('Drop columns/metrics here or click')
       .click();
 
-    cy.get('input[aria-label="Select saved metrics"]').type(
-      `${newMetricName}{enter}`,
-    );
+    cy.get('input[aria-label="Select saved metrics"]')
+      .should('exist')
+      .then($input => {
+        setSelectSearchInput($input, newMetricName);
+      });
+
     // delete metric
     cy.get('[data-test="datasource-menu-trigger"]').click();
     cy.get('[data-test="edit-dataset"]').click();
@@ -72,7 +71,8 @@ describe('Datasource control', () => {
         .contains('Metrics')
         .click();
     });
-    cy.get(`input[value="${newMetricName}"]`)
+    cy.get(`[data-test="textarea-editable-title-input"]`)
+      .contains(newMetricName)
       .closest('tr')
       .find('[data-test="crud-delete-icon"]')
       .click();
@@ -91,21 +91,30 @@ describe('Color scheme control', () => {
   });
 
   it('should show color options with and without tooltips', () => {
-    cy.get('#controlSections-tab-display').click();
-    cy.get('.ant-select-selection-item .color-scheme-label').contains(
+    cy.get('#controlSections-tab-CUSTOMIZE').click();
+    cy.get('.antd5-select-selection-item .color-scheme-label').contains(
       'Superset Colors',
     );
-    cy.get('.ant-select-selection-item .color-scheme-label').trigger(
+    cy.get('.antd5-select-selection-item .color-scheme-label').trigger(
       'mouseover',
     );
     cy.get('.color-scheme-tooltip').should('be.visible');
     cy.get('.color-scheme-tooltip').contains('Superset Colors');
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
+
+    cy.get('.color-scheme-label')
+      .contains('Superset Colors')
+      .trigger('mouseover');
+
+    cy.get('.color-scheme-label')
+      .contains('Superset Colors')
+      .trigger('mouseout');
+
     cy.focused().type('lyftColors');
     cy.getBySel('lyftColors').should('exist');
-    cy.getBySel('lyftColors').trigger('mouseover');
-    cy.get('.color-scheme-tooltip').should('not.exist');
+    cy.getBySel('lyftColors').trigger('mouseover', { force: true });
+    cy.get('.color-scheme-tooltip').should('not.be.visible');
   });
 });
 describe('VizType control', () => {
@@ -150,7 +159,7 @@ describe('Test datatable', () => {
     ).as('Samples');
     cy.contains('Samples').click();
     cy.wait('@Samples');
-    cy.get('.ant-tabs-tab-active').contains('Samples');
+    cy.get('.antd5-tabs-tab-active').contains('Samples');
     cy.get('[data-test="row-count-label"]').contains('1k rows');
     cy.get('.ant-empty-description').should('not.exist');
   });

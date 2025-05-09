@@ -20,17 +20,14 @@ import { useState, useEffect } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
-
-import Badge from 'src/components/Badge';
+import { Badge, ConfigEditor, Tooltip } from 'src/components';
 import ModalTrigger from 'src/components/ModalTrigger';
-import { ConfigEditor } from 'src/components/AsyncAceEditor';
 import { FAST_DEBOUNCE } from 'src/constants';
-import { Tooltip } from 'src/components/Tooltip';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 const StyledConfigEditor = styled(ConfigEditor)`
   &.ace_editor {
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border: 1px solid ${({ theme }) => theme.colorBorder};
   }
 `;
 
@@ -109,8 +106,7 @@ const TemplateParamsEditor = ({
             <Badge count={paramCount} />
             {!isValid && (
               <InfoTooltipWithTrigger
-                icon="exclamation-triangle"
-                bsStyle="danger"
+                type="error"
                 tooltip={t('Invalid JSON')}
                 label="invalid-json"
               />

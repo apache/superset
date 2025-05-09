@@ -25,13 +25,13 @@ const MetadataWrapper = styled.div`
   position: absolute;
   left: 0;
   top: 100%;
-  margin-top: ${({ theme }) => theme.gridUnit}px;
+  margin-top: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const MetadataText = styled.span`
-  font-size: ${({ theme }) => theme.typography.sizes.xs}px;
+  font-size: ${({ theme }) => theme.fontSizeXS}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
-  font-weight: ${({ theme }) => theme.typography.weights.medium};
+  font-weight: ${({ theme }) => theme.fontWeightMedium};
 `;
 
 export type MetadataProps = {
