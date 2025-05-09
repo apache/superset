@@ -115,6 +115,8 @@ import {
   WarningOutlined,
   SortAscendingOutlined,
   KeyOutlined,
+  GoogleOutlined,
+  FacebookOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
 import { IconType } from './types';
@@ -164,6 +166,7 @@ const AntdIcons = {
   ExclamationCircleFilled,
   EyeOutlined,
   EyeInvisibleOutlined,
+  FacebookOutlined,
   FallOutlined,
   FieldTimeOutlined,
   FileImageOutlined,
@@ -174,6 +177,7 @@ const AntdIcons = {
   FullscreenOutlined,
   FundProjectionScreenOutlined,
   FunctionOutlined,
+  GoogleOutlined,
   InfoCircleOutlined,
   InfoCircleFilled,
   InsertRowAboveOutlined,

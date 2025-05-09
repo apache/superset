@@ -14,3 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from flask_appbuilder import expose
+from flask_appbuilder.security.decorators import no_cache
+from werkzeug import Response
+
+from superset.views.base import BaseSupersetView
+
+
+class SupersetAuthView(BaseSupersetView):
+    route_base = ""
+
+    @expose("/login/")
+    @no_cache
+    def login(self) -> Response:
+        return super().render_app_template()
