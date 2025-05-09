@@ -87,6 +87,9 @@ export default function Option({
         <CaretContainer justify="center" align="center">
           <Icons.RightOutlined
             iconSize="m"
+            css={css`
+              margin: ${theme.sizeUnit}px;
+            `}
             iconColor={theme.colors.grayscale.light1}
           />
         </CaretContainer>
