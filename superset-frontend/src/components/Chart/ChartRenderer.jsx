@@ -327,6 +327,10 @@ class ChartRenderer extends Component {
       ?.behaviors.find(behavior => behavior === Behavior.DrillToDetail)
       ? { inContextMenu: this.state.inContextMenu }
       : {};
+    // By pass no result component when server pagination is enabled & the table has a backend search query
+    const bypassNoResult = !(
+      formData?.server_pagination && (ownState?.searchText?.length || 0) > 0
+    );
 
     return (
       <>
@@ -367,6 +371,7 @@ class ChartRenderer extends Component {
             postTransformProps={postTransformProps}
             emitCrossFilters={emitCrossFilters}
             legendState={this.state.legendState}
+            enableNoResults={bypassNoResult}
             {...drillToDetailProps}
           />
         </div>
