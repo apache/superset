@@ -16,39 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export interface GroupByCustomization {
-  name: string;
-  dataset: string | null;
-  description?: string;
-  column?: string;
-  sortFilter?: boolean;
-  sortAscending?: boolean;
-  sortMetric?: string;
-  hasDefaultValue?: boolean;
-  defaultValue?: string;
-  isRequired?: boolean;
-  selectFirst?: boolean;
-  defaultDataMask?: {
-    filterState?: {
-      value?: any;
-      [key: string]: any;
-    };
-    [key: string]: any;
-  };
-}
+import { RootState } from 'src/dashboard/types';
+import { ChartCustomizationItem } from './types';
 
-export interface ChartCustomizationItem {
-  id: string;
-  title?: string;
-  removed?: boolean;
-  dataset?: string | null;
-  description?: string;
-  removeTimerId?: number;
-  settings?: {
-    sortFilter: boolean;
-    hasDefaultValue: boolean;
-    isRequired: boolean;
-    selectFirstByDefault: boolean;
-  };
-  customization: GroupByCustomization;
-}
+export const selectChartCustomizationItems = (
+  state: RootState,
+): ChartCustomizationItem[] => {
+  const { metadata } = state.dashboardInfo;
+
+  if (
+    metadata?.chart_customization_config &&
+    metadata.chart_customization_config.length > 0
+  ) {
+    return metadata.chart_customization_config;
+  }
+
+  const legacyCustomization = metadata?.native_filter_configuration?.find(
+    (item: any) =>
+      item.type === 'CHART_CUSTOMIZATION' &&
+      item.id === 'chart_customization_groupby',
+  );
+
+  if (legacyCustomization?.chart_customization) {
+    return legacyCustomization.chart_customization;
+  }
+
+  return [];
+};

@@ -30,11 +30,15 @@ import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 const defaultFilterConfiguration: Filter[] = [];
 
 export function useFilterConfiguration() {
-  return useSelector<any, FilterConfiguration>(
-    state =>
+  return useSelector<any, FilterConfiguration>(state => {
+    const nativeFilterConfig =
       state.dashboardInfo?.metadata?.native_filter_configuration ||
-      defaultFilterConfiguration,
-  );
+      defaultFilterConfiguration;
+
+    return nativeFilterConfig.filter(
+      (filter: any) => filter.type !== 'CHART_CUSTOMIZATION',
+    );
+  });
 }
 
 /**

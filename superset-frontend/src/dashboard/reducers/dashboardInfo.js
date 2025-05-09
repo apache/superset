@@ -22,6 +22,7 @@ import {
   SET_FILTER_BAR_ORIENTATION,
   SET_CROSS_FILTERS_ENABLED,
   DASHBOARD_INFO_FILTERS_CHANGED,
+  SAVE_CHART_CUSTOMIZATION_COMPLETE,
 } from '../actions/dashboardInfo';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -59,6 +60,24 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         crossFiltersEnabled: action.crossFiltersEnabled,
+      };
+    case SAVE_CHART_CUSTOMIZATION_COMPLETE:
+      return {
+        ...state,
+        metadata: {
+          ...state.metadata,
+          native_filter_configuration: [
+            ...(state.metadata?.native_filter_configuration || []).filter(
+              item =>
+                !(
+                  item.type === 'CHART_CUSTOMIZATION' &&
+                  item.id === 'chart_customization_groupby'
+                ),
+            ),
+          ],
+          chart_customization_config: action.chartCustomization,
+        },
+        last_modified_time: Math.round(new Date().getTime() / 1000),
       };
     default:
       return state;

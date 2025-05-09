@@ -1,7 +1,25 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { FC, useEffect, useMemo, useState, useRef } from 'react';
 import { t, styled, css } from '@superset-ui/core';
 import { Form, FormItem } from 'src/components/Form';
-import { Input, TextArea } from 'src/components/Input';
+import { TextArea } from 'src/components/Input';
 import { Radio } from 'src/components/Radio';
 import Select from 'src/components/Select/Select';
 import Collapse from 'src/components/Collapse';
@@ -75,8 +93,39 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
   const [hasMetrics, setHasMetrics] = useState(false);
   const [isDefaultValueLoading, setIsDefaultValueLoading] = useState(false);
 
+  useEffect(() => {}, [customization]);
+
+  const ensureFilterSlot = () => {
+    const currentFilters = form.getFieldValue('filters') || {};
+    if (!currentFilters[item.id]) {
+      form.setFieldsValue({
+        filters: {
+          ...currentFilters,
+          [item.id]: {},
+        },
+      });
+    }
+  };
+
   useEffect(() => {
-    form.setFieldsValue(customization);
+    form.setFieldsValue({
+      name: customization.name,
+      dataset:
+        customization.dataset &&
+        typeof customization.dataset === 'object' &&
+        'value' in customization.dataset
+          ? (
+              customization.dataset as { value: string | number | undefined }
+            ).value?.toString()
+          : customization.dataset?.toString(),
+      description: customization.description,
+      sortFilter: customization.sortFilter,
+      sortAscending: customization.sortAscending,
+      sortMetric: customization.sortMetric,
+      hasDefaultValue: customization.hasDefaultValue,
+      isRequired: customization.isRequired,
+      selectFirst: customization.selectFirst,
+    });
   }, [customization, form]);
 
   const handleValuesChange = (_: any, values: any) => {
@@ -124,21 +173,33 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       };
     }
 
-    const datasetId = parseInt(customization.dataset, 10);
-    return datasetId
+    let datasetId: number;
+    if (typeof customization.dataset === 'string') {
+      datasetId = parseInt(customization.dataset, 10);
+    } else if (typeof customization.dataset === 'number') {
+      datasetId = customization.dataset;
+    } else {
+      return undefined;
+    }
+
+    return datasetId && !Number.isNaN(datasetId)
       ? { value: datasetId, label: `Dataset ${datasetId}` }
       : undefined;
   }, [customization.dataset]);
 
-  // Fetch metrics when dataset changes
+  const [columns, setColumns] = useState<any[]>([]);
+  const [isLoadingColumns, setIsLoadingColumns] = useState(false);
+
   useEffect(() => {
-    const fetchMetrics = async () => {
+    const fetchDatasetInfo = async () => {
       if (!customization.dataset) {
         setMetrics([]);
         setHasMetrics(false);
+        setColumns([]);
         return;
       }
 
+      setIsLoadingColumns(true);
       try {
         const datasetId = parseInt(customization.dataset.toString(), 10);
         if (Number.isNaN(datasetId)) return;
@@ -146,31 +207,39 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
         const response = await fetch(`/api/v1/dataset/${datasetId}`);
         const data = await response.json();
 
-        if (data?.result?.metrics) {
-          setMetrics(data.result.metrics);
-          setHasMetrics(data.result.metrics.length > 0);
-        } else {
-          setMetrics([]);
-          setHasMetrics(false);
+        if (data?.result) {
+          if (data.result.metrics) {
+            setMetrics(data.result.metrics);
+            setHasMetrics(data.result.metrics.length > 0);
+          } else {
+            setMetrics([]);
+            setHasMetrics(false);
+          }
+
+          if (data.result.columns) {
+            setColumns(data.result.columns);
+          } else {
+            setColumns([]);
+          }
         }
       } catch (error) {
-        console.error('Error fetching metrics:', error);
         setMetrics([]);
         setHasMetrics(false);
+        setColumns([]);
+      } finally {
+        setIsLoadingColumns(false);
       }
     };
 
-    fetchMetrics();
+    fetchDatasetInfo();
   }, [customization.dataset]);
 
-  // Add a ref to track if we've already fetched data for this combination
   const fetchedRef = useRef<{
     datasetId?: string;
     columnName?: string;
     hasDefaultValue?: boolean;
   }>({});
 
-  // Fetch default value data when needed fields change
   useEffect(() => {
     const fetchDefaultValueData = async () => {
       if (
@@ -188,10 +257,9 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
         fetchedRef.current.columnName === customization.name &&
         fetchedRef.current.hasDefaultValue === customization.hasDefaultValue
       ) {
-        return; // Skip if we've already fetched for this combination
+        return;
       }
 
-      // Update our ref to remember what we're fetching
       fetchedRef.current = {
         datasetId,
         columnName: customization.name,
@@ -200,16 +268,14 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
 
       setIsDefaultValueLoading(true);
       try {
-        // Get the dataset ID as a number
         const datasetIdNum = parseInt(datasetId, 10);
         if (Number.isNaN(datasetIdNum)) {
           throw new Error('Invalid dataset ID');
         }
 
-        // Create a proper formData object using the utility function
         const formData = getFormData({
           datasetId: datasetIdNum,
-          dashboardId: 0, // Use 0 as a placeholder if not in a dashboard context
+          dashboardId: 0,
           groupby: customization.name,
           filterType: 'filter_select',
           controlValues: {
@@ -218,23 +284,19 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
           },
         });
 
-        console.log('Chart data request payload:', {
-          formData,
-        });
-
-        // Use Superset's getChartDataRequest utility
         try {
           const { json } = await getChartDataRequest({
             formData,
           });
 
-          // Process the response
           const responseData = json;
 
-          // Update the form with the query results
+          ensureFilterSlot();
+          const currentFilters = form.getFieldValue('filters') || {};
           form.setFieldsValue({
             filters: {
               [item.id]: {
+                ...currentFilters[item.id],
                 defaultValueQueriesData: responseData.result,
                 filterType: 'filter_select',
                 column: customization.name,
@@ -242,7 +304,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             },
           });
 
-          // Create an initial data mask with empty value
           const initialDataMask = {
             filterState: {
               value: null,
@@ -250,7 +311,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             extraFormData: {},
           };
 
-          // Update the customization with the data mask
           onUpdate({
             ...item,
             customization: {
@@ -259,12 +319,10 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             },
           });
         } catch (error) {
-          console.error('Error fetching default value data:', error);
-        } finally {
-          setIsDefaultValueLoading(false);
+          console.warn('Error fetching default value data:', error);
         }
       } catch (error) {
-        console.error('Error fetching default value data:', error);
+        console.warn('Error in fetchDefaultValueData:', error);
       } finally {
         setIsDefaultValueLoading(false);
       }
@@ -280,23 +338,26 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     onUpdate,
   ]);
 
-  // Function to handle data mask changes from the DefaultValue component
   const setDataMask = (dataMask: any) => {
     if (!dataMask.filterState) return;
 
-    // Update the form with the new data mask
+    ensureFilterSlot();
     const filtersValue = form.getFieldValue('filters') || {};
+
     form.setFieldsValue({
       filters: {
         ...filtersValue,
         [item.id]: {
           ...(filtersValue[item.id] || {}),
           defaultDataMask: dataMask,
+          defaultValue: dataMask.filterState?.value,
         },
       },
+      defaultDataMask: dataMask,
     });
 
-    // Update the customization with the new data mask and value
+    form.validateFields(['defaultDataMask']).catch(() => {});
+
     onUpdate({
       ...item,
       customization: {
@@ -316,36 +377,73 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       <StyledContainer>
         <StyledFormItem
           name="name"
-          label={t('Dynamic group by name')}
-          rules={[{ required: true, message: t('Please enter a name') }]}
+          label={
+            <>
+              {t('Dynamic group by field')}&nbsp;
+              <InfoTooltipWithTrigger
+                tooltip={t('Choose the column to group by')}
+                placement="right"
+              />
+            </>
+          }
+          initialValue={customization.name}
+          rules={[{ required: true, message: t('Please select a field') }]}
         >
-          <Input />
+          {isLoadingColumns ? (
+            <Loading position="inline-centered" />
+          ) : (
+            <Select
+              allowClear
+              ariaLabel={t('Group by field')}
+              placeholder={t('Select a field')}
+              options={columns.map((column: any) => ({
+                value: column.column_name,
+                label: column.verbose_name || column.column_name,
+              }))}
+              onChange={(value: string) => {
+                form.setFieldsValue({ name: value });
+                onUpdate({
+                  ...item,
+                  customization: {
+                    ...customization,
+                    name: value,
+                    column: value,
+                  },
+                });
+              }}
+            />
+          )}
         </StyledFormItem>
 
         <StyledFormItem
           name="dataset"
-          label={t('Dataset')}
+          label={
+            <>
+              {t('Dataset')}&nbsp;
+              <InfoTooltipWithTrigger
+                tooltip={t('Select the dataset this group by will use')}
+                placement="right"
+              />
+            </>
+          }
+          initialValue={
+            datasetValue ? datasetValue.value.toString() : undefined
+          }
           rules={[{ required: true, message: t('Please select a dataset') }]}
         >
           <DatasetSelect
             value={datasetValue}
             onChange={(dataset: { label: string; value: number }) => {
-              // Store the dataset ID as a string in the customization
               const datasetId = dataset.value.toString();
-              // Get the current name value from the form to preserve it
               const currentName = form.getFieldValue('name');
 
-              // Check if the dataset has changed
               const datasetChanged = customization.dataset !== datasetId;
 
-              // Update only the dataset field in the form
               form.setFieldsValue({ dataset: datasetId });
 
-              // Reset the fetchedRef to force a new data fetch when needed
               if (datasetChanged) {
                 fetchedRef.current = {};
-
-                // Reset any default value data in the form when dataset changes
+                ensureFilterSlot();
                 const currentFilters = form.getFieldValue('filters') || {};
                 if (currentFilters[item.id]) {
                   form.setFieldsValue({
@@ -359,14 +457,12 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                 }
               }
 
-              // Update the customization with both the dataset and preserving the name
               onUpdate({
                 ...item,
                 customization: {
                   ...customization,
                   dataset: datasetId,
-                  name: currentName || customization.name, // Preserve the name
-                  // Reset default value related fields if dataset changed
+                  name: currentName || customization.name,
                   ...(datasetChanged && customization.hasDefaultValue
                     ? {
                         defaultDataMask: {
@@ -403,7 +499,10 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             />
           </StyledFormItem>
 
-          <StyledFormItem name="sortFilter">
+          <StyledFormItem
+            name="sortFilter"
+            initialValue={customization.sortFilter}
+          >
             <CollapsibleControl
               initialValue={customization.sortFilter}
               title={<CheckboxLabel>{t('Sort filter values')}</CheckboxLabel>}
@@ -448,6 +547,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
               {hasMetrics && (
                 <StyledFormItem
                   name="sortMetric"
+                  initialValue={customization.sortMetric}
                   label={
                     <>
                       <CheckboxLabel>{t('Sort Metric')}</CheckboxLabel>&nbsp;
@@ -483,7 +583,10 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             </CollapsibleControl>
           </StyledFormItem>
 
-          <StyledFormItem name="hasDefaultValue">
+          <StyledFormItem
+            name="hasDefaultValue"
+            initialValue={customization.hasDefaultValue}
+          >
             <CollapsibleControl
               title={
                 <CheckboxLabel>
@@ -510,7 +613,10 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                 rules={[
                   {
                     validator: async (_, value) => {
-                      const val = value?.filterState?.value;
+                      const val =
+                        value?.filterState?.value ||
+                        form.getFieldValue('filters')?.[item.id]?.defaultValue;
+
                       if (val === null || val === undefined || val === '') {
                         return Promise.reject(
                           new Error(t('Please choose a valid value')),
@@ -547,7 +653,10 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             </CollapsibleControl>
           </StyledFormItem>
 
-          <StyledFormItem name="isRequired">
+          <StyledFormItem
+            name="isRequired"
+            initialValue={customization.isRequired}
+          >
             <CollapsibleControl
               title={
                 <CheckboxLabel>
@@ -567,7 +676,10 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             </CollapsibleControl>
           </StyledFormItem>
 
-          <StyledFormItem name="selectFirst">
+          <StyledFormItem
+            name="selectFirst"
+            initialValue={customization.selectFirst}
+          >
             <CollapsibleControl
               title={
                 <CheckboxLabel>

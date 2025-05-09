@@ -1,5 +1,24 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { t, styled, css } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
 import { StyledModal } from 'src/components/Modal';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Form } from 'src/components/Form';
@@ -7,9 +26,10 @@ import Footer from 'src/dashboard/components/nativeFilters/FiltersConfigModal/Fo
 import { CancelConfirmationAlert } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/CancelConfirmationAlert';
 import ChartCustomizationTitlePane from './ChartCustomizationTitlePane';
 import ChartCustomizationForm from './ChartCustomizationForm';
-import { generateGroupById } from './utils';
+import { createDefaultChartCustomizationItem } from './utils';
 import { ChartCustomizationItem } from './types';
 import RemovedFilter from '../FiltersConfigModal/FiltersConfigForm/RemovedFilter';
+import { selectChartCustomizationItems } from './selectors';
 
 const MIN_WIDTH = 880;
 const MODAL_MARGIN = 16;
@@ -96,37 +116,23 @@ const ChartCustomizationModal = ({
     onCancel();
   };
 
-  // This effect runs once when the modal is opened
+  const existingItems = useSelector(selectChartCustomizationItems);
+
   useEffect(() => {
-    if (isOpen && items.length === 0 && !initialLoadComplete) {
-      const newItem: ChartCustomizationItem = {
-        id: generateGroupById(),
-        title: t('[untitled]'),
-        dataset: null,
-        description: '',
-        settings: {
-          sortFilter: false,
-          hasDefaultValue: false,
-          isRequired: false,
-          selectFirstByDefault: false,
-        },
-        customization: {
-          name: '',
-          dataset: null,
-          sortAscending: true,
-          defaultValue: undefined,
-          hasDefaultValue: false,
-          isRequired: false,
-          selectFirst: false,
-        },
-      };
-      setItems([newItem]);
-      setCurrentId(newItem.id);
+    if (isOpen && !initialLoadComplete) {
+      if (existingItems && existingItems.length > 0) {
+        setItems(existingItems);
+
+        setCurrentId(existingItems[0].id);
+      } else {
+        const newItem = createDefaultChartCustomizationItem();
+        setCurrentId(newItem.id);
+        setItems([newItem]);
+      }
       setInitialLoadComplete(true);
     }
-  }, [isOpen, items.length, initialLoadComplete]);
+  }, [isOpen, initialLoadComplete, existingItems]);
 
-  // Reset initialLoadComplete when modal is closed
   useEffect(() => {
     if (!isOpen) {
       setInitialLoadComplete(false);
@@ -164,7 +170,7 @@ const ChartCustomizationModal = ({
               onDismiss={() => setSaveAlertVisible(false)}
               onCancel={() => setSaveAlertVisible(true)}
               handleSave={handleSave}
-              canSave
+              canSave={!form.getFieldsError().some(e => e.errors.length)}
               saveAlertVisible={false}
               onConfirmCancel={handleConfirmCancel}
             />
@@ -186,16 +192,17 @@ const ChartCustomizationModal = ({
               }}
               onRemove={(id, shouldRemove) => {
                 if (shouldRemove) {
-                  // Soft delete and schedule full removal
                   const timerId = window.setTimeout(() => {
                     setItems(prev => {
                       const updatedItems = prev.filter(i => i.id !== id);
                       return updatedItems;
                     });
 
-                    // If the deleted item was selected, clear the selection
                     if (currentId === id) {
-                      setCurrentId(null);
+                      const nextItem = items.find(
+                        i => i.id !== id && !i.removed,
+                      );
+                      setCurrentId(nextItem?.id || null);
                     }
                   }, 3000);
 
@@ -207,15 +214,11 @@ const ChartCustomizationModal = ({
                     ),
                   );
 
-                  // If current item is deleted, we still want to show the removed state
                   if (currentId === id) {
-                    // Temporarily set to null to trigger a re-render
-                    setCurrentId(null);
-                    // Then set it back to show the removed state
-                    setTimeout(() => setCurrentId(id), 0);
+                    const nextItem = items.find(i => i.id !== id && !i.removed);
+                    setCurrentId(nextItem?.id || id);
                   }
                 } else {
-                  // Undo deletion
                   setItems(prev =>
                     prev.map(i => {
                       if (i.id === id) {
@@ -232,7 +235,6 @@ const ChartCustomizationModal = ({
                     }),
                   );
 
-                  // If the restored item was previously selected, reselect it
                   if (currentId === null) {
                     setCurrentId(id);
                   }
@@ -246,12 +248,9 @@ const ChartCustomizationModal = ({
               (currentItem.removed ? (
                 <RemovedFilter
                   onClick={() => {
-                    // Clear the timeout to prevent actual removal
                     if (currentItem.removeTimerId) {
                       clearTimeout(currentItem.removeTimerId);
                     }
-
-                    // Update item to restore it
                     setItems(prev =>
                       prev.map(i =>
                         i.id === currentItem.id
