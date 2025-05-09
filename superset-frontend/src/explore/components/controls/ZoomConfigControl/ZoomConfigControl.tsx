@@ -18,7 +18,10 @@
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
 import { css, styled, t } from '@superset-ui/core';
-import { Form, Tag } from 'src/components';
+// I restored the import from antd because the component is not working as expected.
+// TODO: It requires a rework; after that, we can switch to antd-v5.
+// eslint-disable-next-line no-restricted-imports
+import { Form, Tag } from 'antd';
 import { FC, useState } from 'react';
 import { isZoomConfigsLinear, isZoomConfigsExp } from './typeguards';
 import { ZoomConfigs, ZoomConfigsControlProps } from './types';
