@@ -30,8 +30,7 @@ import { withTheme, Theme } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
-import { AsyncSelect, Button } from 'src/components';
-import { Steps } from 'src/components/Steps';
+import { AsyncSelect, Button, Steps } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
@@ -76,7 +75,7 @@ const StyledContainer = styled.div`
     width: 100%;
     max-width: ${MAX_ADVISABLE_VIZ_GALLERY_WIDTH}px;
     max-height: calc(100vh - ${ESTIMATED_NAV_HEIGHT}px);
-    border-radius: ${theme.sizeUnit}px;
+    border-radius: ${theme.borderRadius}px;
     background-color: ${theme.colorBgContainer};
     margin-left: auto;
     margin-right: auto;
@@ -107,7 +106,7 @@ const StyledContainer = styled.div`
 
     & .viz-gallery {
       border: 1px solid ${theme.colorBorder};
-      border-radius: ${theme.sizeUnit}px;
+      border-radius: ${theme.borderRadius}px;
       margin: ${theme.sizeUnit}px 0px;
       max-height: calc(100vh - ${ELEMENTS_EXCEPT_VIZ_GALLERY}px);
       flex: 1;

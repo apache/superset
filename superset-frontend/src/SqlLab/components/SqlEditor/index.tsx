@@ -62,7 +62,7 @@ import {
 } from 'src/components';
 import Timer from 'src/components/Timer';
 import ResizableSidebar from 'src/components/ResizableSidebar';
-import Skeleton from 'src/components/Skeleton';
+import { Skeleton } from 'src/components/Skeleton';
 import { Switch } from 'src/components/Switch';
 import { Menu } from 'src/components/Menu';
 import { Icons } from 'src/components/Icons';

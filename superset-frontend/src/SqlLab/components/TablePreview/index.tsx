@@ -40,8 +40,8 @@ import {
   CopyToClipboard,
   Dropdown,
   FilterableTable,
+  Skeleton,
 } from 'src/components';
-import Skeleton from 'src/components/Skeleton';
 import Tabs from 'src/components/Tabs';
 import {
   tableApiUtil,
@@ -71,7 +71,6 @@ const TABS_KEYS = {
   INDEXES: 'indexes',
   SAMPLE: 'sample',
 };
-// TODO: Remove fa-icon
 const MENUS = [
   {
     key: 'refresh-table',
@@ -94,14 +93,15 @@ const PREVIEW_TOP_ACTION_HEIGHT = 30;
 const PREVIEW_QUERY_LIMIT = 100;
 
 const Title = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  column-gap: ${({ theme }) => theme.sizeUnit}px;
-  font-size: ${({ theme }) => theme.fontSizeLG}px;
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: ${theme.sizeUnit}px;
+    font-size: ${theme.fontSizeLG}px;
+    font-weight: ${theme.fontWeightStrong};
+  `}
 `;
-
 const renderWell = (partitions: TableMetaData['partitions']) => {
   if (!partitions) {
     return null;

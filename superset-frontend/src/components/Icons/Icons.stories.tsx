@@ -18,7 +18,7 @@
  */
 import { useState } from 'react';
 import { styled, supersetTheme } from '@superset-ui/core';
-import { Input } from 'antd-v5';
+import { Input } from '../Input';
 import { Icons, IconNameType } from '.';
 import type { IconType } from './types';
 import { BaseIconComponent } from './BaseIcon';

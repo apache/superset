@@ -18,6 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { ErrorSource, t, SupersetError } from '@superset-ui/core';
+import { Typography } from 'src/components/Typography';
 import { getErrorMessageComponentRegistry } from './getErrorMessageComponentRegistry';
 import { ErrorAlert } from './ErrorAlert';
 
@@ -75,9 +76,13 @@ export function ErrorMessageWithStackTrace({
     (link || stackTrace ? (
       <>
         {link && (
-          <a href={link} target="_blank" rel="noopener noreferrer">
+          <Typography.Link
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {t('Request Access')}
-          </a>
+          </Typography.Link>
         )}
         <br />
         {stackTrace && <pre>{stackTrace}</pre>}

@@ -21,8 +21,6 @@ import {
   styled,
   SupersetClient,
   t,
-  useTheme,
-  css,
 } from '@superset-ui/core';
 import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
@@ -41,11 +39,13 @@ import {
   DeleteModal,
   Tooltip,
   ModifiedInfo,
+  List,
   ListView,
   ListViewFilterOperator as FilterOperator,
   ListViewFilters,
   Loading,
 } from 'src/components';
+import { Typography } from 'src/components/Typography';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { Icons } from 'src/components/Icons';
@@ -86,8 +86,6 @@ interface DatabaseListProps {
 }
 
 const Actions = styled.div`
-  color: ${({ theme }) => theme.colorText};
-
   .action-button {
     display: inline-block;
     height: 100%;
@@ -95,11 +93,10 @@ const Actions = styled.div`
 `;
 
 function BooleanDisplay({ value }: { value: Boolean }) {
-  const theme = useTheme();
   return value ? (
-    <Icons.CheckOutlined iconSize="s" iconColor={theme.colorText} />
+    <Icons.CheckOutlined iconSize="s" />
   ) : (
-    <Icons.CloseOutlined iconSize="s" iconColor={theme.colorText} />
+    <Icons.CloseOutlined iconSize="s" />
   );
 }
 
@@ -109,7 +106,6 @@ function DatabaseList({
   addSuccessToast,
   user,
 }: DatabaseListProps) {
-  const theme = useTheme();
   const {
     state: {
       loading,
@@ -321,13 +317,7 @@ function DatabaseList({
         'data-test': 'btn-create-database',
         name: (
           <>
-            <Icons.PlusOutlined
-              css={css`
-                vertical-align: text-top;
-              `}
-              iconColor={theme.colors.primary.light5}
-              iconSize="m"
-            />
+            <Icons.PlusOutlined iconSize="m" />
             {t('Database')}
           </>
         ),
@@ -700,70 +690,85 @@ function DatabaseList({
               {databaseCurrentlyDeleting.dashboards.count >= 1 && (
                 <>
                   <h4>{t('Affected Dashboards')}</h4>
-                  <ul>
-                    {databaseCurrentlyDeleting.dashboards.result
-                      .slice(0, 10)
-                      .map(
-                        (
-                          result: { id: number; title: string },
-                          index: number,
-                        ) => (
-                          <li key={result.id}>
-                            <a
+                  <List
+                    split={false}
+                    size="small"
+                    dataSource={databaseCurrentlyDeleting.dashboards.result.slice(
+                      0,
+                      10,
+                    )}
+                    renderItem={(result: { id: number; title: string }) => (
+                      <List.Item key={result.id} compact>
+                        <List.Item.Meta
+                          avatar={<span>•</span>}
+                          title={
+                            <Typography.Link
                               href={`/superset/dashboard/${result.id}`}
                               target="_atRiskItem"
                             >
                               {result.title}
-                            </a>
-                          </li>
-                        ),
-                      )}
-                    {databaseCurrentlyDeleting.dashboards.result.length >
-                      10 && (
-                      <li>
-                        {t(
-                          '... and %s others',
-                          databaseCurrentlyDeleting.dashboards.result.length -
-                            10,
-                        )}
-                      </li>
+                            </Typography.Link>
+                          }
+                        />
+                      </List.Item>
                     )}
-                  </ul>
+                    footer={
+                      databaseCurrentlyDeleting.dashboards.result.length >
+                        10 && (
+                        <div>
+                          {t(
+                            '... and %s others',
+                            databaseCurrentlyDeleting.dashboards.result.length -
+                              10,
+                          )}
+                        </div>
+                      )
+                    }
+                  />
                 </>
               )}
               {databaseCurrentlyDeleting.charts.count >= 1 && (
                 <>
                   <h4>{t('Affected Charts')}</h4>
-                  <ul>
-                    {databaseCurrentlyDeleting.charts.result.slice(0, 10).map(
-                      (
-                        result: {
-                          id: number;
-                          slice_name: string;
-                        },
-                        index: number,
-                      ) => (
-                        <li key={result.id}>
-                          <a
-                            href={`/explore/?slice_id=${result.id}`}
-                            target="_atRiskItem"
-                          >
-                            {result.slice_name}
-                          </a>
-                        </li>
-                      ),
+                  <List
+                    split={false}
+                    size="small"
+                    dataSource={databaseCurrentlyDeleting.charts.result.slice(
+                      0,
+                      10,
                     )}
-                    {databaseCurrentlyDeleting.charts.result.length > 10 && (
-                      <li>
-                        {t(
-                          '... and %s others',
-                          databaseCurrentlyDeleting.charts.result.length - 10,
-                        )}
-                      </li>
+                    renderItem={(result: {
+                      id: number;
+                      slice_name: string;
+                    }) => (
+                      <List.Item key={result.id} compact>
+                        <List.Item.Meta
+                          avatar={<span>•</span>}
+                          title={
+                            <Typography.Link
+                              href={`/explore/?slice_id=${result.id}`}
+                              target="_atRiskItem"
+                            >
+                              {result.slice_name}
+                            </Typography.Link>
+                          }
+                        />
+                      </List.Item>
                     )}
-                  </ul>
+                    footer={
+                      databaseCurrentlyDeleting.charts.result.length > 10 && (
+                        <div>
+                          {t(
+                            '... and %s others',
+                            databaseCurrentlyDeleting.charts.result.length - 10,
+                          )}
+                        </div>
+                      )
+                    }
+                  />
                 </>
               )}
+
               {DatabaseDeleteRelatedExtension && (
                 <DatabaseDeleteRelatedExtension
                   database={databaseCurrentlyDeleting}

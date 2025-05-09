@@ -70,6 +70,7 @@ export interface CRUDCollectionProps {
   ) => ReactNode)[];
   onChange?: (arg0: any) => void;
   tableColumns: any[];
+  tableLayout?: 'fixed' | 'auto';
   sortColumns: string[];
   stickyHeader?: boolean;
 }

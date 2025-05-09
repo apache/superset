@@ -94,7 +94,7 @@ describe('DatasourceEditor', () => {
     userEvent.click(columnsTab);
 
     const getToggles = screen.getAllByRole('button', {
-      name: /toggle expand/i,
+      name: /expand row/i,
     });
     userEvent.click(getToggles[0]);
     const getTextboxes = screen.getAllByRole('textbox');
@@ -120,7 +120,7 @@ describe('DatasourceEditor', () => {
     userEvent.click(columnsTab);
 
     const getToggles = screen.getAllByRole('button', {
-      name: /toggle expand/i,
+      name: /expand row/i,
     });
 
     userEvent.click(getToggles[0]);
@@ -201,7 +201,7 @@ describe('DatasourceEditor RTL', () => {
     await asyncRender(props);
     const metricButton = screen.getByTestId('collection-tab-Metrics');
     userEvent.click(metricButton);
-    const expandToggle = await screen.findAllByLabelText(/toggle expand/i);
+    const expandToggle = await screen.findAllByLabelText(/expand row/i);
     userEvent.click(expandToggle[0]);
     const certificationDetails = await screen.findByPlaceholderText(
       /certification details/i,
@@ -227,7 +227,7 @@ describe('DatasourceEditor RTL', () => {
     await asyncRender(propsWithCurrency);
     const metricButton = screen.getByTestId('collection-tab-Metrics');
     userEvent.click(metricButton);
-    const expandToggle = await screen.findAllByLabelText(/toggle expand/i);
+    const expandToggle = await screen.findAllByLabelText(/expand row/i);
     userEvent.click(expandToggle[0]);
 
     expect(await screen.findByText('Metric currency')).toBeVisible();
@@ -304,7 +304,7 @@ describe('DatasourceEditor RTL', () => {
     await asyncRender(props);
     const metricButton = screen.getByTestId('collection-tab-Metrics');
     userEvent.click(metricButton);
-    const expandToggle = await screen.findAllByLabelText(/toggle expand/i);
+    const expandToggle = await screen.findAllByLabelText(/expand row/i);
     userEvent.click(expandToggle[1]);
     const certifiedBy = await screen.findByPlaceholderText(/certified by/i);
     userEvent.type(certifiedBy, 'I am typing a new name');

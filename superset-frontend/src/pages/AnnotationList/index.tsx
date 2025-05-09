@@ -22,7 +22,6 @@ import { useParams, Link, useHistory } from 'react-router-dom';
 import {
   css,
   t,
-  useTheme,
   styled,
   SupersetClient,
   getClientErrorObject,
@@ -46,6 +45,7 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 import { AnnotationObject } from 'src/features/annotations/types';
 import AnnotationModal from 'src/features/annotations/AnnotationModal';
 import { Icons } from 'src/components/Icons';
+import { Typography } from 'src/components/Typography';
 
 const PAGE_SIZE = 25;
 
@@ -73,7 +73,6 @@ function AnnotationList({
   addDangerToast,
   addSuccessToast,
 }: AnnotationListProps) {
-  const theme = useTheme();
   const { annotationLayerId }: any = useParams();
   const {
     state: {
@@ -239,14 +238,7 @@ function AnnotationList({
   subMenuButtons.push({
     name: (
       <>
-        <Icons.PlusOutlined
-          iconColor={theme.colors.primary.light5}
-          iconSize="m"
-          css={css`
-            margin: auto ${theme.sizeUnit * 2}px auto 0;
-            vertical-align: text-top;
-          `}
-        />
+        <Icons.PlusOutlined iconSize="m" />
         {t('Annotation')}
       </>
     ),
@@ -280,14 +272,7 @@ function AnnotationList({
     },
     buttonText: (
       <>
-        <Icons.PlusOutlined
-          iconColor={theme.colors.primary.light5}
-          iconSize="m"
-          css={css`
-            margin: auto ${theme.sizeUnit * 2}px auto 0;
-            vertical-align: text-top;
-          `}
-        />
+        <Icons.PlusOutlined iconSize="m" />
         {t('Annotation')}
       </>
     ),
@@ -303,7 +288,9 @@ function AnnotationList({
               {hasHistory ? (
                 <Link to="/annotationlayer/list/">{t('Back to all')}</Link>
               ) : (
-                <a href="/annotationlayer/list/">{t('Back to all')}</a>
+                <Typography.Link href="/annotationlayer/list/">
+                  {t('Back to all')}
+                </Typography.Link>
               )}
             </span>
           </StyledHeader>

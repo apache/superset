@@ -58,7 +58,8 @@ describe('Chart editable title', () => {
     const props = createProps({ canEdit: false });
     render(<DynamicEditableTitle {...props} />);
     const titleElement = screen.getByLabelText('Chart title');
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    const inputElement = screen.getByRole('textbox');
+    expect(inputElement).toBeDisabled();
     expect(titleElement).toBeVisible();
     userEvent.click(titleElement);
     userEvent.type(titleElement, ' edited{enter}');

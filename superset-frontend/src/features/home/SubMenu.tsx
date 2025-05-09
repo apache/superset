@@ -25,7 +25,9 @@ import { debounce } from 'lodash';
 import { Menu, MenuMode, MainNav } from 'src/components/Menu';
 import { Button, Tooltip, Row, type OnClickHandler } from 'src/components';
 import { Icons } from 'src/components/Icons';
+import { IconType } from 'src/components/Icons/types';
 import { MenuObjectProps } from 'src/types/bootstrapTypes';
+import { Typography } from 'src/components/Typography';
 
 const StyledHeader = styled.div<{ backgroundColor?: string }>`
   background-color: ${({ theme, backgroundColor }) =>
@@ -134,6 +136,7 @@ export interface ButtonProps {
   'data-test'?: string;
   buttonStyle: 'primary' | 'secondary' | 'dashed' | 'link' | 'tertiary';
   loading?: boolean;
+  icon?: IconType;
 }
 
 export interface SubMenuProps {
@@ -222,9 +225,9 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
                   })}
                   role="tab"
                 >
-                  <a href={tab.url} onClick={tab.onClick}>
+                  <Typography.Link href={tab.url} onClick={tab.onClick}>
                     {tab.label}
-                  </a>
+                  </Typography.Link>
                 </div>
               </Menu.Item>
             );
@@ -266,9 +269,9 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
                       </MainNav.Item>
                     ) : (
                       <MainNav.Item key={item.label}>
-                        <a href={item.url} onClick={item.onClick}>
+                        <Typography.Link href={item.url} onClick={item.onClick}>
                           {item.label}
-                        </a>
+                        </Typography.Link>
                       </MainNav.Item>
                     );
                   }
@@ -281,6 +284,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
             <Button
               key={i}
               buttonStyle={btn.buttonStyle}
+              icon={btn.icon}
               onClick={btn.onClick}
               data-test={btn['data-test']}
               loading={btn.loading ?? false}

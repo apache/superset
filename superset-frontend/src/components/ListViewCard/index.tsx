@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, useTheme } from '@superset-ui/core';
-import Skeleton from 'src/components/Skeleton';
 import { FC } from 'react';
+import { styled, useTheme } from '@superset-ui/core';
+import { Skeleton } from '../Skeleton';
 import { Card } from '../Card';
 import { CertifiedBadge } from '../CertifiedBadge';
 import { Tooltip } from '../Tooltip';

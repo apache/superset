@@ -146,7 +146,7 @@ const ViewModeContainer = styled.div`
 
   .toggle-button {
     display: inline-block;
-    border-radius: ${({ theme }) => theme.sizeUnit / 2}px;
+    border-radius: ${({ theme }) => theme.borderRadius}px;
     padding: ${({ theme }) => theme.sizeUnit}px;
     padding-bottom: ${({ theme }) => theme.sizeUnit * 0.5}px;
 

@@ -243,7 +243,12 @@ export default class AdhocFilterEditPopover extends Component {
           ]}
         />
         <FilterActionsContainer>
-          <Button buttonSize="small" onClick={this.props.onClose} cta>
+          <Button
+            buttonStyle="secondary"
+            buttonSize="small"
+            onClick={this.props.onClose}
+            cta
+          >
             {t('Close')}
           </Button>
           <Button

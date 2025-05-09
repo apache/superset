@@ -26,7 +26,6 @@ import {
   SupersetTheme,
   t,
   withTheme,
-  css,
 } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { AsyncEsmComponent, List } from 'src/components';
@@ -193,7 +192,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
       return (
         <InfoTooltipWithTrigger
           label="validation-errors"
-          bsStyle="danger"
+          type="error"
           tooltip={annotationError[anno.name]}
         />
       );
@@ -206,7 +205,6 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 
   render() {
     const { addedAnnotationIndex } = this.state;
-    const { theme } = this.props;
     const addedAnnotation =
       addedAnnotationIndex !== null
         ? this.props.value[addedAnnotationIndex]
@@ -240,7 +238,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 
     return (
       <div>
-        <List bordered css={theme => ({ borderRadius: theme.sizeUnit })}>
+        <List bordered css={theme => ({ borderRadius: theme.borderRadius })}>
           {annotations}
           <ControlPopover
             trigger="click"
@@ -259,10 +257,6 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
             <CustomListItem selectable>
               <Icons.PlusOutlined
                 iconSize="m"
-                css={css`
-                  margin: auto ${theme.sizeUnit}px auto 0;
-                  vertical-align: tex-top;
-                `}
                 data-test="add-annotation-layer-button"
               />
               {t('Add annotation layer')}

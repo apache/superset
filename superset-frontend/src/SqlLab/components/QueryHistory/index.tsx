@@ -20,7 +20,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
 import { omit } from 'lodash';
-import { EmptyState } from 'src/components';
+import { EmptyState, Skeleton } from 'src/components';
 import {
   t,
   styled,
@@ -31,7 +31,6 @@ import {
 import QueryTable from 'src/SqlLab/components/QueryTable';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { useEditorQueriesQuery } from 'src/hooks/apiResources/queries';
-import Skeleton from 'src/components/Skeleton';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 
 interface QueryHistoryProps {

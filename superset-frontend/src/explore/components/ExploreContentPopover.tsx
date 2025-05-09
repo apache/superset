@@ -27,6 +27,6 @@ export const ExplorePopoverContent = styled.div`
     cursor: nwse-resize;
   }
   .filter-sql-editor {
-    border: ${({ theme }) => theme.colors.grayscale.light2} solid thin;
+    border: ${({ theme }) => theme.colorBorder} solid thin;
   }
 `;

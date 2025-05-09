@@ -74,7 +74,7 @@ export function ControlHeader({
                 label={t('bolt')}
                 tooltip={t('Changing this control takes effect instantly')}
                 placement="top"
-                icon="bolt"
+                type="notice"
               />{' '}
             </span>
           )}

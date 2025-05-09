@@ -24,6 +24,7 @@ import type {
   ButtonVariantType,
   ButtonColorType,
 } from 'antd-v5/es/button';
+import { IconType } from 'src/components/Icons/types';
 import type { TooltipPlacement } from '../Tooltip/types';
 
 export type { AntdButtonProps, ButtonType, ButtonVariantType, ButtonColorType };
@@ -48,4 +49,5 @@ export type ButtonProps = Omit<AntdButtonProps, 'css'> & {
   buttonStyle?: ButtonStyle;
   cta?: boolean;
   showMarginRight?: boolean;
+  icon?: IconType;
 };

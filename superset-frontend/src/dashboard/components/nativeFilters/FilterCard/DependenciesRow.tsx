@@ -21,13 +21,13 @@ import { useDispatch } from 'react-redux';
 import { css, t, useTheme, useTruncation } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import { List } from 'src/components/List';
 import {
   DependencyItem,
   Row,
   RowLabel,
   RowTruncationCount,
   RowValue,
-  TooltipList,
 } from './Styles';
 import { useFilterDependencies } from './useFilterDependencies';
 import { DependencyValueProps, FilterCardRowProps } from './types';
@@ -60,13 +60,24 @@ export const DependenciesRow = memo(({ filter }: FilterCardRowProps) => {
   const tooltipText = useMemo(
     () =>
       elementsTruncated > 0 && dependencies ? (
-        <TooltipList>
-          {dependencies.map(dependency => (
-            <li>
-              <DependencyValue dependency={dependency} />
-            </li>
-          ))}
-        </TooltipList>
+        <List
+          split={false}
+          dataSource={dependencies}
+          renderItem={dependency => (
+            <List.Item
+              compact
+              css={theme => css`
+                && .dependency-item {
+                  color: ${theme.colorWhite};
+                }
+              `}
+            >
+              <span className="dependency-item">
+                • <DependencyValue dependency={dependency} />
+              </span>
+            </List.Item>
+          )}
+        />
       ) : null,
     [elementsTruncated, dependencies],
   );

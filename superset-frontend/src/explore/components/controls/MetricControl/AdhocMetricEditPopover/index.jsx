@@ -504,6 +504,7 @@ export default class AdhocMetricEditPopover extends PureComponent {
         <div>
           <Button
             buttonSize="small"
+            buttonStyle="secondary"
             onClick={this.onResetStateAndClose}
             data-test="AdhocMetricEdit#cancel"
             cta

@@ -81,7 +81,7 @@ export default function Field<V>({
       {!compact && description && (
         <div
           css={(theme: SupersetTheme) => ({
-            color: theme.colors.grayscale.base,
+            color: theme.colorText,
             [inline ? 'marginLeft' : 'marginTop']: theme.sizeUnit,
           })}
         >

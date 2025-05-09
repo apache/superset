@@ -556,10 +556,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       sectionHasHadNoErrors.current[sectionId] = true;
     }
 
-    const errorColor = sectionHasHadNoErrors.current[sectionId]
-      ? theme.colorWarningText
-      : theme.colorErrorText;
-
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
         <span
@@ -581,12 +577,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             id={`${kebabCase('validation-errors')}-tooltip`}
             title={t('This section contains validation errors')}
           >
-            <Icons.InfoCircleOutlined
-              css={css`
-                ${iconStyles};
-                color: ${errorColor};
-              `}
-            />
+            <Icons.CloseCircleOutlined iconColor={theme.colorErrorText} />
           </Tooltip>
         )}
       </span>
@@ -696,10 +687,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       dataTabHasHadNoErrors.current = true;
     }
 
-    const errorColor = dataTabHasHadNoErrors.current
-      ? theme.colorWarningText
-      : theme.colorErrorText;
-
     return (
       <>
         <span>{t('Data')}</span>
@@ -715,11 +702,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={props.errorMessage}
             >
-              <Icons.ExclamationCircleOutlined
-                css={css`
-                  ${iconStyles};
-                  color: ${errorColor};
-                `}
+              <Icons.CloseCircleOutlined
+                iconColor={theme.colorErrorText}
+                iconSize="s"
               />
             </Tooltip>
           </span>
