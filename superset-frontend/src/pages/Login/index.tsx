@@ -93,7 +93,7 @@ export default function Login() {
 
   return (
     <LoginContainer justify="center">
-      <StyledCard title={t('Sign in')} padded variant="borderless">
+      <StyledCard title={t('Sign in')} padded>
         {authType === AuthType.AuthOauth && (
           <Flex justify="center" vertical gap="middle">
             <Form
