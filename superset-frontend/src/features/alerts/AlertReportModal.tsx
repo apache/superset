@@ -1509,9 +1509,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onChangeDashboardFilterValue = (
     idx: number,
-    filterValues: string | string[],
+    filterValues:
+      | SelectValue
+      | SelectValue[]
+      | string
+      | string[]
+      | number
+      | number[],
   ) => {
     let values: string[];
+    console.log('filterValues', filterValues);
     if (typeof filterValues === 'string') {
       values = [filterValues];
     } else {
@@ -1599,6 +1606,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       mode = 'single';
     }
 
+    console.log('filter', filter);
     return (
       <Select
         ariaLabel={t('Select Value')}
@@ -1606,7 +1614,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         disabled={!filter?.optionFilterValues}
         value={filter?.filterValues}
         options={filter?.optionFilterValues || []}
-        onChange={value => onChangeDashboardFilterValue(idx, String(value))}
+        onChange={value =>
+          onChangeDashboardFilterValue(
+            idx,
+            value as
+              | string
+              | string[]
+              | number
+              | number[]
+              | SelectValue
+              | SelectValue[],
+          )
+        }
         mode={mode as 'multiple' | 'single'}
       />
     );
