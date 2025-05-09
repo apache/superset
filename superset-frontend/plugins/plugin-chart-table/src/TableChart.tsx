@@ -202,6 +202,9 @@ function SelectPageSize({
 
   return (
     <>
+      <label htmlFor="pageSizeSelect" className="sr-only">
+        {t('Select page size')}
+      </label>
       {t('Show')}{' '}
       <Select<number>
         id="pageSizeSelect"

@@ -19,7 +19,6 @@
 import { ReactNode } from 'react';
 import { t, css } from '@superset-ui/core';
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { Typography } from 'antd-v5';
 import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';
 import { Tooltip } from './Tooltip';
 
@@ -90,19 +89,11 @@ export function ControlHeader({
     return null;
   }
   const labelClass = validationErrors.length > 0 ? 'text-danger' : '';
-  const labelColor = validationErrors.length > 0 ? 'danger' : undefined;
-  const labelStyle = { cursor: onClick ? 'pointer' : undefined };
 
   return (
     <div className="ControlHeader" data-test={`${name}-header`}>
       <div className="pull-left">
-        <Typography.Text
-          className="control-label"
-          type={labelColor}
-          onClick={onClick}
-          style={labelStyle}
-          strong
-        >
+        <label className="control-label" htmlFor={name}>
           {leftNode && <span>{leftNode}</span>}
           <span
             role="button"
@@ -159,7 +150,7 @@ export function ControlHeader({
               <strong>*</strong>
             </span>
           )}
-        </Typography.Text>
+        </label>
       </div>
       {rightNode && <div className="pull-right">{rightNode}</div>}
       <div className="clearfix" />
