@@ -84,7 +84,7 @@ cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
 croniter==6.0.0
     # via apache-superset (pyproject.toml)
-cryptography==44.0.2
+cryptography==44.0.3
     # via
     #   apache-superset (pyproject.toml)
     #   paramiko
@@ -120,7 +120,7 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.6.1
+flask-appbuilder==4.6.3
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-primitives
@@ -164,13 +164,13 @@ greenlet==3.1.1
     #   shillelagh
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
-h11==0.14.0
+h11==0.16.0
     # via wsproto
 hashids==1.3.1
     # via apache-superset (pyproject.toml)
 holidays==0.25
     # via apache-superset (pyproject.toml)
-humanize==4.12.2
+humanize==4.12.3
     # via apache-superset (pyproject.toml)
 idna==3.10
     # via
@@ -205,7 +205,7 @@ mako==1.3.10
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
-markdown==3.7
+markdown==3.8
     # via apache-superset (pyproject.toml)
 markdown-it-py==3.0.0
     # via rich
@@ -376,7 +376,7 @@ sqlalchemy-utils==0.38.3
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
-sqlglot==26.16.2
+sqlglot==26.16.4
     # via apache-superset (pyproject.toml)
 sqlparse==0.5.3
     # via apache-superset (pyproject.toml)
