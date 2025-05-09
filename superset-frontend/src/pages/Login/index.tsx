@@ -19,9 +19,15 @@
 
 import { css } from '@emotion/react';
 import { SupersetClient, styled, t } from '@superset-ui/core';
-import { Button, Card, Flex, Form, Input } from 'src/components';
-import { Icons } from 'src/components/Icons';
-import Typography from 'src/components/Typography';
+import {
+  Button,
+  Card,
+  Flex,
+  Form,
+  Input,
+  Typography,
+  Icons,
+} from 'src/components';
 import { useState } from 'react';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
