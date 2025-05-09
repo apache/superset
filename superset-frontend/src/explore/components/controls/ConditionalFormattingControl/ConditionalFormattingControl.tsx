@@ -160,7 +160,7 @@ const ConditionalFormattingControl = ({
             >
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
-                <CaretContainer justify="center" align="center">
+                <CaretContainer>
                   <Icons.RightOutlined iconSize="m" />
                 </CaretContainer>
               </OptionControlContainer>

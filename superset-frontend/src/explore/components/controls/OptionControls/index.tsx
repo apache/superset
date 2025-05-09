@@ -78,7 +78,7 @@ const LabelText = styled.span`
   text-overflow: ellipsis;
 `;
 
-export const CaretContainer = styled(Flex)`
+export const CaretContainer = styled.div`
   height: 100%;
   border-left: solid 1px ${({ theme }) => theme.colorSplit};
   margin-left: auto;
@@ -410,7 +410,7 @@ export const OptionControlLabel = ({
         />
       )}
       {withCaret && (
-        <CaretContainer justify="center" align="center">
+        <CaretContainer>
           <Icons.RightOutlined
             iconSize="m"
             css={css`

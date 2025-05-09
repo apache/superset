@@ -84,7 +84,7 @@ export default function Option({
         />
       )}
       {withCaret && (
-        <CaretContainer justify="center" align="center">
+        <CaretContainer>
           <Icons.RightOutlined
             iconSize="m"
             css={css`
