@@ -600,7 +600,11 @@ const AsyncSelect = forwardRef(
         )}
         <StyledSelect
           allowClear={!isLoading && allowClear}
-          aria-label={ariaLabel || name}
+          aria-label={
+            isSingleMode && isLabeledValue(selectValue)
+              ? `${ariaLabel || name}: ${selectValue.label}`
+              : ariaLabel || name
+          }
           autoClearSearchValue={autoClearSearchValue}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
