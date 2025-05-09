@@ -30,8 +30,15 @@ import {
 import { CellProps } from 'react-table';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import FormModal from 'src/components/Modal/FormModal';
-import { PermissionsField, RoleNameField, UsersField } from './RoleFormItems';
+import { GroupObject } from 'src/pages/GroupsList';
 import {
+  GroupsField,
+  PermissionsField,
+  RoleNameField,
+  UsersField,
+} from './RoleFormItems';
+import {
+  updateRoleGroups,
   updateRoleName,
   updateRolePermissions,
   updateRoleUsers,
@@ -41,6 +48,7 @@ export interface RoleListEditModalProps extends BaseModalProps {
   role: RoleObject;
   permissions: FormattedPermission[];
   users: UserObject[];
+  groups: GroupObject[];
 }
 
 const roleTabs = {
@@ -86,8 +94,9 @@ function RoleListEditModal({
   onSave,
   permissions,
   users,
+  groups,
 }: RoleListEditModalProps) {
-  const { id, name, permission_ids, user_ids } = role;
+  const { id, name, permission_ids, user_ids, group_ids } = role;
   const [activeTabKey, setActiveTabKey] = useState(roleTabs.edit.key);
   const { addDangerToast, addSuccessToast } = useToasts();
   const filteredUsers = users.filter(user =>
@@ -96,12 +105,17 @@ function RoleListEditModal({
 
   const handleFormSubmit = async (values: RoleForm) => {
     try {
-      await updateRoleName(id, values.roleName);
-      await updateRolePermissions(id, values.rolePermissions);
-      await updateRoleUsers(id, values.roleUsers);
-      addSuccessToast(t('Role successfully updated!'));
+      await Promise.all([
+        updateRoleName(id, values.roleName),
+        updateRolePermissions(id, values.rolePermissions),
+        updateRoleUsers(id, values.roleUsers),
+        updateRoleGroups(id, values.roleGroups),
+      ]);
+      addSuccessToast(t('The role has been updated successfully.'));
     } catch (err) {
-      addDangerToast(t('Error while updating role!'));
+      addDangerToast(
+        t('There was an error updating the role. Please, try again.'),
+      );
       throw err;
     }
   };
@@ -110,6 +124,7 @@ function RoleListEditModal({
     roleName: name,
     rolePermissions: permission_ids,
     roleUsers: user_ids,
+    roleGroups: group_ids,
   };
 
   return (
@@ -136,6 +151,7 @@ function RoleListEditModal({
             <RoleNameField />
             <PermissionsField permissions={permissions} />
             <UsersField users={users} />
+            <GroupsField groups={groups} />
           </>
         </Tabs.TabPane>
         <Tabs.TabPane tab={roleTabs.users.name} key={roleTabs.users.key}>
