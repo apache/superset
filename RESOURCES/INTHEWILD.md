@@ -118,11 +118,11 @@ Join our growing community!
 - [Tobii](https://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
 - [Unvired](https://unvired.com) [@srinisubramanian]
+- [Value Ad](https://www.value-ad.com)[@stevensuting]
 - [Whale](https://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
-- [Zeta](https://www.zeta.tech/) [@shaikidris]
 - [Xaqt](https://www.xaqt.com)[@stevensuting]
-- [Value Ad](https://www.value-ad.com)[@stevensuting]
+- [Zeta](https://www.zeta.tech/) [@shaikidris]
 
 ### Media & Entertainment
 - [6play](https://www.6play.fr) [@CoryChaplin]
