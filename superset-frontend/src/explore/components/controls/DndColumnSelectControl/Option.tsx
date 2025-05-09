@@ -88,7 +88,7 @@ export default function Option({
           <Icons.RightOutlined
             iconSize="m"
             css={css`
-              margin-top: ${theme.sizeUnit}px;
+              margin: ${theme.sizeUnit}px;
             `}
             iconColor={theme.colors.grayscale.light1}
           />

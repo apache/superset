@@ -80,7 +80,7 @@ const LabelText = styled.span`
 
 export const CaretContainer = styled.div`
   height: 100%;
-  border-left: solid 1px ${({ theme }) => theme.colors.grayscale.dark2}0C;
+  border-left: solid 1px ${({ theme }) => theme.colorSplit};
   margin-left: auto;
 `;
 
@@ -414,7 +414,7 @@ export const OptionControlLabel = ({
           <Icons.RightOutlined
             iconSize="m"
             css={css`
-              margin-top: ${theme.sizeUnit}px;
+              margin: ${theme.sizeUnit}px;
             `}
             iconColor={theme.colors.grayscale.light1}
           />
