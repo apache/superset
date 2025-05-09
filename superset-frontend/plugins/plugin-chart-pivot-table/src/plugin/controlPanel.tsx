@@ -447,6 +447,60 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'column_coloring',
+            config: {
+              type: 'ColumnColoringControl',
+              renderTrigger: true,
+              label: t('Column coloring'),
+              description: t(
+                'Apply a fixed color to a selected column without conditions',
+              ),
+              mapStateToProps(explore, _, chart) {
+                const values =
+                  (explore?.controls?.metrics?.value as QueryFormMetric[]) ??
+                  [];
+                const verboseMap = explore?.datasource?.hasOwnProperty(
+                  'verbose_map',
+                )
+                  ? (explore?.datasource as Dataset)?.verbose_map
+                  : (explore?.datasource?.columns ?? {});
+                const chartStatus = chart?.chartStatus;
+                const metricColumn = values.map(value => {
+                  if (typeof value === 'string') {
+                    return {
+                      value,
+                      label: Array.isArray(verboseMap)
+                        ? value
+                        : verboseMap[value],
+                    };
+                  }
+                  return { value: value.label, label: value.label };
+                });
+                return {
+                  removeIrrelevantConditions: chartStatus === 'success',
+                  columnOptions: metricColumn,
+                  verboseMap,
+                };
+              },
+            },
+          },
+        ],
+        [
+          {
+            name: 'color_headers_totals',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Apply color to headers & total rows'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'If enabled, the selected color in "Column Coloring" will also be applied to the headers and total row.',
+              ),
+            },
+          },
+        ],
       ],
     },
   ],
