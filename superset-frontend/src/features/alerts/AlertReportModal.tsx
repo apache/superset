@@ -365,6 +365,7 @@ export const StyledInputContainer = styled.div`
       }
 
       .filters-trashcan {
+        width: ${theme.gridUnit * 10}px;
         display: 'flex';
         color: ${theme.colors.grayscale.light1};
       }
@@ -2275,6 +2276,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           {(idx !== 0 || isEditMode) && (
                             <div className="filters-delete">
                               <Icons.DeleteOutlined
+                                iconSize="xl"
                                 className="filters-trashcan"
                                 onClick={() => {
                                   handleRemoveFilterField(idx);
