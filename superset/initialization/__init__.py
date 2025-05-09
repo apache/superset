@@ -176,6 +176,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.explore import ExplorePermalinkView, ExploreView
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
+        from superset.views.logs import ActionLogView
         from superset.views.roles import RolesListView
         from superset.views.sql_lab.views import (
             SavedQueryView,
@@ -285,6 +286,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             UsersListView,
             "List Users",
             label=__("List Users"),
+            category="Security",
+            category_label=__("Security"),
+        )
+
+        appbuilder.add_view(
+            ActionLogView,
+            "Action Logs",
+            label=__("Action Logs"),
             category="Security",
             category_label=__("Security"),
         )
