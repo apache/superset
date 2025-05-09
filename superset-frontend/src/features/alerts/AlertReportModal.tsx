@@ -1517,8 +1517,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       | number
       | number[],
   ) => {
-    let values: string[];
-    console.log('filterValues', filterValues);
+    let values: any;
     if (typeof filterValues === 'string') {
       values = [filterValues];
     } else {
