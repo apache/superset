@@ -58,11 +58,6 @@ const LoginContainer = styled(Flex)`
   width: 100%;
 `;
 
-const providerIcons: Record<string, React.ReactNode> = {
-  'fa-google': <Icons.GoogleOutlined />,
-  'fa-facebook': <Icons.FacebookOutlined />,
-};
-
 const StyledCard = styled(Card)`
   ${({ theme }) => css`
     width: 40%;
