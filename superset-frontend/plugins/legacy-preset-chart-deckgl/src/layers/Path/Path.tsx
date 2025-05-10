@@ -76,7 +76,7 @@ export function getLayer(
   });
 }
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   let points: Point[] = [];
   data.forEach(d => {
     points = points.concat(d.path);
