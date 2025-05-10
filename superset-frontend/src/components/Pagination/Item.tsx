@@ -31,7 +31,8 @@ export function Item({ active, children, onClick }: PaginationItemButton) {
     <li className={classNames({ active })}>
       <span
         role="button"
-        tabIndex={active ? -1 : 0}
+        tabIndex={0}
+        aria-current={active ? 'page' : undefined}
         onClick={e => {
           e.preventDefault();
           if (!active) onClick(e);
