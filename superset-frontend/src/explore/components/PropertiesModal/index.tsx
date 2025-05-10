@@ -185,12 +185,25 @@ function PropertiesModal({
         body: JSON.stringify(payload),
       });
       // update the redux state
+      // convert the tags to the format used in the selectOwners back to original redux format
+      const selectedOwnersArray = ensureIsArray(selectedOwners);
+      const newOwners = selectedOwnersArray.map((owner: any) => {
+        const nameParts = owner.label.split(' ');
+        const first_name = nameParts[0] || '';
+        const last_name =
+          nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+        return {
+          id: owner.value,
+          first_name,
+          last_name,
+        };
+      });
       const updatedChart = {
         ...payload,
         ...res.json.result,
         tags,
         id: slice.slice_id,
-        owners: selectedOwners,
+        owners: newOwners,
       };
       onSave(updatedChart);
       addSuccessToast(t('Chart properties updated'));
