@@ -11,6 +11,7 @@ sudo systemctl stop docker || true
 sudo apt remove --purge -y docker docker.io docker-doc docker-compose docker-compose-plugin containerd runc || true
 sudo rm -rf /usr/local/bin/docker* /etc/systemd/system/docker.service
 sudo rm -rf /etc/docker /var/lib/docker /var/run/docker.sock
+sudo rm -rf /docker /docker/daemon.json # Limpeza de diretório/arquivo incorreto
 sudo apt autoremove -y
 
 echo "[2/9] Instalando dependências do sistema..."
