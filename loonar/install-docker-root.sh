@@ -28,11 +28,11 @@ echo "[Step 5] Updating repositories with the new Docker source..."
 sudo apt update
 
 # 6. Install Docker Engine, CLI, and containerd only if not already installed
-if ! dpkg -l | grep -q docker-ce; then
+if ! command -v docker > /dev/null 2>&1; then
   echo "[Step 6] Installing Docker Engine, CLI, and containerd..."
   sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 else
-  echo "[Step 6] Docker is already installed. Skipping installation."
+  echo "[Step 6] Docker command found. Skipping installation."
 fi
 
 # 7. Ensure the 'docker' group exists and add your user to it to avoid using sudo
