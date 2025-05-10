@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Ubuntu with root access
+- Ubuntu 22.04 with root access
 
 ## Files in this directory
 
@@ -15,5 +15,39 @@
 
 ## Steps to install Docker
 
-1. Clone the repository https://github.com/loonar-morpheus/superset
-2. In the directory where you cloned the repository, run the script ```loonar/install-docker-rootless.sh```
+1. Clone the repository
+
+    ```bash
+    cd /opt
+    git clone https://github.com/loonar-morpheus/superset.git
+    cd superset
+     ```
+
+2. Install docker
+
+   ```bash
+   cd loonar
+   bash install-docker-rootless.sh
+   cd "$(git rev-parse --show-toplevel)"
+   ```
+
+3. Create the solution configuration file
+
+    ```bash
+    cd docker
+    cp .env-local.sample .env-local
+    nano .env-local
+    ```
+
+4. Change the configuration variables values to meet the implementation needs
+
+    ```bash
+    cd docker
+    nano 
+    ```
+
+5. In the root directory build the solution
+
+    ```bash
+    docker-compose build --no-cache
+    ```
