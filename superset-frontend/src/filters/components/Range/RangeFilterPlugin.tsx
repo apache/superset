@@ -360,6 +360,12 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     }
   }, [enableSingleValue]);
 
+  const keyPressed = useRef(false);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    keyPressed.current = !!/^[0-9]$/.test(event.key);
+  };
+
   const handleChange = useCallback(
     (newValue: number | null, index: 0 | 1) => {
       if (row?.min === undefined && row?.max === undefined) {
@@ -370,7 +376,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       // use the dataset min/max as the base value
       let adjustedValue = newValue;
       if (newValue !== null && inputValue[index] === null) {
-        if (index === minIndex && newValue === 1) {
+        if (keyPressed.current) {
+          adjustedValue = newValue;
+          keyPressed.current = false;
+        } else if (index === minIndex && newValue === 1) {
           adjustedValue = min + 1;
         } else if (index === minIndex && newValue === -1) {
           adjustedValue = min - 1;
@@ -573,6 +582,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         <InputNumber
           value={inputValue[minIndex]}
           onChange={val => handleChange(val, minIndex)}
+          onKeyDown={handleKeyDown}
           placeholder={`${min}`}
           style={{ width: '100%' }}
           status={filterState.validateStatus}
@@ -587,6 +597,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         <InputNumber
           value={inputValue[maxIndex]}
           onChange={val => handleChange(val, maxIndex)}
+          onKeyDown={handleKeyDown}
           placeholder={`${max}`}
           style={{ width: '100%' }}
           data-test="range-filter-to-input"
