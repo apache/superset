@@ -53,6 +53,7 @@ import DropdownContainer, {
 import { Icons } from 'src/components/Icons';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
+import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
@@ -60,6 +61,8 @@ import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
+import GroupByFilterCard from '../../ChartCustomization/GroupByFilterCard';
+import { selectChartCustomizationItems } from '../../ChartCustomization/selectors';
 
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
@@ -85,6 +88,12 @@ const FilterControls: FC<FilterControlsProps> = ({
   const chartIds = useChartIds();
   const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();
+
+  // Get chart customization items from Redux state
+  const chartCustomizationItems = useSelector<
+    RootState,
+    ChartCustomizationItem[]
+  >(state => selectChartCustomizationItems(state));
 
   const selectedCrossFilters = useMemo(
     () =>
@@ -140,7 +149,102 @@ const FilterControls: FC<FilterControlsProps> = ({
   const renderVerticalContent = useCallback(
     () => (
       <>
-        {filtersInScope.map(renderer)}
+        {filtersInScope.length > 0 && (
+          <div
+            css={(theme: SupersetTheme) => css`
+              margin-bottom: ${theme.gridUnit * 4}px;
+              padding: ${theme.gridUnit * 2}px;
+              background-color: ${theme.colors.grayscale.light5};
+              border-radius: ${theme.gridUnit}px;
+            `}
+          >
+            <div
+              css={(theme: SupersetTheme) => css`
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: ${theme.gridUnit * 2}px;
+              `}
+            >
+              <h4
+                css={(theme: SupersetTheme) => css`
+                  margin: 0;
+                  font-size: ${theme.typography.sizes.s}px;
+                  font-weight: ${theme.typography.weights.bold};
+                `}
+              >
+                {t('Filters')}
+              </h4>
+              <span
+                css={(theme: SupersetTheme) => css`
+                  font-size: ${theme.typography.sizes.s}px;
+                  color: ${theme.colors.grayscale.base};
+                  background: ${theme.colors.grayscale.light2};
+                  border-radius: ${theme.gridUnit * 5}px;
+                  padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+                `}
+              >
+                {filtersInScope.length}
+              </span>
+            </div>
+            <div>{filtersInScope.map(renderer)}</div>
+          </div>
+        )}
+
+        {chartCustomizationItems.length > 0 && (
+          <div
+            css={(theme: SupersetTheme) => css`
+              margin-bottom: ${theme.gridUnit * 4}px;
+              padding: ${theme.gridUnit * 2}px;
+              background-color: ${theme.colors.grayscale.light5};
+              border-radius: ${theme.gridUnit}px;
+            `}
+          >
+            <div
+              css={(theme: SupersetTheme) => css`
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: ${theme.gridUnit * 2}px;
+              `}
+            >
+              <h4
+                css={(theme: SupersetTheme) => css`
+                  margin: 0;
+                  font-size: ${theme.typography.sizes.s}px;
+                  font-weight: ${theme.typography.weights.bold};
+                `}
+              >
+                {t('Chart Customization')}
+              </h4>
+              <span
+                css={(theme: SupersetTheme) => css`
+                  font-size: ${theme.typography.sizes.s}px;
+                  color: ${theme.colors.grayscale.base};
+                  background: ${theme.colors.grayscale.light2};
+                  border-radius: ${theme.gridUnit * 5}px;
+                  padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+                `}
+              >
+                {chartCustomizationItems.filter(item => !item.removed).length}
+              </span>
+            </div>
+            <div
+              css={(theme: SupersetTheme) => css`
+                display: flex;
+                flex-direction: column;
+                gap: ${theme.gridUnit * 2}px;
+              `}
+            >
+              {chartCustomizationItems
+                .filter(item => !item.removed)
+                .map(item => (
+                  <GroupByFilterCard key={item.id} customizationItem={item} />
+                ))}
+            </div>
+          </div>
+        )}
+
         {showCollapsePanel && (
           <FiltersOutOfScopeCollapsible
             filtersOutOfScope={filtersOutOfScope}
@@ -157,6 +261,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       showCollapsePanel,
       filtersOutOfScope,
       hasRequiredFirst,
+      chartCustomizationItems,
     ],
   );
 
@@ -226,11 +331,65 @@ const FilterControls: FC<FilterControlsProps> = ({
     () => (
       <div
         css={(theme: SupersetTheme) => css`
-          padding: 0 ${theme.gridUnit * 4}px;
+          padding: ${theme.gridUnit * 4}px;
+           {/* Dataset row */}    padding-top: 0;
           min-width: 0;
           flex: 1;
         `}
       >
+        {chartCustomizationItems.length > 0 && (
+          <div
+            css={(theme: SupersetTheme) => css`
+              margin-bottom: ${theme.gridUnit * 4}px;
+              padding: ${theme.gridUnit * 2}px;
+              background-color: ${theme.colors.grayscale.light5};
+              border-radius: ${theme.gridUnit}px;
+            `}
+          >
+            <div
+              css={(theme: SupersetTheme) => css`
+                display: flex;
+                justify-content: space-between;
+           {/* Dataset row */}          align-items: center;
+                margin-bottom: ${theme.gridUnit * 2}px;
+              `}
+            >
+              <h4
+                css={(theme: SupersetTheme) => css`
+                  margin: 0;
+                  font-size: ${theme.typography.sizes.s}px;
+                  font-weight: ${theme.typography.weights.bold};
+                `}
+              >
+                {t('Chart Customization')}
+              </h4>
+              <span
+                css={(theme: SupersetTheme) => css`
+                  font-size: ${theme.typography.sizes.s}px;
+                  color: ${theme.colors.grayscale.base};
+                  background: ${theme.colors.grayscale.light2};
+                  border-radius: ${theme.gridUnit * 5}px;
+                  padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+                `}
+              >
+                {chartCustomizationItems.filter(item => !item.removed).length}
+              </span>
+            </div>
+            <div
+              css={(theme: SupersetTheme) => css`
+                display: flex;
+                flex-direction: column;
+                gap: ${theme.gridUnit * 2}px;
+              `}
+            >
+              {chartCustomizationItems
+                .filter(item => !item.removed)
+                .map(item => (
+                  <GroupByFilterCard key={item.id} customizationItem={item} />
+                ))}
+            </div>
+          </div>
+        )}
         <DropdownContainer
           items={items}
           dropdownTriggerIcon={
@@ -299,6 +458,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       rendererCrossFilter,
       hasRequiredFirst,
       overflowedIds,
+      chartCustomizationItems,
     ],
   );
 

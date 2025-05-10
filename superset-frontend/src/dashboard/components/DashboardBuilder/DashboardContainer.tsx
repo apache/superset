@@ -30,7 +30,6 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import {
-  Filter,
   Filters,
   LabelsColorMapSource,
   getLabelsColorMap,
@@ -92,7 +91,7 @@ const useNativeFilterScopes = () => {
   return useMemo(
     () =>
       nativeFilters
-        ? Object.values(nativeFilters).map((filter: Filter) =>
+        ? Object.values(nativeFilters).map(filter =>
             pick(filter, ['id', 'scope', 'type']),
           )
         : [],
@@ -153,7 +152,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       return;
     }
     const scopes = nativeFilterScopes.map(filterScope => {
-      if (filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX)) {
+      if (
+        filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX) ||
+        (filterScope as any).type === 'CHART_CUSTOMIZATION'
+      ) {
         return {
           filterId: filterScope.id,
           tabsInScope: [],
@@ -164,6 +166,14 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       const chartLayoutItems = Object.values(dashboardLayout).filter(
         item => item?.type === CHART_TYPE,
       );
+
+      if (!filterScope.scope || !Array.isArray(filterScope.scope.excluded)) {
+        return {
+          filterId: filterScope.id,
+          tabsInScope: [],
+          chartsInScope: [],
+        };
+      }
 
       const chartsInScope: number[] = getChartIdsInFilterScope(
         filterScope.scope,
