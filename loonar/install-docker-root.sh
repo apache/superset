@@ -30,9 +30,49 @@ sudo apt update
 # 6. Install Docker Engine, CLI, and containerd only if not already installed
 if ! command -v docker > /dev/null 2>&1; then
   echo "[Step 6] Installing Docker Engine, CLI, and containerd..."
-  sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  os_version=$(lsb_release -cs)
+  if [ "$os_version" = "noble" ]; then
+    echo "[Step 6] Ubuntu 24.04 (noble) detected."
+    echo "[WARNING] Official Docker CE packages are NOT available for Ubuntu 24.04 (noble) yet."
+    echo "[WARNING] The script will install docker.io and related packages from Ubuntu's repository as a fallback."
+    echo "[WARNING] BuildKit/buildx features may NOT work properly. For full support, use Ubuntu 22.04 (jammy) or wait for Docker to release official packages."
+    # Remove containerd.io if present (from Docker repo)
+    if dpkg -l | grep -q containerd.io; then
+      echo "Removing conflicting containerd.io package..."
+      sudo apt remove -y containerd.io
+    fi
+    # Ensure containerd from Ubuntu repo is installed
+    sudo apt install -y containerd
+    # Remove Docker repo from sources to avoid further conflicts
+    sudo rm -f /etc/apt/sources.list.d/docker.list
+    sudo apt update
+    # Install docker.io and plugins from Ubuntu repo
+    sudo apt install -y docker.io docker-compose-plugin docker-buildx-plugin docker-compose
+  else
+    sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-compose
+  fi
 else
   echo "[Step 6] Docker command found. Skipping installation."
+fi
+
+# 6.5. Enable Docker BuildKit by default
+DOCKER_DAEMON_JSON="/etc/docker/daemon.json"
+echo "[Step 6.5] Enabling Docker BuildKit in $DOCKER_DAEMON_JSON..."
+if [ -f "$DOCKER_DAEMON_JSON" ]; then
+  # Merge or update features.buildkit to true
+  if grep -q '"features"' "$DOCKER_DAEMON_JSON"; then
+    sudo jq '.features.buildkit = true | .features' "$DOCKER_DAEMON_JSON" | sudo tee "$DOCKER_DAEMON_JSON.tmp" > /dev/null && sudo mv "$DOCKER_DAEMON_JSON.tmp" "$DOCKER_DAEMON_JSON"
+  else
+    sudo jq '. + {features: {buildkit: true}}' "$DOCKER_DAEMON_JSON" | sudo tee "$DOCKER_DAEMON_JSON.tmp" > /dev/null && sudo mv "$DOCKER_DAEMON_JSON.tmp" "$DOCKER_DAEMON_JSON"
+  fi
+else
+  echo '{"features": {"buildkit": true}}' | sudo tee "$DOCKER_DAEMON_JSON" > /dev/null
+fi
+
+# Restart Docker to apply BuildKit config
+if systemctl list-unit-files | grep -q docker.service; then
+  echo "[Step 6.5] Restarting Docker to apply BuildKit config..."
+  sudo systemctl restart docker
 fi
 
 # 7. Ensure the 'docker' group exists and add your user to it to avoid using sudo
@@ -45,3 +85,14 @@ else
 fi
 echo "[Step 7] Adding user '$USER' to 'docker' group..."
 sudo usermod -aG docker "$USER"
+
+# 8. Ensure Docker service is enabled and started
+if systemctl list-unit-files | grep -q docker.service; then
+  echo "[Step 8] Enabling and starting Docker service..."
+  sudo systemctl enable docker
+  sudo systemctl start docker
+else
+  echo "[Step 8] Docker service file not found. If using rootless or alternative install, start Docker manually."
+fi
+
+
