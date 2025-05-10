@@ -1,52 +1,50 @@
 #!/usr/bin/env bash
-
 set -e
 
-# 1. Remove any old Docker installations
-sudo apt remove --purge -y docker.io docker-doc docker-compose docker-compose-plugin docker-buildx-plugin containerd runc || true
+# Versões
+DOCKER_VERSION="25.0.5"
+COMPOSE_VERSION="2.27.1"
+BUILDX_VERSION="0.14.0"
+
+echo "[1/8] Removendo instalações anteriores..."
+sudo systemctl stop docker || true
+sudo apt remove --purge -y docker docker.io docker-doc docker-compose docker-compose-plugin containerd runc || true
+sudo rm -rf /usr/local/bin/docker* /etc/systemd/system/docker.service
+sudo rm -rf /etc/docker /var/lib/docker /var/run/docker.sock
 sudo apt autoremove -y
 
-# 2. Install dependencies
+echo "[2/8] Instalando dependências..."
 sudo apt update
-sudo apt install -y ca-certificates curl gnupg lsb-release
+sudo apt install -y ca-certificates curl gnupg lsb-release iptables pigz
 
-# 3. Install Docker Engine (static binary)
-DOCKER_VERSION="25.0.5"
-echo "[Step 3] Downloading Docker Engine binaries..."
+echo "[3/8] Instalando Docker binário (dockerd + docker)..."
 curl -fsSL "https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz" -o docker.tgz
 sudo tar xzvf docker.tgz --strip-components=1 -C /usr/local/bin docker/docker docker/dockerd
 rm docker.tgz
 
-# 4. Install Docker Compose v2 (official binary)
-COMPOSE_VERSION="2.27.1"
-echo "[Step 4] Installing Docker Compose v2..."
+echo "[4/8] Instalando Docker Compose v2..."
 sudo curl -L "https://github.com/docker/compose/releases/download/v${COMPOSE_VERSION}/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 
-# 5. Install Buildx (official binary)
-BUILDX_VERSION="0.14.0"
-echo "[Step 5] Installing Buildx..."
-sudo mkdir -p ~/.docker/cli-plugins/
-sudo curl -L "https://github.com/docker/buildx/releases/download/v${BUILDX_VERSION}/buildx-v${BUILDX_VERSION}.linux-amd64" -o ~/.docker/cli-plugins/docker-buildx
-sudo chmod +x ~/.docker/cli-plugins/docker-buildx
+echo "[5/8] Instalando Buildx..."
+mkdir -p ~/.docker/cli-plugins
+curl -L "https://github.com/docker/buildx/releases/download/v${BUILDX_VERSION}/buildx-v${BUILDX_VERSION}.linux-amd64" -o ~/.docker/cli-plugins/docker-buildx
+chmod +x ~/.docker/cli-plugins/docker-buildx
 
-# 6. Create systemd service for Docker
+echo "[6/8] Configurando serviço systemd..."
 sudo tee /etc/systemd/system/docker.service > /dev/null <<EOF
 [Unit]
 Description=Docker Application Container Engine
 Documentation=https://docs.docker.com
-After=network-online.target firewalld.service
-Wants=network-online.target
+After=network.target
 
 [Service]
 Type=notify
 ExecStart=/usr/local/bin/dockerd
-ExecReload=/bin/kill -s HUP $MAINPID
+ExecReload=/bin/kill -s HUP \$MAINPID
 TimeoutSec=0
 RestartSec=2
 Restart=always
-StartLimitBurst=3
-StartLimitInterval=60s
 LimitNOFILE=infinity
 LimitNPROC=infinity
 LimitCORE=infinity
@@ -59,23 +57,19 @@ OOMScoreAdjust=-500
 WantedBy=multi-user.target
 EOF
 
-# 7. Enable BuildKit in daemon.json
+echo "[7/8] Habilitando BuildKit e ativando o serviço..."
 sudo mkdir -p /etc/docker
 echo '{"features": {"buildkit": true}}' | sudo tee /etc/docker/daemon.json
-
-# 8. Create docker group and add user
 sudo groupadd -f docker
 sudo usermod -aG docker "$USER"
 
-# 9. Enable and start Docker
 sudo systemctl daemon-reload
 sudo systemctl enable docker
 sudo systemctl restart docker
 
-# 10. Test installation
+echo "[8/8] Verificações finais..."
 docker --version
 docker compose version
 docker buildx version
-echo "[OK] Docker, Compose e BuildKit instalados no Ubuntu 24.04!"
-
-
+echo -e "\n✅ Docker, Buildx e Compose instalados com sucesso no Ubuntu 24.04!"
+echo "ℹ️ Faça logout/login ou execute: newgrp docker"
