@@ -11,6 +11,7 @@ sudo systemctl stop docker || true
 sudo apt remove --purge -y docker docker.io docker-doc docker-compose docker-compose-plugin containerd runc || true
 sudo rm -rf /usr/local/bin/docker* /etc/systemd/system/docker.service
 sudo rm -rf /etc/docker /var/lib/docker /var/run/docker.sock
+sudo rm -rf /docker /docker/daemon.json  # Remove possíveis resíduos de diretórios/configurações erradas
 sudo apt autoremove -y
 
 echo "[2/8] Instalando dependências..."
@@ -58,7 +59,7 @@ WantedBy=multi-user.target
 EOF
 
 echo "[7/8] Habilitando BuildKit e ativando o serviço..."
-sudo mkdir -p /etc/docker
+sudo mkdir -p /etc/docker  # Garante que o diretório existe antes de criar o arquivo
 echo '{"features": {"buildkit": true}}' | sudo tee /etc/docker/daemon.json
 sudo groupadd -f docker
 sudo usermod -aG docker "$USER"
