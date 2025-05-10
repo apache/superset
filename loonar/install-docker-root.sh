@@ -47,7 +47,14 @@ if ! command -v docker > /dev/null 2>&1; then
     sudo rm -f /etc/apt/sources.list.d/docker.list
     sudo apt update
     # Install docker.io and plugins from Ubuntu repo
-    sudo apt install -y docker.io docker-compose-plugin docker-buildx-plugin docker-compose
+    sudo apt install -y docker.io docker-buildx-plugin || true
+    # Try to install docker-compose-plugin if available
+    if apt-cache show docker-compose-plugin > /dev/null 2>&1; then
+      sudo apt install -y docker-compose-plugin
+    else
+      echo "[WARNING] docker-compose-plugin not available. Installing standalone docker-compose as fallback."
+      sudo apt install -y docker-compose
+    fi
   else
     sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-compose
   fi
@@ -58,6 +65,7 @@ fi
 # 6.5. Enable Docker BuildKit by default
 DOCKER_DAEMON_JSON="/etc/docker/daemon.json"
 echo "[Step 6.5] Enabling Docker BuildKit in $DOCKER_DAEMON_JSON..."
+sudo mkdir -p /etc/docker
 if [ -f "$DOCKER_DAEMON_JSON" ]; then
   # Merge or update features.buildkit to true
   if grep -q '"features"' "$DOCKER_DAEMON_JSON"; then
