@@ -246,7 +246,8 @@ export async function embedDashboard({
     ourPort.start();
     ourPort.defineMethod('observeDataMask', callbackFn);
   };
-  const setThemeConfig = async (themeConfig: any): Promise<void> => {
+  // TODO: Add proper types once theming branch is merged
+  const setThemeConfig = async (themeConfig: Record<string, any>): Promise<void> => {
     try {
       ourPort.emit('setThemeConfig', { themeConfig });
       log('Theme config sent successfully (or at least message dispatched)');
