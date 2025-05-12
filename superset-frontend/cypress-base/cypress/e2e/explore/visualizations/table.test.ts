@@ -450,11 +450,11 @@ describe('Visualization > Table', () => {
 
     cy.get('.search-select').click();
 
-    cy.get('.ant-select-dropdown').should('be.visible');
+    cy.get('.antd5-select-dropdown').should('be.visible');
 
-    cy.get('.ant-select-item-option').contains('state').should('be.visible');
+    cy.get('.antd5-select-item-option').contains('state').should('be.visible');
 
-    cy.get('.ant-select-item-option').contains('state').click();
+    cy.get('.antd5-select-item-option').contains('state').click();
 
     cy.get('span.dt-global-filter input.form-control.input-sm').clear();
 
