@@ -52,15 +52,19 @@ export default function buildQuery(formData: QueryFormData) {
     {
       ...baseQueryObject,
       columns: [
-        ...(isXAxisSet(formData)
-          ? ensureIsArray(getXAxisColumn(formData))
+        ...(formData.aggregation
+          ? isXAxisSet(formData)
+            ? ensureIsArray(getXAxisColumn(formData))
+            : []
           : []),
       ],
-      ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
-      post_processing: [
-        pivotOperator(formData, baseQueryObject),
-        aggregationOperator(formData, baseQueryObject),
-      ],
+      is_timeseries: !!formData.aggregation,
+      post_processing: formData.aggregation
+        ? [
+            pivotOperator(formData, baseQueryObject),
+            aggregationOperator(formData, baseQueryObject),
+          ]
+        : [],
     },
   ]);
 }
