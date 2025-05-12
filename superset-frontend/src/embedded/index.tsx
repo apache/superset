@@ -249,7 +249,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
 
         try {
           themeObject.setConfig(themeConfig);
-          return { success: true, message: 'Theme applied (placeholder)' };
+          return { success: true, message: 'Theme applied' };
         } catch (error) {
           logging.error('Failed to apply theme config:', error);
           throw new Error(`Failed to apply theme config: ${error.message}`);
