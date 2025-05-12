@@ -109,7 +109,7 @@ export default function Login() {
     <LoginContainer justify="center">
       <StyledCard title={t('Sign in')} padded>
         {authType === AuthType.AuthOID && (
-          <Flex justify="center" vertical gap="middle" align="center">
+          <Flex justify="center" vertical gap="middle">
             <Form
               layout="vertical"
               requiredMark="optional"
@@ -121,7 +121,7 @@ export default function Login() {
                   <Button
                     onClick={() => history.push(`/login/${provider.name}`)}
                     icon={AuthIconMap[provider.name]}
-                    buttonStyle="link"
+                    block
                   >
                     {t('Sign in with')} {provider.name}
                   </Button>
@@ -131,7 +131,7 @@ export default function Login() {
           </Flex>
         )}
         {authType === AuthType.AuthOauth && (
-          <Flex justify="center" gap={0} vertical align="center">
+          <Flex justify="center" gap={0} vertical>
             <Form
               layout="vertical"
               requiredMark="optional"
@@ -143,7 +143,7 @@ export default function Login() {
                   <Button
                     onClick={() => history.push(`/login/${provider.name}`)}
                     icon={AuthIconMap[provider.name]}
-                    buttonStyle="link"
+                    block
                   >
                     {t('Sign in with')} {provider.name}
                   </Button>
