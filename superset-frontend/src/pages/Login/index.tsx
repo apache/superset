@@ -36,10 +36,17 @@ type LoginType = {
   password: string;
 };
 
-type OauthProvider = {
+type OAuthProvider = {
   name: string;
   icon: string;
 };
+
+type OIDProvider = {
+  name: string;
+  url: string;
+};
+
+type Provider = OAuthProvider | OIDProvider;
 
 interface LoginForm {
   username: string;
@@ -47,11 +54,11 @@ interface LoginForm {
 }
 
 enum AuthType {
+  AuthOID = 0,
   AuthDB = 1,
   AuthLDAP,
   AuthRemoteUser,
   AuthOauth,
-  AuthOID,
 }
 
 const LoginContainer = styled(Flex)`
@@ -82,8 +89,7 @@ export default function Login() {
   const bootstrapData = getBootstrapData();
 
   const authType: AuthType = bootstrapData.common.conf.AUTH_TYPE;
-  const oauthProviders: OauthProvider[] =
-    bootstrapData.common.conf.OAUTH_PROVIDERS;
+  const providers: Provider[] = bootstrapData.common.conf.AUTH_PROVIDERS;
 
   const onFinish = (values: LoginType) => {
     setLoading(true);
@@ -95,6 +101,24 @@ export default function Login() {
   return (
     <LoginContainer justify="center">
       <StyledCard title={t('Sign in')} padded>
+        {authType === AuthType.AuthOID && (
+          <Flex justify="center" vertical gap="middle">
+            <Form
+              layout="vertical"
+              requiredMark="optional"
+              form={form}
+              onFinish={onFinish}
+            >
+              {providers.map((provider: OIDProvider) => (
+                <Form.Item<LoginType>>
+                  <Typography.Link href={`${provider.url}`}>
+                    {t('Sign in with')} {provider.name}
+                  </Typography.Link>
+                </Form.Item>
+              ))}
+            </Form>
+          </Flex>
+        )}
         {authType === AuthType.AuthOauth && (
           <Flex justify="center" vertical gap="middle">
             <Form
@@ -103,11 +127,9 @@ export default function Login() {
               form={form}
               onFinish={onFinish}
             >
-              {oauthProviders.map(provider => (
+              {providers.map((provider: OAuthProvider) => (
                 <Form.Item<LoginType>>
-                  <Typography.Link
-                    href={`/login/${provider.name.toLowerCase()}`}
-                  >
+                  <Typography.Link href={`/login/${provider.name}`}>
                     {t('Sign in with')} {provider.name}
                   </Typography.Link>
                 </Form.Item>
@@ -115,6 +137,7 @@ export default function Login() {
             </Form>
           </Flex>
         )}
+
         {authType === AuthType.AuthDB && (
           <Flex justify="center" vertical gap="middle">
             <Typography.Text type="secondary">
