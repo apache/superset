@@ -32,6 +32,7 @@ export const GlobalStyles = () => {
         a {
           color: ${theme.colorLink};
         }
+        -webkit-font-smoothing: antialiased;
 
         h1,
         h2,
@@ -70,6 +71,12 @@ export const GlobalStyles = () => {
           & .btn-group > .btn {
             padding: 5px 10px 6px;
           }
+        }
+
+        // Overriding bootstrap styles
+        // TODO - remove bootstrap .less and delete this section
+        label {
+          font-weight: ${theme.fontWeightNormal};
         }
       `}
     />

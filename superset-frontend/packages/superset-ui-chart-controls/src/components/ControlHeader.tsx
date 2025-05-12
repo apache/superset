@@ -100,7 +100,6 @@ export function ControlHeader({
             tabIndex={0}
             onClick={onClick}
             className={labelClass}
-            style={{ cursor: onClick ? 'pointer' : '' }}
           >
             {label}
           </span>{' '}
