@@ -16,26 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '../translation';
 
-import { SetDataMaskHook } from '@superset-ui/core';
-import { TableOwnState } from '../types/react-table';
-
-export const updateExternalFormData = (
-  setDataMask: SetDataMaskHook = () => {},
-  pageNumber: number,
-  pageSize: number,
-) =>
-  setDataMask({
-    ownState: {
-      currentPage: pageNumber,
-      pageSize,
-    },
-  });
-
-export const updateTableOwnState = (
-  setDataMask: SetDataMaskHook = () => {},
-  modifiedOwnState: TableOwnState,
-) =>
-  setDataMask({
-    ownState: modifiedOwnState,
-  });
+export default function validateServerPagination(
+  v: unknown,
+  serverPagination: boolean,
+  max: number,
+) {
+  if (Number(v) > +max && !serverPagination) {
+    return t('Server pagination needs to be enabled for values over %s', max);
+  }
+  return false;
+}
