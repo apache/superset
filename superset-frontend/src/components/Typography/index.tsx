@@ -19,6 +19,8 @@
 import { styled, css } from '@superset-ui/core';
 import { Typography as AntdTypography } from 'antd-v5';
 
+export type { ParagraphProps } from 'antd-v5/es/typography/Paragraph';
+
 const StyledLink = styled(AntdTypography.Link)`
     ${({ theme }) =>
       css`

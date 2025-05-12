@@ -29,6 +29,7 @@ import {
   Tooltip,
   ModifiedInfo,
   FaveStar,
+  Tag as AntdTag,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewFilters,
@@ -40,8 +41,6 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from 'src/components/Icons';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
-// eslint-disable-next-line no-restricted-imports
-import { Tag as AntdTag } from 'antd-v5'; // TODO: Remove antd
 import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 
