@@ -223,7 +223,7 @@ const config: ControlPanelConfig = {
             name: 'x_ticks_wrap_length',
             config: {
               type: 'TextControl',
-              label: t('X Tick Wrap Length'),
+              label: t('X tick wrap length'),
               description: t(
                 'Maximum line length for wrapped text (when Flat layout is selected)',
               ),
