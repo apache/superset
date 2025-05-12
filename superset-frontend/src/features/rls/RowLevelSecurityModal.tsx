@@ -28,6 +28,7 @@ import {
   LabeledErrorBoundInput,
   Input,
 } from 'src/components';
+import { Typography } from 'src/components/Typography';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { FILTER_OPTIONS } from './constants';
@@ -335,7 +336,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       width="30%"
       maxWidth="1450px"
       title={
-        <h4 data-test="rls-modal-title">
+        <Typography.Title level={4} data-test="rls-modal-title">
           {isEditMode ? (
             <Icons.EditOutlined
               css={css`
@@ -351,7 +352,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
             />
           )}
           {isEditMode ? t('Edit Rule') : t('Add Rule')}
-        </h4>
+        </Typography.Title>
       }
     >
       <StyledSectionContainer>

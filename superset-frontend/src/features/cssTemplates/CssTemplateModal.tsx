@@ -24,6 +24,7 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { Icons } from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Input, CssEditor, Modal } from 'src/components';
+import { Typography } from 'src/components/Typography';
 
 import { OnlyKeyWithType } from 'src/utils/types';
 import { TemplateObject } from './types';
@@ -231,7 +232,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       show={show}
       width="55%"
       title={
-        <h4 data-test="css-template-modal-title">
+        <Typography.Title level={4} data-test="css-template-modal-title">
           {isEditMode ? (
             <Icons.EditOutlined
               iconSize="l"
@@ -250,11 +251,11 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
           {isEditMode
             ? t('Edit CSS template properties')
             : t('Add CSS template')}
-        </h4>
+        </Typography.Title>
       }
     >
       <StyledCssTemplateTitle>
-        <h4>{t('Basic information')}</h4>
+        <Typography.Title level={4}>{t('Basic information')}</Typography.Title>
       </StyledCssTemplateTitle>
       <TemplateContainer>
         <div className="control-label">
