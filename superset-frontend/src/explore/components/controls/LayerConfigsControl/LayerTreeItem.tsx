@@ -18,7 +18,7 @@
  */
 import { Icons } from 'src/components/Icons';
 // eslint-disable-next-line no-restricted-imports
-import { Button, Tag } from 'antd'; // TODO: Remove antd
+import { Button, Tag } from 'antd-v5'; // TODO: Remove antd
 import { FC } from 'react';
 import { LayerTreeItemProps } from './types';
 

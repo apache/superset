@@ -37,7 +37,6 @@
     "@ant-design/icons": "^5.2.6",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "antd": "^4.10.3",
     "geostyler": "^12.0.0",
     "geostyler-data": "^1.0.0",
     "geostyler-openlayers-parser": "^4.0.0",

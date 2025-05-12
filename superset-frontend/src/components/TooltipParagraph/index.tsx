@@ -16,18 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, FC } from 'react';
+
+import { useState } from 'react';
 // eslint-disable-next-line no-restricted-imports
-import { Typography } from 'antd'; // TODO: Remove antd
+import { Typography } from 'antd-v5'; // TODO: Remove antd
 // eslint-disable-next-line no-restricted-imports
-import { ParagraphProps } from 'antd/es/typography/Paragraph'; // TODO: Remove antd
 import { Tooltip } from 'src/components';
 
-const TooltipParagraph: FC<ParagraphProps> = ({
+type TooltipParagraphProps = {
+  children: React.ReactNode;
+  ellipsis?: object;
+  [key: string]: any;
+};
+
+const TooltipParagraph = ({
   children,
-  ellipsis,
+  ellipsis = {},
   ...props
-}) => {
+}: TooltipParagraphProps) => {
   const [truncated, setTruncated] = useState(false);
 
   return (
