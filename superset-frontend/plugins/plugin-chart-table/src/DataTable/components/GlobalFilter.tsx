@@ -18,6 +18,7 @@
  */
 import { memo, ComponentType, ChangeEventHandler } from 'react';
 import { Row, FilterValue } from 'react-table';
+import { Input, Space } from 'antd-v5';
 import useAsyncState from '../utils/useAsyncState';
 
 export interface SearchInputProps {
@@ -37,15 +38,15 @@ export interface GlobalFilterProps<D extends object> {
 
 function DefaultSearchInput({ count, value, onChange }: SearchInputProps) {
   return (
-    <span className="dt-global-filter">
-      Search{' '}
-      <input
-        className="form-control input-sm"
+    <Space direction="horizontal" size={4}>
+      Search
+      <Input
+        size="small"
         placeholder={`${count} records...`}
         value={value}
         onChange={onChange}
       />
-    </span>
+    </Space>
   );
 }
 

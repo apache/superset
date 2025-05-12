@@ -495,7 +495,7 @@ describe('plugin-chart-table', () => {
           'rgb(255, 255, 255)',
         );
       });
-      it('should display originalLabel in grouped headers', () => {
+      it('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);
 
         render(
