@@ -18,8 +18,8 @@
  */
 import { Icons } from 'src/components/Icons';
 import { css, styled, t } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import { Button, Tree } from 'antd-v5'; // TODO: Remove antd
+import { Button } from 'src/components';
+import Tree, { TreeProps } from 'src/components/Tree';
 import { forwardRef } from 'react';
 import { FlatLayerDataNode, FlatLayerTreeProps, LayerConf } from './types';
 import { handleDrop } from './dragDropUtil';
@@ -118,7 +118,9 @@ export const FlatLayerTree = forwardRef<HTMLDivElement, FlatLayerTreeProps>(
 
     const treeData = layerConfigsToTreeData(layerConfigs);
 
-    const onDrop = (info: any) => {
+    const onDrop = (
+      info: Parameters<NonNullable<TreeProps<FlatLayerDataNode>['onDrop']>>[0],
+    ) => {
       const data = handleDrop(info, treeData);
       const movedLayerConfigs = treeDataToLayerConfigs(data);
       onMoveLayer(movedLayerConfigs);
