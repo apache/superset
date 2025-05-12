@@ -42,10 +42,6 @@ input.form-control {
   background-color: @lightest;
 }
 
-.disabledButton {
-  pointer-events: none;
-}
-
 .col-left-fixed {
   width: 350px;
   position: absolute;
@@ -121,19 +117,6 @@ span.title-block {
 .nvtooltip {
   table td {
     font-size: @font-size-s !important;
-  }
-}
-
-div.navbar {
-  .dropdown-menu .fineprint {
-    line-height: 1.5rem;
-    padding: 10px 20px 5px 20px;
-    color: @gray-light;
-    font-size: @font-size-m;
-
-    div {
-      white-space: nowrap;
-    }
   }
 }
 
@@ -227,23 +210,6 @@ table.table-no-hover tr:hover {
 .editable-title.datasource-sql-expression textarea {
   min-height: 100px;
   width: 95%;
-}
-
-.editable-title input[type='button'] {
-  border-color: transparent;
-  background: transparent;
-  font-size: inherit;
-  white-space: normal;
-  text-align: left;
-  cursor: initial;
-}
-
-.editable-title.editable-title--editable input[type='button'] {
-  cursor: pointer;
-}
-
-.editable-title.editable-title--editing input[type='button'] {
-  cursor: text;
 }
 
 .anchor-link-container {
@@ -401,14 +367,6 @@ table.table-no-hover tr:hover {
   display: inline;
 }
 
-.form-actions-container button {
-  display: flex;
-
-  .caret {
-    margin: 0 8px;
-  }
-}
-
 .list-container .filter-action {
   margin: 10px 10px 0 10px;
   padding-bottom: 15px;
@@ -513,35 +471,6 @@ Emotion styles will take care of the correct styling
 */
 .navbar-brand {
   display: none;
-}
-
-// Making native radio buttons use brand color
-input[type='radio']:after {
-  width: 15px;
-  height: 15px;
-  border-radius: 15px;
-  top: -2px;
-  left: -1px;
-  position: relative;
-  background-color: #fff;
-  content: '';
-  display: inline-block;
-  visibility: visible;
-  border: 2px solid @gray;
-}
-
-input[type='radio']:checked:after {
-  width: 15px;
-  height: 15px;
-  border-radius: 15px;
-  top: -2px;
-  left: -1px;
-  position: relative;
-  background-color: #fff;
-  content: '';
-  display: inline-block;
-  visibility: visible;
-  border: 5px solid @brand-primary;
 }
 hr {
   border-top: 1px solid @gray-light;
