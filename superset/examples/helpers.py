@@ -43,7 +43,11 @@ Environment knobs
 from __future__ import annotations
 
 import os
+import time
 from typing import Any
+from urllib.error import HTTPError
+
+import pandas as pd
 
 from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
@@ -119,3 +123,41 @@ def get_example_url(filepath: str) -> str:
     paths like ``datasets/examples/slack/messages.csv``.
     """
     return f"{BASE_URL}{filepath}"
+
+
+def read_example_csv(
+    filepath: str,
+    max_attempts: int = 5,
+    wait_seconds: float = 60,
+    **kwargs: Any,
+) -> pd.DataFrame:
+    """
+    Load a CSV from the Superset example data mirror with retry/backoff on HTTP 429.
+
+    Args:
+        filepath: Relative path within the examples repo (e.g. "datasets/foo.csv").
+        max_attempts: Max number of retry attempts.
+        wait_seconds: Base wait time in seconds, will be multiplied
+          exponentially per attempt.
+        **kwargs: Passed directly to pandas.read_csv().
+
+    Returns:
+        pd.DataFrame
+    """
+
+    url = get_example_url(filepath)
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return pd.read_csv(url, **kwargs)
+        except HTTPError as e:
+            if e.code == 429 and attempt < max_attempts:
+                sleep_time = wait_seconds * (2 ** (attempt - 1))
+                print(
+                    f"HTTP 429 received from {url}. ",
+                    f"Retrying in {sleep_time:.1f}s ",
+                    "(attempt {attempt}/{max_attempts})...",
+                )
+                time.sleep(sleep_time)
+            else:
+                raise
