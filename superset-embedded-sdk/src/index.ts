@@ -89,7 +89,7 @@ export type EmbeddedDashboard = {
     callbackFn: ObserveDataMaskCallbackFn,
   ) => void;
   getDataMask: () => Record<string, any>;
-  setThemeConfig: (themeConfig: any) => void;
+  setThemeConfig: (themeConfig: Record<string, any>) => void;
 };
 
 /**
