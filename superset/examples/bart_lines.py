@@ -38,7 +38,7 @@ def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
 
         if not only_metadata and (not table_exists or force):
             df = read_example_csv(
-                "bart_lines.csv", encoding="latin-1", compression="gzip"
+                "bart-lines.json.gz", encoding="latin-1", compression="gzip"
             )
             df["path_json"] = df.path.map(json.dumps)
             df["polyline"] = df.path.map(polyline.encode)
