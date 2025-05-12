@@ -61,7 +61,7 @@ import Fieldset from './Fieldset';
 import Field from './Field';
 import { fetchSyncedColumns, updateColumns } from './utils';
 import { Typography } from '../Typography';
-import FilterableTable from '../FilterableTable';
+import { FilterableTable } from '../FilterableTable';
 
 const extensionsRegistry = getExtensionsRegistry();
 
