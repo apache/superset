@@ -19,6 +19,8 @@
 import rison from 'rison';
 import { PureComponent, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import { executeQuery, resetDatabaseState } from 'src/database/actions';
+import { connect } from 'react-redux';
 import { Radio } from 'src/components/Radio';
 import {
   css,
