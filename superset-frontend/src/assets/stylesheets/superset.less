@@ -38,6 +38,10 @@ i {
   white-space: nowrap;
 }
 
+input.form-control {
+  background-color: @lightest;
+}
+
 .disabledButton {
   pointer-events: none;
 }
@@ -181,6 +185,30 @@ img.viz-thumb-option {
 
 table.table-no-hover tr:hover {
   background-color: initial;
+}
+
+.editable-title input {
+  outline: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  cursor: initial;
+}
+
+.editable-title textarea {
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  cursor: initial;
+  border: 1px solid @gray;
+  border-radius: @border-radius-normal;
+}
+
+.editable-title input[type='text'] {
+  border: 1px solid @gray;
+  border-radius: @border-radius-normal;
+  padding: 2px;
 }
 
 .editable-title.datasource-sql-expression {
