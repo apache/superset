@@ -112,6 +112,7 @@ import {
   UnorderedListOutlined,
   WarningOutlined,
   KeyOutlined,
+  ExportOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
 import { IconType } from './types';
@@ -159,6 +160,7 @@ const AntdIcons = {
   EllipsisOutlined,
   ExclamationCircleOutlined,
   ExclamationCircleFilled,
+  ExportOutlined,
   EyeOutlined,
   EyeInvisibleOutlined,
   FallOutlined,

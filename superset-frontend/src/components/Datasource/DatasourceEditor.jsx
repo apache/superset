@@ -54,17 +54,14 @@ import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
-import CollectionTable from './CollectionTable';
-import Fieldset from './Fieldset';
-import Field from './Field';
-import { fetchSyncedColumns, updateColumns } from './utils';
 import { executeQuery, resetDatabaseState } from 'src/database/actions';
-import FilterableTable from '../FilterableTable';
-import { position } from 'polished';
-import SqlFieldEditor from './SqlFieldEditor';
 import { connect } from 'react-redux';
-import { runQuery } from 'src/SqlLab/actions/sqlLab';
-import { reset } from 'fetch-mock';
+import { Link, withRouter } from 'react-router-dom';
+import FilterableTable from '../FilterableTable';
+import { fetchSyncedColumns, updateColumns } from './utils';
+import Field from './Field';
+import Fieldset from './Fieldset';
+import CollectionTable from './CollectionTable';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -596,7 +593,8 @@ function OwnersSelector({ datasource, onChange }) {
     />
   );
 }
-const ResultTable =extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
+const ResultTable =
+  extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
 
 class DatasourceEditor extends PureComponent {
   constructor(props) {
@@ -708,22 +706,40 @@ class DatasourceEditor extends PureComponent {
   validateAndChange() {
     this.validate(this.onChange);
   }
-  async onQueryRun(){
-      this.props.runQuery({
-      client_id: this.props.clientId, //How this is generated?
-      database_id:  this.state.datasource.database.id,
+
+  async onQueryRun() {
+    this.props.runQuery({
+      client_id: this.props.clientId, // How this is generated?
+      database_id: this.state.datasource.database.id,
       json: true,
       runAsync: false,
       catalog: this.state.datasource.catalog,
       schema: this.state.datasource.schema,
       sql: this.state.datasource.sql,
-      tmp_table_name: "",
-      select_as_cta:false,
-      ctas_method: "TABLE",
+      tmp_table_name: '',
+      select_as_cta: false,
+      ctas_method: 'TABLE',
       queryLimit: 1000,
-      expand_data: true
+      expand_data: true,
     });
   }
+
+  getsqllabRouteProps() {
+    return {
+      pathname: `/sqllab/`,
+      state: {
+        requestedQuery: {
+          datasourceKey: `${this.state.datasource.id}__${this.state.datasource.type}`,
+          sql: this.state.datasource.sql,
+        },
+      },
+    };
+  }
+
+  openOnSqlLab() {
+    this.props.history.push(this.getsqllabRouteProps());
+  }
+
   tableChangeAndSyncMetadata() {
     this.validate(() => {
       this.syncMetadata();
@@ -823,7 +839,7 @@ class DatasourceEditor extends PureComponent {
   sortMetrics(metrics) {
     return metrics.sort(({ id: a }, { id: b }) => b - a);
   }
-  
+
   renderSettingsFieldset() {
     const { datasource } = this.state;
     return (
@@ -999,6 +1015,12 @@ class DatasourceEditor extends PureComponent {
 
   renderSourceFieldset() {
     const { datasource } = this.state;
+    const floatingButtonCss = css`
+      align-self: flex-end;
+      height: 24px;
+      padding-left: 6px;
+      padding-right: 6px;
+    `;
     return (
       <div>
         <EditLockContainer>
@@ -1111,42 +1133,91 @@ class DatasourceEditor extends PureComponent {
                         tooltipOptions={sqlTooltipOptions}
                       />
                     }
-                    additionalControl={ 
-                    <div css={{
-                      position: 'absolute',
-                      right: 0,
-                      top: 0,
-                      zIndex:2
-                    }} >
-                      <Button css={
-                        {
-                          alignSelf: 'flex-end',
-                          height: 24,
-                          paddingLeft: 6,
-                          paddingRight: 6,
-                        
-                        }
-                      } size='small' buttonStyle='primary' onClick={()=>{
-                          this.onQueryRun();
-                        }} >
-                          <Icons.CaretRightFilled iconSize="s"
+                    additionalControl={
+                      <div
+                        css={{
+                          position: 'absolute',
+                          right: 0,
+                          top: 0,
+                          zIndex: 2,
+                        }}
+                      >
+                        <Button css={floatingButtonCss} size="small">
+                          <Icons.ExportOutlined
+                            iconSize="s"
+                            css={theme => ({
+                              color: theme.colors.primary.dark1,
+                            })}
+                            onClick={() => {
+                              this.openOnSqlLab();
+                            }}
+                          />
+                        </Button>
+                        <Button
+                          css={floatingButtonCss}
+                          size="small"
+                          buttonStyle="primary"
+                          onClick={() => {
+                            this.onQueryRun();
+                          }}
+                        >
+                          <Icons.CaretRightFilled
+                            iconSize="s"
                             css={theme => ({
                               color: theme.colors.grayscale.light5,
                             })}
-                            />
+                          />
                         </Button>
-                      </div>}
+                      </div>
+                    }
                   />
-                  {this.props.sql_result && (   
-                    <ResultTable
-                    data={this.props.sql_result.data}
-                    queryId={this.props.sql_result.query.id}
-                    orderedColumnKeys={this.props.sql_result.columns.map(col => col.column_name)}
-                    height={100}
-                    expandedColumns={this.props.sql_result.expandedColumns}
-                    allowHTML={true}
-                    />
-                )}
+                  {this.props.sql_result && (
+                    <>
+                      <div
+                        css={css`
+                          margin-bottom: 16px;
+                        `}
+                      >
+                        <span
+                          css={theme => css`
+                            color: ${theme.colors.grayscale.base};
+                            font-size: 12px;
+                          `}
+                        >
+                          {t('In this view you can preview the first 25 rows.')}
+                        </span>
+                        <Link
+                          css={theme => css`
+                            color: ${theme.colors.grayscale.base};
+                            font-size: 12px;
+                            text-decoration: underline;
+                          `}
+                          to={this.getsqllabRouteProps()}
+                          type="link"
+                        >
+                          {t('Open in SQL lab')}{' '}
+                        </Link>
+                        <span
+                          css={theme => css`
+                            color: ${theme.colors.grayscale.base};
+                            font-size: 12px;
+                          `}
+                        >
+                          {t('to see details.')}
+                        </span>
+                      </div>
+                      <ResultTable
+                        data={this.props.sql_result.data}
+                        queryId={this.props.sql_result.query.id}
+                        orderedColumnKeys={this.props.sql_result.columns.map(
+                          col => col.column_name,
+                        )}
+                        height={100}
+                        expandedColumns={this.props.sql_result.expandedColumns}
+                        allowHTML
+                      />
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -1527,6 +1598,7 @@ class DatasourceEditor extends PureComponent {
       </DatasourceContainer>
     );
   }
+
   componentWillUnmount() {
     this.props.resetQuery();
   }
@@ -1537,15 +1609,13 @@ DatasourceEditor.propTypes = propTypes;
 
 const DataSourceComponent = withTheme(DatasourceEditor);
 
-const mapDispatchToProps = (dispatch) => {
-  return {
-    runQuery: (payload) => dispatch(executeQuery(payload)),
-    resetQuery: () => dispatch(resetDatabaseState()),
-  }
-}; 
-const mapStateToProps = (state) => {
-  return {
-    sql_result: state.database.queryResult,
-  }
-}
-export default withToasts(connect(mapStateToProps,mapDispatchToProps)(DataSourceComponent));
+const mapDispatchToProps = dispatch => ({
+  runQuery: payload => dispatch(executeQuery(payload)),
+  resetQuery: () => dispatch(resetDatabaseState()),
+});
+const mapStateToProps = state => ({
+  sql_result: state.database.queryResult,
+});
+export default withToasts(
+  withRouter(connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent)),
+);
