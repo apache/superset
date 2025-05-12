@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import Mock
 
 from pytest import fixture  # noqa: PT013
@@ -45,9 +45,15 @@ def connector_registry() -> Mock:
     return mock
 
 
-def apply_max_row_limit(limit: int, max_limit: Optional[int] = None) -> int:
-    if max_limit is None:
-        max_limit = create_app_config()["SQL_MAX_ROW"]
+def apply_max_row_limit(
+    limit: int,
+    server_pagination: bool | None = None,
+) -> int:
+    max_limit = (
+        create_app_config()["TABLE_VIZ_MAX_ROW_SERVER"]
+        if server_pagination
+        else create_app_config()["SQL_MAX_ROW"]
+    )
     if limit != 0:
         return min(max_limit, limit)
     return max_limit

@@ -16,5 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '../translation';
 
-export { Dropdown, type DropDownProps } from 'antd-v5';
+export default function validateServerPagination(
+  v: unknown,
+  serverPagination: boolean,
+  max: number,
+) {
+  if (Number(v) > +max && !serverPagination) {
+    return t('Server pagination needs to be enabled for values over %s', max);
+  }
+  return false;
+}

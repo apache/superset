@@ -18,6 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { JsonValue, useTheme } from '@superset-ui/core';
+import { Radio } from 'antd-v5';
 import { ControlHeader } from '../../components/ControlHeader';
 
 // [value, label]
@@ -71,22 +72,17 @@ export default function RadioButtonControl({
       }}
     >
       <ControlHeader {...props} />
-      <div className="btn-group btn-group-sm">
+      <Radio.Group
+        size="small"
+        value={currentValue}
+        onChange={e => onChange(e.target.value)}
+      >
         {options.map(([val, label]) => (
-          <button
-            key={JSON.stringify(val)}
-            type="button"
-            className={`btn btn-default ${
-              val === currentValue ? 'active' : ''
-            }`}
-            onClick={() => {
-              onChange(val);
-            }}
-          >
+          <Radio.Button key={JSON.stringify(val)} value={val}>
             {label}
-          </button>
+          </Radio.Button>
         ))}
-      </div>
+      </Radio.Group>
     </div>
   );
 }

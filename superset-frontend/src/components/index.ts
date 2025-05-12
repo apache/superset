@@ -189,13 +189,15 @@ export {
   type RefSelectProps,
 } from './Select';
 
-export { Steps, StepsProps } from './Steps';
+export { Steps, type StepsProps } from './Steps';
 
 export { Space, type SpaceProps } from './Space';
 
 export { Skeleton, type SkeletonProps } from './Skeleton';
 
 export { Switch, type SwitchProps } from './Switch';
+
+export { Tag } from './Tag';
 
 export { TreeSelect, type TreeSelectProps } from './TreeSelect';
 

@@ -33,6 +33,7 @@ export const Styles = styled.div`
     }
 
     table thead {
+      background-color: ${theme.colorBgBase};
       position: ${isDashboardEditMode ? 'inherit' : 'sticky'};
       top: 0;
     }
