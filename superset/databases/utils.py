@@ -147,6 +147,7 @@ def get_database_metadata(
     :return: Database metadata ready for API response
     """
     logger.info(f"Getting metadata for database {database.database_name}")
+
     # Build the list of selected schemas from the list of tables by extracting the schema name
     schemas = set()
     if tables:
@@ -155,13 +156,16 @@ def get_database_metadata(
             schemas.add(schema)
 
     db_schemas = database.get_all_schema_names(catalog=catalog)
+    logger.info(f"Found schemas: {db_schemas}")
     schemas_info = []
+
     for schema in db_schemas:
         if tables and (len(tables) > 0) and (schema not in schemas):
             logger.info(f"Skipping schema {schema} not in schemas")
             continue
         schema_info = get_schema_metadata(database, schema, tables=tables, include_indexes=include_indexes, top_k=top_k, top_k_limit=top_k_limit)
         schemas_info.append(schema_info)
+
     return schemas_info
 
 def get_schema_metadata(

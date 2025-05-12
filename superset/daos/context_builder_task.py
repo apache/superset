@@ -16,7 +16,19 @@ class ContextBuilderTaskDAO(BaseDAO[ContextBuilderTask]):
             .order_by(ContextBuilderTask.started_time.desc())
             .first()
         )
-    
+
+    @staticmethod
+    def get_last_successful_task_for_database(database_id: int) -> ContextBuilderTask:
+        return (
+            db.session.query(ContextBuilderTask)
+            .filter(
+                ContextBuilderTask.database_id == database_id,
+                ContextBuilderTask.status == "SUCCESS",
+            )
+            .order_by(ContextBuilderTask.started_time.desc())
+            .first()
+        )
+
     @staticmethod
     def get_last_two_tasks_for_database(database_id: int) -> list[ContextBuilderTask]:
         return (

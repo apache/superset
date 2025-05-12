@@ -131,9 +131,6 @@ const AIAssistantOptions = ({
             checked={db?.llm_enabled || false}
             onChange={handleLlmEnabledChange}
           />
-          <label htmlFor="llm_enabled">
-            {db?.llm_enabled ? t('on') : t('off')}
-          </label>
         </div>
       </StyledLlmSwitch>
       <Collapse

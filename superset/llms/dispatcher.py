@@ -5,15 +5,16 @@ import json
 from typing import List, Tuple
 
 from celery.result import AsyncResult
-from pgsanity import pgsanity
 
 from superset.daos.context_builder_task import ContextBuilderTaskDAO
 from superset.daos.database import DatabaseDAO
 from superset.daos.context_builder_task import ContextBuilderTaskDAO
+from superset.exceptions import DatabaseNotFoundException
 from superset.models.core import ContextBuilderTask
-from superset.tasks.llm_context import check_for_expired_llm_context, generate_llm_context
+from superset.tasks.llm_context import initiate_context_generation, generate_llm_context
 from superset.llms import gemini
 from superset.llms.base_llm import BaseLlm
+from superset.llms.exceptions import NoContextError
 
 from superset.extensions import security_manager
 from superset.utils.core import override_user
@@ -21,30 +22,27 @@ from superset.utils.core import override_user
 
 logger = logging.getLogger(__name__)
 
-schema_context_workers = {}
 llm_providers = {}
-DIALECT = 'postgresql'
 VALIDATION_ATTEMPTS = 3
 
 
 def _get_last_successful_task_for_database(pk: int) -> Tuple[ContextBuilderTask, AsyncResult]:
-    tasks = ContextBuilderTaskDAO.get_last_two_tasks_for_database(pk)
-    for task in tasks:
-        context_builder_worker = AsyncResult(task.task_id)
-        if context_builder_worker.status == 'SUCCESS':
-            return task, context_builder_worker
-    return None, None
+    task = ContextBuilderTaskDAO.get_last_successful_task_for_database(pk)
+
+    if not task:
+        raise NoContextError(f"No context builder task found for database {pk}.")
+
+    context_builder_worker = AsyncResult(task.task_id)
+    if context_builder_worker.status == 'SUCCESS':
+        return task, context_builder_worker
 
 
-def _get_or_create_llm_provider(pk: int, dialect: str, context: str) -> BaseLlm:
-    # db_task = ContextBuilderTaskDAO.get_latest_task_for_database(pk)
-    # context_builder_worker = AsyncResult(db_task.task_id)
+def _get_or_create_llm_provider(pk: int, dialect: str) -> BaseLlm:
     (context_builder_task, context_builder_worker) = _get_last_successful_task_for_database(pk)
 
-    if not context_builder_worker or not context_builder_task:
-        # TODO(AW): Throw here
-        logger.error(f"No context builder worker found for database {pk}.")
-        return None
+    # At this point we will always have a context_builder_task but may not have a context_builder_worker
+    # if the task result has expired from the Celery backend. If we still have an llm_provider we can
+    # continue to use the context stored in memory in the provider.
 
     # See if we have a provider already for this database
     llm_provider = llm_providers.get(pk, None)
@@ -57,16 +55,23 @@ def _get_or_create_llm_provider(pk: int, dialect: str, context: str) -> BaseLlm:
         context = json.loads(context_builder_worker.result["result"])
     except Exception as e:
         logger.error(f"Failed to parse context JSON: {str(e)}")
-        # TODO(AW): Throw here
-        return None
+        raise NoContextError(f"Failed to parse context JSON for database {pk}.")
 
-    llm_provider = gemini.GeminiLlm(pk, DIALECT, context)
+    llm_provider = gemini.GeminiLlm(pk, dialect, context)
     llm_providers[pk] = llm_provider
     return llm_provider
 
 
 def generate_sql(pk: int, prompt: str, context: str, schemas: List[str] | None) -> str:
-    provider = _get_or_create_llm_provider(pk, DIALECT, context)
+    admin_user = security_manager.find_user(username="admin")
+    if not admin_user:
+        return {"status_code": 500, "message": "Unable to find admin user"}
+    with override_user(admin_user):
+        db = DatabaseDAO.find_by_id(pk)
+        if not db:
+            raise DatabaseNotFoundException(f"No such database: {pk}")
+
+    provider = _get_or_create_llm_provider(pk, db.backend)
     if not provider:
         return None
 
@@ -80,23 +85,11 @@ def generate_sql(pk: int, prompt: str, context: str, schemas: List[str] | None) 
         error_text = None
 
         try:
-            # Execute the validation SQL against the real database
-            admin_user = security_manager.find_user(username="admin")
-            if not admin_user:
-                return {"status_code": 500, "message": "Unable to find admin user"}
-
-            with override_user(admin_user):
-                db = DatabaseDAO.find_by_id(pk)
-                if not db:
-                    logger.error(f"Database {pk} not found.")
-                    return None
-            
             with db.get_raw_connection() as conn:
                 cursor = conn.cursor()
                 mutated_query = db.mutate_sql_based_on_config(validation_sql)
                 cursor.execute(mutated_query)
                 db.db_engine_spec.execute(cursor, mutated_query, db)
-                result = db.db_engine_spec.fetch_data(cursor)
                 logger.info(f"Validation SQL executed successfully: {validation_sql}")
                 return generated
         except Exception as error:
@@ -115,90 +108,62 @@ def get_state(pk: int) -> dict:
     """
     Get the state of the LLM context.
     """
-    status = 'waiting'
-    context = None
+    # In total we're interested in knowing three things:
+    # - The last successful context build
+    # - The last build finished with an error
+    # - Whether there is a build in progress right now
 
-    tasks = ContextBuilderTaskDAO.get_last_two_tasks_for_database(pk)
-    if not tasks:
-        return {
-            "status": status,
-        }
-
-    provider = _get_or_create_llm_provider(pk, DIALECT, "")
-    if not provider:
-        return {
-            "status": status,
-        }
-
-    latest_task = tasks[0]
-    context_builder_worker = AsyncResult(latest_task.task_id)
-
-    logger.info(f"Checking task: {latest_task.task_id} - {context_builder_worker.status}")
-
-    if context_builder_worker.status == 'PENDING':
-        # PENDING status is the default state for workers that haven't been completed yet, but
-        # we've introduced a PUBLISHED status for workers that have at least hit the queue. A
-        # PENDING status means that the task probably doesn't exist and might be from an old
-        # deployment.
-        return {
-            "status": status,
-        }
-
-    if context_builder_worker.status == 'PUBLISHED':
-        status = 'building'
-        older_task = tasks[1] if len(tasks) > 1 else None
-        if older_task:
-            old_context_worker = AsyncResult(older_task.task_id)
-            context = {
-                "build_time": older_task.started_time,
-                "status": old_context_worker.status,
-            }
-            if old_context_worker.status == 'FAILURE':
-                context["message"] = str(old_context_worker.result)
-            if old_context_worker.status == 'SUCCESS':
-                context["size"] = provider.get_context_size()
-    else:
-        context = {
-            "build_time": latest_task.started_time,
-            "status": context_builder_worker.status,
-            "size": 0,
-        }
-        if context_builder_worker.status == 'FAILURE':
-            context["message"] = str(context_builder_worker.result)
-        if context_builder_worker.status == 'SUCCESS':
-            context["size"] = provider.get_context_size()
-
-    return {
-        "context": context,
-        "status": status,
+    result = {
+        "status": "waiting",
     }
+
+    admin_user = security_manager.find_user(username="admin")
+    if not admin_user:
+        return {"status_code": 500, "message": "Unable to find admin user"}
+    with override_user(admin_user):
+        db = DatabaseDAO.find_by_id(pk)
+        if not db:
+            raise DatabaseNotFoundException(f"No such database: {pk}")
+
+    successful_task = ContextBuilderTaskDAO.get_last_successful_task_for_database(pk)
+    if successful_task:
+        provider = _get_or_create_llm_provider(pk, db.backend)
+        result["context"] = {
+            "build_time": successful_task.started_time,
+            "status": successful_task.status,
+            "size": provider.get_context_size(),
+        }
+
+    last_two_tasks = ContextBuilderTaskDAO.get_last_two_tasks_for_database(pk)
+    error_task = next(
+        (task for task in last_two_tasks if task.status == "ERROR"), None
+    )
+    if error_task and len(last_two_tasks) > 0 and last_two_tasks[0].status != "SUCCESS":
+        result["error"] = {
+            "build_time": error_task.started_time,
+        }
+
+    latest_task = last_two_tasks[0] if len(last_two_tasks) > 0 else None
+    if latest_task and latest_task.status == "PENDING":
+        result["status"] = "building"
+
+    return result
 
 def generate_context_for_db(pk: int):
     """
     Generate the LLM context for a database.
     """
     # Check if we have a task for this already
-    task = schema_context_workers.get(pk, None)
+    task = ContextBuilderTaskDAO.get_latest_task_for_database(pk)
     if task and task.status == 'PENDING':
         return {
             "status": "Pending",
+            "task_id": task.task_id,
         }
-    
-    # Otherwise, we can start a new one
-    task = generate_llm_context.delay(pk)
-    schema_context_workers[pk] = task
 
-    # Record the task in the database
-    context_task = ContextBuilderTask(
-        database_id=pk,
-        task_id=task.id,
-        params=json.dumps({}),
-        started_time=datetime.datetime.now(datetime.timezone.utc),
-        status="PENDING",
-    )
-    ContextBuilderTaskDAO.create(context_task)
-    logger.info(f"Created context task {context_task.task_id}")
+    task = initiate_context_generation(pk)
 
     return {
-        "status": "Started"
+        "status": "Started",
+        "task_id": task.task_id,
     }
