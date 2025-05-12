@@ -155,7 +155,7 @@ def get_database_metadata(
             schema = table.split(".")[0]
             schemas.add(schema)
 
-    db_schemas = database.get_all_schema_names(catalog=catalog)
+    db_schemas = database.get_all_schema_names(catalog=catalog, cache=False)
     logger.info(f"Found schemas: {db_schemas}")
     schemas_info = []
 
