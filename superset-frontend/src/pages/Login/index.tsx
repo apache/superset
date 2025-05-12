@@ -19,6 +19,7 @@
 
 import { css } from '@emotion/react';
 import { SupersetClient, styled, t } from '@superset-ui/core';
+import { useHistory } from 'react-router-dom';
 import {
   Button,
   Card,
@@ -56,10 +57,15 @@ interface LoginForm {
 enum AuthType {
   AuthOID = 0,
   AuthDB = 1,
-  AuthLDAP,
-  AuthRemoteUser,
-  AuthOauth,
+  AuthLDAP = 2,
+  AuthOauth = 4,
 }
+
+const AuthIconMap: Record<string, React.JSX.Element> = {
+  GitHub: <Icons.GithubOutlined />,
+  Google: <Icons.GoogleOutlined />,
+  Facebook: <Icons.FacebookOutlined />,
+};
 
 const LoginContainer = styled(Flex)`
   width: 100%;
@@ -85,6 +91,7 @@ const StyledLabel = styled(Typography.Text)`
 export default function Login() {
   const [form] = Form.useForm<LoginForm>();
   const [loading, setLoading] = useState(false);
+  const history = useHistory();
 
   const bootstrapData = getBootstrapData();
 
@@ -102,7 +109,7 @@ export default function Login() {
     <LoginContainer justify="center">
       <StyledCard title={t('Sign in')} padded>
         {authType === AuthType.AuthOID && (
-          <Flex justify="center" vertical gap="middle">
+          <Flex justify="center" vertical gap="middle" align="center">
             <Form
               layout="vertical"
               requiredMark="optional"
@@ -111,16 +118,20 @@ export default function Login() {
             >
               {providers.map((provider: OIDProvider) => (
                 <Form.Item<LoginType>>
-                  <Typography.Link href={`${provider.url}`}>
+                  <Button
+                    onClick={() => history.push(`/login/${provider.name}`)}
+                    icon={AuthIconMap[provider.name]}
+                    buttonStyle="link"
+                  >
                     {t('Sign in with')} {provider.name}
-                  </Typography.Link>
+                  </Button>
                 </Form.Item>
               ))}
             </Form>
           </Flex>
         )}
         {authType === AuthType.AuthOauth && (
-          <Flex justify="center" vertical gap="middle">
+          <Flex justify="center" gap={0} vertical align="center">
             <Form
               layout="vertical"
               requiredMark="optional"
@@ -129,16 +140,20 @@ export default function Login() {
             >
               {providers.map((provider: OAuthProvider) => (
                 <Form.Item<LoginType>>
-                  <Typography.Link href={`/login/${provider.name}`}>
+                  <Button
+                    onClick={() => history.push(`/login/${provider.name}`)}
+                    icon={AuthIconMap[provider.name]}
+                    buttonStyle="link"
+                  >
                     {t('Sign in with')} {provider.name}
-                  </Typography.Link>
+                  </Button>
                 </Form.Item>
               ))}
             </Form>
           </Flex>
         )}
 
-        {authType === AuthType.AuthDB && (
+        {(authType === AuthType.AuthDB || authType === AuthType.AuthLDAP) && (
           <Flex justify="center" vertical gap="middle">
             <Typography.Text type="secondary">
               {t('Enter your login and password below:')}

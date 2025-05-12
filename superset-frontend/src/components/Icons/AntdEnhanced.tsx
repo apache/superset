@@ -115,6 +115,7 @@ import {
   WarningOutlined,
   SortAscendingOutlined,
   KeyOutlined,
+  GithubOutlined,
   GoogleOutlined,
   FacebookOutlined,
 } from '@ant-design/icons';
@@ -177,6 +178,7 @@ const AntdIcons = {
   FullscreenOutlined,
   FundProjectionScreenOutlined,
   FunctionOutlined,
+  GithubOutlined,
   GoogleOutlined,
   InfoCircleOutlined,
   InfoCircleFilled,
