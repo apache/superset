@@ -28,7 +28,6 @@ export function recurseReactClone(children, type, propExtender) {
    */
   return Children.map(children, child => {
     let newChild = child;
-    console.log('child', { child });
     if (child && child.type && child.type.name === type.name) {
       newChild = cloneElement(child, propExtender(child));
     }

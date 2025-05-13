@@ -729,9 +729,13 @@ class DatasourceEditor extends PureComponent {
       pathname: `/sqllab/`,
       state: {
         requestedQuery: {
-          datasourceKey: `${this.state.datasource.id}__${this.state.datasource.type}`,
+          dbid: this.state.datasource.database.id,
           sql: this.state.datasource.sql,
+          name: this.state.datasource.datasource_name,
+          schema: this.state.datasource.schema,
+          autorun: true,
         },
+        isDataset: true,
       },
     };
   }

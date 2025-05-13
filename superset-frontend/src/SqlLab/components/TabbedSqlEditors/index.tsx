@@ -106,7 +106,6 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       ...queryParameters,
     } as Record<string, string>;
     const permalink = path.match(/\/p\/\w+/)?.[0].slice(3);
-
     // Popping a new tab based on the querystring
     if (permalink || id || sql || savedQueryId || datasourceKey || queryId) {
       if (permalink) {
@@ -141,6 +140,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
           schema,
           autorun,
           sql,
+          isDataset: this.context.isDataset,
         };
         this.props.actions.addQueryEditor(newQueryEditor);
       }
