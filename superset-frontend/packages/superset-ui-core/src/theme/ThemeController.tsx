@@ -20,14 +20,12 @@ import { theme as antdThemeImport } from 'antd-v5';
 import { Theme } from './Theme';
 import { AnyThemeConfig } from './types';
 
-// Storage interface to allow different storage implementations
 export interface ThemeStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
   removeItem(key: string): void;
 }
 
-// Default storage implementation using localStorage
 export class LocalStorageAdapter implements ThemeStorage {
   getItem(key: string): string | null {
     return localStorage.getItem(key);

@@ -22,7 +22,6 @@ import { Theme } from './Theme';
 import { AnyThemeConfig } from './types';
 import { ThemeController } from './ThemeController';
 
-// Context for theme controller
 interface ThemeContextType {
   theme: Theme;
   setTheme: (config: AnyThemeConfig) => void;
