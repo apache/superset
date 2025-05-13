@@ -188,7 +188,9 @@ const Row = props => {
       observerDisabler = new IntersectionObserver(
         ([entry]) => {
           if (!entry.isIntersecting && isComponentVisibleRef.current) {
-            setIsInView(false);
+            if (window.self === window.top) {
+              setIsInView(false);
+            }
           }
         },
         {
