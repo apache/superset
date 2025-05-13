@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { styled } from '@superset-ui/core';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
+import Loading from 'src/components/Loading';
 import useExploreData from './useExploreData';
 import hydrateEmbedded from './hydrateEmbedded';
 
@@ -36,11 +37,9 @@ interface Dimensions {
 function EmbeddedChart() {
   const dispatch = useDispatch();
   const [isHydrated, setIsHydrated] = useState(false);
+  const [isDimensionsSet, setIsDimensionsSet] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState<Dimensions>({
-    width: 800,
-    height: 600,
-  });
+  const [dimensions, setDimensions] = useState<Dimensions | null>(null);
 
   // Get app element dimensions
   useEffect(() => {
@@ -58,6 +57,16 @@ function EmbeddedChart() {
         const { width, height } = entry.contentRect;
         const newWidth = Math.floor(width);
         const newHeight = Math.floor(height);
+
+        if (!dimensions) {
+          // Initial dimensions set
+          setDimensions({
+            width: newWidth,
+            height: newHeight,
+          });
+          setIsDimensionsSet(true);
+          return;
+        }
 
         const widthDiff = Math.abs(newWidth - dimensions.width);
         const heightDiff = Math.abs(newHeight - dimensions.height);
@@ -89,8 +98,8 @@ function EmbeddedChart() {
     }
   }, [exploreData, dispatch]);
 
-  if (isLoading || !isHydrated) {
-    return <LoadingContainer>Loading...</LoadingContainer>;
+  if (isLoading || !isHydrated || !isDimensionsSet || !dimensions) {
+    return <Loading />;
   }
 
   if (error) {
