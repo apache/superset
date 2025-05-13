@@ -78,6 +78,23 @@ class MapBox extends Component {
     };
     this.handleViewportChange = this.handleViewportChange.bind(this);
   }
+  
+  // Datakimia fix to draw markers on init
+  componentDidMount() {
+    const { width, height, bounds } = this.props;
+    const mercator = new ViewportMercator({ width, height }).fitBounds(bounds);
+    const { latitude, longitude, zoom } = mercator;
+  
+    this.handleViewportChange({
+      longitude,
+      latitude,
+      zoom: zoom,
+    });
+  
+    setTimeout(() => {
+      this.forceUpdate(); // force re-draw
+    }, 300);
+  }
 
   handleViewportChange(viewport) {
     this.setState({ viewport });
