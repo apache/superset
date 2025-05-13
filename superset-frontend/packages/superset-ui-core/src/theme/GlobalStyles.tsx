@@ -27,12 +27,12 @@ export const GlobalStyles = () => {
         body {
           background-color: ${theme.colorBgBase};
           color: ${theme.colorText};
+          -webkit-font-smoothing: antialiased;
         }
 
         a {
           color: ${theme.colorLink};
         }
-        -webkit-font-smoothing: antialiased;
 
         h1,
         h2,

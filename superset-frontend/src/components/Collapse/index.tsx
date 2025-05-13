@@ -2,8 +2,7 @@
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
+ * regarding copyright ownership.  The ASF licenses this file * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
@@ -16,71 +15,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import { Collapse as AntdCollapse } from 'antd-v5';
-import type { CollapseProps } from './types';
+export { Typography } from 'src/components/Typography';
 
-export const Collapse = styled((props: CollapseProps) => (
-  <AntdCollapse {...props} />
-))`
-  ${({ modalMode }) =>
-    modalMode &&
-    `
-      border-radius: 0;
-      border-left: 0;
-      border-right: 0;
-    `}
-  .antd5-collapse-item {
-    .antd5-collapse-header {
-      .antd5-collapse-arrow svg {
-        transition: ${({ animateArrows }) =>
-          animateArrows ? 'transform 0.24s' : 'none'};
-      }
-
-      ${({ expandIconPosition }) =>
-        expandIconPosition &&
-        expandIconPosition === 'right' &&
-        `
-            .anticon.anticon-right.antd5-collapse-arrow > svg {
-              transform: rotate(90deg) !important;
-            }
-          `}
-    }
-
-    ${({ ghost, bordered, theme }) =>
-      ghost &&
-      bordered &&
-      `
-        border-bottom: 1px solid ${theme.colorBorderSecondary};
-      `}
-    .antd5-collapse-content {
-      color: ${({ theme }) => theme.colorText};
-
-      .antd5-collapse-content-box {
-        .loading.inline {
-          margin: ${({ theme }) => theme.sizeUnit * 12}px auto;
-          display: block;
-        }
-      }
-    }
-  }
-
-  .hidden-collapse-header .antd5-collapse-header {
-    display: none;
-  }
-
-  .antd5-collapse-item-active {
-    .antd5-collapse-header {
-      ${({ expandIconPosition }) =>
-        expandIconPosition &&
-        expandIconPosition === 'right' &&
-        `
-            .anticon.anticon-right.antd5-collapse-arrow > svg {
-              transform: rotate(-90deg) !important;
-            }
-          `}
-    }
-  }
-`;
-
-export type { CollapseProps };
+export type { CollapseProps } from './types';
+export type { CollapseLabelInModalProps } from './CollapseLabelInModal';
+export { CollapseLabelInModal } from './CollapseLabelInModal';
+export { Collapse } from './Collapse';

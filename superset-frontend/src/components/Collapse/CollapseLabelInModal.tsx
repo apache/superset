@@ -2,8 +2,7 @@
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
+ * regarding copyright ownership.  The ASF licenses this file * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
@@ -16,62 +15,55 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, useTheme } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import { Space } from 'src/components/Space';
+import { useTheme } from '@superset-ui/core';
 import { Typography } from 'src/components/Typography';
 
-const ValidatedPanelHeader = ({
+interface CollapseLabelInModalProps {
+  title: React.ReactNode;
+  subtitle: React.ReactNode;
+  validateCheckStatus?: boolean;
+  testId?: string;
+}
+
+export const CollapseLabelInModal: React.FC<CollapseLabelInModalProps> = ({
   title,
   subtitle,
-  validateCheckStatus,
+  validateCheckStatus = false,
   testId,
-}: {
-  title: string;
-  subtitle: string;
-  validateCheckStatus: boolean;
-  testId?: string;
-}): JSX.Element => {
+}) => {
   const theme = useTheme();
-  const checkmark = (
-    <Icons.CheckCircleOutlined
-      iconSize="m"
-      iconColor={theme.colors.success.base}
-    />
-  );
   return (
-    <div>
-      <Space size="small" data-test={testId}>
-        <Typography.Title
-          level={5}
-          style={{
-            margin: 0,
-          }}
-        >
-          {t(title)}
-        </Typography.Title>
-        {validateCheckStatus ? (
-          <span>{checkmark}</span>
-        ) : (
+    <div data-test={testId}>
+      <Typography.Title
+        style={{
+          marginTop: 0,
+          marginBottom: theme.sizeUnit / 2,
+          fontSize: theme.fontSizeLG,
+        }}
+      >
+        {title}{' '}
+        {validateCheckStatus && (
           <span
             style={{
-              color: theme.colors.error.base,
+              color: theme.colorErrorText,
               fontSize: theme.fontSizeLG,
             }}
           >
             *
           </span>
         )}
-      </Space>
+      </Typography.Title>
       <Typography.Paragraph
         style={{
           margin: 0,
+          fontSize: theme.fontSizeSM,
+          color: theme.colorTextDescription,
         }}
       >
-        {subtitle ? t(subtitle) : undefined}
+        {subtitle}
       </Typography.Paragraph>
     </div>
   );
 };
 
-export default ValidatedPanelHeader;
+export type { CollapseLabelInModalProps };
