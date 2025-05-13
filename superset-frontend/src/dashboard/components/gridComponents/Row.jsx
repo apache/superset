@@ -189,6 +189,7 @@ const Row = props => {
       observerDisabler = new IntersectionObserver(
         ([entry]) => {
           if (!entry.isIntersecting && isComponentVisibleRef.current) {
+            // Reference: https://www.w3.org/TR/intersection-observer/#dom-intersectionobserver-rootmargin
             if (!isEmbedded()) {
               setIsInView(false);
             }
