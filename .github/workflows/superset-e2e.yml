@@ -142,4 +142,4 @@ jobs:
         if: failure()
         with:
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
-          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}-${{ matrix.parallel_id }}--${{ matrix.app_root }}
+          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}-${{ matrix.parallel_id }}--${{ format('{0}', matrix.app_root) | replace('/', '_') }}
