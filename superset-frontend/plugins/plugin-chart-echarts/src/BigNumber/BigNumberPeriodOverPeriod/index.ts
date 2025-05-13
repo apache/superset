@@ -32,6 +32,7 @@ export default class PopKPIPlugin extends ChartPlugin {
       tags: [
         t('Comparison'),
         t('Business'),
+        t('ECharts'),
         t('Percentages'),
         t('Report'),
         t('Advanced-Analytics'),
