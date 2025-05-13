@@ -838,7 +838,7 @@ trio-websocket==0.11.1
     # via
     #   -c requirements/base.txt
     #   selenium
-typing-extensions==4.12.2
+typing-extensions==4.13.2
     # via
     #   -c requirements/base.txt
     #   alembic
