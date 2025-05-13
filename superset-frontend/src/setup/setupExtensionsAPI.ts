@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  authentication,
   core,
   commands,
   environment,
@@ -27,6 +28,7 @@ import {
 declare global {
   interface Window {
     superset: {
+      authentication: typeof authentication;
       core: typeof core;
       commands: typeof commands;
       environment: typeof environment;
@@ -38,6 +40,7 @@ declare global {
 
 export default function setupExtensionsAPI() {
   window.superset = {
+    authentication,
     core,
     commands,
     environment,

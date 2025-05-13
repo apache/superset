@@ -18,12 +18,36 @@
  */
 
 // eslint-disable-next-line no-restricted-syntax
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Avatar } from '@apache-superset/primitives';
-import { commands } from '@apache-superset/types';
+import { authentication } from '@apache-superset/types';
 import binaryImage from './assets/binary.jpg';
 
 const Component: React.FC = () => {
+  const [apiResponse, setApiResponse] = React.useState<string | null>(null);
+
+  useEffect(() => {
+    const callApi = async () => {
+      try {
+        const csrfToken = await authentication.getCSRFToken();
+        const response = await fetch(
+          'http://localhost:9000/api/v1/extension1/hello',
+          {
+            method: 'GET',
+            headers: {
+              'X-CSRFToken': csrfToken!,
+            },
+          },
+        );
+        const data = await response.json();
+        setApiResponse(data.result);
+      } catch (err) {
+        setApiResponse(err as string);
+      }
+    };
+    callApi();
+  }, []);
+
   const containerStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'row',
@@ -38,13 +62,12 @@ const Component: React.FC = () => {
     <>
       <div style={containerStyle}>
         <div>
-          <Avatar
-            onClick={() => commands.registerCommand('my_command', () => {})}
-          >
-            M
-          </Avatar>
+          <Avatar>M</Avatar>
         </div>
         <div>This avatar was imported from Superset!</div>
+      </div>
+      <div>
+        <h3>API Response: {apiResponse}</h3>
       </div>
       <img src={binaryImage} alt="Binary is here" />
     </>

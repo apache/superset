@@ -161,6 +161,8 @@ def get_extensions() -> dict[str, LoadedExtension]:
         extensions[extension.name] = extension
         logger.info(f"Loading extension {extension.name} from local filesystem")
 
+    # TODO: Do we allow local extensions that are not enabled in the metastore?
+
     for db_extension in ExtensionDAO.get_enabled_extensions():
         if db_extension.name not in extensions:
             extension = LoadedExtension(
@@ -170,7 +172,6 @@ def get_extensions() -> dict[str, LoadedExtension]:
                 frontend=db_extension.frontend_dict or {},
             )
             extensions[extension.name] = extension
-        else:
-            logger.info(f"not loading extension {db_extension.name} from metastore")
+            logger.info(f"Loading extension {db_extension.name} from metastore")
 
     return extensions

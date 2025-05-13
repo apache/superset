@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './authentication';
-export * from './commands';
-export * as core from './core';
-export * from './environment';
-export * from './extensions';
-export * from './sqlLab';
+import { authentication as authenticationType } from '@apache-superset/types';
+import { SupersetClient } from '@superset-ui/core';
+
+const getCSRFToken: typeof authenticationType.getCSRFToken = () => {
+  return SupersetClient.getCSRFToken();
+};
+
+export const authentication: typeof authenticationType = {
+  getCSRFToken,
+};

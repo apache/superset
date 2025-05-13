@@ -10,4 +10,5 @@ class RestApi(BaseApi):
 
 
 def add_api(api: Type[RestApi]) -> None:
-    appbuilder.add_api(api)
+    view = appbuilder.add_api(api)
+    appbuilder._add_permission(view, True)

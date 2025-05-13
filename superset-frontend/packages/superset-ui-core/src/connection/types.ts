@@ -162,6 +162,7 @@ export interface SupersetClientInterface
   > {
   configure: (config?: ClientConfig) => SupersetClientInterface;
   reset: () => void;
+  getCSRFToken: () => CsrfPromise;
 }
 
 export type SupersetClientResponse = Response | JsonResponse | TextResponse;

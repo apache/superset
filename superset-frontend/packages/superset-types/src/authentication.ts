@@ -16,9 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './authentication';
-export * from './commands';
-export * as core from './core';
-export * from './environment';
-export * from './extensions';
-export * from './sqlLab';
+/**
+ * Namespace for authentication-related utilities and functions.
+ * Provides methods to handle authentication mechanisms such as CSRF tokens.
+ */
+export declare namespace authentication {
+  /**
+   * Retrieves the CSRF token used for securing requests against cross-site request forgery attacks.
+   *
+   * @returns The CSRF token as a string, or undefined if not available.
+   */
+  export function getCSRFToken(): Promise<string | undefined>;
+}

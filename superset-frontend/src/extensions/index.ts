@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+export * from './authentication';
 export * from './core';
 export * from './commands';
 export * from './extensions';
