@@ -24,7 +24,7 @@ from superset import db
 from superset.sql_parse import Table
 from superset.utils import json
 
-from .helpers import get_table_connector_registry, read_example_csv
+from .helpers import get_table_connector_registry, read_example_data
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def load_sf_population_polygons(
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            df = read_example_csv("sf_population.json.gz", compression="gzip")
+            df = read_example_data("sf_population.json.gz", compression="gzip")
             df["contour"] = df.contour.map(json.dumps)
 
             df.to_sql(

@@ -37,7 +37,7 @@ from .helpers import (
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
-    read_example_csv,
+    read_example_data,
     update_slice_ids,
 )
 
@@ -57,7 +57,7 @@ def gen_filter(
 
 
 def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
-    pdf = read_example_csv("birth_names2.json.gz", compression="gzip")
+    pdf = read_example_data("birth_names2.json.gz", compression="gzip")
 
     # TODO(bkyryliuk): move load examples data into the pytest fixture
     if database.backend == "presto":

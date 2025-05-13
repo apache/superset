@@ -24,7 +24,7 @@ from superset.sql_parse import Table
 from superset.utils import json
 
 from ..utils.database import get_example_database
-from .helpers import get_table_connector_registry, read_example_csv
+from .helpers import get_table_connector_registry, read_example_data
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            df = read_example_csv(
+            df = read_example_data(
                 "bart-lines.json.gz", encoding="latin-1", compression="gzip"
             )
             df["path_json"] = df.path.map(json.dumps)

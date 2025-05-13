@@ -31,7 +31,7 @@ from .helpers import (
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
-    read_example_csv,
+    read_example_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            pdf = read_example_csv(
+            pdf = read_example_data(
                 "multiformat_time_series.json.gz", compression="gzip"
             )
 

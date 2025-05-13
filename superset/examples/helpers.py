@@ -125,30 +125,22 @@ def get_example_url(filepath: str) -> str:
     return f"{BASE_URL}{filepath}"
 
 
-def read_example_csv(
+def read_example_data(
     filepath: str,
     max_attempts: int = 5,
     wait_seconds: float = 60,
     **kwargs: Any,
 ) -> pd.DataFrame:
-    """
-    Load a CSV from the Superset example data mirror with retry/backoff on HTTP 429.
-
-    Args:
-        filepath: Relative path within the examples repo (e.g. "datasets/foo.csv").
-        max_attempts: Max number of retry attempts.
-        wait_seconds: Base wait time in seconds, will be multiplied
-          exponentially per attempt.
-        **kwargs: Passed directly to pandas.read_csv().
-
-    Returns:
-        pd.DataFrame
-    """
+    """Load CSV or JSON from example data mirror with retry/backoff."""
+    from superset.examples.helpers import get_example_url
 
     url = get_example_url(filepath)
+    is_json = filepath.endswith(".json") or filepath.endswith(".json.gz")
 
     for attempt in range(1, max_attempts + 1):
         try:
+            if is_json:
+                return pd.read_json(url, **kwargs)
             return pd.read_csv(url, **kwargs)
         except HTTPError as e:
             if e.code == 429 and attempt < max_attempts:
@@ -156,7 +148,7 @@ def read_example_csv(
                 print(
                     f"HTTP 429 received from {url}. ",
                     f"Retrying in {sleep_time:.1f}s ",
-                    "(attempt {attempt}/{max_attempts})...",
+                    f"(attempt {attempt}/{max_attempts})...",
                 )
                 time.sleep(sleep_time)
             else:

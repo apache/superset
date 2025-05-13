@@ -32,7 +32,7 @@ from .helpers import (
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
-    read_example_csv,
+    read_example_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            data = read_example_csv(
+            data = read_example_data(
                 "birth_france_data_for_country_map.csv", encoding="utf-8"
             )
             data["dttm"] = datetime.datetime.now().date()
