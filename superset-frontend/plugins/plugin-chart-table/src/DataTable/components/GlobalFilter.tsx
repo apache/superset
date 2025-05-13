@@ -67,6 +67,7 @@ function DefaultSearchInput({
         value={value}
         onChange={onChange}
         onBlur={onBlur}
+        className="form-control input-sm"
       />
     </Space>
   );

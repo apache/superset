@@ -26,6 +26,7 @@ import {
   Form,
   Row,
   Col,
+  FormItem,
   type SelectValue,
 } from 'src/components';
 import rison from 'rison';
@@ -58,9 +59,7 @@ export type PropertiesModalProps = {
   addSuccessToast: (msg: string) => void;
 };
 
-const FormItem = Form.Item;
-
-const StyledFormItem = styled(Form.Item)`
+const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;
 

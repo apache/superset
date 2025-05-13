@@ -274,7 +274,7 @@ describe('Visualization > Table', () => {
 
     // Type 200000 and press enter to select the option
     cy.get('div[aria-label="Row limit"]')
-      .find('.ant-select-selection-search-input:visible')
+      .find('.antd5-select-selection-search-input:visible')
       .type('200000{enter}');
 
     // Verify that there is no error tooltip when server pagination is enabled
@@ -308,7 +308,7 @@ describe('Visualization > Table', () => {
 
     // Type 1000000
     cy.get('div[aria-label="Row limit"]')
-      .find('.ant-select-selection-search-input:visible')
+      .find('.antd5-select-selection-search-input:visible')
       .type('1000000');
 
     // Wait for 1 second
@@ -316,7 +316,7 @@ describe('Visualization > Table', () => {
 
     // Press enter
     cy.get('div[aria-label="Row limit"]')
-      .find('.ant-select-selection-search-input:visible')
+      .find('.antd5-select-selection-search-input:visible')
       .type('{enter}');
 
     // Wait for error tooltip to appear and verify its content
@@ -450,11 +450,11 @@ describe('Visualization > Table', () => {
 
     cy.get('.search-select').click();
 
-    cy.get('.ant-select-dropdown').should('be.visible');
+    cy.get('.antd5-select-dropdown').should('be.visible');
 
-    cy.get('.ant-select-item-option').contains('state').should('be.visible');
+    cy.get('.antd5-select-item-option').contains('state').should('be.visible');
 
-    cy.get('.ant-select-item-option').contains('state').click();
+    cy.get('.antd5-select-item-option').contains('state').click();
 
     cy.get('span.dt-global-filter input.form-control.input-sm').clear();
 
