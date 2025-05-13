@@ -135,10 +135,12 @@ Join our growing community!
 - [Tobii](https://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
 - [Unvired](https://unvired.com) [@srinisubramanian]
+- [Value Ad](https://www.value-ad.com)[@stevensuting]
 - [Virtuoso QA](https://www.virtuosoqa.com)
 - [Whale](https://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [WinWin Network马上赢](https://brandct.cn/) [@wenbinye]
+- [Xaqt](https://www.xaqt.com)[@stevensuting]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
 
 ### Media & Entertainment
@@ -165,6 +167,7 @@ Join our growing community!
 - [Udemy](https://www.udemy.com/) [@sungjuly]
 - [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
 - [WikiMedia Foundation](https://wikimediafoundation.org) [@vg]
+- [Quest Alliance](https://questalliance.net/)[@stevensuting]
 
 ### Energy
 
@@ -198,6 +201,7 @@ Join our growing community!
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
 - [RIS3 Strategy of CZ, MIT CR](https://www.ris3.cz/) [@RIS3CZ]
 - [NRLM - Sarathi, India](https://pib.gov.in/PressReleasePage.aspx?PRID=1999586)
+- [One Acre Fund](https://oneacrefund.org)[@stevensuting]
 
 ### Travel
 
