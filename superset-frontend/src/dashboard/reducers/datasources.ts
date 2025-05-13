@@ -18,6 +18,7 @@
  */
 import { keyBy } from 'lodash';
 import { DatasourcesState } from 'src/dashboard/types';
+import { HYDRATE_EMBEDDED } from 'src/embedded/embeddedChart/hydrateEmbedded';
 import {
   DatasourcesActionPayload,
   DatasourcesAction,
@@ -37,6 +38,13 @@ export default function datasourcesReducer(
     return {
       ...datasources,
       [action.key]: action.datasource,
+    };
+  }
+  // @ts-ignore
+  if (action.type === HYDRATE_EMBEDDED) {
+    return {
+      // @ts-ignore
+      ...action.data.datasources,
     };
   }
   return datasources || {};

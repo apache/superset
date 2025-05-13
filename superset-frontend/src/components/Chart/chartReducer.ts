@@ -25,6 +25,7 @@ import { ChartState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { HYDRATE_EXPLORE } from 'src/explore/actions/hydrateExplore';
 import { now } from 'src/utils/dates';
+import { HYDRATE_EMBEDDED } from 'src/embedded/embeddedChart/hydrateEmbedded';
 import * as actions from './chartAction';
 
 export const chart: ChartState = {
@@ -192,7 +193,11 @@ export default function chartReducer(
     delete charts[key];
     return charts;
   }
-  if (action.type === HYDRATE_DASHBOARD || action.type === HYDRATE_EXPLORE) {
+  if (
+    action.type === HYDRATE_DASHBOARD ||
+    action.type === HYDRATE_EXPLORE ||
+    action.type === HYDRATE_EMBEDDED
+  ) {
     return { ...action.data.charts };
   }
   if (action.type === DatasourcesAction.SetDatasources) {
