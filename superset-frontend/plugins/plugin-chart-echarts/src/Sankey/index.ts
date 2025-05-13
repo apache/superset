@@ -57,7 +57,7 @@ export default class EchartsSankeyChartPlugin extends ChartPlugin<
         ),
         exampleGallery: [{ url: example1 }, { url: example2 }],
         name: t('Sankey Chart'),
-        tags: [t('Directional'), t('Distribution'), t('Flow')],
+        tags: [t('Directional'), t('ECharts'), t('Distribution'), t('Flow')],
         thumbnail,
       }),
       transformProps,
