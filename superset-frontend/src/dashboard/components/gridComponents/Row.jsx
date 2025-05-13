@@ -51,6 +51,7 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
 import { isCurrentUserBot } from 'src/utils/isBot';
 import { useDebouncedEffect } from '../../../explore/exploreUtils';
@@ -188,7 +189,7 @@ const Row = props => {
       observerDisabler = new IntersectionObserver(
         ([entry]) => {
           if (!entry.isIntersecting && isComponentVisibleRef.current) {
-            if (window.self === window.top) {
+            if (!isEmbedded()) {
               setIsInView(false);
             }
           }
