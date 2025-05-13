@@ -1,4 +1,5 @@
 /* eslint-disable theme-colors/no-literal-colors */
+/* eslint-disable consistent-return */
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { styled } from '@superset-ui/core';
@@ -9,7 +10,6 @@ import hydrateEmbedded from './hydrateEmbedded';
 // Styled Components
 const Container = styled.div`
   width: 100%;
-  height: 100%;
   min-height: 400px;
   position: relative;
   display: flex;
@@ -42,11 +42,16 @@ function EmbeddedChart() {
     height: 600,
   });
 
-  // Get container dimensions after mount and hydration
+  // Get app element dimensions
   useEffect(() => {
-    if (!containerRef.current || !isHydrated) return;
+    if (!isHydrated) return;
 
-    const observeTarget = containerRef.current;
+    const appElement = document.getElementById('app');
+    if (!appElement) {
+      console.warn('App element not found');
+      return;
+    }
+
     const resizeObserver = new ResizeObserver(entries => {
       const entry = entries[0];
       if (entry) {
@@ -66,11 +71,11 @@ function EmbeddedChart() {
         }
       }
     });
-    resizeObserver.observe(observeTarget);
 
-    /* eslint-disable consistent-return */
+    resizeObserver.observe(appElement);
+
     return () => {
-      resizeObserver.unobserve(observeTarget);
+      resizeObserver.unobserve(appElement);
       resizeObserver.disconnect();
     };
   }, [isHydrated, dimensions]);
@@ -107,8 +112,8 @@ function EmbeddedChart() {
         id={chartId}
         componentId=""
         dashboardId={0}
-        width={dimensions.width}
-        height={dimensions.height}
+        width={dimensions.width - 20}
+        height={dimensions.height - 20}
         sliceName={chartName}
         updateSliceName={() => {}}
         isComponentVisible
