@@ -17,17 +17,17 @@
  * under the License.
  */
 export const prettify = () => {
-  console.log('Prettifying the code...');
+  window.alert('Prettifying the code...');
 };
 
 export const copy_query = () => {
-  console.log('Copying the query...');
+  window.alert('Query copied to clipboard!');
 };
 
 export const clear = () => {
-  console.log('Clearing the code...');
+  window.alert('Clearing the code...');
 };
 
 export const refresh = () => {
-  console.log('Refreshing the panel...');
+  window.alert('Refreshing the panel...');
 };

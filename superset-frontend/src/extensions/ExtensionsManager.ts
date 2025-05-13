@@ -27,7 +27,10 @@ import {
 
 class ExtensionsManager {
   private static instance: ExtensionsManager;
-  private extensions: Map<string, Extension> = new Map();
+  private extensionIndex: Map<string, Extension> = new Map();
+  private menuIndex: Map<string, MenuContribution> = new Map();
+  private viewIndex: Map<string, ViewContribution[]> = new Map();
+  private commandIndex: Map<string, CommandContribution> = new Map();
 
   private constructor() {}
 
@@ -44,20 +47,18 @@ class ExtensionsManager {
    * @throws Error if initialization fails.
    */
   public async initialize(module: Module): Promise<void> {
-    // Fetch extensions from the API
     const response = await SupersetClient.get({
       endpoint: `/api/v1/extensions/?module=${module}`,
     });
     const extensions: Extension[] = response.json.result;
 
-    // Load and activate modules for each extension
     const loadedExtensions = await Promise.all(
       extensions.map(extension => this.loadModule(extension)),
     );
 
-    // Store extensions in the map
     loadedExtensions.forEach(extension => {
-      this.extensions.set(extension.name, extension);
+      this.extensionIndex.set(extension.name, extension);
+      this.indexContributions(extension);
     });
   }
 
@@ -109,90 +110,108 @@ class ExtensionsManager {
   }
 
   /**
-   * Retrieves an extension by name.
-   * @param name The name of the extension.
-   * @returns The extension, or undefined if not found.
+   * Indexes contributions from an extension for quick retrieval.
+   * @param extension The extension to index.
    */
-  public getExtension(name: string): Extension | undefined {
-    return this.extensions.get(name);
+  private indexContributions(extension: Extension): void {
+    const { contributions } = extension;
+
+    if (contributions.menus) {
+      this.indexMenus(contributions.menus);
+    }
+
+    if (contributions.views) {
+      this.indexViews(contributions.views);
+    }
+
+    if (contributions.commands) {
+      this.indexCommands(contributions.commands);
+    }
   }
 
   /**
-   * Retrieves loaded extensions.
-   * @returns An array of loaded extensions.
+   * Indexes menu contributions.
+   * @param menus The menus to index.
    */
-  public getExtensions(): Extension[] {
-    return Array.from(this.extensions.values());
-  }
-
-  /**
-   * Retrieves menu contributions for a specific key from all extensions.
-   * @param key The key of the menu contribution.
-   * @returns The menu contribution matching the key, or undefined if not found.
-   */
-  public getMenuContribution(key: string): MenuContribution | undefined {
-    let results: MenuContribution | undefined;
-
-    this.getExtensions().forEach(extension => {
-      const { contributions } = extension;
-      if (contributions.menus && contributions.menus[key]) {
-        const contribution = contributions.menus[key];
-        if (!results) {
-          results = { ...contribution };
-        } else {
-          // Merge contributions if needed
-          results.primary = [
-            ...(results.primary || []),
-            ...(contribution.primary || []),
-          ];
-          results.secondary = [
-            ...(results.secondary || []),
-            ...(contribution.secondary || []),
-          ];
-          results.context = [
-            ...(results.context || []),
-            ...(contribution.context || []),
-          ];
-        }
+  private indexMenus(menus: Record<string, MenuContribution>): void {
+    Object.entries(menus).forEach(([key, menu]) => {
+      if (!this.menuIndex.has(key)) {
+        this.menuIndex.set(key, { ...menu });
+      } else {
+        const existing = this.menuIndex.get(key)!;
+        existing.primary = [
+          ...(existing.primary || []),
+          ...(menu.primary || []),
+        ];
+        existing.secondary = [
+          ...(existing.secondary || []),
+          ...(menu.secondary || []),
+        ];
+        existing.context = [
+          ...(existing.context || []),
+          ...(menu.context || []),
+        ];
       }
     });
-
-    return results;
   }
 
   /**
-   * Retrieves view contributions for a specific key from all extensions.
-   * @param key The key of the view contribution.
+   * Indexes view contributions.
+   * @param views The views to index.
+   */
+  private indexViews(views: Record<string, ViewContribution[]>): void {
+    Object.entries(views).forEach(([key, viewList]) => {
+      if (!this.viewIndex.has(key)) {
+        this.viewIndex.set(key, [...viewList]);
+      } else {
+        this.viewIndex.set(key, [...this.viewIndex.get(key)!, ...viewList]);
+      }
+    });
+  }
+
+  /**
+   * Indexes command contributions.
+   * @param commands The commands to index.
+   */
+  private indexCommands(commands: CommandContribution[]): void {
+    commands.forEach(command => {
+      this.commandIndex.set(command.command, command);
+    });
+  }
+
+  /**
+   * Retrieves menu contributions for a specific key.
+   * @param key The key of the menu contributions.
+   * @returns The menu contributions matching the key, or undefined if not found.
+   */
+  public getMenuContributions(key: string): MenuContribution | undefined {
+    return this.menuIndex.get(key);
+  }
+
+  /**
+   * Retrieves view contributions for a specific key.
+   * @param key The key of the view contributions.
    * @returns An array of view contributions matching the key, or undefined if not found.
    */
   public getViewContributions(key: string): ViewContribution[] | undefined {
-    let results: ViewContribution[] = [];
-
-    this.getExtensions().forEach(extension => {
-      const { contributions } = extension;
-      if (contributions.views && contributions.views[key]) {
-        results = [...results, ...contributions.views[key]];
-      }
-    });
-
-    return results.length > 0 ? results : undefined;
+    return this.viewIndex.get(key);
   }
 
   /**
-   * Retrieves command contributions.
-   * @returns An array of all command contributions from all extensions.
+   * Retrieves all command contributions.
+   * @returns An array of all command contributions.
    */
   public getCommandContributions(): CommandContribution[] {
-    let results: CommandContribution[] = [];
+    return Array.from(this.commandIndex.values());
+  }
 
-    this.getExtensions().forEach(extension => {
-      const { contributions } = extension;
-      if (contributions.commands) {
-        results = [...results, ...contributions.commands];
-      }
-    });
-
-    return results;
+  /**
+   * Retrieves a specific command contribution by its key.
+   * @param key The key of the command contribution.
+   * @returns The command contribution matching the key, or undefined if not found.
+   */
+  public getCommandContribution(key: string): CommandContribution | undefined {
+    return this.commandIndex.get(key);
   }
 }
 
