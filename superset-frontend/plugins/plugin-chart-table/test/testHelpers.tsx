@@ -20,7 +20,7 @@ import {
   EmotionCacheProvider,
   createEmotionCache,
   supersetTheme,
-  ThemeProvider,
+  EmotionThemeProvider,
 } from '@superset-ui/core';
 
 const emotionCache = createEmotionCache({
@@ -31,7 +31,7 @@ export function ProviderWrapper(props: any) {
   const { children, theme = supersetTheme } = props;
   return (
     <EmotionCacheProvider value={emotionCache}>
-      <ThemeProvider theme={theme}>{children}</ThemeProvider>
+      <EmotionThemeProvider theme={theme}>{children}</EmotionThemeProvider>
     </EmotionCacheProvider>
   );
 }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartComponentRegistry, ThemeProvider } from '@superset-ui/core';
+import { getChartComponentRegistry, EmotionThemeProvider } from '@superset-ui/core';
 import { FC, useEffect, useState } from 'react';
 import { ChartWrapperProps } from '../types';
 
@@ -40,13 +40,13 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
   }, [vizType]);
 
   return (
-    <ThemeProvider theme={theme}>
+    <EmotionThemeProvider theme={theme}>
       {Chart === undefined ? (
         <></>
       ) : (
         <Chart {...chartConfig.properties} height={height} width={width} />
       )}
-    </ThemeProvider>
+    </EmotionThemeProvider>
   );
 };
 

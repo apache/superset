@@ -20,7 +20,7 @@
 import '@testing-library/jest-dom';
 import { ReactElement } from 'react';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
-import { ChartProps, supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { ChartProps, supersetTheme, EmotionThemeProvider } from '@superset-ui/core';
 import { render, screen, waitFor } from '@testing-library/react';
 import SuperChartCore from '../../../src/chart/components/SuperChartCore';
 import {
@@ -31,7 +31,7 @@ import {
 } from './MockChartPlugins';
 
 const renderWithTheme = (component: ReactElement) =>
-  render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
+  render(<EmotionThemeProvider theme={supersetTheme}>{component}</EmotionThemeProvider>);
 
 describe('SuperChartCore', () => {
   const chartProps = new ChartProps();

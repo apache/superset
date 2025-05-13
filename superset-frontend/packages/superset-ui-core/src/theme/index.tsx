@@ -21,12 +21,13 @@ import { useTheme as useThemeBasic } from '@emotion/react';
 // import { theme as antdThemeImport } from 'antd-v5';
 import { Theme } from './Theme';
 import type { SupersetTheme, SerializableThemeConfig } from './types';
+import { ThemeController } from './ThemeController';
 
 export {
   css,
   keyframes,
   jsx,
-  ThemeProvider,
+  ThemeProvider as EmotionThemeProvider,
   CacheProvider as EmotionCacheProvider,
   withTheme,
 } from '@emotion/react';
@@ -51,11 +52,13 @@ export function useTheme() {
 
 const styled = emotionStyled;
 
+const themeController = ThemeController.getInstance();
 // launching in in dark mode for now while iterating
-const themeObject = Theme.fromConfig({});
+const themeObject = themeController.getTheme();
 
 const { theme } = themeObject;
 const supersetTheme = theme;
 
-export { Theme, themeObject, styled, theme, supersetTheme };
+export { Theme, themeObject, styled, theme, supersetTheme, themeController };
+export { useThemeContext, ThemeProvider } from './ThemeProvider';
 export type { SupersetTheme, SerializableThemeConfig };

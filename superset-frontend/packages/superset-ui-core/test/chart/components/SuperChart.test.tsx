@@ -28,7 +28,7 @@ import {
   promiseTimeout,
   SuperChart,
   supersetTheme,
-  ThemeProvider,
+  EmotionThemeProvider,
 } from '@superset-ui/core';
 import { WrapperProps } from '../../../src/chart/components/SuperChart';
 
@@ -54,7 +54,7 @@ function getDimensionText(container: HTMLElement) {
 const renderWithTheme = (component: ReactElement) =>
   render(component, {
     wrapper: ({ children }) => (
-      <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
+      <EmotionThemeProvider theme={supersetTheme}>{children}</EmotionThemeProvider>
     ),
   });
 

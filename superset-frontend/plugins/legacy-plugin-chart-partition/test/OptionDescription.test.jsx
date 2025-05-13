@@ -40,9 +40,9 @@ describe('OptionDescription', () => {
   beforeEach(() => {
     const props = { option: { ...defaultProps.option } };
     render(
-      <ThemeProvider theme={supersetTheme}>
+      <EmotionThemeProvider theme={supersetTheme}>
         <OptionDescription {...props} />
-      </ThemeProvider>,
+      </EmotionThemeProvider>,
     );
   });
 

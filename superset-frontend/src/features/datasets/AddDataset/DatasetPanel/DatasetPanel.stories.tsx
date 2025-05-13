@@ -18,7 +18,7 @@
  */
 
 import { StoryFn, Meta } from '@storybook/react';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { supersetTheme, EmotionThemeProvider } from '@superset-ui/core';
 import DatasetPanel from './DatasetPanel';
 import { exampleColumns } from './fixtures';
 
@@ -28,11 +28,11 @@ export default {
 } as Meta<typeof DatasetPanel>;
 
 export const Basic: StoryFn<typeof DatasetPanel> = args => (
-  <ThemeProvider theme={supersetTheme}>
+  <EmotionThemeProvider theme={supersetTheme}>
     <div style={{ height: '350px' }}>
       <DatasetPanel {...args} />
     </div>
-  </ThemeProvider>
+  </EmotionThemeProvider>
 );
 
 Basic.args = {
