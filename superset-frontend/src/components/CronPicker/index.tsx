@@ -19,6 +19,7 @@
 import { styled, t } from '@superset-ui/core';
 import ReactCronPicker from 'react-js-cron';
 import type { Locale, CronProps } from './types';
+import 'antd-v4/dist/antd.css';
 
 export const LOCALE: Locale = {
   everyText: t('every'),
