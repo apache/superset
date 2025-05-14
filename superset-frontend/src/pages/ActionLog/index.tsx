@@ -22,6 +22,8 @@ import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import ListView, { Filters, FilterOperator } from 'src/components/ListView';
+// eslint-disable-next-line no-restricted-imports
+import { Typography } from 'antd-v5';
 
 export type ActionLogObject = {
   user: {
@@ -125,15 +127,6 @@ function ActionLogList() {
   const columns = useMemo(
     () => [
       {
-        accessor: 'user.username',
-        Header: t('User'),
-        Cell: ({
-          row: {
-            original: { user },
-          },
-        }: any) => <span>{user?.username ?? '—'}</span>,
-      },
-      {
         accessor: 'action',
         Header: t('Action'),
         Cell: ({
@@ -143,13 +136,24 @@ function ActionLogList() {
         }: any) => <span>{action}</span>,
       },
       {
-        accessor: 'dttm',
-        Header: t('Dttm'),
+        accessor: 'user.username',
+        Header: t('User'),
         Cell: ({
           row: {
-            original: { dttm },
+            original: { user },
           },
-        }: any) => <span>{dttm}</span>,
+        }: any) => <span>{user?.username ?? '—'}</span>,
+      },
+
+      {
+        accessor: 'duration_ms',
+        Header: t('Duration Ms'),
+
+        Cell: ({
+          row: {
+            original: { duration_ms },
+          },
+        }: any) => <span>{duration_ms}</span>,
       },
       {
         accessor: 'dashboard_id',
@@ -179,18 +183,13 @@ function ActionLogList() {
           row: {
             original: { json },
           },
-        }: any) => <span>{json}</span>,
+        }: any) => (
+          <Typography.Text code copyable ellipsis={{ tooltip: json }}>
+            {json}
+          </Typography.Text>
+        ),
       },
-      {
-        accessor: 'duration_ms',
-        Header: t('Duration Ms'),
 
-        Cell: ({
-          row: {
-            original: { duration_ms },
-          },
-        }: any) => <span>{duration_ms}</span>,
-      },
       {
         accessor: 'referrer',
         Header: t('Referrer'),
@@ -199,7 +198,20 @@ function ActionLogList() {
           row: {
             original: { referrer },
           },
-        }: any) => <span>{referrer}</span>,
+        }: any) => (
+          <Typography.Text code copyable ellipsis={{ tooltip: referrer }}>
+            {referrer}
+          </Typography.Text>
+        ),
+      },
+      {
+        accessor: 'dttm',
+        Header: t('Dttm'),
+        Cell: ({
+          row: {
+            original: { dttm },
+          },
+        }: any) => <span>{dttm}</span>,
       },
     ],
     [],
