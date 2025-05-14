@@ -76,7 +76,7 @@ const config: ControlPanelConfig = {
               default: 'ASC',
               clearable: false,
               description: t(
-                'Ordering direction for the series, to be used with "Order Series By Column"',
+                'Ordering direction for the series, to be used with "Order series by column"',
               ),
             },
           },
