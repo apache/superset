@@ -73,6 +73,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
         uses: actions/checkout@v4
