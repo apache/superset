@@ -59,8 +59,9 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
       response,
       json: cloneDeepWith(json, (value: any) => {
         if (
-          value?.isGreaterThan?.(Number.MAX_SAFE_INTEGER) ||
-          value?.isLessThan?.(Number.MIN_SAFE_INTEGER)
+          value?.isInteger?.() === true &&
+          (value?.isGreaterThan?.(Number.MAX_SAFE_INTEGER) ||
+            value?.isLessThan?.(Number.MIN_SAFE_INTEGER))
         ) {
           return BigInt(value);
         }
