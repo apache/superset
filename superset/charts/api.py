@@ -49,6 +49,8 @@ from superset.charts.schemas import (
     ChartCacheWarmUpRequestSchema,
     ChartPostSchema,
     ChartPutSchema,
+    EmbeddedChartConfigSchema,
+    EmbeddedChartResponseSchema,
     get_delete_ids_schema,
     get_export_ids_schema,
     get_fav_star_ids_schema,
@@ -118,7 +120,7 @@ def with_chart(
 
     def wraps(self: BaseSupersetModelRestApi, pk: str) -> Response:
         try:
-            chart = ChartDAO.find_by_id(int(pk))
+            chart = ChartDAO.find_by_id(pk)
             if not chart:
                 return self.response_404()
             return f(self, chart)
@@ -156,6 +158,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "cache_screenshot",
         "warm_up_cache",
         "get_embedded",
+        "set_embedded",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -282,6 +285,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     add_model_schema = ChartPostSchema()
     edit_model_schema = ChartPutSchema()
+    embedded_config_schema = EmbeddedChartConfigSchema()
+    embedded_response_schema = EmbeddedChartResponseSchema()
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
