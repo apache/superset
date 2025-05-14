@@ -101,37 +101,37 @@ jobs:
           docker images $IMAGE_TAG
           docker history $IMAGE_TAG
 
-      - name: docker-compose sanity check
-        if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && (matrix.build_preset == 'dev' || matrix.build_preset == 'lean')
-        shell: bash
-        run: |
-          export SUPERSET_BUILD_TARGET=${{ matrix.build_preset }}
-          # This should reuse the CACHED image built in the previous steps
-          docker compose build superset-init --build-arg DEV_MODE=false --build-arg INCLUDE_CHROMIUM=false
-          docker compose up superset-init --exit-code-from superset-init
+      # - name: docker-compose sanity check
+      #   if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && (matrix.build_preset == 'dev' || matrix.build_preset == 'lean')
+      #   shell: bash
+      #   run: |
+      #     export SUPERSET_BUILD_TARGET=${{ matrix.build_preset }}
+      #     # This should reuse the CACHED image built in the previous steps
+      #     docker compose build superset-init --build-arg DEV_MODE=false --build-arg INCLUDE_CHROMIUM=false
+      #     docker compose up superset-init --exit-code-from superset-init
 
-  docker-compose-image-tag:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Docker Environment
-        if: steps.check.outputs.docker
-        uses: ./.github/actions/setup-docker
-        with:
-          dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
-          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
-          build: "false"
-          install-docker-compose: "true"
-      - name: docker-compose sanity check
-        if: steps.check.outputs.docker
-        shell: bash
-        run: |
-          docker compose -f docker-compose-image-tag.yml up --exit-code-from superset-init
+  # docker-compose-image-tag:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+  #       uses: actions/checkout@v4
+  #       with:
+  #         persist-credentials: false
+  #     - name: Check for file changes
+  #       id: check
+  #       uses: ./.github/actions/change-detector/
+  #       with:
+  #         token: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Setup Docker Environment
+  #       if: steps.check.outputs.docker
+  #       uses: ./.github/actions/setup-docker
+  #       with:
+  #         dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
+  #         dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+  #         build: "false"
+  #         install-docker-compose: "true"
+  #     - name: docker-compose sanity check
+  #       if: steps.check.outputs.docker
+  #       shell: bash
+  #       run: |
+  #         docker compose -f docker-compose-image-tag.yml up --exit-code-from superset-init

@@ -30,7 +30,7 @@ import {
 import { SankeyChartProps, SankeyTransformedProps } from './types';
 import { Refs } from '../types';
 import { getDefaultTooltip } from '../utils/tooltip';
-import { getPercentFormatter } from '../utils/formatters';
+// import { getPercentFormatter } from '../utils/formatters';
 
 type Link = { source: string; target: string; value: number };
 type EChartsOption = ComposeOption<SankeySeriesOption>;
@@ -46,7 +46,7 @@ export default function transformProps(
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
   const metricLabel = getMetricLabel(metric);
   const valueFormatter = getNumberFormatter(NumberFormats.FLOAT_2_POINT);
-  const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
+  // const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
 
   const links: Link[] = [];
   const set = new Set<string>();
@@ -83,20 +83,20 @@ export default function transformProps(
   });
 
   const tooltipFormatter = (params: CallbackDataParams) => {
-    const { name, data } = params;
+    const { name } = params;
     const value = params.value as number;
     const rows = [[metricLabel, valueFormatter.format(value)]];
-    const { source, target } = data as Link;
-    if (source && target) {
-      rows.push([
-        `% (${source})`,
-        percentFormatter.format(value / nodeValues.get(source)!),
-      ]);
-      rows.push([
-        `% (${target})`,
-        percentFormatter.format(value / nodeValues.get(target)!),
-      ]);
-    }
+    // const { source, target } = data as Link;
+    // if (source && target) {
+    //   rows.push([
+    //     `% (${source})`,
+    //     percentFormatter.format(value / nodeValues.get(source)!),
+    //   ]);
+    //   rows.push([
+    //     `% (${target})`,
+    //     percentFormatter.format(value / nodeValues.get(target)!),
+    //   ]);
+    // }
     return tooltipHtml(rows, name);
   };
 

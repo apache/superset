@@ -100,56 +100,56 @@ services:
     environment:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
 
-  superset-websocket:
-    container_name: superset_websocket
-    build: ./superset-websocket
-    ports:
-      - 8080:8080
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      - redis
-    # Mount everything in superset-websocket into container and
-    # then exclude node_modules and dist with bogus volume mount.
-    # This is necessary because host and container need to have
-    # their own, separate versions of these files. .dockerignore
-    # does not seem to work when starting the service through
-    # docker compose.
-    #
-    # For example, node_modules may contain libs with native bindings.
-    # Those bindings need to be compiled for each OS and the container
-    # OS is not necessarily the same as host OS.
-    volumes:
-      - ./superset-websocket:/home/superset-websocket
-      - /home/superset-websocket/node_modules
-      - /home/superset-websocket/dist
+  # superset-websocket:
+  #   container_name: superset_websocket
+  #   build: ./superset-websocket
+  #   ports:
+  #     - 8080:8080
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   depends_on:
+  #     - redis
+  #   # Mount everything in superset-websocket into container and
+  #   # then exclude node_modules and dist with bogus volume mount.
+  #   # This is necessary because host and container need to have
+  #   # their own, separate versions of these files. .dockerignore
+  #   # does not seem to work when starting the service through
+  #   # docker compose.
+  #   #
+  #   # For example, node_modules may contain libs with native bindings.
+  #   # Those bindings need to be compiled for each OS and the container
+  #   # OS is not necessarily the same as host OS.
+  #   volumes:
+  #     - ./superset-websocket:/home/superset-websocket
+  #     - /home/superset-websocket/node_modules
+  #     - /home/superset-websocket/dist
 
-      # Mounting a config file that contains a dummy secret required to boot up.
-      # do not use this docker compose in production
-      - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json
-    environment:
-      - PORT=8080
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_SSL=false
+  #     # Mounting a config file that contains a dummy secret required to boot up.
+  #     # do not use this docker compose in production
+  #     - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json
+  #   environment:
+  #     - PORT=8080
+  #     - REDIS_HOST=redis
+  #     - REDIS_PORT=6379
+  #     - REDIS_SSL=false
 
-  superset-init:
-    build:
-      <<: *common-build
-    container_name: superset_init
-    command: ["/app/docker/docker-init.sh"]
-    env_file:
-      - path: docker/.env # default
-        required: true
-      - path: docker/.env-local # optional override
-        required: false
-    depends_on: *superset-depends-on
-    user: *superset-user
-    volumes: *superset-volumes
-    environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
-    healthcheck:
-      disable: true
+  # superset-init:
+  #   build:
+  #     <<: *common-build
+  #   container_name: superset_init
+  #   command: ["/app/docker/docker-init.sh"]
+  #   env_file:
+  #     - path: docker/.env # default
+  #       required: true
+  #     - path: docker/.env-local # optional override
+  #       required: false
+  #   depends_on: *superset-depends-on
+  #   user: *superset-user
+  #   volumes: *superset-volumes
+  #   environment:
+  #     CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
+  #   healthcheck:
+  #     disable: true
 
   superset-node:
     build:
@@ -177,72 +177,72 @@ services:
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 
-  superset-worker:
-    build:
-      <<: *common-build
-    container_name: superset_worker
-    command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    env_file:
-      - path: docker/.env # default
-        required: true
-      - path: docker/.env-local # optional override
-        required: false
-    environment:
-      CELERYD_CONCURRENCY: 2
-    restart: unless-stopped
-    depends_on: *superset-depends-on
-    user: *superset-user
-    volumes: *superset-volumes
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    healthcheck:
-      test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
-    # Bump memory limit if processing selenium / thumbnails on superset-worker
-    # mem_limit: 2038m
-    # mem_reservation: 128M
+  # superset-worker:
+  #   build:
+  #     <<: *common-build
+  #   container_name: superset_worker
+  #   command: ["/app/docker/docker-bootstrap.sh", "worker"]
+  #   env_file:
+  #     - path: docker/.env # default
+  #       required: true
+  #     - path: docker/.env-local # optional override
+  #       required: false
+  #   environment:
+  #     CELERYD_CONCURRENCY: 2
+  #   restart: unless-stopped
+  #   depends_on: *superset-depends-on
+  #   user: *superset-user
+  #   volumes: *superset-volumes
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
+  #   # Bump memory limit if processing selenium / thumbnails on superset-worker
+  #   # mem_limit: 2038m
+  #   # mem_reservation: 128M
 
-  superset-worker-beat:
-    build:
-      <<: *common-build
-    container_name: superset_worker_beat
-    command: ["/app/docker/docker-bootstrap.sh", "beat"]
-    env_file:
-      - path: docker/.env # default
-        required: true
-      - path: docker/.env-local # optional override
-        required: false
-    restart: unless-stopped
-    depends_on: *superset-depends-on
-    user: *superset-user
-    volumes: *superset-volumes
-    healthcheck:
-      disable: true
+  # superset-worker-beat:
+  #   build:
+  #     <<: *common-build
+  #   container_name: superset_worker_beat
+  #   command: ["/app/docker/docker-bootstrap.sh", "beat"]
+  #   env_file:
+  #     - path: docker/.env # default
+  #       required: true
+  #     - path: docker/.env-local # optional override
+  #       required: false
+  #   restart: unless-stopped
+  #   depends_on: *superset-depends-on
+  #   user: *superset-user
+  #   volumes: *superset-volumes
+  #   healthcheck:
+  #     disable: true
 
-  superset-tests-worker:
-    build:
-      <<: *common-build
-    container_name: superset_tests_worker
-    command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    env_file:
-      - path: docker/.env # default
-        required: true
-      - path: docker/.env-local # optional override
-        required: false
-    profiles:
-      - optional
-    environment:
-      DATABASE_HOST: localhost
-      DATABASE_DB: test
-      REDIS_CELERY_DB: 2
-      REDIS_RESULTS_DB: 3
-      REDIS_HOST: localhost
-      CELERYD_CONCURRENCY: 8
-    network_mode: host
-    depends_on: *superset-depends-on
-    user: *superset-user
-    volumes: *superset-volumes
-    healthcheck:
-      test: ["CMD-SHELL", "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME"]
+  # superset-tests-worker:
+  #   build:
+  #     <<: *common-build
+  #   container_name: superset_tests_worker
+  #   command: ["/app/docker/docker-bootstrap.sh", "worker"]
+  #   env_file:
+  #     - path: docker/.env # default
+  #       required: true
+  #     - path: docker/.env-local # optional override
+  #       required: false
+  #   profiles:
+  #     - optional
+  #   environment:
+  #     DATABASE_HOST: localhost
+  #     DATABASE_DB: test
+  #     REDIS_CELERY_DB: 2
+  #     REDIS_RESULTS_DB: 3
+  #     REDIS_HOST: localhost
+  #     CELERYD_CONCURRENCY: 8
+  #   network_mode: host
+  #   depends_on: *superset-depends-on
+  #   user: *superset-user
+  #   volumes: *superset-volumes
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME"]
 
 volumes:
   superset_home:
