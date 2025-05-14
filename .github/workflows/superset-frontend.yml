@@ -41,6 +41,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "git rev-parse --short HEAD"
+          git rev-parse --short HEAD
+          echo "git show -s --format=raw HEAD"
+          git show -s --format=raw HEAD
           docker buildx build \
             -t $TAG \
             --cache-from=type=registry,ref=apache/superset-cache:3.10-slim-bookworm \
