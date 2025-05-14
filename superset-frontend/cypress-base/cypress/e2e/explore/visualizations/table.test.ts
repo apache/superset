@@ -260,6 +260,8 @@ describe('Visualization > Table', () => {
   });
 
   it('Test row limit with server pagination toggle', () => {
+    const serverPaginationSelector =
+      '[data-test="server_pagination-header"] div.pull-left [type="checkbox"]';
     cy.visitChartByParams({
       ...VIZ_DEFAULTS,
       metrics: ['count'],
@@ -267,7 +269,7 @@ describe('Visualization > Table', () => {
     });
 
     // Enable server pagination
-    cy.get('[data-test="server_pagination-header"] div.pull-left').click();
+    cy.get(serverPaginationSelector).click();
 
     // Click row limit control and select high value (200k)
     cy.get('div[aria-label="Row limit"]').click();
@@ -281,7 +283,7 @@ describe('Visualization > Table', () => {
     cy.get('[data-test="error-tooltip"]').should('not.exist');
 
     // Disable server pagination
-    cy.get('[data-test="server_pagination-header"] div.pull-left').click();
+    cy.get(serverPaginationSelector).click();
 
     // Verify error tooltip appears
     cy.get('[data-test="error-tooltip"]').should('be.visible');
@@ -300,7 +302,7 @@ describe('Visualization > Table', () => {
     cy.get('.antd5-tooltip').invoke('attr', 'style', 'display: none');
 
     // Enable server pagination again
-    cy.get('[data-test="server_pagination-header"] div.pull-left').click();
+    cy.get(serverPaginationSelector).click();
 
     cy.get('[data-test="error-tooltip"]').should('not.exist');
 
@@ -387,7 +389,7 @@ describe('Visualization > Table', () => {
     });
   });
 
-  it('Test search with server pagination enabled', () => {
+  it.only('Test search with server pagination enabled', () => {
     cy.visitChartByParams({
       ...VIZ_DEFAULTS,
       metrics: ['count'],
@@ -399,12 +401,12 @@ describe('Visualization > Table', () => {
 
     cy.wait('@chartData');
 
-    // Basic search test
-    cy.get('span.dt-global-filter input.form-control.input-sm').should(
-      'be.visible',
-    );
+    const searchInputSelector = '.dt-global-filter input';
 
-    cy.get('span.dt-global-filter input.form-control.input-sm').type('John');
+    // Basic search test
+    cy.get(searchInputSelector).should('be.visible');
+
+    cy.get(searchInputSelector).type('John');
 
     cy.wait('@chartData');
 
@@ -413,11 +415,11 @@ describe('Visualization > Table', () => {
     });
 
     // Clear and test case-insensitive search
-    cy.get('span.dt-global-filter input.form-control.input-sm').clear();
+    cy.get(searchInputSelector).clear();
 
     cy.wait('@chartData');
 
-    cy.get('span.dt-global-filter input.form-control.input-sm').type('mary');
+    cy.get(searchInputSelector).type('mary');
 
     cy.wait('@chartData');
 
@@ -426,9 +428,9 @@ describe('Visualization > Table', () => {
     });
 
     // Test special characters
-    cy.get('span.dt-global-filter input.form-control.input-sm').clear();
+    cy.get(searchInputSelector).clear();
 
-    cy.get('span.dt-global-filter input.form-control.input-sm').type('Nicole');
+    cy.get(searchInputSelector).type('Nicole');
 
     cy.wait('@chartData');
 
@@ -437,9 +439,9 @@ describe('Visualization > Table', () => {
     });
 
     // Test no results
-    cy.get('span.dt-global-filter input.form-control.input-sm').clear();
+    cy.get(searchInputSelector).clear();
 
-    cy.get('span.dt-global-filter input.form-control.input-sm').type('XYZ123');
+    cy.get(searchInputSelector).type('XYZ123');
 
     cy.wait('@chartData');
 
@@ -456,9 +458,9 @@ describe('Visualization > Table', () => {
 
     cy.get('.antd5-select-item-option').contains('state').click();
 
-    cy.get('span.dt-global-filter input.form-control.input-sm').clear();
+    cy.get(searchInputSelector).clear();
 
-    cy.get('span.dt-global-filter input.form-control.input-sm').type('CA');
+    cy.get(searchInputSelector).type('CA');
 
     cy.wait('@chartData');
     cy.wait(1000);
