@@ -389,7 +389,7 @@ describe('Visualization > Table', () => {
     });
   });
 
-  it.only('Test search with server pagination enabled', () => {
+  it('Test search with server pagination enabled', () => {
     cy.visitChartByParams({
       ...VIZ_DEFAULTS,
       metrics: ['count'],
