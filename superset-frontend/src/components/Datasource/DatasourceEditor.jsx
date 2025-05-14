@@ -1618,7 +1618,7 @@ const mapDispatchToProps = dispatch => ({
   resetQuery: () => dispatch(resetDatabaseState()),
 });
 const mapStateToProps = state => ({
-  sql_result: state.database.queryResult,
+  sql_result: state?.database?.queryResult,
 });
 export default withToasts(
   withRouter(connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent)),

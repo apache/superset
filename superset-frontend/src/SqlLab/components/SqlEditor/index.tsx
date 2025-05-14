@@ -315,7 +315,7 @@ const SqlEditor: FC<Props> = ({
   );
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');
-  const [currentSQL, setCurrentSQL] = useState(queryEditor.sql);
+  const currentSQL = useRef<string>(queryEditor.sql);
   const showEmptyState = useMemo(
     () => !database || isEmpty(database),
     [database],
@@ -647,7 +647,7 @@ const SqlEditor: FC<Props> = ({
   );
 
   const onSqlChanged = useEffectEvent((sql: string) => {
-    setCurrentSQL(sql);
+    currentSQL.current = sql;
     dispatch(queryEditorSetSql(queryEditor, sql));
   });
 
@@ -889,6 +889,9 @@ const SqlEditor: FC<Props> = ({
   const handleCursorPositionChange = (newPosition: CursorPosition) => {
     dispatch(queryEditorSetCursorPosition(queryEditor, newPosition));
   };
+  const copyQueryLink = () => {
+    navigator.clipboard.writeText(currentSQL.current);
+  };
   const renderDatasetWarning = () => (
     <Alert
       css={css`
@@ -935,7 +938,7 @@ const SqlEditor: FC<Props> = ({
           </div>
           <Button
             onClick={() => {
-              navigator.clipboard.writeText(currentSQL);
+              copyQueryLink();
             }}
             type="primary"
           >
