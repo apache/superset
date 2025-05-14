@@ -19,7 +19,7 @@
 
 import { css } from '@emotion/react';
 import { SupersetClient, styled, t } from '@superset-ui/core';
-import { useHistory } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import {
   Button,
   Card,
@@ -62,9 +62,9 @@ enum AuthType {
 }
 
 const AuthIconMap: Record<string, React.JSX.Element> = {
-  GitHub: <Icons.GithubOutlined />,
-  Google: <Icons.GoogleOutlined />,
-  Facebook: <Icons.FacebookOutlined />,
+  github: <Icons.GithubOutlined />,
+  google: <Icons.GoogleOutlined />,
+  facebook: <Icons.FacebookOutlined />,
 };
 
 const LoginContainer = styled(Flex)`
@@ -110,12 +110,7 @@ export default function Login() {
       <StyledCard title={t('Sign in')} padded>
         {authType === AuthType.AuthOID && (
           <Flex justify="center" vertical gap="middle">
-            <Form
-              layout="vertical"
-              requiredMark="optional"
-              form={form}
-              onFinish={onFinish}
-            >
+            <Form layout="vertical" requiredMark="optional" form={form}>
               {providers.map((provider: OIDProvider) => (
                 <Form.Item<LoginType>>
                   <Button
@@ -132,21 +127,13 @@ export default function Login() {
         )}
         {authType === AuthType.AuthOauth && (
           <Flex justify="center" gap={0} vertical>
-            <Form
-              layout="vertical"
-              requiredMark="optional"
-              form={form}
-              onFinish={onFinish}
-            >
+            <Form layout="vertical" requiredMark="optional" form={form}>
               {providers.map((provider: OAuthProvider) => (
                 <Form.Item<LoginType>>
-                  <Button
-                    onClick={() => history.push(`/login/${provider.name}`)}
-                    icon={AuthIconMap[provider.name]}
-                    block
-                  >
-                    {t('Sign in with')} {provider.name}
-                  </Button>
+                  <Typography.Link href={`/login/${provider.name}`}>
+                    {AuthIconMap[provider.name]} {t('Sign in with')}{' '}
+                    {provider.name}
+                  </Typography.Link>
                 </Form.Item>
               ))}
             </Form>

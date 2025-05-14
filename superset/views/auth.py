@@ -15,17 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Optional
+
+from flask import g, redirect
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import no_cache
-from werkzeug import Response
+from flask_appbuilder.security.views import AuthView, WerkzeugResponse
 
 from superset.views.base import BaseSupersetView
 
 
-class SupersetAuthView(BaseSupersetView):
+class SupersetAuthView(BaseSupersetView, AuthView):
     route_base = ""
 
     @expose("/login/")
     @no_cache
-    def login(self) -> Response:
+    def login(self, provider: Optional[str] = None) -> WerkzeugResponse:
+        if g.user is not None and g.user.is_authenticated:
+            return redirect(self.appbuilder.get_url_for_index)
+
         return super().render_app_template()
