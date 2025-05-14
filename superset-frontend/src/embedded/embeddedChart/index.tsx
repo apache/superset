@@ -53,7 +53,7 @@ interface Dimensions {
   height: number;
 }
 
-function EmbeddedChart() {
+function EmbeddedChart({ sliceId }: { sliceId: number }) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [isDimensionsSet, setIsDimensionsSet] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -108,7 +108,7 @@ function EmbeddedChart() {
     };
   }, [isHydrated, dimensions]);
 
-  const { data: exploreData, isLoading, error } = useExploreData(118);
+  const { data: exploreData, isLoading, error } = useExploreData(sliceId);
 
   useEffect(() => {
     if (exploreData?.result) {
