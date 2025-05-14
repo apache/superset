@@ -1,0 +1,147 @@
+.react-js-cron {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.react-js-cron > div,
+.react-js-cron-field {
+  display: flex;
+  align-items: center;
+}
+.react-js-cron-field {
+  margin-bottom: 10px;
+}
+.react-js-cron-field > span {
+  margin-left: 5px;
+}
+div.react-js-cron-select {
+  margin-left: 5px;
+}
+.react-js-cron-select.react-js-cron-select-no-prefix {
+  margin-left: 0;
+}
+div.react-js-cron-error .react-js-cron-select .antd5-select-selector {
+  border-color: #ff4d4f;
+  background: #fff6f6;
+}
+div.react-js-cron-custom-select {
+  min-width: 70px;
+  z-index: 1;
+  background: white;
+}
+div.react-js-cron-error div.react-js-cron-custom-select {
+  background: #fff6f6;
+}
+div.react-js-cron-select.react-js-cron-custom-select.antd5-select
+  div.antd5-select-selector {
+  padding-left: 11px;
+  padding-right: 30px;
+  background: transparent;
+}
+.react-js-cron-read-only
+  div.react-js-cron-select.react-js-cron-custom-select.antd5-select
+  div.antd5-select-selector {
+  padding-right: 11px;
+}
+div.react-js-cron-custom-select .antd5-select-selection-search {
+  width: 0 !important;
+  margin: 0 !important;
+}
+div.react-js-cron-custom-select .antd5-select-selection-placeholder {
+  position: static;
+  top: 50%;
+  right: auto;
+  left: auto;
+  transform: none;
+  transition: none;
+  opacity: 1;
+  color: inherit;
+}
+.react-js-cron-week-days-placeholder
+  .react-js-cron-custom-select
+  .antd5-select-selection-placeholder,
+.react-js-cron-month-days-placeholder
+  .react-js-cron-custom-select
+  .antd5-select-selection-placeholder {
+  opacity: 0.4;
+}
+.react-js-cron-custom-select-dropdown {
+  min-width: 0 !important;
+  width: 170px !important;
+}
+.react-js-cron-custom-select-dropdown .rc-virtual-list {
+  max-height: none !important;
+}
+.react-js-cron-custom-select-dropdown-grid .rc-virtual-list-holder-inner {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr);
+}
+.react-js-cron-custom-select-dropdown-grid
+  .rc-virtual-list-holder-inner
+  .antd5-select-item-option-content {
+  text-align: center;
+}
+.react-js-cron-custom-select-dropdown-hours-twelve-hour-clock {
+  width: 260px !important;
+}
+.react-js-cron-custom-select-dropdown-minutes-large {
+  width: 300px !important;
+}
+.react-js-cron-custom-select-dropdown-minutes-large
+  .rc-virtual-list-holder-inner {
+  grid-template-columns: repeat(7, 1fr);
+}
+.react-js-cron-custom-select-dropdown-minutes-medium {
+  width: 215px !important;
+}
+.react-js-cron-custom-select-dropdown-minutes-medium
+  .rc-virtual-list-holder-inner {
+  grid-template-columns: repeat(5, 1fr);
+}
+.react-js-cron-period > span:first-child {
+  margin-left: 0 !important;
+}
+.react-js-cron-period
+  .react-js-cron-select.antd5-select-single.antd5-select-open
+  .antd5-select-selection-item {
+  opacity: 1;
+}
+.react-js-cron-select-dropdown-period {
+  min-width: 0 !important;
+  width: auto !important;
+}
+.react-js-cron-clear-button {
+  margin-left: 10px;
+  margin-bottom: 10px;
+}
+.react-js-cron-disabled .react-js-cron-select.antd5-select-disabled {
+  background: #f5f5f5;
+}
+div.react-js-cron-select.react-js-cron-custom-select.antd5-select
+  div.antd5-select-selector
+  > .antd5-select-selection-overflow {
+  align-items: center;
+  flex: initial;
+}
+div.react-js-cron-select:not(
+    .antd5-select-disabled
+  ).react-js-cron-custom-select.antd5-select
+  div.antd5-select-selector
+  > .antd5-select-selection-overflow
+  > .antd5-select-selection-overflow-item:first-child {
+  z-index: -1;
+}
+
+/* To support antd >= 4.6.0 and < 4.10.0 */
+
+div.react-js-cron-select.react-js-cron-custom-select.antd5-select
+  div.antd5-select-selector
+  > span:first-child {
+  z-index: -1;
+}
+div.react-js-cron-select.react-js-cron-custom-select.antd5-select
+  div.antd5-select-selector
+  > span:first-child
+  > div {
+  z-index: 2;
+}

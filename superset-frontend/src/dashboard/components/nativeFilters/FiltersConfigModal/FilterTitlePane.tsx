@@ -98,6 +98,8 @@ const FilterTitlePane: FC<Props> = ({
           justifyContent: 'space-around',
           alignItems: 'flex-start',
           paddingTop: theme.sizeUnit * 3,
+          position: 'sticky',
+          bottom: theme.sizeUnit,
         }}
       >
         <Button

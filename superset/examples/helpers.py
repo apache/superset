@@ -142,8 +142,8 @@ def read_example_data(
             if is_json:
                 return pd.read_json(url, **kwargs)
             return pd.read_csv(url, **kwargs)
-        except HTTPError as e:
-            if e.code == 429 and attempt < max_attempts:
+        except HTTPError:
+            if attempt < max_attempts:
                 sleep_time = wait_seconds * (2 ** (attempt - 1))
                 print(
                     f"HTTP 429 received from {url}. ",
