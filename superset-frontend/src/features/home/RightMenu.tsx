@@ -187,7 +187,7 @@ const RightMenu = ({
   const dropdownItems: MenuObjectProps[] = [
     {
       label: t('Data'),
-      icon: 'fa-database',
+      icon: <Icons.DatabaseOutlined data-test={`menu-item-${t('Data')}`} />,
       childs: [
         {
           label: t('Connect database'),
@@ -228,7 +228,7 @@ const RightMenu = ({
     {
       label: t('SQL query'),
       url: '/sqllab?new=true',
-      icon: 'fa-fw fa-search',
+      icon: <Icons.SearchOutlined data-test={`menu-item-${t('SQL query')}`} />,
       perm: 'can_sqllab',
       view: 'Superset',
     },
@@ -237,14 +237,16 @@ const RightMenu = ({
       url: Number.isInteger(dashboardId)
         ? `/chart/add?dashboard_id=${dashboardId}`
         : '/chart/add',
-      icon: 'fa-fw fa-bar-chart',
+      icon: <Icons.BarChartOutlined data-test={`menu-item-${t('Chart')}`} />,
       perm: 'can_write',
       view: 'Chart',
     },
     {
       label: t('Dashboard'),
       url: '/dashboard/new',
-      icon: 'fa-fw fa-dashboard',
+      icon: (
+        <Icons.DashboardOutlined data-test={`menu-item-${t('Dashboard')}`} />
+      ),
       perm: 'can_write',
       view: 'Dashboard',
     },
@@ -291,10 +293,6 @@ const RightMenu = ({
       existsNonExamplesDatabases();
     }
   }, [canDatabase, canDataset]);
-
-  const menuIcon = (menu: MenuObjectProps) => (
-    <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
-  );
 
   const handleMenuSelection = (itemChose: any) => {
     if (itemChose.key === GlobalMenuDataOptions.DbConnection) {
@@ -451,7 +449,7 @@ const RightMenu = ({
                       key={`sub2_${menu.label}`}
                       className="data-menu"
                       title={menu.label}
-                      icon={menuIcon(menu)}
+                      icon={menu.icon}
                     >
                       {menu?.childs?.map?.((item, idx) =>
                         typeof item !== 'string' && item.name && item.perm ? (
@@ -477,19 +475,11 @@ const RightMenu = ({
                   <Menu.Item key={menu.label}>
                     {isFrontendRoute(menu.url) ? (
                       <Link to={menu.url || ''}>
-                        <i
-                          data-test={`menu-item-${menu.label}`}
-                          className={`fa ${menu.icon}`}
-                        />{' '}
-                        {menu.label}
+                        {menu.icon} {menu.label}
                       </Link>
                     ) : (
                       <Typography.Link href={ensureAppRoot(menu.url || '')}>
-                        <i
-                          data-test={`menu-item-${menu.label}`}
-                          className={`fa ${menu.icon}`}
-                        />{' '}
-                        {menu.label}
+                        {menu.icon} {menu.label}
                       </Typography.Link>
                     )}
                   </Menu.Item>

@@ -41,8 +41,8 @@ const StyledCard = styled(Card)`
       height: 100%;
     }
     &:hover {
-      box-shadow: 8px 8px 28px 0px ${theme.colors.grayscale.light1};
-      transition: box-shadow ${theme.motionDurationMid} ease-in-out;
+      box-shadow: ${theme.boxShadow};
+      transition: box-shadow ${theme.motionDurationSlow} ease-in-out;
 
       .cover-footer {
         transform: translateY(0);
