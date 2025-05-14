@@ -19,7 +19,6 @@
 import { TreeProps, TreeDataNode } from 'src/components/Tree';
 import { ControlComponentProps } from '@superset-ui/chart-controls';
 import { Style } from 'geostyler-style';
-import { CardStyleProps } from 'geostyler/dist/Component/CardStyle/CardStyle';
 import { Data } from 'geostyler-data';
 
 export interface BaseLayerConf {
@@ -80,8 +79,10 @@ export interface LayerConfigsPopoverContentProps {
   layerConf: LayerConf;
 }
 
-export interface GeoStylerWrapperProps extends CardStyleProps {
+export interface GeoStylerWrapperProps {
+  style?: Style;
   className?: string;
+  onStyleChange?: (newStyle: Style) => void;
   data?: Data;
 }
 

@@ -324,6 +324,9 @@ const config = {
           './node_modules/@storybook/react-dom-shim/dist/react-16',
         ),
       ),
+      'geostyler-qgis-parser/dist/QGISStyleParser': require.resolve(
+        'geostyler-qgis-parser/build/dist/QGISStyleParser',
+      ),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
