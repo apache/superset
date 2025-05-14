@@ -56,6 +56,7 @@ import { Icons } from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import { executeQuery, resetDatabaseState } from 'src/database/actions';
 import { connect } from 'react-redux';
+import { Link, withRouter } from 'react-router-dom';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
@@ -723,6 +724,26 @@ class DatasourceEditor extends PureComponent {
     });
   }
 
+  getsqllabRouteProps() {
+    return {
+      pathname: `/sqllab/`,
+      state: {
+        requestedQuery: {
+          dbid: this.state.datasource.database.id,
+          sql: this.state.datasource.sql,
+          name: this.state.datasource.datasource_name,
+          schema: this.state.datasource.schema,
+          autorun: true,
+        },
+        isDataset: true,
+      },
+    };
+  }
+
+  openOnSqlLab() {
+    this.props.history.push(this.getsqllabRouteProps());
+  }
+
   tableChangeAndSyncMetadata() {
     this.validate(() => {
       this.syncMetadata();
@@ -998,6 +1019,12 @@ class DatasourceEditor extends PureComponent {
 
   renderSourceFieldset() {
     const { datasource } = this.state;
+    const floatingButtonCss = css`
+      align-self: flex-end;
+      height: 24px;
+      padding-left: 6px;
+      padding-right: 6px;
+    `;
     return (
       <div>
         <EditLockContainer>
@@ -1112,20 +1139,26 @@ class DatasourceEditor extends PureComponent {
                     }
                     additionalControl={
                       <div
-                        css={css`
-                          position: absolute;
-                          right: 0;
-                          top: 0;
-                          z-index: 2;
-                        `}
+                        css={{
+                          position: 'absolute',
+                          right: 0,
+                          top: 0,
+                          zIndex: 2,
+                        }}
                       >
+                        <Button css={floatingButtonCss} size="small">
+                          <Icons.ExportOutlined
+                            iconSize="s"
+                            css={theme => ({
+                              color: theme.colors.primary.dark1,
+                            })}
+                            onClick={() => {
+                              this.openOnSqlLab();
+                            }}
+                          />
+                        </Button>
                         <Button
-                          css={css`
-                            align-self: flex-end;
-                            height: 24px;
-                            padding-left: 6px;
-                            padding-right: 6px;
-                          `}
+                          css={floatingButtonCss}
                           size="small"
                           buttonStyle="primary"
                           onClick={() => {
@@ -1145,19 +1178,52 @@ class DatasourceEditor extends PureComponent {
                       this.props.database?.error && t('Error executing query.')
                     }
                   />
-                  {this.props.database?.queryResult && (
-                    <ResultTable
-                      data={this.props.database.queryResult.data}
-                      queryId={this.props.database.queryResult.query.id}
-                      orderedColumnKeys={this.props.database.queryResult.columns.map(
-                        col => col.column_name,
-                      )}
-                      height={100}
-                      expandedColumns={
-                        this.props.database.queryResult.expandedColumns
-                      }
-                      allowHTML
-                    />
+                  {this.props.sql_result && (
+                    <>
+                      <div
+                        css={css`
+                          margin-bottom: 16px;
+                        `}
+                      >
+                        <span
+                          css={theme => css`
+                            color: ${theme.colors.grayscale.base};
+                            font-size: 12px;
+                          `}
+                        >
+                          {t('In this view you can preview the first 25 rows.')}
+                        </span>
+                        <Link
+                          css={theme => css`
+                            color: ${theme.colors.grayscale.base};
+                            font-size: 12px;
+                            text-decoration: underline;
+                          `}
+                          to={this.getsqllabRouteProps()}
+                          type="link"
+                        >
+                          {t('Open in SQL lab')}{' '}
+                        </Link>
+                        <span
+                          css={theme => css`
+                            color: ${theme.colors.grayscale.base};
+                            font-size: 12px;
+                          `}
+                        >
+                          {t('to see details.')}
+                        </span>
+                      </div>
+                      <ResultTable
+                        data={this.props.sql_result.data}
+                        queryId={this.props.sql_result.query.id}
+                        orderedColumnKeys={this.props.sql_result.columns.map(
+                          col => col.column_name,
+                        )}
+                        height={100}
+                        expandedColumns={this.props.sql_result.expandedColumns}
+                        allowHTML
+                      />
+                    </>
                   )}
                 </>
               )}
@@ -1555,9 +1621,8 @@ const mapDispatchToProps = dispatch => ({
   resetQuery: () => dispatch(resetDatabaseState()),
 });
 const mapStateToProps = state => ({
-  test: state.queryApi,
-  database: state.database,
+  sql_result: state?.database?.queryResult,
 });
 export default withToasts(
-  connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent),
+  withRouter(connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent)),
 );

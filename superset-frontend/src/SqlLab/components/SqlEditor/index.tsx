@@ -315,6 +315,7 @@ const SqlEditor: FC<Props> = ({
   );
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');
+  const currentSQL = useRef<string>(queryEditor.sql);
   const showEmptyState = useMemo(
     () => !database || isEmpty(database),
     [database],
@@ -646,6 +647,7 @@ const SqlEditor: FC<Props> = ({
   );
 
   const onSqlChanged = useEffectEvent((sql: string) => {
+    currentSQL.current = sql;
     dispatch(queryEditorSetSql(queryEditor, sql));
   });
 
@@ -888,6 +890,67 @@ const SqlEditor: FC<Props> = ({
     dispatch(queryEditorSetCursorPosition(queryEditor, newPosition));
   };
 
+  const copyQueryLink = () => {
+    navigator.clipboard.writeText(currentSQL.current);
+  };
+  const renderDatasetWarning = () => (
+    <Alert
+      css={css`
+        margin-bottom: 8px;
+        padding-top: 16px;
+      `}
+      type="info"
+      description={
+        <div
+          css={css`
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          `}
+        >
+          <div
+            css={css`
+              display: flex;
+              flex-direction: column;
+            `}
+          >
+            <p
+              css={css`
+                font-size: 14px;
+                font-weight: 500;
+                color: ${theme.colors.primary.dark2};
+              `}
+            >
+              {' '}
+              {t(`You are edting a query from the virtual dataset `) +
+                queryEditor.name}
+            </p>
+            <p
+              css={css`
+                font-size: 14px;
+                font-weight: 400;
+                color: ${theme.colors.primary.dark2};
+              `}
+            >
+              {t(
+                'After making the changes, copy the query and paste in the virtual dataset SQL snippet settings.',
+              )}{' '}
+            </p>
+          </div>
+          <Button
+            onClick={() => {
+              copyQueryLink();
+            }}
+            type="primary"
+          >
+            {t('COPY QUERY')}
+          </Button>
+        </div>
+      }
+      message=""
+    />
+  );
+
   const queryPane = () => {
     const { aceEditorHeight, southPaneHeight } =
       getAceEditorAndSouthPaneHeights(height, northPercent, southPercent);
@@ -897,7 +960,7 @@ const SqlEditor: FC<Props> = ({
         className="queryPane"
         sizes={[northPercent, southPercent]}
         elementStyle={elementStyle}
-        minSize={200}
+        minSize={queryEditor.isDataset ? 400 : 200}
         direction="vertical"
         gutterSize={SQL_EDITOR_GUTTER_HEIGHT}
         onDragStart={onResizeStart}
@@ -913,6 +976,7 @@ const SqlEditor: FC<Props> = ({
               startQuery={startQuery}
             />
           )}
+          {queryEditor.isDataset && renderDatasetWarning()}
           {isActive && (
             <AceEditorWrapper
               autocomplete={autocompleteEnabled}
