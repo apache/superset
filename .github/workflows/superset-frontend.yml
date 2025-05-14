@@ -42,6 +42,8 @@ jobs:
         run: |
           echo "WHAT?"
           git rev-parse --short HEAD
+          echo "AGAIN?"
+          git show -s --format=raw HEAD
           cat superset-frontend/plugins/plugin-chart-table/src/DataTable/components/SearchSelectDropdown.tsx
           docker buildx build \
             -t $TAG \
