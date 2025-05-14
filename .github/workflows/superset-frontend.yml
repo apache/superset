@@ -40,6 +40,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker buildx build \
+            --no-cache \
             -t $TAG \
             --cache-from=type=registry,ref=apache/superset-cache:3.10-slim-bookworm \
             --target superset-node-ci \
