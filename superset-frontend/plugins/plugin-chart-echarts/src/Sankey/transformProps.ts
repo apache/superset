@@ -73,13 +73,26 @@ export default function transformProps(
   }));
 
   // stores a map with the total values for each node considering the links
-  const nodeValues = new Map<string, number>();
+  const incomingFlows = new Map<string, number>();
+  const outgoingFlows = new Map<string, number>();
+
   links.forEach(link => {
     const { source, target, value } = link;
-    const sourceValue = nodeValues.get(source) || 0;
-    const targetValue = nodeValues.get(target) || 0;
-    nodeValues.set(source, sourceValue + value);
-    nodeValues.set(target, targetValue + value);
+    incomingFlows.set(target, (incomingFlows.get(target) || 0) + value);
+    outgoingFlows.set(source, (outgoingFlows.get(source) || 0) + value);
+  });
+
+  const nodeValues = new Map<string, number>();
+  const allNodeNames = new Set([
+    ...outgoingFlows.keys(),
+    ...incomingFlows.keys(),
+  ]);
+
+  allNodeNames.forEach(nodeName => {
+    const totalIncoming = incomingFlows.get(nodeName) || 0;
+    const totalOutgoing = outgoingFlows.get(nodeName) || 0;
+
+    nodeValues.set(nodeName, Math.max(totalIncoming, totalOutgoing));
   });
 
   const tooltipFormatter = (params: CallbackDataParams) => {
