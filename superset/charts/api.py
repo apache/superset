@@ -59,7 +59,10 @@ from superset.charts.schemas import (
     thumbnail_query_schema,
 )
 from superset.commands.chart.create import CreateChartCommand
-from superset.commands.chart.delete import DeleteChartCommand
+from superset.commands.chart.delete import (
+    DeleteChartCommand,
+    DeleteEmbeddedChartCommand,
+)
 from superset.commands.chart.exceptions import (
     ChartCreateFailedError,
     ChartDeleteFailedError,
@@ -159,6 +162,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "warm_up_cache",
         "get_embedded",
         "set_embedded",
+        "delete_embedded",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -1310,3 +1314,44 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             db.session.rollback()  # pylint: disable=consider-using-transaction
             return self.response_400(message=error.messages)
+
+    @expose("/<pk>/embedded", methods=("DELETE",))
+    @protect()
+    @safe
+    @permission_name("set_embedded")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.delete_embedded",
+        log_to_statsd=False,
+    )
+    @with_chart
+    def delete_embedded(self, chart: Slice) -> Response:
+        """Delete a chart's embedded configuration.
+        ---
+        delete:
+          summary: Delete a chart's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id
+            description: The chart id
+          responses:
+            200:
+              description: Successfully removed the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        DeleteEmbeddedChartCommand(chart).run()
+        return self.response(200, message="OK")
