@@ -28,7 +28,7 @@ import type {
   CallbackDataParams,
 } from 'echarts/types/src/util/types';
 import transformProps, { parseParams } from '../../src/Pie/transformProps';
-import { EchartsPieChartProps } from '../../src/Pie/types';
+import { EchartsPieChartProps, PieChartDataItem } from '../../src/Pie/types';
 
 describe('Pie transformProps', () => {
   const formData: SqlaFormData = {
@@ -46,8 +46,13 @@ describe('Pie transformProps', () => {
     queriesData: [
       {
         data: [
-          { foo: 'Sylvester', bar: 1, sum__num: 10 },
-          { foo: 'Arnold', bar: 2, sum__num: 2.5 },
+          {
+            foo: 'Sylvester',
+            bar: 1,
+            sum__num: 10,
+            sum__num__contribution: 0.8,
+          },
+          { foo: 'Arnold', bar: 2, sum__num: 2.5, sum__num__contribution: 0.2 },
         ],
       },
     ],
@@ -213,5 +218,79 @@ describe('Pie label string template', () => {
         number_format: ',d',
       }),
     ).toEqual('Tablet:123456\n55.5');
+  });
+});
+
+describe('Other category', () => {
+  const defaultFormData: SqlaFormData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    granularity_sqla: 'ds',
+    metric: 'metric',
+    groupby: ['foo', 'bar'],
+    viz_type: 'my_viz',
+  };
+
+  const getChartProps = (formData: Partial<SqlaFormData>) =>
+    new ChartProps({
+      formData: {
+        ...defaultFormData,
+        ...formData,
+      },
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            {
+              foo: 'foo 1',
+              bar: 'bar 1',
+              metric: 1,
+              metric__contribution: 1 / 15, // 6.7%
+            },
+            {
+              foo: 'foo 2',
+              bar: 'bar 2',
+              metric: 2,
+              metric__contribution: 2 / 15, // 13.3%
+            },
+            {
+              foo: 'foo 3',
+              bar: 'bar 3',
+              metric: 3,
+              metric__contribution: 3 / 15, // 20%
+            },
+            {
+              foo: 'foo 4',
+              bar: 'bar 4',
+              metric: 4,
+              metric__contribution: 4 / 15, // 26.7%
+            },
+            {
+              foo: 'foo 5',
+              bar: 'bar 5',
+              metric: 5,
+              metric__contribution: 5 / 15, // 33.3%
+            },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+
+  it('generates Other category', () => {
+    const chartProps = getChartProps({
+      threshold_for_other: 20,
+    });
+    const transformed = transformProps(chartProps as EchartsPieChartProps);
+    const series = transformed.echartOptions.series as PieSeriesOption[];
+    const data = series[0].data as PieChartDataItem[];
+    expect(data).toHaveLength(4);
+    expect(data[0].value).toBe(3);
+    expect(data[1].value).toBe(4);
+    expect(data[2].value).toBe(5);
+    expect(data[3].value).toBe(1 + 2);
+    expect(data[3].name).toBe('Other');
+    expect(data[3].isOther).toBe(true);
   });
 });
