@@ -57,7 +57,15 @@ const setMockApiNotFound = () => {
 };
 
 const setup = () => {
-  render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
+  render(
+    <DashboardEmbedModal
+      resourceId={defaultProps.dashboardId}
+      show
+      onHide={mockOnHide}
+      resourceType="dashboard"
+    />,
+    { useRedux: true },
+  );
   resetMockApi();
 };
 
@@ -79,7 +87,15 @@ test('renders loading state', async () => {
 });
 
 test('renders the modal default content', async () => {
-  render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
+  render(
+    <DashboardEmbedModal
+      resourceId={defaultProps.dashboardId}
+      show
+      onHide={mockOnHide}
+      resourceType="dashboard"
+    />,
+    { useRedux: true },
+  );
   expect(await screen.findByText('Settings')).toBeInTheDocument();
   expect(
     screen.getByText(new RegExp(/Allowed Domains/, 'i')),
