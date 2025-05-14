@@ -152,7 +152,7 @@ jobs:
       - name: eslint
         run: |
           docker run --rm $TAG bash -c \
-          "npm i && npm run eslint -- . --quiet"
+          "cat plugins/plugin-chart-table/src/DataTable/components/SearchSelectDropdown.tsx && npm i && npm run eslint -- . --quiet"
 
       - name: tsc
         run: |
