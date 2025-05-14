@@ -23,6 +23,7 @@ import { styled } from '@superset-ui/core';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import Loading from 'src/components/Loading';
 import { store } from 'src/views/store';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import useExploreData from './useExploreData';
 import hydrateEmbedded from './hydrateEmbedded';
 
@@ -57,6 +58,7 @@ function EmbeddedChart() {
   const [isDimensionsSet, setIsDimensionsSet] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState<Dimensions | null>(null);
+  const { common } = getBootstrapData();
 
   // Get app element dimensions
   useEffect(() => {
@@ -113,7 +115,7 @@ function EmbeddedChart() {
       try {
         // store must be immediately hydrated with
         // necessary data for initial render
-        store.dispatch(hydrateEmbedded(exploreData.result));
+        store.dispatch(hydrateEmbedded(exploreData.result, common));
         setIsHydrated(true);
       } catch (err) {
         console.error('Error dispatching hydrate action:', err);

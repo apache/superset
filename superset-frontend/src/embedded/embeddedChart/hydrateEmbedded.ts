@@ -21,6 +21,7 @@ import { keyBy } from 'lodash';
 import { chart } from 'src/components/Chart/chartReducer';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { applyDefaultFormData } from 'src/explore/store';
+import { CommonBootstrapData } from 'src/types/bootstrapTypes';
 
 export const HYDRATE_EMBEDDED = 'HYDRATE_EMBEDDED';
 
@@ -83,10 +84,25 @@ export interface HydrateEmbeddedAction {
       slices: Slices;
     };
     dataMask: DataMask;
+    dashboardInfo: {
+      common: CommonBootstrapData;
+      superset_can_explore: boolean;
+      superset_can_share: boolean;
+      suerset_can_csv: boolean;
+      crossFiltersEnabled: boolean;
+    };
+    dashboardState: {
+      expandedSlices: {
+        [sliceId: number]: boolean;
+      };
+    };
   };
 }
 
-const hydrateEmbedded = (exploreData: ExploreData): HydrateEmbeddedAction => {
+const hydrateEmbedded = (
+  exploreData: ExploreData,
+  common: CommonBootstrapData,
+): HydrateEmbeddedAction => {
   const chartQueries: ChartQueries = {};
   const slices: Slices = {};
   const { slice } = exploreData;
@@ -130,6 +146,18 @@ const hydrateEmbedded = (exploreData: ExploreData): HydrateEmbeddedAction => {
       datasources: modifiedDs,
       sliceEntities: { slices },
       dataMask: cleanStateForDataMask,
+      dashboardInfo: {
+        common,
+        superset_can_explore: true,
+        superset_can_share: false,
+        suerset_can_csv: true,
+        crossFiltersEnabled: false,
+      },
+      dashboardState: {
+        expandedSlices: {
+          [key]: false,
+        },
+      },
     },
   };
 };
