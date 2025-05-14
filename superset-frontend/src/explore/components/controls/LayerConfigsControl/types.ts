@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TreeProps, DataNode } from 'src/components/Tree';
+import { TreeProps, TreeDataNode } from 'src/components/Tree';
 import { ControlComponentProps } from '@superset-ui/chart-controls';
 import { Style } from 'geostyler-style';
 import { CardStyleProps } from 'geostyler/dist/Component/CardStyle/CardStyle';
@@ -47,7 +47,7 @@ export interface WmsLayerConf extends BaseLayerConf {
   layersParam: string;
 }
 
-export interface FlatLayerDataNode extends DataNode {
+export interface FlatLayerDataNode extends TreeDataNode {
   layerConf: LayerConf;
 }
 

@@ -200,7 +200,6 @@ export { Switch, type SwitchProps } from './Switch';
 export { Tag } from './Tag';
 
 export { TreeSelect, type TreeSelectProps } from './TreeSelect';
-export { Tree, type DataNode } from './Tree';
 
 export {
   Typography,
