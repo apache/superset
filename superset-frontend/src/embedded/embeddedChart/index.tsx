@@ -1,7 +1,6 @@
 /* eslint-disable theme-colors/no-literal-colors */
 /* eslint-disable consistent-return */
 import { useEffect, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
 import { styled } from '@superset-ui/core';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import Loading from 'src/components/Loading';
@@ -36,8 +35,6 @@ interface Dimensions {
 }
 
 function EmbeddedChart() {
-  console.log('embedded chartttttt');
-  const dispatch = useDispatch();
   const [isHydrated, setIsHydrated] = useState(false);
   const [isDimensionsSet, setIsDimensionsSet] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -104,7 +101,7 @@ function EmbeddedChart() {
         console.error('Error dispatching hydrate action:', err);
       }
     }
-  }, [exploreData, dispatch]);
+  }, [exploreData]);
 
   if (isLoading || !isHydrated || !isDimensionsSet || !dimensions) {
     return <Loading />;
