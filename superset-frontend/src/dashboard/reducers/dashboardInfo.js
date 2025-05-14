@@ -45,11 +45,15 @@ export default function dashboardStateReducer(state = {}, action) {
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
     }
-    case (HYDRATE_DASHBOARD, HYDRATE_EMBEDDED):
+    case HYDRATE_DASHBOARD:
       return {
         ...state,
         ...action.data.dashboardInfo,
         // set async api call data
+      };
+    case HYDRATE_EMBEDDED:
+      return {
+        ...action.data.dashboardInfo,
       };
     case SET_FILTER_BAR_ORIENTATION:
       return {
