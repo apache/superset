@@ -64,7 +64,7 @@ import {
   TableOutlined,
 } from '@ant-design/icons';
 import { isEmpty, debounce, isEqual } from 'lodash';
-import { Input, Space, Select } from 'antd-v5';
+import { Input, Space, Select } from 'antd';
 import {
   ColorSchemeEnum,
   DataColumnMeta,

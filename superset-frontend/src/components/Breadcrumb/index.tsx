@@ -16,5 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { Breadcrumb } from 'antd-v5';
+export { Breadcrumb } from 'antd';
 export type { BreadcrumbProps } from './types';

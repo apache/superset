@@ -295,9 +295,9 @@ module.exports = {
           'error',
           {
             paths: Object.values(restrictedImportsRules).filter(
-              r => r.name !== 'antd-v5',
+              r => r.name !== 'antd',
             ),
-            patterns: ['antd/*'],
+            patterns: [],
           },
         ],
       },

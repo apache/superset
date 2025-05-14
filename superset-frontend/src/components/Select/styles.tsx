@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { Select } from 'antd-v5';
+import { Select } from 'antd';
 import { Icons } from 'src/components/Icons';
 import { Spin } from '../Spin';
 import { Flex } from '../Flex';

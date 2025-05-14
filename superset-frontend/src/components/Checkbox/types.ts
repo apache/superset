@@ -16,4 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type { CheckboxProps, CheckboxChangeEvent } from 'antd-v5/es/checkbox';
+export type { CheckboxProps, CheckboxChangeEvent } from 'antd/es/checkbox';

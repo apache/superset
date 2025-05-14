@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Flex as AntdFlex } from 'antd-v5';
+import { Flex as AntdFlex } from 'antd';
 import { ComponentProps } from 'react';
 
 export type FlexProps = ComponentProps<typeof AntdFlex>;

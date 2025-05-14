@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Form } from 'antd-v5';
+import { Form } from 'antd';
 import { styled } from '@superset-ui/core';
 
 export const FormItem = styled(Form.Item)`

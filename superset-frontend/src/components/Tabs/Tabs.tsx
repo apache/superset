@@ -19,7 +19,7 @@
 import { css, styled, useTheme } from '@superset-ui/core';
 
 // eslint-disable-next-line no-restricted-imports
-import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd-v5';
+import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd';
 import { Icons } from 'src/components/Icons';
 
 export interface TabsProps extends AntdTabsProps {

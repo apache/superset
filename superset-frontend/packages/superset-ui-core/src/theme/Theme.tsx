@@ -19,7 +19,7 @@
 /* eslint-disable react-prefer-function-component/react-prefer-function-component */
 // eslint-disable-next-line no-restricted-syntax
 import React from 'react';
-import { theme as antdThemeImport, ConfigProvider } from 'antd-v5';
+import { theme as antdThemeImport, ConfigProvider } from 'antd';
 import tinycolor from 'tinycolor2';
 
 import {

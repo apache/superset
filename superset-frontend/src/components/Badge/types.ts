@@ -16,6 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { BadgeProps } from 'antd-v5/es/badge';
+import type { BadgeProps } from 'antd/es/badge';
 
 export type { BadgeProps };

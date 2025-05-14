@@ -17,4 +17,4 @@
  * under the License.
  */
 
-export { Menu, type MenuProps } from 'antd-v5';
+export { Menu, type MenuProps } from 'antd';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { Collapse as AntdCollapse } from 'antd-v5';
+import { Collapse as AntdCollapse } from 'antd';
 import type { CollapseProps } from './types';
 
 export const Collapse = styled((props: CollapseProps) => (

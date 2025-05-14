@@ -18,12 +18,12 @@
  */
 import { useState, useEffect, useRef, Key, FC } from 'react';
 
-import { Table as AntTable } from 'antd-v5';
-import { ColumnsType, TableProps as AntTableProps } from 'antd-v5/es/table';
-import { PaginationProps } from 'antd-v5/es/pagination';
+import { Table as AntTable } from 'antd';
+import { ColumnsType, TableProps as AntTableProps } from 'antd/es/table';
+import { PaginationProps } from 'antd/es/pagination';
 import { t, useTheme, logging, styled } from '@superset-ui/core';
 import { Loading } from 'src/components';
-import { RowSelectionType } from 'antd-v5/es/table/interface';
+import { RowSelectionType } from 'antd/es/table/interface';
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
 import VirtualTable, { VirtualTableProps } from './VirtualTable';
 
@@ -44,8 +44,8 @@ export enum ETableAction {
 }
 
 export type { ColumnsType };
-export type { TablePaginationConfig } from 'antd-v5/es/table';
-export type { SorterResult } from 'antd-v5/es/table/interface';
+export type { TablePaginationConfig } from 'antd/es/table';
+export type { SorterResult } from 'antd/es/table/interface';
 export type OnChangeFunction<RecordType> =
   AntTableProps<RecordType>['onChange'];
 

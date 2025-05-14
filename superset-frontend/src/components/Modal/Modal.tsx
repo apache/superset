@@ -19,7 +19,7 @@
 import { isValidElement, cloneElement, useMemo, useRef, useState } from 'react';
 import { isNil } from 'lodash';
 import { css, styled, t } from '@superset-ui/core';
-import { Modal as AntdModal, ModalProps as AntdModalProps } from 'antd-v5';
+import { Modal as AntdModal, ModalProps as AntdModalProps } from 'antd';
 import { Resizable } from 're-resizable';
 import Draggable, {
   DraggableBounds,

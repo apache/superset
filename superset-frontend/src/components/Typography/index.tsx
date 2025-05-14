@@ -17,9 +17,9 @@
  * under the License.
  */
 import { styled, css } from '@superset-ui/core';
-import { Typography as AntdTypography } from 'antd-v5';
+import { Typography as AntdTypography } from 'antd';
 
-export type { ParagraphProps } from 'antd-v5/es/typography/Paragraph';
+export type { ParagraphProps } from 'antd/es/typography/Paragraph';
 
 const StyledLink = styled(AntdTypography.Link)`
     ${({ theme }) =>
@@ -39,4 +39,4 @@ export const Typography: typeof AntdTypography = Object.assign(AntdTypography, {
   Title: AntdTypography.Title,
   Paragraph: AntdTypography.Paragraph,
 });
-export type { TypographyProps } from 'antd-v5';
+export type { TypographyProps } from 'antd';

@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import type { DataNode } from 'antd-v5/es/tree';
-import { TreeProps } from 'src/components/Tree';
+import { TreeProps, DataNode } from 'src/components/Tree';
 import { ControlComponentProps } from '@superset-ui/chart-controls';
 import { Style } from 'geostyler-style';
 import { CardStyleProps } from 'geostyler/dist/Component/CardStyle/CardStyle';
+import { Data } from 'geostyler-data';
 
 export interface BaseLayerConf {
   title: string;
@@ -83,6 +82,7 @@ export interface LayerConfigsPopoverContentProps {
 
 export interface GeoStylerWrapperProps extends CardStyleProps {
   className?: string;
+  data?: Data;
 }
 
 export interface LayerTreeItemProps {

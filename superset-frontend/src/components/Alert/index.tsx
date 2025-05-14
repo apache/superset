@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Alert as AntdAlert } from 'antd-v5';
+import { Alert as AntdAlert } from 'antd';
 import type { AlertProps } from './types';
 
 export const Alert = (props: AlertProps) => {

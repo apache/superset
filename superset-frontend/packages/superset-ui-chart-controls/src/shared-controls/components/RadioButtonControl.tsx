@@ -18,7 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { JsonValue, useTheme } from '@superset-ui/core';
-import { Radio } from 'antd-v5';
+import { Radio } from 'antd';
 import { ControlHeader } from '../../components/ControlHeader';
 
 // [value, label]

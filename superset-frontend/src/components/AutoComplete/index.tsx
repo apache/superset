@@ -16,5 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { AutoComplete } from 'antd-v5';
+export { AutoComplete } from 'antd';
 export type { AutoCompleteProps } from './types';

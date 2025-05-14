@@ -18,7 +18,7 @@
  */
 /* eslint-disable import/no-extraneous-dependencies */
 import { styled } from '@superset-ui/core';
-import { Select } from 'antd-v5';
+import { Select } from 'antd';
 import { SearchOption } from '../../types';
 
 const StyledSelect = styled(Select)`

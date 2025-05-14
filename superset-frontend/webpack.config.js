@@ -278,7 +278,7 @@ const config = {
               'webpack.*',
               '@?babel.*',
               'lodash.*',
-              'antd-v5',
+              'antd',
               '@ant-design.*',
               '.*bootstrap',
               'moment',
