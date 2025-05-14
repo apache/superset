@@ -189,7 +189,7 @@ function SearchInput({
   inputRef,
 }: SearchInputProps) {
   return (
-    <Space direction="horizontal" size={4}>
+    <Space direction="horizontal" size={4} className="dt-global-filter">
       {t('Search')}
       <Input
         size="small"
