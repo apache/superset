@@ -41,11 +41,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "WHAT?"
-          git rev-parse --short HEAD
-          echo "AGAIN?"
-          git show -s --format=raw HEAD
-          cat superset-frontend/plugins/plugin-chart-table/src/DataTable/components/SearchSelectDropdown.tsx
           docker buildx build \
             -t $TAG \
             --cache-from=type=registry,ref=apache/superset-cache:3.10-slim-bookworm \
@@ -152,13 +147,12 @@ jobs:
 
       - name: Load Docker Image
         run: |
-          cat superset-frontend/plugins/plugin-chart-table/src/DataTable/components/SearchSelectDropdown.tsx
           docker load < docker-image.tar.gz
 
       - name: eslint
         run: |
           docker run --rm $TAG bash -c \
-          "cat plugins/plugin-chart-table/src/DataTable/components/SearchSelectDropdown.tsx && npm i && npm run eslint -- . --quiet"
+          "npm i && npm run eslint -- . --quiet"
 
       - name: tsc
         run: |
