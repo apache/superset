@@ -1,6 +1,5 @@
 import { DataMaskWithId } from '@superset-ui/core';
 import { keyBy } from 'lodash';
-import { Dispatch } from 'redux';
 import { chart } from 'src/components/Chart/chartReducer';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { applyDefaultFormData } from 'src/explore/store';
@@ -35,16 +34,6 @@ interface DataMask {
   [key: number]: DataMaskWithId;
 }
 
-interface HydrateEmbeddedAction {
-  type: typeof HYDRATE_EMBEDDED;
-  data: {
-    charts: ChartQueries;
-    datasources: Record<string, any>;
-    sliceEntities: Slices;
-    dataMask: DataMask;
-  };
-}
-
 interface ExploreData {
   slice: {
     slice_id: number;
@@ -67,53 +56,52 @@ interface ExploreData {
   };
 }
 
-const hydrateEmbedded =
-  (exploreData: ExploreData) => (dispatch: Dispatch<HydrateEmbeddedAction>) => {
-    const chartQueries: ChartQueries = {};
-    const slices: Slices = {};
-    const { slice } = exploreData;
-    const key = slice.slice_id;
-    const formData = {
-      ...slice.form_data,
-    };
-    const cleanStateForDataMask: DataMask = {};
-
-    cleanStateForDataMask[key] = {
-      ...(getInitialDataMask(key) as DataMaskWithId),
-    };
-
-    chartQueries[key] = {
-      ...chart,
-      id: key,
-      form_data: applyDefaultFormData(formData),
-    };
-
-    slices[key] = {
-      slice_id: key,
-      slice_url: slice.slice_url,
-      slice_name: slice.slice_name,
-      form_data: slice.form_data,
-      viz_type: slice.form_data.viz_type,
-      datasource: slice.form_data.datasource,
-      description: slice.description,
-      description_markeddown: slice.description_markeddown,
-      owners: slice.owners,
-      modified: slice.modified,
-      changed_on: new Date(slice.changed_on).getTime(),
-    };
-
-    const datasourceObj = [exploreData.dataset];
-    const modifiedDs = keyBy(datasourceObj, 'uid');
-
-    return dispatch({
-      type: HYDRATE_EMBEDDED,
-      data: {
-        charts: chartQueries,
-        datasources: modifiedDs,
-        sliceEntities: slices,
-        dataMask: cleanStateForDataMask,
-      },
-    });
+const hydrateEmbedded = (exploreData: ExploreData) => {
+  const chartQueries: ChartQueries = {};
+  const slices: Slices = {};
+  const { slice } = exploreData;
+  const key = slice.slice_id;
+  const formData = {
+    ...slice.form_data,
   };
+  const cleanStateForDataMask: DataMask = {};
+
+  cleanStateForDataMask[key] = {
+    ...(getInitialDataMask(key) as DataMaskWithId),
+  };
+
+  chartQueries[key] = {
+    ...chart,
+    id: key,
+    form_data: applyDefaultFormData(formData),
+  };
+
+  slices[key] = {
+    slice_id: key,
+    slice_url: slice.slice_url,
+    slice_name: slice.slice_name,
+    form_data: slice.form_data,
+    viz_type: slice.form_data.viz_type,
+    datasource: slice.form_data.datasource,
+    description: slice.description,
+    description_markeddown: slice.description_markeddown,
+    owners: slice.owners,
+    modified: slice.modified,
+    changed_on: new Date(slice.changed_on).getTime(),
+  };
+
+  const datasourceObj = [exploreData.dataset];
+  const modifiedDs = keyBy(datasourceObj, 'uid');
+
+  return {
+    type: HYDRATE_EMBEDDED,
+    data: {
+      charts: chartQueries,
+      datasources: modifiedDs,
+      sliceEntities: { slices },
+      dataMask: cleanStateForDataMask,
+    },
+  };
+};
 
 export default hydrateEmbedded;

@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux';
 import { styled } from '@superset-ui/core';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import Loading from 'src/components/Loading';
+import { store } from 'src/views/store';
 import useExploreData from './useExploreData';
 import hydrateEmbedded from './hydrateEmbedded';
 
@@ -35,6 +36,7 @@ interface Dimensions {
 }
 
 function EmbeddedChart() {
+  console.log('embedded chartttttt');
   const dispatch = useDispatch();
   const [isHydrated, setIsHydrated] = useState(false);
   const [isDimensionsSet, setIsDimensionsSet] = useState(false);
@@ -93,8 +95,14 @@ function EmbeddedChart() {
 
   useEffect(() => {
     if (exploreData?.result) {
-      dispatch(hydrateEmbedded(exploreData.result));
-      setIsHydrated(true);
+      try {
+        // store must be immediately hydrated with
+        // necessary data for initial render
+        store.dispatch(hydrateEmbedded(exploreData.result));
+        setIsHydrated(true);
+      } catch (err) {
+        console.error('Error dispatching hydrate action:', err);
+      }
     }
   }, [exploreData, dispatch]);
 
