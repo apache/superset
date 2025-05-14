@@ -40,6 +40,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "WHAT?"
+          git rev-parse --short HEAD
           cat superset-frontend/plugins/plugin-chart-table/src/DataTable/components/SearchSelectDropdown.tsx
           docker buildx build \
             -t $TAG \
