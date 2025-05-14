@@ -19,6 +19,7 @@
 import { Dispatch } from 'redux';
 import { SupersetClient } from '@superset-ui/core';
 import { Datasource, RootState } from 'src/dashboard/types';
+import { HydrateEmbeddedAction } from 'src/embedded/embeddedChart/hydrateEmbedded';
 
 // update datasources index for Dashboard
 export enum DatasourcesAction {
@@ -35,7 +36,8 @@ export type DatasourcesActionPayload =
       type: DatasourcesAction.SetDatasource;
       key: Datasource['uid'];
       datasource: Datasource;
-    };
+    }
+  | HydrateEmbeddedAction;
 
 export function setDatasources(datasources: Datasource[] | null) {
   return {

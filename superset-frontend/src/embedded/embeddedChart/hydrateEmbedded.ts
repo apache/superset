@@ -56,7 +56,19 @@ interface ExploreData {
   };
 }
 
-const hydrateEmbedded = (exploreData: ExploreData) => {
+export interface HydrateEmbeddedAction {
+  type: typeof HYDRATE_EMBEDDED;
+  data: {
+    charts: ChartQueries;
+    datasources: Record<string, any>;
+    sliceEntities: {
+      slices: Slices;
+    };
+    dataMask: DataMask;
+  };
+}
+
+const hydrateEmbedded = (exploreData: ExploreData): HydrateEmbeddedAction => {
   const chartQueries: ChartQueries = {};
   const slices: Slices = {};
   const { slice } = exploreData;

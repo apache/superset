@@ -40,10 +40,8 @@ export default function datasourcesReducer(
       [action.key]: action.datasource,
     };
   }
-  // @ts-ignore
   if (action.type === HYDRATE_EMBEDDED) {
     return {
-      // @ts-ignore
       ...action.data.datasources,
     };
   }
