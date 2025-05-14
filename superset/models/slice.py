@@ -40,6 +40,7 @@ from sqlalchemy.orm.mapper import Mapper
 
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
+from superset.models.embedded_chart import EmbeddedChart
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
@@ -117,6 +118,11 @@ class Slice(  # pylint: disable=too-many-public-methods
         "Slice.datasource_type == 'table')",
         remote_side="SqlaTable.id",
         lazy="subquery",
+    )
+    embedded = relationship(
+        EmbeddedChart,
+        back_populates="slice",
+        cascade="all, delete-orphan",
     )
 
     token = ""

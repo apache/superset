@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
+import functools
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, cast, Optional
+from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import redirect, request, Response, send_file, url_for
+from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -80,6 +82,7 @@ from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
 from superset.extensions import event_logger
+from superset.models.embedded_chart import EmbeddedChart
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
@@ -102,6 +105,29 @@ from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 config = app.config
+
+
+def with_chart(
+    f: Callable[[BaseSupersetModelRestApi, Slice], Response],
+) -> Callable[[BaseSupersetModelRestApi, str], Response]:
+    """
+    A decorator that looks up the chart by id and passes it to the api.
+    Route must include an <pk> parameter.
+    Responds with 403 or 404 without calling the route, if necessary.
+    """
+
+    def wraps(self: BaseSupersetModelRestApi, pk: str) -> Response:
+        try:
+            chart = ChartDAO.find_by_id(int(pk))
+            if not chart:
+                return self.response_404()
+            return f(self, chart)
+        except ChartForbiddenError:
+            return self.response_403()
+        except ValueError:
+            return self.response_404()
+
+    return functools.update_wrapper(wraps, f)
 
 
 class ChartRestApi(BaseSupersetModelRestApi):
@@ -129,6 +155,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "screenshot",
         "cache_screenshot",
         "warm_up_cache",
+        "get_embedded",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -1151,3 +1178,45 @@ class ChartRestApi(BaseSupersetModelRestApi):
         )
         command.run()
         return self.response(200, message="OK")
+
+    @expose("/<pk>/embedded", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_embedded",
+        log_to_statsd=False,
+    )
+    @with_chart
+    def get_embedded(self, chart: Slice) -> Response:
+        """Get the chart's embedded configuration.
+        ---
+        get:
+          summary: Get the chart's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: id
+            description: The chart ID or slug
+          responses:
+            200:
+              description: Result contains the embedded chart config
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedChartResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not chart.embedded:
+            return self.response(404)
+        embedded = chart.embedded[0]
+        result: EmbeddedChart = self.embedded_response_schema.dump(embedded)
+        return self.response(200, result=result)
