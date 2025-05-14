@@ -293,6 +293,8 @@ describe('Native filters', () => {
 
     it('Verify setting options and tooltips for value filter', () => {
       enterNativeFilterEditModal(false);
+      cy.contains('Filter value is required').scrollIntoView();
+
       cy.contains('Filter value is required').should('be.visible').click({
         force: true,
       });

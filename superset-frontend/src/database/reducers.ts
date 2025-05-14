@@ -16,29 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Form } from 'antd-v5';
-import { styled } from '@superset-ui/core';
 
-export const FormItem = styled(Form.Item)`
-  ${({ theme }) => `
-    &.antd5-form-item > .antd5-row > .antd5-form-item-label {
-      padding-bottom: ${theme.paddingXXS}px;
-    }
-    .antd5-form-item-label {
-      & > label {
-        &.antd5-form-item-required:not(.antd5-form-item-required-mark-optional) {
-          &::before {
-            display: none;
-          }
-          &::after {
-            display: inline-block;
-            visibility: visible;
-            color: ${theme.colorError};
-            font-size: ${theme.fontSizeSM}px;
-            content: '*';
-          }
-        }
-      }
-    }
-  `}
-`;
+import type { QueryAdhocState } from './types';
+
+const initialState: QueryAdhocState = {
+  isLoading: null,
+  sql: null,
+  queryResult: null,
+  error: null,
+};
+
+export default function databaseReducer(
+  state: QueryAdhocState = initialState,
+  action: any,
+): QueryAdhocState {
+  switch (action.type) {
+    case 'SET_QUERY_IS_LOADING':
+      return {
+        ...state,
+        isLoading: action.payload,
+      };
+    case 'SET_QUERY_RESULT':
+      return {
+        ...state,
+        sql: action.payload.query.sql ?? '',
+        queryResult: action.payload,
+        error: null,
+      };
+    case 'SET_QUERY_ERROR':
+      return {
+        ...initialState,
+        error: action.payload,
+      };
+    case 'RESET_DATABASE_STATE':
+      return initialState;
+    default:
+      return state;
+  }
+}

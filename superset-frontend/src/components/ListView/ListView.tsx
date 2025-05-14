@@ -41,51 +41,53 @@ import {
 import { ListViewError, useListViewState } from './utils';
 
 const ListViewStyles = styled.div`
-  text-align: center;
+  ${({ theme }) => `
+    text-align: center;
 
-  .superset-list-view {
-    text-align: left;
-    border-radius: 4px 0;
-    margin: 0 ${({ theme }) => theme.sizeUnit * 4}px;
+    .superset-list-view {
+      text-align: left;
+      border-radius: 4px 0;
+      margin: 0 ${theme.sizeUnit * 4}px;
 
-    .header {
-      display: flex;
-      padding-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
-
-      & .controls {
+      .header {
         display: flex;
-        flex-wrap: wrap;
-        column-gap: ${({ theme }) => theme.sizeUnit * 6}px;
-        row-gap: ${({ theme }) => theme.sizeUnit * 4}px;
+        padding-bottom: ${theme.sizeUnit * 4}px;
+
+        & .controls {
+          display: flex;
+          flex-wrap: wrap;
+          column-gap: ${theme.sizeUnit * 6}px;
+          row-gap: ${theme.sizeUnit * 4}px;
+        }
+      }
+
+      .body.empty table {
+        margin-bottom: 0;
+      }
+
+      .body {
+        overflow-x: auto;
+      }
+
+      .antd5-empty {
+        .antd5-empty-image {
+          height: auto;
+        }
       }
     }
 
-    .body.empty table {
-      margin-bottom: 0;
+    .pagination-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      margin-bottom: ${theme.sizeUnit * 4}px;
     }
 
-    .body {
-      overflow-x: auto;
+    .row-count-container {
+      margin-top: ${theme.sizeUnit * 2}px;
+      color: ${theme.colors.grayscale.base};
     }
-
-    .antd5-empty {
-      .antd5-empty-image {
-        height: auto;
-      }
-    }
-  }
-
-  .pagination-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
-  }
-
-  .row-count-container {
-    margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
-  }
+  `}
 `;
 
 const BulkSelectWrapper = styled(Alert)`
@@ -106,9 +108,7 @@ const BulkSelectWrapper = styled(Alert)`
     }
 
     .divider {
-      margin: ${`${-theme.sizeUnit * 2}px 0 ${-theme.sizeUnit * 2}px ${
-        theme.sizeUnit * 4
-      }px`};
+      margin: ${`${-theme.sizeUnit * 2}px 0 ${-theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px`};
       width: 1px;
       height: ${theme.sizeUnit * 8}px;
       box-shadow: inset -1px 0px 0px ${theme.colorBorder};
@@ -139,36 +139,41 @@ const bulkSelectColumnConfig = {
 };
 
 const ViewModeContainer = styled.div`
-  padding-right: ${({ theme }) => theme.sizeUnit * 4}px;
-  margin-top: ${({ theme }) => theme.sizeUnit * 5 + 1}px;
-  white-space: nowrap;
-  display: inline-block;
-
-  .toggle-button {
+  ${({ theme }) => `
+    padding-right: ${theme.sizeUnit * 4}px;
+    margin-top: ${theme.sizeUnit * 5 + 1}px;
+    white-space: nowrap;
     display: inline-block;
-    border-radius: ${({ theme }) => theme.borderRadius}px;
-    padding: ${({ theme }) => theme.sizeUnit}px;
-    padding-bottom: ${({ theme }) => theme.sizeUnit * 0.5}px;
 
-    &:first-of-type {
-      margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
-    }
-  }
+    .toggle-button {
+      display: inline-block;
+      border-radius: ${theme.borderRadius}px;
+      padding: ${theme.sizeUnit}px;
+      padding-bottom: ${theme.sizeUnit * 0.5}px;
 
-  .active {
-    background-color: ${({ theme }) => theme.colors.grayscale.base};
-    svg {
-      color: ${({ theme }) => theme.colorBgLayout};
+      &:first-of-type {
+        margin-right: ${theme.sizeUnit * 2}px;
+      }
     }
-  }
+
+    .active {
+      background-color: ${theme.colors.grayscale.base};
+
+      svg {
+        color: ${theme.colorBgLayout};
+      }
+    }
+  `}
 `;
 
 const EmptyWrapper = styled.div`
-  padding: ${({ theme }) => theme.sizeUnit * 40}px 0;
+  ${({ theme }) => `
+    padding: ${theme.sizeUnit * 40}px 0;
 
-  &.table {
-    background: ${({ theme }) => theme.colorBgContainer};
-  }
+    &.table {
+      background: ${theme.colorBgContainer};
+    }
+  `}
 `;
 
 const ViewModeToggle = ({
@@ -343,7 +348,7 @@ export function ListView<T extends object = any>({
           onHide={() => setShowBulkTagModal(false)}
         />
       )}
-      <div data-test={className} className={`superset-list-view ${className}`}>
+      <div data-test={className} className={`superset-list-view ${className} `}>
         <div className="header">
           {cardViewEnabled && (
             <ViewModeToggle mode={viewMode} setMode={setViewMode} />
@@ -366,7 +371,7 @@ export function ListView<T extends object = any>({
             )}
           </div>
         </div>
-        <div className={`body ${rows.length === 0 ? 'empty' : ''}`}>
+        <div className={`body ${rows.length === 0 ? 'empty' : ''} `}>
           {bulkSelectEnabled && (
             <BulkSelectWrapper
               data-test="bulk-select-controls"

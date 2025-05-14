@@ -16,29 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Form } from 'antd-v5';
-import { styled } from '@superset-ui/core';
 
-export const FormItem = styled(Form.Item)`
-  ${({ theme }) => `
-    &.antd5-form-item > .antd5-row > .antd5-form-item-label {
-      padding-bottom: ${theme.paddingXXS}px;
-    }
-    .antd5-form-item-label {
-      & > label {
-        &.antd5-form-item-required:not(.antd5-form-item-required-mark-optional) {
-          &::before {
-            display: none;
-          }
-          &::after {
-            display: inline-block;
-            visibility: visible;
-            color: ${theme.colorError};
-            font-size: ${theme.fontSizeSM}px;
-            content: '*';
-          }
-        }
-      }
-    }
-  `}
-`;
+export interface QueryExecutePayload {
+  client_id: string;
+  database_id: number;
+  json: boolean;
+  runAsync: boolean;
+  catalog: string | null;
+  schema: string;
+  sql: string;
+  tmp_table_name: string;
+  select_as_cta: boolean;
+  ctas_method: string;
+  queryLimit: number;
+  expand_data: boolean;
+}
+export interface Column {
+  name: string;
+  type: string;
+  is_dttm: boolean;
+  type_generic: number;
+  is_hidden: boolean;
+  column_name: string;
+}
+export interface QueryExecuteResponse {
+  status: string;
+  query_id: string;
+  data: any[];
+  columns: Column[];
+  selected_columns: Column[];
+  expanded_columns: Column[];
+  query: any;
+}
+
+export interface QueryAdhocState {
+  isLoading: boolean | null;
+  sql: string | null;
+  queryResult: QueryExecuteResponse | null;
+  error: string | null;
+}

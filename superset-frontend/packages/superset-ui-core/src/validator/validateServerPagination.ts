@@ -16,29 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Form } from 'antd-v5';
-import { styled } from '@superset-ui/core';
+import { t } from '../translation';
 
-export const FormItem = styled(Form.Item)`
-  ${({ theme }) => `
-    &.antd5-form-item > .antd5-row > .antd5-form-item-label {
-      padding-bottom: ${theme.paddingXXS}px;
-    }
-    .antd5-form-item-label {
-      & > label {
-        &.antd5-form-item-required:not(.antd5-form-item-required-mark-optional) {
-          &::before {
-            display: none;
-          }
-          &::after {
-            display: inline-block;
-            visibility: visible;
-            color: ${theme.colorError};
-            font-size: ${theme.fontSizeSM}px;
-            content: '*';
-          }
-        }
-      }
-    }
-  `}
-`;
+export default function validateServerPagination(
+  v: unknown,
+  serverPagination: boolean,
+  max: number,
+) {
+  if (Number(v) > +max && !serverPagination) {
+    return t('Server pagination needs to be enabled for values over %s', max);
+  }
+  return false;
+}

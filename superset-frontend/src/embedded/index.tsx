@@ -23,7 +23,7 @@ import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { makeApi, t, logging } from '@superset-ui/core';
 import Switchboard from '@superset-ui/switchboard';
-import getBootstrapData from 'src/utils/getBootstrapData';
+import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
 import setupPlugins from 'src/setup/setupPlugins';
 import { useUiConfig } from 'src/components/UiConfigContext';
@@ -93,7 +93,7 @@ const EmbeddedRoute = () => (
 );
 
 const EmbeddedApp = () => (
-  <Router>
+  <Router basename={applicationRoot()}>
     {/* todo (embedded) remove this line after uuids are deployed */}
     <Route path="/dashboard/:idOrSlug/embedded/" component={EmbeddedRoute} />
     <Route path="/embedded/:uuid/" component={EmbeddedRoute} />
@@ -186,6 +186,7 @@ function start() {
  */
 function setupGuestClient(guestToken: string) {
   setupClient({
+    appRoot: applicationRoot(),
     guestToken,
     guestTokenHeaderName: bootstrapData.config?.GUEST_TOKEN_HEADER_NAME,
     unauthorizedHandler: guestUnauthorizedHandler,

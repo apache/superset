@@ -17,16 +17,17 @@
  * under the License.
  */
 
+import { t } from '@superset-ui/core';
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
 import { UploadFile } from 'src/components/Upload';
-import { t } from '@superset-ui/core';
+import { Typography } from 'src/components/Typography';
+import { DatabaseForm, DatabaseObject } from '../types';
 import {
   EditHeaderTitle,
   EditHeaderSubtitle,
   StyledFormHeader,
   StyledStickyHeader,
 } from './styles';
-import { DatabaseForm, DatabaseObject } from '../types';
 
 const supersetTextDocs = getDatabaseDocumentationLinks();
 
@@ -100,7 +101,9 @@ const ModalHeader = ({
           stepLast: 2,
         })}
       </p>
-      <h4>{t('Enter Primary Credentials')}</h4>
+      <Typography.Title level={4}>
+        {t('Enter Primary Credentials')}
+      </Typography.Title>
       <p className="helper-bottom">
         {t('Need help? Learn how to connect your database')}{' '}
         <a
@@ -124,7 +127,9 @@ const ModalHeader = ({
             stepLast: 3,
           })}
         </p>
-        <h4 className="step-3-text">{t('Database connected')}</h4>
+        <Typography.Title level={4} className="step-3-text">
+          {t('Database connected')}
+        </Typography.Title>
         <p className="subheader-text">
           {t(`Create a dataset to begin visualizing your data as a chart or go to
           SQL Lab to query your data.`)}
@@ -142,11 +147,11 @@ const ModalHeader = ({
             stepLast: 3,
           })}
         </p>
-        <h4>
+        <Typography.Title level={4}>
           {t('Enter the required %(dbModelName)s credentials', {
             dbModelName: dbModel.name,
           })}
-        </h4>
+        </Typography.Title>
         <p className="helper-bottom">
           {t('Need help? Learn more about')}{' '}
           <a
@@ -171,7 +176,9 @@ const ModalHeader = ({
               stepLast: 3,
             })}
           </p>
-          <h4>{t('Select a database to connect')}</h4>
+          <Typography.Title level={4}>
+            {t('Select a database to connect')}
+          </Typography.Title>
         </div>
       </StyledFormHeader>
     </StyledStickyHeader>
@@ -186,11 +193,11 @@ const ModalHeader = ({
             stepLast: 2,
           })}
         </p>
-        <h4>
+        <Typography.Title level={4}>
           {t('Enter the required %(dbModelName)s credentials', {
             dbModelName: dbModel.name,
           })}
-        </h4>
+        </Typography.Title>
         <p className="helper-bottom">{fileCheck ? fileList[0].name : ''}</p>
       </StyledFormHeader>
     </StyledStickyHeader>

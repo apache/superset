@@ -16,29 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Form } from 'antd-v5';
+/* eslint-disable import/no-extraneous-dependencies */
 import { styled } from '@superset-ui/core';
+import { Select } from 'antd';
+import { SearchOption } from '../../types';
 
-export const FormItem = styled(Form.Item)`
-  ${({ theme }) => `
-    &.antd5-form-item > .antd5-row > .antd5-form-item-label {
-      padding-bottom: ${theme.paddingXXS}px;
-    }
-    .antd5-form-item-label {
-      & > label {
-        &.antd5-form-item-required:not(.antd5-form-item-required-mark-optional) {
-          &::before {
-            display: none;
-          }
-          &::after {
-            display: inline-block;
-            visibility: visible;
-            color: ${theme.colorError};
-            font-size: ${theme.fontSizeSM}px;
-            content: '*';
-          }
-        }
-      }
-    }
-  `}
+const StyledSelect = styled(Select)`
+  width: 120px;
+  margin-right: 8px;
 `;
+
+interface SearchSelectDropdownProps {
+  /** The currently selected search column value */
+  value?: string;
+  /** Callback triggered when a new search column is selected */
+  onChange: (searchCol: string) => void;
+  /** Available search column options to populate the dropdown */
+  searchOptions: SearchOption[];
+}
+
+function SearchSelectDropdown({
+  value,
+  onChange,
+  searchOptions,
+}: SearchSelectDropdownProps) {
+  return (
+    <StyledSelect
+      className="search-select"
+      value={value || (searchOptions?.[0]?.value ?? '')}
+      options={searchOptions}
+      onChange={onChange}
+    />
+  );
+}
+
+export default SearchSelectDropdown;
