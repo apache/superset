@@ -117,8 +117,21 @@ class MigratePivotTable(MigrateViz):
             "time_grain_sqla"
         )
 
-        raw_columns = ensure_is_array(groupby_columns) + ensure_is_array(groupby_rows)
-        unique_columns = list(dict.fromkeys(raw_columns))
+        # unique_columns = []
+        # for col in groupby_columns:
+        #     if type(col) == dict:
+        #         unique_columns.append(col.get("label"))
+        #     else:
+        #         unique_columns.append(col)
+
+        # for col in groupby_rows:
+        #     if type(col) == dict:
+        #         unique_columns.append(col.get("label"))
+        #     else:
+        #         unique_columns.append(col)
+
+        unique_columns = ensure_is_array(groupby_columns) + ensure_is_array(groupby_rows)
+
         columns = []
         for col in unique_columns:
             if (
@@ -303,7 +316,6 @@ class TimeseriesChart(MigrateViz):
 
     def build_query(self):
         groupby = self.data.get("groupby")
-
         def query_builder(base_query_object):
             """
             The `pivot_operator_in_runtime` determines how to pivot the dataframe

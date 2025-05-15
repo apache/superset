@@ -293,13 +293,14 @@ def is_physical_column(column: Any = None) -> bool:
 
 def is_adhoc_column(column: Any = None) -> bool:
     """Return True if column is an adhoc column (object with SQL expression)."""
+    if type(column) != dict:
+        return False    
     return (
-        not isinstance(column, str)
-        and hasattr(column, "sqlExpression")
-        and column.sqlExpression is not None
-        and hasattr(column, "label")
-        and column.label is not None
-        and (not hasattr(column, "expressionType") or column.expressionType == "SQL")
+        'sqlExpression' in column.keys()
+        and column['sqlExpression'] is not None
+        and 'label' in column.keys()
+        and column['label'] is not None
+        and (not 'sqlExpression' in column.keys() or column['expressionType'] == "SQL")
     )
 
 
@@ -328,8 +329,8 @@ def get_column_label(column: Any) -> Optional[str]:
     """Return the string label for a column."""
     if is_physical_column(column):
         return column
-    if getattr(column, "label", None):
-        return column.label
+    if column and column.get("label"):
+        return column.get("label")
     return getattr(column, "sql_expression", None)
 
 
@@ -372,7 +373,7 @@ def time_compare_pivot_operator(form_data, query_object):
             "options": {
                 "index": [x_axis_label],
                 "columns": [get_column_label(col) for col in ensure_is_array(columns)],
-                "drop_missing_columns": not form_data.get("show_empty_columns", False),
+                "drop_missing_columns": form_data.get("show_empty_columns"),
                 "aggregates": aggregates,
             },
         }
@@ -423,7 +424,7 @@ def pivot_operator(form_data, query_object):
                 "aggregates": {
                     metric: {"operator": "mean"} for metric in metric_labels
                 },
-                "drop_missing_columns": not form_data.get("show_empty_columns"),
+                "drop_missing_columns": form_data.get("show_empty_columns"),
             },
         }
 
@@ -1192,9 +1193,9 @@ def rename_operator(
             is_time_comparison(form_data, query_object)
             and form_data.get("comparison_type")
             in {
-                ComparisonType.Difference,
-                ComparisonType.Ratio,
-                ComparisonType.Percentage,
+                ComparisonType.Difference.value,
+                ComparisonType.Ratio.value,
+                ComparisonType.Percentage.value,
             }
         )
         and truncate_metric is not None
@@ -1204,7 +1205,7 @@ def rename_operator(
 
         if (
             is_time_comparison(form_data, query_object)
-            and form_data.get("comparison_type") == ComparisonType.Values
+            and form_data.get("comparison_type") == ComparisonType.Values.value
         ):
             metric_offset_map = get_metric_offsets_map(form_data, query_object)
             time_offsets = ensure_is_array(form_data.get("time_compare"))
@@ -1421,7 +1422,7 @@ def retain_form_data_suffix(form_data: dict, control_suffix: str) -> dict:
     for key, value in entries:
         if key.endswith(control_suffix):
             new_form_data[key[: -len(control_suffix)]] = value
-        if not key.endswith(control_suffix) and key not in new_form_data.keys():
+        if not key.endswith(control_suffix) and key not in new_form_data.keys() and key != 'limit':
             new_form_data[key] = value
     return new_form_data
 
