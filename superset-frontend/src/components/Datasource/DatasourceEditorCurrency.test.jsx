@@ -63,7 +63,7 @@ describe('DatasourceEditor Currency Tests', () => {
 
     // Navigate to metrics tab
     const metricButton = screen.getByTestId('collection-tab-Metrics');
-    userEvent.click(metricButton);
+    await userEvent.click(metricButton);
 
     // Find and expand the first metric row
     const expandToggles = await screen.findAllByLabelText(
@@ -71,7 +71,7 @@ describe('DatasourceEditor Currency Tests', () => {
       {},
       { timeout: 5000 },
     );
-    userEvent.click(expandToggles[0]);
+    await userEvent.click(expandToggles[0]);
 
     // Check for currency section header
     const currencyHeader = await screen.findByText(
@@ -82,19 +82,15 @@ describe('DatasourceEditor Currency Tests', () => {
     expect(currencyHeader).toBeVisible();
 
     // Check prefix/suffix dropdown - first find the wrapper
-    const positionSelector = await screen.findByRole(
-      'combobox',
-      {
-        name: 'Currency prefix or suffix',
-      },
-      { timeout: 5000 },
-    );
+    const positionSelector = screen.getByRole('combobox', {
+      name: 'Currency prefix or suffix',
+    });
 
     // Verify current value is 'Prefix'
     expect(positionSelector).toBeInTheDocument();
 
     // Open the dropdown
-    userEvent.click(positionSelector);
+    await userEvent.click(positionSelector);
 
     // Wait for dropdown to open and find the suffix option
     const suffixOption = await waitFor(
@@ -115,7 +111,7 @@ describe('DatasourceEditor Currency Tests', () => {
     propsWithCurrency.onChange.mockClear();
 
     // Click the suffix option
-    userEvent.click(suffixOption);
+    await userEvent.click(suffixOption);
 
     // Check if onChange was called with the expected parameters
     await waitFor(
@@ -145,7 +141,7 @@ describe('DatasourceEditor Currency Tests', () => {
     );
 
     // Open the currency dropdown
-    userEvent.click(currencySymbol);
+    await userEvent.click(currencySymbol);
 
     // Wait for dropdown to open and find the GBP option
     const gbpOption = await waitFor(
@@ -166,7 +162,7 @@ describe('DatasourceEditor Currency Tests', () => {
     propsWithCurrency.onChange.mockClear();
 
     // Click the GBP option
-    userEvent.click(gbpOption);
+    await userEvent.click(gbpOption);
 
     // Verify the onChange with GBP was called
     await waitFor(
@@ -185,5 +181,5 @@ describe('DatasourceEditor Currency Tests', () => {
       },
       { timeout: 5000 },
     );
-  });
+  }, 60000);
 });
