@@ -611,9 +611,13 @@ test('form without required fields', async () => {
   // Submit form without filling any fields
   userEvent.click(uploadButton);
 
-  await waitFor(() => screen.getByText('Uploading a file is required'));
-  await waitFor(() => screen.getByText('Selecting a database is required'));
-  await waitFor(() => screen.getByText('Table name is required'));
+  expect(
+    await screen.findByText('Uploading a file is required'),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByText('Selecting a database is required'),
+  ).toBeInTheDocument();
+  expect(await screen.findByText('Table name is required')).toBeInTheDocument();
 });
 
 test('CSV form post', async () => {
