@@ -18,7 +18,6 @@
  */
 @import './less/index.less';
 @import './less/variables.less';
-@import './less/index.less';
 
 @datasource-sql-expression-width: 315px;
 
@@ -35,10 +34,6 @@
   font-size: @font-size-s;
 }
 
-.slice_info {
-  cursor: pointer;
-}
-
 .widget-is-cached {
   display: none;
 }
@@ -52,11 +47,6 @@
   cursor: default;
   box-shadow: none;
   border: 1px solid @gray;
-}
-
-hr {
-  margin-top: 15px;
-  margin-bottom: 15px;
 }
 
 span.title-block {
@@ -78,10 +68,6 @@ img.viz-thumb-option {
   border: 1px solid @gray;
   margin-right: 5px;
   border-radius: @border-radius-large;
-}
-
-.select2-drop.bigdrop .select2-results {
-  max-height: 700px;
 }
 
 .editable-title input {
@@ -213,18 +199,6 @@ img.viz-thumb-option {
   margin-left: 25px;
 }
 
-.p-l-0 {
-  padding-left: 0;
-}
-
-.p-t-8 {
-  padding-top: 8;
-}
-
-.p-r-2 {
-  padding-right: 2;
-}
-
 .list-container {
   position: relative;
 }
@@ -286,17 +260,6 @@ img.viz-thumb-option {
   padding-bottom: 15px;
 }
 
-.list-add-action .btn.btn-sm {
-  padding: 6px 6px;
-  font-size: @font-size-xs;
-  line-height: 2px;
-  border-radius: 50%;
-  box-shadow: 2px 2px 4px -1px fade(@darkest, @opacity-light);
-  i {
-    width: 10px;
-  }
-}
-
 iframe {
   border: none;
   width: 100%;
@@ -312,84 +275,4 @@ iframe {
 
 .popover {
   max-width: 500px;
-}
-
-.float-left {
-  float: left;
-}
-
-.float-right {
-  float: right;
-}
-
-g.annotation-container {
-  line {
-    stroke: @brand-primary;
-  }
-
-  rect.annotation {
-    stroke: @brand-primary;
-    fill-opacity: 0.1;
-    stroke-width: 1;
-  }
-}
-
-.stroke-primary {
-  stroke: @brand-primary;
-}
-
-.reactable-header-sortable {
-  position: relative;
-  padding-right: 40px;
-
-  &::after {
-    font: normal normal normal 14px/1 FontAwesome;
-    content: '\f0dc';
-    margin-left: 10px;
-    color: @brand-primary;
-  }
-}
-
-.reactable-header-sort-asc::after {
-  content: '\f0de';
-  color: @brand-primary;
-}
-
-.reactable-header-sort-desc::after {
-  content: '\f0dd';
-  color: @brand-primary;
-}
-
-tr.reactable-column-header th.reactable-header-sortable {
-  padding-right: 17px;
-}
-
-.align-right {
-  text-align: right;
-}
-
-td.filtered {
-  background-color: lighten(desaturate(@brand-primary, 50%), 50%);
-}
-
-.table-name {
-  font-size: @font-size-l;
-}
-.select2-container-multi {
-  width: 100% !important;
-}
-
-/*
-Hides the logo while loading the page.
-Emotion styles will take care of the correct styling
-*/
-.navbar-brand {
-  display: none;
-}
-hr {
-  border-top: 1px solid @gray-light;
-}
-.ace_gutter-cell.ace_error {
-  background-image: url('../images/icons/error_solid_small_red.svg') !important;
-  background-position: -2px center !important;
 }

@@ -1033,7 +1033,11 @@ class DatasourceEditor extends PureComponent {
             <div>{t('Click the lock to prevent further changes.')}</div>
           )}
         </EditLockContainer>
-        <div className="m-l-10 m-t-20 m-b-10">
+        <div
+          css={theme => css`
+            margin-top: ${theme.sizeUnit * 3}px;
+          `}
+        >
           {DATASOURCE_TYPES_ARR.map(type => (
             <Radio
               key={type.key}
