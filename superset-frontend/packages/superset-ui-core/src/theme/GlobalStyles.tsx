@@ -78,6 +78,12 @@ export const GlobalStyles = () => {
         label {
           font-weight: ${theme.fontWeightNormal};
         }
+        #app {
+          flex: 1 1 auto;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+        }
       `}
     />
   );
