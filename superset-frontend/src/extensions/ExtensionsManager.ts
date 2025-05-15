@@ -28,6 +28,7 @@ import {
 class ExtensionsManager {
   private static instance: ExtensionsManager;
   private extensionIndex: Map<string, Extension> = new Map();
+  private extensionsByModule: Map<Module, Extension[]> = new Map();
   private menuIndex: Map<string, MenuContribution> = new Map();
   private viewIndex: Map<string, ViewContribution[]> = new Map();
   private commandIndex: Map<string, CommandContribution> = new Map();
@@ -57,7 +58,12 @@ class ExtensionsManager {
     );
 
     loadedExtensions.forEach(extension => {
+      this.activateExtension(extension);
       this.extensionIndex.set(extension.name, extension);
+      this.extensionsByModule.set(module, [
+        ...(this.extensionsByModule.get(module) || []),
+        extension,
+      ]);
       this.indexContributions(extension);
     });
   }
@@ -92,21 +98,54 @@ class ExtensionsManager {
 
     const factory = await container.get(exposedModules[0]);
     const Module = factory();
-
-    // Activate the module if it has an activate method
-    if (Module.activate) {
-      try {
-        Module.activate();
-      } catch (err) {
-        logging.warn(`Error activating ${extension.name}`, err);
-      }
-    }
-
     return {
       ...extension,
       activate: Module.activate,
       deactivate: Module.deactivate,
     };
+  }
+
+  /**
+   * Activates an extension if it has an activate method.
+   * @param extension The extension to activate.
+   */
+  private activateExtension(extension: Extension): void {
+    if (extension.activate) {
+      try {
+        extension.activate();
+      } catch (err) {
+        logging.warn(`Error activating ${extension.name}`, err);
+      }
+    }
+  }
+
+  /**
+   * Deactivates an extension by its name.
+   * @param name The name of the extension to deactivate.
+   * @returns True if deactivated, false otherwise.
+   */
+  public deactivateExtensionByName(name: string): boolean {
+    const extension = this.extensionIndex.get(name);
+    if (extension && typeof extension.deactivate === 'function') {
+      try {
+        extension.deactivate();
+        return true;
+      } catch (err) {
+        logging.warn(`Error deactivating ${name}`, err);
+      }
+    }
+    return false;
+  }
+  /**
+   * Deactivates all extensions of a particular module.
+   */
+  public deactivateExtensionsByModule(module: Module): void {
+    const extensions = this.extensionsByModule.get(module);
+    if (extensions) {
+      extensions.forEach(extension => {
+        this.deactivateExtensionByName(extension.name);
+      });
+    }
   }
 
   /**

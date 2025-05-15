@@ -59,9 +59,11 @@ export default function SqlLab() {
   }, [data, initBootstrapData]);
 
   useEffect(() => {
-    ExtensionsManager.getInstance()
-      .initialize('sqllab')
-      .catch(e => logging.error(e));
+    const extensionManager = ExtensionsManager.getInstance();
+    extensionManager.initialize('sqllab').catch(e => logging.error(e));
+    return () => {
+      extensionManager.deactivateExtensionsByModule('sqllab');
+    };
   }, []);
 
   if (isLoading || shouldInitialize) return <Loading />;
