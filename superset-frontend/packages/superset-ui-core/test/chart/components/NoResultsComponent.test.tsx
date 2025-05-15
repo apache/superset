@@ -19,14 +19,14 @@
 
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, supersetTheme } from '../../../src/theme';
+import { EmotionThemeProvider, supersetTheme } from '../../../src/theme';
 import NoResultsComponent from '../../../src/chart/components/NoResultsComponent';
 
 const renderNoResultsComponent = () =>
   render(
-    <ThemeProvider theme={supersetTheme}>
+    <EmotionThemeProvider theme={supersetTheme}>
       <NoResultsComponent height="400" width="300" />
-    </ThemeProvider>,
+    </EmotionThemeProvider>,
   );
 
 test('renders the no results error', () => {

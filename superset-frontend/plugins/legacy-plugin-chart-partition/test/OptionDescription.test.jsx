@@ -18,7 +18,7 @@
  */
 import '@testing-library/jest-dom';
 import { screen, render, fireEvent, act } from '@testing-library/react';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { EmotionThemeProvider, supersetTheme } from '@superset-ui/core';
 import OptionDescription from '../src/OptionDescription';
 
 const defaultProps = {
@@ -40,9 +40,9 @@ describe('OptionDescription', () => {
   beforeEach(() => {
     const props = { option: { ...defaultProps.option } };
     render(
-      <ThemeProvider theme={supersetTheme}>
+      <EmotionThemeProvider theme={supersetTheme}>
         <OptionDescription {...props} />
-      </ThemeProvider>,
+      </EmotionThemeProvider>,
     );
   });
 

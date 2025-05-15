@@ -27,7 +27,7 @@ import {
   within,
 } from '@testing-library/react';
 // eslint-disable-next-line no-restricted-imports
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { EmotionThemeProvider, supersetTheme } from '@superset-ui/core';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { DndProvider } from 'react-dnd';
@@ -75,7 +75,9 @@ export function createWrapper(options?: Options) {
 
   return ({ children }: { children?: ReactNode }) => {
     let result = (
-      <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
+      <EmotionThemeProvider theme={supersetTheme}>
+        {children}
+      </EmotionThemeProvider>
     );
 
     if (useDnd) {
