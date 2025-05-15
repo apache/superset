@@ -19,7 +19,6 @@
 
 import { css } from '@emotion/react';
 import { SupersetClient, styled, t } from '@superset-ui/core';
-import { Link, useHistory } from 'react-router-dom';
 import {
   Button,
   Card,
@@ -30,6 +29,7 @@ import {
   Icons,
 } from 'src/components';
 import { useState } from 'react';
+import { capitalize } from 'lodash/fp';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 type LoginType = {
@@ -91,7 +91,6 @@ const StyledLabel = styled(Typography.Text)`
 export default function Login() {
   const [form] = Form.useForm<LoginForm>();
   const [loading, setLoading] = useState(false);
-  const history = useHistory();
 
   const bootstrapData = getBootstrapData();
 
@@ -114,11 +113,12 @@ export default function Login() {
               {providers.map((provider: OIDProvider) => (
                 <Form.Item<LoginType>>
                   <Button
-                    onClick={() => history.push(`/login/${provider.name}`)}
-                    icon={AuthIconMap[provider.name]}
+                    href={`/login/${provider.name}`}
                     block
+                    iconPosition="start"
+                    icon={AuthIconMap[provider.name]}
                   >
-                    {t('Sign in with')} {provider.name}
+                    {t('Sign in with')} {capitalize(provider.name)}
                   </Button>
                 </Form.Item>
               ))}
@@ -130,10 +130,14 @@ export default function Login() {
             <Form layout="vertical" requiredMark="optional" form={form}>
               {providers.map((provider: OAuthProvider) => (
                 <Form.Item<LoginType>>
-                  <Typography.Link href={`/login/${provider.name}`}>
-                    {AuthIconMap[provider.name]} {t('Sign in with')}{' '}
-                    {provider.name}
-                  </Typography.Link>
+                  <Button
+                    href={`/login/${provider.name}`}
+                    block
+                    iconPosition="start"
+                    icon={AuthIconMap[provider.name]}
+                  >
+                    {t('Sign in with')} {capitalize(provider.name)}
+                  </Button>
                 </Form.Item>
               ))}
             </Form>
