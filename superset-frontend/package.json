@@ -304,7 +304,7 @@
     "css-minimizer-webpack-plugin": "^7.0.2",
     "enzyme": "^3.11.0",
     "enzyme-matchers": "^7.1.2",
-    "eslint": "^8.56.0",
+    "eslint": "^8.57.1",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^7.2.0",
     "eslint-import-resolver-typescript": "^3.7.0",
