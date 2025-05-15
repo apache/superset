@@ -1,0 +1,25 @@
+{
+  "name": "table_references",
+  "version": "1.0.0",
+  "frontend": {
+    "contributions": {
+      "views": {
+        "sqllab.panels": [
+          {
+            "id": "table_references.main",
+            "name": "Table references"
+          }
+        ]
+      }
+    },
+    "moduleFederation": {
+      "exposes": ["./index"]
+    }
+  },
+  "backend": {
+    "entryPoints": ["table_references.entrypoint"],
+    "files": ["backend/src/table_references/**/*.py"]
+  },
+  "dependencies": [],
+  "permissions": ["can_read", "can_view"]
+}
