@@ -62,7 +62,7 @@ const TABS_KEYS = {
 const StyledPane = styled.div<StyledPaneProps>`
   width: 100%;
   height: ${props => props.height}px;
-  .antd5-tabs .antd5-tabs-content-holder {
+  .ant-tabs .ant-tabs-content-holder {
     overflow: visible;
   }
   .SouthPaneTabs {
@@ -73,7 +73,7 @@ const StyledPane = styled.div<StyledPaneProps>`
       overflow-y: auto;
     }
   }
-  .antd5-tabs-tabpane {
+  .ant-tabs-tabpane {
     .scrollable {
       overflow-y: auto;
     }

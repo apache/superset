@@ -69,7 +69,7 @@ const EmptyStateContainer = styled.div`
     padding: ${theme.sizeUnit * 4}px;
     text-align: center;
 
-    & .antd5-empty-image svg {
+    & .ant-empty-image svg {
       width: auto;
     }
 

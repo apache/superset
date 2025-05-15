@@ -39,7 +39,7 @@ export const GlobalStylesOverrides = () => (
         min-height: 100vh !important;
       }
 
-      .antd5-app {
+      .ant-app {
         min-height: 100vh !important;
       }
     `}

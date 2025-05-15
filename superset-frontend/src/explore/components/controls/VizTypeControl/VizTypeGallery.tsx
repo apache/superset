@@ -118,15 +118,15 @@ const LeftPane = styled.div`
   border-right: 1px solid ${({ theme }) => theme.colorBorder};
   overflow: auto;
 
-  .antd5-collapse .antd5-collapse-item {
-    .antd5-collapse-header {
+  .ant-collapse .ant-collapse-item {
+    .ant-collapse-header {
       font-size: ${({ theme }) => theme.fontSizeSM}px;
       color: ${({ theme }) => theme.colorText};
       padding-left: ${({ theme }) => theme.sizeUnit * 2}px;
       padding-bottom: ${({ theme }) => theme.sizeUnit}px;
     }
 
-    .antd5-collapse-content .antd5-collapse-content-box {
+    .ant-collapse-content .ant-collapse-content-box {
       display: flex;
       flex-direction: column;
       padding: 0 ${({ theme }) => theme.sizeUnit * 2}px;
@@ -146,7 +146,7 @@ const SearchWrapper = styled.div`
     margin-bottom: ${theme.sizeUnit}px;
     margin-left: ${theme.sizeUnit * 3}px;
     margin-right: ${theme.sizeUnit * 3}px;
-    .antd5-input-affix-wrapper {
+    .ant-input-affix-wrapper {
       padding-left: ${theme.sizeUnit * 2}px;
     }
   `}

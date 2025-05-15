@@ -100,7 +100,7 @@ export const StyledGeoStyler = styled(GeoStylerWrapper)`
       font-weight: ${theme.fontWeightNormal};
       font-size: ${theme.fontSizeXL}px;
     }
-    .antd5-form-item-control {
+    .ant-form-item-control {
       flex: unset;
     }
   `}

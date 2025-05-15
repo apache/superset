@@ -47,30 +47,30 @@ export const StyledSelect = styled(Select, {
     flex: ${headerPosition === 'left' ? 1 : 0};
     line-height: ${theme.sizeXL}px;
 
-    && .antd5-select-selection-search {
+    && .ant-select-selection-search {
       left: 0px;
     }
 
-    && .antd5-select-selection-item, .antd5-select-selection-placeholder {
+    && .ant-select-selection-item, .ant-select-selection-placeholder {
       max-height: ${theme.sizeXL}px;
     }
-    .antd5-select-selection-item::after {
+    .ant-select-selection-item::after {
       height: 0;
       display: block !important;
     }
     ${
       oneLine &&
       `
-        .antd5-select-selection-overflow {
+        .ant-select-selection-overflow {
           flex-wrap: nowrap;
         }
 
-        .antd5-select-selection-overflow-item:not(.antd5-select-selection-overflow-item-rest):not(.antd5-select-selection-overflow-item-suffix) {
+        .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
           flex-shrink: 1;
           min-width: ${theme.sizeUnit * 13}px;
         }
 
-        .antd5-select-selection-overflow-item-suffix {
+        .ant-select-selection-overflow-item-suffix {
           flex: unset;
           min-width: 0px;
         }

@@ -23,7 +23,5 @@ export const AntdThemeProvider = ({
   children,
   ...rest
 }: ConfigProviderProps) => (
-  <ConfigProvider prefixCls="antd5" {...rest}>
-    {children}
-  </ConfigProvider>
+  <ConfigProvider {...rest}>{children}</ConfigProvider>
 );

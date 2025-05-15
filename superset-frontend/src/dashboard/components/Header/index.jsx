@@ -816,7 +816,7 @@ const Header = () => {
       )}
       <Global
         styles={css`
-          .antd5-menu-vertical {
+          .ant-menu-vertical {
             border-right: none;
           }
         `}

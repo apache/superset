@@ -126,11 +126,11 @@ const columns: ColumnsType<Chart> = [
 ];
 
 const emptyStateTableCSS = (theme: SupersetTheme) => css`
-  && th.antd5-table-cell {
+  && th.ant-table-cell {
     color: ${theme.colors.grayscale.light1};
   }
 
-  .antd5-table-placeholder {
+  .ant-table-placeholder {
     display: none;
   }
 `;

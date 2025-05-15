@@ -55,7 +55,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
       top: 0;
     `}
 
-  .antd5-modal-content {
+  .ant-modal-content {
     background-color: ${({ theme }) => theme.colorBgContainer};
     display: flex;
     flex-direction: column;
@@ -65,36 +65,36 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     padding: 0;
   }
 
-  .antd5-modal-header {
+  .ant-modal-header {
     flex: 0 0 auto;
     border-radius: ${({ theme }) => theme.borderRadius}px
       ${({ theme }) => theme.borderRadius}px 0 0;
     padding: ${({ theme }) => theme.sizeUnit * 4}px
       ${({ theme }) => theme.sizeUnit * 6}px;
 
-    .antd5-modal-title {
+    .ant-modal-title {
       font-weight: ${({ theme }) => theme.fontWeightMedium};
     }
 
-    .antd5-modal-title h4 {
+    .ant-modal-title h4 {
       display: flex;
       margin: 0;
       align-items: center;
     }
   }
 
-  .antd5-modal-close {
+  .ant-modal-close {
     width: ${({ theme }) => theme.sizeUnit * 14}px;
     height: ${({ theme }) => theme.sizeUnit * 14}px;
     top: 0;
     right: 0;
   }
 
-  .antd5-modal-close:hover {
+  .ant-modal-close:hover {
     background: transparent;
   }
 
-  .antd5-modal-close-x {
+  .ant-modal-close-x {
     display: flex;
     align-items: center;
 
@@ -107,13 +107,13 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   }
 
-  .antd5-modal-body {
+  .ant-modal-body {
     flex: 0 1 auto;
     padding: ${({ theme }) => theme.sizeUnit * 4}px;
     overflow: auto;
     ${({ resizable, height }) => !resizable && height && `height: ${height};`}
   }
-  .antd5-modal-footer {
+  .ant-modal-footer {
     flex: 0 0 1;
     border-top: ${({ theme }) => theme.sizeUnit / 4}px solid
       ${({ theme }) => theme.colorSplit};
@@ -129,14 +129,14 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   }
 
-  &.no-content-padding .antd5-modal-body {
+  &.no-content-padding .ant-modal-body {
     padding: 0;
   }
 
   ${({ draggable, theme }) =>
     draggable &&
     `
-    .antd5-modal-header {
+    .ant-modal-header {
       padding: 0;
       .draggable-trigger {
           cursor: move;
@@ -156,10 +156,10 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         height: 100%;
       }
 
-      .antd5-modal-content {
+      .ant-modal-content {
         height: 100%;
 
-        .antd5-modal-body {
+        .ant-modal-body {
           /* 100% - header height - footer height */
           height: ${
             hideFooter

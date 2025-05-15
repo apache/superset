@@ -110,12 +110,12 @@ const StyledTooltip = (props: any) => {
       {({ css }) => (
         <Tooltip
           overlayClassName={css`
-            .antd5-tooltip-content {
+            .ant-tooltip-content {
               min-width: ${theme.sizeUnit * 125}px;
               max-height: 410px;
               overflow-y: scroll;
 
-              .antd5-tooltip-inner {
+              .ant-tooltip-inner {
                 max-width: ${theme.sizeUnit * 125}px;
                 h3 {
                   font-size: ${theme.fontSize}px;

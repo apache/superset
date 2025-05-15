@@ -263,7 +263,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const handleFocus = useCallback(e => {
     if (
       // prevent scrolling when tabbing to the tab pane
-      e.target.classList.contains('antd5-tabs-tabpane') &&
+      e.target.classList.contains('ant-tabs-tabpane') &&
       window.scrollY < TOP_OF_PAGE_RANGE
     ) {
       // prevent window from jumping down when tabbing

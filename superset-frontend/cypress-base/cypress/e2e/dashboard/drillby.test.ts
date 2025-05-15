@@ -54,14 +54,14 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
     interceptV1ChartData();
   }
 
-  cy.get('.antd5-dropdown:not(.antd5-dropdown-hidden)')
+  cy.get('.ant-dropdown:not(.ant-dropdown-hidden)')
     .should('be.visible')
     .find("[role='menu'] [role='menuitem']")
     .contains(/^Drill by$/)
     .trigger('mouseover', { force: true });
 
   cy.get(
-    '.antd5-dropdown-menu-submenu:not(.antd5-dropdown-menu-submenu-hidden) [data-test="drill-by-submenu"]',
+    '.ant-dropdown-menu-submenu:not(.ant-dropdown-menu-submenu-hidden) [data-test="drill-by-submenu"]',
   )
     .should('be.visible')
     .find('[role="menuitem"]')
@@ -130,7 +130,7 @@ const testEchart = (
       .should('contain', chartName);
 
     cy.get('@drillByModal')
-      .find('.antd5-breadcrumb')
+      .find('.ant-breadcrumb')
       .should('be.visible')
       .and('contain', 'gender (boy)')
       .and('contain', '/')
@@ -185,7 +185,7 @@ const testEchart = (
       // undo - back to drill by state
       interceptV1ChartData('drillByUndo');
       cy.get('@drillByModal')
-        .find('.antd5-breadcrumb')
+        .find('.ant-breadcrumb')
         .should('be.visible')
         .and('contain', 'gender (boy)')
         .and('contain', '/')
@@ -210,7 +210,7 @@ const testEchart = (
       });
 
       cy.get('@drillByModal')
-        .find('.antd5-breadcrumb')
+        .find('.ant-breadcrumb')
         .should('be.visible')
         .and('contain', 'gender (boy)')
         .and('contain', '/')
@@ -269,7 +269,7 @@ describe('Drill by modal', () => {
         .should('be.visible');
 
       cy.get('@drillByModal')
-        .find('.antd5-breadcrumb')
+        .find('.ant-breadcrumb')
         .should('be.visible')
         .and('contain', 'gender (boy)')
         .and('contain', '/')
@@ -318,7 +318,7 @@ describe('Drill by modal', () => {
       interceptV1ChartData('drillByUndo');
       interceptFormDataKey();
       cy.get('@drillByModal')
-        .find('.antd5-breadcrumb')
+        .find('.ant-breadcrumb')
         .should('be.visible')
         .and('contain', 'gender (boy)')
         .and('contain', '/')
@@ -350,7 +350,7 @@ describe('Drill by modal', () => {
         .and('contain', 'sum__num');
 
       cy.get('@drillByModal')
-        .find('.antd5-breadcrumb')
+        .find('.ant-breadcrumb')
         .should('be.visible')
         .and('contain', 'gender (boy)')
         .and('contain', '/')
@@ -414,7 +414,7 @@ describe('Drill by modal', () => {
         .should('contain', 'Drill by: Pivot Table');
 
       cy.get('@drillByModal')
-        .find('.antd5-breadcrumb')
+        .find('.ant-breadcrumb')
         .should('be.visible')
         .and('contain', 'gender (boy)')
         .and('contain', '/')
@@ -465,7 +465,7 @@ describe('Drill by modal', () => {
       interceptV1ChartData('drillByUndo');
 
       cy.get('@drillByModal')
-        .find('.antd5-breadcrumb')
+        .find('.ant-breadcrumb')
         .should('be.visible')
         .and('contain', 'gender (boy)')
         .and('contain', '/')
@@ -499,7 +499,7 @@ describe('Drill by modal', () => {
         .and('contain', 'sum__num');
 
       cy.get('@drillByModal')
-        .find('.antd5-breadcrumb')
+        .find('.ant-breadcrumb')
         .should('be.visible')
         .and('contain', 'gender (boy)')
         .and('contain', '/')
@@ -636,7 +636,7 @@ describe('Drill by modal', () => {
           .should('contain', 'Mixed Chart');
 
         cy.get('@drillByModal')
-          .find('.antd5-breadcrumb')
+          .find('.ant-breadcrumb')
           .should('be.visible')
           .and('contain', 'gender (boy)')
           .and('contain', '/')
@@ -672,7 +672,7 @@ describe('Drill by modal', () => {
           // undo - back to drill by state
           interceptV1ChartData('drillByUndo');
           cy.get('@drillByModal')
-            .find('.antd5-breadcrumb')
+            .find('.ant-breadcrumb')
             .should('be.visible')
             .and('contain', 'gender (boy)')
             .and('contain', '/')
@@ -692,7 +692,7 @@ describe('Drill by modal', () => {
           });
 
           cy.get('@drillByModal')
-            .find('.antd5-breadcrumb')
+            .find('.ant-breadcrumb')
             .should('be.visible')
             .and('contain', 'gender (boy)')
             .and('contain', '/')

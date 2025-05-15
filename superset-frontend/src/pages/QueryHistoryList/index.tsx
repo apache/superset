@@ -61,7 +61,7 @@ const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;
 
 const TopAlignedListView = styled(ListView)<ListViewProps<QueryObject>>`
-  table .antd5-table-cell {
+  table .ant-table-cell {
     vertical-align: top;
   }
 `;
