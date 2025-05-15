@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { t } from '@superset-ui/core';
+import { t, css } from '@superset-ui/core';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -184,7 +184,20 @@ function ActionLogList() {
             original: { json },
           },
         }: any) => (
-          <Typography.Text code copyable ellipsis={{ tooltip: json }}>
+          <Typography.Text
+            css={css`
+              .antd5-typography-copy {
+                visibility: hidden;
+              }
+              &:hover .antd5-typography-copy {
+                visibility: visible;
+              }
+            `}
+            copyable
+            ellipsis={{
+              tooltip: { styles: { root: { maxWidth: '580px' } }, title: json },
+            }}
+          >
             {json}
           </Typography.Text>
         ),
@@ -199,7 +212,23 @@ function ActionLogList() {
             original: { referrer },
           },
         }: any) => (
-          <Typography.Text code copyable ellipsis={{ tooltip: referrer }}>
+          <Typography.Text
+            css={css`
+              .antd5-typography-copy {
+                visibility: hidden;
+              }
+              &:hover .antd5-typography-copy {
+                visibility: visible;
+              }
+            `}
+            copyable
+            ellipsis={{
+              tooltip: {
+                styles: { root: { maxWidth: '580px' } },
+                title: referrer,
+              },
+            }}
+          >
             {referrer}
           </Typography.Text>
         ),
