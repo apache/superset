@@ -115,6 +115,7 @@ import {
   LOG_ACTIONS_SQLLAB_STOP_QUERY,
   Logger,
 } from 'src/logger/LogUtils';
+import CopyToClipboard from 'src/components/CopyToClipboard';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';
@@ -890,9 +891,13 @@ const SqlEditor: FC<Props> = ({
     dispatch(queryEditorSetCursorPosition(queryEditor, newPosition));
   };
 
-  const copyQueryLink = () => {
-    navigator.clipboard.writeText(currentSQL.current);
+  const copyQuery = (callback: (text: string) => void) => {
+    callback(currentSQL.current);
   };
+  const renderCopyQueryButton = () => (
+    <Button type="primary">{t('COPY QUERY')}</Button>
+  );
+
   const renderDatasetWarning = () => (
     <Alert
       css={css`
@@ -937,14 +942,11 @@ const SqlEditor: FC<Props> = ({
               )}{' '}
             </p>
           </div>
-          <Button
-            onClick={() => {
-              copyQueryLink();
-            }}
-            type="primary"
-          >
-            {t('COPY QUERY')}
-          </Button>
+          <CopyToClipboard
+            wrapText={false}
+            copyNode={renderCopyQueryButton()}
+            getText={copyQuery}
+          />
         </div>
       }
       message=""
