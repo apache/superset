@@ -161,7 +161,7 @@ export default function Login() {
                   { required: true, message: t('Please enter your username') },
                 ]}
               >
-                <Input prefix={<Icons.UserOutlined size={1} />} />
+                <Input prefix={<Icons.UserOutlined iconSize="l" />} />
               </Form.Item>
               <Form.Item<LoginType>
                 label={<StyledLabel>{t('Password:')}</StyledLabel>}
@@ -170,7 +170,7 @@ export default function Login() {
                   { required: true, message: t('Please enter your password') },
                 ]}
               >
-                <Input.Password prefix={<Icons.KeyOutlined size={1} />} />
+                <Input.Password prefix={<Icons.KeyOutlined iconSize="l" />} />
               </Form.Item>
               <Form.Item label={null}>
                 <Button
