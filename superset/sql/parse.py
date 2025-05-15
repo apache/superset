@@ -32,7 +32,7 @@ from deprecation import deprecated
 from sqlglot import exp
 from sqlglot.dialects.dialect import Dialect, Dialects
 from sqlglot.errors import ParseError
-from sqlglot.expressions import Func
+from sqlglot.expressions import Func, Limit
 from sqlglot.optimizer.pushdown_predicates import pushdown_predicates
 from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 
@@ -490,22 +490,17 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Parse a SQL query and return the `LIMIT` or `TOP` value, if present.
         """
-        select = (
+        limit_node = (
             self._parsed
-            if isinstance(self._parsed, exp.Select)
-            else self._parsed.find(exp.Select, max_depth=1)
+            if isinstance(self._parsed, Limit)
+            else self._parsed.args.get("limit")
         )
-        if not select:
+        if not isinstance(limit_node, exp.Limit):
             return None
 
-        limit_expr = select.args.get("limit")
-        if isinstance(limit_expr, exp.Limit):
-            lit = limit_expr.args.get("expression")
-            if isinstance(lit, exp.Literal):
-                try:
-                    return int(lit.name)
-                except ValueError:
-                    pass
+        literal = limit_node.args.get("expression") or getattr(limit_node, "this", None)
+        if isinstance(literal, exp.Literal) and literal.is_int:
+            return int(literal.name)
 
         return None
 
