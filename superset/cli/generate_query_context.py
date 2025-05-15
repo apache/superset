@@ -54,6 +54,7 @@ class Slice(Base):
     viz_type = sa.Column(sa.String(250))
     params = sa.Column(utils.MediumText())
     query_context = sa.Column(utils.MediumText())
+    changed_on = sa.Column(sa.DateTime, default=sa.func.now())
 
 
 viz_migration_map = {
@@ -89,6 +90,15 @@ def sort_and_clean_object(obj):
         return cleaned_list
     return obj
 
+def remove_granularity(stored: list, generated: list) -> list:
+    """
+    Recursively remove the 'granularity' key from an object (dict or list).
+    """
+    for i in range(len(stored)):
+        if 'granularity' not in stored[i].keys():
+            generated[i].pop('granularity', None)
+    
+    return generated
 
 @click.group()
 def generate_query_context() -> None:
@@ -114,7 +124,8 @@ def run(id: int | None = None) -> None:
     else:
         slices = db.session.query(Slice).filter(
             Slice.viz_type.in_(viz_migration_map.keys()),
-            Slice.query_context.isnot(None)
+            Slice.query_context.isnot(None),
+            Slice.changed_on >= "2024-12-15 00:00:00",
         )
 
     inconsistent_slices = []
@@ -123,9 +134,8 @@ def run(id: int | None = None) -> None:
     for slice_item in slices:
         i += 1
         try:
-            migration_obj = viz_migration_map.get(slice_item.viz_type)(
-                slice_item.params
-            )
+            clz = viz_migration_map.get(slice_item.viz_type)
+            migration_obj = clz(slice_item.params)
             query_obj = migration_obj.build_query()
 
             generated_queries_obj = query_obj["queries"]
@@ -134,6 +144,8 @@ def run(id: int | None = None) -> None:
             sorted_generated = sort_and_clean_object(generated_queries_obj)
             sorted_stored = sort_and_clean_object(stored_queries_obj)
 
+            sorted_generated = remove_granularity(sorted_stored, sorted_generated)
+
             if sorted_generated != sorted_stored:
                 result = json.dumps(sorted_generated, sort_keys=True)
                 query_context = json.dumps(sorted_stored, sort_keys=True)
@@ -141,6 +153,7 @@ def run(id: int | None = None) -> None:
                     {
                         "slice_id": slice_item.id,
                         "viz_type": slice_item.viz_type,
+                        "params": slice_item.params,
                         "generated_queries": result,
                         "slice_queries": query_context,
                     }
@@ -153,6 +166,7 @@ def run(id: int | None = None) -> None:
                 {
                     "slice_id": slice_item.id,
                     "viz_type": slice_item.viz_type,
+                    "params": slice_item.params,
                     "generated_queries": error_result,
                     "slice_queries": "ERROR",
                 }
@@ -163,8 +177,13 @@ def run(id: int | None = None) -> None:
         print(f"Found {len(inconsistent_slices)} inconsistent slices.")
         output_folder = "query_context_results"
         os.makedirs(output_folder, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        csv_filename = os.path.join(output_folder, f"{timestamp}.csv")
+        csv_filename = os.path.join(output_folder, "result.csv")
         df = pd.DataFrame(inconsistent_slices)
+        df["params"] = df["params"].apply(lambda x: x.replace('"', "'") if isinstance(x, str) else x)
+        df["generated_queries"] = df["generated_queries"].apply(lambda x: x.replace('"', "'") if isinstance(x, str) else x)
+        df["slice_queries"] = df["slice_queries"].apply(lambda x: x.replace('"', "'") if isinstance(x, str) else x)
         df.to_csv(csv_filename, index=False)
         click.echo(f"Inconsistent slices saved to: {csv_filename}")
+
+
+
