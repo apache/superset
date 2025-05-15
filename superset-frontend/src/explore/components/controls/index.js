@@ -53,6 +53,7 @@ import { ComparisonRangeLabel } from './ComparisonRangeLabel';
 import LayerConfigsControl from './LayerConfigsControl/LayerConfigsControl';
 import MapViewControl from './MapViewControl/MapViewControl';
 import ZoomConfigControl from './ZoomConfigControl/ZoomConfigControl';
+import NumberControl from './NumberControl';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -90,6 +91,7 @@ const controlMap = {
   ComparisonRangeLabel,
   TimeOffsetControl,
   ZoomConfigControl,
+  NumberControl,
   ...sharedControlComponents,
 };
 export default controlMap;
