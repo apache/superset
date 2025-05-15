@@ -98,13 +98,13 @@ export default function Login() {
 
   const onFinish = (values: LoginType) => {
     setLoading(true);
-    SupersetClient.postForm('/login/', values, '').finally(() => {
+    SupersetClient.postForm('/login', values, '').finally(() => {
       setLoading(false);
     });
   };
 
   return (
-    <LoginContainer justify="center">
+    <LoginContainer justify="center" data-test="login-form">
       <StyledCard title={t('Sign in')} padded>
         {authType === AuthType.AuthOID && (
           <Flex justify="center" vertical gap="middle">
@@ -161,7 +161,10 @@ export default function Login() {
                   { required: true, message: t('Please enter your username') },
                 ]}
               >
-                <Input prefix={<Icons.UserOutlined iconSize="l" />} />
+                <Input
+                  prefix={<Icons.UserOutlined iconSize="l" />}
+                  data-test="username-input"
+                />
               </Form.Item>
               <Form.Item<LoginType>
                 label={<StyledLabel>{t('Password:')}</StyledLabel>}
@@ -170,7 +173,10 @@ export default function Login() {
                   { required: true, message: t('Please enter your password') },
                 ]}
               >
-                <Input.Password prefix={<Icons.KeyOutlined iconSize="l" />} />
+                <Input.Password
+                  prefix={<Icons.KeyOutlined iconSize="l" />}
+                  data-test="password-input"
+                />
               </Form.Item>
               <Form.Item label={null}>
                 <Button
@@ -178,6 +184,7 @@ export default function Login() {
                   type="primary"
                   htmlType="submit"
                   loading={loading}
+                  data-test="login-button"
                 >
                   {t('Sign in')}
                 </Button>
