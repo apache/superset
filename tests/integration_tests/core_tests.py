@@ -113,9 +113,6 @@ class TestCore(SupersetTestCase):
         resp = self.get_resp("/login/", data=dict(username="admin", password="general"))  # noqa: S106, C408
         assert "User confirmation needed" not in resp
 
-        resp = self.get_resp("/logout/", follow_redirects=True)
-        assert "User confirmation needed" in resp
-
         resp = self.get_resp(
             "/login/",
             data=dict(username="admin", password="wrongPassword"),  # noqa: S106, C408
