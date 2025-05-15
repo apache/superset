@@ -70,6 +70,9 @@ Cypress.Commands.add('loadDashboardFixtures', () =>
 );
 
 before(() => {
+  if (Cypress.currentTest.title.toLowerCase().includes('login')) {
+    return;
+  }
   cy.login();
   Cypress.Cookies.defaults({ preserve: 'session' });
   cy.loadChartFixtures();
@@ -77,6 +80,9 @@ before(() => {
 });
 
 beforeEach(() => {
+  if (Cypress.currentTest.title.toLowerCase().includes('login')) {
+    return;
+  }
   cy.cleanDashboards();
   cy.cleanCharts();
 });
