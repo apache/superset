@@ -35,5 +35,5 @@ export const shouldFocusTabs = (
   container: { contains: (arg0: any) => any },
 ) =>
   // don't focus the tabs when we click on a tab
-  event.target.className === 'antd5-tabs-nav-wrap' ||
+  event.target.className === 'ant-tabs-nav-wrap' ||
   container.contains(event.target);

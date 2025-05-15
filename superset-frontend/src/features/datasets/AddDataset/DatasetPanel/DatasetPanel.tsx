@@ -105,7 +105,7 @@ const StyledLoader = styled.div`
   max-width: 50%;
   width: ${LOADER_WIDTH}px;
 
-  .antd5-image {
+  .ant-image {
     width: ${SPINNER_WIDTH}px;
     margin-left: ${(LOADER_WIDTH - SPINNER_WIDTH) * HALF}px;
   }

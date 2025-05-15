@@ -46,7 +46,7 @@ interface HandleSelectProps {
 }
 
 const MenuItem = styled(Menu.Item)`
-  &.antd5-menu-item {
+  &.ant-menu-item {
     height: auto;
     line-height: 1.4;
 
@@ -70,7 +70,7 @@ const MenuItem = styled(Menu.Item)`
     }
   }
 
-  &.antd5-menu-item-selected {
+  &.ant-menu-item-selected {
     color: unset;
   }
 `;

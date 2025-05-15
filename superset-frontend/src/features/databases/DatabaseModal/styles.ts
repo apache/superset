@@ -81,19 +81,19 @@ export const StyledFormHeader = styled.header`
 `;
 
 export const antDTabsStyles = css`
-  .antd5-tabs-top {
+  .ant-tabs-top {
     margin-top: 0;
   }
-  .antd5-tabs-top > .antd5-tabs-nav {
+  .ant-tabs-top > .ant-tabs-nav {
     margin-bottom: 0;
   }
-  .antd5-tabs-tab {
+  .ant-tabs-tab {
     margin-right: 0;
   }
 `;
 
 export const antDModalNoPaddingStyles = css`
-  .antd5-modal-body {
+  .ant-modal-body {
     padding-left: 0;
     padding-right: 0;
     padding-top: 0;
@@ -118,24 +118,24 @@ export const formScrollableStyles = (theme: SupersetTheme) => css`
 `;
 
 export const antDModalStyles = (theme: SupersetTheme) => css`
-  .antd5-select-dropdown {
+  .ant-select-dropdown {
     height: ${theme.sizeUnit * 40}px;
   }
 
-  .antd5-modal-header {
+  .ant-modal-header {
     padding: ${theme.sizeUnit * 4.5}px ${theme.sizeUnit * 4}px
       ${theme.sizeUnit * 4}px;
   }
 
-  .antd5-modal-close-x .close {
+  .ant-modal-close-x .close {
     opacity: 1;
   }
 
-  .antd5-modal-body {
+  .ant-modal-body {
     height: ${theme.sizeUnit * MODAL_BODY_HEIGHT}px;
   }
 
-  .antd5-modal-footer {
+  .ant-modal-footer {
     height: ${theme.sizeUnit * 16.25}px;
   }
 `;
@@ -157,7 +157,7 @@ export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
 export const antdWarningAlertStyles = (theme: SupersetTheme) => css`
   margin: ${theme.sizeUnit * 4}px 0;
 
-  .antd5-alert-message {
+  .ant-alert-message {
     margin: 0;
   }
 `;
@@ -204,7 +204,7 @@ export const formStyles = (theme: SupersetTheme) => css`
     font-size: ${theme.fontSizeSM}px;
     margin-top: ${theme.sizeUnit * 1.5}px;
   }
-  .antd5-tabs-content-holder {
+  .ant-tabs-content-holder {
     overflow: auto;
     max-height: 480px;
   }

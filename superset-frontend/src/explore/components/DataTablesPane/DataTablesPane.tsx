@@ -53,19 +53,19 @@ const SouthPane = styled.div`
     z-index: 5;
     overflow: hidden;
 
-    .antd5-tabs {
+    .ant-tabs {
       height: 100%;
     }
 
-    .antd5-tabs-content-holder {
+    .ant-tabs-content-holder {
       height: 100%;
     }
 
-    .antd5-tabs-content {
+    .ant-tabs-content {
       height: 100%;
     }
 
-    .antd5-tabs-tabpane {
+    .ant-tabs-tabpane {
       height: 100%;
       position: relative;
 

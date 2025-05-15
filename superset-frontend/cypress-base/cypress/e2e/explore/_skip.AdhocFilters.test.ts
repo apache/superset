@@ -44,8 +44,8 @@ describe.skip('AdhocFilters', () => {
 
     // antd tabs do lazy loading, so we need to click on tab with ace editor
     cy.get('#filter-edit-popover').within(() => {
-      cy.get('.antd5-tabs-tab').contains('Custom SQL').click();
-      cy.get('.antd5-tabs-tab').contains('Simple').click();
+      cy.get('.ant-tabs-tab').contains('Custom SQL').click();
+      cy.get('.ant-tabs-tab').contains('Simple').click();
     });
 
     cy.get('script').then(nodes => {

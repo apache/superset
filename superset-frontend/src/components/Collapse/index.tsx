@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { Collapse as AntdCollapse } from 'antd-v5';
+import { Collapse as AntdCollapse } from 'antd';
 import type { CollapseProps } from './types';
 
 export const Collapse = styled((props: CollapseProps) => (
@@ -30,9 +30,9 @@ export const Collapse = styled((props: CollapseProps) => (
       border-left: 0;
       border-right: 0;
     `}
-  .antd5-collapse-item {
-    .antd5-collapse-header {
-      .antd5-collapse-arrow svg {
+  .ant-collapse-item {
+    .ant-collapse-header {
+      .ant-collapse-arrow svg {
         transition: ${({ animateArrows }) =>
           animateArrows ? 'transform 0.24s' : 'none'};
       }
@@ -41,7 +41,7 @@ export const Collapse = styled((props: CollapseProps) => (
         expandIconPosition &&
         expandIconPosition === 'right' &&
         `
-            .anticon.anticon-right.antd5-collapse-arrow > svg {
+            .anticon.anticon-right.ant-collapse-arrow > svg {
               transform: rotate(90deg) !important;
             }
           `}
@@ -53,10 +53,10 @@ export const Collapse = styled((props: CollapseProps) => (
       `
         border-bottom: 1px solid ${theme.colorBorderSecondary};
       `}
-    .antd5-collapse-content {
+    .ant-collapse-content {
       color: ${({ theme }) => theme.colorText};
 
-      .antd5-collapse-content-box {
+      .ant-collapse-content-box {
         .loading.inline {
           margin: ${({ theme }) => theme.sizeUnit * 12}px auto;
           display: block;
@@ -65,17 +65,17 @@ export const Collapse = styled((props: CollapseProps) => (
     }
   }
 
-  .hidden-collapse-header .antd5-collapse-header {
+  .hidden-collapse-header .ant-collapse-header {
     display: none;
   }
 
-  .antd5-collapse-item-active {
-    .antd5-collapse-header {
+  .ant-collapse-item-active {
+    .ant-collapse-header {
       ${({ expandIconPosition }) =>
         expandIconPosition &&
         expandIconPosition === 'right' &&
         `
-            .anticon.anticon-right.antd5-collapse-arrow > svg {
+            .anticon.anticon-right.ant-collapse-arrow > svg {
               transform: rotate(-90deg) !important;
             }
           `}

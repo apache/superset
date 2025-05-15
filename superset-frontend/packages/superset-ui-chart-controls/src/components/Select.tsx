@@ -20,7 +20,7 @@ import { useState, ReactNode } from 'react';
 import {
   Select as AntdSelect,
   type SelectProps as AntdSelectProps,
-} from 'antd-v5';
+} from 'antd';
 
 export const { Option }: any = AntdSelect;
 

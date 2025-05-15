@@ -50,7 +50,7 @@ export const PermissionsField: FC<PermissionsFieldProps> = ({
         label: permission.label,
         value: permission.id,
       }))}
-      getPopupContainer={trigger => trigger.closest('.antd5-modal-content')}
+      getPopupContainer={trigger => trigger.closest('.ant-modal-content')}
       data-test="permissions-select"
     />
   </FormItem>

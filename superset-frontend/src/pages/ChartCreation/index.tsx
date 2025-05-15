@@ -127,43 +127,43 @@ const StyledContainer = styled.div`
 
     /* The following extra ampersands (&&&&) are used to boost selector specificity */
 
-    &&&& .antd5-steps-item-tail {
+    &&&& .ant-steps-item-tail {
       display: none;
     }
 
-    &&&& .antd5-steps-item-icon {
+    &&&& .ant-steps-item-icon {
       margin-right: ${theme.sizeUnit * 2}px;
       width: ${theme.sizeUnit * 5}px;
       height: ${theme.sizeUnit * 5}px;
       line-height: ${theme.sizeUnit * 5}px;
     }
 
-    &&&& .antd5-steps-item-title {
+    &&&& .ant-steps-item-title {
       line-height: ${theme.sizeUnit * 5}px;
     }
 
-    &&&& .antd5-steps-item-content {
+    &&&& .ant-steps-item-content {
       overflow: unset;
 
-      .antd5-steps-item-description {
+      .ant-steps-item-description {
         margin-top: ${theme.sizeUnit}px;
         padding-bottom: ${theme.sizeUnit}px;
       }
     }
 
-    &&&& .antd5-tooltip-open {
+    &&&& .ant-tooltip-open {
       display: inline;
     }
 
-    &&&& .antd5-select-selector {
+    &&&& .ant-select-selector {
       padding: 0;
     }
 
-    &&&& .antd5-select-selection-placeholder {
+    &&&& .ant-select-selection-placeholder {
       padding-left: ${theme.sizeUnit * 3}px;
     }
 
-    &&&& .antd5-select-selection-item {
+    &&&& .ant-select-selection-item {
       padding-left: ${theme.sizeUnit * 3}px;
     }
   `}

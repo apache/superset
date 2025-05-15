@@ -25,7 +25,7 @@ import {
   Ref,
 } from 'react';
 import { Row, FilterValue } from 'react-table';
-import { Input, type InputRef, Space } from 'antd-v5';
+import { Input, type InputRef, Space } from 'antd';
 import useAsyncState from '../utils/useAsyncState';
 
 export interface SearchInputProps {

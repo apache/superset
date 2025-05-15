@@ -117,8 +117,8 @@ const StyledSubMenu = styled(SubMenu)`
       font-size: ${theme.fontSizeXS}px;
       margin-left: ${theme.sizeUnit}px;
     }
-    &.antd5-menu-submenu-active {
-      .antd5-menu-title-content {
+    &.ant-menu-submenu-active {
+      .ant-menu-title-content {
         color: ${theme.colors.primary.base};
       }
     }

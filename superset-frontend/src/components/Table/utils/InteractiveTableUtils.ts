@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ColumnsType } from 'antd-v5/es/table';
+import type { ColumnsType } from 'antd/es/table';
 import { SUPERSET_TABLE_COLUMN } from 'src/components/Table';
 import { withinRange } from './utils';
 

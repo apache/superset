@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Popover as AntdPopover } from 'antd-v5';
-import { PopoverProps as AntdPopoverProps } from 'antd-v5/es/popover';
+import { Popover as AntdPopover } from 'antd';
+import { PopoverProps as AntdPopoverProps } from 'antd/es/popover';
 
 export interface PopoverProps extends AntdPopoverProps {
   forceRender?: boolean;

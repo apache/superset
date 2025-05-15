@@ -18,7 +18,7 @@
  */
 import emotionStyled from '@emotion/styled';
 import { useTheme as useThemeBasic } from '@emotion/react';
-// import { theme as antdThemeImport } from 'antd-v5';
+// import { theme as antdThemeImport } from 'antd';
 import { Theme } from './Theme';
 import type { SupersetTheme, SerializableThemeConfig } from './types';
 

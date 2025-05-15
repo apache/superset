@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip as AntdTooltip } from 'antd-v5';
+import { Tooltip as AntdTooltip } from 'antd';
 import type { TooltipProps } from './types';
 
 export const Tooltip = ({ overlayStyle, ...props }: TooltipProps) => (

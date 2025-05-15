@@ -91,7 +91,7 @@ describe('Visualization > Sunburst', () => {
     cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
     cy.focused().type('supersetColors{enter}');
     cy.get(
-      '.Control[data-test="color_scheme"] .antd5-select-selection-item [data-test="supersetColors"]',
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
     ).should('exist');
   });
 });

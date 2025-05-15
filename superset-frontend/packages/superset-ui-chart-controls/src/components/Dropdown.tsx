@@ -17,4 +17,4 @@
  * under the License.
  */
 
-export { Dropdown, type DropDownProps } from 'antd-v5';
+export { Dropdown, type DropDownProps } from 'antd';

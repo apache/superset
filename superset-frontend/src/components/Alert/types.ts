@@ -17,7 +17,7 @@
  * under the License.
  */
 import type { PropsWithChildren } from 'react';
-import type { AlertProps as AntdAlertProps } from 'antd-v5/es/alert';
+import type { AlertProps as AntdAlertProps } from 'antd/es/alert';
 
 export type AlertProps = PropsWithChildren<
   Omit<AntdAlertProps, 'children'> & { roomBelow?: boolean }

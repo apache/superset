@@ -16,4 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { Steps, type StepsProps } from 'antd-v5';
+export { Steps, type StepsProps } from 'antd';

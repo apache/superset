@@ -332,7 +332,8 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // <TabHeader> - AntD header
-      const closeButton = await screen.findByLabelText('Close');
+      const closeButtons = await screen.findAllByLabelText('Close');
+      const closeButton = closeButtons[0];
       const step1Header = screen.getByRole('heading', {
         name: /connect a database/i,
       });

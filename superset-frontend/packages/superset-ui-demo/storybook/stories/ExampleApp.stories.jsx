@@ -16,16 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  Layout,
-  Menu,
-  Button,
-  Card,
-  Alert,
-  Input,
-  Table,
-  Space,
-} from 'antd-v5';
+import { Layout, Menu, Button, Card, Alert, Input, Table, Space } from 'antd';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { Icons } from 'src/components/Icons';
 

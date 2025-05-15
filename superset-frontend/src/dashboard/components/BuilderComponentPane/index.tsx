@@ -65,9 +65,9 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
           margin-top: ${theme.sizeUnit * 2}px;
           height: 100%;
 
-          & .antd5-tabs-content-holder {
+          & .ant-tabs-content-holder {
             height: 100%;
-            & .antd5-tabs-content {
+            & .ant-tabs-content {
               height: 100%;
             }
           }

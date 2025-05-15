@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { CollapseProps as AntdCollapseProps } from 'antd-v5';
+import type { CollapseProps as AntdCollapseProps } from 'antd';
 
 export interface CollapseProps extends AntdCollapseProps {
   animateArrows?: boolean;

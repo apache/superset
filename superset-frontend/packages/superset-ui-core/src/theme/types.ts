@@ -18,12 +18,12 @@
  */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // eslint-disable-next-line no-restricted-syntax
-import { theme as antdThemeImport } from 'antd-v5';
+import { theme as antdThemeImport } from 'antd';
 
 /**
  * Get AntdThemeConfig type from the theme object
  */
-import type { ThemeConfig } from 'antd-v5';
+import type { ThemeConfig } from 'antd';
 
 /**
  * Grab all antd tokens via getDesignToken(...).

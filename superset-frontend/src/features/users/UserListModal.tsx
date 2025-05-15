@@ -190,7 +190,7 @@ function UserListModal({
                 label: role.name,
               }))}
               getPopupContainer={trigger =>
-                trigger.closest('.antd5-modal-content')
+                trigger.closest('.ant-modal-content')
               }
             />
           </FormItem>

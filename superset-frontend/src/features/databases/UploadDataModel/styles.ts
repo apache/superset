@@ -37,7 +37,7 @@ export const StyledSwitchContainer = styled.div`
 `;
 
 export const antDModalNoPaddingStyles = css`
-  .antd5-modal-body {
+  .ant-modal-body {
     padding-left: 0;
     padding-right: 0;
     padding-top: 0;
@@ -52,20 +52,20 @@ export const formStyles = (theme: SupersetTheme) => css`
 `;
 
 export const antDModalStyles = (theme: SupersetTheme) => css`
-  .antd5-modal-header {
+  .ant-modal-header {
     padding: ${theme.sizeUnit * 4.5}px ${theme.sizeUnit * 4}px
       ${theme.sizeUnit * 4}px;
   }
 
-  .antd5-modal-close-x .close {
+  .ant-modal-close-x .close {
     opacity: 1;
   }
 
-  .antd5-modal-body {
+  .ant-modal-body {
     height: ${theme.sizeUnit * MODAL_BODY_HEIGHT}px;
   }
 
-  .antd5-modal-footer {
+  .ant-modal-footer {
     height: ${theme.sizeUnit * 16.25}px;
   }
 

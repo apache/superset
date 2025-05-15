@@ -17,6 +17,6 @@
  * under the License.
  */
 
-import type { DividerProps } from 'antd-v5/es/divider';
+import type { DividerProps } from 'antd/es/divider';
 
 export { DividerProps };
