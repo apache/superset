@@ -57,7 +57,7 @@ function ActionLogList() {
     toggleBulkSelect,
   } = useListViewResource<ActionLogObject>(
     'log',
-    t('Logs'),
+    t('Log'),
     addDangerToast,
     false,
   );
