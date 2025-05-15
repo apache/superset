@@ -246,10 +246,8 @@ export const DrillByMenuItems = ({
   if (!handlesDimensionContextMenu || !hasDrillBy) {
     return (
       <Menu.Item key="drill-by-disabled" disabled {...rest}>
-        <div>
-          {t('Drill by')}
-          <MenuItemTooltip title={tooltip} />
-        </div>
+        ;{t('Drill by')}
+        <MenuItemTooltip title={tooltip} />
       </Menu.Item>
     );
   }
