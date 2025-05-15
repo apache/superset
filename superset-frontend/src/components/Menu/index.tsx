@@ -18,8 +18,8 @@
  */
 import { styled, css } from '@superset-ui/core';
 import { ReactElement } from 'react';
-import { Menu as AntdMenu } from 'antd-v5';
-import { MenuProps as AntdMenuProps } from 'antd-v5/es/menu';
+import { Menu as AntdMenu } from 'antd';
+import { MenuProps as AntdMenuProps } from 'antd/es/menu';
 
 export type MenuProps = AntdMenuProps;
 

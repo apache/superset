@@ -20,7 +20,7 @@ import {
   Radio as Antd5Radio,
   type CheckboxOptionType,
   type RadioGroupProps,
-} from 'antd-v5';
+} from 'antd';
 
 import { Space, type SpaceProps } from '../Space';
 
@@ -59,4 +59,4 @@ export type {
   RadioGroupProps,
   RadioProps,
   CheckboxOptionType,
-} from 'antd-v5';
+} from 'antd';

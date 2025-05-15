@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Flex as AntdFlex } from 'antd-v5';
+import { Flex as AntdFlex } from 'antd';
 import type { FlexProps } from './types';
 
 export function Flex(props: FlexProps) {

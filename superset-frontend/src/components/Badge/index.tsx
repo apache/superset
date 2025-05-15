@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { Badge as AntdBadge } from 'antd-v5';
+import { Badge as AntdBadge } from 'antd';
 import type { BadgeProps } from './types';
 
 export const Badge = styled((props: BadgeProps) => <AntdBadge {...props} />)`

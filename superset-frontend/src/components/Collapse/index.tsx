@@ -15,6 +15,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { styled } from '@superset-ui/core';
+import { Collapse as AntdCollapse } from 'antd';
+import type { CollapseProps } from './types';
+
 export { Typography } from 'src/components/Typography';
 
 export type { CollapseProps } from './types';

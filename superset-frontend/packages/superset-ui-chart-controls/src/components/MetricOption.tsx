@@ -25,7 +25,7 @@ import {
   SafeMarkdown,
   SupersetTheme,
 } from '@superset-ui/core';
-import { Typography } from 'antd-v5';
+import { Typography } from 'antd';
 import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';

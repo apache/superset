@@ -19,7 +19,7 @@
 import { Children, ReactElement, Fragment } from 'react';
 
 import cx from 'classnames';
-import { Button as AntdButton } from 'antd-v5';
+import { Button as AntdButton } from 'antd';
 import { useTheme } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';
 import type {

@@ -16,5 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { Row, Col, Grid } from 'antd-v5';
+export { Row, Col, Grid } from 'antd';
 export type { RowProps, ColProps } from './types';

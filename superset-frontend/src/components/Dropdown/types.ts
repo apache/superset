@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { DropdownProps as AntdDropdownProps } from 'antd-v5';
+import type { DropdownProps as AntdDropdownProps } from 'antd';
 import type { ReactElement, ReactNode, FocusEvent, KeyboardEvent } from 'react';
 
 export enum IconOrientation {

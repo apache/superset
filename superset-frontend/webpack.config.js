@@ -278,7 +278,7 @@ const config = {
               'webpack.*',
               '@?babel.*',
               'lodash.*',
-              'antd-v5',
+              'antd',
               '@ant-design.*',
               '.*bootstrap',
               'moment',
@@ -323,6 +323,9 @@ const config = {
           APP_DIR,
           './node_modules/@storybook/react-dom-shim/dist/react-16',
         ),
+      ),
+      'geostyler-qgis-parser/dist/QGISStyleParser': require.resolve(
+        'geostyler-qgis-parser/build/dist/QGISStyleParser',
       ),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],

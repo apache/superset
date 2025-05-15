@@ -22,7 +22,7 @@ import {
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
-} from 'antd-v5/es/select';
+} from 'antd/es/select';
 import { Interpolation, Theme } from '@emotion/react';
 
 export type RawValue = string | number;

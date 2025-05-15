@@ -17,7 +17,7 @@
  * under the License.
  */
 import { css } from '@superset-ui/core';
-import { Divider as AntdDivider } from 'antd-v5';
+import { Divider as AntdDivider } from 'antd';
 import type { DividerProps } from './types';
 
 export function Divider(props: DividerProps) {

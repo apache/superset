@@ -63,7 +63,7 @@
     "typescript": "^5.7.2"
   },
   "peerDependencies": {
-    "antd-v5": "npm:antd@^5.18.0",
+    "antd": "^5.24.6",
     "@encodable/color": "=1.1.1",
     "@superset-ui/core": "*",
     "@superset-ui/legacy-plugin-chart-calendar": "*",

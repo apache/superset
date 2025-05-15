@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { Empty as AntdEmpty } from 'antd-v5';
-import { EmptyProps } from 'antd-v5/es/empty';
+import { Empty as AntdEmpty } from 'antd';
+import { EmptyProps } from 'antd/es/empty';
 
 export const Empty = Object.assign(
   (props: EmptyProps) => <AntdEmpty {...props} />,

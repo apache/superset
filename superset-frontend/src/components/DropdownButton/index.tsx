@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Dropdown } from 'antd-v5';
+import { Dropdown } from 'antd';
 import { kebabCase } from 'lodash';
 import { css, useTheme } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';

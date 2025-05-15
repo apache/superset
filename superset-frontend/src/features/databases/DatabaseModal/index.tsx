@@ -53,6 +53,7 @@ import {
   Upload,
   type UploadChangeParam,
   type UploadFile,
+  FormLabel,
 } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorAlert } from 'src/components/ImportModal/ErrorAlert';
@@ -1070,7 +1071,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       <h4 className="available-label">
         {t('Or choose from a list of other databases we support:')}
       </h4>
-      <div className="control-label">{t('Supported databases')}</div>
+      <FormLabel className="control-label">
+        {t('Supported databases')}
+      </FormLabel>
       <Select
         className="available-select"
         onChange={setDatabaseModel}
