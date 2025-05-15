@@ -673,7 +673,11 @@ const Select = forwardRef(
         <StyledSelect
           id={name}
           allowClear={!isLoading && allowClear}
-          aria-label={ariaLabel}
+          aria-label={
+            isSingleMode && isLabeledValue(selectValue)
+              ? `${ariaLabel || name}: ${selectValue.label}`
+              : ariaLabel || name
+          }
           autoClearSearchValue={autoClearSearchValue}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
