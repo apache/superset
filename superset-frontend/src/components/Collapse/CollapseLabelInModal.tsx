@@ -17,6 +17,7 @@
  */
 import { useTheme } from '@superset-ui/core';
 import { Typography } from 'src/components/Typography';
+import { Icons } from 'src/components';
 
 interface CollapseLabelInModalProps {
   title: React.ReactNode;
@@ -32,6 +33,7 @@ export const CollapseLabelInModal: React.FC<CollapseLabelInModalProps> = ({
   testId,
 }) => {
   const theme = useTheme();
+
   return (
     <div data-test={testId}>
       <Typography.Title
@@ -42,7 +44,13 @@ export const CollapseLabelInModal: React.FC<CollapseLabelInModalProps> = ({
         }}
       >
         {title}{' '}
-        {validateCheckStatus && (
+        {validateCheckStatus ? (
+          <Icons.CheckCircleOutlined
+            style={{ color: theme.colorSuccess }}
+            aria-label="check-circle"
+            role="img"
+          />
+        ) : (
           <span
             style={{
               color: theme.colorErrorText,
