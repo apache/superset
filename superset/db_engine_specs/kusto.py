@@ -28,7 +28,6 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.sql_parse import ParsedQuery
 from superset.utils.core import GenericDataType
 
 
@@ -154,10 +153,6 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             return f"""datetime({dttm.isoformat(timespec="microseconds")})"""
 
         return None
-
-    @classmethod
-    def is_select_query(cls, parsed_query: ParsedQuery) -> bool:
-        return not parsed_query.sql.startswith(".")
 
     @classmethod
     def parse_sql(cls, sql: str) -> list[str]:
