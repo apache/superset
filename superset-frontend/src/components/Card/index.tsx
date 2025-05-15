@@ -24,7 +24,7 @@ const CustomCard = ({ padded, ...props }: CardProps) => (
   <AntdCard
     {...props}
     css={(theme: SupersetTheme) => ({
-      '.antd5-card-body': {
+      '.ant-card-body': {
         padding: padded ? theme.sizeUnit * 4 : theme.sizeUnit,
       },
     })}

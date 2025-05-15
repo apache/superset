@@ -44,7 +44,7 @@ const AddButtonContainer = styled.div`
     button > span > :first-of-type {
       margin-right: 0;
     }
-    .antd5-btn > .anticon + span {
+    .ant-btn > .anticon + span {
       margin-left: 0;
     }
   `}

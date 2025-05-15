@@ -63,7 +63,7 @@ const HeaderAction = styled.div`
     justify-content: center;
     width: 100%;
   }
-  & .antd5-dropdown-trigger {
+  & .ant-dropdown-trigger {
     cursor: context-menu;
     padding: ${({ theme }) => theme.sizeUnit * 2}px;
     background-color: var(--ag-background-color);

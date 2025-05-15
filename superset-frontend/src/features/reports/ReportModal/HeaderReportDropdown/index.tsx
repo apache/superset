@@ -51,7 +51,7 @@ const deleteColor = (theme: SupersetTheme) => css`
 `;
 
 const onMenuHover = (theme: SupersetTheme) => css`
-  & .antd5-menu-item {
+  & .ant-menu-item {
     padding: 5px 12px;
     margin-top: 0px;
     margin-bottom: 4px;

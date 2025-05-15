@@ -164,28 +164,28 @@ const HEADER_HEIGHT = 68;
 const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
   ({ theme, height }) => `
     color: ${theme.colorText};
-    .antd5-table-body {
+    .ant-table-body {
       overflow: auto;
       height: ${height ? `${height}px` : undefined};
     }
 
-    .antd5-spin-nested-loading .antd5-spin .antd5-spin-dot {
+    .ant-spin-nested-loading .ant-spin .ant-spin-dot {
       width: ${theme.sizeXXL}px;
       height: unset;
     }
 
-   td.antd5-table-cell {
+   td.ant-table-cell {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    .antd5-table-tbody > tr > td {
+    .ant-table-tbody > tr > td {
       white-space: nowrap;
       overflow: hidden;
     }
 
-    .antd5-table.antd5-table-small {
+    .ant-table.ant-table-small {
       font-size: ${theme.fontSizeSM}px;
     }
   `,
@@ -194,8 +194,8 @@ const StyledVirtualTable = styled(
   VirtualTable as React.FC<VirtualTableProps<any>>,
 )(
   ({ theme }) => `
-  .virtual-table .antd5-table-container:before,
-  .virtual-table .antd5-table-container:after {
+  .virtual-table .ant-table-container:before,
+  .virtual-table .ant-table-container:after {
     display: none;
   }
   .virtual-table-cell {

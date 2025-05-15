@@ -97,13 +97,13 @@ const FlexRowContainer = styled.div`
 
 const StyledTableTabs = styled(Tabs)`
   overflow: visible;
-  .antd5-tabs-content-holder {
+  .ant-tabs-content-holder {
     overflow: visible;
   }
 `;
 
 const StyledBadge = styled(Badge)`
-  .antd5-badge-count {
+  .ant-badge-count {
     line-height: ${({ theme }) => theme.sizeUnit * 4}px;
     height: ${({ theme }) => theme.sizeUnit * 4}px;
     margin-left: ${({ theme }) => theme.sizeUnit}px;

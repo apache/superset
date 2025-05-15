@@ -33,7 +33,7 @@ const TABLE = { name: 'Names Sorted by Num in California', viz: 'table' };
 function topLevelTabs() {
   cy.getBySel('dashboard-component-tabs')
     .first()
-    .find('[data-test="nav-list"] .antd5-tabs-nav-list > .antd5-tabs-tab')
+    .find('[data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab')
     .as('top-level-tabs');
 }
 
@@ -60,20 +60,20 @@ describe('Dashboard tabs', () => {
     cy.get('@top-level-tabs').first().click();
     cy.get('@top-level-tabs')
       .first()
-      .should('have.class', 'antd5-tabs-tab-active');
+      .should('have.class', 'ant-tabs-tab-active');
     cy.get('@top-level-tabs')
       .last()
-      .should('not.have.class', 'antd5-tabs-tab-active');
+      .should('not.have.class', 'ant-tabs-tab-active');
     cy.get('[data-test-chart-name="Box plot"]').should('not.exist');
     cy.get('[data-test-chart-name="Trends"]').should('not.exist');
 
     cy.get('@top-level-tabs').last().click();
     cy.get('@top-level-tabs')
       .last()
-      .should('have.class', 'antd5-tabs-tab-active');
+      .should('have.class', 'ant-tabs-tab-active');
     cy.get('@top-level-tabs')
       .first()
-      .should('not.have.class', 'antd5-tabs-tab-active');
+      .should('not.have.class', 'ant-tabs-tab-active');
     waitForChartLoad(BOX_PLOT);
 
     cy.get('[data-test-chart-name="Box plot"]').should('exist');
@@ -83,7 +83,7 @@ describe('Dashboard tabs', () => {
     // click row level tab, see 1 more chart
     cy.getBySel('dashboard-component-tabs')
       .eq(2)
-      .find('[data-test="nav-list"] .antd5-tabs-nav-list > .antd5-tabs-tab')
+      .find('[data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab')
       .as('row-level-tabs');
 
     cy.get('@row-level-tabs').last().click();
@@ -118,7 +118,7 @@ describe('Dashboard tabs', () => {
 
     cy.intercept('**/superset/explore_json/?*').as('legacyChartData');
     // click row level tab, send 1 more query
-    cy.get('.antd5-tabs-tab').contains('row tab 2').click();
+    cy.get('.ant-tabs-tab').contains('row tab 2').click();
 
     cy.wait('@legacyChartData').then(({ request }) => {
       const requestBody = parsePostForm(request.body);
@@ -134,7 +134,7 @@ describe('Dashboard tabs', () => {
     cy.intercept('POST', '**/api/v1/chart/data?*').as('v1ChartData');
 
     // click top level tab, send 1 more query
-    cy.get('.antd5-tabs-tab').contains('Tab B').click();
+    cy.get('.ant-tabs-tab').contains('Tab B').click();
 
     cy.wait('@v1ChartData').then(({ request }) => {
       expect(request.body.queries[0].filters[0]).deep.eq({
@@ -146,8 +146,8 @@ describe('Dashboard tabs', () => {
 
     getChartAliasBySpec(BOX_PLOT).then(boxPlotAlias => {
       // navigate to filter and clear filter
-      cy.get('.antd5-tabs-tab').contains('Tab A').click();
-      cy.get('.antd5-tabs-tab').contains('row tab 1').click();
+      cy.get('.ant-tabs-tab').contains('Tab A').click();
+      cy.get('.ant-tabs-tab').contains('row tab 1').click();
 
       cy.get('.Select__clear-indicator').click();
       cy.get('.filter button:not(:disabled)').contains('Apply').click();
@@ -170,7 +170,7 @@ describe('Dashboard tabs', () => {
     cy.get('@top-level-tabs').last().click();
     cy.get('@top-level-tabs')
       .last()
-      .should('have.class', 'antd5-tabs-tab-active');
+      .should('have.class', 'ant-tabs-tab-active');
 
     expandFilterOnLeftPanel();
 
@@ -179,7 +179,7 @@ describe('Dashboard tabs', () => {
     cy.get('@top-level-tabs').first().click();
     cy.get('@top-level-tabs')
       .first()
-      .should('have.class', 'antd5-tabs-tab-active');
+      .should('have.class', 'ant-tabs-tab-active');
 
     cy.wait(1000);
 

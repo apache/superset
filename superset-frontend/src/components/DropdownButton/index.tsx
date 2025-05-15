@@ -34,7 +34,7 @@ export const DropdownButton = ({
   // divider implementation for default (non-primary) buttons
   const defaultBtnCss = css`
     ${(!buttonType || buttonType === 'default') &&
-    `.antd5-dropdown-trigger {
+    `.ant-dropdown-trigger {
       position: relative;
       &:before {
         content: '';
@@ -56,7 +56,7 @@ export const DropdownButton = ({
       css={[
         defaultBtnCss,
         css`
-          .antd5-btn {
+          .ant-btn {
             height: 30px;
             box-shadow: none;
             font-size: ${theme.fontSizeSM}px;

@@ -50,7 +50,7 @@ interface TableCollectionProps<T extends object> {
 
 const StyledTable = styled(Table)`
   ${({ theme }) => `
-    th.antd5-column-cell {
+    th.ant-column-cell {
       min-width: fit-content;
     }
     .actions {
@@ -69,13 +69,13 @@ const StyledTable = styled(Table)`
         }
       }
     }
-    .antd5-table-row:hover {
+    .ant-table-row:hover {
       .actions {
         opacity: 1;
         transition: opacity ease-in ${theme.motionDurationMid};
       }
     }
-    .antd5-table-cell {
+    .ant-table-cell {
       font-feature-settings: 'tnum' 1;
       text-overflow: ellipsis;
       overflow: hidden;
@@ -85,7 +85,7 @@ const StyledTable = styled(Table)`
       padding-left: ${theme.sizeUnit * 4}px;
       white-space: nowrap;
     }
-    .antd5-table-placeholder .antd5-table-cell {
+    .ant-table-placeholder .ant-table-cell {
       border-bottom: 0;
     }
   `}

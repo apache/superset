@@ -49,19 +49,19 @@ export const GlobalStyles = () => {
           display: none !important;
         }
 
-        .antd5-dropdown,
+        .ant-dropdown,
         .ant-dropdown,
         .ant-select-dropdown,
-        .antd5-modal-wrap,
-        .antd5-modal-mask,
-        .antd5-picker-dropdown,
+        .ant-modal-wrap,
+        .ant-modal-mask,
+        .ant-picker-dropdown,
         .ant-popover,
-        .antd5-popover {
+        .ant-popover {
           z-index: ${theme.zIndexPopupBase} !important;
         }
 
         .column-config-popover {
-          & .antd5-input-number {
+          & .ant-input-number {
             width: 100%;
           }
           && .btn-group svg {

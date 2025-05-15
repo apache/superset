@@ -207,7 +207,7 @@ const noMarginBottom = css`
 Height of modal body defined here, total width defined at component invocation as antd prop.
  */
 const StyledModal = styled(Modal)`
-  .antd5-modal-body {
+  .ant-modal-body {
     height: 720px;
   }
 

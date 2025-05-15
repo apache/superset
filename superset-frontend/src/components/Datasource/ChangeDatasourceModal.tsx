@@ -61,7 +61,7 @@ const CHANGE_WARNING_MSG = t(
 );
 
 const CustomStyledModal = styled(Modal)`
-  .antd5-modal-body {
+  .ant-modal-body {
     display: flex;
     flex-direction: column;
   }

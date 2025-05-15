@@ -300,7 +300,7 @@ export class Theme {
       <EmotionCacheProvider value={themeState.emotionCache}>
         <EmotionThemeProvider theme={themeState.theme}>
           <GlobalStyles />
-          <ConfigProvider theme={themeState.antdConfig} prefixCls="antd5">
+          <ConfigProvider theme={themeState.antdConfig}>
             {children}
           </ConfigProvider>
         </EmotionThemeProvider>

@@ -70,7 +70,7 @@ const StyledDatasourceModal = styled(Modal)`
     flex: 0 1 auto;
   }
 
-  .antd5-tabs-top {
+  .ant-tabs-top {
     margin-top: -${({ theme }) => theme.sizeUnit * 4}px;
   }
 `;

@@ -40,18 +40,18 @@ describe('Datasource control', () => {
     // create new metric
     cy.get('[data-test="crud-add-table-item"]', { timeout: 10000 }).click();
     cy.wait(1000);
-    cy.get('.antd5-table-body [data-test="textarea-editable-title-input"]')
+    cy.get('.ant-table-body [data-test="textarea-editable-title-input"]')
       .first()
       .click();
 
-    cy.get('.antd5-table-body [data-test="textarea-editable-title-input"]')
+    cy.get('.ant-table-body [data-test="textarea-editable-title-input"]')
       .first()
       .focus();
     cy.focused().clear({ force: true });
     cy.focused().type(`${newMetricName}{enter}`, { force: true });
 
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.antd5-modal-confirm-btns button').contains('OK').click();
+    cy.get('.ant-modal-confirm-btns button').contains('OK').click();
     // select new metric
     cy.get('[data-test=metrics]')
       .contains('Drop columns/metrics here or click')
@@ -66,7 +66,7 @@ describe('Datasource control', () => {
     // delete metric
     cy.get('[data-test="datasource-menu-trigger"]').click();
     cy.get('[data-test="edit-dataset"]').click();
-    cy.get('.antd5-modal-content').within(() => {
+    cy.get('.ant-modal-content').within(() => {
       cy.get('[data-test="collection-tab-Metrics"]')
         .contains('Metrics')
         .click();
@@ -77,7 +77,7 @@ describe('Datasource control', () => {
       .find('[data-test="crud-delete-icon"]')
       .click();
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.antd5-modal-confirm-btns button').contains('OK').click();
+    cy.get('.ant-modal-confirm-btns button').contains('OK').click();
     cy.get('[data-test="metrics"]').contains(newMetricName).should('not.exist');
   });
 });
@@ -92,10 +92,10 @@ describe('Color scheme control', () => {
 
   it('should show color options with and without tooltips', () => {
     cy.get('#controlSections-tab-CUSTOMIZE').click();
-    cy.get('.antd5-select-selection-item .color-scheme-label').contains(
+    cy.get('.ant-select-selection-item .color-scheme-label').contains(
       'Superset Colors',
     );
-    cy.get('.antd5-select-selection-item .color-scheme-label').trigger(
+    cy.get('.ant-select-selection-item .color-scheme-label').trigger(
       'mouseover',
     );
     cy.get('.color-scheme-tooltip').should('be.visible');
@@ -129,7 +129,7 @@ describe('VizType control', () => {
 
     cy.contains('View all charts').click();
 
-    cy.get('.antd5-modal-content').within(() => {
+    cy.get('.ant-modal-content').within(() => {
       cy.get('button').contains('KPI').click(); // change categories
       cy.get('[role="button"]').contains('Big Number').click();
       cy.get('button').contains('Select').click();
@@ -159,7 +159,7 @@ describe('Test datatable', () => {
     ).as('Samples');
     cy.contains('Samples').click();
     cy.wait('@Samples');
-    cy.get('.antd5-tabs-tab-active').contains('Samples');
+    cy.get('.ant-tabs-tab-active').contains('Samples');
     cy.get('[data-test="row-count-label"]').contains('1k rows');
     cy.get('.ant-empty-description').should('not.exist');
   });

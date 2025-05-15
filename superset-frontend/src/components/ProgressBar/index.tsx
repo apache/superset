@@ -29,10 +29,10 @@ const ProgressBar = styled(({ striped, ...props }: ProgressBarProps) => (
   <AntdProgress data-test="progress-bar" {...props} />
 ))`
   position: static;
-  .antd5-progress-inner {
+  .ant-progress-inner {
     position: static;
   }
-  .antd5-progress-bg {
+  .ant-progress-bg {
     position: static;
     ${({ striped }) =>
       striped &&

@@ -83,8 +83,8 @@ const Styles = styled.div`
   .error-alert {
     margin: ${({ theme }) => 2 * theme.sizeUnit}px;
   }
-  .antd5-dropdown-trigger {
-    margin-left: ${({ theme }) => theme.sizeUnit}px;
+  .ant-dropdown-trigger {
+    margin-left: ${({ theme }) => 2 * theme.sizeUnit}px;
   }
   .btn-group .open .dropdown-toggle {
     box-shadow: none;

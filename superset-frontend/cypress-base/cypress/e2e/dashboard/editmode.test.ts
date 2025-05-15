@@ -44,7 +44,7 @@ function openProperties() {
   cy.getBySel('header-actions-menu')
     .contains('Edit properties')
     .click({ force: true });
-  cy.get('.antd5-modal-body').should('be.visible');
+  cy.get('.ant-modal-body').should('be.visible');
 }
 
 function assertMetadata(text: string) {
@@ -61,7 +61,7 @@ function assertMetadata(text: string) {
 }
 
 function openAdvancedProperties() {
-  cy.get('.antd5-modal-body')
+  cy.get('.ant-modal-body')
     .contains('Advanced')
     .should('be.visible')
     .click({ force: true });
@@ -157,7 +157,7 @@ function saveAndGo(dashboard = 'Tabbed Dashboard') {
   cy.getBySel('query-save-button').click();
   cy.getBySel('save-modal-body').then($modal => {
     cy.wrap($modal)
-      .find("div[aria-label='Select a dashboard'] .antd5-select-selection-item")
+      .find("div[aria-label='Select a dashboard'] .ant-select-selection-item")
       .should('have.text', dashboard);
     cy.getBySel('save-overwrite-radio').should('not.be.disabled');
     cy.getBySel('save-overwrite-radio').click();
@@ -1089,7 +1089,7 @@ describe('Dashboard edit', () => {
       cy.allowConsoleErrors(['Error: A valid color scheme is required']);
       writeMetadata('{"color_scheme":"wrongcolorscheme"}');
       applyChanges();
-      cy.get('.antd5-modal-body')
+      cy.get('.ant-modal-body')
         .contains('A valid color scheme is required')
         .should('be.visible');
     });

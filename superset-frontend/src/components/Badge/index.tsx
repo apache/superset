@@ -23,7 +23,7 @@ import type { BadgeProps } from './types';
 export const Badge = styled((props: BadgeProps) => <AntdBadge {...props} />)`
   ${({ theme, color, count }) => `
     & > sup,
-    & > sup.antd5-badge-count {
+    & > sup.ant-badge-count {
       ${
         count !== undefined ? `background: ${color || theme.colorPrimary};` : ''
       }

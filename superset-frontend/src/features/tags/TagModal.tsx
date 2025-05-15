@@ -32,7 +32,7 @@ import { Tag } from 'src/views/CRUD/types';
 import { fetchObjectsByTagIds } from 'src/features/tags/tags';
 
 const StyledModalBody = styled.div`
-  .antd5-select-dropdown {
+  .ant-select-dropdown {
     max-height: ${({ theme }) => theme.sizeUnit * 40}px;
   }
   .tag-input {
