@@ -81,3 +81,5 @@ export const Collapse = styled((props: CollapseProps) => (
     }
   }
 `;
+
+export type { CollapseProps };
