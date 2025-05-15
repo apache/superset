@@ -75,18 +75,17 @@ export default function transformProps(
   // stores a map with the total values for each node considering the links
   const incomingFlows = new Map<string, number>();
   const outgoingFlows = new Map<string, number>();
+  const allNodeNames = new Set<string>();
 
   links.forEach(link => {
     const { source, target, value } = link;
+    allNodeNames.add(source);
+    allNodeNames.add(target);
     incomingFlows.set(target, (incomingFlows.get(target) || 0) + value);
     outgoingFlows.set(source, (outgoingFlows.get(source) || 0) + value);
   });
 
   const nodeValues = new Map<string, number>();
-  const allNodeNames = new Set([
-    ...outgoingFlows.keys(),
-    ...incomingFlows.keys(),
-  ]);
 
   allNodeNames.forEach(nodeName => {
     const totalIncoming = incomingFlows.get(nodeName) || 0;
