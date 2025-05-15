@@ -28,7 +28,9 @@ import {
 } from '../../src/components/labelUtils';
 
 const renderWithTheme = (ui: ReactElement) =>
-  render(<EmotionThemeProvider theme={supersetTheme}>{ui}</EmotionThemeProvider>);
+  render(
+    <EmotionThemeProvider theme={supersetTheme}>{ui}</EmotionThemeProvider>,
+  );
 
 test("should get column name when column doesn't have verbose_name", () => {
   expect(

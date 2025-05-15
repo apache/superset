@@ -18,7 +18,7 @@
  */
 import '@testing-library/jest-dom';
 import { screen, render, fireEvent, act } from '@testing-library/react';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { EmotionThemeProvider, supersetTheme } from '@superset-ui/core';
 import OptionDescription from '../src/OptionDescription';
 
 const defaultProps = {

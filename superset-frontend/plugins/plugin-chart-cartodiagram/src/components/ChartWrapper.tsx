@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartComponentRegistry, EmotionThemeProvider } from '@superset-ui/core';
+import {
+  getChartComponentRegistry,
+  EmotionThemeProvider,
+} from '@superset-ui/core';
 import { FC, useEffect, useState } from 'react';
 import { ChartWrapperProps } from '../types';
 

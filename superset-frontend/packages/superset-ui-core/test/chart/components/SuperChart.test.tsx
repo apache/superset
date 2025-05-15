@@ -54,7 +54,9 @@ function getDimensionText(container: HTMLElement) {
 const renderWithTheme = (component: ReactElement) =>
   render(component, {
     wrapper: ({ children }) => (
-      <EmotionThemeProvider theme={supersetTheme}>{children}</EmotionThemeProvider>
+      <EmotionThemeProvider theme={supersetTheme}>
+        {children}
+      </EmotionThemeProvider>
     ),
   });
 
