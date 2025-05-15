@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { css } from '@emotion/react';
-import { SupersetClient, styled, t } from '@superset-ui/core';
+import { SupersetClient, styled, t, css } from '@superset-ui/core';
 import {
   Button,
   Card,
