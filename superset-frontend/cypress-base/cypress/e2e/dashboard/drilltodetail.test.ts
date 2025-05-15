@@ -463,7 +463,7 @@ describe('Drill to detail modal', () => {
             });
 
           // close the filter and test that data was reloaded
-          cy.getBySel('filter-col').find("[aria-label='close']").click();
+          cy.getBySel('filter-col').find("[aria-label='Close']").click();
           cy.wait('@samples');
           cy.getBySel('row-count-label').should('contain', '75.7k rows');
           cy.get('.antd5-pagination-item-active').should('contain', '1');
