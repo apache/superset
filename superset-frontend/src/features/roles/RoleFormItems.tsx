@@ -21,6 +21,7 @@ import Select from 'src/components/Select/Select';
 import { Input } from 'src/components/Input';
 import { t } from '@superset-ui/core';
 import { FC } from 'react';
+import { GroupObject } from 'src/pages/GroupsList';
 import { FormattedPermission, UserObject } from './types';
 
 interface PermissionsFieldProps {
@@ -29,6 +30,10 @@ interface PermissionsFieldProps {
 
 interface UsersFieldProps {
   users: UserObject[];
+}
+
+interface GroupsFieldProps {
+  groups: GroupObject[];
 }
 
 export const RoleNameField = () => (
@@ -65,6 +70,17 @@ export const UsersField: FC<UsersFieldProps> = ({ users }) => (
       name="roleUsers"
       options={users.map(user => ({ label: user.username, value: user.id }))}
       data-test="users-select"
+    />
+  </FormItem>
+);
+
+export const GroupsField: FC<GroupsFieldProps> = ({ groups }) => (
+  <FormItem name="roleGroups" label={t('Groups')}>
+    <Select
+      mode="multiple"
+      name="roleGroups"
+      options={groups.map(group => ({ label: group.name, value: group.id }))}
+      data-test="groups-select"
     />
   </FormItem>
 );
