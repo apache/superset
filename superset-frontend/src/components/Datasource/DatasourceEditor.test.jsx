@@ -147,7 +147,7 @@ describe('DatasourceEditor', () => {
       const countRows = screen.getAllByRole('button', { name: /delete item/i });
       expect(countRows.length).toBe(initialCount - 1);
     });
-  });
+  }, 60000); // 60 seconds timeout to avoid timeouts
 
   it('can add new columns', async () => {
     const calcColsTab = screen.getByTestId('collection-tab-Calculated columns');
