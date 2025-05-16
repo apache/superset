@@ -23,6 +23,7 @@ import { useLocation } from 'react-router-dom';
 
 export type LocationState = {
   requestedQuery?: Record<string, any>;
+  isDataset?: boolean;
 };
 
 export const locationContext = createContext<LocationState>({});

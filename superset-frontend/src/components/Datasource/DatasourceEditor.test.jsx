@@ -45,12 +45,17 @@ const props = {
   },
 };
 const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata_by_name/*';
-
+const routeProps = {
+  history: {},
+  location: {},
+  match: {},
+};
 const asyncRender = props =>
   waitFor(() =>
-    render(<DatasourceEditor {...props} />, {
+    render(<DatasourceEditor {...props} {...routeProps} />, {
       useRedux: true,
       initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
+      useRouter: true,
     }),
   );
 
