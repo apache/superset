@@ -27,6 +27,8 @@ updates:
   - package-ecosystem: "uv"
     directory: "requirements/"
     open-pull-requests-limit: 10
+    schedule:
+      interval: "weekly"
     labels:
       - uv
       - dependabot
