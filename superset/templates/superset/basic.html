@@ -25,8 +25,6 @@
       {% block title %}
         {% if title %}
           {{ title }}
-        {% elif appbuilder and appbuilder.app_name %}
-          {{ appbuilder.app_name }}
         {% endif %}
       {% endblock %}
     </title>
@@ -50,10 +48,6 @@
         as="style"
       />
 
-      {{ css_bundle(assets_prefix, 'theme') }}
-      {% if entry %}
-        {{ css_bundle(assets_prefix, entry) }}
-      {% endif %}
     {% endblock %}
 
     {{ js_bundle(assets_prefix, 'theme') }}
@@ -84,12 +78,6 @@
     {% endblock %}
 
     {% block tail_js %}
-      {% if not standalone_mode %}
-        {{ js_bundle(assets_prefix, 'menu') }}
-      {% endif %}
-      {% if entry %}
-        {{ js_bundle(assets_prefix, entry) }}
-      {% endif %}
     {% endblock %}
 
     <script nonce="{{ macros.get_nonce() }}">
