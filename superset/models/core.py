@@ -771,7 +771,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         current_limit = statement.get_limit_value() or float("inf")
 
         if limit < current_limit or force:
-            statement.set_limit_value(limit)
+            statement.set_limit_value(limit, self.db_engine_spec.limit_method)
 
         return script.format()
 
