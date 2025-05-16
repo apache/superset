@@ -335,6 +335,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       return;
     }
 
+    if (filterState.value !== undefined) {
+      // Set the filter state value if it is defined
+      updateDataMask(filterState.value);
+      return;
+    }
+
     // Case 2: Handle the default to first Value case
     if (defaultToFirstItem) {
       // Set to first item if defaultToFirstItem is true
@@ -353,6 +359,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     enableEmptyFilter,
     defaultToFirstItem,
     formData?.defaultValue,
+    filterState.value,
     data,
     groupby,
     col,
