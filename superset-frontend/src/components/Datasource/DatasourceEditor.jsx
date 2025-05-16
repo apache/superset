@@ -30,6 +30,7 @@ import {
   FeatureFlag,
   styled,
   SupersetClient,
+  themeObject,
   t,
   withTheme,
   getClientErrorObject,
@@ -551,7 +552,11 @@ StackedField.propTypes = {
 };
 
 function FormContainer({ children }) {
-  return <Card padded>{children}</Card>;
+  return (
+    <Card padded style={{ backgroundColor: themeObject.theme.colorBgLayout }}>
+      {children}
+    </Card>
+  );
 }
 
 FormContainer.propTypes = {

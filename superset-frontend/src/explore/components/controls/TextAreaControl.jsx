@@ -153,7 +153,10 @@ class TextAreaControl extends Component {
           <ModalTrigger
             modalTitle={controlHeader}
             triggerNode={
-              <Button buttonSize="small" className="m-t-5">
+              <Button
+                buttonSize="small"
+                style={{ marginTop: this.props.theme.sizeUnit }}
+              >
                 {t('Edit')} <strong>{this.props.language}</strong>{' '}
                 {t('in modal')}
               </Button>

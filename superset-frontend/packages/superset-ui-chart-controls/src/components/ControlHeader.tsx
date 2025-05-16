@@ -144,11 +144,7 @@ export function ControlHeader({
             </span>
           )}
           {renderOptionalIcons()}
-          {required && (
-            <span className="text-danger m-l-4">
-              <strong>*</strong>
-            </span>
-          )}
+          {required && <strong> *</strong>}
         </label>
       </div>
       {rightNode && <div className="pull-right">{rightNode}</div>}

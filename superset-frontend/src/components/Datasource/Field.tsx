@@ -18,7 +18,7 @@
  */
 import { useCallback, ReactNode, ReactElement, cloneElement } from 'react';
 
-import { css, SupersetTheme } from '@superset-ui/core';
+import { css, SupersetTheme, useTheme } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
 import { FormItem, FormLabel } from '../Form';
 import { Tooltip } from '../Tooltip';
@@ -65,6 +65,7 @@ export default function Field<V>({
     value,
     onChange: onControlChange,
   });
+  const theme = useTheme();
   return (
     <div
       css={
@@ -81,7 +82,10 @@ export default function Field<V>({
             {label || fieldKey}
             {compact && description && (
               <Tooltip id="field-descr" placement="right" title={description}>
-                <Icons.InfoCircleFilled iconSize="s" className="m-l-5" />
+                <Icons.InfoCircleFilled
+                  iconSize="s"
+                  style={{ marginLeft: theme.sizeUnit }}
+                />
               </Tooltip>
             )}
           </FormLabel>
@@ -91,10 +95,12 @@ export default function Field<V>({
         {hookedControl}
         {!compact && description && (
           <div
-            css={(theme: SupersetTheme) => ({
-              color: theme.colors.grayscale.base,
-              [inline ? 'marginLeft' : 'marginTop']: theme.sizeUnit,
-            })}
+            style={{
+              color: theme.colorTextDescription,
+              marginLeft: inline ? theme.sizeUnit : 0,
+              marginTop: !inline ? theme.sizeUnit : 0,
+              fontSize: theme.fontSizeSM,
+            }}
           >
             {description}
           </div>
