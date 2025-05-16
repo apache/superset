@@ -55,11 +55,6 @@ const Wrapper = styled.div`
   display: flex;
   justify-content: space-between;
   width: 100%;
-
-  .antd5-input-number {
-    min-width: 80px;
-    position: relative;
-  }
 `;
 
 const SliderWrapper = styled.div`
@@ -67,7 +62,7 @@ const SliderWrapper = styled.div`
     margin: ${theme.gridUnit * 4}px 0;
     padding: 0 ${theme.gridUnit}px;
     width: 100%;
-    min-width: 200px;
+    min-width: 120px;
   `}
 `;
 
@@ -96,8 +91,8 @@ const HorizontalLayout = styled.div`
       }
 
       .inputs-container {
-        min-width: 160px;
-        max-width: 200px;
+        min-width: 140px;
+        max-width: 180px;
       }
 
     }
@@ -220,6 +215,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     filterState,
     inputRef,
     filterBarOrientation = FilterBarOrientation.Vertical,
+    isOverflowingFilterBar = false,
   } = props;
 
   const [row] = data;
@@ -482,12 +478,15 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const MessageDisplay = useCallback(() => {
     const { message, status } = getMessageAndStatus();
 
-    if (filterBarOrientation === FilterBarOrientation.Vertical) {
+    if (
+      filterBarOrientation === FilterBarOrientation.Vertical ||
+      isOverflowingFilterBar
+    ) {
       return <StatusMessage status={status}>{message}</StatusMessage>;
     }
 
     return null;
-  }, [getMessageAndStatus, filterBarOrientation]);
+  }, [getMessageAndStatus, filterBarOrientation, isOverflowingFilterBar]);
 
   const InfoTooltip = useCallback(() => {
     const { message, status } = getMessageAndStatus();
@@ -618,7 +617,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         <StyledFormItem
           aria-labelledby={`filter-name-${formData.nativeFilterId}`}
         >
-          {filterBarOrientation === FilterBarOrientation.Horizontal ? (
+          {filterBarOrientation === FilterBarOrientation.Horizontal &&
+          !isOverflowingFilterBar ? (
             <HorizontalLayout>
               <div className="controls-container">
                 <InfoTooltip />

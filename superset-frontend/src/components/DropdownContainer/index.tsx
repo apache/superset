@@ -252,9 +252,11 @@ const DropdownContainer = forwardRef(
             ? items.length - overflowedItems.length
             : index;
 
+        // After determining overflow index, check if the last visible item overlaps with dropdown button
+
+        const button = current?.children.item(1);
         if (width > previousWidth) {
           // Calculates remaining space in the container
-          const button = current?.children.item(1);
           const buttonRight = button?.getBoundingClientRect().right || 0;
           const containerRight = current?.getBoundingClientRect().right || 0;
           const remainingSpace = containerRight - buttonRight;
@@ -271,6 +273,23 @@ const DropdownContainer = forwardRef(
           }
         }
 
+        // Check if the last visible item would overlap with the dropdown button
+        if (
+          button &&
+          newOverflowingIndex > 0 &&
+          childrenArray[newOverflowingIndex - 1]
+        ) {
+          const lastVisibleItem = childrenArray[newOverflowingIndex - 1];
+          const lastItemRect = lastVisibleItem.getBoundingClientRect();
+          const buttonRect = button.getBoundingClientRect();
+
+          // If the gap between last item and button is less than 16px, or there's an overlap,
+          // move the last item to the dropdown
+          const minimumGap = 16; // pixels
+          if (buttonRect.left - lastItemRect.right < minimumGap) {
+            newOverflowingIndex = Math.max(0, newOverflowingIndex - 1);
+          }
+        }
         setOverflowingIndex(newOverflowingIndex);
       }
     }, [
