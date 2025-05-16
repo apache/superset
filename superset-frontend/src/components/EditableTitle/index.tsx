@@ -43,14 +43,17 @@ const StyledEditableTitle = styled.span<{
       background: transparent;
       box-shadow: none;
       cursor: initial;
-      font-feature-settings: ${({ theme }) => theme.typography.featureSettings};
-      font-family: ${({ theme }) => theme.typography.families.monospace};
+      font-feature-settings:
+        'liga' 0,
+        'calt' 0;
+      font-variant-ligatures: none;
+      font-family: ${({ theme }) => theme.fontFamilyCode};
     }
 
     input[type='text'],
     textarea {
       border: 1px solid ${({ theme }) => theme.colors.grayscale.base};
-      border-radius: ${({ theme }) => theme.gridUnit}px;
+      border-radius: ${({ theme }) => theme.sizeUnit}px;
       padding: 2px;
       min-height: 100px;
       width: 95%;
