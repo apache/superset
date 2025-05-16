@@ -39,6 +39,7 @@ export const createDefaultChartCustomizationItem =
     customization: {
       name: '',
       dataset: null,
+      column: null,
       sortAscending: true,
       hasDefaultValue: false,
       isRequired: false,

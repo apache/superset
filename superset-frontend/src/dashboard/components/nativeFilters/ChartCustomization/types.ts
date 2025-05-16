@@ -17,10 +17,10 @@
  * under the License.
  */
 export interface GroupByCustomization {
-  name: string;
+  name: string; // Display name for the customization
   dataset: string | null;
   description?: string;
-  column?: string;
+  column: string | null; // The actual column to group by
   sortFilter?: boolean;
   sortAscending?: boolean;
   sortMetric?: string;
@@ -28,6 +28,8 @@ export interface GroupByCustomization {
   defaultValue?: string;
   isRequired?: boolean;
   selectFirst?: boolean;
+  aggregation?: string;
+  isGroupByValueRequired?: boolean;
   defaultDataMask?: {
     filterState?: {
       value?: any;
@@ -35,6 +37,7 @@ export interface GroupByCustomization {
     };
     [key: string]: any;
   };
+  defaultValueQueriesData?: any; // Data needed for the DefaultValue component to display saved values
 }
 
 export interface ChartCustomizationItem {

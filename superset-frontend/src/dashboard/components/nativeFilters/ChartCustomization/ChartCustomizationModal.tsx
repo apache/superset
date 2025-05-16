@@ -82,6 +82,7 @@ const Sidebar = styled.div`
 export interface ChartCustomizationModalProps {
   isOpen: boolean;
   dashboardId: number;
+  initialItemId?: string;
   onCancel: () => void;
   onSave: (dashboardId: number, items: ChartCustomizationItem[]) => void;
 }
@@ -89,6 +90,7 @@ export interface ChartCustomizationModalProps {
 const ChartCustomizationModal = ({
   isOpen,
   dashboardId,
+  initialItemId,
   onCancel,
   onSave,
 }: ChartCustomizationModalProps) => {
@@ -105,15 +107,34 @@ const ChartCustomizationModal = ({
   );
 
   const handleSave = useCallback(() => {
-    form.validateFields().then(() => {
-      onSave(dashboardId, items);
-      onCancel();
-    });
-  }, [form, items, onSave, onCancel, dashboardId]);
+    form
+      .validateFields()
+      .then(() => {
+        onSave(dashboardId, items);
+        onCancel();
+      })
+      .catch(() => {
+        // If validation fails, show the save alert to prevent accidental data loss
+        setSaveAlertVisible(true);
+      });
+  }, [form, items, onSave, onCancel, dashboardId, setSaveAlertVisible]);
+
+  const hasUnsavedChanges = useCallback(
+    () => form.isFieldsTouched() || form.getFieldValue('changed'),
+    [form],
+  );
 
   const handleConfirmCancel = () => {
     setSaveAlertVisible(false);
     onCancel();
+  };
+
+  const handleCancel = () => {
+    if (hasUnsavedChanges()) {
+      setSaveAlertVisible(true);
+    } else {
+      onCancel();
+    }
   };
 
   const existingItems = useSelector(selectChartCustomizationItems);
@@ -123,7 +144,12 @@ const ChartCustomizationModal = ({
       if (existingItems && existingItems.length > 0) {
         setItems(existingItems);
 
-        setCurrentId(existingItems[0].id);
+        // Use initialItemId if provided and valid, otherwise default to first item
+        const initialItem = initialItemId
+          ? existingItems.find(item => item.id === initialItemId)
+          : existingItems[0];
+
+        setCurrentId(initialItem?.id || existingItems[0].id);
       } else {
         const newItem = createDefaultChartCustomizationItem();
         setCurrentId(newItem.id);
@@ -131,7 +157,7 @@ const ChartCustomizationModal = ({
       }
       setInitialLoadComplete(true);
     }
-  }, [isOpen, initialLoadComplete, existingItems]);
+  }, [isOpen, initialLoadComplete, existingItems, initialItemId]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -142,7 +168,7 @@ const ChartCustomizationModal = ({
   return (
     <StyledModalWrapper
       open={isOpen}
-      onCancel={() => setSaveAlertVisible(true)}
+      onCancel={handleCancel}
       onOk={handleSave}
       title={t('Chart customization')}
       expanded={expanded}
@@ -168,9 +194,12 @@ const ChartCustomizationModal = ({
           ) : (
             <Footer
               onDismiss={() => setSaveAlertVisible(false)}
-              onCancel={() => setSaveAlertVisible(true)}
+              onCancel={handleCancel}
               handleSave={handleSave}
-              canSave={!form.getFieldsError().some(e => e.errors.length)}
+              canSave={
+                !form.getFieldsError().some(e => e.errors.length) &&
+                hasUnsavedChanges()
+              }
               saveAlertVisible={false}
               onConfirmCancel={handleConfirmCancel}
             />
@@ -187,8 +216,27 @@ const ChartCustomizationModal = ({
               setCurrentId={setCurrentId}
               onChange={setCurrentId}
               onAdd={item => {
+                // Add the new item to the list
                 setItems([...items, item]);
                 setCurrentId(item.id);
+
+                // Reset the form with empty values to ensure a clean slate
+                form.resetFields();
+
+                // Set initial values for the new item
+                form.setFieldsValue({
+                  name: item.customization.name || '',
+                  column: null,
+                  dataset: null,
+                  description: '',
+                  sortFilter: false,
+                  sortAscending: true,
+                  sortMetric: null,
+                  hasDefaultValue: false,
+                  isRequired: false,
+                  selectFirst: false,
+                  changed: false,
+                });
               }}
               onRemove={(id, shouldRemove) => {
                 if (shouldRemove) {
@@ -202,7 +250,9 @@ const ChartCustomizationModal = ({
                       const nextItem = items.find(
                         i => i.id !== id && !i.removed,
                       );
-                      setCurrentId(nextItem?.id || null);
+                      setCurrentId(
+                        nextItem?.id || items.find(i => !i.removed)?.id || null,
+                      );
                     }
                   }, 3000);
 
@@ -216,7 +266,9 @@ const ChartCustomizationModal = ({
 
                   if (currentId === id) {
                     const nextItem = items.find(i => i.id !== id && !i.removed);
-                    setCurrentId(nextItem?.id || id);
+                    setCurrentId(
+                      nextItem?.id || items.find(i => !i.removed)?.id || null,
+                    );
                   }
                 } else {
                   setItems(prev =>

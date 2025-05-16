@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, useCallback, useEffect, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { Form } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Popover from 'src/components/Popover';
 import { Typography, Tag, Select } from 'src/components';
+import { Icons } from 'src/components/Icons';
 import Loading from 'src/components/Loading';
-import { styled, t, SupersetClient } from '@superset-ui/core';
+import { styled, t, SupersetClient, css } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { debounce } from 'lodash';
 import { saveChartCustomization } from 'src/dashboard/actions/dashboardInfo';
@@ -36,6 +37,42 @@ interface FilterOption {
   label: string;
   value: string;
 }
+
+const Row = styled.div`
+  display: flex;
+  align-items: center;
+  margin: ${({ theme }) => theme.gridUnit}px 0;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+
+  &:first-of-type {
+    margin-top: 0;
+  }
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+`;
+
+const RowLabel = styled.span`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-right: auto;
+  white-space: nowrap;
+`;
+
+const RowValue = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline;
+`;
+
+const InternalRow = styled.div`
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+`;
 
 const FilterValueContainer = styled.div`
   display: flex;
@@ -105,7 +142,7 @@ const GroupByFilterCardContent: FC<{
   hidePopover: () => void;
 }> = ({ customizationItem, hidePopover }) => {
   const { title, description, customization } = customizationItem;
-  const { name, dataset } = customization || {};
+  const { name, dataset, aggregation } = customization || {};
 
   const dispatch = useDispatch();
 
@@ -130,42 +167,73 @@ const GroupByFilterCardContent: FC<{
     }
   };
 
+  const datasetLabel = useMemo(() => {
+    if (customizationItem.customization.dataset) {
+      if (
+        typeof customizationItem.customization.dataset === 'object' &&
+        'label' in customizationItem.customization.dataset
+      ) {
+        return (customizationItem.customization.dataset as { label: string })
+          .label;
+      }
+      return `Dataset ${dataset}`;
+    }
+    return t('Not set');
+  }, [customizationItem.customization.dataset, dataset]);
+
+  const aggregationDisplay = useMemo(
+    () => (aggregation ? aggregation.toUpperCase() : t('None')),
+    [aggregation],
+  );
+
   return (
     <div>
-      <div style={{ marginBottom: 8 }}>
-        <Typography.Text strong>{title || t('Group By')}</Typography.Text>
-      </div>
+      <Row
+        css={theme => css`
+          margin-bottom: ${theme.gridUnit * 3}px;
+          justify-content: flex-start;
+        `}
+      >
+        <InternalRow>
+          <Icons.BarChartOutlined
+            iconSize="s"
+            css={theme => css`
+              margin-right: ${theme.gridUnit}px;
+            `}
+          />
+          <Typography.Text strong>{title || t('Group By')}</Typography.Text>
+        </InternalRow>
+      </Row>
+      <Row>
+        <RowLabel>{t('Type')}</RowLabel>
+        <RowValue>{t('Dynamic group by')}</RowValue>
+      </Row>
 
-      <div style={{ marginBottom: 8 }}>
-        <Typography.Text type="secondary">
-          {t('Type')}: {t('Group By')}
-        </Typography.Text>
-      </div>
+      <Row>
+        <RowLabel>{t('Name')}</RowLabel>
+        <RowValue>{datasetLabel}</RowValue>
+      </Row>
 
-      <div style={{ marginBottom: 8 }}>
-        <Typography.Text type="secondary">
-          {t('Dataset')}:{' '}
-          {customizationItem.customization.dataset &&
-          typeof customizationItem.customization.dataset === 'object' &&
-          'label' in customizationItem.customization.dataset
-            ? (customizationItem.customization.dataset as { label: string })
-                .label
-            : dataset
-              ? `Dataset ${dataset}`
-              : t('Not set')}
-        </Typography.Text>
-      </div>
-
-      <div style={{ marginBottom: 8 }}>
-        <Typography.Text type="secondary">
-          {t('Column')}: {name || t('Not set')}
-        </Typography.Text>
-      </div>
+      <Row>
+        <RowLabel>{t('Aggregation')}</RowLabel>
+        <RowValue>{aggregationDisplay}</RowValue>
+      </Row>
 
       {description && (
-        <div style={{ marginBottom: 8 }}>
-          <Typography.Text type="secondary">{description}</Typography.Text>
-        </div>
+        <Row
+          css={theme => css`
+            margin-top: ${theme.gridUnit * 2}px;
+          `}
+        >
+          <Typography.Text
+            type="secondary"
+            css={theme => css`
+              font-size: ${theme.typography.sizes.s - 1}px;
+            `}
+          >
+            {description}
+          </Typography.Text>
+        </Row>
       )}
 
       <div style={{ marginTop: 16, textAlign: 'right' }}>
