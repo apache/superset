@@ -60,6 +60,10 @@ export const GlobalStyles = () => {
           z-index: ${theme.zIndexPopupBase} !important;
         }
 
+        .no-wrap {
+          white-space: nowrap;
+        }
+
         .column-config-popover {
           & .ant-input-number {
             width: 100%;
