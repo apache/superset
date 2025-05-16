@@ -51,9 +51,26 @@ export function getTimeOrNumberFormatter(format) {
     : getNumberFormatter(format);
 }
 
+function getRectPosInfo(rectObj, yValue) {
+  const transformAttr = rectObj.attr('transform');
+  const xPos = parseFloat(rectObj.attr('x'));
+  const yPos = parseFloat(rectObj.attr('y'));
+  const rectWidth = parseFloat(rectObj.attr('width'));
+  const rectHeight = parseFloat(rectObj.attr('height'));
+  const isPositive = rectObj.attr('class').includes('positive');
+  return {
+    xPos,
+    yPos,
+    rectWidth,
+    rectHeight,
+    transformAttr,
+    yValue,
+    isPositive,
+  };
+}
+
 export function drawBarValues(svg, data, stacked, axisFormat) {
   const format = getNumberFormatter(axisFormat);
-  const countSeriesDisplayed = data.filter(d => !d.disabled).length;
   const totalStackedValues =
     stacked && data.length !== 0
       ? data[0].values.map((bar, iBar) => {
@@ -71,34 +88,60 @@ export function drawBarValues(svg, data, stacked, axisFormat) {
       .select('g.nv-barsWrap')
       .append('g')
       .attr('class', 'bar-chart-label-group');
-    svg
-      .selectAll('g.nv-group')
-      .filter((d, i) => !stacked || i === countSeriesDisplayed - 1)
-      .selectAll('rect')
-      .each(function each(d, index) {
-        const rectObj = d3.select(this);
-        const transformAttr = rectObj.attr('transform');
-        const xPos = parseFloat(rectObj.attr('x'));
-        const yPos = parseFloat(rectObj.attr('y'));
-        const rectWidth = parseFloat(rectObj.attr('width'));
-        const rectHeight = parseFloat(rectObj.attr('height'));
-        const textEls = groupLabels
-          .append('text')
-          .text(format(stacked ? totalStackedValues[index] : d.y))
-          .attr('transform', transformAttr)
-          .attr('class', 'bar-chart-label');
-
-        // fine tune text position
-        const bbox = textEls.node().getBBox();
-        const labelWidth = bbox.width;
-        const labelHeight = bbox.height;
-        textEls.attr('x', xPos + rectWidth / 2 - labelWidth / 2);
-        if (rectObj.attr('class').includes('positive')) {
-          textEls.attr('y', yPos - 5);
-        } else {
-          textEls.attr('y', yPos + rectHeight + labelHeight);
-        }
+    const rectPosArr = [];
+    if (!stacked) {
+      svg
+        .selectAll('g.nv-group')
+        .selectAll('rect')
+        .each(function each(d) {
+          const rectObj = d3.select(this);
+          rectPosArr.push(getRectPosInfo(rectObj, d.y));
+        });
+    } else {
+      totalStackedValues.forEach((d, index) => {
+        svg.selectAll('g.nv-group').each(function each() {
+          d3.select(this)
+            .selectAll('rect')
+            .filter((f, i) => i === index)
+            .each(function each() {
+              const rectObj = d3.select(this);
+              const current = rectPosArr[index];
+              const rectInfo = getRectPosInfo(
+                rectObj,
+                totalStackedValues[index],
+              );
+              if (!current) {
+                rectPosArr[index] = rectInfo;
+              } else if (
+                // when totalStackedValue is positive, show the value text on the top of the bar, otherwise on the bottom
+                totalStackedValues[index] > 0
+                  ? rectInfo.yPos < current.yPos
+                  : rectInfo.yPos > current.yPos
+              ) {
+                rectPosArr[index] = rectInfo;
+              }
+            });
+        });
       });
+    }
+    rectPosArr.forEach(function each(d) {
+      const textEls = groupLabels
+        .append('text')
+        .text(format(d.yValue))
+        .attr('transform', d.transformAttr)
+        .attr('class', 'bar-chart-label');
+
+      // fine tune text position
+      const bbox = textEls.node().getBBox();
+      const labelWidth = bbox.width;
+      const labelHeight = bbox.height;
+      textEls.attr('x', d.xPos + d.rectWidth / 2 - labelWidth / 2);
+      if (d.yValue >= 0) {
+        textEls.attr('y', d.yPos - 5);
+      } else {
+        textEls.attr('y', d.yPos + d.rectHeight + labelHeight);
+      }
+    });
   }, ANIMATION_TIME);
 }
 
