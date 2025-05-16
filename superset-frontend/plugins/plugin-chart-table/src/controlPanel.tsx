@@ -397,6 +397,7 @@ const config: ControlPanelConfig = {
                     v,
                     state?.server_pagination,
                     state?.maxValueWithoutServerPagination || DEFAULT_MAX_ROW,
+                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
                   ),
               ],
               // Re run the validations when this control value
