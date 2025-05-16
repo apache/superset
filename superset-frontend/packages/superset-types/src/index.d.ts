@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
-import { Avatar } from 'src/components/Avatar';
-
-test('renders with default props', async () => {
-  const { container } = render(<Avatar />);
-
-  expect(container).toBeInTheDocument();
-});
+export * from './authentication';
+export * from './commands';
+export * as core from './core';
+export * from './environment';
+export * from './extensions';
+export * from './sqlLab';
