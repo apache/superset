@@ -659,7 +659,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
     ) -> pd.DataFrame:
-        sqls = self.db_engine_spec.parse_sql(sql)
+        script = SQLScript(sql, self.db_engine_spec.engine)
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             engine_url = engine.url
 
@@ -676,8 +676,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
             df = None
-            for i, sql_ in enumerate(sqls):
-                sql_ = self.mutate_sql_based_on_config(sql_, is_split=True)
+            for i, statement in enumerate(script.statements):
+                sql_ = self.mutate_sql_based_on_config(
+                    statement.format(),
+                    is_split=True,
+                )
                 _log_query(sql_)
                 with event_logger.log_context(
                     action="execute_sql",
@@ -686,7 +689,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 ):
                     self.db_engine_spec.execute(cursor, sql_, self)
 
-                rows = self.fetch_rows(cursor, i == len(sqls) - 1)
+                rows = self.fetch_rows(cursor, i == len(script.statements) - 1)
                 if rows is not None:
                     df = self.load_into_dataframe(cursor.description, rows)
 
