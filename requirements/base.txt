@@ -26,6 +26,8 @@ babel==2.17.0
     # via flask-babel
 backoff==2.2.1
     # via apache-superset (pyproject.toml)
+backports-datetime-fromisoformat==2.0.3
+    # via marshmallow
 bcrypt==4.3.0
     # via paramiko
 billiard==4.2.1
@@ -191,7 +193,7 @@ jsonpath-ng==1.7.0
     # via apache-superset (pyproject.toml)
 jsonschema==4.23.0
     # via flask-appbuilder
-jsonschema-specifications==2024.10.1
+jsonschema-specifications==2025.4.1
     # via jsonschema
 kombu==5.5.3
     # via celery
@@ -213,7 +215,7 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==3.26.1
+marshmallow==4.0.0
     # via
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
@@ -252,7 +254,6 @@ packaging==25.0
     #   deprecation
     #   gunicorn
     #   limits
-    #   marshmallow
     #   shillelagh
 pandas==2.0.3
     # via apache-superset (pyproject.toml)
@@ -337,7 +338,7 @@ requests-cache==1.2.1
     # via shillelagh
 rich==13.9.4
     # via flask-limiter
-rpds-py==0.23.1
+rpds-py==0.24.0
     # via
     #   jsonschema
     #   referencing
@@ -393,6 +394,7 @@ typing-extensions==4.13.2
     #   alembic
     #   cattrs
     #   limits
+    #   marshmallow
     #   pyopenssl
     #   referencing
     #   rich

@@ -39,6 +39,10 @@ backoff==2.2.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
+backports-datetime-fromisoformat==2.0.3
+    # via
+    #   -c requirements/base.txt
+    #   marshmallow
 bcrypt==4.3.0
     # via
     #   -c requirements/base.txt
@@ -390,7 +394,7 @@ jsonschema==4.23.0
     #   openapi-spec-validator
 jsonschema-path==0.3.4
     # via openapi-spec-validator
-jsonschema-specifications==2024.10.1
+jsonschema-specifications==2025.4.1
     # via
     #   -c requirements/base.txt
     #   jsonschema
@@ -431,7 +435,7 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==3.26.1
+marshmallow==4.0.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
@@ -507,7 +511,6 @@ packaging==25.0
     #   google-cloud-bigquery
     #   gunicorn
     #   limits
-    #   marshmallow
     #   matplotlib
     #   pytest
     #   shillelagh
@@ -732,7 +735,7 @@ rich==13.9.4
     # via
     #   -c requirements/base.txt
     #   flask-limiter
-rpds-py==0.23.1
+rpds-py==0.24.0
     # via
     #   -c requirements/base.txt
     #   jsonschema
@@ -845,6 +848,7 @@ typing-extensions==4.13.2
     #   apache-superset
     #   cattrs
     #   limits
+    #   marshmallow
     #   pyopenssl
     #   referencing
     #   rich
