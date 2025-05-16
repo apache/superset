@@ -22,12 +22,13 @@ from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIDatabaseError,
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
+from superset.sql.parse import LimitMethod
 from superset.utils.core import GenericDataType
 
 
@@ -105,7 +106,6 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
 
 class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
-    limit_method = LimitMethod.WRAP_SQL
     engine = "kustokql"
     engine_name = "KustoKQL"
     time_groupby_inline = True

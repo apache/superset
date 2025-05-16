@@ -761,11 +761,19 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             )
 
     def apply_limit_to_sql(
-        self, sql: str, limit: int = 1000, force: bool = False
+        self,
+        sql: str,
+        limit: int = 1000,
+        force: bool = False,
     ) -> str:
-        if self.db_engine_spec.allow_limit_clause:
-            return self.db_engine_spec.apply_limit_to_sql(sql, limit, self, force=force)
-        return self.db_engine_spec.apply_top_to_sql(sql, limit)
+        script = SQLScript(sql, self.db_engine_spec.engine)
+        statement = script.statements[-1]
+        current_limit = statement.get_limit_value() or float("inf")
+
+        if limit < current_limit or force:
+            statement.set_limit_value(limit)
+
+        return script.format()
 
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
