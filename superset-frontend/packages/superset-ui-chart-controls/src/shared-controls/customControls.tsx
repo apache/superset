@@ -67,6 +67,7 @@ export const aggregationControl = {
     type: 'SelectControl',
     label: t('Aggregation Method'),
     default: null,
+    placeholder: t('None'),
     clearable: true,
     renderTrigger: false,
     choices: [
@@ -80,10 +81,15 @@ export const aggregationControl = {
     description: t(
       'Aggregation method used to compute the Big Number from the Trendline. Do not use with non-additive metrics like ratios, averages, distinct counts, etc.',
     ),
-    provideFormDataToProps: true,
-    mapStateToProps: ({ form_data }: ControlPanelState) => ({
-      value: form_data.aggregation ?? null,
-    }),
+    initialValue: (control: ControlState, state: ControlPanelState) => {
+      if (!state || Object.keys(state).length === 0) {
+        return control.value;
+      }
+      return 'aggregation' in (state?.form_data || {})
+        ? state.form_data.aggregation
+        : null;
+    },
+    mapStateToProps: () => ({}),
   },
 };
 
