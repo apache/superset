@@ -153,11 +153,3 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             return f"""datetime({dttm.isoformat(timespec="microseconds")})"""
 
         return None
-
-    @classmethod
-    def parse_sql(cls, sql: str) -> list[str]:
-        """
-        Kusto supports a single query statement, but it could include sub queries
-        and variables declared via let keyword.
-        """
-        return [sql]
