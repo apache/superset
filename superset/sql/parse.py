@@ -261,7 +261,11 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
-    def set_limit_value(self, limit: int) -> None:
+    def set_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
         """
         Add a limit to the statement.
         """
@@ -781,10 +785,17 @@ class KustoKQLStatement(BaseSQLStatement[str]):
 
         return None
 
-    def set_limit_value(self, limit: int) -> None:
+    def set_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
         """
         Add a limit to the statement.
         """
+        if method != LimitMethod.FORCE_LIMIT:
+            raise SupersetParseError("Kusto KQL only supports the FORCE_LIMIT method.")
+
         tokens = tokenize_kql(self._sql)
         found_limit_token = False
         for idx, (ttype, val) in enumerate(tokens):
