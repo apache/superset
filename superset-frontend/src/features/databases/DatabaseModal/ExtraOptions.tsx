@@ -271,6 +271,7 @@ const ExtraOptions = ({
               value={db?.cache_timeout || ''}
               placeholder={t('Enter duration in seconds')}
               onChange={onInputChange}
+              data-test="cache-timeout-test"
             />
           </div>
           <div className="helper">
@@ -533,7 +534,9 @@ const ExtraOptions = ({
               value={
                 !Object.keys(extraJson?.metadata_params || {}).length
                   ? ''
-                  : extraJson?.metadata_params
+                  : typeof extraJson?.metadata_params === 'string'
+                    ? extraJson?.metadata_params
+                    : JSON.stringify(extraJson?.metadata_params)
               }
             />
           </div>
