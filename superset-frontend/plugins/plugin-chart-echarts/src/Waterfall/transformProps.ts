@@ -164,7 +164,7 @@ export default function transformProps(
   const refs: Refs = {};
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
-  const { setDataMask = () => {}, onContextMenu, onLegendStateChanged } = hooks;
+  const { setDataMask = () => { }, onContextMenu, onLegendStateChanged } = hooks;
   const {
     currencyFormat,
     granularitySqla = '',
@@ -185,7 +185,6 @@ export default function transformProps(
     boldLabels,
     showTotal,
     orientation,
-    xTicksWrapLength,
   } = formData;
   const defaultFormatter = currencyFormat?.symbol
     ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
@@ -542,17 +541,17 @@ export default function transformProps(
         },
         series: Array.isArray(processedOptions.series)
           ? processedOptions.series.map((series: any) => ({
-              ...series,
-              encode: {
-                x: series.encode?.y,
-                y: series.encode?.x,
-              },
-              data: [...series.data].reverse(),
-              label: {
-                ...(series.label || {}),
-                position: series.name === 'Decrease' ? 'left' : 'right',
-              },
-            }))
+            ...series,
+            encode: {
+              x: series.encode?.y,
+              y: series.encode?.x,
+            },
+            data: [...series.data].reverse(),
+            label: {
+              ...(series.label || {}),
+              position: series.name === 'Decrease' ? 'left' : 'right',
+            },
+          }))
           : [],
       };
     }
@@ -570,11 +569,11 @@ export default function transformProps(
     // Get total indices for bold formatting
     const totalsIndex = ['total', 'both'].includes(boldLabels)
       ? ((options.series as any[]) || [])
-          .find(series => series.name === 'Total')
-          ?.data.map((dataPoint: any, index: number) =>
-            dataPoint.value !== '-' ? index : -1,
-          )
-          .filter((index: number) => index !== -1) || []
+        .find(series => series.name === 'Total')
+        ?.data.map((dataPoint: any, index: number) =>
+          dataPoint.value !== '-' ? index : -1,
+        )
+        .filter((index: number) => index !== -1) || []
       : [];
 
     const formatText = (value: string, index: number) => {
@@ -618,66 +617,16 @@ export default function transformProps(
         }
       }
 
-      const getAxisRange = (options: EChartsOption) => {
-        if (orientation === 'vertical') {
-          const xAxis = options.xAxis as any;
-          const grid = options.grid as any;
+      return formattedValue;
+    };
 
-          // Get actual chart area width accounting for grid margins
-          const availableWidth = width - (grid?.left || 0) - (grid?.right || 0);
-
-          if (xAxis?.type === 'value') {
-            const range = xAxis.max - xAxis.min;
-            return Math.min(range, availableWidth);
-          }
-          if (xAxis?.type === 'category') {
-            const categories = xAxis.data?.length || 1;
-            // Calculate space per category
-            return availableWidth / categories;
-          }
-        } else {
-          const yAxis = options.yAxis as any;
-          const grid = options.grid as any;
-
-          // Get actual chart area height accounting for grid margins
-          const availableHeight =
-            height - (grid?.top || 0) - (grid?.bottom || 0);
-
-          if (yAxis?.type === 'value') {
-            const range = yAxis.max - yAxis.min;
-            return Math.min(range, availableHeight);
-          }
-          if (yAxis?.type === 'category') {
-            const categories = yAxis.data?.length || 1;
-            // Calculate space per category
-            return availableHeight / categories;
-          }
-        }
-
-        // Fallback to a reasonable default
-        return orientation === 'vertical' ? width * 0.8 : height * 0.8;
-      };
-
-      // Handle text wrapping if needed
-      const maxWidth = getAxisRange(options); // chart width
-      const maxCharsPerLine = Math.floor(maxWidth / Number(xTicksWrapLength)); // Approx chars per line
-
-      const words = formattedValue.split(' ');
-      let line = '';
-      let wrappedText = '';
-
-      words.forEach(word => {
-        if ((line + word).length > maxCharsPerLine) {
-          wrappedText += `${line.trim()}\n`;
-          line = `${word} `;
-        } else {
-          line += `${word} `;
-        }
-      });
-
-      wrappedText += line.trim();
-
-      return wrappedText;
+    const richTextOptions = {
+      subtotal: ['subtotal', 'both'].includes(boldLabels)
+        ? { fontWeight: 'bold' }
+        : undefined,
+      total: ['total', 'both'].includes(boldLabels)
+        ? { fontWeight: 'bold' }
+        : undefined
     };
 
     if (orientation === 'vertical') {
@@ -690,14 +639,10 @@ export default function transformProps(
             formatter: formatText,
             overflow: 'break',
             interval: 0,
+            width: 70,
             rich: {
               ...(options.xAxis as any)?.axisLabel?.rich,
-              subtotal: ['subtotal', 'both'].includes(boldLabels)
-                ? { fontWeight: 'bold' }
-                : undefined,
-              total: ['total', 'both'].includes(boldLabels)
-                ? { fontWeight: 'bold' }
-                : undefined,
+              ...richTextOptions
             },
           },
         },
@@ -714,12 +659,7 @@ export default function transformProps(
           overflow: 'break',
           rich: {
             ...(options.yAxis as any)?.axisLabel?.rich,
-            subtotal: ['subtotal', 'both'].includes(boldLabels)
-              ? { fontWeight: 'bold' }
-              : undefined,
-            total: ['total', 'both'].includes(boldLabels)
-              ? { fontWeight: 'bold' }
-              : undefined,
+            ...richTextOptions,
           },
         },
       },
@@ -796,9 +736,9 @@ export default function transformProps(
     series:
       orientation === 'horizontal'
         ? crossFilteredSeries.map(s => ({
-            ...s,
-            data: [...s.data].reverse(),
-          }))
+          ...s,
+          data: [...s.data].reverse(),
+        }))
         : crossFilteredSeries,
   };
 

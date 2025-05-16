@@ -25,7 +25,6 @@ import {
   formatSelectOptions,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import React from 'react';
 import { showValueControl } from '../controls';
 
 const config: ControlPanelConfig = {
@@ -217,37 +216,6 @@ const config: ControlPanelConfig = {
               clearable: false,
               renderTrigger: true,
               description: t('The way the ticks are laid out on the X-axis'),
-            },
-          },
-          {
-            name: 'x_ticks_wrap_length',
-            config: {
-              type: 'TextControl',
-              label: t('X tick wrap length'),
-              description: t(
-                'Maximum line length for wrapped text (when Flat layout is selected)',
-              ),
-              default: '20',
-              renderTrigger: true,
-              visibility: ({ controls }) =>
-                controls.x_ticks_layout.value === 'flat',
-            },
-          },
-        ],
-        [
-          {
-            name: 'sort_x_axis',
-            config: {
-              type: 'SelectControl',
-              label: t('Sort x axis'),
-              default: 'none',
-              choices: [
-                ['none', t('None')],
-                ['asc', t('Ascending')],
-                ['desc', t('Descending')],
-              ],
-              renderTrigger: true,
-              description: t('Sort X axis in ascending or descending order'),
             },
           },
         ],
