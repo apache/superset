@@ -24,6 +24,13 @@ export const GlobalStyles = () => {
     <Global
       key={`global-${theme.colorLink}`}
       styles={css`
+        // SPA
+        html,
+        body,
+        #app {
+          height: 100%;
+        }
+
         body {
           background-color: ${theme.colorBgBase};
           color: ${theme.colorText};
@@ -87,6 +94,7 @@ export const GlobalStyles = () => {
           position: relative;
           display: flex;
           flex-direction: column;
+          height: 100%;
         }
       `}
     />
