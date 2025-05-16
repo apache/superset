@@ -164,7 +164,7 @@ export default function transformProps(
   const refs: Refs = {};
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
-  const { setDataMask = () => { }, onContextMenu, onLegendStateChanged } = hooks;
+  const { setDataMask = () => {}, onContextMenu, onLegendStateChanged } = hooks;
   const {
     currencyFormat,
     granularitySqla = '',
@@ -541,17 +541,17 @@ export default function transformProps(
         },
         series: Array.isArray(processedOptions.series)
           ? processedOptions.series.map((series: any) => ({
-            ...series,
-            encode: {
-              x: series.encode?.y,
-              y: series.encode?.x,
-            },
-            data: [...series.data].reverse(),
-            label: {
-              ...(series.label || {}),
-              position: series.name === 'Decrease' ? 'left' : 'right',
-            },
-          }))
+              ...series,
+              encode: {
+                x: series.encode?.y,
+                y: series.encode?.x,
+              },
+              data: [...series.data].reverse(),
+              label: {
+                ...(series.label || {}),
+                position: series.name === 'Decrease' ? 'left' : 'right',
+              },
+            }))
           : [],
       };
     }
@@ -569,11 +569,11 @@ export default function transformProps(
     // Get total indices for bold formatting
     const totalsIndex = ['total', 'both'].includes(boldLabels)
       ? ((options.series as any[]) || [])
-        .find(series => series.name === 'Total')
-        ?.data.map((dataPoint: any, index: number) =>
-          dataPoint.value !== '-' ? index : -1,
-        )
-        .filter((index: number) => index !== -1) || []
+          .find(series => series.name === 'Total')
+          ?.data.map((dataPoint: any, index: number) =>
+            dataPoint.value !== '-' ? index : -1,
+          )
+          .filter((index: number) => index !== -1) || []
       : [];
 
     const formatText = (value: string, index: number) => {
@@ -626,7 +626,7 @@ export default function transformProps(
         : undefined,
       total: ['total', 'both'].includes(boldLabels)
         ? { fontWeight: 'bold' }
-        : undefined
+        : undefined,
     };
 
     if (orientation === 'vertical') {
@@ -642,7 +642,7 @@ export default function transformProps(
             width: 70,
             rich: {
               ...(options.xAxis as any)?.axisLabel?.rich,
-              ...richTextOptions
+              ...richTextOptions,
             },
           },
         },
@@ -736,9 +736,9 @@ export default function transformProps(
     series:
       orientation === 'horizontal'
         ? crossFilteredSeries.map(s => ({
-          ...s,
-          data: [...s.data].reverse(),
-        }))
+            ...s,
+            data: [...s.data].reverse(),
+          }))
         : crossFilteredSeries,
   };
 
