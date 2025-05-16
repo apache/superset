@@ -28,7 +28,7 @@ updates:
     directory: "requirements/"
     open-pull-requests-limit: 10
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     labels:
       - uv
       - dependabot
