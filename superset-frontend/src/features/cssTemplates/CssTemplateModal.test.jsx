@@ -20,9 +20,8 @@ import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import Modal from 'src/components/Modal';
+import { Modal, CssEditor } from 'src/components';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { CssEditor } from 'src/components/AsyncAceEditor';
 import { styledMount as mount } from 'spec/helpers/theming';
 import CssTemplateModal from './CssTemplateModal';
 
@@ -72,13 +71,13 @@ describe('CssTemplateModal', () => {
   it('renders add header when no css template is included', async () => {
     const addWrapper = await mountAndWait({});
     expect(
-      addWrapper.find('[data-test="css-template-modal-title"]').text(),
+      addWrapper.find('[data-test="css-template-modal-title"]').first().text(),
     ).toEqual('Add CSS template');
   });
 
   it('renders edit header when css template prop is included', () => {
     expect(
-      wrapper.find('[data-test="css-template-modal-title"]').text(),
+      wrapper.find('[data-test="css-template-modal-title"]').first().text(),
     ).toEqual('Edit CSS template properties');
   });
 

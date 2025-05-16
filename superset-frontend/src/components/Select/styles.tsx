@@ -17,19 +17,17 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
+import { Select } from 'antd';
 import { Icons } from 'src/components/Icons';
-// eslint-disable-next-line no-restricted-imports
-import { Spin, Tag } from 'antd'; // TODO: Remove antd
-// eslint-disable-next-line no-restricted-imports
-import AntdSelect from 'antd/lib/select'; // TODO: Remove antd
-import { Space } from '../Space';
+import { Spin } from '../Spin';
+import { Flex } from '../Flex';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    margin-right: ${headerPosition === 'left' ? theme.gridUnit * 2 : 0}px;
+    margin-right: ${headerPosition === 'left' ? theme.sizeUnit * 2 : 0}px;
   `}
 `;
 
@@ -42,18 +40,23 @@ export const StyledContainer = styled.div<{ headerPosition: string }>`
   `}
 `;
 
-export const StyledSelect = styled(AntdSelect, {
+export const StyledSelect = styled(Select, {
   shouldForwardProp: prop => prop !== 'headerPosition' && prop !== 'oneLine',
 })<{ headerPosition?: string; oneLine?: boolean }>`
   ${({ theme, headerPosition, oneLine }) => `
     flex: ${headerPosition === 'left' ? 1 : 0};
-    && .ant-select-selector {
-      border-radius: ${theme.gridUnit}px;
+    line-height: ${theme.sizeXL}px;
+
+    && .ant-select-selection-search {
+      left: 0px;
     }
-    // Open the dropdown when clicking on the suffix
-    // This is fixed in version 4.16
-    .ant-select-arrow .anticon:not(.ant-select-suffix) {
-      pointer-events: none;
+
+    && .ant-select-selection-item, .ant-select-selection-placeholder {
+      max-height: ${theme.sizeXL}px;
+    }
+    .ant-select-selection-item::after {
+      height: 0;
+      display: block !important;
     }
     ${
       oneLine &&
@@ -64,7 +67,7 @@ export const StyledSelect = styled(AntdSelect, {
 
         .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
           flex-shrink: 1;
-          min-width: ${theme.gridUnit * 13}px;
+          min-width: ${theme.sizeUnit * 13}px;
         }
 
         .ant-select-selection-overflow-item-suffix {
@@ -80,14 +83,6 @@ export const NoElement = styled.span`
   display: none;
 `;
 
-export const StyledTag = styled(Tag)`
-  ${({ theme }) => `
-    background: ${theme.colors.grayscale.light3};
-    font-size: ${theme.typography.sizes.m}px;
-    border: none;
-  `}
-`;
-
 export const StyledStopOutlined = styled(Icons.StopOutlined)`
   vertical-align: 0;
 `;
@@ -97,22 +92,22 @@ export const StyledCheckOutlined = styled(Icons.CheckOutlined)`
 `;
 
 export const StyledSpin = styled(Spin)`
-  margin-top: ${({ theme }) => -theme.gridUnit}px;
+  margin-top: ${({ theme }) => -theme.sizeUnit}px;
 `;
 
 export const StyledLoadingText = styled.div`
   ${({ theme }) => `
-   margin-left: ${theme.gridUnit * 3}px;
-   line-height: ${theme.gridUnit * 8}px;
+   margin-left: ${theme.sizeUnit * 3}px;
+   line-height: ${theme.sizeUnit * 8}px;
    color: ${theme.colors.grayscale.light1};
  `}
 `;
 
 export const StyledHelperText = styled.div`
   ${({ theme }) => `
-   padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
+   padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
    color: ${theme.colors.grayscale.base};
-   font-size: ${theme.typography.sizes.s}px;
+   font-size: ${theme.fontSizeSM}px;
    cursor: default;
    border-bottom: 1px solid ${theme.colors.grayscale.light2};
  `}
@@ -124,10 +119,10 @@ export const StyledError = styled.div`
     justify-content: center;
     align-items: flex-start;
     width: 100%;
-    padding: ${theme.gridUnit * 2}px;
-    color: ${theme.colors.error.base};
+    padding: ${theme.sizeUnit * 2}px;
+    color: ${theme.colorError};
     & svg {
-      margin-right: ${theme.gridUnit * 2}px;
+      margin-right: ${theme.sizeUnit * 2}px;
     }
   `}
 `;
@@ -137,18 +132,9 @@ export const StyledErrorMessage = styled.div`
   text-overflow: ellipsis;
 `;
 
-export const StyledBulkActionsContainer = styled(Space)`
+export const StyledBulkActionsContainer = styled(Flex)`
   ${({ theme }) => `
-    padding: ${theme.gridUnit}px;
-    display: flex;
-    justify-content: center;
+    padding: ${theme.sizeUnit}px;
     border-top: 1px solid ${theme.colors.grayscale.light3};
-    .superset-button {
-      color: ${theme.colors.primary.dark1};
-      font-weight: ${theme.typography.weights.normal};
-    }
-    .superset-button:disabled {
-      background-color: transparent;
-    }
   `}
 `;

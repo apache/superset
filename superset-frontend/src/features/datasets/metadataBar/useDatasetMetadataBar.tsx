@@ -18,7 +18,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
-import Alert from 'src/components/Alert';
+import { Alert } from 'src/components';
 import { Dataset } from 'src/components/Chart/types';
 import MetadataBar from 'src/components/MetadataBar';
 import {
@@ -107,7 +107,7 @@ export const useDatasetMetadataBar = ({
       <div
         css={css`
           display: flex;
-          margin-bottom: ${theme.gridUnit * 4}px;
+          margin-bottom: ${theme.sizeUnit * 4}px;
         `}
       >
         {status === ResourceStatus.Complete && (
@@ -121,7 +121,7 @@ export const useDatasetMetadataBar = ({
         )}
       </div>
     );
-  }, [datasetProps, result, status, theme.gridUnit]);
+  }, [datasetProps, result, status, theme.sizeUnit]);
 
   return {
     metadataBar,

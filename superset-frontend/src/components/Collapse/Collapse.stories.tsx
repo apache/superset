@@ -16,38 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@superset-ui/core';
-import Collapse, { CollapseProps } from '.';
+import { Collapse } from '.';
+import type { CollapseProps } from './types';
 
 export default {
-  title: 'Collapse',
+  title: 'Components/Collapse',
   component: Collapse,
 };
 
-export const InteractiveCollapse = (args: CollapseProps) => {
-  const theme = useTheme();
-  return (
-    <Collapse
-      defaultActiveKey={['1']}
-      style={
-        args.light ? { background: theme.colors.grayscale.light2 } : undefined
-      }
-      {...args}
-    >
-      <Collapse.Panel header="Header 1" key="1">
-        Content 1
-      </Collapse.Panel>
-      <Collapse.Panel header="Header 2" key="2">
-        Content 2
-      </Collapse.Panel>
-    </Collapse>
-  );
-};
+export const InteractiveCollapse = (args: CollapseProps) => (
+  <Collapse
+    defaultActiveKey={['1']}
+    {...args}
+    items={[
+      {
+        key: '1',
+        label: 'Header 1',
+        children: 'Content 1',
+      },
+      {
+        key: '2',
+        label: 'Header 2',
+        children: 'Content 2',
+      },
+    ]}
+  />
+);
 
 InteractiveCollapse.args = {
   ghost: false,
   bordered: true,
   accordion: false,
+  animateArrows: false,
+  modalMode: false,
 };
 
 InteractiveCollapse.argTypes = {

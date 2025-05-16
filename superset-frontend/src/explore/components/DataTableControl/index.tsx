@@ -29,7 +29,6 @@ import {
 } from '@superset-ui/core';
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
-import { Input } from 'src/components/Input';
 import {
   BOOL_FALSE_DISPLAY,
   BOOL_TRUE_DISPLAY,
@@ -38,10 +37,9 @@ import {
 } from 'src/constants';
 import { Radio } from 'src/components/Radio';
 import { Icons } from 'src/components/Icons';
-import Button from 'src/components/Button';
+import { Input, Button, CopyToClipboard } from 'src/components';
 import Popover from 'src/components/Popover';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
-import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getTimeColumns, setTimeColumns } from './utils';
 
 export const CellNull = styled('span')`
@@ -49,15 +47,15 @@ export const CellNull = styled('span')`
 `;
 
 export const CopyButton = styled(Button)`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
 
   // needed to override button's first-of-type margin: 0
   && {
-    margin: 0 ${({ theme }) => theme.gridUnit * 2}px;
+    margin: 0 ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   i {
-    padding: 0 ${({ theme }) => theme.gridUnit}px;
+    padding: 0 ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -116,7 +114,7 @@ export const FilterInput = ({
       }}
       css={css`
         width: 200px;
-        margin-right: ${theme.gridUnit * 2}px;
+        margin-right: ${theme.sizeUnit * 2}px;
       `}
       ref={inputRef}
     />
@@ -156,13 +154,13 @@ const FormatPickerContainer = styled.div`
   display: flex;
   flex-direction: column;
 
-  padding: ${({ theme }) => `${theme.gridUnit * 4}px`};
+  padding: ${({ theme }) => `${theme.sizeUnit * 4}px`};
 `;
 
 const FormatPickerLabel = styled.span`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   color: ${({ theme }) => theme.colors.grayscale.base};
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const DataTableTemporalHeaderCell = ({
@@ -215,7 +213,7 @@ const DataTableTemporalHeaderCell = ({
         <Icons.SettingOutlined
           iconSize="m"
           iconColor={theme.colors.grayscale.light1}
-          css={{ marginRight: `${theme.gridUnit}px` }}
+          css={{ marginRight: `${theme.sizeUnit}px` }}
           onClick={e => e.stopPropagation()}
         />
       </Popover>

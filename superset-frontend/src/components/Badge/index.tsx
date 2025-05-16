@@ -17,22 +17,18 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { Badge as AntdBadge } from 'antd-v5';
-import { BadgeProps as AntdBadgeProps } from 'antd-v5/lib/badge';
+import { Badge as AntdBadge } from 'antd';
+import type { BadgeProps } from './types';
 
-export type { AntdBadgeProps as BadgeProps };
-
-const Badge = styled((props: AntdBadgeProps) => <AntdBadge {...props} />)`
+export const Badge = styled((props: BadgeProps) => <AntdBadge {...props} />)`
   ${({ theme, color, count }) => `
     & > sup,
-    & > sup.antd5-badge-count {
+    & > sup.ant-badge-count {
       ${
-        count !== undefined
-          ? `background: ${color || theme.colors.primary.base};`
-          : ''
+        count !== undefined ? `background: ${color || theme.colorPrimary};` : ''
       }
     }
   `}
 `;
 
-export default Badge;
+export type { BadgeProps };

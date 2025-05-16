@@ -23,7 +23,7 @@ import Popover, {
   PopoverProps as BasePopoverProps,
 } from 'src/components/Popover';
 
-import { TooltipPlacement } from 'src/components/Tooltip';
+import { TooltipPlacement } from 'src/components/Tooltip/types';
 
 const sectionContainerId = 'controlSections';
 export const getSectionContainerElement = () =>

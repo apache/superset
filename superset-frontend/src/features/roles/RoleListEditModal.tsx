@@ -27,9 +27,8 @@ import {
   RoleForm,
   UserObject,
 } from 'src/features/roles/types';
-import { CellProps } from 'react-table';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import FormModal from 'src/components/Modal/FormModal';
+import { FormModal } from 'src/components';
 import { PermissionsField, RoleNameField, UsersField } from './RoleFormItems';
 import {
   updateRoleName,
@@ -57,25 +56,29 @@ const roleTabs = {
 const userColumns = [
   {
     accessor: 'first_name',
-    Header: 'First Name',
+    Header: t('First Name'),
+    id: 'first_name',
   },
   {
     accessor: 'last_name',
-    Header: 'Last Name',
+    Header: t('Last Name'),
+    id: 'last_name',
   },
   {
     accessor: 'username',
-    Header: 'User Name',
+    Header: t('User Name'),
+    id: 'username',
   },
   {
     accessor: 'email',
-    Header: 'Email',
+    Header: t('Email'),
+    id: 'email',
   },
   {
     accessor: 'active',
-    Header: 'Is Active?',
-    Cell: ({ cell }: CellProps<{ active: boolean }>) =>
-      cell.value ? 'Yes' : 'No',
+    Header: t('Is Active?'),
+    Cell: ({ value }: { value: boolean }) => (value ? t('Yes') : t('No')),
+    id: 'active',
   },
 ];
 
@@ -126,26 +129,32 @@ function RoleListEditModal({
       <Tabs
         activeKey={activeTabKey}
         onChange={activeKey => setActiveTabKey(activeKey)}
-      >
-        <Tabs.TabPane
-          tab={roleTabs.edit.name}
-          key={roleTabs.edit.key}
-          forceRender
-        >
-          <>
-            <RoleNameField />
-            <PermissionsField permissions={permissions} />
-            <UsersField users={users} />
-          </>
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={roleTabs.users.name} key={roleTabs.users.key}>
-          <TableView
-            columns={userColumns}
-            data={filteredUsers}
-            emptyWrapperType={EmptyWrapperType.Small}
-          />
-        </Tabs.TabPane>
-      </Tabs>
+        items={[
+          {
+            key: roleTabs.edit.key,
+            label: roleTabs.edit.name,
+            forceRender: true,
+            children: (
+              <>
+                <RoleNameField />
+                <PermissionsField permissions={permissions} />
+                <UsersField users={users} />
+              </>
+            ),
+          },
+          {
+            key: roleTabs.users.key,
+            label: roleTabs.users.name,
+            children: (
+              <TableView
+                columns={userColumns}
+                data={filteredUsers}
+                emptyWrapperType={EmptyWrapperType.Small}
+              />
+            ),
+          },
+        ]}
+      />
     </FormModal>
   );
 }

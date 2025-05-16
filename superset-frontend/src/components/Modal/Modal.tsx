@@ -16,73 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  isValidElement,
-  cloneElement,
-  CSSProperties,
-  ReactNode,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { isValidElement, cloneElement, useMemo, useRef, useState } from 'react';
 import { isNil } from 'lodash';
 import { css, styled, t } from '@superset-ui/core';
-import {
-  Modal as AntdModal,
-  ModalProps as AntdModalProps,
-  ModalFuncProps,
-} from 'antd-v5';
-import Button from 'src/components/Button';
-import { Resizable, ResizableProps } from 're-resizable';
+import { Modal as AntdModal, ModalProps as AntdModalProps } from 'antd';
+import { Resizable } from 're-resizable';
 import Draggable, {
   DraggableBounds,
   DraggableData,
   DraggableEvent,
-  DraggableProps,
 } from 'react-draggable';
-
-export interface ModalProps {
-  className?: string;
-  children: ReactNode;
-  disablePrimaryButton?: boolean;
-  primaryTooltipMessage?: ReactNode;
-  primaryButtonLoading?: boolean;
-  onHide: () => void;
-  onHandledPrimaryAction?: () => void;
-  primaryButtonName?: string;
-  primaryButtonType?: 'primary' | 'danger';
-  show: boolean;
-  name?: string;
-  title: ReactNode;
-  width?: string;
-  maxWidth?: string;
-  responsive?: boolean;
-  hideFooter?: boolean;
-  centered?: boolean;
-  footer?: ReactNode;
-  wrapProps?: object;
-  height?: string;
-  closable?: boolean;
-  resizable?: boolean;
-  resizableConfig?: ResizableProps;
-  draggable?: boolean;
-  draggableConfig?: DraggableProps;
-  destroyOnClose?: boolean;
-  maskClosable?: boolean;
-  zIndex?: number;
-  bodyStyle?: CSSProperties;
-}
-
-interface StyledModalProps {
-  maxWidth?: string;
-  responsive?: boolean;
-  height?: string;
-  hideFooter?: boolean;
-  draggable?: boolean;
-  resizable?: boolean;
-}
-
-export type { ModalFuncProps };
+import { Button } from '../Button';
+import type { ModalProps, StyledModalProps } from './types';
 
 const MODAL_HEADER_HEIGHT = 55;
 const MODAL_MIN_CONTENT_HEIGHT = 54;
@@ -104,74 +49,75 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     responsive &&
     css`
       max-width: ${maxWidth ?? '900px'};
-      padding-left: ${theme.gridUnit * 3}px;
-      padding-right: ${theme.gridUnit * 3}px;
+      padding-left: ${theme.sizeUnit * 3}px;
+      padding-right: ${theme.sizeUnit * 3}px;
       padding-bottom: 0;
       top: 0;
     `}
 
-  .antd5-modal-content {
+  .ant-modal-content {
+    background-color: ${({ theme }) => theme.colorBgContainer};
     display: flex;
     flex-direction: column;
-    max-height: ${({ theme }) => `calc(100vh - ${theme.gridUnit * 8}px)`};
-    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-    margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+    max-height: ${({ theme }) => `calc(100vh - ${theme.sizeUnit * 8}px)`};
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
+    margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
     padding: 0;
   }
 
-  .antd5-modal-header {
+  .ant-modal-header {
     flex: 0 0 auto;
     border-radius: ${({ theme }) => theme.borderRadius}px
       ${({ theme }) => theme.borderRadius}px 0 0;
-    padding: ${({ theme }) => theme.gridUnit * 4}px
-      ${({ theme }) => theme.gridUnit * 6}px;
+    padding: ${({ theme }) => theme.sizeUnit * 4}px
+      ${({ theme }) => theme.sizeUnit * 6}px;
 
-    .antd5-modal-title {
-      font-weight: ${({ theme }) => theme.typography.weights.medium};
+    .ant-modal-title {
+      font-weight: ${({ theme }) => theme.fontWeightMedium};
     }
 
-    .antd5-modal-title h4 {
+    .ant-modal-title h4 {
       display: flex;
       margin: 0;
       align-items: center;
     }
   }
 
-  .antd5-modal-close {
-    width: ${({ theme }) => theme.gridUnit * 14}px;
-    height: ${({ theme }) => theme.gridUnit * 14}px;
+  .ant-modal-close {
+    width: ${({ theme }) => theme.sizeUnit * 14}px;
+    height: ${({ theme }) => theme.sizeUnit * 14}px;
     top: 0;
     right: 0;
   }
 
-  .antd5-modal-close:hover {
+  .ant-modal-close:hover {
     background: transparent;
   }
 
-  .antd5-modal-close-x {
+  .ant-modal-close-x {
     display: flex;
     align-items: center;
 
     .close {
       flex: 1 1 auto;
-      margin-bottom: ${({ theme }) => theme.gridUnit}px;
-      color: ${({ theme }) => theme.colors.secondary.dark1};
+      margin-bottom: ${({ theme }) => theme.sizeUnit}px;
+      color: ${({ theme }) => theme.colorPrimaryText};
       font-size: 32px;
-      font-weight: ${({ theme }) => theme.typography.weights.light};
+      font-weight: ${({ theme }) => theme.fontWeightLight};
     }
   }
 
-  .antd5-modal-body {
+  .ant-modal-body {
     flex: 0 1 auto;
-    padding: ${({ theme }) => theme.gridUnit * 4}px;
+    padding: ${({ theme }) => theme.sizeUnit * 4}px;
     overflow: auto;
     ${({ resizable, height }) => !resizable && height && `height: ${height};`}
   }
-  .antd5-modal-footer {
+  .ant-modal-footer {
     flex: 0 0 1;
-    border-top: ${({ theme }) => theme.gridUnit / 4}px solid
-      ${({ theme }) => theme.colors.grayscale.light2};
-    padding: ${({ theme }) => theme.gridUnit * 4}px;
+    border-top: ${({ theme }) => theme.sizeUnit / 4}px solid
+      ${({ theme }) => theme.colorSplit};
+    padding: ${({ theme }) => theme.sizeUnit * 4}px;
     margin-top: 0;
 
     .btn {
@@ -179,29 +125,22 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
 
     .btn + .btn {
-      margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
 
-  // styling for Tabs component
-  // Aaron note 20-11-19: this seems to be exclusively here for the Edit Database modal.
-  // TODO: remove this as it is a special case.
-  .ant-tabs-top {
-    margin-top: -${({ theme }) => theme.gridUnit * 4}px;
-  }
-
-  &.no-content-padding .antd5-modal-body {
+  &.no-content-padding .ant-modal-body {
     padding: 0;
   }
 
   ${({ draggable, theme }) =>
     draggable &&
     `
-    .antd5-modal-header {
+    .ant-modal-header {
       padding: 0;
       .draggable-trigger {
           cursor: move;
-          padding: ${theme.gridUnit * 4}px;
+          padding: ${theme.sizeUnit * 4}px;
           width: 100%;
         }
     }
@@ -217,10 +156,10 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         height: 100%;
       }
 
-      .antd5-modal-content {
+      .ant-modal-content {
         height: 100%;
 
-        .antd5-modal-body {
+        .ant-modal-body {
           /* 100% - header height - footer height */
           height: ${
             hideFooter
@@ -291,7 +230,13 @@ const CustomModal = ({
   }
   const modalFooter = isNil(FooterComponent)
     ? [
-        <Button key="back" onClick={onHide} cta data-test="modal-cancel-button">
+        <Button
+          key="back"
+          onClick={onHide}
+          cta
+          data-test="modal-cancel-button"
+          buttonStyle="secondary"
+        >
           {t('Cancel')}
         </Button>,
         <Button
@@ -398,14 +343,9 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
-// TODO: in another PR, rename this to CompatabilityModal
-// and demote it as the default export.
-// We should start using AntD component interfaces going forward.
-const Modal = Object.assign(CustomModal, {
+export const Modal = Object.assign(CustomModal, {
   error: AntdModal.error,
   warning: AntdModal.warning,
   confirm: AntdModal.confirm,
   useModal: AntdModal.useModal,
 });
-
-export default Modal;

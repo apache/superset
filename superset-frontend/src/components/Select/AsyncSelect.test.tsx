@@ -25,11 +25,11 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import { AsyncSelect } from 'src/components';
+import { AsyncSelect } from '.';
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
-const NO_DATA = 'No Data';
+const NO_DATA = 'No data';
 const LOADING = 'Loading...';
 const OPTIONS = [
   { label: 'John', value: 1, gender: 'Male' },
@@ -373,7 +373,9 @@ test('searches for custom fields', async () => {
   expect(options[4]).toHaveTextContent('Nikole');
   expect(options[5]).toHaveTextContent('Olivia');
   await type('1');
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('removes duplicated values', async () => {
@@ -398,9 +400,9 @@ test('removes duplicated values', async () => {
 test('renders a custom label', async () => {
   const loadOptions = jest.fn(async () => ({
     data: [
-      { label: 'John', value: 1, customLabel: <h1>John</h1> },
-      { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
-      { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+      { value: 'John', label: <h1>John</h1> },
+      { value: 'Liam', label: <h1>Liam</h1> },
+      { value: 'Olivia', label: <h1>Olivia</h1> },
     ],
     totalCount: 3,
   }));
@@ -414,9 +416,9 @@ test('renders a custom label', async () => {
 test('searches for a word with a custom label', async () => {
   const loadOptions = jest.fn(async () => ({
     data: [
-      { label: 'John', value: 1, customLabel: <h1>John</h1> },
-      { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
-      { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+      { value: 'John', label: <h1>John</h1> },
+      { value: 'Liam', label: <h1>Liam</h1> },
+      { value: 'Olivia', label: <h1>Olivia</h1> },
     ],
     totalCount: 3,
   }));
@@ -457,7 +459,9 @@ test('does not add a new option if allowNewOptions is false', async () => {
   render(<AsyncSelect {...defaultProps} />);
   await open();
   await type(NEW_OPTION);
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('adds the null option when selected in single mode', async () => {
@@ -501,7 +505,9 @@ test('opens the select without any data', async () => {
     />,
   );
   await open();
-  expect(await screen.findByText(/no data/i)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('displays the loading indicator when opening', async () => {
@@ -615,7 +621,9 @@ test('shows "No data" when allowNewOptions is false and a new option is entered'
   render(<AsyncSelect {...defaultProps} allowNewOptions={false} showSearch />);
   await open();
   await type(NEW_OPTION);
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('does not show "No data" when allowNewOptions is true and a new option is entered', async () => {
@@ -623,7 +631,9 @@ test('does not show "No data" when allowNewOptions is true and a new option is e
   await open();
   await type(NEW_OPTION);
   await waitFor(() =>
-    expect(screen.queryByText(NO_DATA)).not.toBeInTheDocument(),
+    expect(
+      screen.queryByText(NO_DATA, { selector: '.ant-empty-description' }),
+    ).not.toBeInTheDocument(),
   );
 });
 

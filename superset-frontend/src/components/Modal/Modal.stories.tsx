@@ -17,11 +17,12 @@
  * under the License.
  */
 
-import Modal, { ModalProps, ModalFuncProps } from '.';
-import Button from '../Button';
+import { Button } from '../Button';
+import { Modal } from './Modal';
+import type { ModalProps, ModalFuncProps } from './types';
 
 export default {
-  title: 'Modal',
+  title: 'Components/Modal',
   component: Modal,
 };
 

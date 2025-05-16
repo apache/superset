@@ -27,19 +27,18 @@ import {
 } from 'spec/helpers/testing-library';
 import TablePreview from '.';
 
-jest.mock(
-  'src/components/FilterableTable',
-  () =>
-    ({ data }: { data: Record<string, any>[] }) => (
-      <div>
-        {data.map((record, i) => (
-          <div key={i} data-test="mock-record-row">
-            {JSON.stringify(record)}
-          </div>
-        ))}
-      </div>
-    ),
-);
+jest.mock('src/components/FilterableTable', () => ({
+  __esModule: true,
+  FilterableTable: ({ data }: { data: Record<string, any>[] }) => (
+    <div>
+      {data.map((record, i) => (
+        <div key={i} data-test="mock-record-row">
+          {JSON.stringify(record)}
+        </div>
+      ))}
+    </div>
+  ),
+}));
 jest.mock(
   'react-virtualized-auto-sizer',
   () =>

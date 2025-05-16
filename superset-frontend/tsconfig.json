@@ -27,11 +27,11 @@
       "@superset-ui/switchboard": ["./packages/superset-ui-switchboard/src"]
     },
     "types": [
-      "@emotion/react/types/css-prop",
       "jest",
-      "@testing-library/jest-dom",
-      "@types/node"
+      "node",
+      "@testing-library/jest-dom"
     ],
+    "typeRoots": ["src/types", "node_modules/@types"],
 
     /* Emit */
     "declaration": true,
@@ -51,7 +51,8 @@
 
     /* Language and Environment */
     "target": "esnext",
-    "jsx": "preserve",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@emotion/react",
     "lib": ["dom", "dom.iterable", "esnext"],
 
     /* Projects */

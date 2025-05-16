@@ -24,9 +24,10 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import FormModal, { FormModalProps } from 'src/components/Modal/FormModal';
-import { FormItem } from 'src/components/Form';
-import { Input } from 'src/components/Input';
+import type { FormModalProps } from './types';
+import { FormItem } from '../Form';
+import { Input } from '../Input';
+import { FormModal } from './FormModal';
 
 describe('FormModal Component', () => {
   const children = (

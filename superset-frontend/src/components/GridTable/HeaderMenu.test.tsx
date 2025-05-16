@@ -23,7 +23,7 @@ import {
   waitFor,
   screen,
 } from 'spec/helpers/testing-library';
-import HeaderMenu from './HeaderMenu';
+import { HeaderMenu } from './HeaderMenu';
 
 jest.mock('src/components/Menu', () => {
   const Menu = ({ children }: { children: React.ReactChild }) => (

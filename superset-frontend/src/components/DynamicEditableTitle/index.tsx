@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import {
   ChangeEvent,
   KeyboardEvent,
@@ -24,48 +23,34 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
-  useRef,
   useState,
 } from 'react';
-import { css, SupersetTheme, t } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
+import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
-
-export type DynamicEditableTitleProps = {
-  title: string;
-  placeholder: string;
-  onSave: (title: string) => void;
-  canEdit: boolean;
-  label: string | undefined;
-};
+import { Tooltip } from '../Tooltip';
+import { Input } from '../Input';
+import type { DynamicEditableTitleProps } from './types';
 
 const titleStyles = (theme: SupersetTheme) => css`
   display: flex;
-  font-size: ${theme.typography.sizes.xl}px;
-  font-weight: ${theme.typography.weights.bold};
+  font-size: ${theme.fontSizeXL}px;
+  font-weight: ${theme.fontWeightStrong};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 
-  & .dynamic-title,
   & .dynamic-title-input {
     display: inline-block;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  & .dynamic-title {
-    cursor: default;
-  }
-  & .dynamic-title-input {
-    border: none;
     padding: 0;
-    outline: none;
+    color: ${theme.colorText};
+    background-color: ${theme.colorBgContainer};
 
     &::placeholder {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextTertiary};
     }
   }
 
@@ -85,10 +70,10 @@ export const DynamicEditableTitle = memo(
     canEdit,
     label,
   }: DynamicEditableTitleProps) => {
+    const theme = useTheme();
     const [isEditing, setIsEditing] = useState(false);
-    const [currentTitle, setCurrentTitle] = useState(title || '');
-    const contentRef = useRef<HTMLInputElement>(null);
     const [showTooltip, setShowTooltip] = useState(false);
+    const [currentTitle, setCurrentTitle] = useState(title || '');
 
     const { width: inputWidth, ref: sizerRef } = useResizeDetector();
     const { width: containerWidth, ref: containerRef } = useResizeDetector({
@@ -98,15 +83,13 @@ export const DynamicEditableTitle = memo(
     useEffect(() => {
       setCurrentTitle(title);
     }, [title]);
-
     useEffect(() => {
-      if (isEditing && contentRef?.current) {
-        contentRef.current.focus();
+      if (isEditing && sizerRef?.current) {
         // move cursor and scroll to the end
-        if (contentRef.current.setSelectionRange) {
-          const { length } = contentRef.current.value;
-          contentRef.current.setSelectionRange(length, length);
-          contentRef.current.scrollLeft = contentRef.current.scrollWidth;
+        if (sizerRef.current.setSelectionRange) {
+          const { length } = sizerRef.current.value;
+          sizerRef.current.setSelectionRange(length, length);
+          sizerRef.current.scrollLeft = sizerRef.current.scrollWidth;
         }
       }
     }, [isEditing]);
@@ -121,13 +104,14 @@ export const DynamicEditableTitle = memo(
     }, [currentTitle, placeholder, sizerRef]);
 
     useEffect(() => {
-      if (
-        contentRef.current &&
-        contentRef.current.scrollWidth > contentRef.current.clientWidth
-      ) {
-        setShowTooltip(true);
-      } else {
-        setShowTooltip(false);
+      const inputElement = sizerRef.current?.input;
+
+      if (inputElement) {
+        if (inputElement.scrollWidth > inputElement.clientWidth) {
+          setShowTooltip(true);
+        } else {
+          setShowTooltip(false);
+        }
       }
     }, [inputWidth, containerWidth]);
 
@@ -165,9 +149,10 @@ export const DynamicEditableTitle = memo(
         if (!canEdit) {
           return;
         }
-        if (ev.key === 'Enter') {
-          ev.preventDefault();
-          contentRef.current?.blur();
+        ev.preventDefault();
+        const { activeElement } = document;
+        if (activeElement && activeElement instanceof HTMLElement) {
+          activeElement.blur();
         }
       },
       [canEdit],
@@ -181,38 +166,33 @@ export const DynamicEditableTitle = memo(
             showTooltip && currentTitle && !isEditing ? currentTitle : null
           }
         >
-          {canEdit ? (
-            <input
-              data-test="editable-title-input"
-              className="dynamic-title-input"
-              aria-label={label ?? t('Title')}
-              ref={contentRef}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              onClick={handleClick}
-              onKeyPress={handleKeyPress}
-              placeholder={placeholder}
-              value={currentTitle}
-              css={css`
-                cursor: ${isEditing ? 'text' : 'pointer'};
-
-                ${inputWidth &&
-                inputWidth > 0 &&
-                css`
-                  width: ${inputWidth + 1}px;
-                `}
+          <Input
+            data-test="editable-title-input"
+            variant="borderless"
+            aria-label={label ?? t('Title')}
+            className="dynamic-title-input"
+            value={currentTitle}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            onClick={handleClick}
+            onPressEnter={handleKeyPress}
+            placeholder={placeholder}
+            css={css`
+              ${!canEdit &&
+              `&[disabled] {
+                  cursor: default;
+                }
               `}
-            />
-          ) : (
-            <span
-              className="dynamic-title"
-              aria-label={label ?? t('Title')}
-              ref={contentRef}
-              data-test="editable-title"
-            >
-              {currentTitle}
-            </span>
-          )}
+              font-size: ${theme.fontSizeXL}px;
+              transition: auto;
+              ${inputWidth &&
+              inputWidth > 0 &&
+              css`
+                width: ${inputWidth}px;
+              `}
+            `}
+            disabled={!canEdit}
+          />
         </Tooltip>
         <span
           ref={sizerRef}
@@ -224,3 +204,4 @@ export const DynamicEditableTitle = memo(
     );
   },
 );
+export type { DynamicEditableTitleProps } from './types';

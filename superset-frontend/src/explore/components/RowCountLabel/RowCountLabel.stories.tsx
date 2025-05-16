@@ -19,7 +19,7 @@
 import RowCountLabel, { RowCountLabelProps } from '.';
 
 export default {
-  title: 'RowCountLabel',
+  title: 'Components/RowCountLabel',
   component: RowCountLabel,
 };
 

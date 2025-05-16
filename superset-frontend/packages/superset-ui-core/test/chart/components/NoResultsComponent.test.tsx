@@ -19,7 +19,7 @@
 
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, supersetTheme } from '../../../src/style';
+import { ThemeProvider, supersetTheme } from '../../../src/theme';
 import NoResultsComponent from '../../../src/chart/components/NoResultsComponent';
 
 const renderNoResultsComponent = () =>

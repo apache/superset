@@ -17,7 +17,7 @@
  * under the License.
  */
 import { fireEvent, render } from 'spec/helpers/testing-library';
-import Button from '.';
+import { Button } from '.';
 import {
   ButtonGallery,
   SIZES as buttonSizes,

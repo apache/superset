@@ -23,9 +23,7 @@ import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import AnnotationList from 'src/pages/AnnotationList';
-import DeleteModal from 'src/components/DeleteModal';
-import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
-import ListView from 'src/components/ListView';
+import { DeleteModal, ListView } from 'src/components';
 import SubMenu from 'src/features/home/SubMenu';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
@@ -155,7 +153,7 @@ describe('AnnotationList', () => {
       button.props().onClick();
     });
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
+    expect(wrapper.find('input[type="checkbox"]')).toHaveLength(
       mockannotations.length + 1, // 1 for each row and 1 for select all
     );
   });

@@ -19,7 +19,7 @@
 
 import { ErrorSource, ErrorTypeEnum, ErrorLevel } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import TimeoutErrorMessage from './TimeoutErrorMessage';
+import { TimeoutErrorMessage } from './TimeoutErrorMessage';
 
 jest.mock(
   'src/components/Icons/AsyncIcon',

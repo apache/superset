@@ -21,35 +21,42 @@ import { ReactNode, useState, useEffect, FunctionComponent } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { styled, SupersetTheme, css, t, useTheme } from '@superset-ui/core';
 import cx from 'classnames';
-import { Tooltip } from 'src/components/Tooltip';
 import { debounce } from 'lodash';
-import { Row } from 'src/components';
 import { Menu, MenuMode, MainNav } from 'src/components/Menu';
-import Button, { OnClickHandler } from 'src/components/Button';
+import { Button, Tooltip, Row, type OnClickHandler } from 'src/components';
 import { Icons } from 'src/components/Icons';
+import { IconType } from 'src/components/Icons/types';
 import { MenuObjectProps } from 'src/types/bootstrapTypes';
+import { Typography } from 'src/components/Typography';
 
-const StyledHeader = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+const StyledHeader = styled.div<{ backgroundColor?: string }>`
+  background-color: ${({ theme, backgroundColor }) =>
+    backgroundColor || theme.colorBgContainer};
+  align-items: center;
+  position: relative;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px
+    ${({ theme }) => theme.sizeUnit * 5}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
   .header {
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
+    margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
     text-align: left;
     font-size: 18px;
-    padding: ${({ theme }) => theme.gridUnit * 3}px;
     display: inline-block;
-    line-height: ${({ theme }) => theme.gridUnit * 9}px;
+    line-height: ${({ theme }) => theme.sizeUnit * 9}px;
   }
   .nav-right {
     display: flex;
     align-items: center;
-    padding: ${({ theme }) => theme.gridUnit * 3.5}px 0;
-    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
+    margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
     float: right;
     position: absolute;
     right: 0;
-    ul.antd5-menu-root {
+    ul.ant-menu-root {
       padding: 0px;
+    }
+    .ant-row {
+      align-items: center;
     }
     li[role='menuitem'] {
       border: 0;
@@ -68,23 +75,24 @@ const StyledHeader = styled.div`
     padding-left: 10px;
   }
   .menu {
-    background-color: ${({ theme }) => theme.colors.grayscale.light5};
+    align-items: center;
   }
 
-  .menu > .antd5-menu {
-    padding: ${({ theme }) => theme.gridUnit * 5}px
-      ${({ theme }) => theme.gridUnit * 8}px;
+  .menu > .ant-menu {
+    padding-left: ${({ theme }) => theme.sizeUnit * 5}px;
+    line-height: ${({ theme }) => theme.sizeUnit * 5}px;
 
-    .antd5-menu-item {
+    .ant-menu-item {
       border-radius: ${({ theme }) => theme.borderRadius}px;
-      font-size: ${({ theme }) => theme.typography.sizes.s}px;
-      padding: ${({ theme }) => theme.gridUnit}px
-        ${({ theme }) => theme.gridUnit * 4}px;
-      margin-right: ${({ theme }) => theme.gridUnit}px;
+      font-size: ${({ theme }) => theme.fontSizeSM}px;
+      padding: ${({ theme }) => theme.sizeUnit}px
+        ${({ theme }) => theme.sizeUnit * 4}px;
+      margin-right: ${({ theme }) => theme.sizeUnit}px;
     }
-    .antd5-menu-item:hover,
-    .antd5-menu-item:has(> span > .active) {
-      background-color: ${({ theme }) => theme.colors.secondary.light4};
+    .ant-menu-item:hover,
+    .ant-menu-item:has(> span > .active) {
+      background-color: ${({ theme }) => theme.colorPrimaryBgHover};
+      color: ${({ theme }) => theme.colorPrimaryActive};
     }
   }
 
@@ -95,7 +103,7 @@ const StyledHeader = styled.div`
     .header,
     .nav-right {
       position: relative;
-      margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
 `;
@@ -108,7 +116,7 @@ const styledDisabled = (theme: SupersetTheme) => css`
     color: ${theme.colors.grayscale.light1};
   }
 
-  .antd5-menu-item-selected {
+  .ant-menu-item-selected {
     background-color: ${theme.colors.grayscale.light1};
   }
 `;
@@ -126,15 +134,9 @@ export interface ButtonProps {
   name: ReactNode;
   onClick?: OnClickHandler;
   'data-test'?: string;
-  buttonStyle:
-    | 'primary'
-    | 'secondary'
-    | 'dashed'
-    | 'link'
-    | 'warning'
-    | 'success'
-    | 'tertiary';
+  buttonStyle: 'primary' | 'secondary' | 'dashed' | 'link' | 'tertiary';
   loading?: boolean;
+  icon?: IconType;
 }
 
 export interface SubMenuProps {
@@ -148,6 +150,7 @@ export interface SubMenuProps {
   usesRouter?: boolean;
   color?: string;
   dropDownLinks?: Array<MenuObjectProps>;
+  backgroundColor?: string;
 }
 
 const { SubMenu } = MainNav;
@@ -193,7 +196,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
   }, [props.buttons]);
 
   return (
-    <StyledHeader>
+    <StyledHeader backgroundColor={props.backgroundColor}>
       <Row className="menu" role="navigation">
         {props.name && <div className="header">{props.name}</div>}
         <Menu mode={showMenu} disabledOverflow>
@@ -222,9 +225,9 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
                   })}
                   role="tab"
                 >
-                  <a href={tab.url} onClick={tab.onClick}>
+                  <Typography.Link href={tab.url} onClick={tab.onClick}>
                     {tab.label}
-                  </a>
+                  </Typography.Link>
                 </div>
               </Menu.Item>
             );
@@ -236,9 +239,9 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
               <SubMenu
                 css={css`
                   [data-icon='caret-down'] {
-                    color: ${theme.colors.grayscale.base};
-                    font-size: ${theme.typography.sizes.xxs}px;
-                    margin-left: ${theme.gridUnit}px;
+                    color: ${theme.colorIcon};
+                    font-size: ${theme.fontSizeXS}px;
+                    margin-left: ${theme.sizeUnit}px;
                   }
                 `}
                 key={i}
@@ -266,9 +269,9 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
                       </MainNav.Item>
                     ) : (
                       <MainNav.Item key={item.label}>
-                        <a href={item.url} onClick={item.onClick}>
+                        <Typography.Link href={item.url} onClick={item.onClick}>
                           {item.label}
-                        </a>
+                        </Typography.Link>
                       </MainNav.Item>
                     );
                   }
@@ -281,6 +284,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
             <Button
               key={i}
               buttonStyle={btn.buttonStyle}
+              icon={btn.icon}
               onClick={btn.onClick}
               data-test={btn['data-test']}
               loading={btn.loading ?? false}

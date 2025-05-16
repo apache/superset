@@ -24,8 +24,9 @@ import {
   CssEditor,
   JsonEditor,
   ConfigEditor,
-  AsyncAceEditorOptions,
 } from '.';
+
+import type { AsyncAceEditorOptions } from './types';
 
 type EditorType =
   | 'sql'
@@ -47,7 +48,7 @@ const editorTypes: EditorType[] = [
 ];
 
 export default {
-  title: 'AsyncAceEditor',
+  title: 'Components/AsyncAceEditor',
 };
 
 const parseEditorType = (editorType: EditorType) => {

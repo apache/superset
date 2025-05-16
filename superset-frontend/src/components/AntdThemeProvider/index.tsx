@@ -17,19 +17,11 @@
  * under the License.
  */
 
-import { ConfigProvider, type ConfigProviderProps } from 'antd-v5';
-import { getTheme, ThemeType } from 'src/theme/index';
+import { ConfigProvider, type ConfigProviderProps } from 'antd';
 
 export const AntdThemeProvider = ({
-  theme,
   children,
   ...rest
 }: ConfigProviderProps) => (
-  <ConfigProvider
-    theme={theme || getTheme(ThemeType.LIGHT)}
-    prefixCls="antd5"
-    {...rest}
-  >
-    {children}
-  </ConfigProvider>
+  <ConfigProvider {...rest}>{children}</ConfigProvider>
 );

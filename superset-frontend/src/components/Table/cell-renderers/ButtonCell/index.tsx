@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Button, { ButtonStyle, ButtonSize } from 'src/components/Button';
+import { Button } from '../../../Button';
+import { ButtonStyle, ButtonSize } from '../../../Button/types';
 
 type onClickFunction = (row: object, index: number) => void;
 

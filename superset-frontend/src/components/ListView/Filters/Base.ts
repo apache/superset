@@ -18,7 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { styled } from '@superset-ui/core';
-import { SELECT_WIDTH } from 'src/components/ListView/utils';
+import { SELECT_WIDTH } from '../utils';
 
 export interface BaseFilter {
   Header: ReactNode;
@@ -27,7 +27,7 @@ export interface BaseFilter {
 
 export const FilterContainer = styled.div`
   display: inline-flex;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   align-items: center;
   width: ${SELECT_WIDTH}px;
 `;

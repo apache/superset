@@ -19,10 +19,10 @@
 import { Dispatch } from 'react';
 import { t } from '@superset-ui/core';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import Button from 'src/components/Button';
+import { Button } from 'src/components';
+import { TooltipPlacement } from 'src/components/Tooltip/types';
 import { Icons } from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
-import { TooltipPlacement } from 'src/components/Tooltip';
 import {
   DatasetActionType,
   DSReducerActionType,

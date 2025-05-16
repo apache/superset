@@ -24,8 +24,7 @@ import {
   styled,
   SupersetTheme,
 } from '@superset-ui/core';
-import { usePluginContext } from 'src/components/DynamicPlugins';
-import Modal from 'src/components/Modal';
+import { Modal, usePluginContext } from 'src/components';
 import { noOp } from 'src/utils/common';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { FilterPlugins } from 'src/constants';
@@ -52,7 +51,7 @@ function VizSupportValidation({ vizType }: { vizType: string }) {
     <div
       className="text-danger"
       css={(theme: SupersetTheme) => css`
-        margin-top: ${theme.gridUnit}px;
+        margin-top: ${theme.sizeUnit}px;
       `}
     >
       {/* TODO: Remove fa-icon */}
@@ -64,7 +63,7 @@ function VizSupportValidation({ vizType }: { vizType: string }) {
 }
 
 const UnpaddedModal = styled(Modal)`
-  .antd5-modal-body {
+  .ant-modal-body {
     padding: 0;
   }
 `;
@@ -101,7 +100,7 @@ const VizTypeControl = ({
     <>
       <div
         css={(theme: SupersetTheme) => css`
-          min-width: ${theme.gridUnit * 72}px;
+          min-width: ${theme.sizeUnit * 72}px;
           max-width: fit-content;
         `}
       >
@@ -112,8 +111,8 @@ const VizTypeControl = ({
         css={(theme: SupersetTheme) => css`
           display: flex;
           justify-content: flex-end;
-          margin-top: ${theme.gridUnit * 3}px;
-          color: ${theme.colors.grayscale.base};
+          margin-top: ${theme.sizeUnit * 3}px;
+          color: ${theme.colorTextSecondary};
           text-decoration: underline;
         `}
       >

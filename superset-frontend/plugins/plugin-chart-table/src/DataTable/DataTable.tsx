@@ -27,7 +27,7 @@ import {
   DragEvent,
   useEffect,
 } from 'react';
-
+import { styled, typedMemo, usePrevious } from '@superset-ui/core';
 import {
   useTable,
   usePagination,
@@ -41,7 +41,6 @@ import {
   Row,
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
-import { styled, typedMemo, usePrevious } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 import { Space } from 'antd';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, waitFor } from 'spec/helpers/testing-library';
-import ListView from './ListView';
+import { ListView } from './ListView';
 
 const mockedProps = {
   title: 'Data Table',
@@ -26,18 +26,22 @@ const mockedProps = {
       accessor: 'id',
       Header: 'ID',
       sortable: true,
+      id: 'id',
     },
     {
       accessor: 'age',
       Header: 'Age',
+      id: 'age',
     },
     {
       accessor: 'name',
       Header: 'Name',
+      id: 'name',
     },
     {
       accessor: 'time',
       Header: 'Time',
+      id: 'time',
     },
   ],
   data: [

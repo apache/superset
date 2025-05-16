@@ -19,9 +19,9 @@
 import { useCallback, ReactNode, ReactElement, cloneElement } from 'react';
 
 import { css, SupersetTheme } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
-import { FormItem, FormLabel } from 'src/components/Form';
 import { Icons } from 'src/components/Icons';
+import { FormItem, FormLabel } from '../Form';
+import { Tooltip } from '../Tooltip';
 
 const formItemInlineCss = css`
   .ant-form-item-control-input-content {
@@ -93,7 +93,7 @@ export default function Field<V>({
           <div
             css={(theme: SupersetTheme) => ({
               color: theme.colors.grayscale.base,
-              [inline ? 'marginLeft' : 'marginTop']: theme.gridUnit,
+              [inline ? 'marginLeft' : 'marginTop']: theme.sizeUnit,
             })}
           >
             {description}
@@ -103,9 +103,8 @@ export default function Field<V>({
       {errorMessage && (
         <div
           css={(theme: SupersetTheme) => ({
-            color: theme.colors.error.base,
-            marginTop: -16,
-            fontSize: theme.typography.sizes.s,
+            color: theme.colorText,
+            [inline ? 'marginLeft' : 'marginTop']: theme.sizeUnit,
           })}
         >
           {errorMessage}

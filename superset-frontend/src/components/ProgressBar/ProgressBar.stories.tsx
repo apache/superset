@@ -19,7 +19,7 @@
 import ProgressBar, { ProgressBarProps } from '.';
 
 export default {
-  title: 'ProgressBar',
+  title: 'Components/ProgressBar',
   component: ProgressBar,
 };
 

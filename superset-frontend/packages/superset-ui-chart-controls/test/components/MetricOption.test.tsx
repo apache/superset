@@ -21,9 +21,12 @@ import { render } from '@testing-library/react';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { MetricOption, MetricOptionProps } from '../../src';
 
-jest.mock('../../src/components/InfoTooltipWithTrigger', () => () => (
-  <div data-test="mock-info-tooltip-with-trigger" />
-));
+jest.mock('../../src/components/InfoTooltipWithTrigger', () => ({
+  InfoTooltipWithTrigger: () => (
+    <div data-test="mock-info-tooltip-with-trigger" />
+  ),
+}));
+
 jest.mock('../../src/components/ColumnTypeLabel/ColumnTypeLabel', () => ({
   ColumnTypeLabel: () => <div data-test="mock-column-type-label" />,
 }));

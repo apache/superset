@@ -37,17 +37,18 @@ import {
   usePrevious,
   getClientErrorObject,
 } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
+import {
+  LabeledValue as AntdLabeledValue,
+  RefSelectProps,
+} from 'antd/es/select';
 import { debounce, isEqual, uniq } from 'lodash';
 import { Icons } from 'src/components/Icons';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
+import { Space } from '../Space';
 import {
   getValue,
   hasOption,
   isLabeledValue,
-  renderSelectOptions,
-  hasCustomLabels,
   sortSelectedFirstHelper,
   sortComparatorWithSearchHelper,
   sortComparatorForNoSearchHelper,
@@ -84,7 +85,6 @@ import {
   TOKEN_SEPARATORS,
   DEFAULT_SORT_COMPARATOR,
 } from './constants';
-import { customTagRender } from './CustomTag';
 
 const Error = ({ error }: { error: string }) => (
   <StyledError>
@@ -221,7 +221,9 @@ const AsyncSelect = forwardRef(
       const missingValues: SelectOptionsType = ensureIsArray(selectValue)
         .filter(opt => !hasOption(getValue(opt), selectOptions))
         .map(opt =>
-          isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
+          isLabeledValue(opt)
+            ? { value: opt.value, label: opt.label }
+            : { value: opt, label: String(opt) },
         );
       return missingValues.length > 0
         ? missingValues.concat(selectOptions)
@@ -535,7 +537,7 @@ const AsyncSelect = forwardRef(
     useImperativeHandle(
       ref,
       () => ({
-        ...(ref.current as HTMLInputElement),
+        ...(ref.current as RefSelectProps),
         clearCache,
       }),
       [ref],
@@ -588,11 +590,6 @@ const AsyncSelect = forwardRef(
       fireOnChange();
     };
 
-    const shouldRenderChildrenOptions = useMemo(
-      () => hasCustomLabels(fullSelectOptions),
-      [fullSelectOptions],
-    );
-
     return (
       <StyledContainer headerPosition={headerPosition}>
         {header && (
@@ -622,10 +619,10 @@ const AsyncSelect = forwardRef(
           onSearch={showSearch ? handleOnSearch : undefined}
           onSelect={handleOnSelect}
           onClear={handleClear}
-          options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
+          options={fullSelectOptions}
+          optionRender={option => <Space>{option.label || option.value}</Space>}
           placeholder={placeholder}
-          showSearch={showSearch}
-          showArrow
+          showSearch={allowNewOptions ? true : showSearch}
           tokenSeparators={tokenSeparators}
           value={selectValue}
           suffixIcon={getSuffixIcon(isLoading, showSearch, isDropdownVisible)}
@@ -637,13 +634,9 @@ const AsyncSelect = forwardRef(
             )
           }
           oneLine={oneLine}
-          tagRender={customTagRender}
           {...props}
           ref={ref}
-        >
-          {hasCustomLabels(fullSelectOptions) &&
-            renderSelectOptions(fullSelectOptions)}
-        </StyledSelect>
+        />
       </StyledContainer>
     );
   },

@@ -30,7 +30,7 @@ const createProps = () => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
   customCss:
-    '.header-with-actions .right-button-panel .antd5-dropdown-trigger{margin-left: 100px;}',
+    '.header-with-actions .right-button-panel .ant-dropdown-trigger{margin-left: 100px;}',
   dashboardId: 1,
   dashboardInfo: {
     id: 1,

@@ -18,8 +18,9 @@
  */
 import { useState, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
-import { MenuDotsDropdown, IconOrientation } from 'src/components/Dropdown';
-import { Menu, MenuProps } from 'src/components/Menu';
+import { MenuDotsDropdown } from '../../../Dropdown';
+import { IconOrientation } from '../../../Dropdown/types';
+import { Menu, MenuProps } from '../../../Menu';
 
 /**
  * Props interface for Action Cell Renderer
@@ -128,7 +129,7 @@ export function ActionCell(props: ActionCellProps) {
   return (
     <MenuDotsDropdown
       iconOrientation={IconOrientation.Horizontal}
-      onVisibleChange={handleVisibleChange}
+      onOpenChange={handleVisibleChange}
       trigger={['click']}
       overlay={
         <ActionMenu menuOptions={appendedMenuOptions} setVisible={setVisible} />
@@ -136,7 +137,7 @@ export function ActionCell(props: ActionCellProps) {
       disabled={
         !(appendedMenuOptions?.length && appendedMenuOptions.length > 0)
       }
-      visible={visible}
+      open={visible}
     />
   );
 }
