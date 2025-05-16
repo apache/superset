@@ -70,7 +70,8 @@ Every Superset deployment will require its own set of drivers depending on the d
 etc. so we recommend that users build their own Docker image by extending the `lean` image.
 
 Here's an example Dockerfile that does this. Follow the in-line comments to customize it for
-your desired Superset version and database drivers.
+your desired Superset version and database drivers. The comments also note that a certain feature flag will
+have to be enabled in your config file.
 
 You would build the image with `docker build -t mysuperset:latest .` or `docker build -t ourcompanysuperset:4.1.2 .`
 
