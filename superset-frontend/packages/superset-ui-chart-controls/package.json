@@ -25,7 +25,7 @@
   ],
   "dependencies": {
     "@react-icons/all-files": "^4.1.0",
-    "@types/enzyme": "^3.10.18",
+    "@types/enzyme": "^3.10.19",
     "@types/react": "*",
     "lodash": "^4.17.21",
     "prop-types": "^15.8.1"
