@@ -85,8 +85,6 @@
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.3.0",
-    "@fontsource/fira-code": "^5.0.18",
-    "@fontsource/inter": "^5.0.20",
     "@reduxjs/toolkit": "^1.9.3",
     "@rjsf/core": "^5.21.1",
     "@rjsf/utils": "^5.24.3",
