@@ -17,63 +17,21 @@
  * under the License.
  */
 
-import Handlebars from 'handlebars';
-import { Tag } from 'src/components';
 import DOMPurify from 'dompurify';
 
 type Props = {
-  title: string;
-  icon?: string; // Pass in string if needed, or drop icon entirely
+  title?: string;
   body?: string;
-  meta?: string;
   footer?: string;
 };
 
-export const Tooltip: React.FC<Props> = ({
-  title,
-  icon,
-  body,
-  meta,
-  footer,
-}) => (
-  <div className="tooltip-detail">
-    <div className="tooltip-detail-head">
-      <div className="tooltip-detail-title">
-        {icon}
-        {title}
-      </div>
-      {meta && (
-        <span className="tooltip-detail-meta">
-          <Tag color="default">{meta}</Tag>
-        </span>
-      )}
-    </div>
-    {body && <div className="tooltip-detail-body">{body ?? title}</div>}
-    {footer && <div className="tooltip-detail-footer">{footer}</div>}
-  </div>
-);
-
-export function getTooltipHTML({
-  title,
-  icon,
-  body,
-  meta,
-  footer,
-}: Props): string {
+export function getTooltipHTML({ title, body, footer }: Props): string {
   const html = `
     <div class="tooltip-detail">
-      <div class="tooltip-detail-head">
-        <div class="tooltip-detail-title">
-          ${icon ? `<span class="tooltip-icon">${icon}</span>` : ''}${title}
-        </div>
-        ${meta ? `<span class="tooltip-detail-meta"><span class="ant-tag">${meta}</span></span>` : ''}
-      </div>
+      ${title ? `<div class="tooltip-detail-title">${title}</div>` : ''}
       ${body ? `<div class="tooltip-detail-body">${body}</div>` : ''}
       ${footer ? `<div class="tooltip-detail-footer">${footer}</div>` : ''}
     </div>
   `;
-
   return DOMPurify.sanitize(html);
 }
-
-export default Tooltip;

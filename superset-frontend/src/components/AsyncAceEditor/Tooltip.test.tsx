@@ -17,40 +17,17 @@
  * under the License.
  */
 
-import { render, screen } from 'spec/helpers/testing-library';
-import Tooltip, { getTooltipHTML } from './Tooltip';
-
-test('should render a tooltip (React)', () => {
-  const props = {
-    title: 'tooltip title',
-    icon: <div>icon</div>,
-    body: 'body text',
-    meta: 'meta info',
-    footer: 'footer note',
-  };
-
-  render(<Tooltip {...props} />);
-
-  expect(screen.getByText('tooltip title')).toBeInTheDocument();
-  expect(screen.getByText('meta info')).toBeInTheDocument();
-  expect(screen.getByText('icon')).toBeInTheDocument();
-  expect(screen.getByText('body text')).toBeInTheDocument();
-  expect(screen.getByText('footer note')).toBeInTheDocument();
-});
+import { getTooltipHTML } from './Tooltip';
 
 test('getTooltipHTML returns the expected HTML (string inputs)', () => {
   const html = getTooltipHTML({
     title: 'tooltip title',
-    icon: '🔥',
     body: 'body text',
-    meta: 'meta info',
     footer: 'footer note',
   });
 
   expect(html).toContain('tooltip-detail');
   expect(html).toContain('tooltip title');
-  expect(html).toContain('🔥');
   expect(html).toContain('body text');
-  expect(html).toContain('meta info');
   expect(html).toContain('footer note');
 });
