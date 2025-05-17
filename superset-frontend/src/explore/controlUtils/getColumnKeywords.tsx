@@ -38,9 +38,7 @@ export function getColumnKeywords(columns: ColumnMeta[]) {
         title: column_name,
         meta: type ? `column: ${type}` : 'column',
         body: `${description ?? ''}`,
-        footer: is_certified ? (
-          <>{t('Certified by %s', certified_by)}</>
-        ) : undefined,
+        footer: is_certified ? t('Certified by %s', certified_by) : undefined,
       }),
       score: COLUMN_AUTOCOMPLETE_SCORE,
       meta: 'column',

@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderToStaticMarkup } from 'react-dom/server';
+
+import Handlebars from 'handlebars';
 import { Tag } from 'src/components';
 
 type Props = {
   title: string;
-  icon?: React.ReactNode;
-  body?: React.ReactNode;
+  icon?: string; // Pass in string if needed, or drop icon entirely
+  body?: string;
   meta?: string;
-  footer?: React.ReactNode;
+  footer?: string;
 };
 
 export const Tooltip: React.FC<Props> = ({
@@ -51,7 +52,25 @@ export const Tooltip: React.FC<Props> = ({
   </div>
 );
 
-export const getTooltipHTML = (props: Props) =>
-  `${renderToStaticMarkup(<Tooltip {...props} />)}`;
+const tooltipTemplate = Handlebars.compile(`
+  <div class="tooltip-detail">
+    <div class="tooltip-detail-head">
+      <div class="tooltip-detail-title">
+        {{#if icon}}<span class="tooltip-icon">{{icon}}</span>{{/if}}{{title}}
+      </div>
+      {{#if meta}}
+        <span class="tooltip-detail-meta"><span class="ant-tag">{{meta}}</span></span>
+      {{/if}}
+    </div>
+    {{#if body}}
+      <div class="tooltip-detail-body">{{body}}</div>
+    {{/if}}
+    {{#if footer}}
+      <div class="tooltip-detail-footer">{{footer}}</div>
+    {{/if}}
+  </div>
+`);
+
+export const getTooltipHTML = (props: Props): string => tooltipTemplate(props);
 
 export default Tooltip;

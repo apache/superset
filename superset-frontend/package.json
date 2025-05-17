@@ -150,6 +150,7 @@
     "geostyler-style": "^7.5.0",
     "geostyler-wfs-parser": "^2.0.3",
     "googleapis": "^130.0.0",
+    "handlebars": "^4.7.8",
     "immer": "^10.1.1",
     "interweave": "^13.1.0",
     "jquery": "^3.7.1",
