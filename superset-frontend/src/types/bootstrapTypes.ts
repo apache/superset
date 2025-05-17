@@ -164,6 +164,8 @@ export interface BootstrapData {
   config?: any;
   embedded?: {
     dashboard_id: string;
+    chart_id: string;
+    resource_type: 'dashboard' | 'chart';
   };
   requested_query?: JsonObject;
 }

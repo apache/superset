@@ -19,12 +19,20 @@
 import {
   forwardRef,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useRef,
   useState,
 } from 'react';
-import { css, getExtensionsRegistry, styled, t } from '@superset-ui/core';
+import {
+  css,
+  FeatureFlag,
+  getExtensionsRegistry,
+  isFeatureEnabled,
+  styled,
+  t,
+} from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
 import { useSelector } from 'react-redux';
@@ -36,6 +44,8 @@ import { Icons } from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import { findPermission } from 'src/utils/findPermission';
+import EmbedModal from '../EmbeddedModal';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -195,6 +205,23 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
 
     const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
+    const [showingEmbedModal, setShowingEmbedModal] = useState(false);
+
+    const showEmbedModal = useCallback(() => {
+      setShowingEmbedModal(true);
+    }, []);
+
+    const hideEmbedModal = useCallback(() => {
+      setShowingEmbedModal(false);
+    }, []);
+
+    // @ts-ignore
+    const user: User = useSelector<RootState>(state => state.user);
+
+    const userCanCurate =
+      isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
+      findPermission('can_set_embedded', 'Dashboard', user.roles);
+
     return (
       <ChartHeaderStyles data-test="slice-header" ref={ref}>
         <div className="header-title" ref={headerRef}>
@@ -265,6 +292,16 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               {!uiConfig.hideChartControls && (
                 <FiltersBadge chartId={slice.slice_id} />
               )}
+
+              {userCanCurate && (
+                <EmbedModal
+                  show={showingEmbedModal}
+                  onHide={hideEmbedModal}
+                  resourceId={String(slice.slice_id)}
+                  resourceType="chart"
+                />
+              )}
+
               {!uiConfig.hideChartControls && (
                 <SliceHeaderControls
                   slice={slice}
@@ -295,6 +332,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   formData={formData}
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
+                  showEmbedModal={showEmbedModal}
                 />
               )}
             </>
