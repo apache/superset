@@ -65,29 +65,15 @@ function ActionLogList() {
     () => [
       {
         Header: t('User'),
-        key: 'user.username',
-        id: 'user.username',
+        key: 'user',
+        id: 'user',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: FilterOperator.RelationOneMany,
       },
       {
         Header: t('Action'),
         key: 'action',
         id: 'action',
-        input: 'search',
-        operator: FilterOperator.Contains,
-      },
-      {
-        Header: t('Dashboard Id'),
-        key: 'dashboard_id',
-        id: 'dashboard_id',
-        input: 'search',
-        operator: FilterOperator.Contains,
-      },
-      {
-        Header: t('Slice Id'),
-        key: 'slice_id',
-        id: 'slice_id',
         input: 'search',
         operator: FilterOperator.Contains,
       },
@@ -107,18 +93,18 @@ function ActionLogList() {
         dateFilterValueType: 'iso',
       },
       {
-        Header: t('Duration Ms'),
-        key: 'duration_ms',
-        id: 'duration_ms',
-        input: 'search',
-        operator: FilterOperator.Contains,
-      },
-      {
         Header: t('Referrer'),
         key: 'referrer',
         id: 'referrer',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: FilterOperator.Equals,
+      },
+      {
+        Header: t('Duration Ms'),
+        key: 'duration_ms',
+        id: 'duration_ms',
+        input: 'search',
+        operator: FilterOperator.Equals,
       },
     ],
     [],
@@ -136,7 +122,7 @@ function ActionLogList() {
         }: any) => <span>{action}</span>,
       },
       {
-        accessor: 'user.username',
+        accessor: 'user',
         Header: t('User'),
         Cell: ({
           row: {
@@ -193,12 +179,12 @@ function ActionLogList() {
                 visibility: visible;
               }
             `}
-            copyable
+            copyable={!!json}
             ellipsis={{
               tooltip: { styles: { root: { maxWidth: '580px' } }, title: json },
             }}
           >
-            {json}
+            {json ?? '...'}
           </Typography.Text>
         ),
       },
@@ -221,7 +207,7 @@ function ActionLogList() {
                 visibility: visible;
               }
             `}
-            copyable
+            copyable={!!referrer}
             ellipsis={{
               tooltip: {
                 styles: { root: { maxWidth: '580px' } },
@@ -229,7 +215,7 @@ function ActionLogList() {
               },
             }}
           >
-            {referrer}
+            {referrer ?? '...'}
           </Typography.Text>
         ),
       },

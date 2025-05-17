@@ -19,6 +19,7 @@ from typing import Any, Optional
 from flask import current_app as app
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
+from flask_appbuilder.models.sqla.filters import FilterRelationManyToManyEqual
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 import superset.models.core as models
@@ -45,7 +46,7 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     resource_name = "log"
     allow_browser_login = True
     list_columns = [
-        "user.username",
+        "user",
         "action",
         "dttm",
         "json",
@@ -55,6 +56,20 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         "duration_ms",
         "referrer",
     ]
+    search_columns = [
+        "user",
+        "action",
+        "dttm",
+        "json",
+        "slice_id",
+        "dashboard_id",
+        "user_id",
+        "duration_ms",
+        "referrer",
+    ]
+    search_filters = {
+        "user": [FilterRelationManyToManyEqual],
+    }
     show_columns = list_columns
     page_size = 20
     apispec_parameter_schemas = {
