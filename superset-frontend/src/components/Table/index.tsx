@@ -172,7 +172,6 @@ const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
     .ant-spin-nested-loading .ant-spin .ant-spin-dot {
       width: ${theme.sizeXXL}px;
       height: unset;
-      top: 100px;
     }
 
    td.ant-table-cell {
