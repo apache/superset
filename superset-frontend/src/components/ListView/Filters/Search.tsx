@@ -30,7 +30,7 @@ import { SELECT_WIDTH } from '../utils';
 import { FormLabel } from '../../Form';
 import { Input } from '../../Input';
 import { InfoTooltip } from '../../InfoTooltip';
-import { BaseFilter, FilterHandler } from './Base';
+import { BaseFilter, FilterHandler, FilterContainer } from './Base';
 
 interface SearchHeaderProps extends BaseFilter {
   Header: string;
@@ -38,10 +38,6 @@ interface SearchHeaderProps extends BaseFilter {
   name: string;
   toolTipDescription: string | undefined;
 }
-
-const Container = styled.div`
-  width: ${SELECT_WIDTH}px;
-`;
 
 const StyledInput = styled(Input)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -79,18 +75,11 @@ function SearchFilter(
   }));
 
   return (
-    <Container>
-      <div
-        css={css`
-          display: flex;
-          align-items: start;
-        `}
-      >
-        <FormLabel>{Header}</FormLabel>
-        {toolTipDescription && (
-          <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
-        )}
-      </div>
+    <FilterContainer>
+      <FormLabel>{Header}</FormLabel>
+      {toolTipDescription && (
+        <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
+      )}
       <StyledInput
         allowClear
         data-test="filters-search"
@@ -107,7 +96,7 @@ function SearchFilter(
           />
         }
       />
-    </Container>
+    </FilterContainer>
   );
 }
 

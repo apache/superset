@@ -90,12 +90,12 @@ function SelectFilter(
 
   return (
     <FilterContainer>
+      <FormLabel>{Header}</FormLabel>
       {fetchSelects ? (
         <AsyncSelect
           allowClear
           ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
           data-test="filters-select"
-          header={<FormLabel>{Header}</FormLabel>}
           onChange={onChange}
           onClear={onClear}
           options={fetchAndFormatSelects}
@@ -108,7 +108,6 @@ function SelectFilter(
           allowClear
           ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
           data-test="filters-select"
-          header={<FormLabel>{Header}</FormLabel>}
           labelInValue
           onChange={onChange}
           onClear={onClear}
