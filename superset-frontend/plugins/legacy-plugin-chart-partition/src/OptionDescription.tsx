@@ -39,7 +39,6 @@ export default function OptionDescription({ option }: { option: ColumnMeta }) {
       </span>
       {option.description && (
         <InfoTooltipWithTrigger
-          style={{ marginRight: 4 }}
           type="question"
           tooltip={option.description}
           label={`descr-${option.label}`}

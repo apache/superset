@@ -24,9 +24,8 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t, styled, useTheme, css } from '@superset-ui/core';
+import { t, styled, useTheme } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
-import { SELECT_WIDTH } from '../utils';
 import { FormLabel } from '../../Form';
 import { Input } from '../../Input';
 import { InfoTooltip } from '../../InfoTooltip';

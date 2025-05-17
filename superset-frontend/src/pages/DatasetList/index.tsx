@@ -71,6 +71,7 @@ import {
 import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
@@ -547,6 +548,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ),
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Schema'),
@@ -563,6 +565,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ),
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Owner'),
@@ -583,6 +586,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           user,
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Certified'),
@@ -616,6 +620,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           user,
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [user],
