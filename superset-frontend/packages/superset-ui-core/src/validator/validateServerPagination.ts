@@ -21,10 +21,18 @@ import { t } from '../translation';
 export default function validateServerPagination(
   v: unknown,
   serverPagination: boolean,
-  max: number,
+  maxValueWithoutServerPagination: number,
+  maxServer: number,
 ) {
-  if (Number(v) > +max && !serverPagination) {
-    return t('Server pagination needs to be enabled for values over %s', max);
+  if (
+    Number(v) > +maxValueWithoutServerPagination &&
+    Number(v) <= maxServer &&
+    !serverPagination
+  ) {
+    return t(
+      'Server pagination needs to be enabled for values over %s',
+      maxValueWithoutServerPagination,
+    );
   }
   return false;
 }

@@ -54,7 +54,7 @@ import {
 } from '@superset-ui/core';
 
 import { isEmpty, last } from 'lodash';
-import { PAGE_SIZE_OPTIONS } from './consts';
+import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { ColorSchemeEnum } from './types';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
@@ -364,7 +364,7 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Server Page Length'),
               default: 10,
-              choices: PAGE_SIZE_OPTIONS,
+              choices: SERVER_PAGE_SIZE_OPTIONS,
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
@@ -397,6 +397,7 @@ const config: ControlPanelConfig = {
                     v,
                     state?.server_pagination,
                     state?.maxValueWithoutServerPagination || DEFAULT_MAX_ROW,
+                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
                   ),
               ],
               // Re run the validations when this control value
