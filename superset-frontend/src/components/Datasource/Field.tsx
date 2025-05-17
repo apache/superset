@@ -78,7 +78,7 @@ export default function Field<V>({
       {additionalControl}
       <FormItem
         label={
-          <FormLabel className="m-r-5">
+          <FormLabel>
             {label || fieldKey}
             {compact && description && (
               <Tooltip id="field-descr" placement="right" title={description}>

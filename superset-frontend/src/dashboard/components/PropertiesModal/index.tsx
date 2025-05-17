@@ -627,7 +627,6 @@ const PropertiesModal = ({
             onClick={form.submit}
             buttonSize="small"
             buttonStyle="primary"
-            className="m-r-5"
             cta
             disabled={dashboardInfo?.isManagedExternally}
             tooltip={
