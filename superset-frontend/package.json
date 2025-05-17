@@ -360,7 +360,7 @@
     "webpack": "^5.98.0",
     "webpack-bundle-analyzer": "^4.10.1",
     "webpack-cli": "^4.10.0",
-    "webpack-dev-server": "^4.15.1",
+    "webpack-dev-server": "^5.2.1",
     "webpack-manifest-plugin": "^5.0.0",
     "webpack-sources": "^3.2.3",
     "webpack-visualizer-plugin2": "^1.1.0"
