@@ -103,6 +103,7 @@ const ExtraOptions = ({
               subtitle={t(
                 'Adjust how this database will interact with SQL Lab.',
               )}
+              testId="sql-lab-label-test"
             />
           ),
           children: (
@@ -291,6 +292,7 @@ const ExtraOptions = ({
             <CollapseLabelInModal
               title={t('Performance')}
               subtitle={t('Adjust performance settings of this database.')}
+              testId="performance-label-test"
             />
           ),
           children: (
@@ -415,6 +417,7 @@ const ExtraOptions = ({
           label: (
             <CollapseLabelInModal
               title={t('Security')}
+              testId="security-label-test"
               subtitle={t('Add extra connection information.')}
             />
           ),
@@ -567,6 +570,7 @@ const ExtraOptions = ({
             <CollapseLabelInModal
               title={t('Other')}
               subtitle={t('Additional settings.')}
+              testId="other-label-test"
             />
           ),
           children: (

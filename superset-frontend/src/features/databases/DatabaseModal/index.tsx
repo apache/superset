@@ -131,7 +131,6 @@ const engineSpecificAlertMapping = {
 
 const TabsStyled = styled(Tabs)`
   .ant-tabs-content {
-    display: flex;
     width: 100%;
     overflow: inherit;
 

@@ -86,7 +86,7 @@ repos:
     rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
     hooks:
       - id: blacklist
-        args: ["--blacklisted-names=make_url", "--ignore=tests/"]
+        args: ["--blacklisted-names=make_url", "--ignore=tests/", "--exclude", "site-packages"]
   - repo: https://github.com/norwoodj/helm-docs
     rev: v1.14.2
     hooks:
