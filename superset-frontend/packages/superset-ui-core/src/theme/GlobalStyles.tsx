@@ -35,6 +35,7 @@ export const GlobalStyles = () => {
           background-color: ${theme.colorBgBase};
           color: ${theme.colorText};
           -webkit-font-smoothing: antialiased;
+          margin: 0;
         }
 
         a {
@@ -85,10 +86,6 @@ export const GlobalStyles = () => {
         }
 
         // Overriding bootstrap styles
-        // TODO - remove bootstrap .less and delete this section
-        label {
-          font-weight: ${theme.fontWeightNormal};
-        }
         #app {
           flex: 1 1 auto;
           position: relative;

@@ -37,7 +37,7 @@
     "src/setup/*"
   ],
   "scripts": {
-    "_prettier": "prettier './({src,spec,cypress-base,plugins,packages,.storybook}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}|package.json)'",
+    "_prettier": "prettier './({src,spec,cypress-base,plugins,packages,.storybook}/**/*{.js,.jsx,.ts,.tsx,.css,.scss,.sass}|package.json)'",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --color --mode production",
     "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --color",
     "build-instrumented": "cross-env NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
@@ -340,8 +340,6 @@
     "jest-websocket-mock": "^2.5.0",
     "jsdom": "^26.0.0",
     "lerna": "^8.2.1",
-    "less": "^4.2.0",
-    "less-loader": "^12.2.0",
     "mini-css-extract-plugin": "^2.9.0",
     "open-cli": "^8.0.0",
     "po2json": "^0.4.5",
