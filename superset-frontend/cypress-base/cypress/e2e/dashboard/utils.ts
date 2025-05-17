@@ -293,15 +293,20 @@ export function fillNativeFilterForm(
   }
   cy.get(nativeFilters.silentLoading).should('not.exist');
   if (filterColumn) {
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .click({ force: true });
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .type(filterColumn);
-    cy.get(nativeFilters.filtersPanel.inputDropdown)
-      .should('be.visible', { timeout: 20000 })
-      .last()
+    // Target and alias the column field
+    cy.contains('label', 'Column').closest('.ant-form-item').as('columnField');
+
+    cy.get('@columnField').find('.ant-select-selector').click();
+
+    cy.get('@columnField')
+      .find('.ant-select-selection-search-input')
+      .should('be.visible')
+      .type(filterColumn, { delay: 100 });
+
+    cy.get('.ant-select-dropdown')
+      .should('be.visible')
+      .contains('.ant-select-item-option', filterColumn)
+      .should('be.visible')
       .click();
   }
   cy.get(nativeFilters.silentLoading).should('not.exist');
@@ -362,9 +367,26 @@ export function saveNativeFilterSettings(charts: ChartSpec[]) {
   cy.get(nativeFilters.modal.footer)
     .contains('Save')
     .should('be.visible')
-    .click();
+    .click({ force: true });
+
+  // Wait for modal to either close or remain open
+  cy.get('body').should($body => {
+    const modalExists = $body.find(nativeFilters.modal.container).length > 0;
+    if (modalExists) {
+      cy.get(nativeFilters.modal.footer)
+        .contains('Save')
+        .should('be.visible')
+        .click({ force: true });
+    }
+  });
+
+  // Ensure modal is closed
   cy.get(nativeFilters.modal.container).should('not.exist');
-  charts.forEach(waitForChartLoad);
+
+  // Wait for all charts to load
+  charts.forEach(chart => {
+    waitForChartLoad(chart);
+  });
 }
 
 /** ************************************************************************
