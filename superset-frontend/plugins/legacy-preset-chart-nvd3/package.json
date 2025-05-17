@@ -31,7 +31,6 @@
   "dependencies": {
     "d3": "^3.5.17",
     "d3-tip": "^0.9.1",
-    "dompurify": "^3.2.4",
     "fast-safe-stringify": "^2.1.1",
     "lodash": "^4.17.21",
     "dayjs": "^1.11.13",
@@ -41,6 +40,7 @@
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
+    "dompurify": "^3.2.4",
     "@superset-ui/core": "*",
     "react": "^17.0.2"
   }

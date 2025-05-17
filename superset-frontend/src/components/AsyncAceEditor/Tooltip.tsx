@@ -19,6 +19,7 @@
 
 import Handlebars from 'handlebars';
 import { Tag } from 'src/components';
+import DOMPurify from 'dompurify';
 
 type Props = {
   title: string;
@@ -52,25 +53,27 @@ export const Tooltip: React.FC<Props> = ({
   </div>
 );
 
-const tooltipTemplate = Handlebars.compile(`
-  <div class="tooltip-detail">
-    <div class="tooltip-detail-head">
-      <div class="tooltip-detail-title">
-        {{#if icon}}<span class="tooltip-icon">{{icon}}</span>{{/if}}{{title}}
+export function getTooltipHTML({
+  title,
+  icon,
+  body,
+  meta,
+  footer,
+}: Props): string {
+  const html = `
+    <div class="tooltip-detail">
+      <div class="tooltip-detail-head">
+        <div class="tooltip-detail-title">
+          ${icon ? `<span class="tooltip-icon">${icon}</span>` : ''}${title}
+        </div>
+        ${meta ? `<span class="tooltip-detail-meta"><span class="ant-tag">${meta}</span></span>` : ''}
       </div>
-      {{#if meta}}
-        <span class="tooltip-detail-meta"><span class="ant-tag">{{meta}}</span></span>
-      {{/if}}
+      ${body ? `<div class="tooltip-detail-body">${body}</div>` : ''}
+      ${footer ? `<div class="tooltip-detail-footer">${footer}</div>` : ''}
     </div>
-    {{#if body}}
-      <div class="tooltip-detail-body">{{body}}</div>
-    {{/if}}
-    {{#if footer}}
-      <div class="tooltip-detail-footer">{{footer}}</div>
-    {{/if}}
-  </div>
-`);
+  `;
 
-export const getTooltipHTML = (props: Props): string => tooltipTemplate(props);
+  return DOMPurify.sanitize(html);
+}
 
 export default Tooltip;
