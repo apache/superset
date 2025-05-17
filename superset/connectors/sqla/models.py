@@ -794,7 +794,8 @@ class AnnotationDatasource(BaseDatasource):
             qry = qry.filter(Annotation.end_dttm <= query_obj["to_dttm"])
         status = QueryStatus.SUCCESS
         try:
-            df = pd.read_sql_query(qry.statement, db.engine)
+            with db.engine.connect() as con:
+                df = pd.read_sql_query(qry.statement, con)
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
             status = QueryStatus.FAILED
