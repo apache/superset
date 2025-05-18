@@ -272,6 +272,11 @@ exclude = [
     "venv",
 ]
 
+# TODO: remove this once cryptography is fixed, introduced in cryptography 44.0.3
+[mypy-cryptography.hazmat.bindings._rust.x509]
+ignore_errors = True
+follow_imports = skip
+
 
 # Same as Black.
 line-length = 88
