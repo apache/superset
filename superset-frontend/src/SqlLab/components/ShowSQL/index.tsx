@@ -43,7 +43,7 @@ export default function ShowSQL({
       modalTitle={title}
       triggerNode={
         triggerNode || (
-          <IconTooltip className="pull-left m-l-2" tooltip={tooltipText}>
+          <IconTooltip className="pull-left" tooltip={tooltipText}>
             <Icons.EyeOutlined iconSize="s" />
           </IconTooltip>
         )

@@ -18,7 +18,5 @@
  */
 import 'src/public-path';
 
-import './assets/stylesheets/superset.less';
-
 // Styles for the crontab-related lib
 import 'react-js-cron/dist/styles.css';

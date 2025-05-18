@@ -22,6 +22,14 @@ import React from 'react';
 import { theme as antdThemeImport, ConfigProvider } from 'antd';
 import tinycolor from 'tinycolor2';
 
+import '@fontsource/inter/200.css';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/fira-code/400.css';
+import '@fontsource/fira-code/500.css';
+import '@fontsource/fira-code/600.css';
+
 import {
   ThemeProvider as EmotionThemeProvider,
   CacheProvider as EmotionCacheProvider,
@@ -58,7 +66,7 @@ export class Theme {
     brandLogoAlt: 'Apache Superset',
     brandLogoUrl: '/static/assets/images/superset-logo-horiz.png',
     brandLogoMargin: '18px',
-    brandLogoHref: 'https:/supserset.apache.org',
+    brandLogoHref: 'https://supserset.apache.org',
     brandLogoHeight: '24px',
 
     // Default colors

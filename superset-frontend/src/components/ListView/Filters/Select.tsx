@@ -37,6 +37,7 @@ interface SelectFilterProps extends BaseFilter {
   paginate?: boolean;
   selects: Filter['selects'];
   loading?: boolean;
+  dropdownStyle?: React.CSSProperties;
 }
 
 function SelectFilter(
@@ -48,6 +49,7 @@ function SelectFilter(
     onSelect,
     selects = [],
     loading = false,
+    dropdownStyle,
   }: SelectFilterProps,
   ref: RefObject<FilterHandler>,
 ) {
@@ -87,19 +89,20 @@ function SelectFilter(
     },
     [fetchSelects],
   );
-
+  const placeholder = t('Choose...');
   return (
     <FilterContainer>
+      <FormLabel>{Header}</FormLabel>
       {fetchSelects ? (
         <AsyncSelect
           allowClear
           ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
           data-test="filters-select"
-          header={<FormLabel>{Header}</FormLabel>}
           onChange={onChange}
           onClear={onClear}
           options={fetchAndFormatSelects}
-          placeholder={t('Select or type a value')}
+          placeholder={placeholder}
+          dropdownStyle={dropdownStyle}
           showSearch
           value={selectedOption}
         />
@@ -108,12 +111,12 @@ function SelectFilter(
           allowClear
           ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
           data-test="filters-select"
-          header={<FormLabel>{Header}</FormLabel>}
           labelInValue
           onChange={onChange}
           onClear={onClear}
           options={selects}
-          placeholder={t('Select or type a value')}
+          placeholder={placeholder}
+          dropdownStyle={dropdownStyle}
           showSearch
           value={selectedOption}
           loading={loading}

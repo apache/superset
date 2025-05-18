@@ -60,6 +60,11 @@ export default styled(NVD3)`
     g.superset path {
       stroke-dasharray: 5, 5;
     }
+    .nvtooltip {
+      table td {
+        font-size: @font-size-s !important;
+      }
+    }
     .nvtooltip tr.highlight td {
       font-weight: ${({ theme }) => theme.fontWeightStrong};
       font-size: ${({ theme }) => theme.fontSize}px !important;

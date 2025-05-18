@@ -165,6 +165,8 @@ export interface BaseSelectProps extends AntdExposedProps {
   value?: SelectValue | null;
 
   ref: Ref<RefSelectProps>;
+
+  dropdownStyle?: React.CSSProperties;
 }
 
 export interface SelectProps extends BaseSelectProps {

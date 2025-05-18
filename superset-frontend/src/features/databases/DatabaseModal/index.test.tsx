@@ -563,39 +563,19 @@ describe('DatabaseModal', () => {
       const basicTab = screen.getByRole('tab', { name: /basic/i });
       const advancedTab = screen.getByRole('tab', { name: /advanced/i });
       // <ExtraOptions> - Advanced tabs
-      const sqlLabTab = screen.getByRole('tab', {
-        name: /collapsed sql lab adjust how this database will interact with sql lab\./i,
-      });
-      const sqlLabTabArrow = within(sqlLabTab).getByRole('img', {
-        name: /collapsed/i,
-      });
+      const sqlLabTab = screen.getByTestId('sql-lab-label-test');
       const sqlLabTabHeading = screen.getByRole('heading', {
         name: /sql lab/i,
       });
-      const performanceTab = screen.getByRole('tab', {
-        name: /collapsed performance adjust performance settings of this database\./i,
-      });
-      const performanceTabArrow = within(performanceTab).getByRole('img', {
-        name: /collapsed/i,
-      });
+      const performanceTab = screen.getByTestId('performance-label-test');
       const performanceTabHeading = screen.getByRole('heading', {
         name: /performance/i,
       });
-      const securityTab = screen.getByRole('tab', {
-        name: /collapsed security add extra connection information\./i,
-      });
-      const securityTabArrow = within(securityTab).getByRole('img', {
-        name: /collapsed/i,
-      });
+      const securityTab = screen.getByTestId('security-label-test');
       const securityTabHeading = screen.getByRole('heading', {
         name: /security/i,
       });
-      const otherTab = screen.getByRole('tab', {
-        name: /collapsed other additional settings\./i,
-      });
-      const otherTabArrow = within(otherTab).getByRole('img', {
-        name: /collapsed/i,
-      });
+      const otherTab = screen.getByTestId('other-label-test');
       const otherTabHeading = screen.getByRole('heading', { name: /other/i });
       // renderModalFooter() - Advanced tab's footer
       const backButton = screen.getByRole('button', { name: /back/i });
@@ -612,16 +592,12 @@ describe('DatabaseModal', () => {
         basicTab,
         advancedTab,
         sqlLabTab,
-        sqlLabTabArrow,
         sqlLabTabHeading,
         performanceTab,
-        performanceTabArrow,
         performanceTabHeading,
         securityTab,
-        securityTabArrow,
         securityTabHeading,
         otherTab,
-        otherTabArrow,
         otherTabHeading,
         backButton,
         connectButton,
@@ -645,11 +621,7 @@ describe('DatabaseModal', () => {
       // Click the "Advanced" tab
       userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
       // Click the "SQL Lab" tab
-      userEvent.click(
-        await screen.findByRole('tab', {
-          name: /collapsed sql lab adjust how this database will interact with sql lab\./i,
-        }),
-      );
+      userEvent.click(screen.getByTestId('sql-lab-label-test'));
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - SQL LAB)
@@ -674,9 +646,7 @@ describe('DatabaseModal', () => {
         name: /advanced/i,
       });
       // <ExtraOptions> - Advanced tabs
-      const sqlLabTab = screen.getByRole('tab', {
-        name: /expanded sql lab adjust how this database will interact with sql lab\./i,
-      });
+      const sqlLabTab = screen.getByTestId('sql-lab-label-test');
       // These are the checkbox SVGs that cover the actual checkboxes
       const allCheckboxes = screen.getAllByRole(
         'checkbox',
@@ -814,11 +784,7 @@ describe('DatabaseModal', () => {
       // Click the "Advanced" tab
       userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
       // Click the "Performance" tab
-      userEvent.click(
-        screen.getByRole('tab', {
-          name: /collapsed performance adjust performance settings of this database\./i,
-        }),
-      );
+      userEvent.click(screen.getByTestId('performance-label-test'));
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - PERFORMANCE)
@@ -840,12 +806,8 @@ describe('DatabaseModal', () => {
       const basicTab = screen.getByRole('tab', { name: /basic/i });
       const advancedTab = screen.getByRole('tab', { name: /advanced/i });
       // <ExtraOptions> - Advanced tabs
-      const sqlLabTab = screen.getByRole('tab', {
-        name: /collapsed sql lab adjust how this database will interact with sql lab\./i,
-      });
-      const performanceTab = screen.getByRole('tab', {
-        name: /expanded performance adjust performance settings of this database\./i,
-      });
+      const sqlLabTab = screen.getByTestId('sql-lab-label-test');
+      const performanceTab = screen.getByTestId('performance-label-test');
 
       // ---------- Assertions ----------
       const visibleComponents = [
@@ -879,11 +841,7 @@ describe('DatabaseModal', () => {
       // Click the "Advanced" tab
       userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
       // Click the "Security" tab
-      userEvent.click(
-        screen.getByRole('tab', {
-          name: /collapsed security add extra connection information\./i,
-        }),
-      );
+      userEvent.click(screen.getByTestId('security-label-test'));
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - SECURITY)
@@ -905,15 +863,9 @@ describe('DatabaseModal', () => {
       const basicTab = screen.getByRole('tab', { name: /basic/i });
       const advancedTab = screen.getByRole('tab', { name: /advanced/i });
       // <ExtraOptions> - Advanced tabs
-      const sqlLabTab = screen.getByRole('tab', {
-        name: /collapsed sql lab adjust how this database will interact with sql lab\./i,
-      });
-      const performanceTab = screen.getByRole('tab', {
-        name: /collapsed performance adjust performance settings of this database\./i,
-      });
-      const securityTab = screen.getByRole('tab', {
-        name: /expanded security add extra connection information\./i,
-      });
+      const sqlLabTab = screen.getByTestId('sql-lab-label-test');
+      const performanceTab = screen.getByTestId('performance-label-test');
+      const securityTab = screen.getByTestId('security-label-test');
       const allowFileUploadCheckbox = screen.getByRole('checkbox', {
         name: /Allow file uploads to database/i,
       });
@@ -965,11 +917,7 @@ describe('DatabaseModal', () => {
       // Click the "Advanced" tab
       userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
       // Click the "Security" tab
-      userEvent.click(
-        screen.getByRole('tab', {
-          name: /collapsed security add extra connection information\./i,
-        }),
-      );
+      userEvent.click(screen.getByTestId('security-label-test'));
       // Click the "Allow file uploads" tab
 
       const allowFileUploadCheckbox = screen.getByRole('checkbox', {
@@ -996,15 +944,9 @@ describe('DatabaseModal', () => {
       const basicTab = screen.getByRole('tab', { name: /basic/i });
       const advancedTab = screen.getByRole('tab', { name: /advanced/i });
       // <ExtraOptions> - Advanced tabs
-      const sqlLabTab = screen.getByRole('tab', {
-        name: /collapsed sql lab adjust how this database will interact with sql lab\./i,
-      });
-      const performanceTab = screen.getByRole('tab', {
-        name: /collapsed performance adjust performance settings of this database\./i,
-      });
-      const securityTab = screen.getByRole('tab', {
-        name: /expanded security add extra connection information\./i,
-      });
+      const sqlLabTab = screen.getByTestId('sql-lab-label-test');
+      const performanceTab = screen.getByTestId('performance-label-test');
+      const securityTab = screen.getByTestId('security-label-test');
       const allowFileUploadText = screen.getByText(
         /Allow file uploads to database/i,
       );
@@ -1053,11 +995,7 @@ describe('DatabaseModal', () => {
       // Click the "Advanced" tab
       userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
       // Click the "Other" tab
-      userEvent.click(
-        screen.getByRole('tab', {
-          name: /collapsed other additional settings\./i,
-        }),
-      );
+      userEvent.click(screen.getByTestId('other-label-test'));
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - OTHER)
@@ -1079,18 +1017,10 @@ describe('DatabaseModal', () => {
       const basicTab = screen.getByRole('tab', { name: /basic/i });
       const advancedTab = screen.getByRole('tab', { name: /advanced/i });
       // <ExtraOptions> - Advanced tabs
-      const sqlLabTab = screen.getByRole('tab', {
-        name: /collapsed sql lab adjust how this database will interact with sql lab\./i,
-      });
-      const performanceTab = screen.getByRole('tab', {
-        name: /collapsed performance adjust performance settings of this database\./i,
-      });
-      const securityTab = screen.getByRole('tab', {
-        name: /collapsed security add extra connection information\./i,
-      });
-      const otherTab = screen.getByRole('tab', {
-        name: /expanded other additional settings\./i,
-      });
+      const sqlLabTab = screen.getByTestId('sql-lab-label-test');
+      const performanceTab = screen.getByTestId('performance-label-test');
+      const securityTab = screen.getByTestId('security-label-test');
+      const otherTab = screen.getByTestId('other-label-test');
 
       // ---------- Assertions ----------
       const visibleComponents = [
@@ -1484,11 +1414,7 @@ describe('DatabaseModal', () => {
       // Click the "Advanced" tab
       userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
       // Click the "Security" tab
-      userEvent.click(
-        screen.getByRole('tab', {
-          name: /collapsed security add extra connection information\./i,
-        }),
-      );
+      userEvent.click(screen.getByTestId('security-label-test'));
 
       // ----- BEGIN STEP 2 (ADVANCED - SECURITY)
       // <ExtraOptions> - Advanced tabs

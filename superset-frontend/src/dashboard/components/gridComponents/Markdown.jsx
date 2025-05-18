@@ -103,6 +103,7 @@ const MarkdownStyles = styled.div`
       .dashboard-component-chart-holder {
         overflow-y: auto;
         overflow-x: hidden;
+        border-radius: ${theme.borderRadius}px;
       }
 
       .dashboard--editing & {

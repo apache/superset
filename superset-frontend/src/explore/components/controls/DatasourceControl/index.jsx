@@ -102,9 +102,8 @@ const Styles = styled.div`
   .title-select {
     flex: 1 1 100%;
     display: inline-block;
-    padding: ${({ theme }) => theme.sizeUnit * 2}px;
+    padding: ${({ theme }) => theme.sizeUnit * 2}px 0px;
     border-radius: ${({ theme }) => theme.borderRadius}px;
-    text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;

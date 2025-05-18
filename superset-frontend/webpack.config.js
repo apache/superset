@@ -124,11 +124,7 @@ const plugins = [
   }),
 
   new CopyPlugin({
-    patterns: [
-      'package.json',
-      { from: 'src/assets/images', to: 'images' },
-      { from: 'src/assets/stylesheets', to: 'stylesheets' },
-    ],
+    patterns: ['package.json', { from: 'src/assets/images', to: 'images' }],
   }),
 
   // static pages
@@ -413,39 +409,6 @@ const config = {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-            },
-          },
-        ],
-      },
-      {
-        test: /\.less$/,
-        include: APP_DIR,
-        use: [
-          isDevMode
-            ? 'style-loader'
-            : {
-                loader: MiniCssExtractPlugin.loader,
-                options: {
-                  publicPath: MINI_CSS_EXTRACT_PUBLICPATH,
-                },
-              },
-          {
-            loader: 'css-loader',
-            options: {
-              sourceMap: true,
-            },
-          },
-          {
-            loader: 'less-loader',
-            options: {
-              sourceMap: true,
-              lessOptions: {
-                javascriptEnabled: true,
-                modifyVars: {
-                  'root-entry-name': 'default',
-                },
-                math: 'always',
-              },
             },
           },
         ],

@@ -24,9 +24,18 @@ export const GlobalStyles = () => {
     <Global
       key={`global-${theme.colorLink}`}
       styles={css`
+        // SPA
+        html,
+        body,
+        #app {
+          height: 100%;
+        }
+
         body {
           background-color: ${theme.colorBgBase};
           color: ${theme.colorText};
+          -webkit-font-smoothing: antialiased;
+          margin: 0;
         }
 
         a {
@@ -59,6 +68,10 @@ export const GlobalStyles = () => {
           z-index: ${theme.zIndexPopupBase} !important;
         }
 
+        .no-wrap {
+          white-space: nowrap;
+        }
+
         .column-config-popover {
           & .ant-input-number {
             width: 100%;
@@ -70,6 +83,15 @@ export const GlobalStyles = () => {
           & .btn-group > .btn {
             padding: 5px 10px 6px;
           }
+        }
+
+        // Overriding bootstrap styles
+        #app {
+          flex: 1 1 auto;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
         }
       `}
     />

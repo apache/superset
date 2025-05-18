@@ -26,10 +26,14 @@ export interface BaseFilter {
 }
 
 export const FilterContainer = styled.div`
-  display: inline-flex;
   font-size: ${({ theme }) => theme.fontSizeSM}px;
-  align-items: center;
   width: ${SELECT_WIDTH}px;
+  color: ${({ theme }) => theme.colorTextLabel};
+
+  label {
+    display: block;
+    margin-bottom: ${({ theme }) => theme.sizeUnit}px;
+  }
 `;
 
 export type FilterHandler = {

@@ -260,7 +260,6 @@ export default class AdhocFilterEditPopover extends Component {
             }
             buttonStyle="primary"
             buttonSize="small"
-            className="m-r-5"
             onClick={this.onSave}
             cta
           >
