@@ -642,7 +642,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             css={css`
               float: right;
               & svg {
-                color: ${theme.colorText} !important;
+                color: ${theme.colorIcon} !important;
               }
             `}
           >
@@ -833,7 +833,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
           const StyledCell = styled.td`
             color: ${theme.colorText};
-            background-color: ${theme.colorBgBase};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
@@ -1031,7 +1030,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   align-items: center;
                   & svg {
                     margin-left: ${theme.sizeUnit}px;
-                    color: ${theme.colorText} !important;
+                    color: ${theme.colorBorder} !important;
                   }
                 `}
               >
