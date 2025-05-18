@@ -240,6 +240,12 @@ disallow_untyped_calls = false
 disallow_untyped_defs = false
 disable_error_code = "annotation-unchecked"
 
+# TODO: remove this once cryptography is fixed, introduced in cryptography 44.0.3
+[[tool.mypy.overrides]]
+module = "cryptography.hazmat.bindings._rust.x509"
+ignore_errors = true  # Note lowercase 'true'
+follow_imports = "skip"
+
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -271,12 +277,6 @@ exclude = [
     "site-packages",
     "venv",
 ]
-
-# TODO: remove this once cryptography is fixed, introduced in cryptography 44.0.3
-[mypy-cryptography.hazmat.bindings._rust.x509]
-ignore_errors = True
-follow_imports = skip
-
 
 # Same as Black.
 line-length = 88
