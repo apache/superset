@@ -36,6 +36,7 @@ const StyledEditableTitle = styled.span<{
 }>`
   &.editable-title {
     display: inline-block;
+    width: 100%;
 
     input,
     textarea {
@@ -47,14 +48,16 @@ const StyledEditableTitle = styled.span<{
         'liga' 0,
         'calt' 0;
       font-variant-ligatures: none;
-      font-family: ${({ theme }) => theme.fontFamilyCode};
+      font-weight: bold;
     }
 
     input[type='text'],
     textarea {
-      border: 1px solid ${({ theme }) => theme.colors.grayscale.base};
+      border: 1px solid ${({ theme }) => theme.colorSplit};
+      color: ${({ theme }) => theme.colorTextTertiary};
       border-radius: ${({ theme }) => theme.sizeUnit}px;
-      padding: 2px;
+      font-size: ${({ theme }) => theme.fontSizeLG}px;
+      padding: ${({ theme }) => theme.sizeUnit / 2}px;
       min-height: 100px;
       width: 95%;
     }
