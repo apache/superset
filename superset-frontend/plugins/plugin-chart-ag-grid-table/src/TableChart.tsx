@@ -24,7 +24,7 @@ import { InputColumn, transformData } from './DataTable/transformData';
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {},
 ) {
-  const { height, columns, data } = props;
+  const { height, columns, data, includeSearch } = props;
 
   const transformedData = transformData(columns as InputColumn[], data);
 
@@ -34,6 +34,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         gridHeight={height}
         data={transformedData?.rowData || []}
         colDefsFromProps={transformedData?.colDefs}
+        includeSearch={!!includeSearch}
       />
     </div>
   );
