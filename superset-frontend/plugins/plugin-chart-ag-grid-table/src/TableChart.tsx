@@ -19,15 +19,22 @@
 import { DataRecord } from '@superset-ui/core';
 import { TableChartTransformedProps } from './types';
 import AgGridDataTable from './DataTable';
+import { InputColumn, transformData } from './DataTable/transformData';
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {},
 ) {
-  const { height } = props;
+  const { height, columns, data } = props;
+
+  const transformedData = transformData(columns as InputColumn[], data);
 
   return (
     <div>
-      <AgGridDataTable gridHeight={height} />
+      <AgGridDataTable
+        gridHeight={height}
+        data={transformedData?.rowData || []}
+        colDefsFromProps={transformedData?.colDefs}
+      />
     </div>
   );
 }

@@ -15,7 +15,6 @@ import {
   type GetRowIdParams,
   ModuleRegistry,
   type ValueFormatterFunc,
-  type ValueGetterParams,
   GridReadyEvent,
   GridApi,
 } from 'ag-grid-community';
@@ -26,7 +25,6 @@ import { type FunctionComponent } from 'react';
 
 import type { CustomCellRendererProps } from 'ag-grid-react';
 import { styled, css } from '@superset-ui/core';
-import { getData } from './data';
 
 // Memoize the TickerCellRenderer
 const TickerCellRenderer: FunctionComponent<CustomCellRendererProps> = memo(
@@ -54,6 +52,7 @@ export interface Props {
   updateInterval?: number;
   data?: any[]; // Add proper type for your data
   onGridReady?: (params: GridReadyEvent) => void;
+  colDefsFromProps: any[];
 }
 
 // Register modules once outside component
@@ -115,64 +114,15 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     gridHeight = null,
     data = [],
     onGridReady,
+    colDefsFromProps,
   }) => {
-    const [rowData] = useState(getData());
+    console.log({
+      colDefsFromProps,
+      data,
+    });
+
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
-
-    // Memoize column definitions
-    const colDefs = useMemo<ColDef[]>(
-      () => [
-        {
-          field: 'ticker',
-          cellRenderer: TickerCellRenderer,
-          sortable: true,
-          filter: true,
-        },
-        {
-          headerName: 'Timeline',
-          field: 'timeline',
-          sortable: false,
-          filter: false,
-        },
-        {
-          field: 'instrument',
-          cellDataType: 'text',
-          type: 'rightAligned',
-          minWidth: 100,
-          initialWidth: 100,
-        },
-        {
-          colId: 'p&l',
-          headerName: 'P&L',
-          cellDataType: 'number',
-          filter: 'agNumberColumnFilter',
-          type: 'rightAligned',
-          cellRenderer: 'agAnimateShowChangeCellRenderer',
-          valueGetter: ({ data }: ValueGetterParams) =>
-            data ? data.quantity * (data.price / data.purchasePrice) : null,
-          valueFormatter: numberFormatter,
-          aggFunc: 'sum',
-          minWidth: 140,
-          initialWidth: 140,
-        },
-        {
-          colId: 'totalValue',
-          headerName: 'Total Value',
-          type: 'rightAligned',
-          cellDataType: 'number',
-          filter: 'agNumberColumnFilter',
-          valueGetter: ({ data }: ValueGetterParams) =>
-            data ? data.quantity * data.price : null,
-          cellRenderer: 'agAnimateShowChangeCellRenderer',
-          valueFormatter: numberFormatter,
-          aggFunc: 'sum',
-          minWidth: 160,
-          initialWidth: 160,
-        },
-      ],
-      [],
-    );
 
     // Memoize default column definition
     const defaultColDef = useMemo<ColDef>(
@@ -185,12 +135,6 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
         resizable: true,
         minWidth: 100,
       }),
-      [],
-    );
-
-    // Memoize row ID getter
-    const getRowId = useCallback<GetRowIdFunc>(
-      ({ data: { ticker } }: GetRowIdParams) => ticker,
       [],
     );
 
@@ -260,10 +204,9 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
           </div>
           <AgGridReact
             ref={gridRef}
-            rowData={rowData}
-            columnDefs={colDefs}
+            rowData={data}
+            columnDefs={colDefsFromProps}
             defaultColDef={defaultColDef}
-            getRowId={getRowId}
             rowSelection="multiple"
             animateRows
             suppressAggFuncInHeader
