@@ -331,55 +331,56 @@ function PropertiesModal({
                 }
               />
             </FormItem>
-            <FormItem>
+            <FormItem
+              extra={t(
+                'The description can be displayed as widget headers in the dashboard view. Supports markdown.',
+              )}
+            >
               <StyledFormItem label={t('Description')} name="description">
                 <Input.TextArea rows={3} style={{ maxWidth: '100%' }} />
               </StyledFormItem>
-              <StyledHelpBlock className="help-block">
-                {t(
-                  'The description can be displayed as widget headers in the dashboard view. Supports markdown.',
-                )}
-              </StyledHelpBlock>
             </FormItem>
             <Typography.Title level={3}>{t('Certification')}</Typography.Title>
-            <FormItem>
+            <FormItem
+              extra={t('Person or group that has certified this chart.')}
+            >
               <StyledFormItem label={t('Certified by')} name="certified_by">
                 <Input aria-label={t('Certified by')} />
               </StyledFormItem>
-              <StyledHelpBlock className="help-block">
-                {t('Person or group that has certified this chart.')}
-              </StyledHelpBlock>
             </FormItem>
-            <FormItem>
+            <FormItem
+              extra={t(
+                'Any additional detail to show in the certification tooltip.',
+              )}
+            >
               <StyledFormItem
                 label={t('Certification details')}
                 name="certification_details"
               >
                 <Input aria-label={t('Certification details')} />
               </StyledFormItem>
-              <StyledHelpBlock className="help-block">
-                {t(
-                  'Any additional detail to show in the certification tooltip.',
-                )}
-              </StyledHelpBlock>
             </FormItem>
           </Col>
           <Col xs={24} md={12}>
             <Typography.Title level={3}>{t('Configuration')}</Typography.Title>
-            <FormItem>
+            <FormItem
+              extra={t(
+                "Duration (in seconds) of the caching timeout for this chart. Set to -1 to bypass the cache. Note this defaults to the dataset's timeout if undefined.",
+              )}
+            >
               <StyledFormItem label={t('Cache timeout')} name="cache_timeout">
                 <Input aria-label="Cache timeout" />
               </StyledFormItem>
-              <StyledHelpBlock className="help-block">
-                {t(
-                  "Duration (in seconds) of the caching timeout for this chart. Set to -1 to bypass the cache. Note this defaults to the dataset's timeout if undefined.",
-                )}
-              </StyledHelpBlock>
             </FormItem>
             <Typography.Title level={3} style={{ marginTop: '1em' }}>
               {t('Access')}
             </Typography.Title>
-            <FormItem label={ownersLabel}>
+            <FormItem
+              label={ownersLabel}
+              extra={t(
+                'A list of users who can alter the chart. Searchable by name or username.',
+              )}
+            >
               <AsyncSelect
                 ariaLabel={ownersLabel}
                 mode="multiple"
@@ -390,11 +391,6 @@ function PropertiesModal({
                 disabled={!selectedOwners}
                 allowClear
               />
-              <StyledHelpBlock className="help-block">
-                {t(
-                  'A list of users who can alter the chart. Searchable by name or username.',
-                )}
-              </StyledHelpBlock>
             </FormItem>
             {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
               <Typography.Title level={3} css={{ marginTop: '1em' }}>
@@ -402,7 +398,11 @@ function PropertiesModal({
               </Typography.Title>
             )}
             {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
-              <FormItem>
+              <FormItem
+                extra={t(
+                  'A list of tags that have been applied to this chart.',
+                )}
+              >
                 <AsyncSelect
                   ariaLabel="Tags"
                   mode="multiple"
@@ -412,9 +412,6 @@ function PropertiesModal({
                   onClear={handleClearTags}
                   allowClear
                 />
-                <StyledHelpBlock className="help-block">
-                  {t('A list of tags that have been applied to this chart.')}
-                </StyledHelpBlock>
               </FormItem>
             )}
           </Col>

@@ -66,6 +66,17 @@ export default function Field<V>({
     onChange: onControlChange,
   });
   const theme = useTheme();
+  const extra = !compact && description ? description : undefined;
+  const infoTooltip =
+    compact && description ? (
+      <Tooltip id="field-descr" placement="right" title={description}>
+        <Icons.InfoCircleFilled
+          iconSize="s"
+          style={{ marginLeft: theme.sizeUnit }}
+        />
+      </Tooltip>
+    ) : undefined;
+
   return (
     <div
       css={
@@ -80,31 +91,13 @@ export default function Field<V>({
         label={
           <FormLabel>
             {label || fieldKey}
-            {compact && description && (
-              <Tooltip id="field-descr" placement="right" title={description}>
-                <Icons.InfoCircleFilled
-                  iconSize="s"
-                  style={{ marginLeft: theme.sizeUnit }}
-                />
-              </Tooltip>
-            )}
+            {infoTooltip}
           </FormLabel>
         }
         css={inline && formItemInlineCss}
+        extra={extra}
       >
         {hookedControl}
-        {!compact && description && (
-          <div
-            style={{
-              color: theme.colorTextDescription,
-              marginLeft: inline ? theme.sizeUnit : 0,
-              marginTop: !inline ? theme.sizeUnit : 0,
-              fontSize: theme.fontSizeSM,
-            }}
-          >
-            {description}
-          </div>
-        )}
       </FormItem>
       {errorMessage && (
         <div

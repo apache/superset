@@ -64,10 +64,6 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 import { areObjectsEqual } from 'src/reduxUtils';
 
-const StyledFormItem = styled(FormItem)`
-  margin-bottom: 0;
-`;
-
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: 1px solid ${({ theme }) => theme.colorPrimaryBorder};
@@ -448,7 +444,12 @@ const PropertiesModal = ({
           <Typography.Title level={3} style={{ marginTop: '1em' }}>
             {t('Access')}
           </Typography.Title>
-          <StyledFormItem label={t('Owners')}>
+          <FormItem
+            label={t('Owners')}
+            extra={t(
+              'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+            )}
+          >
             <AsyncSelect
               allowClear
               ariaLabel={t('Owners')}
@@ -460,12 +461,7 @@ const PropertiesModal = ({
               }
               value={handleOwnersSelectValue()}
             />
-          </StyledFormItem>
-          <p className="help-block">
-            {t(
-              'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-            )}
-          </p>
+          </FormItem>
         </Col>
         <Col xs={24} md={12}>
           <Typography.Title level={3} style={{ marginTop: '1em' }}>
@@ -498,7 +494,12 @@ const PropertiesModal = ({
         </Row>
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <StyledFormItem label={t('Owners')}>
+            <FormItem
+              label={t('Owners')}
+              extra={t(
+                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+              )}
+            >
               <AsyncSelect
                 allowClear
                 allowNewOptions
@@ -511,15 +512,13 @@ const PropertiesModal = ({
                 }
                 value={handleOwnersSelectValue()}
               />
-            </StyledFormItem>
-            <p className="help-block">
-              {t(
-                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-              )}
-            </p>
+            </FormItem>
           </Col>
           <Col xs={24} md={12}>
-            <StyledFormItem label={t('Roles')}>
+            <FormItem
+              label={t('Roles')}
+              extra="Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply."
+            >
               <AsyncSelect
                 allowClear
                 ariaLabel={t('Roles')}
@@ -531,12 +530,7 @@ const PropertiesModal = ({
                 }
                 value={handleRolesSelectValue()}
               />
-            </StyledFormItem>
-            <p className="help-block">
-              {t(
-                'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.',
-              )}
-            </p>
+            </FormItem>
           </Col>
         </Row>
         <Row>
@@ -659,7 +653,11 @@ const PropertiesModal = ({
         </Row>
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <FormItem label={t('Name')} name="title">
+            <FormItem
+              label={t('Name')}
+              name="title"
+              extra={t('A readable URL for your dashboard')}
+            >
               <Input
                 data-test="dashboard-title-input"
                 type="text"
@@ -668,12 +666,9 @@ const PropertiesModal = ({
             </FormItem>
           </Col>
           <Col xs={24} md={12}>
-            <StyledFormItem label={t('URL slug')} name="slug">
+            <FormItem label={t('URL slug')} name="slug">
               <Input type="text" disabled={isLoading} />
-            </StyledFormItem>
-            <p className="help-block">
-              {t('A readable URL for your dashboard')}
-            </p>
+            </FormItem>
           </Col>
         </Row>
         {isFeatureEnabled(FeatureFlag.DashboardRbac)
@@ -686,23 +681,24 @@ const PropertiesModal = ({
         </Row>
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <StyledFormItem label={t('Certified by')} name="certifiedBy">
-              <Input type="text" disabled={isLoading} />
-            </StyledFormItem>
-            <p className="help-block">
-              {t('Person or group that has certified this dashboard.')}
-            </p>
-          </Col>
-          <Col xs={24} md={12}>
-            <StyledFormItem
-              label={t('Certification details')}
-              name="certificationDetails"
+            <FormItem
+              label={t('Certified by')}
+              name="certifiedBy"
+              extra={t('Person or group that has certified this dashboard.')}
             >
               <Input type="text" disabled={isLoading} />
-            </StyledFormItem>
-            <p className="help-block">
-              {t('Any additional detail to show in the certification tooltip.')}
-            </p>
+            </FormItem>
+          </Col>
+          <Col xs={24} md={12}>
+            <FormItem
+              label={t('Certification details')}
+              name="certificationDetails"
+              extra={t(
+                'Any additional detail to show in the certification tooltip.',
+              )}
+            >
+              <Input type="text" disabled={isLoading} />
+            </FormItem>
           </Col>
         </Row>
         {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
@@ -717,7 +713,11 @@ const PropertiesModal = ({
         {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <StyledFormItem>
+              <FormItem
+                extra={t(
+                  'A list of tags that have been applied to this chart.',
+                )}
+              >
                 <AsyncSelect
                   ariaLabel="Tags"
                   mode="multiple"
@@ -726,10 +726,7 @@ const PropertiesModal = ({
                   onChange={handleChangeTags}
                   allowClear
                 />
-              </StyledFormItem>
-              <p className="help-block">
-                {t('A list of tags that have been applied to this chart.')}
-              </p>
+              </FormItem>
             </Col>
           </Row>
         ) : null}
@@ -753,7 +750,33 @@ const PropertiesModal = ({
             </Typography.Title>
             {isAdvancedOpen && (
               <>
-                <StyledFormItem label={t('JSON metadata')}>
+                <FormItem
+                  label={t('JSON metadata')}
+                  extra={
+                    <div>
+                      {t(
+                        'This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.',
+                      )}
+                      {onlyApply && (
+                        <>
+                          {' '}
+                          {t(
+                            'Please DO NOT overwrite the "filter_scopes" key.',
+                          )}{' '}
+                          <FilterScopeModal
+                            triggerNode={
+                              <span className="alert-link">
+                                {t('Use "%(menuName)s" menu instead.', {
+                                  menuName: t('Set filter mapping'),
+                                })}
+                              </span>
+                            }
+                          />
+                        </>
+                      )}
+                    </div>
+                  }
+                >
                   <StyledJsonEditor
                     showLoadingForImport
                     name="json_metadata"
@@ -764,29 +787,7 @@ const PropertiesModal = ({
                     height="200px"
                     wrapEnabled
                   />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t(
-                    'This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.',
-                  )}
-                  {onlyApply && (
-                    <>
-                      {' '}
-                      {t(
-                        'Please DO NOT overwrite the "filter_scopes" key.',
-                      )}{' '}
-                      <FilterScopeModal
-                        triggerNode={
-                          <span className="alert-link">
-                            {t('Use "%(menuName)s" menu instead.', {
-                              menuName: t('Set filter mapping'),
-                            })}
-                          </span>
-                        }
-                      />
-                    </>
-                  )}
-                </p>
+                </FormItem>
               </>
             )}
           </Col>
