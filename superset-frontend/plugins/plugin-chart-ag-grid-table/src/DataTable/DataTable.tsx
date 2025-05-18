@@ -211,7 +211,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     // Memoize container style
     const containerStyle = useMemo(
       () => ({
-        height: gridHeight || '100%',
+        height: gridHeight ? `${gridHeight - 16}px` : '100%',
         width: '100%',
       }),
       [gridHeight],
