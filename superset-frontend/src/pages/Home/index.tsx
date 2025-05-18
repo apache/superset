@@ -83,7 +83,6 @@ const WelcomeContainer = styled.div`
     &:after {
       content: '';
       display: block;
-      border: 1px solid ${({ theme }) => theme.colorSplit};
       margin: 0px ${({ theme }) => theme.sizeUnit * 6}px;
       position: relative;
       width: 100%;
