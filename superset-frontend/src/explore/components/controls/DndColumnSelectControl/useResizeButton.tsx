@@ -29,6 +29,7 @@ import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
+import { Icons } from 'src/components';
 
 const RESIZE_THROTTLE_MS = 50;
 
@@ -132,14 +133,11 @@ export default function useResizeButton(
   }, [onMouseUp]);
 
   return [
-    // TODO: Remove fa-icon
-    // eslint-disable-next-line icons/no-fa-icons-usage
-    <i
-      role="button"
+    <Icons.ExpandOutlined
       aria-label="Resize"
       tabIndex={0}
-      onMouseDown={onDragDown}
-      className="fa fa-expand edit-popover-resize text-muted"
+      onMouseDown={this.onDragDown}
+      className="edit-popover-resize text-muted"
     />,
     width,
     height,

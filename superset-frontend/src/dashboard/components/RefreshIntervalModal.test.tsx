@@ -19,6 +19,7 @@
 import { isValidElement } from 'react';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import { Icons } from 'src/components/Icons';
 
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import { Provider } from 'react-redux';
@@ -117,7 +118,7 @@ const displayOptions = async () => {
 };
 
 const defaultRefreshIntervalModalProps = {
-  triggerNode: <i className="fa fa-edit" />,
+  triggerNode: <Icons.EditOutlined />,
   refreshFrequency: 0,
   onChange: jest.fn(),
   editMode: true,

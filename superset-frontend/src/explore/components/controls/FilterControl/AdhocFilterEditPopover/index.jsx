@@ -18,7 +18,7 @@
  */
 import { createRef, Component } from 'react';
 import PropTypes from 'prop-types';
-import { Button, ErrorBoundary } from 'src/components';
+import { Button, ErrorBoundary, Icons } from 'src/components';
 import { styled, t } from '@superset-ui/core';
 
 import Tabs from 'src/components/Tabs';
@@ -52,10 +52,6 @@ const propTypes = {
   operators: PropTypes.arrayOf(PropTypes.string),
   requireSave: PropTypes.bool,
 };
-
-const ResizeIcon = styled.i`
-  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
-`;
 
 const FilterPopoverContentContainer = styled.div`
   .adhoc-filter-edit-tabs > .nav-tabs {
@@ -265,12 +261,11 @@ export default class AdhocFilterEditPopover extends Component {
           >
             {t('Save')}
           </Button>
-          <ResizeIcon
-            role="button"
+          <Icons.ExpandOutlined
             aria-label="Resize"
             tabIndex={0}
             onMouseDown={this.onDragDown}
-            className="fa fa-expand edit-popover-resize text-muted"
+            className="edit-popover-resize text-muted"
           />
         </FilterActionsContainer>
       </FilterPopoverContentContainer>

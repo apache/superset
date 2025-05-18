@@ -32,6 +32,7 @@ import {
   EmptyState,
   Form,
   FormItem,
+  Icons,
   Select,
   Tooltip,
   SQLEditor,
@@ -521,14 +522,11 @@ export default class AdhocMetricEditPopover extends PureComponent {
           >
             {t('Save')}
           </Button>
-          {/* TODO: Remove fa-icon */}
-          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-          <i
-            role="button"
+          <Icons.ExpandOutlined
             aria-label="Resize"
             tabIndex={0}
             onMouseDown={this.onDragDown}
-            className="fa fa-expand edit-popover-resize text-muted"
+            className="edit-popover-resize text-muted"
           />
         </div>
       </Form>
