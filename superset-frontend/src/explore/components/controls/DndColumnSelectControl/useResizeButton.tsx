@@ -136,7 +136,7 @@ export default function useResizeButton(
     <Icons.ExpandOutlined
       aria-label="Resize"
       tabIndex={0}
-      onMouseDown={this.onDragDown}
+      onMouseDown={onDragDown}
       className="edit-popover-resize text-muted"
     />,
     width,

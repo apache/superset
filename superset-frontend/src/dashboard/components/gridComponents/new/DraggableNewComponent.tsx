@@ -17,24 +17,21 @@
  * under the License.
  */
 import { PureComponent } from 'react';
-import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
-
 import { DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 import { NEW_COMPONENTS_SOURCE_ID } from 'src/dashboard/util/constants';
 import { NEW_COMPONENT_SOURCE_TYPE } from 'src/dashboard/util/componentTypes';
 
-const propTypes = {
-  id: PropTypes.string.isRequired,
-  type: PropTypes.string.isRequired,
-  label: PropTypes.string.isRequired,
-  className: PropTypes.string,
-};
-
-const defaultProps = {
-  className: null,
-};
+// Define types for component props
+interface DraggableNewComponentProps {
+  id: string;
+  type: string;
+  label: string;
+  className?: string;
+  meta?: Record<string, any>;
+  IconComponent?: React.ComponentType;
+}
 
 const NewComponent = styled.div`
   ${({ theme }) => css`
@@ -45,7 +42,6 @@ const NewComponent = styled.div`
     padding: ${theme.sizeUnit * 4}px;
     background: ${theme.colors.grayscale.light5};
     cursor: move;
-
     &:not(.static):hover {
       background: ${theme.colors.grayscale.light4};
     }
@@ -55,37 +51,25 @@ const NewComponent = styled.div`
 const NewComponentPlaceholder = styled.div`
   ${({ theme }) => css`
     position: relative;
-    background: ${theme.colors.grayscale.light4};
     width: ${theme.sizeUnit * 10}px;
     height: ${theme.sizeUnit * 10}px;
     margin-right: ${theme.sizeUnit * 4}px;
-    border: 1px solid ${theme.colors.grayscale.light5};
     display: flex;
     align-items: center;
     justify-content: center;
     color: ${theme.colorTextLabel};
-    font-size: ${theme.fontSizeXXL}px;
-
-    &.fa-window-restore {
-      font-size: ${theme.fontSizeLG}px;
-    }
-
-    &.fa-area-chart {
-      font-size: ${theme.fontSizeXL}px;
-    }
-
-    &.divider-placeholder:after {
-      content: '';
-      height: 2px;
-      width: 100%;
-      background-color: ${theme.colors.grayscale.light2};
-    }
   `}
 `;
 
-export default class DraggableNewComponent extends PureComponent {
+export default class DraggableNewComponent extends PureComponent<DraggableNewComponentProps> {
+  static defaultProps = {
+    className: null,
+    IconComponent: undefined,
+  };
+
   render() {
-    const { label, id, type, className, meta } = this.props;
+    const { label, id, type, className, meta, IconComponent } = this.props;
+
     return (
       <DragDroppable
         component={{ type, id, meta }}
@@ -101,7 +85,9 @@ export default class DraggableNewComponent extends PureComponent {
           <NewComponent ref={dragSourceRef} data-test="new-component">
             <NewComponentPlaceholder
               className={cx('new-component-placeholder', className)}
-            />
+            >
+              {IconComponent && <IconComponent iconSize="xl" />}
+            </NewComponentPlaceholder>
             {label}
           </NewComponent>
         )}
@@ -109,6 +95,3 @@ export default class DraggableNewComponent extends PureComponent {
     );
   }
 }
-
-DraggableNewComponent.propTypes = propTypes;
-DraggableNewComponent.defaultProps = defaultProps;

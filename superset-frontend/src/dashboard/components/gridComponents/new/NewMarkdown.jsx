@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 
+import { Icons } from 'src/components';
 import { MARKDOWN_TYPE } from '../../../util/componentTypes';
 import { NEW_MARKDOWN_ID } from '../../../util/constants';
 import DraggableNewComponent from './DraggableNewComponent';
@@ -29,6 +30,7 @@ export default function DraggableNewDivider() {
       type={MARKDOWN_TYPE}
       label={t('Text / Markdown')}
       className="fa fa-font"
+      IconComponent={Icons.FileMarkdownOutlined}
     />
   );
 }

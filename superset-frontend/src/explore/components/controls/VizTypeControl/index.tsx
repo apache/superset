@@ -24,7 +24,7 @@ import {
   styled,
   SupersetTheme,
 } from '@superset-ui/core';
-import { Modal, usePluginContext } from 'src/components';
+import { Icons, Modal, usePluginContext } from 'src/components';
 import { noOp } from 'src/utils/common';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { FilterPlugins } from 'src/constants';
@@ -56,7 +56,7 @@ function VizSupportValidation({ vizType }: { vizType: string }) {
     >
       {/* TODO: Remove fa-icon */}
       {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-      <i className="fa fa-exclamation-circle text-danger" />{' '}
+      <Icons.ExclamationCircleOutlined iconColor="error" />{' '}
       <small>{t('This visualization type is not supported.')}</small>
     </div>
   );

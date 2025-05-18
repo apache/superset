@@ -164,10 +164,7 @@ export const DataTablesPane = ({
 
   const CollapseButton = useMemo(() => {
     const caretIcon = panelOpen ? (
-      <Icons.CaretUpOutlined
-        iconSize="l"
-        aria-label={t('Collapse data panel')}
-      />
+      <Icons.UpOutlined iconSize="l" aria-label={t('Collapse data panel')} />
     ) : (
       <Icons.DownOutlined iconSize="l" aria-label={t('Expand data panel')} />
     );

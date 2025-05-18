@@ -64,7 +64,11 @@ const ViewQuery: FC<ViewQueryProps> = props => {
       <CopyToClipboard
         text={sql}
         shouldShowText={false}
-        copyNode={<Icons.CopyOutlined />}
+        copyNode={
+          <CopyButtonViewQuery buttonSize="xsmall">
+            <Icons.CopyOutlined />
+          </CopyButtonViewQuery>
+        }
       />
       <StyledSyntaxHighlighter language={language} style={github}>
         {sql}

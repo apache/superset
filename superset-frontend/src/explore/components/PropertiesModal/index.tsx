@@ -63,10 +63,6 @@ const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;
 
-const StyledHelpBlock = styled.span`
-  margin-bottom: 0;
-`;
-
 function PropertiesModal({
   slice,
   onHide,
