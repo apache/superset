@@ -65,6 +65,7 @@ jobs:
         run: |
           set +e  # Don't exit immediately on failure
           export SKIP=eslint-frontend,type-checking-frontend
+          rm -rf ~/.cache/pre-commit
           pre-commit run --all-files
           PRE_COMMIT_EXIT_CODE=$?
           git diff --quiet --exit-code
