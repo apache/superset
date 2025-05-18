@@ -155,7 +155,7 @@ interface ChartListProps {
 }
 
 const StyledActions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorIcon};
 `;
 
 function ChartList(props: ChartListProps) {

@@ -90,6 +90,7 @@ const Actions = styled.div`
   .action-button {
     display: inline-block;
     height: 100%;
+    color: ${({ theme }) => theme.colorIcon};
   }
 `;
 

@@ -20,15 +20,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { omit } from 'lodash';
 import jsonStringify from 'json-stringify-pretty-compact';
 import {
-  Button,
   AsyncSelect,
+  Button,
+  Col,
   Form,
   FormItem,
+  Icons,
+  Input,
   JsonEditor,
   Modal,
   Row,
-  Col,
-  Input,
 } from 'src/components';
 import { Typography } from 'src/components/Typography';
 import rison from 'rison';
@@ -441,7 +442,7 @@ const PropertiesModal = ({
     return (
       <Row gutter={16}>
         <Col xs={24} md={12}>
-          <Typography.Title level={3} style={{ marginTop: '1em' }}>
+          <Typography.Title level={4} style={{ marginTop: '1em' }}>
             {t('Access')}
           </Typography.Title>
           <FormItem
@@ -464,7 +465,7 @@ const PropertiesModal = ({
           </FormItem>
         </Col>
         <Col xs={24} md={12}>
-          <Typography.Title level={3} style={{ marginTop: '1em' }}>
+          <Typography.Title level={4} style={{ marginTop: '1em' }}>
             {t('Colors')}
           </Typography.Title>
           <ColorSchemeControlWrapper
@@ -487,7 +488,7 @@ const PropertiesModal = ({
       <>
         <Row>
           <Col xs={24} md={24}>
-            <Typography.Title level={3} style={{ marginTop: '1em' }}>
+            <Typography.Title level={4} style={{ marginTop: '1em' }}>
               {t('Access')}
             </Typography.Title>
           </Col>
@@ -646,7 +647,7 @@ const PropertiesModal = ({
       >
         <Row>
           <Col xs={24} md={24}>
-            <Typography.Title level={3}>
+            <Typography.Title level={4}>
               {t('Basic information')}
             </Typography.Title>
           </Col>
@@ -676,7 +677,7 @@ const PropertiesModal = ({
           : getRowsWithoutRoles()}
         <Row>
           <Col xs={24} md={24}>
-            <Typography.Title level={3}>{t('Certification')}</Typography.Title>
+            <Typography.Title level={4}>{t('Certification')}</Typography.Title>
           </Col>
         </Row>
         <Row gutter={16}>
@@ -704,7 +705,7 @@ const PropertiesModal = ({
         {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <Typography.Title level={3} css={{ marginTop: '1em' }}>
+              <Typography.Title level={4} css={{ marginTop: '1em' }}>
                 {t('Tags')}
               </Typography.Title>
             </Col>
@@ -732,7 +733,7 @@ const PropertiesModal = ({
         ) : null}
         <Row>
           <Col xs={24} md={24}>
-            <Typography.Title level={3} style={{ marginTop: '1em' }}>
+            <Typography.Title level={4} style={{ marginTop: '1em' }}>
               <Button
                 buttonStyle="link"
                 onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
@@ -740,12 +741,8 @@ const PropertiesModal = ({
                   padding: 0;
                 `}
               >
-                {/* TODO: Remove fa-icon */}
-                <i
-                  className={`fa fa-angle-${isAdvancedOpen ? 'down' : 'right'}`}
-                  style={{ minWidth: '1em' }}
-                />
                 {t('Advanced')}
+                {isAdvancedOpen ? <Icons.UpOutlined /> : <Icons.DownOutlined />}
               </Button>
             </Typography.Title>
             {isAdvancedOpen && (
@@ -755,7 +752,9 @@ const PropertiesModal = ({
                   extra={
                     <div>
                       {t(
-                        'This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.',
+                        'This JSON object is generated dynamically when clicking the save ' +
+                          'or overwrite button in the dashboard view. It is exposed here for ' +
+                          'reference and for power users who may want to alter specific parameters.',
                       )}
                       {onlyApply && (
                         <>
