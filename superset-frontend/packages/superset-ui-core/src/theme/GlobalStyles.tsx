@@ -36,6 +36,7 @@ export const GlobalStyles = () => {
           color: ${theme.colorText};
           -webkit-font-smoothing: antialiased;
           margin: 0;
+          font-family: ${theme.fontFamily};
         }
 
         a {
