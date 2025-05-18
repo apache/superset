@@ -58,7 +58,7 @@ repos:
       - id: prettier
         additional_dependencies:
           - prettier@3.5.3
-        args: ["--ignore-path=./superset-frontend/.prettierignore"]
+        args: ["--ignore-path=./superset-frontend/.prettierignore", "--exclude", "site-packages"]
         files: "superset-frontend"
   - repo: local
     hooks:
@@ -86,7 +86,7 @@ repos:
     rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
     hooks:
       - id: blacklist
-        args: ["--blacklisted-names=make_url", "--ignore=tests/", "--exclude", "site-packages"]
+        args: ["--blacklisted-names=make_url", "--ignore=tests/"]
   - repo: https://github.com/norwoodj/helm-docs
     rev: v1.14.2
     hooks:
