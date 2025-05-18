@@ -242,8 +242,8 @@ disable_error_code = "annotation-unchecked"
 
 # TODO: remove this once cryptography is fixed, introduced in cryptography 44.0.3
 [[tool.mypy.overrides]]
-module = "cryptography.hazmat.bindings._rust.x509"
-ignore_errors = true  # Note lowercase 'true'
+module = "cryptography.*"
+ignore_errors = true
 follow_imports = "skip"
 
 [tool.ruff]
