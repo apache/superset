@@ -61,14 +61,9 @@ const ContentStyleWrapper = styled.div`
       margin-top: 8px;
     }
 
-    .ant-input-number {
-      width: 100%;
-    }
-
     .ant-picker {
       padding: 4px 17px 4px;
       border-radius: 4px;
-      width: 100%;
     }
 
     .ant-divider-horizontal {
@@ -76,9 +71,7 @@ const ContentStyleWrapper = styled.div`
     }
 
     .control-label {
-      font-size: 11px;
-      font-weight: ${theme.fontWeightMedium};
-      color: ${theme.colors.grayscale.light2};
+      font-size: ${theme.fontSizeSM}px;
       line-height: 16px;
       margin: 8px 0;
     }
@@ -274,9 +267,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const overlayContent = (
     <ContentStyleWrapper>
-      <div className="control-label">{t('RANGE TYPE')}</div>
+      <div className="control-label">{t('Range type')}</div>
       <StyledRangeType
-        ariaLabel={t('RANGE TYPE')}
+        ariaLabel={t('Range type')}
         options={FRAME_OPTIONS}
         value={frame}
         onChange={onChangeFrame}
