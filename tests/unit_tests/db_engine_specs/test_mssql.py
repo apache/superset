@@ -217,17 +217,21 @@ select 'EUR' as cur
 select * from currency union all select * from currency_2
 """
             ),
-            dedent(
-                """WITH currency as (
-select 'INR' as cur
-),
-currency_2 as (
-select 'EUR' as cur
-),
-__cte AS (
-select * from currency union all select * from currency_2
-)"""
-            ),
+            """WITH currency AS (
+  SELECT
+    'INR' AS cur
+), currency_2 AS (
+  SELECT
+    'EUR' AS cur
+), __cte AS (
+  SELECT
+    *
+  FROM currency
+  UNION ALL
+  SELECT
+    *
+  FROM currency_2
+)""",
         ),
         (
             "SELECT 1 as cnt",
