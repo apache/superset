@@ -27,7 +27,7 @@ export default function CustomListItem(props: CustomListItemProps) {
   const { selectable, children, ...rest } = props;
   const theme = useTheme();
   const css: Record<string, Record<string, Record<string, number> | string>> = {
-    '&.antd5-list-item': {
+    '&.ant-list-item': {
       ':first-of-type': {
         borderTopLeftRadius: theme.borderRadius,
         borderTopRightRadius: theme.borderRadius,

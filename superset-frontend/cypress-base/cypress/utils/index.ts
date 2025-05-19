@@ -41,8 +41,8 @@ export function toggleBulkSelect() {
 
 export function clearAllInputs() {
   cy.get('body').then($body => {
-    if ($body.find('.antd5-select-clear').length) {
-      cy.get('.antd5-select-clear').click({ multiple: true, force: true });
+    if ($body.find('.ant-select-clear').length) {
+      cy.get('.ant-select-clear').click({ multiple: true, force: true });
     }
   });
 }
@@ -165,7 +165,7 @@ export const setSelectSearchInput = (
   $input[0].dispatchEvent(new Event('input', { bubbles: true }));
   $input[0].dispatchEvent(new Event('change', { bubbles: true }));
 
-  cy.get('.antd5-select-item-option-content').should('exist').first().click({
+  cy.get('.ant-select-item-option-content').should('exist').first().click({
     force: true,
   });
 };

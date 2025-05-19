@@ -17,7 +17,7 @@
  * under the License.
  */
 import type { CSSProperties, ReactNode } from 'react';
-import type { ModalFuncProps } from 'antd-v5';
+import type { ModalFuncProps } from 'antd';
 import type { ResizableProps } from 're-resizable';
 import type { DraggableProps } from 'react-draggable';
 

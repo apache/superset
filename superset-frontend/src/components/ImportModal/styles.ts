@@ -22,7 +22,7 @@ import { css, SupersetTheme } from '@superset-ui/core';
 export const antdWarningAlertStyles = (theme: SupersetTheme) => css`
   margin: ${theme.sizeUnit * 4}px 0;
 
-  .antd5-alert-message {
+  .ant-alert-message {
     margin: 0;
   }
 `;

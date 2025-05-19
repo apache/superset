@@ -17,7 +17,7 @@
  * under the License.
  */
 import { CSSProperties, ReactNode } from 'react';
-import { Table, type TableColumnsType } from 'antd-v5';
+import { Table, type TableColumnsType } from 'antd';
 
 interface TooltipRowData {
   key: string | number;

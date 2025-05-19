@@ -69,8 +69,8 @@ const ListViewStyles = styled.div`
         overflow-x: auto;
       }
 
-      .antd5-empty {
-        .antd5-empty-image {
+      .ant-empty {
+        .ant-empty-image {
           height: auto;
         }
       }

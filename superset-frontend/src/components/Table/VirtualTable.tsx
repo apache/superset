@@ -17,11 +17,11 @@
  * under the License.
  */
 
-import { Table as AntTable } from 'antd-v5';
+import { Table as AntTable } from 'antd';
 import {
   TablePaginationConfig,
   TableProps as AntTableProps,
-} from 'antd-v5/es/table';
+} from 'antd/es/table';
 import classNames from 'classnames';
 import { useResizeDetector } from 'react-resize-detector';
 import { useEffect, useRef, useState, useCallback, CSSProperties } from 'react';
@@ -52,7 +52,7 @@ const StyledCell = styled('div')<{ height?: number }>(
 
 const StyledTable = styled(AntTable)(
   ({ theme }) => `
-    th.antd5-table-cell {
+    th.ant-table-cell {
       font-weight: ${theme.fontWeightStrong};
       white-space: nowrap;
       overflow: hidden;

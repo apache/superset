@@ -16,6 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { AvatarProps, GroupProps } from 'antd-v5/es/avatar';
+import type { AvatarProps, GroupProps } from 'antd/es/avatar';
 
 export type { AvatarProps, GroupProps };

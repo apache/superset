@@ -52,7 +52,7 @@ import {
   cachedSupersetGet,
   supersetGetCache,
 } from 'src/utils/cachedSupersetGet';
-import { InputRef } from 'antd-v5';
+import { InputRef } from 'antd';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemWithTruncation } from '../MenuItemWithTruncation';

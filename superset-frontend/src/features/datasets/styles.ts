@@ -118,7 +118,7 @@ export const StyledLayoutFooter = styled.div`
 `;
 
 export const HeaderComponentStyles = styled.div`
-  .antd5-btn {
+  .ant-btn {
     span {
       margin-right: 0;
     }

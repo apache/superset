@@ -22,7 +22,7 @@ import { Button, CronPicker, Modal } from 'src/components';
 import { Radio } from 'src/components/Radio';
 
 export const StyledModal = styled(Modal)`
-  .antd5-modal-body {
+  .ant-modal-body {
     padding: 0;
   }
 `;
@@ -40,7 +40,7 @@ export const StyledBottomSection = styled.div`
   border-top: 1px solid ${({ theme }) => theme.colorSplit};
   padding: ${({ theme }) =>
     `${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px`};
-  .antd5-select {
+  .ant-select {
     width: 100%;
   }
   .control-label {

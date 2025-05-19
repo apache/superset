@@ -16,5 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type { RangePickerProps } from 'antd-v5/es/date-picker';
-export type { DatePickerProps } from 'antd-v5';
+export type { RangePickerProps } from 'antd/es/date-picker';
+export type { DatePickerProps } from 'antd';

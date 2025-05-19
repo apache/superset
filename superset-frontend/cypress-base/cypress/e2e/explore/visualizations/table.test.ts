@@ -194,7 +194,7 @@ describe('Visualization > Table', () => {
 
     // should display in raw records mode
     cy.get(
-      'div[data-test="query_mode"] .antd5-radio-button-wrapper-checked',
+      'div[data-test="query_mode"] .ant-radio-button-wrapper-checked',
     ).contains('Raw records');
     cy.get('div[data-test="all_columns"]').should('be.visible');
     cy.get('div[data-test="groupby"]').should('not.exist');
@@ -203,11 +203,11 @@ describe('Visualization > Table', () => {
     cy.get('[data-test="row-count-label"]').contains('100 rows');
 
     // should allow switch back to aggregate mode
-    cy.get('div[data-test="query_mode"] .antd5-radio-button-wrapper')
+    cy.get('div[data-test="query_mode"] .ant-radio-button-wrapper')
       .contains('Aggregate')
       .click();
     cy.get(
-      'div[data-test="query_mode"] .antd5-radio-button-wrapper-checked',
+      'div[data-test="query_mode"] .ant-radio-button-wrapper-checked',
     ).contains('Aggregate');
     cy.get('div[data-test="all_columns"]').should('not.exist');
     cy.get('div[data-test="groupby"]').should('be.visible');
@@ -276,7 +276,7 @@ describe('Visualization > Table', () => {
 
     // Type 200000 and press enter to select the option
     cy.get('div[aria-label="Row limit"]')
-      .find('.antd5-select-selection-search-input:visible')
+      .find('.ant-select-selection-search-input:visible')
       .type('200000{enter}');
 
     // Verify that there is no error tooltip when server pagination is enabled
@@ -292,14 +292,14 @@ describe('Visualization > Table', () => {
     cy.get('[data-test="error-tooltip"]').trigger('mouseover');
 
     // Verify tooltip content
-    cy.get('.antd5-tooltip-inner').should('be.visible');
-    cy.get('.antd5-tooltip-inner').should(
+    cy.get('.ant-tooltip-inner').should('be.visible');
+    cy.get('.ant-tooltip-inner').should(
       'contain',
       'Server pagination needs to be enabled for values over',
     );
 
     // Hide the tooltip by adding display:none style
-    cy.get('.antd5-tooltip').invoke('attr', 'style', 'display: none');
+    cy.get('.ant-tooltip').invoke('attr', 'style', 'display: none');
 
     // Enable server pagination again
     cy.get(serverPaginationSelector).click();
@@ -310,7 +310,7 @@ describe('Visualization > Table', () => {
 
     // Type 1000000
     cy.get('div[aria-label="Row limit"]')
-      .find('.antd5-select-selection-search-input:visible')
+      .find('.ant-select-selection-search-input:visible')
       .type('1000000');
 
     // Wait for 1 second
@@ -318,7 +318,7 @@ describe('Visualization > Table', () => {
 
     // Press enter
     cy.get('div[aria-label="Row limit"]')
-      .find('.antd5-select-selection-search-input:visible')
+      .find('.ant-select-selection-search-input:visible')
       .type('{enter}');
 
     // Wait for error tooltip to appear and verify its content
@@ -327,11 +327,11 @@ describe('Visualization > Table', () => {
       .trigger('mouseover');
 
     // Wait for tooltip content and verify
-    cy.get('.antd5-tooltip-inner').should('exist');
-    cy.get('.antd5-tooltip-inner').should('be.visible');
+    cy.get('.ant-tooltip-inner').should('exist');
+    cy.get('.ant-tooltip-inner').should('be.visible');
 
     // Verify tooltip content separately
-    cy.get('.antd5-tooltip-inner').should('contain', 'Value cannot exceed');
+    cy.get('.ant-tooltip-inner').should('contain', 'Value cannot exceed');
   });
 
   it('Test sorting with server pagination enabled', () => {
@@ -452,11 +452,11 @@ describe('Visualization > Table', () => {
 
     cy.get('.search-select').click();
 
-    cy.get('.antd5-select-dropdown').should('be.visible');
+    cy.get('.ant-select-dropdown').should('be.visible');
 
-    cy.get('.antd5-select-item-option').contains('state').should('be.visible');
+    cy.get('.ant-select-item-option').contains('state').should('be.visible');
 
-    cy.get('.antd5-select-item-option').contains('state').click();
+    cy.get('.ant-select-item-option').contains('state').click();
 
     cy.get(searchInputSelector).clear();
 

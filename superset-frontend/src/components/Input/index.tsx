@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { Input, InputNumber } from 'antd-v5';
+export { Input, InputNumber } from 'antd';
 export type {
   InputProps,
   TextAreaProps,

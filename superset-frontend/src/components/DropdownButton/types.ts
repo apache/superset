@@ -18,7 +18,7 @@
  */
 import { type ComponentProps } from 'react';
 
-import { Dropdown } from 'antd-v5';
+import { Dropdown } from 'antd';
 import type { TooltipPlacement } from '../Tooltip/types';
 
 export type DropdownButtonProps = ComponentProps<typeof Dropdown.Button> & {

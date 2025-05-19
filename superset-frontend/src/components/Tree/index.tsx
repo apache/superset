@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tree } from 'antd-v5';
+import { Tree } from 'antd';
 
-export type { TreeProps, DataNode as TreeDataNode } from 'antd-v5/es/tree';
+export type { TreeProps, DataNode as TreeDataNode } from 'antd/es/tree';
 export default Tree;

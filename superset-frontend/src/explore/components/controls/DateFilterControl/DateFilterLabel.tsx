@@ -61,7 +61,7 @@ const ContentStyleWrapper = styled.div`
       margin-top: 8px;
     }
 
-    .antd5-input-number {
+    .ant-input-number {
       width: 100%;
     }
 
@@ -71,7 +71,7 @@ const ContentStyleWrapper = styled.div`
       width: 100%;
     }
 
-    .antd5-divider-horizontal {
+    .ant-divider-horizontal {
       margin: 16px 0;
     }
 

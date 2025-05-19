@@ -16,4 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { Switch, type SwitchProps } from 'antd-v5';
+export { Switch, type SwitchProps } from 'antd';

@@ -19,7 +19,7 @@
 import { css, styled, useTheme } from '@superset-ui/core';
 
 // eslint-disable-next-line no-restricted-imports
-import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd-v5';
+import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd';
 import { Icons } from 'src/components/Icons';
 
 export interface TabsProps extends AntdTabsProps {
@@ -40,10 +40,10 @@ const StyledTabs = ({
       css={theme => css`
         overflow: ${allowOverflow ? 'visible' : 'hidden'};
 
-        .antd5-tabs-content-holder {
+        .ant-tabs-content-holder {
           overflow: ${allowOverflow ? 'visible' : 'auto'};
         }
-        .antd5-tabs-tab {
+        .ant-tabs-tab {
           flex: 1 1 auto;
 
           .short-link-trigger.btn {
@@ -53,7 +53,7 @@ const StyledTabs = ({
             }
           }
         }
-        .antd5-tabs-tab-btn {
+        .ant-tabs-tab-btn {
           display: flex;
           flex: 1 1 auto;
           align-items: center;
@@ -82,15 +82,15 @@ const Tabs = Object.assign(StyledTabs, {
 
 const StyledEditableTabs = styled(StyledTabs)`
   ${({ theme }) => `
-    .antd5-tabs-content-holder {
+    .ant-tabs-content-holder {
       background: ${theme.colors.grayscale.light5};
     }
 
-    & > .antd5-tabs-nav {
+    & > .ant-tabs-nav {
       margin-bottom: 0;
     }
 
-    .antd5-tabs-tab-remove {
+    .ant-tabs-tab-remove {
       padding-top: 0;
       padding-bottom: 0;
       height: ${theme.sizeUnit * 6}px;
@@ -115,27 +115,27 @@ EditableTabs.TabPane.defaultProps = {
 };
 
 export const StyledLineEditableTabs = styled(EditableTabs)`
-  &.antd5-tabs-card > .antd5-tabs-nav .antd5-tabs-tab {
+  &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
     margin: 0 ${({ theme }) => theme.sizeUnit * 4}px;
     padding: ${({ theme }) => `${theme.sizeUnit * 3}px ${theme.sizeUnit}px`};
     background: transparent;
     border: none;
   }
 
-  &.antd5-tabs-card > .antd5-tabs-nav .antd5-tabs-ink-bar {
+  &.ant-tabs-card > .ant-tabs-nav .ant-tabs-ink-bar {
     visibility: visible;
   }
 
-  .antd5-tabs-tab-btn {
+  .ant-tabs-tab-btn {
     font-size: ${({ theme }) => theme.fontSize}px;
   }
 
-  .antd5-tabs-tab-remove {
+  .ant-tabs-tab-remove {
     margin-left: 0;
     padding-right: 0;
   }
 
-  .antd5-tabs-nav-add {
+  .ant-tabs-nav-add {
     min-width: unset !important;
     background: transparent !important;
     border: none !important;

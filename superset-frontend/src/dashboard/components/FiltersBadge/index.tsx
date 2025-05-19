@@ -86,7 +86,7 @@ const StyledFilterCount = styled.div`
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
     margin-left: ${theme.sizeUnit * 2}px;
-    &>sup.antd5-badge-count {
+    &>sup.ant-badge-count {
       padding: 0 ${theme.sizeUnit}px;
       min-width: ${theme.sizeUnit * 4}px;
       height: ${theme.sizeUnit * 4}px;

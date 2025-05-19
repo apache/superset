@@ -27,7 +27,7 @@ import {
   ThunderboltOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons';
-import { Button } from 'antd-v5';
+import { Button } from 'antd';
 import { Tooltip, TooltipProps, TooltipPlacement } from './Tooltip';
 
 export interface InfoTooltipWithTriggerProps {

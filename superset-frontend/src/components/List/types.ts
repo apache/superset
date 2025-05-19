@@ -16,8 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type {
-  ListProps,
-  ListItemProps,
-  ListItemMetaProps,
-} from 'antd-v5/es/list';
+export type { ListProps, ListItemProps, ListItemMetaProps } from 'antd/es/list';

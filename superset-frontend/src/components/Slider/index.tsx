@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SliderSingleProps, SliderRangeProps } from 'antd-v5/es/slider';
-import { Slider as AntdSlider } from 'antd-v5';
+import { SliderSingleProps, SliderRangeProps } from 'antd/es/slider';
+import { Slider as AntdSlider } from 'antd';
 
 export type { SliderSingleProps, SliderRangeProps };
 

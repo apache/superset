@@ -16,4 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { Skeleton, type SkeletonProps } from 'antd-v5';
+export { Skeleton, type SkeletonProps } from 'antd';
