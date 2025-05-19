@@ -276,6 +276,23 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def has_cte(self) -> bool:
+        """
+        Check if the statement has a CTE.
+
+        :return: True if the statement has a CTE at the top level.
+        """
+        raise NotImplementedError()
+
+    def as_cte(self, alias: str = "__cte") -> SQLStatement:
+        """
+        Rewrite the statement as a CTE.
+
+        :param alias: The alias to use for the CTE.
+        :return: A new SQLStatement with the CTE.
+        """
+        raise NotImplementedError()
+
     def __str__(self) -> str:
         return self.format()
 
@@ -525,6 +542,36 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             )
         else:  # method == LimitMethod.FETCH_MANY
             pass
+
+    def has_cte(self) -> bool:
+        """
+        Check if the statement has a CTE.
+
+        :return: True if the statement has a CTE at the top level.
+        """
+        return "with" in self._parsed.args
+
+    def as_cte(self, alias: str = "__cte") -> SQLStatement:
+        """
+        Rewrite the statement as a CTE.
+
+        This is needed by MS SQL when the query includes CTEs. In that case the CTEs
+        need to be moved to the top of the query when we wrap it as a subquery when
+        building charts.
+
+        :param alias: The alias to use for the CTE.
+        :return: A new SQLStatement with the CTE.
+        """
+        existing_ctes = self._parsed.args["with"].expressions if self.has_cte() else []
+        self._parsed.args["with"] = None
+        new_cte = exp.CTE(
+            this=self._parsed.copy(),
+            alias=exp.TableAlias(this=exp.Identifier(this=alias)),
+        )
+        return SQLStatement(
+            ast=exp.With(expressions=[*existing_ctes, new_cte], this=None),
+            engine=self.engine,
+        )
 
 
 class KQLSplitState(enum.Enum):

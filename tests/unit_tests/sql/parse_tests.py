@@ -1519,3 +1519,109 @@ def test_set_kql_limit_value(kql: str, limit: int, expected: str) -> None:
     statement = KustoKQLStatement(kql, "kustokql")
     statement.set_limit_value(limit)
     assert statement.format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT 1", "postgresql", False),
+        ("SELECT 1 AS cnt", "postgresql", False),
+        (
+            """
+SELECT 'INR' AS cur
+UNION
+SELECT 'USD' AS cur
+UNION
+SELECT 'EUR' AS cur
+            """,
+            "postgresql",
+            False,
+        ),
+        ("WITH cte AS (SELECT 1) SELECT * FROM cte", "postgresql", True),
+        (
+            """
+WITH
+    x AS (SELECT a FROM t1),
+    y AS (SELECT a AS b FROM t2),
+    z AS (SELECT b AS c FROM t3)
+SELECT c FROM z
+            """,
+            "postgresql",
+            True,
+        ),
+        (
+            """
+WITH
+    x AS (SELECT a FROM t1),
+    y AS (SELECT a AS b FROM x),
+    z AS (SELECT b AS c FROM y)
+SELECT c FROM z
+            """,
+            "postgresql",
+            True,
+        ),
+        (
+            """
+WITH CTE__test (SalesPersonID, SalesOrderID, SalesYear)
+AS (
+    SELECT SalesPersonID, SalesOrderID, YEAR(OrderDate) AS SalesYear
+    FROM SalesOrderHeader
+    WHERE SalesPersonID IS NOT NULL
+)
+SELECT SalesPersonID, COUNT(SalesOrderID) AS TotalSales, SalesYear
+FROM CTE__test
+GROUP BY SalesYear, SalesPersonID
+ORDER BY SalesPersonID, SalesYear;
+            """,
+            "postgresql",
+            True,
+        ),
+    ],
+)
+def test_has_cte(sql: str, engine: str, expected: bool) -> None:
+    """
+    Test that the parser detects CTEs correctly.
+    """
+    assert SQLStatement(sql, engine).has_cte() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        (
+            "SELECT 1",
+            "postgresql",
+            "WITH __cte AS (\n  SELECT\n    1\n)",
+        ),
+        (
+            """
+WITH currency AS (SELECT 'INR' AS cur),
+     currency_2 AS (SELECT 'USD' AS cur)
+SELECT * FROM currency
+UNION ALL
+SELECT * FROM currency_2
+            """,
+            "postgresql",
+            """WITH currency AS (
+  SELECT
+    'INR' AS cur
+), currency_2 AS (
+  SELECT
+    'USD' AS cur
+), __cte AS (
+  SELECT
+    *
+  FROM currency
+  UNION ALL
+  SELECT
+    *
+  FROM currency_2
+)""",
+        ),
+    ],
+)
+def test_as_cte(sql: str, engine: str, expected: str) -> None:
+    """
+    Test that we can covert select to CTE.
+    """
+    assert SQLStatement(sql, engine).as_cte().format() == expected
