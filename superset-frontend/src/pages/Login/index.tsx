@@ -26,16 +26,10 @@ import {
   Input,
   Typography,
   Icons,
-  Space,
 } from 'src/components';
 import { useState } from 'react';
 import { capitalize } from 'lodash/fp';
 import getBootstrapData from 'src/utils/getBootstrapData';
-
-type LoginType = {
-  username: string;
-  password: string;
-};
 
 type OAuthProvider = {
   name: string;
@@ -98,12 +92,8 @@ export default function Login() {
   const providers: Provider[] = bootstrapData.common.conf.AUTH_PROVIDERS;
   const authRegistration: boolean =
     bootstrapData.common.conf.AUTH_USER_REGISTRATION;
-  const authRecaptchaPublicKey: string =
-    bootstrapData.common.conf.RECAPTCHA_PUBLIC_KEY;
 
-  console.log({ authRegistration, authRecaptchaPublicKey });
-
-  const onFinish = (values: LoginType) => {
+  const onFinish = (values: LoginForm) => {
     setLoading(true);
     SupersetClient.postForm('/login', values, '').finally(() => {
       setLoading(false);
@@ -117,7 +107,7 @@ export default function Login() {
           <Flex justify="center" vertical gap="middle">
             <Form layout="vertical" requiredMark="optional" form={form}>
               {providers.map((provider: OIDProvider) => (
-                <Form.Item<LoginType>>
+                <Form.Item<LoginForm>>
                   <Button
                     href={`/login/${provider.name}`}
                     block
@@ -135,7 +125,7 @@ export default function Login() {
           <Flex justify="center" gap={0} vertical>
             <Form layout="vertical" requiredMark="optional" form={form}>
               {providers.map((provider: OAuthProvider) => (
-                <Form.Item<LoginType>>
+                <Form.Item<LoginForm>>
                   <Button
                     href={`/login/${provider.name}`}
                     block
@@ -161,7 +151,7 @@ export default function Login() {
               form={form}
               onFinish={onFinish}
             >
-              <Form.Item<LoginType>
+              <Form.Item<LoginForm>
                 label={<StyledLabel>{t('Username:')}</StyledLabel>}
                 name="username"
                 rules={[
@@ -173,7 +163,7 @@ export default function Login() {
                   data-test="username-input"
                 />
               </Form.Item>
-              <Form.Item<LoginType>
+              <Form.Item<LoginForm>
                 label={<StyledLabel>{t('Password:')}</StyledLabel>}
                 name="password"
                 rules={[
@@ -204,7 +194,7 @@ export default function Login() {
                     <Button
                       block
                       type="default"
-                      href="/register"
+                      href="/register/"
                       data-test="register-button"
                     >
                       {t('Register')}

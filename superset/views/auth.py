@@ -26,12 +26,21 @@ from superset.views.base import BaseSupersetView
 
 
 class SupersetAuthView(BaseSupersetView, AuthView):
-    route_base = ""
+    route_base = "/login"
 
-    @expose("/login/")
+    @expose("/")
     @no_cache
     def login(self, provider: Optional[str] = None) -> WerkzeugResponse:
         if g.user is not None and g.user.is_authenticated:
             return redirect(self.appbuilder.get_url_for_index)
 
+        return super().render_app_template()
+
+
+class SupersetRegisterUserView(BaseSupersetView):
+    route_base = "/register"
+
+    @expose("/")
+    @no_cache
+    def register(self) -> WerkzeugResponse:
         return super().render_app_template()

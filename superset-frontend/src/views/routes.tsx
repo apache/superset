@@ -142,6 +142,10 @@ const Login = lazy(
   () => import(/* webpackChunkName: "Login" */ 'src/pages/Login'),
 );
 
+const Register = lazy(
+  () => import(/* webpackChunkName: "Register" */ 'src/pages/Register'),
+);
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -153,6 +157,10 @@ export const routes: Routes = [
   {
     path: '/login/',
     Component: Login,
+  },
+  {
+    path: '/register/',
+    Component: Register,
   },
   {
     path: '/logout/',
