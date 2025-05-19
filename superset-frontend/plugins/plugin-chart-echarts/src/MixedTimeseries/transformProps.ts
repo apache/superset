@@ -382,7 +382,10 @@ export default function transformProps(
     );
 
     const transformedSeries = transformSeries(
-      entry,
+      {
+        ...entry,
+        id: `${entry.name || ''} (Query A)`,
+      },
       colorScale,
       colorScaleKey,
       {
@@ -430,7 +433,11 @@ export default function transformProps(
     );
 
     const transformedSeries = transformSeries(
-      entry,
+      {
+        ...entry,
+        id: `${entry.name || ''} (Query B)`,
+      },
+
       colorScale,
       colorScaleKey,
       {
@@ -444,9 +451,7 @@ export default function transformProps(
         stackIdSuffix: '\nb',
         yAxisIndex: yAxisIndexB,
         filterState,
-        seriesKey: primarySeries.has(entry.name as string)
-          ? `${entry.name} (1)`
-          : entry.name,
+        seriesKey: entry.name,
         sliceId,
         queryIndex: 1,
         formatter:
