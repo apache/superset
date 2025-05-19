@@ -57,13 +57,12 @@ jobs:
         uses: ./.github/actions/setup-backend/
         with:
           requirements-type: base
-
       - name: "Set up liccheck"
         run: |
           uv pip install --system liccheck
       - name: "Run liccheck"
         run: |
-          # run the checks
-          liccheck -R output.txt
+          # run the checks with the config file
+          liccheck -s liccheck.ini -R output.txt
           # Print the report
           cat output.txt
