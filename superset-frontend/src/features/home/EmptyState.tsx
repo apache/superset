@@ -34,7 +34,7 @@ const ICONS = {
   [WelcomeTable.Charts]: 'empty-charts.svg',
   [WelcomeTable.Dashboards]: 'empty-dashboard.svg',
   [WelcomeTable.Recents]: 'union.svg',
-  [WelcomeTable.SavedQueries]: 'empty-queries.svg',
+  [WelcomeTable.SavedQueries]: 'empty.svg',
 } as const;
 
 const REDIRECTS = {
