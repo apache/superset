@@ -48,6 +48,8 @@ jobs:
           allow-dependencies-licenses: pkg:npm/store2@2.14.2, pkg:npm/applitools/core, pkg:npm/applitools/core-base, pkg:npm/applitools/css-tree, pkg:npm/applitools/ec-client, pkg:npm/applitools/eg-socks5-proxy-server, pkg:npm/applitools/eyes, pkg:npm/applitools/eyes-cypress, pkg:npm/applitools/nml-client, pkg:npm/applitools/tunnel-client, pkg:npm/applitools/utils, pkg:npm/node-forge@1.3.1, pkg:npm/rgbcolor, pkg:npm/jszip@3.10.1
 
   python-dependency-liccheck:
+    # NOTE: Configuration for liccheck lives in our pyproject.yml.
+    # You cannot use a liccheck.ini file in this workflow.
     runs-on: ubuntu-22.04
     steps:
       - name: "Checkout Repository"
