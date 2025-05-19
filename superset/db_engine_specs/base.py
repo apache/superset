@@ -39,7 +39,6 @@ from uuid import uuid4
 
 import pandas as pd
 import requests
-import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from deprecation import deprecated
@@ -57,14 +56,19 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, Select, TextClause
 from sqlalchemy.types import TypeEngine
-from sqlparse.tokens import CTE
 
 from superset import db, sql_parse
 from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
-from superset.sql.parse import BaseSQLStatement, LimitMethod, SQLScript, Table
+from superset.sql.parse import (
+    BaseSQLStatement,
+    LimitMethod,
+    SQLScript,
+    SQLStatement,
+    Table,
+)
 from superset.superset_typing import (
     OAuth2ClientConfig,
     OAuth2State,
@@ -1124,18 +1128,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         """
         if not cls.allows_cte_in_subquery:
-            stmt = sqlparse.parse(sql)[0]
-
-            # The first meaningful token for CTE will be with WITH
-            idx, token = stmt.token_next(-1, skip_ws=True, skip_cm=True)
-            if not (token and token.ttype == CTE):
-                return None
-            idx, token = stmt.token_next(idx)
-            idx = stmt.token_index(token) + 1
-
-            # extract rest of the SQLs after CTE
-            remainder = "".join(str(token) for token in stmt.tokens[idx:]).strip()
-            return f"WITH {token.value},\n{cls.cte_alias} AS (\n{remainder}\n)"
+            statement = SQLStatement(sql, engine=cls.engine)
+            if statement.has_cte():
+                return statement.as_cte(cls.cte_alias).format()
 
         return None
 
