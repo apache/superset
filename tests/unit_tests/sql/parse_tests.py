@@ -318,9 +318,9 @@ def test_split_no_dialect() -> None:
     sql = "SELECT col FROM t WHERE col NOT IN (1, 2); SELECT * FROM t; SELECT foo"
     statements = SQLScript(sql, "dremio").statements
     assert len(statements) == 3
-    assert statements[0]._sql == "SELECT col FROM t WHERE col NOT IN (1, 2)"
-    assert statements[1]._sql == "SELECT * FROM t"
-    assert statements[2]._sql == "SELECT foo"
+    assert statements[0].format() == "SELECT\n  col\nFROM t\nWHERE\n  NOT col IN (1, 2)"
+    assert statements[1].format() == "SELECT\n  *\nFROM t"
+    assert statements[2].format() == "SELECT\n  foo"
 
 
 def test_extract_tables_show_columns_from() -> None:
