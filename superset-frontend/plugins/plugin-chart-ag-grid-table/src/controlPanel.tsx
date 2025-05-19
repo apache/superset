@@ -36,7 +36,6 @@ import {
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
-  GenericDataType,
   isAdhocColumn,
   isPhysicalColumn,
   legacyValidateInteger,
@@ -116,75 +115,6 @@ const allColumnsControl: typeof sharedControls.groupby = {
   visibility: isRawMode,
   resetOnHide: false,
 };
-
-const percentMetricsControl: typeof sharedControls.metrics = {
-  ...sharedControls.metrics,
-  label: t('Percentage metrics'),
-  description: t(
-    'Select one or many metrics to display, that will be displayed in the percentages of total. ' +
-      'Percentage metrics will be calculated only from data within the row limit. ' +
-      'You can use an aggregation function on a column or write custom SQL to create a percentage metric.',
-  ),
-  visibility: isAggMode,
-  resetOnHide: false,
-  mapStateToProps: ({ datasource, controls }, controlState) => ({
-    columns: datasource?.columns || [],
-    savedMetrics: defineSavedMetrics(datasource),
-    datasource,
-    datasourceType: datasource?.type,
-    queryMode: getQueryMode(controls),
-    externalValidationErrors: validateAggControlValues(controls, [
-      controls.groupby?.value,
-      controls.metrics?.value,
-      controlState?.value,
-    ]),
-  }),
-  rerender: ['groupby', 'metrics'],
-  default: [],
-  validators: [],
-};
-
-/**
- * Generate comparison column names for a given column.
- */
-const generateComparisonColumns = (colname: string) => [
-  `${t('Main')} ${colname}`,
-  `# ${colname}`,
-  `△ ${colname}`,
-  `% ${colname}`,
-];
-/**
- * Generate column types for the comparison columns.
- */
-const generateComparisonColumnTypes = (count: number) =>
-  Array(count).fill(GenericDataType.Numeric);
-
-const processComparisonColumns = (columns: any[], suffix: string) =>
-  columns
-    .map(col => {
-      if (!col.label.includes(suffix)) {
-        return [
-          {
-            label: `${t('Main')} ${col.label}`,
-            value: `${t('Main')} ${col.value}`,
-          },
-          {
-            label: `# ${col.label}`,
-            value: `# ${col.value}`,
-          },
-          {
-            label: `△ ${col.label}`,
-            value: `△ ${col.value}`,
-          },
-          {
-            label: `% ${col.label}`,
-            value: `% ${col.value}`,
-          },
-        ];
-      }
-      return [];
-    })
-    .flat();
 
 /*
 Options for row limit control

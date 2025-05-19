@@ -31,7 +31,6 @@ import {
   ClientSideRowModelModule,
   type ColDef,
   ModuleRegistry,
-  type ValueFormatterFunc,
   GridReadyEvent,
   GridApi,
 } from 'ag-grid-community';
@@ -47,7 +46,7 @@ export interface Props {
   isDarkMode?: boolean;
   gridHeight?: number | null;
   updateInterval?: number;
-  data?: any[]; // Add proper type for your data
+  data?: any[];
   onGridReady?: (params: GridReadyEvent) => void;
   colDefsFromProps: any[];
   includeSearch: boolean;
@@ -56,7 +55,6 @@ export interface Props {
   pageSize: number;
 }
 
-// Register modules once outside component
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
 
 const StyledContainer = styled.div`
@@ -97,15 +95,6 @@ const StyledContainer = styled.div`
     }
   `}
 `;
-
-// Memoize formatter outside component
-const numberFormatter: ValueFormatterFunc = ({ value }) => {
-  if (value == null) return '';
-  return new Intl.NumberFormat('en-US', {
-    style: 'decimal',
-    maximumFractionDigits: 2,
-  }).format(value);
-};
 
 // Memoize the entire component
 const AgGridDataTable: FunctionComponent<Props> = memo(

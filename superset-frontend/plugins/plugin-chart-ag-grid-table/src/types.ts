@@ -30,11 +30,9 @@ import {
   ChartDataResponseResult,
   QueryFormData,
   SetDataMaskHook,
-  ContextMenuFilters,
   CurrencyFormatter,
   Currency,
 } from '@superset-ui/core';
-import { ColorFormatters } from '@superset-ui/chart-controls';
 
 export type CustomFormatter = (value: DataRecordValue) => string;
 
