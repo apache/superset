@@ -225,6 +225,11 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             t('An error has occurred while syncing virtual dataset columns'),
           );
         }
+        // Fetch refreshed dataset to get metric IDs
+        const { json: refreshed } = await SupersetClient.get({
+          endpoint: `/api/v1/dataset/${currentDatasource.id}`,
+        });
+        currentDatasource.metrics = refreshed.result.metrics;
         await SupersetClient.put({
           endpoint: `/api/v1/dataset/${currentDatasource.id}`,
           jsonPayload: buildPayload(currentDatasource),
