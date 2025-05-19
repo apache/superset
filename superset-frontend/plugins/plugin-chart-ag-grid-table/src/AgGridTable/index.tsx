@@ -21,27 +21,7 @@ import './styles/ag-grid.css';
 
 import { type FunctionComponent } from 'react';
 
-import type { CustomCellRendererProps } from 'ag-grid-react';
 import { styled, css } from '@superset-ui/core';
-
-// Memoize the TickerCellRenderer
-const TickerCellRenderer: FunctionComponent<CustomCellRendererProps> = memo(
-  ({ data }) =>
-    data && (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '5px',
-        }}
-      >
-        <b className="custom-ticker">{data.ticker}</b>
-        <span className="ticker-name">{data.name}</span>
-      </div>
-    ),
-);
-
-TickerCellRenderer.displayName = 'TickerCellRenderer';
 
 export interface Props {
   gridTheme?: string;

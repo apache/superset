@@ -17,12 +17,12 @@
  * under the License.
  */
 import { DataRecord } from '@superset-ui/core';
-import { TableChartTransformedProps } from './types';
+import { AgGridTableChartTransformedProps } from './types';
 import AgGridDataTable from './AgGridTable';
 import { InputColumn, transformData } from './AgGridTable/transformData';
 
 export default function TableChart<D extends DataRecord = DataRecord>(
-  props: TableChartTransformedProps<D> & {},
+  props: AgGridTableChartTransformedProps<D> & {},
 ) {
   const { height, columns, data, includeSearch } = props;
 

@@ -133,48 +133,22 @@ export interface ServerPaginationData {
   searchColumn?: string;
 }
 
-export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
-  timeGrain?: TimeGranularity;
+export interface AgGridTableChartTransformedProps<
+  D extends DataRecord = DataRecord,
+> {
   height: number;
   width: number;
-  rowCount?: number;
-  serverPagination: boolean;
-  serverPaginationData: ServerPaginationData;
+
   setDataMask: SetDataMaskHook;
-  isRawRecords?: boolean;
   data: D[];
-  totals?: D;
   columns: DataColumnMeta[];
-  metrics?: (keyof D)[];
-  percentMetrics?: (keyof D)[];
   pageSize?: number;
-  showCellBars?: boolean;
   sortDesc?: boolean;
   includeSearch?: boolean;
-  alignPositiveNegative?: boolean;
-  colorPositiveNegative?: boolean;
-  tableTimestampFormat?: string;
-  // These are dashboard filters, don't be confused with in-chart search filter
-  // enabled by `includeSearch`
   filters?: DataRecordFilters;
   emitCrossFilters?: boolean;
-  onChangeFilter?: ChartProps['hooks']['onAddFilter'];
-  columnColorFormatters?: ColorFormatters;
   allowRearrangeColumns?: boolean;
   allowRenderHtml?: boolean;
-  onContextMenu?: (
-    clientX: number,
-    clientY: number,
-    filters?: ContextMenuFilters,
-  ) => void;
-  isUsingTimeComparison?: boolean;
-  basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
-  basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
-  startDateOffset?: string;
-  // For explore page to reset the server Pagination data
-  // if server page length is changed from control panel
-  hasServerPageLengthChanged: boolean;
-  serverPageLength: number;
   slice_id: number;
 }
 
