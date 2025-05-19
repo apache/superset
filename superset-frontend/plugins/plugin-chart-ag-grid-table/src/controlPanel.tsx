@@ -26,36 +26,28 @@ import {
   ControlPanelState,
   ControlState,
   ControlStateMapping,
-  D3_TIME_FORMAT_OPTIONS,
   Dataset,
   DEFAULT_MAX_ROW,
-  DEFAULT_MAX_ROW_TABLE_SERVER,
   defineSavedMetrics,
   formatSelectOptions,
   getStandardizedControls,
   QueryModeLabel,
-  sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
   GenericDataType,
-  getMetricLabel,
   isAdhocColumn,
   isPhysicalColumn,
   legacyValidateInteger,
   QueryFormColumn,
-  QueryFormMetric,
   QueryMode,
-  SMART_DATE_ID,
   t,
   validateMaxValue,
-  validateServerPagination,
 } from '@superset-ui/core';
 
-import { isEmpty, last } from 'lodash';
-import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
-import { ColorSchemeEnum } from './types';
+import { isEmpty } from 'lodash';
+import { PAGE_SIZE_OPTIONS } from './consts';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
