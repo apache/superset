@@ -28,6 +28,7 @@ import {
   DatasetObject,
 } from 'src/features/datasets/AddDataset/types';
 import { Table } from 'src/hooks/apiResources';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
@@ -189,7 +190,7 @@ export default function LeftPanel({
       description={
         <span>
           {t('Manage your databases')}{' '}
-          <a href="/databaseview/list">{t('here')}</a>
+          <a href={ensureAppRoot('/databaseview/list')}>{t('here')}</a>
         </span>
       }
       size="small"
