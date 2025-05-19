@@ -310,12 +310,6 @@ const config: ControlPanelConfig = {
             config: allColumnsControl,
           },
         ],
-        [
-          {
-            name: 'percent_metrics',
-            config: percentMetricsControl,
-          },
-        ],
         ['adhoc_filters'],
         [
           {
@@ -345,34 +339,6 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'server_pagination',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Server pagination'),
-              description: t(
-                'Enable server side pagination of results (experimental feature)',
-              ),
-              default: false,
-            },
-          },
-        ],
-        [
-          {
-            name: 'server_page_length',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('Server Page Length'),
-              default: 10,
-              choices: SERVER_PAGE_SIZE_OPTIONS,
-              description: t('Rows per page, 0 means no pagination'),
-              visibility: ({ controls }: ControlPanelsContainerProps) =>
-                Boolean(controls?.server_pagination?.value),
-            },
-          },
-        ],
-        [
-          {
             name: 'row_limit',
             config: {
               type: 'SelectControl',
@@ -380,28 +346,13 @@ const config: ControlPanelConfig = {
               label: t('Row limit'),
               clearable: false,
               mapStateToProps: state => ({
-                maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
-                server_pagination: state?.form_data?.server_pagination,
-                maxValueWithoutServerPagination:
-                  state?.common?.conf?.SQL_MAX_ROW,
+                maxValue: state?.common?.conf?.SQL_MAX_ROW,
               }),
               validators: [
                 legacyValidateInteger,
                 (v, state) =>
-                  validateMaxValue(
-                    v,
-                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
-                  ),
-                (v, state) =>
-                  validateServerPagination(
-                    v,
-                    state?.server_pagination,
-                    state?.maxValueWithoutServerPagination || DEFAULT_MAX_ROW,
-                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
-                  ),
+                  validateMaxValue(v, state?.maxValue || DEFAULT_MAX_ROW),
               ],
-              // Re run the validations when this control value
-              validationDependancies: ['server_pagination'],
               default: 10000,
               choices: formatSelectOptions(ROW_LIMIT_OPTIONS_TABLE),
               description: t(
@@ -413,57 +364,12 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'order_desc',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort descending'),
-              default: true,
-              description: t(
-                'If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.',
-              ),
-              visibility: isAggMode,
-              resetOnHide: false,
-            },
-          },
-        ],
-        [
-          {
-            name: 'show_totals',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show summary'),
-              default: false,
-              description: t(
-                'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
-              ),
-              visibility: isAggMode,
-              resetOnHide: false,
-            },
-          },
-        ],
       ],
     },
     {
       label: t('Options'),
       expanded: true,
       controlSetRows: [
-        [
-          {
-            name: 'table_timestamp_format',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('Timestamp format'),
-              default: SMART_DATE_ID,
-              renderTrigger: true,
-              clearable: false,
-              choices: D3_TIME_FORMAT_OPTIONS,
-              description: t('D3 time format for datetime columns'),
-            },
-          },
-        ],
         [
           {
             name: 'page_length',
@@ -509,263 +415,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'allow_render_html',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Render columns in HTML format'),
-              renderTrigger: true,
-              default: true,
-              description: t(
-                'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'column_config',
-            config: {
-              type: 'ColumnConfigControl',
-              label: t('Customize columns'),
-              description: t('Further customize how to display each column'),
-              width: 400,
-              height: 320,
-              renderTrigger: true,
-              shouldMapStateToProps() {
-                return true;
-              },
-              mapStateToProps(explore, _, chart) {
-                const timeComparisonValue =
-                  explore?.controls?.time_compare?.value;
-                const { colnames: _colnames, coltypes: _coltypes } =
-                  chart?.queriesResponse?.[0] ?? {};
-                let colnames: string[] = _colnames || [];
-                let coltypes: GenericDataType[] = _coltypes || [];
-                const childColumnMap: Record<string, boolean> = {};
-                const timeComparisonColumnMap: Record<string, boolean> = {};
-
-                if (!isEmpty(timeComparisonValue)) {
-                  /**
-                   * Replace numeric columns with sets of comparison columns.
-                   */
-                  const updatedColnames: string[] = [];
-                  const updatedColtypes: GenericDataType[] = [];
-
-                  colnames
-                    .filter(
-                      colname =>
-                        last(colname.split('__')) !== timeComparisonValue,
-                    )
-                    .forEach((colname, index) => {
-                      if (
-                        explore.form_data.metrics?.some(
-                          metric => getMetricLabel(metric) === colname,
-                        ) ||
-                        explore.form_data.percent_metrics?.some(
-                          (metric: QueryFormMetric) =>
-                            getMetricLabel(metric) === colname,
-                        )
-                      ) {
-                        const comparisonColumns =
-                          generateComparisonColumns(colname);
-                        comparisonColumns.forEach((name, idx) => {
-                          updatedColnames.push(name);
-                          updatedColtypes.push(
-                            ...generateComparisonColumnTypes(4),
-                          );
-                          timeComparisonColumnMap[name] = true;
-                          if (idx === 0 && name.startsWith('Main ')) {
-                            childColumnMap[name] = false;
-                          } else {
-                            childColumnMap[name] = true;
-                          }
-                        });
-                      } else {
-                        updatedColnames.push(colname);
-                        updatedColtypes.push(coltypes[index]);
-                        childColumnMap[colname] = false;
-                        timeComparisonColumnMap[colname] = false;
-                      }
-                    });
-
-                  colnames = updatedColnames;
-                  coltypes = updatedColtypes;
-                }
-                return {
-                  columnsPropsObject: {
-                    colnames,
-                    coltypes,
-                    childColumnMap,
-                    timeComparisonColumnMap,
-                  },
-                };
-              },
-            },
-          },
-        ],
       ],
-    },
-    {
-      label: t('Visual formatting'),
-      expanded: true,
-      controlSetRows: [
-        [
-          {
-            name: 'show_cell_bars',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show Cell bars'),
-              renderTrigger: true,
-              default: true,
-              description: t(
-                'Whether to display a bar chart background in table columns',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'align_pn',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Align +/-'),
-              renderTrigger: true,
-              default: false,
-              description: t(
-                'Whether to align background charts with both positive and negative values at 0',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'color_pn',
-            config: {
-              type: 'CheckboxControl',
-              label: t('add colors to cell bars for +/-'),
-              renderTrigger: true,
-              default: true,
-              description: t(
-                'Whether to colorize numeric values by whether they are positive or negative',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'comparison_color_enabled',
-            config: {
-              type: 'CheckboxControl',
-              label: t('basic conditional formatting'),
-              renderTrigger: true,
-              visibility: ({ controls }) =>
-                !isEmpty(controls?.time_compare?.value),
-              default: false,
-              description: t(
-                'This will be applied to the whole table. Arrows (↑ and ↓) will be added to ' +
-                  'main columns for increase and decrease. Basic conditional formatting can be ' +
-                  'overwritten by conditional formatting below.',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'comparison_color_scheme',
-            config: {
-              type: 'SelectControl',
-              label: t('color type'),
-              default: ColorSchemeEnum.Green,
-              renderTrigger: true,
-              choices: [
-                [ColorSchemeEnum.Green, 'Green for increase, red for decrease'],
-                [ColorSchemeEnum.Red, 'Red for increase, green for decrease'],
-              ],
-              visibility: ({ controls }) =>
-                !isEmpty(controls?.time_compare?.value) &&
-                Boolean(controls?.comparison_color_enabled?.value),
-              description: t(
-                'Adds color to the chart symbols based on the positive or ' +
-                  'negative change from the comparison value.',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'conditional_formatting',
-            config: {
-              type: 'ConditionalFormattingControl',
-              renderTrigger: true,
-              label: t('Custom Conditional Formatting'),
-              extraColorChoices: [
-                {
-                  value: ColorSchemeEnum.Green,
-                  label: t('Green for increase, red for decrease'),
-                },
-                {
-                  value: ColorSchemeEnum.Red,
-                  label: t('Red for increase, green for decrease'),
-                },
-              ],
-              description: t(
-                'Apply conditional color formatting to numeric columns',
-              ),
-              shouldMapStateToProps() {
-                return true;
-              },
-              mapStateToProps(explore, _, chart) {
-                const verboseMap = explore?.datasource?.hasOwnProperty(
-                  'verbose_map',
-                )
-                  ? (explore?.datasource as Dataset)?.verbose_map
-                  : (explore?.datasource?.columns ?? {});
-                const chartStatus = chart?.chartStatus;
-                const { colnames, coltypes } =
-                  chart?.queriesResponse?.[0] ?? {};
-                const numericColumns =
-                  Array.isArray(colnames) && Array.isArray(coltypes)
-                    ? colnames
-                        .filter(
-                          (colname: string, index: number) =>
-                            coltypes[index] === GenericDataType.Numeric,
-                        )
-                        .map((colname: string) => ({
-                          value: colname,
-                          label: Array.isArray(verboseMap)
-                            ? colname
-                            : (verboseMap[colname] ?? colname),
-                        }))
-                    : [];
-                const columnOptions = explore?.controls?.time_compare?.value
-                  ? processComparisonColumns(
-                      numericColumns || [],
-                      ensureIsArray(
-                        explore?.controls?.time_compare?.value,
-                      )[0]?.toString() || '',
-                    )
-                  : numericColumns;
-
-                return {
-                  removeIrrelevantConditions: chartStatus === 'success',
-                  columnOptions,
-                  verboseMap,
-                };
-              },
-            },
-          },
-        ],
-      ],
-    },
-    {
-      ...sections.timeComparisonControls({
-        multi: false,
-        showCalculationType: false,
-        showFullChoices: false,
-      }),
-      visibility: isAggMode,
     },
   ],
   formDataOverrides: formData => ({
