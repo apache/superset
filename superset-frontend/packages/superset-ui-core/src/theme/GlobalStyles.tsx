@@ -94,6 +94,9 @@ export const GlobalStyles = () => {
           flex-direction: column;
           height: 100%;
         }
+        [role='button'] {
+          cursor: pointer;
+        }
       `}
     />
   );

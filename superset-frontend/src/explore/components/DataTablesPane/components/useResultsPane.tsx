@@ -109,7 +109,7 @@ export const useResultsPane = ({
   if (errorMessage) {
     const title = t('Run a query to display results');
     return Array(queryCount).fill(
-      <EmptyState image="document.svg" title={title} />,
+      <EmptyState image="document.svg" title={title} size="small" />,
     );
   }
 
@@ -135,7 +135,7 @@ export const useResultsPane = ({
   if (resultResp.length === 0) {
     const title = t('No results were returned for this query');
     return Array(queryCount).fill(
-      <EmptyState image="document.svg" title={title} />,
+      <EmptyState image="document.svg" title={title} size="small" />,
     );
   }
   return resultResp
