@@ -11,8 +11,6 @@ import {
   AllCommunityModule,
   ClientSideRowModelModule,
   type ColDef,
-  type GetRowIdFunc,
-  type GetRowIdParams,
   ModuleRegistry,
   type ValueFormatterFunc,
   GridReadyEvent,

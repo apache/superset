@@ -16,24 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/**
- * Whether a container need scroll bars when in another container.
- */
-export default function needScrollBar({
-  width,
-  height,
-  innerHeight,
-  innerWidth,
-  scrollBarSize,
-}: {
-  width: number;
-  height: number;
-  innerHeight: number;
-  scrollBarSize: number;
-  innerWidth: number;
-}): [boolean, boolean] {
-  const hasVerticalScroll = innerHeight > height;
-  const hasHorizontalScroll =
-    innerWidth > width - (hasVerticalScroll ? scrollBarSize : 0);
-  return [hasVerticalScroll, hasHorizontalScroll];
+import { DataRecord } from '@superset-ui/core';
+import { TableChartTransformedProps } from './types';
+import AgGridDataTable from './AgGridTable';
+import { InputColumn, transformData } from './AgGridTable/transformData';
+
+export default function TableChart<D extends DataRecord = DataRecord>(
+  props: TableChartTransformedProps<D> & {},
+) {
+  const { height, columns, data, includeSearch } = props;
+
+  const transformedData = transformData(columns as InputColumn[], data);
+
+  return (
+    <div>
+      <AgGridDataTable
+        gridHeight={height}
+        data={transformedData?.rowData || []}
+        colDefsFromProps={transformedData?.colDefs}
+        includeSearch={!!includeSearch}
+      />
+    </div>
+  );
 }

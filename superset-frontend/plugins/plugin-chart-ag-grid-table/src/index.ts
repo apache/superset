@@ -61,7 +61,7 @@ export default class AgGridTableChartPlugin extends ChartPlugin<
 > {
   constructor() {
     super({
-      loadChart: () => import('./TableChart'),
+      loadChart: () => import('./AgGridTableChart'),
       metadata,
       transformProps,
       controlPanel,

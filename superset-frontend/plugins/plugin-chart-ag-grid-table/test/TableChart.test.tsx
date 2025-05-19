@@ -19,7 +19,7 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
-import TableChart from '../src/TableChart';
+import TableChart from '../src/AgGridTableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
