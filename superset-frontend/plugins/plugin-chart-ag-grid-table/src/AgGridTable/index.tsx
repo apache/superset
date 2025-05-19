@@ -32,6 +32,9 @@ export interface Props {
   onGridReady?: (params: GridReadyEvent) => void;
   colDefsFromProps: any[];
   includeSearch: boolean;
+  allowRearrangeColumns: boolean;
+  pagination: boolean;
+  pageSize: number;
 }
 
 // Register modules once outside component
@@ -95,12 +98,10 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     onGridReady,
     colDefsFromProps,
     includeSearch,
+    allowRearrangeColumns,
+    pagination,
+    pageSize,
   }) => {
-    console.log({
-      colDefsFromProps,
-      data,
-    });
-
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
 
@@ -158,6 +159,8 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
       [],
     );
 
+    console.log(pageSize, 'page size');
+
     return (
       <StyledContainer>
         <div className={gridClassName} style={containerStyle}>
@@ -200,9 +203,12 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
             groupDefaultExpanded={-1}
             rowGroupPanelShow="always"
             enableCellTextSelection
-            paginationAutoPageSize
             onGridReady={handleGridReady}
             quickFilterText={quickFilterText}
+            suppressMovableColumns={!allowRearrangeColumns}
+            pagination={pagination}
+            paginationPageSize={pageSize}
+            paginationPageSizeSelector={[10, 20, 50, 100, 200]}
           />
         </div>
       </StyledContainer>

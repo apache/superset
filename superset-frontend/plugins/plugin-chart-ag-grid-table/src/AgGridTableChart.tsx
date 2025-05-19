@@ -24,7 +24,14 @@ import { InputColumn, transformData } from './AgGridTable/transformData';
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: AgGridTableChartTransformedProps<D> & {},
 ) {
-  const { height, columns, data, includeSearch } = props;
+  const {
+    height,
+    columns,
+    data,
+    includeSearch,
+    allowRearrangeColumns,
+    pageSize,
+  } = props;
 
   const transformedData = transformData(columns as InputColumn[], data);
 
@@ -35,6 +42,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         data={transformedData?.rowData || []}
         colDefsFromProps={transformedData?.colDefs}
         includeSearch={!!includeSearch}
+        allowRearrangeColumns={!!allowRearrangeColumns}
+        pagination={!!pageSize}
+        pageSize={pageSize || 0}
       />
     </div>
   );
