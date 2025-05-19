@@ -19,10 +19,7 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { TextArea } from 'src/components/Input';
-import {
-  Tooltip,
-  TooltipProps as TooltipOptions,
-} from 'src/components/Tooltip';
+import { Tooltip, TooltipProps } from 'src/components/Tooltip';
 import { t, withTheme } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
@@ -59,7 +56,7 @@ const propTypes = {
     'vertical',
   ]),
   textAreaStyles: PropTypes.object,
-  tooltipOptions: PropTypes.oneOf([null, TooltipOptions]),
+  tooltipOptions: PropTypes.oneOf([null, TooltipProps]),
 };
 
 const defaultProps = {
