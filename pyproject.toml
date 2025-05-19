@@ -240,6 +240,12 @@ disallow_untyped_calls = false
 disallow_untyped_defs = false
 disable_error_code = "annotation-unchecked"
 
+# TODO: remove this once cryptography is fixed, introduced in cryptography 44.0.3
+[[tool.mypy.overrides]]
+module = "cryptography.*"
+ignore_errors = true
+follow_imports = "skip"
+
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
