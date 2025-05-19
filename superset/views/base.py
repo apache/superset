@@ -330,6 +330,17 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     language = locale.language if locale else "en"
     auth_type = appbuilder.app.config["AUTH_TYPE"]
+    auth_user_registration = appbuilder.app.config["AUTH_USER_REGISTRATION"]
+    frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
+
+    if auth_user_registration:
+        frontend_config["AUTH_USER_REGISTRATION_ROLE"] = appbuilder.app.config[
+            "AUTH_USER_REGISTRATION_ROLE"
+        ]
+        frontend_config["RECAPTCHA_PUBLIC_KEY"] = appbuilder.app.config[
+            "RECAPTCHA_PUBLIC_KEY"
+        ]
+
     frontend_config["AUTH_TYPE"] = auth_type
     if auth_type == AUTH_OAUTH:
         oauth_providers = []

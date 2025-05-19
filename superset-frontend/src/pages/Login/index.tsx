@@ -26,6 +26,7 @@ import {
   Input,
   Typography,
   Icons,
+  Space,
 } from 'src/components';
 import { useState } from 'react';
 import { capitalize } from 'lodash/fp';
@@ -95,6 +96,12 @@ export default function Login() {
 
   const authType: AuthType = bootstrapData.common.conf.AUTH_TYPE;
   const providers: Provider[] = bootstrapData.common.conf.AUTH_PROVIDERS;
+  const authRegistration: boolean =
+    bootstrapData.common.conf.AUTH_USER_REGISTRATION;
+  const authRecaptchaPublicKey: string =
+    bootstrapData.common.conf.RECAPTCHA_PUBLIC_KEY;
+
+  console.log({ authRegistration, authRecaptchaPublicKey });
 
   const onFinish = (values: LoginType) => {
     setLoading(true);
@@ -179,15 +186,31 @@ export default function Login() {
                 />
               </Form.Item>
               <Form.Item label={null}>
-                <Button
-                  block
-                  type="primary"
-                  htmlType="submit"
-                  loading={loading}
-                  data-test="login-button"
+                <Flex
+                  css={css`
+                    width: 100%;
+                  `}
                 >
-                  {t('Sign in')}
-                </Button>
+                  <Button
+                    block
+                    type="primary"
+                    htmlType="submit"
+                    loading={loading}
+                    data-test="login-button"
+                  >
+                    {t('Sign in')}
+                  </Button>
+                  {authRegistration && (
+                    <Button
+                      block
+                      type="default"
+                      href="/register"
+                      data-test="register-button"
+                    >
+                      {t('Register')}
+                    </Button>
+                  )}
+                </Flex>
               </Form.Item>
             </Form>
           </Flex>
