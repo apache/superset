@@ -29,8 +29,8 @@ import {
   DatasetObject,
 } from 'src/features/datasets/AddDataset/types';
 import { Table } from 'src/hooks/apiResources';
-import { Typography } from '@superset-ui/core/components/Typography';
 import { ensureAppRoot } from 'src/utils/pathUtils';
+import { Typography } from '@superset-ui/core/components/Typography';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
