@@ -60,6 +60,30 @@ jobs:
       - name: "Set up liccheck"
         run: |
           uv pip install --system liccheck
+          
+      - name: "Create liccheck config"
+        run: |
+          cat > liccheck.ini << EOF
+          [Licenses]
+          authorized_licenses = 
+              bsd
+              new bsd
+              bsd license
+              new bsd license
+              simplified bsd
+              apache
+              apache 2.0
+              apache software license
+              mit
+              python software foundation license
+              any-osi
+              
+          [Authorized Packages]
+          # Explicitly authorize these packages
+          apsw = 3.49.2.0
+          bottleneck = 1.5.0
+          EOF
+          
       - name: "Run liccheck"
         run: |
           # run the checks with the config file
