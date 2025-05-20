@@ -64,11 +64,8 @@ export default function Login() {
   const authRecaptchaPublicKey: string =
     bootstrapData.common.conf.RECAPTCHA_PUBLIC_KEY;
 
-  console.log({ authRecaptchaPublicKey });
-
   const onFinish = (values: RegisterForm) => {
     setLoading(true);
-    console.log(values);
     const payload = {
       username: values.username,
       first_name: values.firstName,
@@ -88,6 +85,7 @@ export default function Login() {
       css={css`
         width: 100%;
       `}
+      data-test="register-form"
     >
       <StyledCard title={t('Fill out the registration form')} padded>
         <Form form={form} onFinish={onFinish} {...formItemLayout}>
@@ -98,7 +96,11 @@ export default function Login() {
               { required: true, message: t('Please enter your username') },
             ]}
           >
-            <Input placeholder={t('Username')} autoComplete="username" />
+            <Input
+              placeholder={t('Username')}
+              autoComplete="username"
+              data-test="username-input"
+            />
           </Form.Item>
           <Form.Item<RegisterForm>
             label={t('First Name')}
@@ -107,7 +109,11 @@ export default function Login() {
               { required: true, message: t('Please enter your first name') },
             ]}
           >
-            <Input placeholder={t('First Name')} autoComplete="given-name" />
+            <Input
+              placeholder={t('First name')}
+              autoComplete="given-name"
+              data-test="first-name-input"
+            />
           </Form.Item>
           <Form.Item<RegisterForm>
             label={t('Last Name')}
@@ -116,14 +122,22 @@ export default function Login() {
               { required: true, message: t('Please enter your last name') },
             ]}
           >
-            <Input placeholder={t('Last Name')} autoComplete="family-name" />
+            <Input
+              placeholder={t('Last name')}
+              autoComplete="family-name"
+              data-test="last-name-input"
+            />
           </Form.Item>
           <Form.Item<RegisterForm>
             label={t('Email')}
             name="email"
             rules={[{ required: true, message: t('Please enter your email') }]}
           >
-            <Input placeholder={t('Email')} autoComplete="email" />
+            <Input
+              placeholder={t('Email')}
+              autoComplete="email"
+              data-test="email-input"
+            />
           </Form.Item>
           <Form.Item<RegisterForm>
             label={t('Password')}
@@ -135,12 +149,13 @@ export default function Login() {
             <Input.Password
               placeholder={t('Password')}
               autoComplete="new-password"
+              data-test="password-input"
             />
           </Form.Item>
 
           <Form.Item
             name="confirmPassword"
-            label={t('Confirm Password')}
+            label={t('Confirm password')}
             dependencies={['password']}
             hasFeedback
             rules={[
@@ -162,7 +177,10 @@ export default function Login() {
               }),
             ]}
           >
-            <Input.Password />
+            <Input.Password
+              placeholder={t('Confirm password')}
+              data-test="confirm-password-input"
+            />
           </Form.Item>
           <Form.Item label="Captcha">
             <ReactCAPTCHA
@@ -170,10 +188,17 @@ export default function Login() {
               onChange={value => {
                 setCaptchaResponse(value);
               }}
+              data-test="captcha-input"
             />
           </Form.Item>
           <Form.Item>
-            <Button block type="default" htmlType="submit" loading={loading}>
+            <Button
+              block
+              type="default"
+              htmlType="submit"
+              loading={loading}
+              data-test="register-button"
+            >
               {t('Register')}
             </Button>
           </Form.Item>
