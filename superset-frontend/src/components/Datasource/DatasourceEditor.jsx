@@ -724,7 +724,7 @@ class DatasourceEditor extends PureComponent {
     });
   }
 
-  getsqllabRouteProps() {
+  getSQLLabRouteProps() {
     return {
       pathname: `/sqllab/`,
       state: {
@@ -741,7 +741,7 @@ class DatasourceEditor extends PureComponent {
   }
 
   openOnSqlLab() {
-    this.props.history.push(this.getsqllabRouteProps());
+    this.props.history.push(this.getSQLLabRouteProps());
   }
 
   tableChangeAndSyncMetadata() {
@@ -1199,7 +1199,7 @@ class DatasourceEditor extends PureComponent {
                             font-size: 12px;
                             text-decoration: underline;
                           `}
-                          to={this.getsqllabRouteProps()}
+                          to={this.getSQLLabRouteProps()}
                           type="link"
                         >
                           {t('Open in SQL lab')}{' '}

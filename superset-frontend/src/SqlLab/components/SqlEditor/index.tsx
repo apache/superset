@@ -901,8 +901,8 @@ const SqlEditor: FC<Props> = ({
   const renderDatasetWarning = () => (
     <Alert
       css={css`
-        margin-bottom: 8px;
-        padding-top: 16px;
+        margin-bottom: ${theme.gridUnit * 2}px;
+        padding-top: ${theme.gridUnit * 4}px;
       `}
       type="info"
       description={
@@ -921,8 +921,8 @@ const SqlEditor: FC<Props> = ({
           >
             <p
               css={css`
-                font-size: 14px;
-                font-weight: 500;
+                font-size: ${theme.typography.sizes.m}px;
+                font-weight: ${theme.typography.weights.medium};
                 color: ${theme.colors.primary.dark2};
               `}
             >
@@ -932,8 +932,8 @@ const SqlEditor: FC<Props> = ({
             </p>
             <p
               css={css`
-                font-size: 14px;
-                font-weight: 400;
+                font-size: ${theme.typography.sizes.m}px;
+                font-weight: ${theme.typography.weights.normal};
                 color: ${theme.colors.primary.dark2};
               `}
             >
