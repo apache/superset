@@ -62,7 +62,7 @@ export default function Login() {
   const bootstrapData = getBootstrapData();
 
   const authRecaptchaPublicKey: string =
-    bootstrapData.common.conf.RECAPTCHA_PUBLIC_KEY;
+    bootstrapData.common.conf.RECAPTCHA_PUBLIC_KEY || '';
 
   const onFinish = (values: RegisterForm) => {
     setLoading(true);
