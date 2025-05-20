@@ -192,33 +192,15 @@ function PropertiesModal({
     }
 
     try {
-      const res = await SupersetClient.put({
+      let res = await SupersetClient.put({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      // update the redux state
-      // convert the tags to the format used in the selectOwners back to original redux format
-      const selectedOwnersArray = ensureIsArray(selectedOwners);
-      const newOwners = selectedOwnersArray.map((owner: any) => {
-        const nameParts = owner.label.split(' ');
-        const first_name = nameParts[0] || '';
-        const last_name =
-          nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-        return {
-          id: owner.value,
-          first_name,
-          last_name,
-        };
+      res = await SupersetClient.get({
+        endpoint: `/api/v1/chart/${slice.slice_id}`,
       });
-      const updatedChart = {
-        ...payload,
-        ...res.json.result,
-        tags,
-        id: slice.slice_id,
-        owners: newOwners,
-      };
-      onSave(updatedChart);
+      onSave(res.json.result);
       addSuccessToast(t('Chart properties updated'));
       onHide();
     } catch (res) {
