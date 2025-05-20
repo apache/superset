@@ -21,40 +21,62 @@ import {
   getChartConfigs,
   parseSelectedChart,
 } from '../util/transformPropsUtil';
+import { ChartConfig } from '../types';
 
 export default function transformProps(chartProps: ChartProps) {
   const { width, height, formData, hooks, theme } = chartProps;
   const {
     geomColumn,
+    geomFormat,
     selectedChart: selectedChartString,
     chartSize,
     layerConfigs,
+    mapExtentPadding,
+    mapMaxExtent,
     mapView,
+    maxZoom,
+    minZoom,
     chartBackgroundColor,
     chartBackgroundBorderRadius,
+    sliceId,
   } = formData;
   const { setControlValue = () => {} } = hooks;
   const selectedChart = parseSelectedChart(selectedChartString);
   const transformPropsRegistry = getChartTransformPropsRegistry();
   const chartTransformer = transformPropsRegistry.get(selectedChart.viz_type);
 
-  const chartConfigs = getChartConfigs(
-    selectedChart,
-    geomColumn,
-    chartProps,
-    chartTransformer,
-  );
+  let chartConfigs: ChartConfig;
+  try {
+    chartConfigs = getChartConfigs(
+      selectedChart,
+      geomColumn,
+      geomFormat,
+      chartProps,
+      chartTransformer,
+      sliceId,
+    );
+  } catch {
+    chartConfigs = {
+      type: 'FeatureCollection',
+      features: [],
+    };
+  }
 
   return {
     width,
     height,
     geomColumn,
+    geomFormat,
     selectedChart,
     chartConfigs,
     chartVizType: selectedChart.viz_type,
     chartSize,
     layerConfigs,
+    mapExtentPadding,
+    mapMaxExtent,
     mapView,
+    maxZoom,
+    minZoom,
     chartBackgroundColor,
     chartBackgroundBorderRadius,
     setControlValue,
