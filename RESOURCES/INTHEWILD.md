@@ -43,6 +43,7 @@ Join our growing community!
 - [Cape Crypto](https://capecrypto.com)
 - [Capital Service S.A.](https://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](https://clark.de/)
+- [Europace](https://europace.de)
 - [KarrotPay](https://www.daangnpay.com/)
 - [Remita](https://remita.net) [@mujibishola]
 - [Taveo](https://www.taveo.com) [@codek]

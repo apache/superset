@@ -21,7 +21,7 @@ from tests.unit_tests.migrations.viz.utils import migrate_and_assert
 
 SOURCE_FORM_DATA: dict[str, Any] = {
     "granularity_sqla": "ds",
-    "time_range": "100 years ago : now",
+    "time_range": "1925-04-24 : 2025-04-24",
     "viz_type": "pivot_table",
 }
 
@@ -29,7 +29,7 @@ TARGET_FORM_DATA: dict[str, Any] = {
     "form_data_bak": SOURCE_FORM_DATA,
     "granularity_sqla": "ds",
     "rowOrder": "value_z_to_a",
-    "time_range": "100 years ago : now",
+    "time_range": "1925-04-24 : 2025-04-24",
     "viz_type": "pivot_table_v2",
 }
 
@@ -40,7 +40,7 @@ def test_migration() -> None:
     target["adhoc_filters"] = [
         {
             "clause": "WHERE",
-            "comparator": "100 years ago : now",
+            "comparator": "1925-04-24 : 2025-04-24",
             "expressionType": "SIMPLE",
             "operator": "TEMPORAL_RANGE",
             "subject": "ds",
@@ -65,7 +65,9 @@ def test_custom_sql_time_column() -> None:
             "comparator": None,
             "expressionType": "SQL",
             "operator": "TEMPORAL_RANGE",
-            "sqlExpression": "sum(ds)",
+            "sqlExpression": (
+                "sum(ds) >= '1925-04-24T00:00:00' AND sum(ds) < '2025-04-24T00:00:00'"
+            ),
             "subject": "ds",
         }
     ]
