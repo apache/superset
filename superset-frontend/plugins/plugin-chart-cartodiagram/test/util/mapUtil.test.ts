@@ -22,95 +22,136 @@ import OSM from 'ol/source/OSM.js';
 import TileLayer from 'ol/layer/Tile.js';
 import View from 'ol/View.js';
 import { ChartConfig } from '../../src/types';
-import { fitMapToCharts } from '../../src/util/mapUtil';
+import {
+  fitMapToData,
+  wkbToGeoJSON,
+  wktToGeoJSON,
+} from '../../src/util/mapUtil';
 
 describe('mapUtil', () => {
-  describe('fitMapToCharts', () => {
-    test('changes the center of the map', () => {
-      const chartConfig: ChartConfig = {
-        type: 'FeatureCollection',
-        features: [
-          {
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [8.793, 53.04117],
-            },
-            properties: {
-              setDataMask: '',
-              labelMap: '',
-              labelMapB: '',
-              groupby: '',
-              selectedValues: '',
-              formData: '',
-              groupbyB: '',
-              seriesBreakdown: '',
-              legendData: '',
-              echartOptions: '',
-            },
+  test('fitMapToData changes the center of the map', () => {
+    const chartConfig: ChartConfig = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [8.793, 53.04117],
           },
-          {
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [10.61833, 51.8],
-            },
-            properties: {
-              setDataMask: '',
-              labelMap: '',
-              labelMapB: '',
-              groupby: '',
-              selectedValues: '',
-              formData: '',
-              groupbyB: '',
-              seriesBreakdown: '',
-              legendData: '',
-              echartOptions: '',
-            },
+          properties: {
+            setDataMask: '',
+            labelMap: '',
+            labelMapB: '',
+            groupby: '',
+            selectedValues: '',
+            formData: '',
+            groupbyB: '',
+            seriesBreakdown: '',
+            legendData: '',
+            echartOptions: '',
           },
-          {
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [6.86883, 50.35667],
-            },
-            properties: {
-              setDataMask: '',
-              labelMap: '',
-              labelMapB: '',
-              groupby: '',
-              selectedValues: '',
-              formData: '',
-              groupbyB: '',
-              seriesBreakdown: '',
-              legendData: '',
-              echartOptions: '',
-            },
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [10.61833, 51.8],
           },
-        ],
-      };
+          properties: {
+            setDataMask: '',
+            labelMap: '',
+            labelMapB: '',
+            groupby: '',
+            selectedValues: '',
+            formData: '',
+            groupbyB: '',
+            seriesBreakdown: '',
+            legendData: '',
+            echartOptions: '',
+          },
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [6.86883, 50.35667],
+          },
+          properties: {
+            setDataMask: '',
+            labelMap: '',
+            labelMapB: '',
+            groupby: '',
+            selectedValues: '',
+            formData: '',
+            groupbyB: '',
+            seriesBreakdown: '',
+            legendData: '',
+            echartOptions: '',
+          },
+        },
+      ],
+    };
 
-      const initialCenter = [0, 0];
+    const initialCenter = [0, 0];
 
-      const olMap = new Map({
-        layers: [
-          new TileLayer({
-            source: new OSM(),
-          }),
-        ],
-        target: 'map',
-        view: new View({
-          center: initialCenter,
-          zoom: 2,
+    const olMap = new Map({
+      layers: [
+        new TileLayer({
+          source: new OSM(),
         }),
-      });
+      ],
+      target: 'map',
+      view: new View({
+        center: initialCenter,
+        zoom: 2,
+      }),
+    });
 
-      // should set center
-      fitMapToCharts(olMap, chartConfig);
+    // should set center
+    fitMapToData(olMap, chartConfig);
 
-      const updatedCenter = olMap.getView().getCenter();
+    const updatedCenter = olMap.getView().getCenter();
 
-      expect(initialCenter).not.toEqual(updatedCenter);
+    expect(initialCenter).not.toEqual(updatedCenter);
+  });
+
+  test('wkbToGeoJSON converts WKB to GeoJSON', () => {
+    const wkb = '0101000020E610000000000000000020400000000000804A40';
+    const geoJSON = wkbToGeoJSON(wkb);
+    expect(geoJSON).toEqual({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [8, 53],
+      },
+      properties: null,
+    });
+  });
+
+  test('wktToGeoJSON converts WKT to GeoJSON', () => {
+    const wkt = 'POINT(8 53)';
+    const geoJSON = wktToGeoJSON(wkt);
+    expect(geoJSON).toEqual({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [8, 53],
+      },
+      properties: null,
+    });
+  });
+
+  test('handles SRID in WKT', () => {
+    const wkt = 'SRID=4326;POINT(8 53)';
+    const geoJSON = wktToGeoJSON(wkt);
+    expect(geoJSON).toEqual({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [8, 53],
+      },
+      properties: null,
     });
   });
 });
