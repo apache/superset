@@ -522,11 +522,12 @@ export default class AdhocMetricEditPopover extends PureComponent {
           >
             {t('Save')}
           </Button>
-          <Icons.ExpandOutlined
+          <Icons.ArrowsAltOutlined
+            role="button"
             aria-label="Resize"
             tabIndex={0}
             onMouseDown={this.onDragDown}
-            className="edit-popover-resize text-muted"
+            className="edit-popover-resize"
           />
         </div>
       </Form>

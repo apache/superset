@@ -133,11 +133,12 @@ export default function useResizeButton(
   }, [onMouseUp]);
 
   return [
-    <Icons.ExpandOutlined
+    <Icons.ArrowsAltOutlined
+      role="button"
       aria-label="Resize"
       tabIndex={0}
       onMouseDown={onDragDown}
-      className="edit-popover-resize text-muted"
+      className="edit-popover-resize"
     />,
     width,
     height,

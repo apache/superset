@@ -23,7 +23,8 @@ export const ExplorePopoverContent = styled.div`
     transform: scaleX(-1);
     float: right;
     margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
-    margin-right: ${({ theme }) => theme.sizeUnit * -2}px;
+    margin-right: ${({ theme }) => theme.sizeUnit * -1}px;
+    color: ${({ theme }) => theme.colorIcon};
     cursor: nwse-resize;
   }
   .filter-sql-editor {

@@ -217,7 +217,10 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               placement="top"
               title={annotationsLoading}
             >
-              <Icons.ReloadOutlined />
+              <Icons.ReloadOutlined
+                className="warning"
+                aria-label={annotationsLoading}
+              />
             </Tooltip>
           )}
           {!!Object.values(annotationError).length && (
@@ -226,7 +229,10 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               placement="top"
               title={annotationsError}
             >
-              <Icons.ExclamationCircleOutlined />
+              <Icons.ExclamationCircleOutlined
+                className="danger"
+                aria-label={annotationsError}
+              />
             </Tooltip>
           )}
         </div>
