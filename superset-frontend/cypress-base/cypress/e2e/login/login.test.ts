@@ -23,7 +23,7 @@ function interceptLogin() {
 }
 
 describe('Login view', () => {
-  before(() => {
+  beforeEach(() => {
     cy.visit(LOGIN);
   });
 
