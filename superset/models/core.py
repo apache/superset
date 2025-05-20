@@ -85,13 +85,12 @@ from superset.superset_typing import (
 from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
 from superset.utils.core import get_query_source_from_request, get_username
-from superset.utils.metadata import SuspendSession
+from superset.utils.metadata import suspend_session
 from superset.utils.oauth2 import (
     check_for_oauth2,
     get_oauth2_access_token,
     OAuth2ClientConfigSchema,
 )
-from superset import db
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -580,7 +579,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                         catalog=catalog,
                         schema=schema,
                     ):
-                        with SuspendSession():
+                        with suspend_session():
                             cursor = conn.cursor()
                             cursor.execute(prequery)
                     yield conn
@@ -687,7 +686,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     database=self,
                     object_ref=__name__,
                 ):
-                    with SuspendSession():
+                    with suspend_session():
                         self.db_engine_spec.execute(cursor, sql_, self)
 
                 rows = self.fetch_rows(cursor, i == len(sqls) - 1)

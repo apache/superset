@@ -14,12 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
+from contextlib import contextmanager
+
+from flask import g
+
 from superset import db
 
-class SuspendSession:
-    def __enter__(self):
-        self.session_objects = db.session.identity_map.values()
-        db.session.close()
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        for obj in self.session_objects:
-            db.session.add(obj)
+logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def suspend_session():
+    do_it = not getattr(g, "disable_session_suspend", False)
+
+    try:
+        if do_it:
+            logger.info("Disconnecting metadata database temporarily")
+            session_objects = list(db.session.identity_map.values())
+            db.session.flush()
+            db.session.close()
+        yield
+    finally:
+        if do_it:
+            logger.info("Reconnecting to metadata database")
+            db.session()  # Lazy open new session
+            for obj in session_objects:
+                db.session.merge(obj)
