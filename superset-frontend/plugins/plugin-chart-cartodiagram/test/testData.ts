@@ -22,6 +22,12 @@ const coord2 = '[3,4]';
 export const geom1 = `{"type":"Point","coordinates":${coord1}}`;
 export const geom2 = `{"type":"Point","coordinates":${coord2}}`;
 
+export const wkbGeom1 = '0101000020E610000000000000000020400000000000804A40';
+export const wkbGeom2 = '0101000020E61000000000000000001C400000000000004A40';
+
+export const wktGeom1 = 'POINT(7 52)';
+export const wktGeom2 = 'POINT(7 53)';
+
 export const nonTimeSeriesChartData: any = [
   {
     geom: geom1,
@@ -70,6 +76,112 @@ export const nonTimeSeriesChartData: any = [
   },
   {
     geom: geom2,
+    my_value: 'banana',
+    my_count: 218,
+  },
+];
+
+export const nonTimeSeriesWkbChartData: any = [
+  {
+    geom: wkbGeom1,
+    my_value: 'apple',
+    my_count: 347,
+  },
+  {
+    geom: wkbGeom1,
+    my_value: 'apple',
+    my_count: 360,
+  },
+  {
+    geom: wkbGeom1,
+    my_value: 'lemon',
+    my_count: 335,
+  },
+  {
+    geom: wkbGeom1,
+    my_value: 'lemon',
+    my_count: 333,
+  },
+  {
+    geom: wkbGeom1,
+    my_value: 'lemon',
+    my_count: 353,
+  },
+  {
+    geom: wkbGeom1,
+    my_value: 'lemon',
+    my_count: 359,
+  },
+  {
+    geom: wkbGeom2,
+    my_value: 'lemon',
+    my_count: 347,
+  },
+  {
+    geom: wkbGeom2,
+    my_value: 'apple',
+    my_count: 335,
+  },
+  {
+    geom: wkbGeom2,
+    my_value: 'apple',
+    my_count: 356,
+  },
+  {
+    geom: wkbGeom2,
+    my_value: 'banana',
+    my_count: 218,
+  },
+];
+
+export const nonTimeSeriesWktChartData: any = [
+  {
+    geom: wktGeom1,
+    my_value: 'apple',
+    my_count: 347,
+  },
+  {
+    geom: wktGeom1,
+    my_value: 'apple',
+    my_count: 360,
+  },
+  {
+    geom: wktGeom1,
+    my_value: 'lemon',
+    my_count: 335,
+  },
+  {
+    geom: wktGeom1,
+    my_value: 'lemon',
+    my_count: 333,
+  },
+  {
+    geom: wktGeom1,
+    my_value: 'lemon',
+    my_count: 353,
+  },
+  {
+    geom: wktGeom1,
+    my_value: 'lemon',
+    my_count: 359,
+  },
+  {
+    geom: wktGeom2,
+    my_value: 'lemon',
+    my_count: 347,
+  },
+  {
+    geom: wktGeom2,
+    my_value: 'apple',
+    my_count: 335,
+  },
+  {
+    geom: wktGeom2,
+    my_value: 'apple',
+    my_count: 356,
+  },
+  {
+    geom: wktGeom2,
     my_value: 'banana',
     my_count: 218,
   },
