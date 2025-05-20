@@ -1605,7 +1605,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       mode = 'single';
     }
 
-    console.log('filter', filter);
     return (
       <Select
         ariaLabel={t('Select Value')}
@@ -2270,7 +2269,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               />
                             </div>
                             <Select
-                              disabled={nativeFilterOptions?.length < 1}
+                              disabled={
+                                nativeFilterOptions?.length < 1 &&
+                                !nativeFilterData[idx]?.filterName
+                              }
                               ariaLabel={t('Select Filter')}
                               placeholder={t('Select Filter')}
                               value={nativeFilterData[idx]?.filterName}
