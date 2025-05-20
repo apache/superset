@@ -150,14 +150,6 @@ const StyledButtonWrapper = styled.span`
   `}
 `;
 
-const sqlTooltipOptions = {
-  placement: 'topRight',
-  title: t(
-    'If changes are made to your SQL query, ' +
-      'columns in your dataset will be synced when saving the dataset.',
-  ),
-};
-
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
@@ -1017,6 +1009,35 @@ class DatasourceEditor extends PureComponent {
     );
   }
 
+  renderSqlEditotOverlay = () => (
+    <div
+      className="vectorization-progress"
+      css={theme => css`
+        position: absolute;
+        background: ${theme.colors.secondary.light5};
+        align-items: center;
+        display: flex;
+        height: 100%;
+        width: 100%;
+        justify-content: center;
+      `}
+    >
+      <div>
+        <Loading position="inline-centered" />
+        <span
+          css={theme => css`
+            display: block;
+            margin: ${theme.gridUnit * 4}px auto;
+            width: fit-content;
+            color: ${theme.colors.grayscale.base};
+          `}
+        >
+          {t('We are working on your query')}
+        </span>
+      </div>
+    </div>
+  );
+
   renderSourceFieldset() {
     const { datasource } = this.state;
     const floatingButtonCss = css`
@@ -1124,18 +1145,33 @@ class DatasourceEditor extends PureComponent {
                     description={t(
                       'When specifying SQL, the datasource acts as a view. ' +
                         'Superset will use this statement as a subquery while grouping and filtering ' +
-                        'on the generated parent queries.',
+                        'on the generated parent queries.' +
+                        'If changes are made to your SQL query, ' +
+                        'columns in your dataset will be synced when saving the dataset.',
                     )}
                     control={
-                      <TextAreaControl
-                        language="sql"
-                        offerEditInModal={false}
-                        minLines={10}
-                        maxLines={Infinity}
-                        readOnly={!this.state.isEditMode}
-                        resize="both"
-                        tooltipOptions={sqlTooltipOptions}
-                      />
+                      this.props.isQueryRunning ? (
+                        <>
+                          {this.renderSqlEditotOverlay()}
+                          <TextAreaControl
+                            language="sql"
+                            offerEditInModal={false}
+                            minLines={10}
+                            maxLines={Infinity}
+                            readOnly={!this.state.isEditMode}
+                            resize="both"
+                          />
+                        </>
+                      ) : (
+                        <TextAreaControl
+                          language="sql"
+                          offerEditInModal={false}
+                          minLines={10}
+                          maxLines={Infinity}
+                          readOnly={!this.state.isEditMode}
+                          resize="both"
+                        />
+                      )
                     }
                     additionalControl={
                       <div
@@ -1146,7 +1182,12 @@ class DatasourceEditor extends PureComponent {
                           zIndex: 2,
                         }}
                       >
-                        <Button css={floatingButtonCss} size="small">
+                        <Button
+                          disabled={this.props.isQueryRunning}
+                          tooltip={t('Open SQL Lab in a new tab')}
+                          css={floatingButtonCss}
+                          size="small"
+                        >
                           <Icons.ExportOutlined
                             iconSize="s"
                             css={theme => ({
@@ -1158,6 +1199,8 @@ class DatasourceEditor extends PureComponent {
                           />
                         </Button>
                         <Button
+                          disabled={this.props.isQueryRunning}
+                          tooltip={t('Run query')}
                           css={floatingButtonCss}
                           size="small"
                           buttonStyle="primary"
@@ -1622,6 +1665,7 @@ const mapDispatchToProps = dispatch => ({
 });
 const mapStateToProps = state => ({
   sql_result: state?.database?.queryResult,
+  isQueryRunning: state?.database?.isLoading,
 });
 export default withToasts(
   withRouter(connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent)),
