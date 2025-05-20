@@ -16,43 +16,53 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-import { forwardRef, useEffect } from 'react';
+import { forwardRef, useEffect, ComponentType } from 'react';
 
-import type { IEditSession, Position } from 'brace';
+import type {
+  Editor as OrigEditor,
+  IEditSession,
+  Position,
+  TextMode as OrigTextMode,
+} from 'brace';
 import type AceEditor from 'react-ace';
+import type { IAceEditorProps } from 'react-ace';
 
+import {
+  AsyncEsmComponent,
+  PlaceholderProps,
+} from 'src/components/AsyncEsmComponent';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { useTheme, css } from '@superset-ui/core';
 import { Global } from '@emotion/react';
-import { AsyncEsmComponent } from '../AsyncEsmComponent';
-import type {
-  AceCompleterKeyword,
-  AceModule,
-  AsyncAceEditorOptions,
-  AsyncAceEditorProps,
-  TextMode,
-  Editor,
-} from './types';
 
 export { getTooltipHTML } from './Tooltip';
+
+export interface AceCompleterKeywordData {
+  name: string;
+  value: string;
+  score: number;
+  meta: string;
+  docText?: string;
+  docHTML?: string;
+}
+
+export type TextMode = OrigTextMode & { $id: string };
+
+export interface AceCompleter {
+  insertMatch: (
+    data?: Editor | { value: string } | string,
+    options?: AceCompleterKeywordData,
+  ) => void;
+}
+
+export type Editor = OrigEditor & {
+  completer: AceCompleter;
+  completers: AceCompleter[];
+};
+
+export interface AceCompleterKeyword extends AceCompleterKeywordData {
+  completer?: AceCompleter;
+}
 
 /**
  * Async loaders to import brace modules. Must manually create call `import(...)`
@@ -70,6 +80,24 @@ export const aceModuleLoaders = {
   'theme/github': () => import('brace/theme/github'),
   'ext/language_tools': () => import('brace/ext/language_tools'),
   'ext/searchbox': () => import('brace/ext/searchbox'),
+};
+
+export type AceModule = keyof typeof aceModuleLoaders;
+
+export type AsyncAceEditorProps = IAceEditorProps & {
+  keywords?: AceCompleterKeyword[];
+};
+
+export type AceEditorMode = 'sql';
+export type AceEditorTheme = 'textmate' | 'github';
+export type AsyncAceEditorOptions = {
+  defaultMode?: AceEditorMode;
+  defaultTheme?: AceEditorTheme;
+  defaultTabSize?: number;
+  fontFamily?: string;
+  placeholder?: ComponentType<
+    PlaceholderProps & Partial<IAceEditorProps>
+  > | null;
 };
 
 /**
@@ -128,7 +156,7 @@ export function AsyncAceEditor(
         },
         ref,
       ) {
-        const token = useTheme();
+        const supersetTheme = useTheme();
         const langTools = acequire('ace/ext/language_tools');
         const setCompleters = useEffectEvent(
           (keywords: AceCompleterKeyword[]) => {
@@ -163,149 +191,38 @@ export function AsyncAceEditor(
         return (
           <>
             <Global
+              key="ace-tooltip-global"
               styles={css`
-                .ace_editor {
-                  border: 1px solid ${token.colorBorder} !important;
-                  background-color: ${token.colorBgContainer} !important;
-                }
-
-                /* Basic editor styles with dark mode support */
-                .ace_editor.ace-github,
-                .ace_editor.ace-textmate {
-                  background-color: ${token.colorBgContainer} !important;
-                  color: ${token.colorText} !important;
-                }
-
-                /* Adjust gutter colors */
-                .ace_editor .ace_gutter {
-                  background-color: ${token.colorBgElevated} !important;
-                  color: ${token.colorTextSecondary} !important;
-                }
-
-                /* Adjust selection color */
-                .ace_editor .ace_selection {
-                  background-color: ${token.colorPrimaryBgHover} !important;
-                }
-
-                /* Improve active line highlighting */
-                .ace_editor .ace_active-line {
-                  background-color: ${token.colorPrimaryBg} !important;
-                }
-
-                /* Fix indent guides and print margin (80 chars line) */
-                .ace_editor .ace_indent-guide,
-                .ace_editor .ace_print-margin {
-                  background-color: ${token.colorSplit} !important;
-                  opacity: 0.5;
-                }
-
-                /* Adjust cursor color */
-                .ace_editor .ace_cursor {
-                  color: ${token.colorPrimaryText} !important;
-                }
-
-                /* Syntax highlighting using semantic color tokens */
-                .ace_editor .ace_keyword {
-                  color: ${token.colorPrimaryText} !important;
-                }
-
-                .ace_editor .ace_string {
-                  color: ${token.colorSuccessText} !important;
-                }
-
-                .ace_editor .ace_constant {
-                  color: ${token.colorWarningActive} !important;
-                }
-
-                .ace_editor .ace_function {
-                  color: ${token.colorInfoText} !important;
-                }
-
-                .ace_editor .ace_comment {
-                  color: ${token.colorTextTertiary} !important;
-                }
-
-                .ace_editor .ace_variable {
-                  color: ${token.colorTextSecondary} !important;
-                }
-
-                /* Adjust tooltip styles */
                 .ace_tooltip {
-                  margin-left: ${token.margin}px;
-                  padding: 0px;
-                  background-color: ${token.colorBgElevated} !important;
-                  color: ${token.colorText} !important;
-                  border: 1px solid ${token.colorBorderSecondary};
-                  box-shadow: ${token.boxShadow};
-                  border-radius: ${token.borderRadius}px;
+                  all: unset;
+                  position: fixed;
+                  z-index: 9999;
+                  background: ${supersetTheme.colorBgLayout};
+                  border: 1px solid ${supersetTheme.colorBorder};
+                  padding: ${supersetTheme.sizeUnit}px
+                    ${supersetTheme.sizeUnit * 2}px;
+                  line-height: 1.4;
+                  max-width: 400px;
+                  min-width: 200px;
+                  pointer-events: auto;
+                  font-size: ${supersetTheme.fontSizeSM}px;
                 }
 
                 & .tooltip-detail {
-                  background-color: ${token.colorBgContainer};
-                  white-space: pre-wrap;
-                  word-break: break-all;
-                  min-width: ${token.sizeXXL * 5}px;
-                  max-width: ${token.sizeXXL * 10}px;
-
-                  & .tooltip-detail-head {
-                    background-color: ${token.colorBgElevated};
-                    color: ${token.colorText};
-                    display: flex;
-                    column-gap: ${token.padding}px;
-                    align-items: baseline;
-                    justify-content: space-between;
-                  }
-
                   & .tooltip-detail-title {
-                    display: flex;
-                    column-gap: ${token.padding}px;
+                    font-weight: bold;
+                    font-size: ${supersetTheme.fontSize}px;
                   }
-
                   & .tooltip-detail-body {
-                    word-break: break-word;
-                    color: ${token.colorTextSecondary};
+                    font-size: ${supersetTheme.fontSizeSM}px;
+                    padding: ${supersetTheme.sizeUnit}px;
                   }
-
                   & .tooltip-detail-head,
                   & .tooltip-detail-body {
-                    padding: ${token.padding}px ${token.paddingLG}px;
                   }
-
                   & .tooltip-detail-footer {
-                    border-top: 1px ${token.colorSplit} solid;
-                    padding: 0 ${token.paddingLG}px;
-                    color: ${token.colorTextTertiary};
-                    font-size: ${token.fontSizeSM}px;
+                    font-size: ${supersetTheme.fontSizeSM}px;
                   }
-
-                  & .tooltip-detail-meta {
-                    & > .ant-tag {
-                      margin-right: 0px;
-                    }
-                  }
-                }
-
-                /* Adjust the searchbox to match theme */
-                .ace_search {
-                  background-color: ${token.colorBgContainer} !important;
-                  color: ${token.colorText} !important;
-                  border: 1px solid ${token.colorBorder} !important;
-                }
-
-                .ace_search_field {
-                  background-color: ${token.colorBgContainer} !important;
-                  color: ${token.colorText} !important;
-                  border: 1px solid ${token.colorBorder} !important;
-                }
-
-                .ace_button {
-                  background-color: ${token.colorBgElevated} !important;
-                  color: ${token.colorText} !important;
-                  border: 1px solid ${token.colorBorder} !important;
-                }
-
-                .ace_button:hover {
-                  background-color: ${token.colorPrimaryBg} !important;
                 }
               `}
             />
@@ -381,5 +298,3 @@ export const ConfigEditor = AsyncAceEditor([
   'mode/yaml',
   'theme/github',
 ]);
-
-export type { AsyncAceEditorProps, Editor };

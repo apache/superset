@@ -16,23 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '../translation';
-
-export default function validateServerPagination(
-  v: unknown,
-  serverPagination: boolean,
-  maxValueWithoutServerPagination: number,
-  maxServer: number,
-) {
-  if (
-    Number(v) > +maxValueWithoutServerPagination &&
-    Number(v) <= maxServer &&
-    !serverPagination
-  ) {
-    return t(
-      'Server pagination needs to be enabled for values over %s',
-      maxValueWithoutServerPagination,
-    );
-  }
-  return false;
-}
+export const CONTRIBUTION_SUFFIX = '__contribution' as const;
