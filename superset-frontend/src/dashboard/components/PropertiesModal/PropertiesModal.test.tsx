@@ -186,7 +186,7 @@ describe('PropertiesModal', () => {
     expect(screen.getByRole('heading', { name: 'Access' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Colors' })).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Advanced' }),
+      screen.getByRole('heading', { name: 'Advanced down' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Certification' }),
@@ -195,7 +195,7 @@ describe('PropertiesModal', () => {
 
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Advanced' }),
+      screen.getByRole('button', { name: 'Advanced down' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
@@ -239,7 +239,7 @@ describe('PropertiesModal', () => {
 
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Advanced' }),
+      screen.getByRole('button', { name: 'Advanced down' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
