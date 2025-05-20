@@ -61,10 +61,6 @@ const AuthIconMap: Record<string, React.JSX.Element> = {
   facebook: <Icons.FacebookOutlined />,
 };
 
-const LoginContainer = styled(Flex)`
-  width: 100%;
-`;
-
 const StyledCard = styled(Card)`
   ${({ theme }) => css`
     width: 40%;
@@ -101,7 +97,13 @@ export default function Login() {
   };
 
   return (
-    <LoginContainer justify="center" data-test="login-form">
+    <Flex
+      justify="center"
+      data-test="login-form"
+      css={css`
+        width: 100%;
+      `}
+    >
       <StyledCard title={t('Sign in')} padded>
         {authType === AuthType.AuthOID && (
           <Flex justify="center" vertical gap="middle">
@@ -206,6 +208,6 @@ export default function Login() {
           </Flex>
         )}
       </StyledCard>
-    </LoginContainer>
+    </Flex>
   );
 }
