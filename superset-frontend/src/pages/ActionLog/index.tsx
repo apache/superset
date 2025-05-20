@@ -24,6 +24,7 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import ListView, { Filters, FilterOperator } from 'src/components/ListView';
 // eslint-disable-next-line no-restricted-imports
 import { Typography } from 'antd-v5';
+import { fetchUserOptions } from 'src/features/groups/utils';
 
 export type ActionLogObject = {
   user: {
@@ -64,11 +65,28 @@ function ActionLogList() {
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('User'),
+        Header: t('Users'),
         key: 'user',
         id: 'user',
-        input: 'search',
+        input: 'select',
         operator: FilterOperator.RelationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: async (filterValue, page, pageSize) =>
+          fetchUserOptions(filterValue, page, pageSize, addDangerToast),
+      },
+      {
+        Header: t('Dashboard Id'),
+        key: 'dashboard_id',
+        id: 'dashboard_id',
+        input: 'search',
+        operator: FilterOperator.Equals,
+      },
+      {
+        Header: t('Slice Id'),
+        key: 'slice_id',
+        id: 'slice_id',
+        input: 'search',
+        operator: FilterOperator.Equals,
       },
       {
         Header: t('Action'),
@@ -119,7 +137,7 @@ function ActionLogList() {
           row: {
             original: { action },
           },
-        }: any) => <span>{action}</span>,
+        }: any) => <span>{action ?? '...'}</span>,
       },
       {
         accessor: 'user',
@@ -128,7 +146,7 @@ function ActionLogList() {
           row: {
             original: { user },
           },
-        }: any) => <span>{user?.username ?? '—'}</span>,
+        }: any) => <span>{user.username ?? '...'}</span>,
       },
 
       {
@@ -139,27 +157,27 @@ function ActionLogList() {
           row: {
             original: { duration_ms },
           },
-        }: any) => <span>{duration_ms}</span>,
+        }: any) => <span>{duration_ms ?? '...'}</span>,
       },
       {
         accessor: 'dashboard_id',
         Header: t('Dashboard Id'),
-        hidden: true,
+        hidden: false,
         Cell: ({
           row: {
             original: { dashboard_id },
           },
-        }: any) => <span>{dashboard_id}</span>,
+        }: any) => <span>{dashboard_id ?? '...'}</span>,
       },
       {
         accessor: 'slice_id',
         Header: t('Slice Id'),
-        hidden: true,
+        hidden: false,
         Cell: ({
           row: {
             original: { slice_id },
           },
-        }: any) => <span>{slice_id}</span>,
+        }: any) => <span>{slice_id ?? '...'}</span>,
       },
       {
         accessor: 'json',
@@ -181,7 +199,7 @@ function ActionLogList() {
             `}
             copyable={!!json}
             ellipsis={{
-              tooltip: { styles: { root: { maxWidth: '580px' } }, title: json },
+              tooltip: { styles: { root: { maxWidth: '900px' } }, title: json },
             }}
           >
             {json ?? '...'}
@@ -226,7 +244,7 @@ function ActionLogList() {
           row: {
             original: { dttm },
           },
-        }: any) => <span>{dttm}</span>,
+        }: any) => <span>{dttm ?? '...'}</span>,
       },
     ],
     [],
