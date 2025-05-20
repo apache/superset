@@ -23,7 +23,7 @@ from collections import defaultdict
 from contextlib import closing
 from datetime import datetime
 from sys import getsizeof
-from typing import Any, cast, Optional, Union
+from typing import Any, cast, Optional, TypeVar, Union
 
 import backoff
 import msgpack
@@ -197,7 +197,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 return handle_query_error(ex, query)
 
 
-def apply_rls(query: Query, parsed_statement: BaseSQLStatement) -> None:
+def apply_rls(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
     """
     Modify statement inplace to ensure RLS rules are applied.
     """
@@ -215,29 +215,32 @@ def apply_rls(query: Query, parsed_statement: BaseSQLStatement) -> None:
     )
 
     # collect all RLS predicates
-    predicates = defaultdict(list)
+    predicates: dict[Table, list[Any]] = defaultdict(list)
     for table in parsed_statement.tables:
-        if predicates := get_predicates_for_table(
-            query.database,
+        if table_predicates := get_predicates_for_table(
             table,
+            query.database,
             query.catalog,
             default_schema,
         ):
             predicates[table].extend(
-                parsed_statement.parse_predicate(predicate) for predicate in predicates
+                parsed_statement.parse_predicate(predicate)
+                for predicate in table_predicates
             )
 
     parsed_statement.apply_rls(query.catalog, default_schema, predicates, method)
 
 
 def get_predicates_for_table(
-    database: Database,
     table: Table,
+    database: Database,
     catalog: str,
     schema: str,
 ) -> list[str]:
     """
     Get the RLS predicates for a table.
+
+    This is used to inject RLS rules into SQL statements run in SQL Lab.
     """
     dataset = (
         db.session.query(SqlaTable)
@@ -265,7 +268,10 @@ def get_predicates_for_table(
     ]
 
 
-def apply_ctas(query: Query, parsed_statement: BaseSQLStatement) -> BaseSQLStatement:
+S = TypeVar("S", bound=BaseSQLStatement[Any])
+
+
+def apply_ctas(query: Query, parsed_statement: S) -> S:
     """
     Apply CTAS/CVAS.
     """
@@ -274,12 +280,18 @@ def apply_ctas(query: Query, parsed_statement: BaseSQLStatement) -> BaseSQLState
         prefix = f"tmp_{query.user_id}_table"
         query.tmp_table_name = start_dttm.strftime(f"{prefix}_%Y_%m_%d_%H_%M_%S")
 
-    table = Table(query.tmp_table_name, query.tmp_schema_name, query.catalog)
+    catalog = (
+        query.catalog
+        if query.database.db_engine_spec.supports_cross_catalog_queries
+        else None
+    )
+    table = Table(query.tmp_table_name, query.tmp_schema_name, catalog)
+    method = CTASMethod[query.ctas_method.upper()]
 
-    return parsed_statement.as_create_table(table, query.ctas_method)
+    return parsed_statement.as_create_table(table, method)  # type: ignore[return-value]
 
 
-def apply_limit(query: Query, parsed_statement: BaseSQLStatement) -> None:
+def apply_limit(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
     """
     Apply limit to the SQL statement.
     """
@@ -303,7 +315,7 @@ def apply_limit(query: Query, parsed_statement: BaseSQLStatement) -> None:
 def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # noqa: C901
     query: Query,
     cursor: Any,
-    log_params: Optional[dict[str, Any]],
+    log_params: Optional[dict[str, Any]] = None,
 ) -> SupersetResultSet:
     """Executes a single SQL statement"""
     database: Database = query.database
@@ -326,7 +338,7 @@ def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # no
             object_ref=__name__,
         ):
             with stats_timing("sqllab.query.time_executing_query", stats_logger):
-                db_engine_spec.execute_with_cursor(cursor, query.execute_sql, query)
+                db_engine_spec.execute_with_cursor(cursor, query.executed_sql, query)
 
             with stats_timing("sqllab.query.time_fetching_results", stats_logger):
                 logger.debug(
@@ -464,10 +476,16 @@ def execute_sql_statements(  # noqa: C901
             and not parsed_script.is_valid_ctas()
         ):
             raise SupersetInvalidCTASException()
-        elif not parsed_script.is_valid_cvas():
+        if (
+            query.ctas_method == CTASMethod.VIEW.name
+            and not parsed_script.is_valid_cvas()
+        ):
             raise SupersetInvalidCVASException()
 
-        parsed_script.statements[-1] = apply_ctas(query, parsed_script.statements[-1])
+        parsed_script.statements[-1] = apply_ctas(  # type: ignore
+            query,
+            parsed_script.statements[-1],
+        )
         query.select_as_cta_used = True
 
     for statement in parsed_script.statements:
