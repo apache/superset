@@ -1532,7 +1532,31 @@ class DeckGLMultiLayer(BaseViz):
 
         slice_ids = self.form_data.get("deck_slices")
         slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+
+        features: dict[str, list[Any]] = {}
+
+        for slc in slices:
+            form_data = slc.form_data
+
+            form_data["extra_filters"] = self.form_data.get("extra_filters", [])
+            form_data["extra_form_data"] = self.form_data.get("extra_form_data", {})
+            form_data["adhoc_filters"] = self.form_data.get("adhoc_filters")
+
+            viz_type_name = form_data.get("viz_type")
+            viz_class = viz_types.get(viz_type_name)
+            if not viz_class:
+                continue  # skip unknown viz types
+
+            viz_instance = viz_class(datasource=slc.datasource, form_data=form_data)
+            payload = viz_instance.get_payload()
+
+            if payload and "data" in payload and "features" in payload["data"]:
+                if viz_type_name not in features:
+                    features[viz_type_name] = []
+                features[viz_type_name].extend(payload["data"]["features"])
+
         return {
+            "features": features,
             "mapboxApiKey": config["MAPBOX_API_KEY"],
             "slices": [slc.data for slc in slices],
         }

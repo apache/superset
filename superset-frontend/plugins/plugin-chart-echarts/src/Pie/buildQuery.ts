@@ -16,14 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  getMetricLabel,
+  QueryFormData,
+} from '@superset-ui/core';
+import { getContributionLabel } from './utils';
 
 export default function buildQuery(formData: QueryFormData) {
   const { metric, sort_by_metric } = formData;
+  const metricLabel = getMetricLabel(metric);
+
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
       ...(sort_by_metric && { orderby: [[metric, false]] }),
+      post_processing: [
+        {
+          operation: 'contribution',
+          options: {
+            columns: [metricLabel],
+            rename_columns: [getContributionLabel(metricLabel)],
+          },
+        },
+      ],
     },
   ]);
 }
