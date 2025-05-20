@@ -113,7 +113,6 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
 
-    // Memoize default column definition
     const defaultColDef = useMemo<ColDef>(
       () => ({
         flex: 1,
