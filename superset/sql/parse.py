@@ -439,22 +439,26 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
-    def as_cte(self, alias: str = "__cte") -> SQLStatement:
+    def as_cte(self, alias: str = "__cte") -> BaseSQLStatement[InternalRepresentation]:
         """
         Rewrite the statement as a CTE.
 
         :param alias: The alias to use for the CTE.
-        :return: A new SQLStatement with the CTE.
+        :return: A new BaseSQLStatement[InternalRepresentation] with the CTE.
         """
         raise NotImplementedError()
 
-    def as_create_table(self, table: Table, method: CTASMethod) -> SQLStatement:
+    def as_create_table(
+        self,
+        table: Table,
+        method: CTASMethod,
+    ) -> BaseSQLStatement[InternalRepresentation]:
         """
         Rewrite the statement as a `CREATE TABLE AS` statement.
 
         :param table: The table to create.
         :param method: The method to use for creating the table.
-        :return: A new SQLStatement with the CTE.
+        :return: A new BaseSQLStatement[InternalRepresentation] with the CTE.
         """
         raise NotImplementedError()
 
