@@ -90,7 +90,7 @@ describe('Dashboards list', () => {
     it('should bulk select in list mode', () => {
       toggleBulkSelect();
       cy.get('[aria-label="Select all"]').click();
-      cy.get('.antd5-checkbox-input')
+      cy.get('.ant-checkbox-input')
         .should('be.checked')
         .should('have.length', 6);
       cy.getBySel('bulk-select-copy').contains('5 Selected');

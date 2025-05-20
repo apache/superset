@@ -36,11 +36,11 @@ const StyledInputPassword = styled(Input.Password)`
 `;
 
 const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
-  .antd5-form-item-children-icon {
+  .ant-form-item-children-icon {
     display: none;
   }
   ${hasError &&
-  `.antd5-form-item-control-input-content {
+  `.ant-form-item-control-input-content {
       position: relative;
       &:after {
         content: ' ';
@@ -64,7 +64,7 @@ const StyledFormGroup = styled('div')`
     margin: 0;
   }
   margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
-  .antd5-form-item {
+  .ant-form-item {
     margin-bottom: 0;
   }
 `;

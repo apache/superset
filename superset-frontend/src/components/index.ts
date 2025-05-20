@@ -201,7 +201,11 @@ export { Tag } from './Tag';
 
 export { TreeSelect, type TreeSelectProps } from './TreeSelect';
 
-export { Typography, type TypographyProps } from './Typography';
+export {
+  Typography,
+  type TypographyProps,
+  type ParagraphProps,
+} from './Typography';
 
 export { Image, type ImageProps } from './Image';
 export { Upload, type UploadFile, type UploadChangeParam } from './Upload';

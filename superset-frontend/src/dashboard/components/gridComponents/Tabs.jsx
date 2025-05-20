@@ -87,19 +87,19 @@ const StyledTabsContainer = styled.div`
       position: relative;
     }
 
-    .antd5-tabs {
+    .ant-tabs {
       overflow: visible;
 
-      .antd5-tabs-nav-wrap {
+      .ant-tabs-nav-wrap {
         min-height: ${theme.sizeUnit * 12.5}px;
       }
 
-      .antd5-tabs-content-holder {
+      .ant-tabs-content-holder {
         overflow: visible;
       }
     }
 
-    div .antd5-tabs-tab-btn {
+    div .ant-tabs-tab-btn {
       text-transform: none;
     }
   `}

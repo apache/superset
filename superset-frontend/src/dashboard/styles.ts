@@ -67,9 +67,9 @@ export const chartHeaderStyles = (theme: SupersetTheme) => css`
 
 export const filterCardPopoverStyle = (theme: SupersetTheme) => css`
   .filter-card-tooltip {
-    &.antd5-tooltip-placement-bottom {
+    &.ant-tooltip-placement-bottom {
       padding-top: 0;
-      & .antd5-tooltip-arrow {
+      & .ant-tooltip-arrow {
         top: -13px;
       }
     }
@@ -77,10 +77,10 @@ export const filterCardPopoverStyle = (theme: SupersetTheme) => css`
 `;
 
 export const chartContextMenuStyles = (theme: SupersetTheme) => css`
-  .antd5-dropdown-menu.chart-context-menu {
+  .ant-dropdown-menu.chart-context-menu {
     min-width: ${theme.sizeUnit * 43}px;
   }
-  .antd5-dropdown-menu-submenu.chart-context-submenu {
+  .ant-dropdown-menu-submenu.chart-context-submenu {
     max-width: ${theme.sizeUnit * 60}px;
     min-width: ${theme.sizeUnit * 40}px;
   }
@@ -88,10 +88,10 @@ export const chartContextMenuStyles = (theme: SupersetTheme) => css`
 
 export const focusStyle = (theme: SupersetTheme) => css`
   a,
-  .antd5-tabs-tabpane,
-  .antd5-tabs-tab-btn,
+  .ant-tabs-tabpane,
+  .ant-tabs-tab-btn,
   .superset-button,
-  .superset-button.antd5-dropdown-trigger,
+  .superset-button.ant-dropdown-trigger,
   .header-controls span {
     &:focus-visible {
       box-shadow: 0 0 0 2px ${theme.colorPrimaryText};
@@ -101,10 +101,10 @@ export const focusStyle = (theme: SupersetTheme) => css`
     }
     &:not(
         .superset-button,
-        .antd5-menu-item,
+        .ant-menu-item,
         a,
         .fave-unfave-icon,
-        .antd5-tabs-tabpane,
+        .ant-tabs-tabpane,
         .header-controls span
       ) {
       &:focus-visible {

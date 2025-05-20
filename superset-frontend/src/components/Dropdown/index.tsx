@@ -18,7 +18,7 @@
  */
 import { ReactElement, cloneElement } from 'react';
 
-import { Dropdown as AntdDropdown, DropdownProps } from 'antd-v5';
+import { Dropdown as AntdDropdown, DropdownProps } from 'antd';
 import { styled } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
 import {

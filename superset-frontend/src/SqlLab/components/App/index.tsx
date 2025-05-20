@@ -68,19 +68,19 @@ const SqlLabStyles = styled.div`
         height: 100%;
       }
 
-      .antd5-tabs-content-holder {
+      .ant-tabs-content-holder {
         /* This is needed for Safari */
         height: 100%;
       }
 
-      .antd5-tabs-content {
+      .ant-tabs-content {
         height: 100%;
         position: relative;
         background-color: ${theme.colorBgContainer};
         overflow-x: auto;
         overflow-y: auto;
 
-        > .antd5-tabs-tabpane {
+        > .ant-tabs-tabpane {
           position: absolute;
           top: 0;
           right: 0;
@@ -89,11 +89,11 @@ const SqlLabStyles = styled.div`
         }
       }
 
-      .ResultsModal .antd5-modal-body {
+      .ResultsModal .ant-modal-body {
         min-height: ${theme.sizeUnit * 140}px;
       }
 
-      .antd5-modal-body {
+      .ant-modal-body {
         overflow: auto;
       }
     }

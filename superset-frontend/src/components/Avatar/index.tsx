@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Avatar as AntdAvatar } from 'antd-v5';
+import { Avatar as AntdAvatar } from 'antd';
 import type { AvatarProps, GroupProps as AvatarGroupProps } from './types';
 
 export function Avatar(props: AvatarProps) {

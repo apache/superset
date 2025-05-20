@@ -456,19 +456,19 @@ export function applyAdvancedTimeRangeFilterOnDashboard(
   endRange?: string,
 ) {
   cy.get('.control-label').contains('RANGE TYPE').should('be.visible');
-  cy.get('.antd5-popover-content .antd5-select-selector')
+  cy.get('.ant-popover-content .ant-select-selector')
     .should('be.visible')
     .click();
   cy.get(`[label="Advanced"]`).should('be.visible').click();
   cy.get('.section-title').contains('Advanced Time Range').should('be.visible');
   if (startRange) {
-    cy.get('.antd5-popover-inner-content')
+    cy.get('.ant-popover-inner-content')
       .find('[class^=ant-input]')
       .first()
       .type(`${startRange}`);
   }
   if (endRange) {
-    cy.get('.antd5-popover-inner-content')
+    cy.get('.ant-popover-inner-content')
       .find('[class^=ant-input]')
       .last()
       .type(`${endRange}`);
@@ -499,7 +499,7 @@ export function inputNativeFilterDefaultValue(
       )
         .eq(1)
         .within(() => {
-          cy.get('.antd5-select-selection-search-input').type(
+          cy.get('.ant-select-selection-search-input').type(
             `${defaultValue}{enter}`,
             { force: true },
           );
@@ -507,10 +507,8 @@ export function inputNativeFilterDefaultValue(
     });
   } else {
     cy.getBySel('default-input').within(() => {
-      cy.get('.antd5-select-selection-search-input').click();
-      cy.get('.antd5-select-item-option-content')
-        .contains(defaultValue)
-        .click();
+      cy.get('.ant-select-selection-search-input').click();
+      cy.get('.ant-select-item-option-content').contains(defaultValue).click();
     });
   }
 }

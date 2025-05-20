@@ -17,14 +17,14 @@
  * under the License.
  */
 import { SupersetTheme } from '@superset-ui/core';
-import { Card as AntdCard } from 'antd-v5';
+import { Card as AntdCard } from 'antd';
 import type { CardProps } from './types';
 
 const CustomCard = ({ padded, ...props }: CardProps) => (
   <AntdCard
     {...props}
     css={(theme: SupersetTheme) => ({
-      '.antd5-card-body': {
+      '.ant-card-body': {
         padding: padded ? theme.sizeUnit * 4 : theme.sizeUnit,
       },
     })}

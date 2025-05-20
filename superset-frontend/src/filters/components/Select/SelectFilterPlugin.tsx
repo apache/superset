@@ -93,8 +93,8 @@ const StyledSpace = styled(Space)<{
     flex-shrink: 0;
   }
 
-  &.antd5-space {
-    .antd5-space-item {
+  &.ant-space {
+    .ant-space-item {
       width: ${({ inverseSelection }) => (!inverseSelection ? '100%' : 'auto')};
     }
   }
@@ -328,7 +328,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       return;
     }
 
-    // Case 2: Handle the default to first Value case
+    if (filterState.value !== undefined) {
+      // Set the filter state value if it is defined
+      updateDataMask(filterState.value);
+      return;
+    }
+
+    // Handle the default to first Value case
     if (defaultToFirstItem) {
       // Set to first item if defaultToFirstItem is true
       const firstItem: SelectValue = data[0]
@@ -338,7 +344,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         updateDataMask(firstItem);
       }
     } else if (formData?.defaultValue) {
-      // Case 3 : Handle defalut value case
+      // Handle defalut value case
       updateDataMask(formData.defaultValue);
     }
   }, [

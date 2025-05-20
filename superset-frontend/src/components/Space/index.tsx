@@ -16,4 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { Space, type SpaceProps } from 'antd-v5';
+export { Space, type SpaceProps } from 'antd';

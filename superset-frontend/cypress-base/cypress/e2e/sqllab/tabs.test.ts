@@ -80,9 +80,9 @@ describe('SqlLab query tabs', () => {
       // configure some editor settings
       cy.get(editorInput).type('some random query string', { force: true });
       cy.get(queryLimitSelector).parent().click({ force: true });
-      cy.get('.antd5-dropdown-menu')
+      cy.get('.ant-dropdown-menu')
         .last()
-        .find('.antd5-dropdown-menu-item')
+        .find('.ant-dropdown-menu-item')
         .first()
         .click({ force: true });
 

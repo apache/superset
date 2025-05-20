@@ -26,15 +26,15 @@ const Wrapper = styled.div`
   flex-direction: column;
   height: 100%;
 
-  .antd5-tabs {
+  .ant-tabs {
     height: 100%;
   }
 
-  .antd5-tabs-content {
+  .ant-tabs-content {
     height: 100%;
   }
 
-  .antd5-tabs-tabpane {
+  .ant-tabs-tabpane {
     display: flex;
     flex-direction: column;
   }

@@ -89,7 +89,7 @@ describe('Visualization > World Map', () => {
     ).focus();
     cy.focused().type('greens{enter}');
     cy.get(
-      '.Control[data-test="linear_color_scheme"] .antd5-select-selection-item [data-test="greens"]',
+      '.Control[data-test="linear_color_scheme"] .ant-select-selection-item [data-test="greens"]',
     ).should('exist');
   });
 });

@@ -41,7 +41,7 @@ interface QueryHistoryProps {
 
 const StyledEmptyStateWrapper = styled.div`
   height: 100%;
-  .antd5-empty-image img {
+  .ant-empty-image img {
     margin-right: 28px;
   }
 

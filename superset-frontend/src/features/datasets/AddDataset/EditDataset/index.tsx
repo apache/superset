@@ -28,7 +28,7 @@ const StyledTabs = styled(Tabs)`
   padding-left: ${theme.sizeUnit * 4}px;
   padding-right: ${theme.sizeUnit * 4}px;
 
-  .antd5-tabs-top > .antd5-tabs-nav::before {
+  .ant-tabs-top > .ant-tabs-nav::before {
     width: ${theme.sizeUnit * 50}px;
   }
   `}

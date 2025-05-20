@@ -300,11 +300,11 @@ const ColorSchemeControl = ({
       <Select
         css={css`
           width: 100%;
-          & .antd5-select-item.antd5-select-item-group {
+          & .ant-select-item.ant-select-item-group {
             padding-left: ${theme.sizeUnit}px;
             font-size: ${theme.fontSize}px;
           }
-          & .antd5-select-item-option-grouped {
+          & .ant-select-item-option-grouped {
             padding-left: ${theme.sizeUnit * 3}px;
           }
         `}

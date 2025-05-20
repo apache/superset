@@ -76,22 +76,22 @@ const HorizontalOverflowFilterControlTitleBox = styled(
 
 const VerticalFilterControlContainer = styled(Form)`
   width: 100%;
-  && .antd5-form-item-label > label {
+  && .ant-form-item-label > label {
     text-transform: none;
     width: 100%;
     padding-right: ${({ theme }) => theme.sizeUnit * 11}px;
   }
-  .antd5-form-item-tooltip {
+  .ant-form-item-tooltip {
     margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
 const HorizontalFilterControlContainer = styled(Form)`
-  && .antd5-form-item-label > label {
+  && .ant-form-item-label > label {
     margin-bottom: 0;
     text-transform: none;
   }
-  .antd5-form-item-tooltip {
+  .ant-form-item-tooltip {
     margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
@@ -99,7 +99,7 @@ const HorizontalFilterControlContainer = styled(Form)`
 const HorizontalOverflowFilterControlContainer = styled(
   VerticalFilterControlContainer,
 )`
-  && .antd5-form-item-label {
+  && .ant-form-item-label {
     line-height: 1;
     & > label {
       padding-right: unset;
@@ -110,11 +110,9 @@ const HorizontalOverflowFilterControlContainer = styled(
 const VerticalFormItem = styled(StyledFormItem)<{
   inverseSelection: boolean;
 }>`
-  .antd5-form-item-label {
+  .ant-form-item-label {
     overflow: visible;
-    label.antd5-form-item-required:not(
-        .antd5-form-item-required-mark-optional
-      ) {
+    label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
       &::after {
         display: none;
       }
@@ -146,13 +144,11 @@ const HorizontalFormItem = styled(StyledFormItem)<{
     align-items: center;
   }
 
-  .antd5-form-item-label {
+  .ant-form-item-label {
     overflow: visible;
     padding-bottom: 0;
     margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
-    label.antd5-form-item-required:not(
-        .antd5-form-item-required-mark-optional
-      ) {
+    label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
       &::after {
         display: none;
       }
@@ -163,7 +159,7 @@ const HorizontalFormItem = styled(StyledFormItem)<{
     }
   }
 
-  .antd5-form-item-control {
+  .ant-form-item-control {
     width: ${({ inverseSelection }) => (inverseSelection ? 252 : 164)}px;
   }
 

@@ -97,7 +97,7 @@ export const MenuTrigger = styled(Button)`
     padding: 0;
     border: 1px solid ${theme.colors.primary.dark2};
 
-    &.antd5-btn > span.anticon {
+    &.ant-btn > span.anticon {
       line-height: 0;
       transition: inherit;
     }

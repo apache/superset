@@ -42,7 +42,7 @@ import {
   SORT_BY as DATASET_SORT_BY,
 } from 'src/features/datasets/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { InputRef } from 'antd-v5';
+import { InputRef } from 'antd';
 import { Loading } from '../Loading';
 import { Input } from '../Input';
 import { FacePile } from '../FacePile';
@@ -61,7 +61,7 @@ const CHANGE_WARNING_MSG = t(
 );
 
 const CustomStyledModal = styled(Modal)`
-  .antd5-modal-body {
+  .ant-modal-body {
     display: flex;
     flex-direction: column;
   }

@@ -66,7 +66,7 @@ describe('Add database', () => {
     cy.focused().type('badhost', { force: true });
     cy.get('input[name="port"]').focus();
     cy.focused().type('5432', { force: true });
-    cy.get('.antd5-form-item-explain-error').contains(
+    cy.get('.ant-form-item-explain-error').contains(
       "The hostname provided can't be resolved",
     );
   });
@@ -79,6 +79,6 @@ describe('Add database', () => {
     cy.get('input[name="port"]').focus();
     cy.focused().type('123', { force: true });
     cy.get('input[name="database"]').focus();
-    cy.get('.antd5-form-item-explain-error').contains('The port is closed');
+    cy.get('.ant-form-item-explain-error').contains('The port is closed');
   });
 });

@@ -18,11 +18,11 @@
  */
 
 import { useTheme } from '@superset-ui/core';
-import { Tooltip as BaseTooltip } from 'antd-v5';
+import { Tooltip as BaseTooltip } from 'antd';
 import {
   TooltipProps as BaseTooltipProps,
   TooltipPlacement as BaseTooltipPlacement,
-} from 'antd-v5/es/tooltip';
+} from 'antd/es/tooltip';
 
 export type TooltipProps = BaseTooltipProps;
 export type TooltipPlacement = BaseTooltipPlacement;

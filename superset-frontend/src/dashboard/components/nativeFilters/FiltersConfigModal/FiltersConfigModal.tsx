@@ -70,7 +70,7 @@ const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
     min-width: auto;
   }
 
-  .antd5-modal-body {
+  .ant-modal-body {
     padding: 0px;
   }
 
@@ -79,10 +79,10 @@ const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
     css`
       height: 100%;
 
-      .antd5-modal-body {
+      .ant-modal-body {
         flex: 1 1 auto;
       }
-      .antd5-modal-content {
+      .ant-modal-content {
         height: 100%;
       }
     `}

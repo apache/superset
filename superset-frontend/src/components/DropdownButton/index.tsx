@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Dropdown } from 'antd-v5';
+import { Dropdown } from 'antd';
 import { kebabCase } from 'lodash';
 import { css, useTheme } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';
@@ -34,7 +34,7 @@ export const DropdownButton = ({
   // divider implementation for default (non-primary) buttons
   const defaultBtnCss = css`
     ${(!buttonType || buttonType === 'default') &&
-    `.antd5-dropdown-trigger {
+    `.ant-dropdown-trigger {
       position: relative;
       &:before {
         content: '';
@@ -56,7 +56,7 @@ export const DropdownButton = ({
       css={[
         defaultBtnCss,
         css`
-          .antd5-btn {
+          .ant-btn {
             height: 30px;
             box-shadow: none;
             font-size: ${theme.fontSizeSM}px;

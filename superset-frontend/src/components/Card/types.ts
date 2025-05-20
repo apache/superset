@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { CardProps as AntdCardProps } from 'antd-v5/es/card';
+import type { CardProps as AntdCardProps } from 'antd/es/card';
 
 export interface CardProps extends AntdCardProps {
   padded?: boolean;

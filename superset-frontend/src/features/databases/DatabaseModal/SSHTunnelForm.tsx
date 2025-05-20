@@ -18,10 +18,8 @@
  */
 import { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
-import { Input, Form, FormLabel, Col, Row } from 'src/components';
+import { Input, Form, FormLabel, Col, Row, Tooltip } from 'src/components';
 import { Radio } from 'src/components/Radio';
-// eslint-disable-next-line no-restricted-imports
-import { Tooltip } from 'antd'; // TODO: Remove antd
 import { Icons } from 'src/components/Icons';
 import { DatabaseObject, FieldPropTypes } from '../types';
 import { AuthType } from '.';

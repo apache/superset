@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Modal, Tooltip, Flex, Select } from 'antd-v5';
+import { Modal, Tooltip, Flex, Select } from 'antd';
 import { Button, JsonEditor } from 'src/components';
 import {
   themeObject,

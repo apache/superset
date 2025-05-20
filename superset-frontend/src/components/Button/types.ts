@@ -23,7 +23,7 @@ import type {
   ButtonType,
   ButtonVariantType,
   ButtonColorType,
-} from 'antd-v5/es/button';
+} from 'antd/es/button';
 import { IconType } from 'src/components/Icons/types';
 import type { TooltipPlacement } from '../Tooltip/types';
 

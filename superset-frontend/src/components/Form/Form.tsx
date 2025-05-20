@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Form as AntdForm } from 'antd-v5';
+import { Form as AntdForm } from 'antd';
 import { FormProps } from './types';
 
 function CustomForm(props: FormProps) {

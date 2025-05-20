@@ -16,4 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { Image, type ImageProps } from 'antd-v5';
+export { Image, type ImageProps } from 'antd';

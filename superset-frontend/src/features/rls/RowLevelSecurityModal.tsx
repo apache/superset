@@ -37,7 +37,7 @@ import { FilterType, RLSObject, RoleObject, TableObject } from './types';
 const noMargins = css`
   margin: 0;
 
-  .antd5-input {
+  .ant-input {
     margin: 0;
   }
 `;
@@ -46,7 +46,7 @@ const StyledModal = styled(Modal)`
   max-width: 1200px;
   min-width: min-content;
   width: 100%;
-  .antd5-modal-footer {
+  .ant-modal-footer {
     white-space: nowrap;
   }
 `;

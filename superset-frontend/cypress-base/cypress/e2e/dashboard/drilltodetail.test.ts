@@ -34,8 +34,8 @@ function openModalFromMenu(chartType: string) {
   cy.get(
     `[data-test-viz-type='${chartType}'] [aria-label='More Options']`,
   ).click();
-  cy.get('.antd5-dropdown')
-    .not('.antd5-dropdown-hidden')
+  cy.get('.ant-dropdown')
+    .not('.ant-dropdown-hidden')
     .find("[role='menu'] [role='menuitem']")
     .eq(5)
     .should('contain', 'Drill to detail')
@@ -46,8 +46,8 @@ function openModalFromMenu(chartType: string) {
 function drillToDetail(targetMenuItem: string) {
   interceptSamples();
 
-  cy.get('.antd5-dropdown')
-    .not('.antd5-dropdown-hidden')
+  cy.get('.ant-dropdown')
+    .not('.ant-dropdown-hidden')
     .first()
     .find("[role='menu'] [role='menuitem']")
     .contains(new RegExp(`^${targetMenuItem}$`))
@@ -61,14 +61,14 @@ function drillToDetail(targetMenuItem: string) {
 const drillToDetailBy = (targetDrill: string) => {
   interceptSamples();
 
-  cy.get('.antd5-dropdown:not(.antd5-dropdown-hidden)')
+  cy.get('.ant-dropdown:not(.ant-dropdown-hidden)')
     .should('be.visible')
     .find("[role='menu'] [role='menuitem']")
     .contains(/^Drill to detail by$/)
     .trigger('mouseover', { force: true });
 
   cy.get(
-    '.antd5-dropdown-menu-submenu:not(.antd5-dropdown-menu-submenu-hidden) [data-test="drill-to-detail-by-submenu"]',
+    '.ant-dropdown-menu-submenu:not(.ant-dropdown-menu-submenu-hidden) [data-test="drill-to-detail-by-submenu"]',
   )
     .should('be.visible')
     .find('[role="menuitem"]')
@@ -146,7 +146,7 @@ describe('Drill to detail modal', () => {
       it('refreshes the data', () => {
         openModalFromMenu('big_number_total');
         // move to the last page
-        cy.get('.antd5-pagination-item').eq(5).click();
+        cy.get('.ant-pagination-item').eq(5).click();
         // skips error on pagination
         cy.on('uncaught:exception', () => false);
         cy.wait('@samples');
@@ -154,7 +154,7 @@ describe('Drill to detail modal', () => {
         cy.get("[aria-label='Reload']").click();
         cy.wait('@samples');
         // make sure it started back from first page
-        cy.get('.antd5-pagination-item-active').should('contain', '1');
+        cy.get('.ant-pagination-item-active').should('contain', '1');
       });
 
       it('paginates', () => {
@@ -165,13 +165,13 @@ describe('Drill to detail modal', () => {
           expect($rows).to.contain('Amy');
         });
         // checking the paginated data
-        cy.get('.antd5-pagination-item')
+        cy.get('.ant-pagination-item')
           .should('have.length', 6)
           .should($pages => {
             expect($pages).to.contain('1');
             expect($pages).to.contain('1514');
           });
-        cy.get('.antd5-pagination-item').eq(4).click();
+        cy.get('.ant-pagination-item').eq(4).click();
         // skips error on pagination
         cy.on('uncaught:exception', () => false);
         cy.wait('@samples');
@@ -184,7 +184,7 @@ describe('Drill to detail modal', () => {
 
         cy.get('.virtual-grid').contains('Juan').should('not.be.visible');
 
-        cy.get('.antd5-pagination-item').eq(0).click();
+        cy.get('.ant-pagination-item').eq(0).click();
 
         cy.get('.virtual-grid').contains('Aaron').should('be.visible');
       });
@@ -455,7 +455,7 @@ describe('Drill to detail modal', () => {
           // checking the filter
           cy.getBySel('filter-val').should('contain', 'boy');
           cy.getBySel('row-count-label').should('contain', '39.2k rows');
-          cy.get('.antd5-pagination-item')
+          cy.get('.ant-pagination-item')
             .should('have.length', 6)
             .then($pages => {
               expect($pages).to.contain('1');
@@ -463,11 +463,11 @@ describe('Drill to detail modal', () => {
             });
 
           // close the filter and test that data was reloaded
-          cy.getBySel('filter-col').find("[aria-label='close']").click();
+          cy.getBySel('filter-col').find("[aria-label='Close']").click();
           cy.wait('@samples');
           cy.getBySel('row-count-label').should('contain', '75.7k rows');
-          cy.get('.antd5-pagination-item-active').should('contain', '1');
-          cy.get('.antd5-pagination-item')
+          cy.get('.ant-pagination-item-active').should('contain', '1');
+          cy.get('.ant-pagination-item')
             .should('have.length', 6)
             .then($pages => {
               expect($pages).to.contain('1');

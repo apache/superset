@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Steps as AntdSteps } from 'antd-v5';
+import { Steps as AntdSteps } from 'antd';
 import { Steps, type StepsProps } from '.';
 
 export default {

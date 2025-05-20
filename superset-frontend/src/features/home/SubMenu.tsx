@@ -52,10 +52,10 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     float: right;
     position: absolute;
     right: 0;
-    ul.antd5-menu-root {
+    ul.ant-menu-root {
       padding: 0px;
     }
-    .antd5-row {
+    .ant-row {
       align-items: center;
     }
     li[role='menuitem'] {
@@ -78,19 +78,19 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     align-items: center;
   }
 
-  .menu > .antd5-menu {
+  .menu > .ant-menu {
     padding-left: ${({ theme }) => theme.sizeUnit * 5}px;
     line-height: ${({ theme }) => theme.sizeUnit * 5}px;
 
-    .antd5-menu-item {
+    .ant-menu-item {
       border-radius: ${({ theme }) => theme.borderRadius}px;
       font-size: ${({ theme }) => theme.fontSizeSM}px;
       padding: ${({ theme }) => theme.sizeUnit}px
         ${({ theme }) => theme.sizeUnit * 4}px;
       margin-right: ${({ theme }) => theme.sizeUnit}px;
     }
-    .antd5-menu-item:hover,
-    .antd5-menu-item:has(> span > .active) {
+    .ant-menu-item:hover,
+    .ant-menu-item:has(> span > .active) {
       background-color: ${({ theme }) => theme.colorPrimaryBgHover};
       color: ${({ theme }) => theme.colorPrimaryActive};
     }
@@ -116,7 +116,7 @@ const styledDisabled = (theme: SupersetTheme) => css`
     color: ${theme.colors.grayscale.light1};
   }
 
-  .antd5-menu-item-selected {
+  .ant-menu-item-selected {
     background-color: ${theme.colors.grayscale.light1};
   }
 `;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type { TooltipProps } from 'antd-v5/es/tooltip';
+export type { TooltipProps } from 'antd/es/tooltip';
 
 export type TooltipPlacement =
   | 'top'

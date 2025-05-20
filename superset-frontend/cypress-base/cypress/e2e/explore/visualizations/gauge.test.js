@@ -69,7 +69,7 @@ describe('Visualization > Gauge', () => {
     cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
     cy.focused().type('bnbColors{enter}');
     cy.get(
-      '.Control[data-test="color_scheme"] .antd5-select-selection-item [data-test="bnbColors"]',
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="bnbColors"]',
     ).should('exist');
   });
 });

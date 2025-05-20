@@ -83,11 +83,11 @@ export function saveChartToDashboard(chartName: string, dashboardName: string) {
       cy.wait(500);
       cy.wrap($modal)
         .find(
-          '.antd5-select-selection-search-input[aria-label="Select a dashboard"]',
+          '.ant-select-selection-search-input[aria-label="Select a dashboard"]',
         )
         .type(dashboardName, { force: true });
       cy.wrap($modal)
-        .find(`.antd5-select-item-option[title="${dashboardName}"]`)
+        .find(`.ant-select-item-option[title="${dashboardName}"]`)
         .click();
       cy.getBySel('btn-modal-save').click();
       cy.wait('@update');

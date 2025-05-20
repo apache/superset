@@ -19,7 +19,7 @@
 import { memo } from 'react';
 import { css, t } from '@superset-ui/core';
 import { formatSelectOptions } from '@superset-ui/chart-controls';
-import { Select } from 'antd-v5';
+import { Select } from 'antd';
 
 export type SizeOption = [number, string];
 

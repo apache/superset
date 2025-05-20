@@ -99,18 +99,18 @@ const WelcomeContainer = styled.div`
     }
   }
 
-  .antd5-card-meta-description {
+  .ant-card-meta-description {
     margin-top: ${({ theme }) => theme.sizeUnit}px;
   }
 
-  .antd5-card.ant-card-bordered {
+  .ant-card.ant-card-bordered {
     border: 1px solid ${({ theme }) => theme.colorBorder};
   }
 
   .loading-cards {
     margin-top: ${({ theme }) => theme.sizeUnit * 8}px;
 
-    .antd5-card-cover > div {
+    .ant-card-cover > div {
       height: 168px;
     }
   }
