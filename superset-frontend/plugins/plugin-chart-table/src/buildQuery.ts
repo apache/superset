@@ -127,7 +127,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         // default to ordering by first metric in descending order
         // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
         // Above is the explaination of the behaviour that why does sort descending control
-        // seems non response
+        // seems non responsive
         // Hence now we will show the sort descending checkbox only sort by metric is provided
         orderby = [[metrics[0], false]];
       }
