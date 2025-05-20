@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { theme as antdThemeImport } from 'antd-v5';
+import { theme as antdThemeImport } from 'antd';
 import { Theme } from './Theme';
 import { AnyThemeConfig } from './types';
 
