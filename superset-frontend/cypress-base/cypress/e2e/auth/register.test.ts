@@ -25,7 +25,7 @@ describe('Register view', () => {
   });
 
   it('should load register page', () => {
-    cy.getBySel('login-form').should('be.visible');
+    cy.getBySel('register-form').should('be.visible');
     cy.getBySel('username-input').should('be.visible');
     cy.getBySel('first-name-input').should('be.visible');
     cy.getBySel('last-name-input').should('be.visible');
