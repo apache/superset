@@ -17,14 +17,16 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 
 import Point from 'ol/geom/Point';
 import { View } from 'ol';
 import BaseEvent from 'ol/events/Event';
+import GeoJSON from 'ol/format/GeoJSON';
 import { unByKey } from 'ol/Observable';
-import { toLonLat } from 'ol/proj';
+import { toLonLat, transformExtent } from 'ol/proj';
 import { debounce } from 'lodash';
-import { fitMapToCharts } from '../util/mapUtil';
+import { fitMapToData } from '../util/mapUtil';
 import { ChartLayer } from './ChartLayer';
 import { createLayer } from '../util/layerUtil';
 import {
@@ -34,6 +36,10 @@ import {
   OlChartMapProps,
 } from '../types';
 import { isChartConfigEqual } from '../util/chartUtil';
+import {
+  getExtentFromFeatures,
+  getMapExtentPadding,
+} from '../util/geometryUtil';
 
 /** The name to reference the chart layer */
 const CHART_LAYER_NAME = 'openlayers-chart-layer';
@@ -48,12 +54,15 @@ export const OlChartMap = (props: OlChartMapProps) => {
     chartSize,
     chartVizType,
     layerConfigs,
+    mapExtentPadding,
     mapView,
     chartBackgroundColor,
     chartBackgroundBorderRadius,
     setControlValue,
     theme,
   } = props;
+
+  const locale = useSelector((state: any) => state?.common?.locale);
 
   const [currentChartConfigs, setCurrentChartConfigs] =
     useState<ChartConfig>(chartConfigs);
@@ -132,7 +141,11 @@ export const OlChartMap = (props: OlChartMapProps) => {
         break;
       }
       default: {
-        fitMapToCharts(olMap, chartConfigs);
+        fitMapToData(
+          olMap,
+          chartConfigs,
+          getMapExtentPadding(mapExtentPadding),
+        );
 
         const zoom = view.getZoom();
         const centerCoord = view.getCenter();
@@ -179,7 +192,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
       // The first layer in the list will be the upmost layer on the map.
       // With insertAt(0) we ensure that the chart layer will always
       // stay on top, though.
-      const createdLayersPromises = configs.map(createLayer);
+      const createdLayersPromises = configs.map(config => createLayer(config));
       const createdLayers = await Promise.allSettled(createdLayersPromises);
       createdLayers.forEach((createdLayer, idx) => {
         if (createdLayer.status === 'fulfilled' && createdLayer.value) {
@@ -255,16 +268,29 @@ export const OlChartMap = (props: OlChartMapProps) => {
       if (!chartLayer) {
         return;
       }
-      const extent = chartLayer.getExtent();
+
+      const features = new GeoJSON().readFeatures(chartLayer.chartConfigs, {
+        featureProjection: 'EPSG:4326',
+      });
+
+      const extent = getExtentFromFeatures(features);
+
       if (!extent) {
         return;
       }
+
+      const transformedExtent = transformExtent(
+        extent,
+        'EPSG:4326',
+        olMap.getView().getProjection(),
+      );
+
       const view = olMap.getView();
-      view.fit(extent, {
-        size: [250, 250],
-      });
+      const padding = getMapExtentPadding(mapExtentPadding);
+
+      view.fit(transformedExtent, { padding });
     }
-  }, [olMap, currentMapView.mode]);
+  }, [olMap, currentMapView.mode, mapExtentPadding]);
 
   /**
    * Send updated zoom to chart config control.
@@ -360,6 +386,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
         onMouseOver: deactivateInteractions,
         onMouseOut: activateInteractions,
         theme,
+        locale,
       });
 
       olMap.addLayer(newChartLayer);
@@ -393,6 +420,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
     chartSize.values,
     chartBackgroundColor,
     chartBackgroundBorderRadius,
+    locale,
   ]);
 
   return (

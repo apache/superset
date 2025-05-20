@@ -21,16 +21,18 @@ import { DataNode, TreeProps } from 'antd/lib/tree';
 import { ControlComponentProps } from '@superset-ui/chart-controls';
 import { Style } from 'geostyler-style';
 import { CardStyleProps } from 'geostyler/dist/Component/CardStyle/CardStyle';
+import { FeatureCollection, GeoJsonGeometryTypes } from 'geojson';
+import { QueryFormData } from '@superset-ui/core';
 
 export interface BaseLayerConf {
   title: string;
-  url: string;
   type: string;
   attribution?: string;
 }
 
 export interface WfsLayerConf extends BaseLayerConf {
   type: 'WFS';
+  url: string;
   typeName: string;
   version: string;
   maxFeatures?: number;
@@ -39,12 +41,19 @@ export interface WfsLayerConf extends BaseLayerConf {
 
 export interface XyzLayerConf extends BaseLayerConf {
   type: 'XYZ';
+  url: string;
 }
 
 export interface WmsLayerConf extends BaseLayerConf {
   type: 'WMS';
+  url: string;
   version: string;
   layersParam: string;
+}
+
+export interface DataLayerConf extends BaseLayerConf {
+  type: 'DATA';
+  style?: Style;
 }
 
 export interface FlatLayerDataNode extends DataNode {
@@ -61,7 +70,11 @@ export interface FlatLayerTreeProps {
   className?: string;
 }
 
-export type LayerConf = WmsLayerConf | WfsLayerConf | XyzLayerConf;
+export type LayerConf =
+  | WmsLayerConf
+  | WfsLayerConf
+  | XyzLayerConf
+  | DataLayerConf;
 
 export type DropInfoType<T extends TreeProps['onDrop']> = T extends Function
   ? Parameters<T>[0]
@@ -72,12 +85,37 @@ export interface EditItem {
   idx: number;
 }
 
-export type LayerConfigsControlProps = ControlComponentProps<LayerConf[]>;
+export type ColTypeMapping = {
+  /** Mapping between a column and its type */
+  [column_name: string]: string;
+};
+
+export type LayerConfigsControlProps = ControlComponentProps<LayerConf[]> & {
+  /** Set to true, if chart data should be included as layer. */
+  enableDataLayer?: boolean;
+  /** Mapping object providing the types for each column. Only needed if enableDataLayer is true.  */
+  colTypeMapping?: ColTypeMapping;
+  /** List of formData attributes to watch for changes. If a change was detected, the
+   *  chart data will be fetched again. Only needed if enableDataLayer is true.
+   */
+  formWatchers?: string[];
+  /** Transformer function that transforms the chart data into a feature collection.
+   *  Only needed if enableDataLayer is true.
+   */
+  featureCollectionTransformer?: (
+    data: any,
+    formData: QueryFormData,
+  ) => FeatureCollection;
+};
 
 export interface LayerConfigsPopoverContentProps {
   onClose?: () => void;
   onSave?: (layerConf: LayerConf) => void;
   layerConf: LayerConf;
+  enableDataLayer: boolean;
+  colTypeMapping?: ColTypeMapping;
+  dataFeatureCollection?: FeatureCollection;
+  includedGeometryTypes?: GeoJsonGeometryTypes[];
 }
 
 export interface GeoStylerWrapperProps extends CardStyleProps {

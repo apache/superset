@@ -21,6 +21,7 @@
  * Util for layer related operations.
  */
 
+import { t } from '@superset-ui/core';
 import OlParser from 'geostyler-openlayers-parser';
 import TileLayer from 'ol/layer/Tile';
 import TileWMS from 'ol/source/TileWMS';
@@ -29,8 +30,19 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import XyzSource from 'ol/source/XYZ';
 import GeoJSON from 'ol/format/GeoJSON';
-import { WmsLayerConf, WfsLayerConf, LayerConf, XyzLayerConf } from '../types';
-import { isWfsLayerConf, isWmsLayerConf, isXyzLayerConf } from '../typeguards';
+import {
+  WmsLayerConf,
+  WfsLayerConf,
+  LayerConf,
+  XyzLayerConf,
+  DataLayerConf,
+} from '../types';
+import {
+  isDataLayerConf,
+  isWfsLayerConf,
+  isWmsLayerConf,
+  isXyzLayerConf,
+} from '../typeguards';
 import { isVersionBelow } from './serviceUtil';
 
 /**
@@ -133,7 +145,36 @@ export const createWfsLayer = async (wfsLayerConf: WfsLayerConf) => {
 
   return new VectorLayer({
     source: wfsSource,
-    // @ts-ignore
+    style: writeStyleResult?.output,
+  });
+};
+
+/**
+ * Create a DATA layer.
+ *
+ * @param dataLayerConf The layer configuration
+ * @param featureCollection The featureCollection for the layer source
+ *
+ * @returns The created DATA layer
+ */
+export const createDataLayer = async (dataLayerConf: DataLayerConf) => {
+  const { attribution, style } = dataLayerConf;
+  const dataSource = new VectorSource({
+    attributions: attribution,
+  });
+
+  let writeStyleResult;
+  if (style) {
+    const olParser = new OlParser();
+    writeStyleResult = await olParser.writeStyle(style);
+    if (writeStyleResult.errors) {
+      console.warn('Could not create ol-style', writeStyleResult.errors);
+      return undefined;
+    }
+  }
+
+  return new VectorLayer({
+    source: dataSource,
     style: writeStyleResult?.output,
   });
 };
@@ -142,6 +183,7 @@ export const createWfsLayer = async (wfsLayerConf: WfsLayerConf) => {
  * Create a layer instance with the provided configuration.
  *
  * @param layerConf The layer configuration
+ * @param featureCollection The featureCollection for the dataLayer
  *
  * @returns The created layer
  */
@@ -153,8 +195,38 @@ export const createLayer = async (layerConf: LayerConf) => {
     layer = await createWfsLayer(layerConf);
   } else if (isXyzLayerConf(layerConf)) {
     layer = createXyzLayer(layerConf);
+  } else if (isDataLayerConf(layerConf)) {
+    layer = await createDataLayer(layerConf);
   } else {
     console.warn('Provided layerconfig is not recognized');
   }
   return layer;
 };
+
+export const getDefaultStyle = () => ({
+  name: t('Default Style'),
+  rules: [
+    {
+      name: t('Default Rule'),
+      symbolizers: [
+        {
+          kind: 'Line',
+          // eslint-disable-next-line theme-colors/no-literal-colors
+          color: '#000000',
+          width: 2,
+        },
+        {
+          kind: 'Mark',
+          wellKnownName: 'circle',
+          // eslint-disable-next-line theme-colors/no-literal-colors
+          color: '#000000',
+        },
+        {
+          kind: 'Fill',
+          // eslint-disable-next-line theme-colors/no-literal-colors
+          color: '#000000',
+        },
+      ],
+    },
+  ],
+});

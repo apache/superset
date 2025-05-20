@@ -30,6 +30,7 @@
     "lodash": "^4.17.21"
   },
   "peerDependencies": {
+    "@reduxjs/toolkit": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "echarts": "*",

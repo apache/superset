@@ -30,22 +30,30 @@
   },
   "dependencies": {
     "@types/geojson": "^7946.0.10",
+    "@types/react-redux": "^7.1.10",
     "geojson": "^0.5.0",
-    "lodash": "^4.17.21"
+    "geostyler-legend": "^5.0.1",
+    "geostyler-openlayers-parser": "^5.0.1",
+    "handlebars": "^4.7.8",
+    "lodash": "^4.17.21",
+    "ol": "^7.1.0",
+    "proj4": "^2.15.0"
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.2.6",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "antd": "^4.10.3",
-    "geostyler": "^12.0.0",
+    "geostyler": "^16.0.0",
     "geostyler-data": "^1.0.0",
-    "geostyler-openlayers-parser": "^4.0.0",
-    "geostyler-style": "^7.2.0",
-    "geostyler-wfs-parser": "^2.0.0",
+    "geostyler-style": "^9.0.0",
+    "geostyler-wfs-parser": "^3.0.0",
     "ol": "^7.1.0",
     "polished": "*",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
+  },
+  "devDependencies": {
+    "@types/proj4": "^2.5.5"
   }
 }

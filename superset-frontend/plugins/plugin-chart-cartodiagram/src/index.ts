@@ -18,3 +18,4 @@
  */
 // eslint-disable-next-line import/prefer-default-export
 export { default as CartodiagramPlugin } from './plugin';
+export { default as ThematicMapPlugin } from './thematic';

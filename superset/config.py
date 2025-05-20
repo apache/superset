@@ -1870,6 +1870,21 @@ ENVIRONMENT_TAG_CONFIG = {
     },
 }
 
+# Map projections of the datasources. If not provided, only
+# EPSG:3857 and EPSG:4326 are supported. The projection definitions
+# can be found on https://epsg.io in the Proj.4 section and should
+# be added here in following structure:
+#
+# {'EPSG:Code': 'definition'}
+#
+# e.g.
+#
+# {
+#     'EPSG:25832': '+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs',
+#     'EPSG:25833': '+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs',
+# }
+#
+MAP_PROJECTIONS = {}
 
 # Extra related query filters make it possible to limit which objects are shown
 # in the UI. For examples, to only show "admin" or users starting with the letter "b" in

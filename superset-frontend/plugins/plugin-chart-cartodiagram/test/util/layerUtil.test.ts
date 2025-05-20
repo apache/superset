@@ -17,8 +17,10 @@
  * under the License.
  */
 
-import { WfsLayerConf } from '../../src/types';
+import { Style } from 'geostyler-style';
+import { DataLayerConf, WfsLayerConf } from '../../src/types';
 import {
+  createDataLayer,
   createLayer,
   createWfsLayer,
   createWmsLayer,
@@ -26,6 +28,48 @@ import {
 } from '../../src/util/layerUtil';
 
 describe('layerUtil', () => {
+  const circleColor = '#123456';
+
+  const layerStyle: Style = {
+    name: 'Default Style',
+    rules: [
+      {
+        name: 'Default Rule',
+        symbolizers: [
+          {
+            kind: 'Line',
+            color: '#000000',
+            width: 2,
+          },
+          {
+            kind: 'Mark',
+            wellKnownName: 'circle',
+            color: circleColor,
+          },
+          {
+            kind: 'Fill',
+            color: '#000000',
+          },
+        ],
+      },
+    ],
+  };
+
+  const wfsLayerConf: WfsLayerConf = {
+    title: 'osm:osm-fuel',
+    url: 'https://ows-demo.terrestris.de/geoserver/osm/wfs',
+    type: 'WFS',
+    version: '2.0.2',
+    typeName: 'osm:osm-fuel',
+    style: layerStyle,
+  };
+
+  const dataLayerConf: DataLayerConf = {
+    title: 'osm:osm-fuel',
+    type: 'DATA',
+    style: layerStyle,
+  };
+
   describe('createWmsLayer', () => {
     it('exists', () => {
       // function is trivial
@@ -35,40 +79,6 @@ describe('layerUtil', () => {
 
   describe('createWfsLayer', () => {
     it('properly applies style', async () => {
-      const colorToExpect = '#123456';
-
-      const wfsLayerConf: WfsLayerConf = {
-        title: 'osm:osm-fuel',
-        url: 'https://ows-demo.terrestris.de/geoserver/osm/wfs',
-        type: 'WFS',
-        version: '2.0.2',
-        typeName: 'osm:osm-fuel',
-        style: {
-          name: 'Default Style',
-          rules: [
-            {
-              name: 'Default Rule',
-              symbolizers: [
-                {
-                  kind: 'Line',
-                  color: '#000000',
-                  width: 2,
-                },
-                {
-                  kind: 'Mark',
-                  wellKnownName: 'circle',
-                  color: colorToExpect,
-                },
-                {
-                  kind: 'Fill',
-                  color: '#000000',
-                },
-              ],
-            },
-          ],
-        },
-      };
-
       const wfsLayer = await createWfsLayer(wfsLayerConf);
 
       const style = wfsLayer!.getStyle();
@@ -77,7 +87,7 @@ describe('layerUtil', () => {
 
       // @ts-ignore upgrade `ol` package for better type of StyleLike type.
       const colorAtLayer = style![1].getImage().getFill().getColor();
-      expect(colorToExpect).toEqual(colorAtLayer);
+      expect(colorAtLayer).toEqual(circleColor);
     });
   });
 
@@ -85,6 +95,19 @@ describe('layerUtil', () => {
     it('exists', () => {
       // function is trivial
       expect(createXyzLayer).toBeDefined();
+    });
+  });
+
+  describe('createDataLayer', () => {
+    it('properly applies style', async () => {
+      const dataLayer = await createDataLayer(dataLayerConf);
+      const style = dataLayer!.getStyle();
+      // @ts-ignore
+      expect(style!.length).toEqual(3);
+
+      // @ts-ignore upgrade `ol` package for better type of StyleLike type.
+      const colorAtLayer = style![1].getImage().getFill().getColor();
+      expect(colorAtLayer).toEqual(circleColor);
     });
   });
 

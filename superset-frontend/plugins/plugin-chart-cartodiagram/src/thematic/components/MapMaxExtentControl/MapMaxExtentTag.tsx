@@ -17,22 +17,32 @@
  * under the License.
  */
 
-/**
- * This component is needed to be able to style GeoStyler
- * via emotion. Emotion can only be used on a component that
- * accepts a className property.
- */
-import { CardStyle } from 'geostyler/dist/Component/CardStyle/CardStyle';
+import { t } from '@superset-ui/core';
+import { Tag } from 'antd';
 import React from 'react';
-import { GeoStylerWrapperProps } from './types';
+import { MapMaxExtentTagProps } from '../../types';
 
-export const GeoStylerWrapper: React.FC<GeoStylerWrapperProps> = ({
+export const MapMaxExtentTag: React.FC<MapMaxExtentTagProps> = ({
+  value,
   className,
-  ...passThroughProps
-}) => (
-  <div className={className}>
-    <CardStyle {...passThroughProps} />
-  </div>
-);
+}) => {
+  const unsetName = t('unset');
+  const lowerLeftName = t('Lower left (Lat | Lon)');
+  const upperRightName = t('Upper right (Lat | Lon)');
 
-export default GeoStylerWrapper;
+  return (
+    <Tag className={className}>
+      {upperRightName}:{' '}
+      {value.fixedMaxX && value.fixedMaxY
+        ? `${value.fixedMaxY.toFixed(6)} | ${value.fixedMaxX.toFixed(6)}`
+        : unsetName}
+      <br />
+      {lowerLeftName}:{' '}
+      {value.fixedMinX && value.fixedMinY
+        ? `${value.fixedMinY.toFixed(6)} | ${value.fixedMinX.toFixed(6)}`
+        : unsetName}
+    </Tag>
+  );
+};
+
+export default MapMaxExtentTag;

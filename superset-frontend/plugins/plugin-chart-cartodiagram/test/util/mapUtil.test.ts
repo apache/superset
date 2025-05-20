@@ -22,7 +22,7 @@ import OSM from 'ol/source/OSM.js';
 import TileLayer from 'ol/layer/Tile.js';
 import View from 'ol/View.js';
 import { ChartConfig } from '../../src/types';
-import { fitMapToCharts } from '../../src/util/mapUtil';
+import { fitMapToData } from '../../src/util/mapUtil';
 
 describe('mapUtil', () => {
   describe('fitMapToCharts', () => {
@@ -106,7 +106,7 @@ describe('mapUtil', () => {
       });
 
       // should set center
-      fitMapToCharts(olMap, chartConfig);
+      fitMapToData(olMap, chartConfig);
 
       const updatedCenter = olMap.getView().getCenter();
 

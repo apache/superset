@@ -26,6 +26,7 @@ import Feature from 'ol/Feature';
 import { Point as OlPoint } from 'ol/geom';
 import VectorSource from 'ol/source/Vector';
 import { Point as GeoJsonPoint } from 'geojson';
+import { FitOptions } from 'ol/View';
 
 /**
  * Extracts the coordinate from a Point GeoJSON in the current map projection.
@@ -58,3 +59,13 @@ export const getExtentFromFeatures = (features: Feature[]) => {
   source.addFeatures(features);
   return source.getExtent();
 };
+
+/**
+ * Generates a padding array for the map extent.
+ * @param mapExtentPadding The selected map extent padding value
+ * @returns An array with the padding values or undefined
+ */
+export const getMapExtentPadding = (
+  mapExtentPadding?: number,
+): FitOptions['padding'] | undefined =>
+  mapExtentPadding !== undefined ? Array(4).fill(mapExtentPadding) : undefined;

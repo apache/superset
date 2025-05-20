@@ -16,23 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+export const TIMESLIDER_HEIGHT = 28;
 
-/**
- * This component is needed to be able to style GeoStyler
- * via emotion. Emotion can only be used on a component that
- * accepts a className property.
- */
-import { CardStyle } from 'geostyler/dist/Component/CardStyle/CardStyle';
-import React from 'react';
-import { GeoStylerWrapperProps } from './types';
+export enum TimesliderTooltipFormat {
+  DATE,
+  TIME,
+  DATETIME,
+}
 
-export const GeoStylerWrapper: React.FC<GeoStylerWrapperProps> = ({
-  className,
-  ...passThroughProps
-}) => (
-  <div className={className}>
-    <CardStyle {...passThroughProps} />
-  </div>
-);
-
-export default GeoStylerWrapper;
+export enum GeometryFormat {
+  GEOJSON = 'GEOJSON',
+  WKB = 'WKB',
+}

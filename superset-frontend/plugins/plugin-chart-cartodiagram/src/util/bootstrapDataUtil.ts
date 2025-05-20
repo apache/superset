@@ -18,21 +18,18 @@
  */
 
 /**
- * This component is needed to be able to style GeoStyler
- * via emotion. Emotion can only be used on a component that
- * accepts a className property.
+ * Based on superset-frontend/src/utils/getBootstrapData.ts. Replicated
+ * in order to circumvent creating circular dependencies.
  */
-import { CardStyle } from 'geostyler/dist/Component/CardStyle/CardStyle';
-import React from 'react';
-import { GeoStylerWrapperProps } from './types';
 
-export const GeoStylerWrapper: React.FC<GeoStylerWrapperProps> = ({
-  className,
-  ...passThroughProps
-}) => (
-  <div className={className}>
-    <CardStyle {...passThroughProps} />
-  </div>
-);
+export const getBootstrapData = () => {
+  const appContainer = document.getElementById('app');
+  const dataBootstrap = appContainer?.getAttribute('data-bootstrap');
+  return dataBootstrap ? JSON.parse(dataBootstrap) : {};
+};
 
-export default GeoStylerWrapper;
+export const getMapProjections = () => {
+  const bootstrapData = getBootstrapData();
+  const mapProjections = bootstrapData?.common?.conf?.MAP_PROJECTIONS;
+  return mapProjections ?? {};
+};

@@ -17,10 +17,11 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, ControlPanelsContainerProps } from '@superset-ui/chart-controls';
 import { selectedChartMutator } from '../util/controlPanelUtil';
 
 import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL } from '../util/zoomUtil';
+import { MapViewConfigs } from '../types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -110,6 +111,31 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'map_extent_padding',
+            config: {
+              type: 'SliderControl',
+              renderTrigger: true,
+              label: t('Map Padding'),
+              description: t(
+                'Set the map extent padding. The selected value is applied to all edges of the map.',
+              ),
+              default: 30,
+              min: 0,
+              max: 100,
+              step: 10,
+              visibility: ({
+                controls,
+              }: {
+                controls: ControlPanelsContainerProps['controls'] & {
+                  map_view?: { value?: Partial<MapViewConfigs> };
+                };
+              }) => Boolean(controls?.map_view?.value?.mode === 'FIT_DATA'),
+            },
+          },
+        ],
+
         [
           {
             // name is referenced in 'index.ts' for setting default value
