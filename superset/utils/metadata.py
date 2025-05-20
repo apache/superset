@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 @contextmanager
 def suspend_session():
     do_it = not getattr(g, "disable_session_suspend", False)
-
     try:
         if do_it:
             logger.info("Disconnecting metadata database temporarily")
@@ -40,4 +39,4 @@ def suspend_session():
             logger.info("Reconnecting to metadata database")
             db.session()  # Lazy open new session
             for obj in session_objects:
-                db.session.merge(obj)
+                db.session.add(obj)
