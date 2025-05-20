@@ -22,7 +22,7 @@ import { FC } from 'react';
 import { styled } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import { CopyToClipboard } from 'src/components';
+import { CopyToClipboard, Icons } from 'src/components';
 import { CopyButton } from 'src/explore/components/DataTableControl';
 import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
 import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
@@ -66,7 +66,7 @@ const ViewQuery: FC<ViewQueryProps> = props => {
         shouldShowText={false}
         copyNode={
           <CopyButtonViewQuery buttonSize="xsmall">
-            <i className="fa fa-clipboard" />
+            <Icons.CopyOutlined />
           </CopyButtonViewQuery>
         }
       />

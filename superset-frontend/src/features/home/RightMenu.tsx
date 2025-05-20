@@ -593,7 +593,7 @@ const RightMenu = ({
             {navbarRight.documentation_icon ? (
               <i className={navbarRight.documentation_icon} />
             ) : (
-              <i className="fa fa-question" />
+              <Icons.QuestionCircleOutlined />
             )}
           </StyledAnchor>
           <span>&nbsp;</span>
@@ -610,7 +610,7 @@ const RightMenu = ({
             {navbarRight.bug_report_icon ? (
               <i className={navbarRight.bug_report_icon} />
             ) : (
-              <i className="fa fa-bug" />
+              <Icons.BugOutlined />
             )}
           </StyledAnchor>
           <span>&nbsp;</span>
@@ -618,7 +618,7 @@ const RightMenu = ({
       )}
       {navbarRight.user_is_anonymous && (
         <StyledAnchor href={navbarRight.user_login_url}>
-          <i className="fa fa-fw fa-sign-in" />
+          <Icons.LoginOutlined />
           {t('Login')}
         </StyledAnchor>
       )}

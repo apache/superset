@@ -217,12 +217,9 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               placement="top"
               title={annotationsLoading}
             >
-              {/* TODO: Remove fa-icon */}
-              {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-              <i
-                role="img"
+              <Icons.ReloadOutlined
+                className="warning"
                 aria-label={annotationsLoading}
-                className="fa fa-refresh warning"
               />
             </Tooltip>
           )}
@@ -232,12 +229,9 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               placement="top"
               title={annotationsError}
             >
-              {/* TODO: Remove fa-icon */}
-              {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-              <i
-                role="img"
+              <Icons.ExclamationCircleOutlined
+                className="danger"
                 aria-label={annotationsError}
-                className="fa fa-exclamation-circle danger"
               />
             </Tooltip>
           )}
