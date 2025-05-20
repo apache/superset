@@ -331,7 +331,8 @@ def get_column_label(column: Any) -> Optional[str]:
         return column
     if column and column.get("label"):
         return column.get("label")
-    return getattr(column, "sql_expression", None)
+    return column.get("sqlExpression", None)
+
 
 
 def get_x_axis_label(form_data: dict) -> Optional[str]:
@@ -373,7 +374,7 @@ def time_compare_pivot_operator(form_data, query_object):
             "options": {
                 "index": [x_axis_label],
                 "columns": [get_column_label(col) for col in ensure_is_array(columns)],
-                "drop_missing_columns": form_data.get("show_empty_columns"),
+                "drop_missing_columns": not form_data.get("show_empty_columns"),
                 "aggregates": aggregates,
             },
         }
@@ -414,17 +415,18 @@ def pivot_operator(form_data, query_object):
     )
 
     if x_axis_label and metric_labels:
+        cols_list = [get_column_label(col) for col in ensure_is_array(columns)]
         return {
             "operation": "pivot",
             "options": {
                 "index": [x_axis_label],
-                "columns": [get_column_label(col) for col in ensure_is_array(columns)],
+                "columns": cols_list,
                 # Create 'dummy' mean aggregates to assign cell values in pivot table
                 # using the 'mean' aggregates to avoid dropping NaN values
                 "aggregates": {
                     metric: {"operator": "mean"} for metric in metric_labels
                 },
-                "drop_missing_columns": form_data.get("show_empty_columns"),
+                "drop_missing_columns": not form_data.get("show_empty_columns"),
             },
         }
 
@@ -654,9 +656,13 @@ def extract_extras(form_data: dict) -> dict:
             filters.append(filter_item)
 
     # SQL: set extra properties based on TS logic
-    extras["time_grain_sqla"] = extract.get(
-        "time_grain_sqla", form_data.get("time_grain_sqla")
-    )
+    if 'time_grain_sqla' in form_data.keys() or 'time_grain_sqla' in extract.keys():
+        # If time_grain_sqla is set in form_data, use it
+        # Otherwise, use the value from extract
+        value = form_data.get("time_grain_sqla") or form_data.get("time_grain_sqla")
+        extras["time_grain_sqla"] = value
+
+    
     extract["granularity"] = (
         extract.get("granularity_sqla")
         or form_data.get("granularity")
@@ -725,9 +731,17 @@ def convert_filter(filter_item: dict) -> dict:
         return {"col": subject, "op": operator}
     if is_binary_adhoc_filter(filter_item):
         operator = filter_item.get("operator")
-        return {"col": subject, "op": operator, "val": filter_item.get("comparator")}
+        val =  filter_item.get("comparator")
+        result = {"col": subject, "op": operator}
+        if val is not None:
+            result['val'] = val
+        return result
     operator = filter_item.get("operator")
-    return {"col": subject, "op": operator, "val": filter_item.get("comparator")}
+    val =  filter_item.get("comparator")
+    result = {"col": subject, "op": operator}
+    if val is not None:
+        result['val'] = val
+    return result
 
 
 def is_simple_adhoc_filter(filter_item: dict) -> bool:
@@ -920,7 +934,7 @@ def build_query_object(form_data, query_fields=None):
             else int(numeric_row_limit)
         ),
         "series_limit": (
-            int(series_limit)
+            series_limit
             if series_limit is not None
             else (int(limit) if is_defined(limit) else 0)
         ),
@@ -934,11 +948,9 @@ def build_query_object(form_data, query_fields=None):
         if row_offset is None or math.isnan(numeric_row_offset)
         else numeric_row_offset
     )
-    series_limit_metric = (
-        normalize_series_limit_metric(series_limit_metric)
-        or timeseries_limit_metric
-        or None
-    )
+
+    temp = normalize_series_limit_metric(series_limit_metric)
+    series_limit_metric = temp if temp is not None else timeseries_limit_metric
 
     for key, value in [
         ("time_range", time_range),
@@ -997,21 +1009,29 @@ def normalize_time_column(form_data: dict, query_object: dict) -> dict:
             break
 
     if axis_idx is not None and axis_idx > -1 and x_axis and isinstance(_columns, list):
+        
         if is_adhoc_column(_columns[axis_idx]):
             # Update the adhoc column with additional keys.
             updated = dict(_columns[axis_idx])
-            updated["timeGrain"] = _extras.get("time_grain_sqla")
             updated["columnType"] = "BASE_AXIS"
+            if _extras:
+                if 'time_grain_sqla' in _extras.keys():
+                    updated["timeGrain"] = _extras["time_grain_sqla"]
             mutated_columns[axis_idx] = updated
+
+            
         else:
             # For physical columns, create a new column entry.
             mutated_columns[axis_idx] = {
-                "timeGrain": _extras.get("time_grain_sqla"),
                 "columnType": "BASE_AXIS",
                 "sqlExpression": x_axis,
                 "label": x_axis,
                 "expressionType": "SQL",
             }
+            if _extras:
+                if 'time_grain_sqla' in _extras.keys():
+                    mutated_columns[axis_idx]["timeGrain"]  = _extras["time_grain_sqla"]
+    
         # Create a new query object without the 'is_timeseries' key.
         new_query_object = omit(query_object, ["is_timeseries"])
         new_query_object["columns"] = mutated_columns
@@ -1346,11 +1366,16 @@ def rank_operator(form_data: dict, query_object: dict, options: dict) -> dict:
     Returns:
         dict: A configuration dict with the ranking operation.
     """
+    options_dict = options
+    if options_dict.get('group_by') is None:
+        options_dict.pop('group_by', None)
     return {
         "operation": "rank",
-        "options": options,
+        "options": options_dict,
     }
 
+def drop_none_values(options: dict) -> dict:
+    return {k: v for k, v in options.items() if v is not None}
 
 def histogram_operator(form_data: dict, query_object: dict) -> dict:
     """
@@ -1382,16 +1407,22 @@ def histogram_operator(form_data: dict, query_object: dict) -> dict:
         parsed_bins = 5
     parsed_column = get_column_label(column)
     parsed_groupby = [get_column_label(g) for g in groupby]
-    return {
-        "operation": "histogram",
-        "options": {
-            "column": parsed_column,
-            "groupby": parsed_groupby,
-            "bins": parsed_bins,
-            "cumulative": cumulative,
-            "normalize": normalize,
-        },
+
+    options = {
+        "column": parsed_column,
+        "groupby": parsed_groupby,
+        "bins": parsed_bins,
+        "cumulative": cumulative,
+        "normalize": normalize,
     }
+    
+    result = {
+        "operation": "histogram",
+        "options": drop_none_values(options)
+    }
+
+    return result
+    
 
 
 def retain_form_data_suffix(form_data: dict, control_suffix: str) -> dict:
@@ -1422,7 +1453,7 @@ def retain_form_data_suffix(form_data: dict, control_suffix: str) -> dict:
     for key, value in entries:
         if key.endswith(control_suffix):
             new_form_data[key[: -len(control_suffix)]] = value
-        if not key.endswith(control_suffix) and key not in new_form_data.keys() and key != 'limit':
+        if not key.endswith(control_suffix) and key not in new_form_data.keys():
             new_form_data[key] = value
     return new_form_data
 

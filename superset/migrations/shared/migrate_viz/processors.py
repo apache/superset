@@ -117,20 +117,9 @@ class MigratePivotTable(MigrateViz):
             "time_grain_sqla"
         )
 
-        # unique_columns = []
-        # for col in groupby_columns:
-        #     if type(col) == dict:
-        #         unique_columns.append(col.get("label"))
-        #     else:
-        #         unique_columns.append(col)
-
-        # for col in groupby_rows:
-        #     if type(col) == dict:
-        #         unique_columns.append(col.get("label"))
-        #     else:
-        #         unique_columns.append(col)
-
-        unique_columns = ensure_is_array(groupby_columns) + ensure_is_array(groupby_rows)
+        unique_columns = ensure_is_array(groupby_columns) + ensure_is_array(
+            groupby_rows
+        )
 
         columns = []
         for col in unique_columns:
@@ -142,17 +131,18 @@ class MigratePivotTable(MigrateViz):
                     or self.data.get("granularity_sqla") == col
                 )
             ):
-                columns.append(
-                    {
-                        "timeGrain": time_grain_sqla,
-                        "columnType": "BASE_AXIS",
-                        "sqlExpression": col,
-                        "label": col,
-                        "expressionType": "SQL",
-                    }
-                )
+                col_dict = {    
+                    "timeGrain": time_grain_sqla,
+                    "columnType": "BASE_AXIS",
+                    "sqlExpression": col,
+                    "label": col,
+                    "expressionType": "SQL",
+                }
+                if col_dict not in columns:
+                    columns.append(col_dict)
             else:
-                columns.append(col)
+                if col not in columns:
+                    columns.append(col)
 
         def process(base_query_object: dict):
             series_limit_metric = base_query_object.get("series_limit_metric")
@@ -316,6 +306,7 @@ class TimeseriesChart(MigrateViz):
 
     def build_query(self):
         groupby = self.data.get("groupby")
+
         def query_builder(base_query_object):
             """
             The `pivot_operator_in_runtime` determines how to pivot the dataframe
@@ -613,7 +604,8 @@ class MigrateHistogramChart(MigrateViz):
             result["post_processing"] = [
                 histogram_operator(self.data, base_query_object)
             ]
-            result["metrics"] = None
+            if "metrics" in result.keys():
+                result.pop("metrics", None)
             return [result]
 
         return build_query_context(self.data, process)
