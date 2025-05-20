@@ -16,6 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import {
+  CheckOutlined,
+  CloseOutlined,
+  UploadOutlined,
+} from '@ant-design/icons';
 import { t } from '@apache-superset/core/translation';
 import { JsonValue } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
@@ -23,16 +28,29 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components/Button';
 import { Form } from '@superset-ui/core/components/Form';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { Data as GsData } from 'geostyler-data';
+import { Upload } from 'antd';
+import { VectorData } from 'geostyler-data';
 import { Style as GsStyle } from 'geostyler-style';
+import {
+  GeoStylerContext,
+  GeoStylerContextInterface,
+  GeoStylerLocale,
+} from 'geostyler';
 import WfsDataParser, {
   RequestParams1_1_0,
   RequestParams2_0_0,
 } from 'geostyler-wfs-parser';
-import { FC, useEffect, useState } from 'react';
-import { isWfsLayerConf, isWmsLayerConf, isXyzLayerConf } from './typeguards';
+import { FC, useEffect, useMemo, useState } from 'react';
+import SldStyleParser from 'geostyler-sld-parser';
+import {
+  isDataLayerConf,
+  isWfsLayerConf,
+  isWmsLayerConf,
+  isXyzLayerConf,
+} from './typeguards';
 import {
   BaseLayerConf,
+  DataLayerConf,
   LayerConf,
   LayerConfigsPopoverContentProps,
   WfsLayerConf,
@@ -42,6 +60,12 @@ import {
 import { getServiceVersions, hasAllRequiredWfsParams } from './serviceUtil';
 import { ControlFormItem } from '../ColumnConfigControl/ControlForm';
 import GeoStylerWrapper from './GeoStylerWrapper';
+import {
+  colTypesToGeoStylerData,
+  createGeoStylerContext,
+  getDefaultStyle,
+  getGeoStylerLocale,
+} from './geoStylerUtil';
 
 // Enum for the different tabs
 const LAYER_CONFIG_TABS = {
@@ -49,32 +73,9 @@ const LAYER_CONFIG_TABS = {
   GEOSTYLER: '2',
 };
 
-export const StyledButtonContainer = styled.div`
-  display: flex;
-  margin: 8px;
-`;
-
-export const StyledCloseButton = styled(Button)`
+export const StyledButton = styled(Button)`
   ${({ theme }) => css`
-    flex: 1;
-    margin-right: 4px;
-    line-height: 1.5715;
-    border-radius: ${theme.borderRadius}px;
-    background-color: ${theme.colorPrimaryBg};
-    color: ${theme.colorPrimaryText};
-    font-size: ${theme.fontSizeSM}px;
-    font-weight: ${theme.fontWeightStrong};
-    text-transform: uppercase;
-    min-width: ${theme.sizeUnit * 36};
-    min-height: ${theme.sizeUnit * 8};
-    box-shadow: none;
-    border-width: 0px;
-    border-style: none;
-    border-color: transparent;
-    &:hover {
-      background-color: ${theme.colorPrimaryBgHover};
-      color: ${theme.colorPrimaryText};
-    }
+    min-width: ${theme.sizeUnit * 36}px;
   `}
 `;
 
@@ -97,38 +98,64 @@ export const StyledGeoStyler = styled(GeoStylerWrapper)`
       font-weight: ${theme.fontWeightNormal};
       font-size: ${theme.fontSizeXL}px;
     }
-    .ant-form-item-control {
-      flex: unset;
+    .gs-symbolizer-editor {
+      width: 300px;
+    }
+    overflow-y: auto;
+    max-height: 500px;
+
+    .ant-slider {
+      display: none;
+    }
+
+    .number-expression-input {
+      button.ant-btn {
+        visibility: unset;
+        display: none;
+      }
+
+      &:hover {
+        button.ant-btn {
+          visibility: unset;
+          display: inline-block;
+        }
+      }
+
+      .number-wrapper {
+        flex: 1;
+      }
     }
   `}
 `;
 
-export const StyledSaveButton = styled(Button)`
-  ${({ theme }) => css`
-    flex: 1;
-    margin-left: 4px;
-    line-height: 1.5715;
-    border-radius: ${theme.borderRadius}px;
-    background-color: ${theme.colorPrimary};
-    color: ${theme.colorTextLightSolid};
-    font-size: ${theme.fontSizeSM}px;
-    font-weight: ${theme.fontWeightStrong};
-    text-transform: uppercase;
-    min-width: ${theme.sizeUnit * 36};
-    min-height: ${theme.sizeUnit * 8};
-    box-shadow: none;
-    border-width: 0px;
-    border-style: none;
-    border-color: transparent;
-    &:hover {
-      background-color: ${theme.colorPrimaryText};
-    }
+export const StyledUploadButtonContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+`;
+
+export const StyledFeedbackMessage = styled.div<{ success: boolean }>`
+  ${({ success, theme }) => css`
+    color: ${success ? theme.colorSuccess : theme.colorError};
+    visibility: ${success === null ? 'hidden' : 'visible'};
+    min-width: 150px;
+    text-align: right;
   `}
 `;
 
 export const LayerConfigsPopoverContent: FC<
   LayerConfigsPopoverContentProps
-> = ({ onClose = () => {}, onSave = () => {}, layerConf }) => {
+> = ({
+  onClose = () => {},
+  onSave = () => {},
+  layerConf,
+  enableDataLayer,
+  colTypeMapping,
+  dataFeatureCollection,
+  includedGeometryTypes,
+}) => {
   const theme = useTheme();
   const [currentLayerConf, setCurrentLayerConf] =
     useState<LayerConf>(layerConf);
@@ -142,9 +169,39 @@ export const LayerConfigsPopoverContent: FC<
   const [wfsVersion, setWfsVersion] = useState<string | undefined>(
     initialWfsVersion,
   );
-  const [geostylerData, setGeoStylerData] = useState<GsData | undefined>(
+  const [geostylerData, setGeoStylerData] = useState<VectorData | undefined>(
     undefined,
   );
+  const [feedback, setFeedback] = useState<{
+    success: boolean | null;
+    message: string | null;
+  }>({ success: null, message: null });
+
+  const getAppLocale = () => {
+    const appContainer = document.getElementById('app');
+    const { common } = JSON.parse(
+      appContainer?.getAttribute('data-bootstrap') || '{}',
+    );
+    // There is a locale at common?.locale, but due to a bug
+    // in superset, it cannot be serialized.
+    return common?.menu_data?.navbar_right?.locale;
+  };
+
+  // Locales do not need to be state variables, since in superset
+  // a change of the language triggers a reload of the client.
+  const appLocale = getAppLocale();
+  const geostylerLocale: GeoStylerLocale = useMemo(
+    () => getGeoStylerLocale(appLocale),
+    [appLocale],
+  );
+
+  const geostylerComposition = useMemo(() => {
+    const appContainer = document.getElementById('app');
+    const { common } = JSON.parse(
+      appContainer?.getAttribute('data-bootstrap') || '{}',
+    );
+    return common.conf?.MAP_GEOSTYLER_COMPOSITION ?? {};
+  }, []);
 
   const serviceVersions = getServiceVersions();
 
@@ -169,6 +226,8 @@ export const LayerConfigsPopoverContent: FC<
   };
 
   const onLayerTypeChange = (value: LayerConf['type']) => {
+    const styleName = t('Default Style');
+    const ruleName = t('Default Rule');
     if (value === 'WFS') {
       setCurrentLayerConf({
         ...currentLayerConf,
@@ -204,12 +263,23 @@ export const LayerConfigsPopoverContent: FC<
         ...currentLayerConf,
         type: value,
       } as XyzLayerConf);
-    } else {
+    } else if (value === 'WMS') {
       setCurrentLayerConf({
         ...currentLayerConf,
         type: value,
         version: serviceVersions[value][0],
       } as WmsLayerConf);
+    } else {
+      setCurrentLayerConf({
+        ...currentLayerConf,
+        type: value,
+        style: getDefaultStyle(
+          includedGeometryTypes,
+          styleName,
+          ruleName,
+          theme,
+        ),
+      } as DataLayerConf);
     }
   };
 
@@ -258,7 +328,6 @@ export const LayerConfigsPopoverContent: FC<
   const onSaveClick = () => {
     const baseConfs: BaseLayerConf = {
       title: currentLayerConf.title,
-      url: currentLayerConf.url,
       type: currentLayerConf.type,
       attribution: currentLayerConf.attribution,
     };
@@ -267,6 +336,7 @@ export const LayerConfigsPopoverContent: FC<
     if (isWmsLayerConf(currentLayerConf)) {
       conf = {
         ...baseConfs,
+        url: currentLayerConf.url,
         version: currentLayerConf.version,
         type: currentLayerConf.type,
         layersParam: currentLayerConf.layersParam,
@@ -275,14 +345,22 @@ export const LayerConfigsPopoverContent: FC<
       conf = {
         ...baseConfs,
         type: currentLayerConf.type,
+        url: currentLayerConf.url,
+      };
+    } else if (isWfsLayerConf(currentLayerConf)) {
+      conf = {
+        ...baseConfs,
+        type: currentLayerConf.type,
+        url: currentLayerConf.url,
+        version: currentLayerConf.version,
+        typeName: currentLayerConf.typeName,
+        maxFeatures: currentLayerConf.maxFeatures,
+        style: currentLayerConf.style,
       };
     } else {
       conf = {
         ...baseConfs,
         type: currentLayerConf.type,
-        version: currentLayerConf.version,
-        typeName: currentLayerConf.typeName,
-        maxFeatures: currentLayerConf.maxFeatures,
         style: currentLayerConf.style,
       };
     }
@@ -292,10 +370,20 @@ export const LayerConfigsPopoverContent: FC<
 
   useEffect(() => {
     if (
-      !isWfsLayerConf(currentLayerConf) ||
-      !hasAllRequiredWfsParams(currentLayerConf)
+      isWmsLayerConf(currentLayerConf) ||
+      isXyzLayerConf(currentLayerConf) ||
+      (isWfsLayerConf(currentLayerConf) &&
+        !hasAllRequiredWfsParams(currentLayerConf))
     ) {
       setGeoStylerData(undefined);
+      return undefined;
+    }
+    if (isDataLayerConf(currentLayerConf)) {
+      const geostylerData = colTypeMapping
+        ? colTypesToGeoStylerData(colTypeMapping, dataFeatureCollection)
+        : undefined;
+
+      setGeoStylerData(geostylerData);
       return undefined;
     }
 
@@ -337,7 +425,69 @@ export const LayerConfigsPopoverContent: FC<
     return () => {
       clearTimeout(timer);
     };
-  }, [currentLayerConf]);
+  }, [currentLayerConf, colTypeMapping, dataFeatureCollection]);
+
+  const geoStylerContext: GeoStylerContextInterface = useMemo(
+    () =>
+      createGeoStylerContext(
+        geostylerLocale,
+        geostylerData,
+        geostylerComposition,
+      ),
+    [geostylerLocale, geostylerData, geostylerComposition],
+  );
+
+  useEffect(() => {
+    if (feedback.success !== null) {
+      const timer = setTimeout(
+        () => setFeedback({ success: null, message: null }),
+        3000,
+      );
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [feedback.success]);
+
+  const beforeUpload = (file: File): boolean => {
+    const reader = new FileReader();
+    reader.onload = async event => {
+      const sldContent = event.target?.result as string;
+      const sldParser = new SldStyleParser();
+
+      try {
+        const geoStylerResponse = await sldParser.readStyle(sldContent);
+        const { output, errors } = geoStylerResponse;
+
+        if (errors && errors.length > 0) {
+          throw new Error(errors.join('\n'));
+        }
+
+        const updatedStyle = {
+          name: output?.name,
+          rules: output?.rules,
+        };
+
+        setCurrentLayerConf(prevState => ({
+          ...prevState,
+          style: updatedStyle as GsStyle,
+        }));
+
+        setFeedback({
+          success: true,
+          message: null,
+        });
+      } catch (error) {
+        console.error('Error parsing SLD:', error);
+        setFeedback({
+          success: false,
+          message: t('Error parsing SLD file.'),
+        });
+      }
+    };
+
+    reader.readAsText(file);
+    return false;
+  };
 
   const layerTabLabel = t('Layer');
   const styleTabLabel = t('Style');
@@ -369,6 +519,14 @@ export const LayerConfigsPopoverContent: FC<
     serviceVersions.WMS.map(version => ({ value: version, label: version }));
   const wfsVersionOptions: { value: any; label: string }[] =
     serviceVersions.WFS.map(version => ({ value: version, label: version }));
+  const layerTypeOptions: { value: string; label: string }[] = [
+    { value: 'WMS', label: t('WMS') },
+    { value: 'WFS', label: t('WFS') },
+    { value: 'XYZ', label: t('XYZ') },
+  ];
+  if (enableDataLayer) {
+    layerTypeOptions.push({ value: 'DATA', label: t('DATA') });
+  }
 
   return (
     <div>
@@ -382,28 +540,28 @@ export const LayerConfigsPopoverContent: FC<
               children: (
                 <>
                   <StyledControlFormItem
-                    controlType="Input"
-                    label={layerUrlLabel}
-                    description={layerUrlDescription}
-                    placeholder={layerUrlPlaceholder}
-                    value={currentLayerConf.url}
-                    name="url"
-                    onChange={onLayerUrlChange}
-                  />
-                  <StyledControlFormItem
                     controlType="Select"
                     label={layerTypeLabel}
                     description={layerTypeDescription}
-                    options={[
-                      { value: 'WMS', label: t('WMS') },
-                      { value: 'WFS', label: t('WFS') },
-                      { value: 'XYZ', label: t('XYZ') },
-                    ]}
+                    options={layerTypeOptions}
                     value={currentLayerConf.type}
                     defaultValue={currentLayerConf.type}
                     name="type"
                     onChange={onLayerTypeChange}
                   />
+                  {(isWfsLayerConf(currentLayerConf) ||
+                    isWmsLayerConf(currentLayerConf) ||
+                    isXyzLayerConf(currentLayerConf)) && (
+                    <StyledControlFormItem
+                      controlType="Input"
+                      label={layerUrlLabel}
+                      description={layerUrlDescription}
+                      placeholder={layerUrlPlaceholder}
+                      value={currentLayerConf.url}
+                      name="url"
+                      onChange={onLayerUrlChange}
+                    />
+                  )}
                   {isWmsLayerConf(currentLayerConf) && (
                     <StyledControlFormItem
                       controlType="Select"
@@ -485,25 +643,74 @@ export const LayerConfigsPopoverContent: FC<
             {
               key: LAYER_CONFIG_TABS.GEOSTYLER,
               label: styleTabLabel,
-              disabled: !isWfsLayerConf(currentLayerConf),
-              children: isWfsLayerConf(currentLayerConf) && (
-                <StyledGeoStyler
-                  style={currentLayerConf.style}
-                  onStyleChange={onStyleChange}
-                  data={geostylerData}
-                />
+              disabled:
+                !isWfsLayerConf(currentLayerConf) &&
+                !isDataLayerConf(currentLayerConf),
+              children: (isWfsLayerConf(currentLayerConf) ||
+                isDataLayerConf(currentLayerConf)) && (
+                <>
+                  <StyledUploadButtonContainer>
+                    <div>
+                      <StyledFeedbackMessage success={!!feedback.success}>
+                        {feedback.message}
+                      </StyledFeedbackMessage>
+                    </div>
+                    <Upload
+                      beforeUpload={beforeUpload}
+                      showUploadList={false}
+                      accept=".sld"
+                    >
+                      <Button
+                        buttonSize="small"
+                        buttonStyle="secondary"
+                        icon={
+                          feedback.success !== null ? (
+                            feedback.success ? (
+                              <CheckOutlined
+                                style={{ color: theme.colorSuccess }}
+                              />
+                            ) : (
+                              <CloseOutlined
+                                style={{ color: theme.colorError }}
+                              />
+                            )
+                          ) : (
+                            <UploadOutlined />
+                          )
+                        }
+                        style={{ float: 'right' }}
+                      >
+                        {t('Import SLD')}
+                      </Button>
+                    </Upload>
+                  </StyledUploadButtonContainer>
+                  <GeoStylerContext.Provider value={geoStylerContext}>
+                    <StyledGeoStyler
+                      style={currentLayerConf.style}
+                      onStyleChange={onStyleChange}
+                    />
+                  </GeoStylerContext.Provider>
+                </>
               ),
             },
           ]}
         />
-        <StyledButtonContainer>
-          <StyledCloseButton type="default" onClick={onCloseClick}>
+        <div>
+          <StyledButton
+            buttonStyle="secondary"
+            buttonSize="small"
+            onClick={onCloseClick}
+          >
             {t('Close')}
-          </StyledCloseButton>
-          <StyledSaveButton type="primary" onClick={onSaveClick}>
+          </StyledButton>
+          <StyledButton
+            buttonStyle="primary"
+            buttonSize="small"
+            onClick={onSaveClick}
+          >
             {t('Save')}
-          </StyledSaveButton>
-        </StyledButtonContainer>
+          </StyledButton>
+        </div>
       </Form>
     </div>
   );

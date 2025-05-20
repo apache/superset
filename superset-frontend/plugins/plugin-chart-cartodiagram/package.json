@@ -31,7 +31,8 @@
   "dependencies": {
     "@types/geojson": "^7946.0.16",
     "geojson": "^0.5.0",
-    "lodash": "^4.18.1"
+    "geostyler-legend": "^5.2.1",
+    "proj4": "^2.15.0"
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.6.1",
@@ -40,14 +41,17 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "@types/react-redux": "*",
-    "geostyler": "^18.3.1",
-    "geostyler-data": "^1.0.0",
-    "geostyler-openlayers-parser": "^5.4.0",
-    "geostyler-style": "^11.0.2",
-    "geostyler-wfs-parser": "^3.0.1",
-    "ol": "^10.8.0",
+    "geostyler-openlayers-parser": "*",
+    "geostyler-style": "*",
+    "handlebars": "*",
+    "lodash": "*",
+    "ol": "*",
     "polished": "*",
     "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react-dom": "^17.0.2",
+    "react-redux": "*"
+  },
+  "devDependencies": {
+    "@types/proj4": "^2.5.5"
   }
 }

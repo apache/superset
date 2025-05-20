@@ -20,15 +20,25 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
-import Tree, { TreeProps } from '@superset-ui/core/components/Tree';
-import { forwardRef } from 'react';
-import { FlatLayerDataNode, FlatLayerTreeProps, LayerConf } from './types';
-import { handleDrop } from './dragDropUtil';
+import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
+import { FC, forwardRef, useRef } from 'react';
+import { DragContainer } from '../OptionControls';
+import { FlatLayerTreeProps, LayerConfWithId } from './types';
 import LayerTreeItem from './LayerTreeItem';
+
+const LAYER_CONFIG_DRAG_TYPE = 'LAYER_CONFIG_DRAG_ITEM';
+
+interface DragItem {
+  dragIndex: number;
+  type: string;
+}
 
 export const StyledLayerTreeItem = styled(LayerTreeItem)`
   ${({ theme }) => css`
     width: 100%;
+    height: ${theme.sizeUnit * 6}px;
+    margin-top: 0;
+    margin-bottom: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -37,33 +47,45 @@ export const StyledLayerTreeItem = styled(LayerTreeItem)`
 
     border: none;
     border-radius: ${theme.borderRadius}px;
-    background-color: ${theme.colorFill};
+    background-color: ${theme.colorBgLayout};
     font-size: ${theme.fontSizeSM}px;
     font-weight: ${theme.fontWeightNormal};
 
     &:hover {
-      background-color: ${theme.colorFill};
+      background-color: ${theme.colorPrimaryBgHover};
     }
 
     & .layer-tree-item-close {
       border-right: solid;
       border-right-width: 1px;
       border-right-color: ${theme.colorSplit};
+      width: ${theme.sizeUnit * 6}px;
+      height: 100%;
+      padding: 0;
+      border-radius: 0;
     }
 
     & .layer-tree-item-edit {
       border-left: solid;
       border-left-width: 1px;
       border-left-color: ${theme.colorSplit};
+      width: ${theme.sizeUnit * 6}px;
+      height: 100%;
+      padding: 0;
+      border-radius: 0;
     }
 
     & .layer-tree-item-title {
+      display: flex;
+      align-items: center;
       flex: 1;
-      padding-left: 4px;
+      padding-left: ${theme.sizeUnit}px;
     }
 
     & .layer-tree-item-type {
-      padding-left: 4px;
+      display: flex;
+      align-items: center;
+      padding-left: ${theme.sizeUnit}px;
       font-size: ${theme.fontSizeXS}px;
       font-family: ${theme.fontFamilyCode};
     }
@@ -72,6 +94,7 @@ export const StyledLayerTreeItem = styled(LayerTreeItem)`
       border: none;
       background-color: unset;
       color: ${theme.colorTextSecondary};
+      box-shadow: none;
     }
 
     & > button:hover {
@@ -81,8 +104,89 @@ export const StyledLayerTreeItem = styled(LayerTreeItem)`
   `}
 `;
 
-// forwardRef is needed here in order for emotion and antd tree to work properly
-export const FlatLayerTree = forwardRef<HTMLDivElement, FlatLayerTreeProps>(
+interface DraggableLayerTreeItemProps {
+  layerConf: LayerConfWithId;
+  index: number;
+  draggable?: boolean;
+  onEditLayer: (layerConf: LayerConfWithId, idx: number) => void;
+  onRemoveLayer: (idx: number) => void;
+  onMoveLayerByIndex: (dragIndex: number, hoverIndex: number) => void;
+}
+
+const DraggableLayerTreeItem: FC<DraggableLayerTreeItemProps> = ({
+  layerConf,
+  index,
+  draggable = false,
+  onEditLayer,
+  onRemoveLayer,
+  onMoveLayerByIndex,
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const [, drag] = useDrag<DragItem, void, unknown>({
+    item: {
+      type: LAYER_CONFIG_DRAG_TYPE,
+      dragIndex: index,
+    },
+    canDrag: draggable,
+  });
+
+  const [, drop] = useDrop({
+    accept: LAYER_CONFIG_DRAG_TYPE,
+    hover(item: DragItem, monitor: DropTargetMonitor) {
+      // Stop early when dragging is disabled or the item node is not ready yet
+      if (!draggable || !ref.current) {
+        return;
+      }
+      const { dragIndex } = item;
+      const hoverIndex = index;
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+
+      const hoverBoundingRect = ref.current.getBoundingClientRect();
+      const hoverMiddleY =
+        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      const clientOffset = monitor.getClientOffset();
+      const hoverClientY = clientOffset?.y
+        ? clientOffset?.y - hoverBoundingRect.top
+        : 0;
+
+      // Move only after crossing the middle to avoid jumpy reordering
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+        return;
+      }
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+        return;
+      }
+
+      onMoveLayerByIndex(dragIndex, hoverIndex);
+      // Note: we're mutating the monitor item here!
+      // Generally it's better to avoid mutations,
+      // but it's good here for the sake of performance
+      // to avoid expensive index searches.
+      // eslint-disable-next-line no-param-reassign
+      item.dragIndex = hoverIndex;
+    },
+  });
+
+  drag(drop(ref));
+
+  return (
+    <DragContainer ref={ref}>
+      <StyledLayerTreeItem
+        layerConf={layerConf}
+        onEditClick={() => onEditLayer(layerConf, index)}
+        onRemoveClick={() => onRemoveLayer(index)}
+      />
+    </DragContainer>
+  );
+};
+
+export const FlatLayerTree: FC<FlatLayerTreeProps> = forwardRef<
+  HTMLDivElement,
+  FlatLayerTreeProps
+>(
   (
     {
       layerConfigs,
@@ -95,36 +199,11 @@ export const FlatLayerTree = forwardRef<HTMLDivElement, FlatLayerTreeProps>(
     },
     ref,
   ) => {
-    const layerConfigsToTreeData = (
-      configs: LayerConf[],
-    ): FlatLayerDataNode[] =>
-      configs.map((config, idx) => ({
-        layerConf: config,
-        key: idx,
-        title: (
-          <StyledLayerTreeItem
-            layerConf={config}
-            onEditClick={() => onEditLayer(config, idx)}
-            onRemoveClick={() => onRemoveLayer(idx)}
-          />
-        ),
-        selectable: false,
-        isLeaf: true,
-        checkable: false,
-      }));
-
-    const treeDataToLayerConfigs = (
-      treeData: FlatLayerDataNode[],
-    ): LayerConf[] => treeData.map(data => data.layerConf);
-
-    const treeData = layerConfigsToTreeData(layerConfigs);
-
-    const onDrop = (
-      info: Parameters<NonNullable<TreeProps<FlatLayerDataNode>['onDrop']>>[0],
-    ) => {
-      const data = handleDrop(info, treeData);
-      const movedLayerConfigs = treeDataToLayerConfigs(data);
-      onMoveLayer(movedLayerConfigs);
+    const onMoveLayerByIndex = (dragIndex: number, hoverIndex: number) => {
+      if (!draggable || dragIndex === hoverIndex) {
+        return;
+      }
+      onMoveLayer(dragIndex, hoverIndex);
     };
 
     const addLayerLabel = t('Click to add new layer');
@@ -134,13 +213,21 @@ export const FlatLayerTree = forwardRef<HTMLDivElement, FlatLayerTreeProps>(
         <Button
           className="add-layer-btn"
           onClick={onAddLayer}
-          size="small"
-          type="dashed"
           icon={<Icons.PlusOutlined iconSize="m" />}
         >
           {addLayerLabel}
         </Button>
-        <Tree treeData={treeData} draggable={draggable} onDrop={onDrop} />
+        {layerConfigs.map((layerConf, idx) => (
+          <DraggableLayerTreeItem
+            key={layerConf.id}
+            layerConf={layerConf}
+            index={idx}
+            draggable={draggable}
+            onEditLayer={onEditLayer}
+            onRemoveLayer={onRemoveLayer}
+            onMoveLayerByIndex={onMoveLayerByIndex}
+          />
+        ))}
       </div>
     );
   },

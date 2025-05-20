@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { GeometryFormat } from '../../src/constants';
 import {
   groupByLocation,
   getChartConfigs,
@@ -25,6 +26,8 @@ import {
   groupByLocationGenericX,
   stripGeomFromColnamesAndTypes,
   stripGeomColumnFromLabelMap,
+  getWkbColumns,
+  getWktColumns,
 } from '../../src/util/transformPropsUtil';
 import {
   nonTimeSeriesChartData,
@@ -32,6 +35,8 @@ import {
   geom1,
   geom2,
   groupedTimeseriesLabelMap,
+  nonTimeSeriesWkbChartData,
+  nonTimeSeriesWktChartData,
 } from '../testData';
 
 describe('transformPropsUtil', () => {
@@ -39,9 +44,67 @@ describe('transformPropsUtil', () => {
     x_axis: 'mydate',
   };
 
+  const sliceId = 1;
+
   const groupedTimeseriesQueryData = {
     label_map: groupedTimeseriesLabelMap,
   };
+
+  describe('getWkbColumns', () => {
+    test('gets the WKB columns', () => {
+      const wkbCol = '0101000020E610000000000000000020400000000000804A40';
+      const columns = ['foo', 'bar', wkbCol];
+
+      const result = getWkbColumns(columns);
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(2);
+    });
+
+    test('gets multiple WKB columns', () => {
+      const wkbCol = '0101000020E610000000000000000020400000000000804A40';
+      const columns = ['foo', 'bar', wkbCol, wkbCol];
+
+      const result = getWkbColumns(columns);
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual(2);
+      expect(result[1]).toEqual(3);
+    });
+
+    test('returns empty array when no WKB column is included', () => {
+      const columns = ['foo', 'bar'];
+
+      const result = getWkbColumns(columns);
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('getWktColumns', () => {
+    test('gets the WKT columns', () => {
+      const wktCol = 'POINT(8 53)';
+      const columns = ['foo', 'bar', wktCol];
+
+      const result = getWktColumns(columns);
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(2);
+    });
+
+    test('gets multiple WKT columns', () => {
+      const wktCol = 'POINT(8 53)';
+      const columns = ['foo', 'bar', wktCol, wktCol];
+
+      const result = getWktColumns(columns);
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual(2);
+      expect(result[1]).toEqual(3);
+    });
+
+    test('returns empty array when no WKT column is included', () => {
+      const columns = ['foo', 'bar'];
+
+      const result = getWktColumns(columns);
+      expect(result).toHaveLength(0);
+    });
+  });
 
   describe('getGeojsonColumns', () => {
     test('gets the GeoJSON columns', () => {
@@ -86,6 +149,7 @@ describe('transformPropsUtil', () => {
       const result = groupByLocationGenericX(
         groupedTimeseriesChartData,
         groupedTimeseriesParams,
+        GeometryFormat.GEOJSON,
         groupedTimeseriesQueryData,
       );
       const countOfGeometries = Object.keys(result).length;
@@ -96,6 +160,7 @@ describe('transformPropsUtil', () => {
       const result = groupByLocationGenericX(
         groupedTimeseriesChartData,
         groupedTimeseriesParams,
+        GeometryFormat.GEOJSON,
         groupedTimeseriesQueryData,
       );
       const allGeom1 = result[geom1].length === 2;
@@ -127,7 +192,11 @@ describe('transformPropsUtil', () => {
         colnames: ['foo', 'geom'],
         coltypes: [0, 0],
       };
-      const result = stripGeomFromColnamesAndTypes(queryData, 'geom');
+      const result = stripGeomFromColnamesAndTypes(
+        queryData,
+        'geom',
+        GeometryFormat.GEOJSON,
+      );
       expect(result).toEqual({
         colnames: ['foo'],
         coltypes: [0],
@@ -139,7 +208,11 @@ describe('transformPropsUtil', () => {
         colnames: ['foo', `bar, ${geom1}`],
         coltypes: [0, 0],
       };
-      const result = stripGeomFromColnamesAndTypes(queryData, 'geom');
+      const result = stripGeomFromColnamesAndTypes(
+        queryData,
+        'geom',
+        GeometryFormat.GEOJSON,
+      );
       expect(result).toEqual({
         colnames: ['foo', 'bar'],
         coltypes: [0, 0],
@@ -151,7 +224,11 @@ describe('transformPropsUtil', () => {
         colnames: ['foo', `bar, baz`],
         coltypes: [0, 0],
       };
-      const result = stripGeomFromColnamesAndTypes(queryData, 'geom');
+      const result = stripGeomFromColnamesAndTypes(
+        queryData,
+        'geom',
+        GeometryFormat.GEOJSON,
+      );
       expect(result).toEqual({
         colnames: ['foo', 'bar, baz'],
         coltypes: [0, 0],
@@ -166,7 +243,11 @@ describe('transformPropsUtil', () => {
         [`${geom2}, lemon`]: [geom2, 'lemon'],
         geom: ['geom'],
       };
-      const result = stripGeomColumnFromLabelMap(labelMap, 'geom');
+      const result = stripGeomColumnFromLabelMap(
+        labelMap,
+        'geom',
+        GeometryFormat.GEOJSON,
+      );
       expect(result).toEqual({
         apple: ['apple'],
         lemon: ['lemon'],
@@ -178,7 +259,9 @@ describe('transformPropsUtil', () => {
     let chartTransformer: jest.MockedFunction<any>;
     const geomColumn = 'geom';
     const pieChartConfig = {
-      params: {},
+      params: {
+        groupby: [],
+      },
       viz_type: 'pie',
     };
     const chartProps: any = {
@@ -188,12 +271,33 @@ describe('transformPropsUtil', () => {
         },
       ],
     };
+    const wkbChartProps: any = {
+      queriesData: [
+        {
+          data: nonTimeSeriesWkbChartData,
+        },
+      ],
+    };
+    const wktChartProps: any = {
+      queriesData: [
+        {
+          data: nonTimeSeriesWktChartData,
+        },
+      ],
+    };
     beforeEach(() => {
       chartTransformer = jest.fn();
     });
 
     test('calls the transformProps function for every location', () => {
-      getChartConfigs(pieChartConfig, geomColumn, chartProps, chartTransformer);
+      getChartConfigs(
+        pieChartConfig,
+        geomColumn,
+        GeometryFormat.GEOJSON,
+        chartProps,
+        chartTransformer,
+        sliceId,
+      );
 
       expect(chartTransformer).toHaveBeenCalledTimes(2);
     });
@@ -201,8 +305,10 @@ describe('transformPropsUtil', () => {
       const result = getChartConfigs(
         pieChartConfig,
         geomColumn,
+        GeometryFormat.GEOJSON,
         chartProps,
         chartTransformer,
+        sliceId,
       );
 
       expect(result).toEqual(
@@ -220,12 +326,43 @@ describe('transformPropsUtil', () => {
       const result = getChartConfigs(
         pieChartConfig,
         geomColumn,
+        GeometryFormat.GEOJSON,
         chartProps,
         chartTransformer,
+        sliceId,
       );
       expect(result.features).toHaveLength(2);
       expect(result.features[0].geometry).toEqual(JSON.parse(geom1));
       expect(result.features[1].geometry).toEqual(JSON.parse(geom2));
+    });
+    test('can handle WKB geometries', () => {
+      const result = getChartConfigs(
+        pieChartConfig,
+        geomColumn,
+        GeometryFormat.WKB,
+        wkbChartProps,
+        chartTransformer,
+        sliceId,
+      );
+
+      expect(result.features).toHaveLength(2);
+      expect(result.features[0].geometry.coordinates).toHaveLength(2);
+      expect(result.features[1].geometry.coordinates).toHaveLength(2);
+    });
+
+    test('can handle WKT geometries', () => {
+      const result = getChartConfigs(
+        pieChartConfig,
+        geomColumn,
+        GeometryFormat.WKT,
+        wktChartProps,
+        chartTransformer,
+        sliceId,
+      );
+
+      expect(result.features).toHaveLength(2);
+      expect(result.features[0].geometry.coordinates).toHaveLength(2);
+      expect(result.features[1].geometry.coordinates).toHaveLength(2);
     });
   });
 

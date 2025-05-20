@@ -22,19 +22,25 @@ import { useSelector } from 'react-redux';
 import Point from 'ol/geom/Point';
 import { View } from 'ol';
 import BaseEvent from 'ol/events/Event';
+import GeoJSON from 'ol/format/GeoJSON';
 import { unByKey } from 'ol/Observable';
-import { toLonLat } from 'ol/proj';
+import { toLonLat, transformExtent } from 'ol/proj';
 import { debounce } from 'lodash';
-import { fitMapToCharts } from '../util/mapUtil';
+import { fitMapToData } from '../util/mapUtil';
 import { ChartLayer } from './ChartLayer';
 import { createLayer } from '../util/layerUtil';
 import {
   ChartConfig,
   LayerConf,
+  MapMaxExtentConfigs,
   MapViewConfigs,
   OlChartMapProps,
 } from '../types';
 import { isChartConfigEqual } from '../util/chartUtil';
+import {
+  getExtentFromFeatures,
+  getMapExtentPadding,
+} from '../util/geometryUtil';
 
 /** The name to reference the chart layer */
 const CHART_LAYER_NAME = 'openlayers-chart-layer';
@@ -49,7 +55,11 @@ export const OlChartMap = (props: OlChartMapProps) => {
     chartSize,
     chartVizType,
     layerConfigs,
+    mapMaxExtent,
+    mapExtentPadding,
     mapView,
+    maxZoom,
+    minZoom,
     chartBackgroundColor,
     chartBackgroundBorderRadius,
     setControlValue,
@@ -61,6 +71,8 @@ export const OlChartMap = (props: OlChartMapProps) => {
   const [currentChartConfigs, setCurrentChartConfigs] =
     useState<ChartConfig>(chartConfigs);
   const [currentMapView, setCurrentMapView] = useState<MapViewConfigs>(mapView);
+  const [currentMapMaxExtent, setCurrentMapMaxExtent] =
+    useState<MapMaxExtentConfigs>(mapMaxExtent);
 
   /**
    * Add map to correct DOM element.
@@ -119,11 +131,47 @@ export const OlChartMap = (props: OlChartMapProps) => {
   }, [mapView]);
 
   /**
+   * The prop mapMaxExtent will always be created on the fly,
+   * therefore the shallow comparison of the effect hooks will
+   * always trigger. In this hook, we compare only those props
+   * that might be changed from outside of the component, i.e the
+   * fixed properties and the mode. Only if these values differ will
+   * we set the state to the new object. All other effect hooks that
+   * depend on mapView should now depend on currentMapMaxExtent instead.
+   */
+  useEffect(() => {
+    setCurrentMapMaxExtent(oldCurrentMapExtentView => {
+      const sameFixedMaxX =
+        oldCurrentMapExtentView.fixedMaxX === mapMaxExtent.fixedMaxX;
+      const sameFixedMaxY =
+        oldCurrentMapExtentView.fixedMaxY === mapMaxExtent.fixedMaxY;
+      const sameFixedMinX =
+        oldCurrentMapExtentView.fixedMinX === mapMaxExtent.fixedMinX;
+      const sameFixedMinY =
+        oldCurrentMapExtentView.fixedMinY === mapMaxExtent.fixedMinY;
+      const sameMode =
+        oldCurrentMapExtentView.extentMode === mapMaxExtent.extentMode;
+      if (
+        sameFixedMaxX &&
+        sameFixedMaxY &&
+        sameFixedMinX &&
+        sameFixedMinY &&
+        sameMode
+      ) {
+        return oldCurrentMapExtentView;
+      }
+      return mapMaxExtent;
+    });
+  }, [mapMaxExtent]);
+
+  /**
    * Set initial map extent.
    */
   useEffect(() => {
     const view = olMap.getView();
     const { mode, fixedLatitude, fixedLongitude, fixedZoom } = mapView;
+    const { extentMode, fixedMaxX, fixedMaxY, fixedMinX, fixedMinY } =
+      mapMaxExtent;
 
     switch (mode) {
       case 'CUSTOM': {
@@ -135,7 +183,11 @@ export const OlChartMap = (props: OlChartMapProps) => {
         break;
       }
       default: {
-        fitMapToCharts(olMap, chartConfigs);
+        fitMapToData(
+          olMap,
+          chartConfigs,
+          getMapExtentPadding(mapExtentPadding),
+        );
 
         const zoom = view.getZoom();
         const centerCoord = view.getCenter();
@@ -154,6 +206,64 @@ export const OlChartMap = (props: OlChartMapProps) => {
           fixedLatitude: latitude,
           fixedLongitude: longitude,
           fixedZoom: zoom,
+        });
+
+        break;
+      }
+    }
+
+    switch (extentMode) {
+      case 'CUSTOM': {
+        if (
+          fixedMaxX === undefined ||
+          fixedMaxY === undefined ||
+          fixedMinX === undefined ||
+          fixedMinY === undefined
+        ) {
+          break;
+        }
+        const [minx, miny, maxx, maxy] = transformExtent(
+          [fixedMinX, fixedMinY, fixedMaxX, fixedMaxY],
+          'EPSG:4326',
+          'EPSG:3857',
+        );
+
+        olMap.setView(
+          new View({
+            center: view.getCenter(),
+            zoom: view.getZoom(),
+            extent: [minx, miny, maxx, maxy],
+            maxZoom: view.getMaxZoom(),
+            minZoom: view.getMinZoom(),
+          }),
+        );
+        break;
+      }
+      default: {
+        const newView = new View({
+          center: view.getCenter(),
+          zoom: view.getZoom(),
+          maxZoom: view.getMaxZoom(),
+          minZoom: view.getMinZoom(),
+        });
+        olMap.setView(newView);
+
+        const [minx, miny, maxx, maxy] = newView.calculateExtent(
+          olMap.getSize(),
+        );
+
+        const [minX, minY, maxX, maxY] = transformExtent(
+          [minx, miny, maxx, maxy],
+          'EPSG:3857',
+          'EPSG:4326',
+        );
+
+        setControlValue('map_max_extent', {
+          ...mapMaxExtent,
+          minX,
+          maxX,
+          minY,
+          maxY,
         });
 
         break;
@@ -182,7 +292,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
       // The first layer in the list will be the upmost layer on the map.
       // With insertAt(0) we ensure that the chart layer will always
       // stay on top, though.
-      const createdLayersPromises = configs.map(createLayer);
+      const createdLayersPromises = configs.map(config => createLayer(config));
       const createdLayers = await Promise.allSettled(createdLayersPromises);
       createdLayers.forEach((createdLayer, idx) => {
         if (createdLayer.status === 'fulfilled' && createdLayer.value) {
@@ -195,6 +305,39 @@ export const OlChartMap = (props: OlChartMapProps) => {
 
     addLayers(layerConfigs);
   }, [olMap, layerConfigs]);
+
+  useEffect(() => {
+    const { extentMode, fixedMaxX, fixedMaxY, fixedMinX, fixedMinY } =
+      currentMapMaxExtent;
+    const view = olMap.getView();
+    const center = view.getCenter();
+    const zoom = view.getZoom();
+    let extent;
+
+    if (
+      extentMode === 'CUSTOM' &&
+      fixedMaxX !== undefined &&
+      fixedMaxY !== undefined &&
+      fixedMinX !== undefined &&
+      fixedMinY !== undefined
+    ) {
+      extent = transformExtent(
+        [fixedMinX, fixedMinY, fixedMaxX, fixedMaxY],
+        'EPSG:4326',
+        'EPSG:3857',
+      );
+    }
+
+    olMap.setView(
+      new View({
+        center,
+        zoom,
+        extent,
+        maxZoom: view.getMaxZoom(),
+        minZoom: view.getMinZoom(),
+      }),
+    );
+  }, [olMap, currentMapMaxExtent]);
 
   /**
    * Create listener on map movement
@@ -209,19 +352,36 @@ export const OlChartMap = (props: OlChartMapProps) => {
 
       const center = targetView.getCenter();
       const zoom = targetView.getZoom();
-      if (!center) {
-        return;
-      }
-      const [longitude, latitude] = toLonLat(center);
 
-      setControlValue('map_view', {
-        ...currentMapView,
-        zoom,
-        longitude,
-        latitude,
-        fixedLatitude,
-        fixedLongitude,
-        fixedZoom,
+      const [minx, miny, maxx, maxy] = targetView.calculateExtent(
+        olMap.getSize(),
+      );
+      const [minX, minY, maxX, maxY] = transformExtent(
+        [minx, miny, maxx, maxy],
+        'EPSG:3857',
+        'EPSG:4326',
+      );
+
+      if (center) {
+        const [longitude, latitude] = toLonLat(center);
+
+        setControlValue('map_view', {
+          ...currentMapView,
+          zoom,
+          longitude,
+          latitude,
+          fixedLatitude,
+          fixedLongitude,
+          fixedZoom,
+        });
+      }
+
+      setControlValue('map_max_extent', {
+        ...currentMapMaxExtent,
+        maxX,
+        maxY,
+        minX,
+        minY,
       });
     };
 
@@ -246,7 +406,13 @@ export const OlChartMap = (props: OlChartMapProps) => {
     return () => {
       unByKey(listenerKey);
     };
-  }, [olMap, setControlValue, currentMapView, currentChartConfigs]);
+  }, [
+    olMap,
+    setControlValue,
+    currentMapView,
+    currentChartConfigs,
+    currentMapMaxExtent,
+  ]);
 
   useEffect(() => {
     if (currentMapView.mode === 'FIT_DATA') {
@@ -258,16 +424,39 @@ export const OlChartMap = (props: OlChartMapProps) => {
       if (!chartLayer) {
         return;
       }
-      const extent = chartLayer.getExtent();
+
+      const features = new GeoJSON().readFeatures(chartLayer.chartConfigs, {
+        featureProjection: 'EPSG:4326',
+      });
+
+      const extent = getExtentFromFeatures(features);
+
       if (!extent) {
         return;
       }
+
+      const transformedExtent = transformExtent(
+        extent,
+        'EPSG:4326',
+        olMap.getView().getProjection(),
+      );
+
       const view = olMap.getView();
-      view.fit(extent, {
-        size: [250, 250],
-      });
+      const padding = getMapExtentPadding(mapExtentPadding);
+
+      view.fit(transformedExtent, { padding });
     }
-  }, [olMap, currentMapView.mode]);
+  }, [olMap, currentMapView.mode, mapExtentPadding]);
+
+  useEffect(() => {
+    const view = olMap.getView();
+    view.setMinZoom(minZoom);
+  }, [minZoom, olMap]);
+
+  useEffect(() => {
+    const view = olMap.getView();
+    view.setMaxZoom(maxZoom);
+  }, [maxZoom, olMap]);
 
   /**
    * Send updated zoom to chart config control.

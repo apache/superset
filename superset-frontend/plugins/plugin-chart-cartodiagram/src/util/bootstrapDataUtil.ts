@@ -16,26 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DataLayerConf,
-  LayerConf,
-  WfsLayerConf,
-  WmsLayerConf,
-  XyzLayerConf,
-} from './types';
 
-export const isWmsLayerConf = (
-  layerConf: LayerConf,
-): layerConf is WmsLayerConf => layerConf.type === 'WMS';
+/**
+ * Based on superset-frontend/src/utils/getBootstrapData.ts. Replicated
+ * in order to circumvent creating circular dependencies.
+ */
 
-export const isWfsLayerConf = (
-  layerConf: LayerConf,
-): layerConf is WfsLayerConf => layerConf.type === 'WFS';
+export const getBootstrapData = () => {
+  const appContainer = document.getElementById('app');
+  const dataBootstrap = appContainer?.getAttribute('data-bootstrap');
+  return dataBootstrap ? JSON.parse(dataBootstrap) : {};
+};
 
-export const isXyzLayerConf = (
-  layerConf: LayerConf,
-): layerConf is XyzLayerConf => layerConf.type === 'XYZ';
+export const getMapProjections = () => {
+  const bootstrapData = getBootstrapData();
+  const mapProjections = bootstrapData?.common?.conf?.MAP_PROJECTIONS;
+  return mapProjections ?? {};
+};
 
-export const isDataLayerConf = (
-  layerConf: LayerConf,
-): layerConf is DataLayerConf => layerConf.type === 'DATA';
+export const getMapDefaultLayers = () => {
+  const bootstrapData = getBootstrapData();
+  const mapDefaultLayers = bootstrapData?.common?.conf?.MAP_DEFAULT_LAYERS;
+  return mapDefaultLayers ?? [];
+};
