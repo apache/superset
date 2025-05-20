@@ -190,50 +190,37 @@ export default function AsyncAceEditor(
         return (
           <>
             <Global
+              key="ace-tooltip-global"
               styles={css`
                 .ace_tooltip {
-                  margin-left: ${supersetTheme.gridUnit * 2}px;
-                  padding: 0px;
+                  all: unset;
+                  position: fixed;
+                  z-index: 9999;
+                  background: ${supersetTheme.colors.grayscale.light5};
                   border: 1px solid ${supersetTheme.colors.grayscale.light1};
+                  padding: ${supersetTheme.gridUnit}px
+                    ${supersetTheme.gridUnit * 2}px;
+                  line-height: 1.4;
+                  max-width: 400px;
+                  min-width: 200px;
+                  pointer-events: auto;
+                  font-size: ${supersetTheme.typography.sizes.m}px;
                 }
 
                 & .tooltip-detail {
-                  background-color: ${supersetTheme.colors.grayscale.light5};
-                  white-space: pre-wrap;
-                  word-break: break-all;
-                  min-width: ${supersetTheme.gridUnit * 50}px;
-                  max-width: ${supersetTheme.gridUnit * 100}px;
-                  & .tooltip-detail-head {
-                    background-color: ${supersetTheme.colors.grayscale.light4};
-                    color: ${supersetTheme.colors.grayscale.dark1};
-                    display: flex;
-                    column-gap: ${supersetTheme.gridUnit}px;
-                    align-items: baseline;
-                    justify-content: space-between;
-                  }
                   & .tooltip-detail-title {
-                    display: flex;
-                    column-gap: ${supersetTheme.gridUnit}px;
+                    font-weight: bold;
+                    font-size: ${supersetTheme.typography.sizes.m}px;
                   }
                   & .tooltip-detail-body {
-                    word-break: break-word;
+                    font-size: ${supersetTheme.typography.sizes.s}px;
+                    padding: ${supersetTheme.gridUnit}px;
                   }
                   & .tooltip-detail-head,
                   & .tooltip-detail-body {
-                    padding: ${supersetTheme.gridUnit}px
-                      ${supersetTheme.gridUnit * 2}px;
                   }
                   & .tooltip-detail-footer {
-                    border-top: 1px ${supersetTheme.colors.grayscale.light2}
-                      solid;
-                    padding: 0 ${supersetTheme.gridUnit * 2}px;
-                    color: ${supersetTheme.colors.grayscale.dark1};
-                    font-size: ${supersetTheme.typography.sizes.xs}px;
-                  }
-                  & .tooltip-detail-meta {
-                    & > .ant-tag {
-                      margin-right: 0px;
-                    }
+                    font-size: ${supersetTheme.typography.sizes.s}px;
                   }
                 }
               `}
