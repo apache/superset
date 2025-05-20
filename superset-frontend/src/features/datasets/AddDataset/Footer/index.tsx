@@ -18,7 +18,10 @@
  */
 import { useHistory } from 'react-router-dom';
 import Button from 'src/components/Button';
-import { t } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
+import { Menu } from 'src/components/Menu';
+import { DropdownButton } from 'src/components/DropdownButton';
+import { t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { logEvent } from 'src/logger/actions';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -85,7 +88,7 @@ function Footer({
 
   const tooltipText = t('Select a database table.');
 
-  const onSave = () => {
+  const onSave = (chartRedirect = true) => {
     if (datasetObject) {
       const data = {
         database: datasetObject.db?.id,
@@ -97,32 +100,55 @@ function Footer({
         if (!response) {
           return;
         }
-        if (typeof response === 'number') {
+        if (typeof response === 'number' && chartRedirect) {
           logEvent(LOG_ACTIONS_DATASET_CREATION_SUCCESS, datasetObject);
           // When a dataset is created the response we get is its ID number
           history.push(`/chart/add/?dataset=${datasetObject.table_name}`);
+        } else {
+          history.push('/tablemodelview/list/');
         }
       });
     }
   };
 
-  const CREATE_DATASET_TEXT = t('Create dataset and create chart');
+  const onSaveDatasetOnly = () => {
+    onSave(false);
+  };
+
+  const CREATE_DATASET_AND_CHART_TEXT = t('Create dataset and create chart');
+  const CREATE_DATASET_TEXT = t('Only create dataset');
+
   const disabledCheck =
     !datasetObject?.table_name ||
     !hasColumns ||
     datasets?.includes(datasetObject?.table_name);
 
+  const overlayMenu = (
+    <Menu>
+      <Menu.Item onClick={onSaveDatasetOnly}>{CREATE_DATASET_TEXT}</Menu.Item>
+    </Menu>
+  );
+
+  const theme = useTheme();
+
   return (
     <>
       <Button onClick={cancelButtonOnClick}>{t('Cancel')}</Button>
-      <Button
-        buttonStyle="primary"
+      <DropdownButton
+        onClick={onSave}
+        dropdownRender={() => overlayMenu}
+        icon={
+          <Icons.DownOutlined
+            iconSize="xs"
+            iconColor={theme.colors.primary.dark2}
+          />
+        }
+        trigger={['click']}
         disabled={disabledCheck}
         tooltip={!datasetObject?.table_name ? tooltipText : undefined}
-        onClick={onSave}
       >
-        {CREATE_DATASET_TEXT}
-      </Button>
+        {CREATE_DATASET_AND_CHART_TEXT}
+      </DropdownButton>
     </>
   );
 }
