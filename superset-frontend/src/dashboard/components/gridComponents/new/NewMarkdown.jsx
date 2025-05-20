@@ -29,7 +29,6 @@ export default function DraggableNewDivider() {
       id={NEW_MARKDOWN_ID}
       type={MARKDOWN_TYPE}
       label={t('Text / Markdown')}
-      className="fa fa-font"
       IconComponent={Icons.FileMarkdownOutlined}
     />
   );

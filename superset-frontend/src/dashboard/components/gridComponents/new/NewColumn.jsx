@@ -29,7 +29,6 @@ export default function DraggableNewColumn() {
       id={NEW_COLUMN_ID}
       type={COLUMN_TYPE}
       label={t('Column')}
-      className="fa fa-long-arrow-down"
       IconComponent={Icons.ColumnWidthOutlined}
     />
   );

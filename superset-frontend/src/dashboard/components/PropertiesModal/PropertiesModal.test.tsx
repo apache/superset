@@ -228,7 +228,7 @@ describe('PropertiesModal', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Access' })).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Advanced' }),
+      screen.getByRole('heading', { name: 'Advanced down' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Certification' }),
@@ -266,7 +266,7 @@ describe('PropertiesModal', () => {
 
     expect(screen.getAllByRole('textbox')).toHaveLength(4);
     expect(screen.getAllByRole('combobox')).toHaveLength(3);
-    userEvent.click(screen.getByRole('button', { name: 'Advanced' }));
+    userEvent.click(screen.getByRole('button', { name: 'Advanced down' }));
     expect(screen.getAllByRole('textbox')).toHaveLength(5);
     expect(screen.getAllByRole('combobox')).toHaveLength(3);
   });

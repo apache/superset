@@ -109,9 +109,11 @@ const VizTypeControl = ({
         css={(theme: SupersetTheme) => css`
           display: flex;
           justify-content: flex-end;
-          margin-top: ${theme.sizeUnit * 3}px;
+          margin-top: ${theme.sizeUnit * 2}px;
           color: ${theme.colorTextSecondary};
           text-decoration: underline;
+          font-size: ${theme.fontSizeSM}px;
+          color: ${theme.colorTextTertiary};
         `}
       >
         <span role="button" tabIndex={0} onClick={openModal}>

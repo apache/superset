@@ -29,7 +29,6 @@ export default function DraggableNewHeader() {
       id={NEW_HEADER_ID}
       type={HEADER_TYPE}
       label={t('Header')}
-      className="fa fa-header"
       IconComponent={Icons.FontColorsOutlined}
     />
   );
