@@ -95,7 +95,7 @@ export default function Login() {
 
   const onFinish = (values: LoginForm) => {
     setLoading(true);
-    SupersetClient.postForm('/login', values, '').finally(() => {
+    SupersetClient.postForm('/login/', values, '').finally(() => {
       setLoading(false);
     });
   };
