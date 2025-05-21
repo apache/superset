@@ -39,4 +39,4 @@ def suspend_session():
             logger.info("Reconnecting to metadata database")
             db.session()  # Lazy open new session
             for obj in session_objects:
-                db.session.add(obj)
+                db.session.merge(obj)
