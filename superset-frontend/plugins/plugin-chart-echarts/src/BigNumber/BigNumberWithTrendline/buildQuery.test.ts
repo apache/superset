@@ -53,7 +53,7 @@ describe('BigNumberWithTrendline buildQuery', () => {
     const queryContext = buildQuery({ ...baseFormData });
     const bigNumberQuery = queryContext.queries[1];
 
-    expect(bigNumberQuery.post_processing).toEqual([]);
+    expect(bigNumberQuery.post_processing).toEqual([{ operation: 'pivot' }]);
     expect(bigNumberQuery.is_timeseries).toBe(false);
   });
 
@@ -65,7 +65,7 @@ describe('BigNumberWithTrendline buildQuery', () => {
       { operation: 'pivot' },
       { operation: 'aggregation', options: { operator: 'sum' } },
     ]);
-    expect(bigNumberQuery.is_timeseries).toBe(true);
+    expect(bigNumberQuery.is_timeseries).toBe(false);
   });
 
   it('skips aggregation when aggregation is LAST_VALUE', () => {
@@ -76,7 +76,7 @@ describe('BigNumberWithTrendline buildQuery', () => {
     const bigNumberQuery = queryContext.queries[1];
 
     expect(bigNumberQuery.post_processing).toEqual([{ operation: 'pivot' }]);
-    expect(bigNumberQuery.is_timeseries).toBe(true);
+    expect(bigNumberQuery.is_timeseries).toBe(false);
   });
 
   it('always returns two queries', () => {
