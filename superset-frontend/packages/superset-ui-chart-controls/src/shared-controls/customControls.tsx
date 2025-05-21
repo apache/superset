@@ -66,11 +66,11 @@ export const aggregationControl = {
   config: {
     type: 'SelectControl',
     label: t('Aggregation Method'),
-    default: null,
-    placeholder: t('None'),
-    clearable: true,
+    default: 'LAST_VALUE',
+    clearable: false,
     renderTrigger: false,
     choices: [
+      ['raw', t('None')],
       ['LAST_VALUE', t('Last Value')],
       ['sum', t('Total (Sum)')],
       ['mean', t('Average (Mean)')],
@@ -79,17 +79,12 @@ export const aggregationControl = {
       ['median', t('Median')],
     ],
     description: t(
-      'Aggregation method used to compute the Big Number from the Trendline. Do not use with non-additive metrics like ratios, averages, distinct counts, etc.',
+      'Aggregation method used to compute the Big Number from the Trendline.For non-additive metrics like ratios, averages, distinct counts, etc use NONE.',
     ),
-    initialValue: (control: ControlState, state: ControlPanelState) => {
-      if (!state || Object.keys(state).length === 0) {
-        return control.value;
-      }
-      return 'aggregation' in (state?.form_data || {})
-        ? state.form_data.aggregation
-        : null;
-    },
-    mapStateToProps: () => ({}),
+    provideFormDataToProps: true,
+    mapStateToProps: ({ form_data }: ControlPanelState) => ({
+      value: form_data.aggregation || 'LAST_VALUE',
+    }),
   },
 };
 
