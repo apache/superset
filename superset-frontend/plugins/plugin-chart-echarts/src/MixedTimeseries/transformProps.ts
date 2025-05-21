@@ -97,6 +97,7 @@ import {
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
+import { getMetricDisplayName } from '../utils/metricDisplayName';
 
 const getFormatter = (
   customFormatters: Record<string, ValueFormatter>,
@@ -222,6 +223,10 @@ export default function transformProps(
   }
 
   const rebasedDataA = rebaseForecastDatum(data1, verboseMap);
+
+  const MetricDisplayNameA = getMetricDisplayName(metrics[0], verboseMap);
+  const MetricDisplayNameB = getMetricDisplayName(metricsB[0], verboseMap);
+
   const [rawSeriesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
     xAxis: xAxisLabel,
@@ -373,6 +378,12 @@ export default function transformProps(
     const seriesName = inverted[entryName] || entryName;
     const colorScaleKey = getOriginalSeries(seriesName, array);
 
+    let displayName = `${entryName} (Query A)`;
+
+    if (groupby.length > 0) {
+      displayName = `${MetricDisplayNameA} (Query A), ${entryName}`;
+    }
+
     const seriesFormatter = getFormatter(
       customFormatters,
       formatter,
@@ -384,7 +395,7 @@ export default function transformProps(
     const transformedSeries = transformSeries(
       {
         ...entry,
-        id: `${entry.name || ''} (Query A)`,
+        id: `${displayName || ''}`,
       },
       colorScale,
       colorScaleKey,
@@ -424,6 +435,12 @@ export default function transformProps(
     const seriesName = `${seriesEntry} (1)`;
     const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
+    let displayName = `${entryName} (Query B)`;
+
+    if (groupbyB.length > 0) {
+      displayName = `${MetricDisplayNameB} (Query B), ${entryName}`;
+    }
+
     const seriesFormatter = getFormatter(
       customFormattersSecondary,
       formatterSecondary,
@@ -435,7 +452,7 @@ export default function transformProps(
     const transformedSeries = transformSeries(
       {
         ...entry,
-        id: `${entry.name || ''} (Query B)`,
+        id: `${displayName || ''}`,
       },
 
       colorScale,

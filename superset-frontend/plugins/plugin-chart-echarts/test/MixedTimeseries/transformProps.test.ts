@@ -129,7 +129,7 @@ it('should transform chart props for viz', () => {
               [599616000000, 1],
               [599916000000, 3],
             ],
-            id: 'boy (Query A)',
+            id: 'sum__num (Query A), boy',
             stack: 'obs\na',
           }),
           expect.objectContaining({
@@ -137,7 +137,7 @@ it('should transform chart props for viz', () => {
               [599616000000, 2],
               [599916000000, 4],
             ],
-            id: 'girl (Query A)',
+            id: 'sum__num (Query A), girl',
             stack: 'obs\na',
           }),
           // Query B — Bar series
@@ -146,7 +146,7 @@ it('should transform chart props for viz', () => {
               [599616000000, 1],
               [599916000000, 3],
             ],
-            id: 'boy (Query B)',
+            id: 'sum__num (Query B), boy',
             stack: 'obs\nb',
           }),
           expect.objectContaining({
@@ -154,7 +154,7 @@ it('should transform chart props for viz', () => {
               [599616000000, 2],
               [599916000000, 4],
             ],
-            id: 'girl (Query B)',
+            id: 'sum__num (Query B), girl',
             stack: 'obs\nb',
           }),
         ]),
