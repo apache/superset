@@ -33,7 +33,7 @@ import {
 } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
-  const isRawMetric = formData.aggregation === 'raw'; // no null fallback
+  const isRawMetric = formData.aggregation === 'raw';
 
   const timeColumn = isXAxisSet(formData)
     ? ensureIsArray(getXAxisColumn(formData))
