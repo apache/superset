@@ -32,38 +32,39 @@ import {
 } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
-  const isRawMetric = formData.aggregation === 'raw';
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+      columns: [
+        ...(isXAxisSet(formData)
+          ? ensureIsArray(getXAxisColumn(formData))
+          : []),
+      ],
+      ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
+      post_processing: [
+        pivotOperator(formData, baseQueryObject),
+        rollingWindowOperator(formData, baseQueryObject),
+        resampleOperator(formData, baseQueryObject),
+        flattenOperator(formData, baseQueryObject),
+      ],
+    },
 
-  return buildQueryContext(formData, baseQueryObject => {
-    const timeColumn = isXAxisSet(formData)
-      ? ensureIsArray(getXAxisColumn(formData))
-      : [];
-
-    return [
-      {
-        ...baseQueryObject,
-        columns: [...timeColumn],
-        ...(timeColumn.length ? {} : { is_timeseries: true }),
-        post_processing: [
-          pivotOperator(formData, baseQueryObject),
-          rollingWindowOperator(formData, baseQueryObject),
-          resampleOperator(formData, baseQueryObject),
-          flattenOperator(formData, baseQueryObject),
-        ],
-      },
-
-      {
-        ...baseQueryObject,
-        columns: [...(isRawMetric ? [] : timeColumn)],
-        metrics: baseQueryObject.metrics,
-        is_timeseries: false,
-        post_processing: !isRawMetric
-          ? [
-              pivotOperator(formData, baseQueryObject),
-              aggregationOperator(formData, baseQueryObject),
-            ]
-          : [],
-      },
-    ];
-  });
+    {
+      ...baseQueryObject,
+      columns: [
+        ...(formData.aggregation
+          ? isXAxisSet(formData)
+            ? ensureIsArray(getXAxisColumn(formData))
+            : []
+          : []),
+      ],
+      is_timeseries: !!formData.aggregation,
+      post_processing: formData.aggregation
+        ? [
+            pivotOperator(formData, baseQueryObject),
+            aggregationOperator(formData, baseQueryObject),
+          ]
+        : [],
+    },
+  ]);
 }
