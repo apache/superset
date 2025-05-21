@@ -51,6 +51,6 @@ describe('Login view', () => {
     cy.getBySel('password-input').type('general');
     cy.getBySel('login-button').click();
     cy.wait('@login');
-    cy.url().should('not.include', LOGIN);
+    cy.getCookies().should('have.length', 1);
   });
 });
