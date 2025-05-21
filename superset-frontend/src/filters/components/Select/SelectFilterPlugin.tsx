@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppSection,
   DataMask,
@@ -84,7 +84,10 @@ function reducer(draft: DataMask, action: DataMaskAction) {
   }
 }
 
-const StyledSpace = styled(Space)<{ $inverseSelection: boolean }>`
+const StyledSpace = styled(Space)<{
+  inverseSelection: boolean;
+  appSection: AppSection;
+}>`
   display: flex;
   align-items: center;
   width: 100%;
@@ -96,11 +99,16 @@ const StyledSpace = styled(Space)<{ $inverseSelection: boolean }>`
 
   &.ant-space {
     .ant-space-item {
-      width: ${({ $inverseSelection }) =>
-        !$inverseSelection ? '100%' : 'auto'};
+      width: ${({ inverseSelection, appSection }) =>
+        !inverseSelection || appSection === AppSection.FilterConfigModal
+          ? '100%'
+          : 'auto'};
     }
   }
 `;
+
+// Keep track of orientation changes outside component with filter ID
+const orientationMap = new Map<string, FilterBarOrientation>();
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
@@ -157,6 +165,30 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ? true
       : filterState?.excludeFilterValues,
   );
+
+  const prevExcludeFilterValues = useRef(excludeFilterValues);
+
+  const hasOnlyOrientationChanged = useRef(false);
+
+  useEffect(() => {
+    // Get previous orientation for this specific filter
+    const previousOrientation = orientationMap.get(formData.nativeFilterId);
+
+    // Check if only orientation changed for this filter
+    if (
+      previousOrientation !== undefined &&
+      previousOrientation !== filterBarOrientation
+    ) {
+      hasOnlyOrientationChanged.current = true;
+    } else {
+      hasOnlyOrientationChanged.current = false;
+    }
+
+    // Update orientation for this filter
+    if (filterBarOrientation) {
+      orientationMap.set(formData.nativeFilterId, filterBarOrientation);
+    }
+  }, [filterBarOrientation]);
 
   const updateDataMask = useCallback(
     (values: SelectValue) => {
@@ -287,35 +319,50 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [formData.sortAscending],
   );
 
+  // Use effect for initialisation for filter plugin
+  // this should run only once when filter is configured & saved
+  // & shouldnt run when the component is remounted on change of
+  // orientation of filter bar
   useEffect(() => {
-    if (defaultToFirstItem && filterState.value === undefined) {
-      // initialize to first value if set to default to first item
+    // Skip if only orientation changed
+    if (hasOnlyOrientationChanged.current) {
+      return;
+    }
+
+    // Case 1: Handle disabled state first
+    if (isDisabled) {
+      updateDataMask(null);
+      return;
+    }
+
+    if (filterState.value !== undefined) {
+      // Set the filter state value if it is defined
+      updateDataMask(filterState.value);
+      return;
+    }
+
+    // Handle the default to first Value case
+    if (defaultToFirstItem) {
+      // Set to first item if defaultToFirstItem is true
       const firstItem: SelectValue = data[0]
         ? (groupby.map(col => data[0][col]) as string[])
         : null;
-      // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
-      // TODO: still need repopulate default value in config modal when column changed
       if (firstItem?.[0] !== undefined) {
         updateDataMask(firstItem);
       }
-    } else if (isDisabled) {
-      // empty selection if filter is disabled
-      updateDataMask(null);
-    } else {
-      // reset data mask based on filter state
-      updateDataMask(filterState.value);
+    } else if (formData?.defaultValue) {
+      // Handle defalut value case
+      updateDataMask(formData.defaultValue);
     }
   }, [
-    col,
     isDisabled,
-    defaultToFirstItem,
     enableEmptyFilter,
-    inverseSelection,
-    excludeFilterValues,
-    updateDataMask,
+    defaultToFirstItem,
+    formData?.defaultValue,
     data,
     groupby,
-    JSON.stringify(filterState.value),
+    col,
+    inverseSelection,
   ]);
 
   useEffect(() => {
@@ -323,23 +370,26 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [JSON.stringify(dataMask)]);
 
   useEffect(() => {
-    dispatchDataMask({
-      type: 'filterState',
-      extraFormData: getSelectExtraFormData(
-        col,
-        filterState.value,
-        !filterState.value?.length,
-        excludeFilterValues && inverseSelection,
-      ),
-      filterState: {
-        ...(filterState as {
-          value: SelectValue;
-          label?: string;
-          excludeFilterValues?: boolean;
-        }),
-        excludeFilterValues,
-      },
-    });
+    if (prevExcludeFilterValues.current !== excludeFilterValues) {
+      dispatchDataMask({
+        type: 'filterState',
+        extraFormData: getSelectExtraFormData(
+          col,
+          filterState.value,
+          !filterState.value?.length,
+          excludeFilterValues && inverseSelection,
+        ),
+        filterState: {
+          ...(filterState as {
+            value: SelectValue;
+            label?: string;
+            excludeFilterValues?: boolean;
+          }),
+          excludeFilterValues,
+        },
+      });
+      prevExcludeFilterValues.current = excludeFilterValues;
+    }
   }, [excludeFilterValues]);
 
   const handleExclusionToggle = (value: string) => {
@@ -352,8 +402,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         validateStatus={filterState.validateStatus}
         extra={formItemExtra}
       >
-        <StyledSpace $inverseSelection={inverseSelection}>
-          {inverseSelection && (
+        <StyledSpace
+          appSection={appSection}
+          inverseSelection={inverseSelection}
+        >
+          {appSection !== AppSection.FilterConfigModal && inverseSelection && (
             <Select
               className="exclude-select"
               value={`${excludeFilterValues}`}
