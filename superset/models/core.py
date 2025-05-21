@@ -307,7 +307,6 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             with suppress(TypeError, json.JSONDecodeError):
                 encrypted_config = json.loads(masked_encrypted_extra)
         try:
-            # pylint: disable=useless-suppression
             parameters = self.db_engine_spec.get_parameters_from_uri(  # type: ignore
                 masked_uri,
                 encrypted_extra=encrypted_config,
