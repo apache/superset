@@ -247,6 +247,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['echart_options'],
       ],
     },
   ],

@@ -122,6 +122,7 @@ function Echart(
     width,
     height,
     echartOptions,
+    customEchartOptions,
     eventHandlers,
     zrEventHandlers,
     selectedValues = {},
@@ -168,6 +169,8 @@ function Echart(
       if (!chartRef.current) {
         chartRef.current = init(divRef.current, null, { locale });
       }
+      // did mount
+      handleSizeChange({ width, height });
       setDidMount(true);
     });
   }, [locale]);
@@ -185,13 +188,20 @@ function Echart(
       });
 
       chartRef.current?.setOption(echartOptions, true);
-
-      // did mount
-      handleSizeChange({ width, height });
     }
-  }, [didMount, echartOptions, eventHandlers, zrEventHandlers]);
+  }, [didMount, echartOptions]);
 
-  useEffect(() => () => chartRef.current?.dispose(), []);
+  useEffect(() => {
+    if (didMount && customEchartOptions) {
+      console.log('useEffect for rendering with custom', customEchartOptions);
+      chartRef.current?.setOption(echartOptions, true);
+      chartRef.current?.setOption(customEchartOptions, false);
+    }
+  }, [didMount, customEchartOptions]);
+
+  useEffect(() => {
+    return () => chartRef.current?.dispose();
+  }, []);
 
   // highlighting
   useEffect(() => {

@@ -50,6 +50,7 @@ export interface EchartsProps {
   height: number;
   width: number;
   echartOptions: EChartsCoreOption;
+  customEchartOptions: EChartsCoreOption;
   eventHandlers?: EventHandlers;
   zrEventHandlers?: EventHandlers;
   selectedValues?: Record<number, string>;
@@ -124,6 +125,7 @@ export interface BaseChartProps<T extends PlainObject> extends ChartProps<T> {
 
 export interface BaseTransformedProps<F> {
   echartOptions: EChartsCoreOption;
+  customEchartOptions: EChartsCoreOption;
   formData: F;
   height: number;
   onContextMenu?: (

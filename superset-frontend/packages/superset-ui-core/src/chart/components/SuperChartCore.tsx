@@ -84,6 +84,48 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
    */
   container?: HTMLElement | null;
 
+  preSelector = createSelector(
+    [
+      (input: {
+        chartProps: ChartProps;
+        preTransformProps?: PreTransformProps;
+      }) => input.chartProps,
+      input => input.preTransformProps,
+    ],
+    (chartProps, pre = IDENTITY) => {
+      console.log('preselector');
+      return { chartProps: pre(chartProps) };
+    },
+  );
+
+  transformSelector = createSelector(
+    [
+      (input: { chartProps: ChartProps; transformProps?: TransformProps }) =>
+        input.chartProps,
+      input => input.transformProps,
+    ],
+    (chartProps, transform = IDENTITY) => {
+      console.log('transformselector');
+      return {
+        chartProps: transform(chartProps),
+      };
+    },
+  );
+
+  postSelector = createSelector(
+    [
+      (input: {
+        chartProps: ChartProps;
+        postTransformProps?: PostTransformProps;
+      }) => input.chartProps,
+      input => input.postTransformProps,
+    ],
+    (chartProps, post = IDENTITY) => {
+      console.log('postselector');
+      return post(chartProps);
+    },
+  );
+
   /**
    * memoized function so it will not recompute
    * and return previous value
@@ -156,10 +198,11 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
 
     return (
       <Chart
-        {...this.processChartProps({
-          chartProps,
-          preTransformProps,
-          transformProps,
+        {...this.postSelector({
+          ...this.transformSelector({
+            ...this.preSelector({ chartProps, preTransformProps }),
+            transformProps,
+          }),
           postTransformProps,
         })}
       />

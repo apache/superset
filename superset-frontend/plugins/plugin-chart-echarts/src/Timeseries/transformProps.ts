@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { invert } from 'lodash';
+import { invert, assignIn } from 'lodash';
 import {
   AnnotationLayer,
   AxisType,
@@ -115,7 +115,7 @@ export default function transformProps(
     height,
     filterState,
     legendState,
-    formData,
+    formData: { echartOptions: _echartOptions, ...formData },
     hooks,
     queriesData,
     datasource,
@@ -670,8 +670,30 @@ export default function transformProps(
     focusedSeries = seriesName;
   };
 
+  let customEchartOptions;
+  try {
+    customEchartOptions = new Function('return ' + _echartOptions)();
+    // JSON.parse(_echartOptions, function (key, value) {
+    //   if (
+    //     typeof value === 'string' &&
+    //     (value.indexOf('function') === 0 || value.match(/^\([^)]*\) =>/))
+    //   ) {
+    //     // For both traditional functions and arrow functions
+    //     return new Function('return ' + value)();
+    //   }
+    //   return value;
+    // });
+    // delete customEchartOptions?.series;
+  } catch (e) {
+    // skip
+    console.log(e);
+  }
+
+  console.log('customEchartOptions', _echartOptions, customEchartOptions);
+
   return {
     echartOptions,
+    customEchartOptions,
     emitCrossFilters,
     formData,
     groupby: groupBy,

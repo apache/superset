@@ -49,7 +49,7 @@ export default function transformProps(
   const {
     width,
     height,
-    formData,
+    formData: { echartOptions: _echartOptions, ...formData },
     hooks,
     filterState,
     queriesData,
@@ -286,11 +286,19 @@ export default function transformProps(
     series,
   };
 
+  let customEchartOptions;
+  try {
+    customEchartOptions = JSON.parse(_echartOptions);
+  } catch (e) {
+    // skip
+  }
+
   return {
     formData,
     width,
     height,
     echartOptions,
+    customEchartOptions,
     setDataMask,
     emitCrossFilters,
     labelMap,

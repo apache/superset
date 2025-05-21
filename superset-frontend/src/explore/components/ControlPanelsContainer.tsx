@@ -67,6 +67,7 @@ import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
+import { JSEditor } from 'src/components/AsyncAceEditor';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -818,6 +819,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             </Collapse>
           </Tabs.TabPane>
         )}
+        <Tabs.TabPane key="echart" tab={t('Editor')}>
+          <JSEditor
+            onChange={(val: string) => {
+              props.actions.setControlValue('echart_options', val);
+            }}
+          />
+        </Tabs.TabPane>
       </ControlPanelsTabs>
       <div css={actionButtonsContainerStyles}>
         <RunQueryButton

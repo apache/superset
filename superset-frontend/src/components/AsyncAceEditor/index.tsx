@@ -295,12 +295,14 @@ export const TextAreaEditor = AsyncAceEditor([
   'mode/json',
   'mode/html',
   'mode/javascript',
-  'theme/textmate',
+  'theme/github',
 ]);
 
 export const CssEditor = AsyncAceEditor(['mode/css', 'theme/github']);
 
 export const JsonEditor = AsyncAceEditor(['mode/json', 'theme/github']);
+
+export const JSEditor = AsyncAceEditor(['mode/javascript', 'theme/github']);
 
 /**
  * JSON or Yaml config editor.

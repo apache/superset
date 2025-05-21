@@ -43,6 +43,7 @@ export default function EchartsTimeseries({
   height,
   width,
   echartOptions,
+  customEchartOptions,
   groupby,
   labelMap,
   selectedValues,
@@ -269,6 +270,7 @@ export default function EchartsTimeseries({
         height={height - extraControlHeight}
         width={width}
         echartOptions={echartOptions}
+        customEchartOptions={customEchartOptions}
         eventHandlers={eventHandlers}
         zrEventHandlers={zrEventHandlers}
         selectedValues={selectedValues}

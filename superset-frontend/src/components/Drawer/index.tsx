@@ -16,31 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Echart from '../components/Echart';
-import { allEventHandlers } from '../utils/eventHandlers';
-import { BoxPlotChartTransformedProps } from './types';
+import { Drawer as AntdDrawer } from 'antd-v5';
+import { DrawerProps } from 'antd-v5/lib/drawer';
 
-export default function EchartsBoxPlot(props: BoxPlotChartTransformedProps) {
-  const {
-    height,
-    width,
-    echartOptions,
-    customEchartOptions,
-    selectedValues,
-    refs,
-  } = props;
+const drawerStyles = {
+  mask: {
+    background: 'rgba(0,0,0,0.2)',
+  },
+  content: {
+    background: 'white',
+  },
+  body: {
+    padding: 16,
+  },
+  header: {
+    padding: 16,
+  },
+};
 
-  const eventHandlers = allEventHandlers(props);
+const Drawer = (props: DrawerProps) => (
+  <AntdDrawer {...props} styles={drawerStyles} />
+);
 
-  return (
-    <Echart
-      refs={refs}
-      height={height}
-      width={width}
-      echartOptions={echartOptions}
-      customEchartOptions={customEchartOptions}
-      eventHandlers={eventHandlers}
-      selectedValues={selectedValues}
-    />
-  );
-}
+export type { DrawerProps };
+
+export default Drawer;

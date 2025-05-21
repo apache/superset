@@ -381,6 +381,11 @@ const sort_by_metric: SharedControlConfig<'CheckboxControl'> = {
   ),
 };
 
+const echart_options: SharedControlConfig<'HiddenControl'> = {
+  type: 'HiddenControl',
+  renderTrigger: true,
+};
+
 export default {
   metrics: dndAdhocMetricsControl,
   metric: dndAdhocMetricControl,
@@ -421,4 +426,5 @@ export default {
   temporal_columns_lookup,
   currency_format,
   sort_by_metric,
+  echart_options,
 };

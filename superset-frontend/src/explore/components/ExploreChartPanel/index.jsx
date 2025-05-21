@@ -18,6 +18,11 @@
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
+import {
+  createHtmlPortalNode,
+  InPortal,
+  OutPortal,
+} from 'react-reverse-portal';
 import Split from 'react-split';
 import {
   css,
@@ -43,6 +48,11 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
+import { Button } from 'src/components';
+import Drawer from 'src/components/Drawer';
+import AIAssistantModal from 'src/SqlLab/components/AIAssistantModal';
+import AIAssistantContent from 'src/SqlLab/components/AIAssistantModal/Content';
+import Icons from 'src/components/Icons';
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
@@ -121,6 +131,13 @@ const Styles = styled.div`
   }
 `;
 
+const FlexHeader = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+`;
+
 const ExploreChartPanel = ({
   chart,
   slice,
@@ -140,6 +157,7 @@ const ExploreChartPanel = ({
   can_download: canDownload,
 }) => {
   const theme = useTheme();
+  const portalNode = useMemo(() => createHtmlPortalNode(), []);
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const {
@@ -158,6 +176,7 @@ const ExploreChartPanel = ({
       ? false
       : getItem(LocalStorageKeys.IsDatapanelOpen, false),
   );
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   const [showDatasetModal, setShowDatasetModal] = useState(false);
 
@@ -363,18 +382,33 @@ const ExploreChartPanel = ({
             `}
           />
         )}
-        <ChartPills
-          queriesResponse={chart.queriesResponse}
-          chartStatus={chart.chartStatus}
-          chartUpdateStartTime={chart.chartUpdateStartTime}
-          chartUpdateEndTime={chart.chartUpdateEndTime}
-          refreshCachedQuery={refreshCachedQuery}
-          rowLimit={formData?.row_limit}
-        />
+        <FlexHeader>
+          {/* <AIAssistantModal portalNode={portalNode} /> */}
+          <Button
+            icon={
+              <Icons.BulbOutlined
+                iconSize="s"
+                iconColor={theme.colors.primary.dark1}
+              />
+            }
+            onClick={() => setShowAIAssistant(true)}
+          >
+            AI Assistant
+          </Button>
+          <ChartPills
+            queriesResponse={chart.queriesResponse}
+            chartStatus={chart.chartStatus}
+            chartUpdateStartTime={chart.chartUpdateStartTime}
+            chartUpdateEndTime={chart.chartUpdateEndTime}
+            refreshCachedQuery={refreshCachedQuery}
+            rowLimit={formData?.row_limit}
+          />
+        </FlexHeader>
         {renderChart()}
       </div>
     ),
     [
+      portalNode,
       resizeObserverRef,
       showAlertBanner,
       errorMessage,
@@ -464,6 +498,25 @@ const ExploreChartPanel = ({
           formData={formData}
         />
       )}
+      <Drawer
+        title="AI Assistant"
+        open={showAIAssistant}
+        onClose={() => setShowAIAssistant(false)}
+      >
+        <AIAssistantContent
+          formData={formData}
+          queriesResponse={chart.queriesResponse}
+          onClose={() => setShowAIAssistant(false)}
+        />
+      </Drawer>
+
+      {/* <InPortal node={portalNode}>
+        <AIAssistantContent
+          formData={formData}
+          queriesResponse={chart.queriesResponse}
+          onClose={() => setShowAIAssistant(false)}
+        />
+      </InPortal> */}
     </Styles>
   );
 };

@@ -162,7 +162,8 @@ class ChartRenderer extends Component {
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.formData.stack !== this.props.formData.stack ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp ||
-        nextProps.emitCrossFilters !== this.props.emitCrossFilters
+        nextProps.emitCrossFilters !== this.props.emitCrossFilters ||
+        nextProps.postTransformProps !== this.props.postTransformProps
       );
     }
     return false;
@@ -327,7 +328,7 @@ class ChartRenderer extends Component {
       ?.behaviors.find(behavior => behavior === Behavior.DrillToDetail)
       ? { inContextMenu: this.state.inContextMenu }
       : {};
-
+    console.log('chartrenderer render()');
     return (
       <>
         {this.state.showContextMenu && (
