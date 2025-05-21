@@ -54,7 +54,7 @@ describe('BigNumberWithTrendline buildQuery', () => {
     const bigNumberQuery = queryContext.queries[1];
 
     expect(bigNumberQuery.post_processing).toEqual([{ operation: 'pivot' }]);
-    expect(bigNumberQuery.is_timeseries).toBe(false);
+    expect(bigNumberQuery.is_timeseries).toBe(true);
   });
 
   it('adds aggregation operator when aggregation is "sum"', () => {
@@ -65,7 +65,7 @@ describe('BigNumberWithTrendline buildQuery', () => {
       { operation: 'pivot' },
       { operation: 'aggregation', options: { operator: 'sum' } },
     ]);
-    expect(bigNumberQuery.is_timeseries).toBe(false);
+    expect(bigNumberQuery.is_timeseries).toBe(true);
   });
 
   it('skips aggregation when aggregation is LAST_VALUE', () => {
@@ -76,7 +76,7 @@ describe('BigNumberWithTrendline buildQuery', () => {
     const bigNumberQuery = queryContext.queries[1];
 
     expect(bigNumberQuery.post_processing).toEqual([{ operation: 'pivot' }]);
-    expect(bigNumberQuery.is_timeseries).toBe(false);
+    expect(bigNumberQuery.is_timeseries).toBe(true);
   });
 
   it('always returns two queries', () => {
