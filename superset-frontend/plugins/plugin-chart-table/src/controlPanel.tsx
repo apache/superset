@@ -702,7 +702,7 @@ const config: ControlPanelConfig = {
           {
             name: 'conditional_formatting',
             config: {
-              type: 'ConditionalFormattingControl',
+              type: 'ColumnColoringControl',
               renderTrigger: true,
               label: t('Custom Conditional Formatting'),
               extraColorChoices: [
