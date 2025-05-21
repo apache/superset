@@ -121,9 +121,14 @@ describe('Charts list', () => {
     });
 
     it('should sort correctly in list mode', () => {
+      interceptFiltering();
       cy.getBySel('sort-header').eq(1).click();
+      cy.wait('@filtering');
+      // cy.getBySel('table-row').should('be.visible').first().find('[data-test="table-row-cell"]').eq(2).contains('Area Chart');
       cy.getBySel('table-row').first().contains('Area Chart');
-      cy.getBySel('sort-header').eq(1).click();
+
+      cy.getBySel('sort-header').eq(1).should('exist').click({ force: true });
+      cy.wait('@filtering');
       cy.getBySel('table-row').first().contains("World's Population");
       cy.getBySel('sort-header').eq(1).click();
     });
