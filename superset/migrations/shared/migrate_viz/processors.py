@@ -220,6 +220,9 @@ class MigrateDualLine(MigrateViz):
                     rename_operator(fd, query_object),
                     flatten_operator(fd, query_object),
                 ]
+
+                if tmp_query_object["series_columns"] is None:
+                    tmp_query_object.pop("series_columns")
                 return [normalize_order_by(tmp_query_object)]
 
             return build_query_context(fd, process)
