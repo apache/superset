@@ -182,15 +182,17 @@ export default function Login() {
               data-test="confirm-password-input"
             />
           </Form.Item>
-          <Form.Item label="Captcha">
-            <ReactCAPTCHA
-              sitekey={authRecaptchaPublicKey}
-              onChange={value => {
-                setCaptchaResponse(value);
-              }}
-              data-test="captcha-input"
-            />
-          </Form.Item>
+          {authRecaptchaPublicKey && (
+            <Form.Item label="Captcha">
+              <ReactCAPTCHA
+                sitekey={authRecaptchaPublicKey}
+                onChange={value => {
+                  setCaptchaResponse(value);
+                }}
+                data-test="captcha-input"
+              />
+            </Form.Item>
+          )}
           <Form.Item>
             <Button
               block

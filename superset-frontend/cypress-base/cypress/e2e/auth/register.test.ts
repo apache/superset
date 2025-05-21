@@ -32,7 +32,6 @@ describe('Register view', () => {
     cy.getBySel('email-input').should('be.visible');
     cy.getBySel('password-input').should('be.visible');
     cy.getBySel('confirm-password-input').should('be.visible');
-    cy.getBySel('captcha-input').should('be.visible');
     cy.getBySel('register-button').should('be.visible');
   });
 });

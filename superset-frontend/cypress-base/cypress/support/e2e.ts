@@ -69,7 +69,7 @@ Cypress.Commands.add('loadDashboardFixtures', () =>
   }),
 );
 
-const PATHS_TO_SKIP_LOGIN = ['login'];
+const PATHS_TO_SKIP_LOGIN = ['login', 'register'];
 
 const skipLogin = () => {
   for (const path of PATHS_TO_SKIP_LOGIN) {
