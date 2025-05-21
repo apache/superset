@@ -62,7 +62,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:14
+    image: postgres:15
     container_name: superset_db
     restart: unless-stopped
     volumes:
