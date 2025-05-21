@@ -27,7 +27,7 @@ import {
   JsonObject,
   JsonValue,
   QueryFormData,
-  t,
+  SetDataMaskHook,
 } from '@superset-ui/core';
 
 import { PolygonLayer } from '@deck.gl/layers';
@@ -169,6 +169,7 @@ export type DeckGLPolygonProps = {
   setControlValue: (control: string, value: JsonValue) => void;
   viewport: Viewport;
   onAddFilter: HandlerFunction;
+  setDataMask: SetDataMaskHook;
   width: number;
   height: number;
 };
@@ -221,7 +222,7 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
 
   const onSelect = useCallback(
     (polygon: JsonObject) => {
-      const { formData, onAddFilter } = props;
+      const { formData, setDataMask } = props;
 
       const now = new Date().getDate();
       const doubleClick = now - lastClick <= DOUBLE_CLICK_THRESHOLD;
@@ -244,7 +245,28 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
       setSelected(selectedCopy);
       setLastClick(now);
       if (formData.table_filter) {
-        onAddFilter(formData.line_column, selected, false, true);
+        const col = formData.line_column.replace('_geojson', '');
+        if (
+          formData.extra_form_data?.filters?.find(filter => filter.col === col)
+        ) {
+          setDataMask({
+            extraFormData: {
+              filters: [],
+            },
+          });
+        } else {
+          setDataMask({
+            extraFormData: {
+              filters: [
+                {
+                  col,
+                  op: 'IN',
+                  val: selectedCopy,
+                },
+              ],
+            },
+          });
+        }
       }
     },
     [lastClick, props, selected],
