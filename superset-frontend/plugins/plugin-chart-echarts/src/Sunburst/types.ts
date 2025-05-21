@@ -52,6 +52,10 @@ export const DEFAULT_FORM_DATA: Partial<EchartsSunburstFormData> = {
   labelType: EchartsSunburstLabelType.Key,
   showLabels: false,
   dateFormat: 'smart_date',
+  innerRadius: 30,
+  outerRadius: 70,
+  donut: true,
+  showNulls: true,
 };
 
 export interface EchartsSunburstChartProps
