@@ -15,9 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=consider-using-transaction
-
-from __future__ import annotations
-
 import dataclasses
 import logging
 import sys
@@ -32,7 +29,6 @@ import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 from flask_babel import gettext as __
-from sqlalchemy import and_, or_
 
 from superset import (
     app,
@@ -43,13 +39,13 @@ from superset import (
     security_manager,
 )
 from superset.common.db_query_status import QueryStatus
-from superset.connectors.sqla.models import SqlaTable
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
+    SupersetDisallowedSQLFunctionException,
     SupersetDMLNotAllowedException,
     SupersetErrorException,
     SupersetErrorsException,
@@ -71,6 +67,7 @@ from superset.utils.core import (
 )
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
+from superset.utils.rls import apply_rls
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -199,90 +196,6 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 stats_logger.incr("error_sqllab_unhandled")
                 query = get_query(query_id=query_id)
                 return handle_query_error(ex, query)
-
-
-def apply_rls(
-    database: Database,
-    catalog: str | None,
-    schema: str,
-    parsed_statement: BaseSQLStatement[Any],
-) -> None:
-    """
-    Modify statement inplace to ensure RLS rules are applied.
-    """
-    # There are two ways to insert RLS: either replacing the table with a subquery
-    # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
-    # safer, but not supported in all databases.
-    method = database.db_engine_spec.get_rls_method()
-
-    # collect all RLS predicates for all tables in the query
-    predicates: dict[Table, list[Any]] = {}
-    for table in parsed_statement.tables:
-        # fully qualify table
-        table = Table(
-            table.table,
-            table.schema or schema,
-            table.catalog or catalog,
-        )
-
-        predicates[table] = [
-            parsed_statement.parse_predicate(predicate)
-            for predicate in get_predicates_for_table(
-                table,
-                database,
-                database.get_default_catalog(),
-            )
-            if predicate
-        ]
-
-    parsed_statement.apply_rls(catalog, schema, predicates, method)
-
-
-def get_predicates_for_table(
-    table: Table,
-    database: Database,
-    default_catalog: str | None,
-) -> list[str]:
-    """
-    Get the RLS predicates for a table.
-
-    This is used to inject RLS rules into SQL statements run in SQL Lab. Note that the
-    table must be fully qualified, with catalog (null if the DB doesn't support) and
-    schema.
-    """
-    # if the dataset in the RLS has null catalog, match it when using the default
-    # catalog
-    catalog_predicate = SqlaTable.catalog == table.catalog
-    if table.catalog and table.catalog == default_catalog:
-        catalog_predicate = or_(
-            catalog_predicate,
-            SqlaTable.catalog.is_(None),
-        )
-
-    dataset = (
-        db.session.query(SqlaTable)
-        .filter(
-            and_(
-                SqlaTable.database_id == database.id,
-                catalog_predicate,
-                SqlaTable.schema == table.schema,
-                SqlaTable.table_name == table.table,
-            )
-        )
-        .one_or_none()
-    )
-    if not dataset:
-        return []
-
-    return [
-        str(
-            predicate.compile(
-                dialect=database.get_dialect(),
-                compile_kwargs={"literal_binds": True},
-            )
-        )
-        for predicate in dataset.get_sqla_row_level_filters()
-    ]
 
 
 S = TypeVar("S", bound=BaseSQLStatement[Any])
@@ -478,6 +391,15 @@ def execute_sql_statements(  # noqa: C901
 
     parsed_script = SQLScript(rendered_query, engine=db_engine_spec.engine)
 
+    disallowed_functions = current_app.config["DISALLOWED_SQL_FUNCTIONS"].get(
+        db_engine_spec.engine,
+        set(),
+    )
+    if disallowed_functions and parsed_script.check_functions_present(
+        disallowed_functions
+    ):
+        raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+
     if parsed_script.has_mutation() and not database.allow_dml:
         raise SupersetDMLNotAllowedException()
 
@@ -513,9 +435,12 @@ def execute_sql_statements(  # noqa: C901
     # statements if they're run separately (especially when using `NullPool`), so we run
     # the query as a single block.
     if db_engine_spec.run_multiple_statements_as_one:
-        blocks = [parsed_script.format()]
+        blocks = [parsed_script.format(comments=db_engine_spec.allows_sql_comments)]
     else:
-        blocks = [statement.format() for statement in parsed_script.statements]
+        blocks = [
+            statement.format(comments=db_engine_spec.allows_sql_comments)
+            for statement in parsed_script.statements
+        ]
 
     with database.get_raw_connection(
         catalog=query.catalog,

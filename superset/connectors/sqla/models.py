@@ -104,7 +104,7 @@ from superset.models.helpers import (
     QueryResult,
 )
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
