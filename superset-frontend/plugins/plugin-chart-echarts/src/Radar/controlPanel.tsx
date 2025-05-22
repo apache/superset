@@ -191,7 +191,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'ColumnConfigControl',
               label: t('Customize Metrics'),
-              description: t('Further customize how to display each metric'),
+              description: t(
+                'Further customize how to display each metric, this control wont be available when values are Normalised',
+              ),
               renderTrigger: true,
               configFormLayout: {
                 [GenericDataType.Numeric]: [
