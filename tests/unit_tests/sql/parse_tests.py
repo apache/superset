@@ -19,15 +19,18 @@
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlglot import Dialects, parse_one
+from sqlglot import Dialects, exp, parse_one
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
+from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     CTASMethod,
     extract_tables_from_jinja_sql,
     extract_tables_from_statement,
+    KQLTokenType,
     KustoKQLStatement,
     LimitMethod,
+    remove_quotes,
     RLSMethod,
     sanitize_clause,
     split_kql,
@@ -35,6 +38,7 @@ from superset.sql.parse import (
     SQLScript,
     SQLStatement,
     Table,
+    tokenize_kql,
 )
 from tests.integration_tests.conftest import with_feature_flags
 
@@ -115,8 +119,9 @@ def test_extract_tables_subselect() -> None:
     """
     Test that tables inside subselects are parsed correctly.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT sub.*
 FROM (
     SELECT *
@@ -125,10 +130,13 @@ FROM (
     ) sub, s2.t2
 WHERE sub.resolution = 'NONE'
 """
-    ) == {Table("t1", "s1"), Table("t2", "s2")}
+        )
+        == {Table("t1", "s1"), Table("t2", "s2")}
+    )
 
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT sub.*
 FROM (
     SELECT *
@@ -137,10 +145,13 @@ FROM (
 ) sub
 WHERE sub.resolution = 'NONE'
 """
-    ) == {Table("t1", "s1")}
+        )
+        == {Table("t1", "s1")}
+    )
 
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT * FROM t1
 WHERE s11 > ANY (
     SELECT COUNT(*) /* no hint */ FROM t2
@@ -152,7 +163,9 @@ WHERE s11 > ANY (
     )
 )
 """
-    ) == {Table("t1"), Table("t2"), Table("t3"), Table("t4")}
+        )
+        == {Table("t1"), Table("t2"), Table("t3"), Table("t4")}
+    )
 
 
 def test_extract_tables_select_in_expression() -> None:
@@ -227,24 +240,30 @@ def test_extract_tables_select_array() -> None:
     """
     Test that queries selecting arrays work as expected.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT ARRAY[1, 2, 3] AS my_array
 FROM t1 LIMIT 10
 """
-    ) == {Table("t1")}
+        )
+        == {Table("t1")}
+    )
 
 
 def test_extract_tables_select_if() -> None:
     """
     Test that queries with an `IF` work as expected.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT IF(CARDINALITY(my_array) >= 3, my_array[3], NULL)
 FROM t1 LIMIT 10
 """
-    ) == {Table("t1")}
+        )
+        == {Table("t1")}
+    )
 
 
 def test_extract_tables_with_catalog() -> None:
@@ -340,29 +359,38 @@ def test_extract_tables_where_subquery() -> None:
     """
     Test that tables in a `WHERE` subquery are parsed correctly.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT name
 FROM t1
 WHERE regionkey = (SELECT max(regionkey) FROM t2)
 """
-    ) == {Table("t1"), Table("t2")}
+        )
+        == {Table("t1"), Table("t2")}
+    )
 
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT name
 FROM t1
 WHERE regionkey IN (SELECT regionkey FROM t2)
 """
-    ) == {Table("t1"), Table("t2")}
+        )
+        == {Table("t1"), Table("t2")}
+    )
 
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT name
 FROM t1
 WHERE EXISTS (SELECT 1 FROM t2 WHERE t1.regionkey = t2.regionkey);
 """
-    ) == {Table("t1"), Table("t2")}
+        )
+        == {Table("t1"), Table("t2")}
+    )
 
 
 def test_extract_tables_describe() -> None:
@@ -376,12 +404,15 @@ def test_extract_tables_show_partitions() -> None:
     """
     Test `SHOW PARTITIONS`.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SHOW PARTITIONS FROM orders
 WHERE ds >= '2013-01-01' ORDER BY ds DESC
 """
-    ) == {Table("orders")}
+        )
+        == {Table("orders")}
+    )
 
 
 def test_extract_tables_join() -> None:
@@ -395,8 +426,9 @@ def test_extract_tables_join() -> None:
         Table("t2"),
     }
 
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT a.date, b.name
 FROM left_table a
 JOIN (
@@ -407,10 +439,13 @@ JOIN (
 ) b
 ON a.date = b.date
 """
-    ) == {Table("left_table"), Table("right_table")}
+        )
+        == {Table("left_table"), Table("right_table")}
+    )
 
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT a.date, b.name
 FROM left_table a
 LEFT INNER JOIN (
@@ -421,10 +456,13 @@ LEFT INNER JOIN (
 ) b
 ON a.date = b.date
 """
-    ) == {Table("left_table"), Table("right_table")}
+        )
+        == {Table("left_table"), Table("right_table")}
+    )
 
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT a.date, b.name
 FROM left_table a
 RIGHT OUTER JOIN (
@@ -435,10 +473,13 @@ RIGHT OUTER JOIN (
 ) b
 ON a.date = b.date
 """
-    ) == {Table("left_table"), Table("right_table")}
+        )
+        == {Table("left_table"), Table("right_table")}
+    )
 
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT a.date, b.name
 FROM left_table a
 FULL OUTER JOIN (
@@ -449,15 +490,18 @@ FULL OUTER JOIN (
 ) b
 ON a.date = b.date
 """
-    ) == {Table("left_table"), Table("right_table")}
+        )
+        == {Table("left_table"), Table("right_table")}
+    )
 
 
 def test_extract_tables_semi_join() -> None:
     """
     Test `LEFT SEMI JOIN`.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT a.date, b.name
 FROM left_table a
 LEFT SEMI JOIN (
@@ -468,15 +512,18 @@ LEFT SEMI JOIN (
 ) b
 ON a.data = b.date
 """
-    ) == {Table("left_table"), Table("right_table")}
+        )
+        == {Table("left_table"), Table("right_table")}
+    )
 
 
 def test_extract_tables_combinations() -> None:
     """
     Test a complex case with nested queries.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT * FROM t1
 WHERE s11 > ANY (
     SELECT * FROM t1 UNION ALL SELECT * FROM (
@@ -490,10 +537,13 @@ WHERE s11 > ANY (
     )
 )
 """
-    ) == {Table("t1"), Table("t3"), Table("t4"), Table("t6")}
+        )
+        == {Table("t1"), Table("t3"), Table("t4"), Table("t6")}
+    )
 
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT * FROM (
     SELECT * FROM (
         SELECT * FROM (
@@ -502,45 +552,56 @@ SELECT * FROM (
     ) AS S2
 ) AS S3
 """
-    ) == {Table("EmployeeS")}
+        )
+        == {Table("EmployeeS")}
+    )
 
 
 def test_extract_tables_with() -> None:
     """
     Test `WITH`.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 WITH
     x AS (SELECT a FROM t1),
     y AS (SELECT a AS b FROM t2),
     z AS (SELECT b AS c FROM t3)
 SELECT c FROM z
 """
-    ) == {Table("t1"), Table("t2"), Table("t3")}
+        )
+        == {Table("t1"), Table("t2"), Table("t3")}
+    )
 
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 WITH
     x AS (SELECT a FROM t1),
     y AS (SELECT a AS b FROM x),
     z AS (SELECT b AS c FROM y)
 SELECT c FROM z
 """
-    ) == {Table("t1")}
+        )
+        == {Table("t1")}
+    )
 
 
 def test_extract_tables_reusing_aliases() -> None:
     """
     Test that the parser follows aliases.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 with q1 as ( select key from q2 where key = '5'),
 q2 as ( select key from src where key = '5')
 select * from (select key from q1) a
 """
-    ) == {Table("src")}
+        )
+        == {Table("src")}
+    )
 
     # weird query with circular dependency
     assert (
@@ -577,8 +638,9 @@ def test_extract_tables_complex() -> None:
     """
     Test a few complex queries.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT sum(m_examples) AS "sum__m_example"
 FROM (
     SELECT
@@ -599,23 +661,29 @@ FROM (
 ORDER BY "sum__m_example" DESC
 LIMIT 10;
 """
-    ) == {
-        Table("my_l_table"),
-        Table("my_b_table"),
-        Table("my_t_table"),
-        Table("inner_table"),
-    }
+        )
+        == {
+            Table("my_l_table"),
+            Table("my_b_table"),
+            Table("my_t_table"),
+            Table("inner_table"),
+        }
+    )
 
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT *
 FROM table_a AS a, table_b AS b, table_c as c
 WHERE a.id = b.id and b.id = c.id
 """
-    ) == {Table("table_a"), Table("table_b"), Table("table_c")}
+        )
+        == {Table("table_a"), Table("table_b"), Table("table_c")}
+    )
 
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT somecol AS somecol
 FROM (
     WITH bla AS (
@@ -659,51 +727,63 @@ FROM (
     LIMIT 50000
 )
 """
-    ) == {Table("a"), Table("b"), Table("c"), Table("d"), Table("e"), Table("f")}
+        )
+        == {Table("a"), Table("b"), Table("c"), Table("d"), Table("e"), Table("f")}
+    )
 
 
 def test_extract_tables_mixed_from_clause() -> None:
     """
     Test that the parser handles a `FROM` clause with table and subselect.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 SELECT *
 FROM table_a AS a, (select * from table_b) AS b, table_c as c
 WHERE a.id = b.id and b.id = c.id
 """
-    ) == {Table("table_a"), Table("table_b"), Table("table_c")}
+        )
+        == {Table("table_a"), Table("table_b"), Table("table_c")}
+    )
 
 
 def test_extract_tables_nested_select() -> None:
     """
     Test that the parser handles selects inside functions.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 select (extractvalue(1,concat(0x7e,(select GROUP_CONCAT(TABLE_NAME)
 from INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_SCHEMA like "%bi%"),0x7e)));
 """,
-        "mysql",
-    ) == {Table("COLUMNS", "INFORMATION_SCHEMA")}
+            "mysql",
+        )
+        == {Table("COLUMNS", "INFORMATION_SCHEMA")}
+    )
 
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 select (extractvalue(1,concat(0x7e,(select GROUP_CONCAT(COLUMN_NAME)
 from INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME="bi_achievement_daily"),0x7e)));
 """,
-        "mysql",
-    ) == {Table("COLUMNS", "INFORMATION_SCHEMA")}
+            "mysql",
+        )
+        == {Table("COLUMNS", "INFORMATION_SCHEMA")}
+    )
 
 
 def test_extract_tables_complex_cte_with_prefix() -> None:
     """
     Test that the parser handles CTEs with prefixes.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 WITH CTE__test (SalesPersonID, SalesOrderID, SalesYear)
 AS (
     SELECT SalesPersonID, SalesOrderID, YEAR(OrderDate) AS SalesYear
@@ -715,21 +795,26 @@ FROM CTE__test
 GROUP BY SalesYear, SalesPersonID
 ORDER BY SalesPersonID, SalesYear;
 """
-    ) == {Table("SalesOrderHeader")}
+        )
+        == {Table("SalesOrderHeader")}
+    )
 
 
 def test_extract_tables_identifier_list_with_keyword_as_alias() -> None:
     """
     Test that aliases that are keywords are parsed correctly.
     """
-    assert extract_tables_from_sql(
-        """
+    assert (
+        extract_tables_from_sql(
+            """
 WITH
     f AS (SELECT * FROM foo),
     match AS (SELECT * FROM f)
 SELECT * FROM match
 """
-    ) == {Table("foo")}
+        )
+        == {Table("foo")}
+    )
 
 
 def test_sqlscript() -> None:
@@ -776,6 +861,20 @@ Events | take 100""",
             "postgresql",
             ["SELECT\n  1 /* extraneous comment */"],
         ),
+        (
+            "SHOW TABLES FROM s1 like '%order%';",
+            "mysql",
+            ["SHOW TABLES FROM s1 LIKE '%order%'"],
+        ),
+        (
+            "SELECT 1; SELECT 2; SELECT 3;",
+            "unknown-engine",
+            [
+                "SELECT\n  1",
+                "SELECT\n  2",
+                "SELECT\n  3",
+            ],
+        ),
     ],
 )
 def test_sqlscript_split(sql: str, engine: str, expected: list[str]) -> None:
@@ -795,17 +894,58 @@ def test_sqlstatement() -> None:
         "sqlite",
     )
 
-    assert statement.tables == {
-        Table(table="table1", schema=None, catalog=None),
-        Table(table="table2", schema=None, catalog=None),
-    }
     assert (
         statement.format()
         == "SELECT\n  *\nFROM table1\nUNION ALL\nSELECT\n  *\nFROM table2"
     )
+    assert str(statement) == statement.format()
+
+    assert statement.tables == {
+        Table(table="table1", schema=None, catalog=None),
+        Table(table="table2", schema=None, catalog=None),
+    }
+
+    assert statement.parse_predicate("a > 1") == exp.GT(
+        this=exp.Column(this=exp.Identifier(this="a", quoted=False)),
+        expression=exp.Literal(this="1", is_string=False),
+    )
 
     statement = SQLStatement("SET a=1", "sqlite")
     assert statement.get_settings() == {"a": "1"}
+
+    with pytest.raises(
+        ValueError,
+        match="Either statement or ast must be provided",
+    ):
+        SQLStatement()
+
+
+def test_kustokqlstatement() -> None:
+    """
+    Test the `KustoKQLStatement` class.
+    """
+    statement = KustoKQLStatement("foo | take 100", "kustokql")
+
+    assert statement.format() == "foo | take 100"
+    assert str(statement) == statement.format()
+
+    # doesn't support table extraction
+    assert statement.tables == set()
+
+    # optimize is a no-op
+    assert statement.optimize().format() == "foo | take 100"
+
+    # predicate parsing is also no-op
+    assert statement.parse_predicate("a > 1") == "a > 1"
+
+    with pytest.raises(SupersetParseError, match="Invalid engine: invalid-engine"):
+        KustoKQLStatement("foo | take 100", "invalid-engine")
+
+    with pytest.raises(
+        SupersetParseError,
+        match="KustoKQLStatement should have exactly one statement",
+    ):
+        KustoKQLStatement("foo | take 1; bar | take 2", "kustokql")
 
 
 def test_kustokqlstatement_split_script() -> None:
@@ -887,11 +1027,13 @@ def test_kustokql_statement_split_special(kql: str, statements: int) -> None:
     assert len(KustoKQLStatement.split_script(kql, "kustokql")) == statements
 
 
-def test_split_kql() -> None:
-    """
-    Test the `split_kql` function.
-    """
-    kql = """
+@pytest.mark.parametrize(
+    "kql, expected",
+    [
+        (";Table | take 5", ["Table | take 5"]),
+        (";Table | take 5;", ["Table | take 5"]),
+        (
+            """
 let totalPagesPerDay = PageViews
 | summarize by Page, Day = startofday(Timestamp)
 | summarize count() by Day;
@@ -912,18 +1054,18 @@ on Page
     totalPagesPerDay
 on $left.Day1 == $right.Day
 | project Day1, Day2, Percentage = count_*100.0/count_1
-    """
-    assert split_kql(kql) == [
-        """
+            """,
+            [
+                """
 let totalPagesPerDay = PageViews
 | summarize by Page, Day = startofday(Timestamp)
 | summarize count() by Day""",
-        """
+                """
 let materializedScope = PageViews
 | summarize by Page, Day = startofday(Timestamp)""",
-        """
+                """
 let cachedResult = materialize(materializedScope)""",
-        """
+                """
 cachedResult
 | project Page, Day1 = Day
 | join kind = inner
@@ -938,8 +1080,16 @@ on Page
     totalPagesPerDay
 on $left.Day1 == $right.Day
 | project Day1, Day2, Percentage = count_*100.0/count_1
-    """,
-    ]
+            """,
+            ],
+        ),
+    ],
+)
+def test_split_kql(kql: str, expected: list[str]) -> None:
+    """
+    Test the `split_kql` function.
+    """
+    assert split_kql(kql) == expected
 
 
 @pytest.mark.parametrize(
@@ -1106,14 +1256,19 @@ def test_custom_dialect(app: None) -> None:
         "vertica",
     ],
 )
-def test_is_mutating(engine: str) -> None:
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1", False),
+        ("with source as ( select 1 as one ) select * from source", False),
+        ("ALTER TABLE foo ADD COLUMN bar INT", True),
+    ],
+)
+def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
     """
     Global tests for `is_mutating`, covering all supported engines.
     """
-    assert not SQLStatement(
-        "with source as ( select 1 as one ) select * from source",
-        engine=engine,
-    ).is_mutating()
+    assert SQLStatement(sql, engine).is_mutating() == expected
 
 
 def test_optimize() -> None:
@@ -1163,6 +1318,9 @@ WHERE
 
     assert SQLStatement(sql, "sqlite").optimize().format() == optimized
     assert SQLStatement(sql, "dremio").optimize().format() == not_optimized
+
+    # also works for scripts
+    assert SQLScript(sql, "sqlite").optimize().format() == optimized
 
 
 def test_firebolt() -> None:
@@ -1285,6 +1443,8 @@ LATERAL generate_series(1, value) AS i;
             "postgresql",
             None,
         ),
+        # not really valid SQL, but let's roll with it
+        ("SELECT * FROM my_table LIMIT invalid", "postgresql", None),
     ],
 )
 def test_get_limit_value(sql: str, engine: str, expected: str) -> None:
@@ -1307,6 +1467,7 @@ def test_get_limit_value(sql: str, engine: str, expected: str) -> None:
     """,
             5,
         ),
+        ("table | take five", None),
     ],
 )
 def test_get_kql_limit_value(kql: str, expected: str) -> None:
@@ -1492,6 +1653,13 @@ LIMIT 1000
             LimitMethod.FORCE_LIMIT,
             "SELECT\n  *\nFROM birth_names\nLIMIT 1000",
         ),
+        (
+            "SELECT * FROM birth_names LIMIT 555",
+            "postgresql",
+            1000,
+            LimitMethod.FETCH_MANY,
+            "SELECT\n  *\nFROM birth_names\nLIMIT 555",
+        ),
     ],
 )
 def test_set_limit_value(
@@ -1539,9 +1707,26 @@ def test_set_limit_value(
     ],
 )
 def test_set_kql_limit_value(kql: str, limit: int, expected: str) -> None:
+    """
+    Test the `set_limit_value` method for KustoKQLStatement.
+    """
     statement = KustoKQLStatement(kql, "kustokql")
     statement.set_limit_value(limit)
     assert statement.format() == expected
+
+
+@pytest.mark.parametrize("method", [LimitMethod.WRAP_SQL, LimitMethod.FETCH_MANY])
+def test_set_kql_limit_value_invalid_method(method: LimitMethod) -> None:
+    """
+    Test that setting a limit value with an invalid method raises an error.
+    """
+    statement = KustoKQLStatement("foo", "kustokql")
+
+    with pytest.raises(
+        SupersetParseError,
+        match="Kusto KQL only supports the FORCE_LIMIT method.",
+    ):
+        statement.set_limit_value(10, method)
 
 
 @pytest.mark.parametrize(
@@ -1668,6 +1853,15 @@ FROM (
   WHERE
     id = 42
 ) AS t
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM some_table AS t",
+            {},
+            """
+SELECT
+  t.foo
+FROM some_table AS t
             """.strip(),
         ),
         (
@@ -1947,6 +2141,17 @@ def test_rls_subquery_transformer(
     assert statement.format() == expected
 
 
+def test_rls_invalid_method(mocker: MockerFixture) -> None:
+    """
+    Test that an invalid RLS method raises an error.
+    """
+    statement = SQLStatement("SELECT 1", "postgresql")
+    predicates = mocker.MagicMock()
+
+    with pytest.raises(ValueError, match="Invalid RLS method: invalid"):
+        statement.apply_rls("catalog1", "schema1", predicates, "invalid")  # type: ignore
+
+
 @pytest.mark.parametrize(
     "sql, rules, expected",
     [
@@ -2172,6 +2377,17 @@ JOIN other_table
             """.strip(),
         ),
         (
+            "SELECT * FROM table JOIN other_table",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+JOIN other_table
+  ON other_table.id = 42
+            """.strip(),
+        ),
+        (
             """
 SELECT *
 FROM table
@@ -2235,6 +2451,18 @@ SELECT
 FROM other_table
 WHERE
   other_table.id = 42
+            """.strip(),
+        ),
+        (
+            "INSERT INTO some_table (col1, col2) VALUES (1, 2)",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+INSERT INTO some_table (
+  col1,
+  col2
+)
+VALUES
+  (1, 2)
             """.strip(),
         ),
     ],
@@ -2427,7 +2655,7 @@ def test_sanitize_clause(sql: str, expected: str | Exception, engine: str) -> No
     ],
 )
 @pytest.mark.parametrize(
-    "macro,expected",
+    "macro, expected",
     [
         (
             "latest_partition('foo.bar')",
@@ -2464,7 +2692,7 @@ def test_extract_tables_from_jinja_sql(
     assert (
         extract_tables_from_jinja_sql(
             sql=f"'{{{{ {engine}.{macro} }}}}'",
-            database=mocker.Mock(),
+            database=mocker.MagicMock(backend=engine),
         )
         == expected
     )
@@ -2475,10 +2703,129 @@ def test_extract_tables_from_jinja_sql_disabled(mocker: MockerFixture) -> None:
     """
     Test the function when the feature flag is disabled.
     """
-    database = mocker.Mock()
+    database = mocker.MagicMock()
     database.db_engine_spec.engine = "mssql"
 
     assert extract_tables_from_jinja_sql(
         sql="SELECT 1 FROM t",
         database=database,
     ) == {Table("t")}
+
+
+def test_extract_tables_from_jinja_sql_invalid_function(mocker: MockerFixture) -> None:
+    """
+    Test the function with an invalid function.
+    """
+    database = mocker.MagicMock(backend="postgresql")
+
+    processor = JinjaTemplateProcessor(database)
+    processor.env.globals["my_table"] = lambda: "t"
+    mocker.patch(
+        "superset.jinja_context.get_template_processor",
+        return_value=processor,
+    )
+
+    assert extract_tables_from_jinja_sql(
+        sql="SELECT * FROM {{ my_table() }}",
+        database=database,
+    ) == {Table("t")}
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM users", "postgresql", True),
+        ("WITH cte AS (SELECT * FROM users) SELECT * FROM cte", "postgresql", True),
+        ("CREATE TABLE users AS SELECT * FROM users", "postgresql", False),
+        ("ALTER TABLE users ADD COLUMN age INT", "postgresql", False),
+        ("SET @value = 42", "postgresql", False),
+    ],
+)
+def test_sqlstatement_is_select(sql: str, engine: str, expected: bool) -> None:
+    """
+    Test the `SQLStatement.is_select()` method.
+    """
+    assert SQLStatement(sql, engine).is_select() == expected
+
+
+@pytest.mark.parametrize(
+    "kql, expected",
+    [
+        ("StormEvents | take 10", True),
+        ("StormEvents | limit 20", True),
+        ("StormEvents | where State == 'FL' | summarize count()", True),
+        ("StormEvents | where name has 'limit 10'", True),
+        ("AnotherTable | take 5", True),
+        ("datatable(x:int) [1, 2, 3] | take 100", True),
+        (".create table StormEvents (x:int)", False),
+        (".ingest inline into table StormEvents <| StormEvents | take 10", False),
+    ],
+)
+def test_kqlstatement_is_select(kql: str, expected: bool) -> None:
+    """
+    Test the `KustoKQLStatement.is_select()` method.
+    """
+    assert KustoKQLStatement(kql, "kustokql").is_select() == expected
+
+
+def test_remove_quotes() -> None:
+    """
+    Test the `remove_quotes` helper function.
+    """
+    assert remove_quotes(None) is None
+    assert remove_quotes('"foo"') == "foo"
+    assert remove_quotes("'foo'") == "foo"
+    assert remove_quotes("`foo`") == "foo"
+    assert remove_quotes("'foo`") == "'foo`"
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM table", "postgresql", False),
+        ("SELECT VERSION()", "postgresql", True),
+        ("SELECT query_to_xml()", "postgresql", True),
+        ("WITH cte AS (SELECT * FROM table) SELECT * FROM cte", "postgresql", False),
+        (
+            """
+SELECT *
+FROM query_to_xml('SELECT * from some_table WHERE id = 42')
+            """,
+            "postgresql",
+            True,
+        ),
+        ("Table | limit 10", "kustokql", False),
+    ],
+)
+def test_check_functions_present(sql: str, engine: str, expected: bool) -> None:
+    """
+    Check the `check_functions_present` method.
+    """
+    functions = {"version", "query_to_xml"}
+    assert SQLScript(sql, engine).check_functions_present(functions) == expected
+
+
+@pytest.mark.parametrize(
+    "kql, expected",
+    [
+        (
+            "StormEvents | take 10",
+            [
+                (KQLTokenType.WORD, "StormEvents"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "take"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.NUMBER, "10"),
+            ],
+        ),
+        ("'test'", [(KQLTokenType.STRING, "'test'")]),
+        ("```test```", [(KQLTokenType.STRING, "```test```")]),
+    ],
+)
+def test_tokenize_kql(kql: str, expected: list[tuple[KQLTokenType, str]]) -> None:
+    """
+    Test the `tokenize_kql` function.
+    """
+    assert tokenize_kql(kql) == expected

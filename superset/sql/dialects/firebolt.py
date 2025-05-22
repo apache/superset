@@ -48,7 +48,7 @@ class Firebolt(Dialect):
             self,
             this: exp.Expression | None = None,
         ) -> exp.Expression | None:
-            if not this:
+            if not this:  # pragma: no cover
                 return this
 
             return self.expression(exp.Not, this=self.expression(exp.Paren, this=this))
