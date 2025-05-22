@@ -52,19 +52,22 @@ export function formatLabel({
   params,
   labelType,
   numberFormatter,
-  denormalizedSeriesValues,
+  getDenormalisedSeriesValue,
   isNormalised,
 }: {
   params: CallbackDataParams;
   labelType: EchartsRadarLabelType;
   numberFormatter: NumberFormatter;
-  denormalizedSeriesValues: SeriesNormalizedMap;
+  getDenormalisedSeriesValue: (
+    seriesName: string,
+    normalisedValue: string,
+  ) => number;
   isNormalised: boolean;
 }): string {
   const { name = '', value } = params;
   const formattedValue = numberFormatter(
     isNormalised
-      ? (denormalizedSeriesValues[name][String(value)] as number)
+      ? (getDenormalisedSeriesValue(name, String(value)) as number)
       : (value as number),
   );
 
@@ -123,12 +126,33 @@ export default function transformProps(
   const numberFormatter = getNumberFormatter(numberFormat);
   const denormalizedSeriesValues: SeriesNormalizedMap = {};
 
+  const getDenormalisedSeriesValue = (
+    seriesName: string,
+    normalisedValue: string,
+  ): number => {
+    if (
+      Object.prototype.hasOwnProperty.call(
+        denormalizedSeriesValues,
+        seriesName,
+      ) &&
+      Object.prototype.hasOwnProperty.call(
+        denormalizedSeriesValues[seriesName],
+        normalisedValue,
+      )
+    ) {
+      return denormalizedSeriesValues[seriesName][normalisedValue];
+    }
+
+    // Fallback: return the normalised value itself as a number
+    return Number(normalisedValue);
+  };
+
   const formatter = (params: CallbackDataParams) =>
     formatLabel({
       params,
       numberFormatter,
       labelType,
-      denormalizedSeriesValues,
+      getDenormalisedSeriesValue,
       isNormalised,
     });
 
@@ -231,7 +255,7 @@ export default function transformProps(
     const max = Math.max(...arr);
     return arr.map(value => {
       const normalisedValue = Number((value / max).toFixed(decimals));
-      denormalizedSeriesValues[seriesName][normalisedValue] = value;
+      denormalizedSeriesValues[seriesName][String(normalisedValue)] = value;
       return normalisedValue;
     });
   };
@@ -318,8 +342,10 @@ export default function transformProps(
 
     metricLabels.forEach((metric, index) => {
       const normalizedValue = values[index];
-      const originalValue =
-        denormalizedSeriesValues[seriesName][normalizedValue];
+      const originalValue = getDenormalisedSeriesValue(
+        seriesName,
+        String(normalizedValue),
+      );
       tooltip += `
         <div style="display:flex;">
           <div>${colorDot}${metric}:</div>
