@@ -88,7 +88,7 @@ describe('Charts list', () => {
       saveChartToDashboard('1 - Sample chart', '2 - Sample dashboard');
       saveChartToDashboard('1 - Sample chart', '3 - Sample dashboard');
 
-      cy.visit(CHART_LIST);
+      visitChartList();
       cy.getBySel('count-crosslinks').should('be.visible');
     });
   });
@@ -288,7 +288,8 @@ describe('Charts list', () => {
       // edits in card-view
       setGridMode('card');
       orderAlphabetical();
-      cy.getBySel('styled-card').eq(1).contains('1 - Sample chart');
+      cy.getBySel('skeleton-card').should('not.exist');
+      cy.getBySel('styled-card').eq(0).contains('1 - Sample chart');
 
       // change title
       openProperties();
