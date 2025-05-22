@@ -156,17 +156,15 @@ export default function AllEntitiesTable({
           )}
         </>
       ) : (
-        <>
-          <EmptyState
-            image="dashboard.svg"
-            size="large"
-            title={t('No entities have this tag currently assigned')}
-            {...(canEditTag && {
-              buttonAction: () => setShowTagModal(true),
-              buttonText: t('Add tag to entities'),
-            })}
-          />
-        </>
+        <EmptyState
+          image="dashboard.svg"
+          size="large"
+          title={t('No entities have this tag currently assigned')}
+          {...(canEditTag && {
+            buttonAction: () => setShowTagModal(true),
+            buttonText: t('Add tag to entities'),
+          })}
+        />
       )}
     </AllEntitiesTableContainer>
   );
