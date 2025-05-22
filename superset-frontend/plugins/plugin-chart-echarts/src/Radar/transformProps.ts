@@ -52,13 +52,13 @@ export function formatLabel({
   params,
   labelType,
   numberFormatter,
-  getDenormalisedSeriesValue,
+  getDenormalizedSeriesValue,
   isNormalised,
 }: {
   params: CallbackDataParams;
   labelType: EchartsRadarLabelType;
   numberFormatter: NumberFormatter;
-  getDenormalisedSeriesValue: (
+  getDenormalizedSeriesValue: (
     seriesName: string,
     normalisedValue: string,
   ) => number;
@@ -67,7 +67,7 @@ export function formatLabel({
   const { name = '', value } = params;
   const formattedValue = numberFormatter(
     isNormalised
-      ? (getDenormalisedSeriesValue(name, String(value)) as number)
+      ? (getDenormalizedSeriesValue(name, String(value)) as number)
       : (value as number),
   );
 
@@ -126,7 +126,7 @@ export default function transformProps(
   const numberFormatter = getNumberFormatter(numberFormat);
   const denormalizedSeriesValues: SeriesNormalizedMap = {};
 
-  const getDenormalisedSeriesValue = (
+  const getDenormalizedSeriesValue = (
     seriesName: string,
     normalisedValue: string,
   ): number => {
@@ -152,7 +152,7 @@ export default function transformProps(
       params,
       numberFormatter,
       labelType,
-      getDenormalisedSeriesValue,
+      getDenormalizedSeriesValue,
       isNormalised,
     });
 
@@ -254,9 +254,9 @@ export default function transformProps(
   const normalizeArray = (arr: number[], decimals = 10, seriesName: string) => {
     const max = Math.max(...arr);
     return arr.map(value => {
-      const normalisedValue = Number((value / max).toFixed(decimals));
-      denormalizedSeriesValues[seriesName][String(normalisedValue)] = value;
-      return normalisedValue;
+      const normalizedValue = Number((value / max).toFixed(decimals));
+      denormalizedSeriesValues[seriesName][String(normalizedValue)] = value;
+      return normalizedValue;
     });
   };
 
@@ -348,7 +348,7 @@ export default function transformProps(
 
     metricLabels.forEach((metric, index) => {
       const normalizedValue = values[index];
-      const originalValue = getDenormalisedSeriesValue(
+      const originalValue = getDenormalizedSeriesValue(
         seriesName,
         String(normalizedValue),
       );
