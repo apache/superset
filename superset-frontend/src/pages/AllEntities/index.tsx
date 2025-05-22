@@ -35,6 +35,8 @@ import { fetchObjectsByTagIds, fetchSingleTag } from 'src/features/tags/tags';
 import Loading from 'src/components/Loading';
 import getOwnerName from 'src/utils/getOwnerName';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
+import { store } from 'src/views/store';
+import { findPermission } from 'src/utils/findPermission';
 
 const additionalItemsStyles = (theme: SupersetTheme) => css`
   display: flex;
@@ -99,6 +101,10 @@ function AllEntities() {
     chart: [],
     query: [],
   });
+
+  const state = store?.getState();
+  const user = state?.user;
+  const canEditTag = findPermission('can_write', 'Tag', user?.roles);
 
   const editableTitleProps = {
     title: tag?.name || '',
@@ -211,14 +217,16 @@ function AllEntities() {
           }
           rightPanelAdditionalItems={
             <>
-              <Button
-                data-test="bulk-select-action"
-                buttonStyle="secondary"
-                onClick={() => setShowTagModal(true)}
-                showMarginRight={false}
-              >
-                {t('Edit Tag')}{' '}
-              </Button>
+              {canEditTag && (
+                <Button
+                  data-test="bulk-select-action"
+                  buttonStyle="secondary"
+                  onClick={() => setShowTagModal(true)}
+                  showMarginRight={false}
+                >
+                  {t('Edit Tag')}{' '}
+                </Button>
+              )}
             </>
           }
           menuDropdownProps={{
@@ -232,6 +240,7 @@ function AllEntities() {
           search={tag?.name || ''}
           setShowTagModal={setShowTagModal}
           objects={objects}
+          canEditTag={canEditTag}
         />
       </div>
     </AllEntitiesContainer>

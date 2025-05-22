@@ -91,12 +91,13 @@ describe('AllEntitiesTable', () => {
     jest.restoreAllMocks();
   });
 
-  it('renders when empty', () => {
+  it('renders when empty with button to tag if user has perm', () => {
     render(
       <AllEntitiesTable
         search=""
         setShowTagModal={mockSetShowTagModal}
         objects={mockObjects}
+        canEditTag
       />,
       { useRouter: true },
     );
@@ -108,12 +109,31 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Add tag to entities')).toBeInTheDocument();
   });
 
+  it('renders when empty without button to tag if user does not have perm', () => {
+    render(
+      <AllEntitiesTable
+        search=""
+        setShowTagModal={mockSetShowTagModal}
+        objects={mockObjects}
+        canEditTag={false}
+      />,
+      { useRouter: true },
+    );
+
+    expect(
+      screen.getByText('No entities have this tag currently assigned'),
+    ).toBeInTheDocument();
+
+    expect(screen.queryByText('Add tag to entities')).not.toBeInTheDocument();
+  });
+
   it('renders the correct tags for each object type, excluding the current tag', () => {
     render(
       <AllEntitiesTable
         search=""
         setShowTagModal={mockSetShowTagModal}
         objects={mockObjectsWithTags}
+        canEditTag
       />,
       { useRouter: true },
     );

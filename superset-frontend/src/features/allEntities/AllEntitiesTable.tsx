@@ -53,12 +53,14 @@ interface AllEntitiesTableProps {
   search?: string;
   setShowTagModal: (show: boolean) => void;
   objects: TaggedObjects;
+  canEditTag: boolean;
 }
 
 export default function AllEntitiesTable({
   search = '',
   setShowTagModal,
   objects,
+  canEditTag,
 }: AllEntitiesTableProps) {
   type objectType = 'dashboard' | 'chart' | 'query';
 
@@ -142,13 +144,17 @@ export default function AllEntitiesTable({
           {renderTable('query')}
         </>
       ) : (
-        <EmptyState
-          image="dashboard.svg"
-          size="large"
-          title={t('No entities have this tag currently assigned')}
-          buttonAction={() => setShowTagModal(true)}
-          buttonText={t('Add tag to entities')}
-        />
+        <>
+          <EmptyState
+            image="dashboard.svg"
+            size="large"
+            title={t('No entities have this tag currently assigned')}
+            {...(canEditTag && {
+              buttonAction: () => setShowTagModal(true),
+              buttonText: t('Add tag to entities'),
+            })}
+          />
+        </>
       )}
     </AllEntitiesTableContainer>
   );
