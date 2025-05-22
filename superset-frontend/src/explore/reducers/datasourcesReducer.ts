@@ -18,6 +18,7 @@
  */
 import { Dataset } from '@superset-ui/chart-controls';
 import { getDatasourceUid } from 'src/utils/getDatasourceUid';
+import { HYDRATE_EMBEDDED } from 'src/embedded/embeddedChart/hydrateEmbedded';
 import {
   AnyDatasourcesAction,
   SET_DATASOURCE,
@@ -37,6 +38,10 @@ export default function datasourcesReducer(
   }
   if (action.type === HYDRATE_EXPLORE) {
     return { ...(action as HydrateExplore).data.datasources };
+  }
+  if (action.type === HYDRATE_EMBEDDED) {
+    // @ts-ignore
+    return { ...action.data.datasources };
   }
   return datasources || {};
 }
