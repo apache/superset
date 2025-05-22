@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { JsonArray, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -45,6 +45,7 @@ import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
 } from '../../constants';
+import { StackControlsValue } from '../../../constants';
 
 const {
   logAxis,
@@ -321,6 +322,38 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         ['time_shift_color'],
         ...showValueSection,
+        [
+          {
+            name: 'stackDimension',
+            config: {
+              type: 'SelectControl',
+              label: t('Split stack by'),
+              visibility: ({ controls }) =>
+                controls?.stack?.value === StackControlsValue.Stack,
+              renderTrigger: true,
+              description: t(
+                'Stack in groups, where each group corresponds to a dimension',
+              ),
+              shouldMapStateToProps: (
+                prevState,
+                state,
+                controlState,
+                chartState,
+              ) => true,
+              mapStateToProps: (state, controlState, chartState) => {
+                const value: JsonArray = state.controls.groupby
+                  .value as JsonArray;
+                const valueAsStringArr: string[][] = value.map(v => {
+                  if (v) return [v.toString(), v.toString()];
+                  return ['', ''];
+                });
+                return {
+                  choices: valueAsStringArr,
+                };
+              },
+            },
+          },
+        ],
         [minorTicks],
         [
           {
