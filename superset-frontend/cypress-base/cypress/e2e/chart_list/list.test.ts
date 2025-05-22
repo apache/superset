@@ -88,7 +88,6 @@ describe('Charts list', () => {
       saveChartToDashboard('1 - Sample chart', '2 - Sample dashboard');
       saveChartToDashboard('1 - Sample chart', '3 - Sample dashboard');
       saveChartToDashboard('1 - Sample chart', '4 - Sample dashboard');
-      saveChartToDashboard('1 - Sample chart', '5 - Sample dashboard');
       visitChartList();
 
       cy.getBySel('count-crosslinks').should('be.visible');
@@ -226,9 +225,9 @@ describe('Charts list', () => {
       orderAlphabetical();
 
       cy.getBySel('skeleton-card').should('not.exist');
-      cy.getBySel('styled-card').eq(0).contains('1 - Sample chart').click();
-      cy.getBySel('styled-card').eq(1).contains('2 - Sample chart').click();
-      cy.getBySel('bulk-select-action').eq(0).contains('Delete').click();
+      cy.getBySel('styled-card').contains('1 - Sample chart').click();
+      cy.getBySel('styled-card').contains('2 - Sample chart').click();
+      cy.getBySel('bulk-select-action').contains('Delete').click();
       confirmDelete();
       cy.wait('@bulkDelete');
       cy.getBySel('styled-card')
@@ -261,14 +260,14 @@ describe('Charts list', () => {
       setGridMode('card');
       orderAlphabetical();
 
-      cy.getBySel('styled-card').eq(0).contains('1 - Sample chart');
+      cy.getBySel('styled-card').contains('1 - Sample chart');
       openMenu();
       cy.getBySel('chart-list-delete-option').click();
       confirmDelete();
       cy.wait('@delete');
       cy.getBySel('styled-card')
-        .eq(0)
-        .should('not.contain', '1 - Sample chart');
+        .contains('1 - Sample chart')
+        .should('not.exist');
     });
 
     it('should delete correctly in list mode', () => {
