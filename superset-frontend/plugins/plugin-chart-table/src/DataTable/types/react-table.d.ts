@@ -115,3 +115,11 @@ declare module 'react-table' {
     extends UseTableHooks<D>,
       UseSortByHooks<D> {}
 }
+
+interface TableOwnState {
+  currentPage?: number;
+  pageSize?: number;
+  sortColumn?: string;
+  sortOrder?: 'asc' | 'desc';
+  searchText?: string;
+}

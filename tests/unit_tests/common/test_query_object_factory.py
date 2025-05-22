@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import Mock
 
 from pytest import fixture  # noqa: PT013
@@ -40,12 +40,20 @@ def app_config() -> dict[str, Any]:
 
 @fixture
 def connector_registry() -> Mock:
-    return Mock(spec=["get_datasource"])
+    mock = Mock(spec=["get_datasource"])
+    mock.get_datasource().verbose_map = {"sum__num": "SUM", "unused": "UNUSED"}
+    return mock
 
 
-def apply_max_row_limit(limit: int, max_limit: Optional[int] = None) -> int:
-    if max_limit is None:
-        max_limit = create_app_config()["SQL_MAX_ROW"]
+def apply_max_row_limit(
+    limit: int,
+    server_pagination: bool | None = None,
+) -> int:
+    max_limit = (
+        create_app_config()["TABLE_VIZ_MAX_ROW_SERVER"]
+        if server_pagination
+        else create_app_config()["SQL_MAX_ROW"]
+    )
     if limit != 0:
         return min(max_limit, limit)
     return max_limit
@@ -64,6 +72,11 @@ def query_object_factory(
 @fixture
 def raw_query_context() -> dict[str, Any]:
     return QueryContextGenerator().generate("birth_names")
+
+
+@fixture
+def metric_label_raw_query_context() -> dict[str, Any]:
+    return QueryContextGenerator().generate("birth_names:metric_labels")
 
 
 class TestQueryObjectFactory:
@@ -107,3 +120,21 @@ class TestQueryObjectFactory:
             raw_query_context["result_type"], **raw_query_object
         )
         assert query_object.post_processing == []
+
+    def test_query_context_metric_names(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        raw_query_context["queries"][0]["metrics"] = [
+            {"label": "sum__num"},
+            {"label": "num_girls"},
+            {"label": "num_boys"},
+        ]
+        raw_query_object = raw_query_context["queries"][0]
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"],
+            datasource=raw_query_context["datasource"],
+            **raw_query_object,
+        )
+        assert query_object.metric_names == ["SUM", "num_girls", "num_boys"]

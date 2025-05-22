@@ -32,7 +32,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
 import { Droppable } from 'src/dashboard/components/dnd/DragDroppable';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
@@ -467,7 +467,7 @@ const DashboardBuilder = () => {
     ELEMENT_ON_SCREEN_OPTIONS,
   );
 
-  const showFilterBar = !editMode;
+  const showFilterBar = !editMode && nativeFiltersEnabled;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +

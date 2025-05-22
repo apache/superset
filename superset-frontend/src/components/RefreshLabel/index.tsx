@@ -19,7 +19,7 @@
 import { MouseEventHandler, forwardRef } from 'react';
 import { SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons, { IconType } from 'src/components/Icons';
+import { Icons, IconType } from 'src/components/Icons';
 
 export interface RefreshLabelProps {
   onClick: MouseEventHandler<HTMLSpanElement>;
@@ -34,7 +34,7 @@ const RefreshLabel = ({
 }: RefreshLabelProps) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const IconWithoutRef = forwardRef((props: IconType, ref: any) => (
-    <Icons.Refresh {...props} />
+    <Icons.SyncOutlined iconSize="l" {...props} />
   ));
 
   return (

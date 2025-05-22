@@ -27,7 +27,7 @@ import {
   SortableElement,
   arrayMove,
 } from 'react-sortable-hoc';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import {
   HeaderContainer,
   AddIconButton,
@@ -163,7 +163,7 @@ class CollectionControl extends Component {
         <HeaderContainer>
           <ControlHeader {...this.props} />
           <AddIconButton onClick={this.onAdd}>
-            <Icons.PlusLarge
+            <Icons.PlusOutlined
               iconSize="s"
               iconColor={theme.colors.grayscale.light5}
             />

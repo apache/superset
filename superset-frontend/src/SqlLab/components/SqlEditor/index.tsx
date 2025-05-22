@@ -61,7 +61,7 @@ import { Skeleton } from 'src/components';
 import { Switch } from 'src/components/Switch';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { detectOS } from 'src/utils/common';
 import {
   addNewQueryEditor,
@@ -324,6 +324,8 @@ const SqlEditor: FC<Props> = ({
   const northPaneRef = useRef<HTMLDivElement>(null);
 
   const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
+
+  const isTempId = (value: unknown): boolean => Number.isNaN(Number(value));
 
   const startQuery = useCallback(
     (ctasArg = false, ctas_method = CtasEnum.Table) => {
@@ -874,7 +876,7 @@ const SqlEditor: FC<Props> = ({
                 trigger={['click']}
               >
                 <Button buttonSize="xsmall" type="link" showMarginRight={false}>
-                  <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
+                  <Icons.EllipsisOutlined />
                 </Button>
               </Dropdown>
             </div>
@@ -915,7 +917,7 @@ const SqlEditor: FC<Props> = ({
           )}
           {isActive && (
             <AceEditorWrapper
-              autocomplete={autocompleteEnabled}
+              autocomplete={autocompleteEnabled && !isTempId(queryEditor.id)}
               onBlur={onSqlChanged}
               onChange={onSqlChanged}
               queryEditorId={queryEditor.id}

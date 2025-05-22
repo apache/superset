@@ -561,6 +561,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "SLACK_ENABLE_AVATARS": False,
     # Allow users to optionally specify date formats in email subjects, which will be parsed if enabled. # noqa: E501
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
+    # Allow metrics and columns to be grouped into (potentially nested) folders in the
+    # chart builder
+    "DATASET_FOLDERS": False,
 }
 
 # ------------------------------
@@ -818,7 +821,7 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
-# `pip install .[cors]` or `pip install apache-superset[cors]`, depending
+# `pip install .[cors]` or `pip install apache_superset[cors]`, depending
 ENABLE_CORS = False
 CORS_OPTIONS: dict[Any, Any] = {}
 
@@ -966,6 +969,10 @@ MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 # Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
 
+# Maximum number of rows for any query with Server Pagination in Table Viz type
+TABLE_VIZ_MAX_ROW_SERVER = 500000
+
+
 # Maximum number of rows displayed in SQL Lab UI
 # Is set to avoid out of memory/localstorage issues in browsers. Does not affect
 # exported CSVs
@@ -1017,6 +1024,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
+        "superset.tasks.slack",
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
@@ -1047,6 +1055,11 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "task": "prune_logs",
         #     "schedule": crontab(minute="*", hour="*"),
         #     "kwargs": {"retention_period_days": 180},
+        # },
+        # Uncomment to enable Slack channel cache warm-up
+        # "slack.cache_channels": {
+        #     "task": "slack.cache_channels",
+        #     "schedule": crontab(minute="0", hour="*"),
         # },
     }
 
@@ -1247,6 +1260,7 @@ ENABLE_CHUNK_ENCODING = False
 SILENCE_FAB = True
 
 FAB_ADD_SECURITY_VIEWS = True
+FAB_ADD_SECURITY_API = True
 FAB_ADD_SECURITY_PERMISSION_VIEW = False
 FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
 FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
@@ -1285,7 +1299,7 @@ TRACKING_URL_TRANSFORMER = lambda url: url  # noqa: E731
 DB_POLL_INTERVAL_SECONDS: dict[str, int] = {}
 
 # Interval between consecutive polls when using Presto Engine
-# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # noqa: E501
 PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 
 # Allow list of custom authentications for each DB engine.
@@ -1490,6 +1504,7 @@ EMAIL_REPORTS_CTA = "Explore in Superset"
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
+SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # The webdriver to use for generating reports. Use one of the following
 # firefox
@@ -1514,7 +1529,7 @@ WEBDRIVER_AUTH_FUNC = None
 
 # Any config options to be passed as-is to the webdriver
 WEBDRIVER_CONFIGURATION = {
-    "options": {"capabilities": {}, "preferences": {}},
+    "options": {"capabilities": {}, "preferences": {}, "binary_location": ""},
     "service": {"log_output": "/dev/null", "service_args": [], "port": 0, "env": {}},
 }
 
@@ -1614,6 +1629,9 @@ CONTENT_SECURITY_POLICY_WARNING = True
 TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
 
 # If you want Talisman, how do you want it configured??
+# For more information on setting up Talisman, please refer to
+# https://superset.apache.org/docs/configuration/networking-settings/#changing-flask-talisman-csp
+
 TALISMAN_CONFIG = {
     "content_security_policy": {
         "base-uri": ["'self'"],
@@ -1624,7 +1642,7 @@ TALISMAN_CONFIG = {
             "data:",
             "https://apachesuperset.gateway.scarf.sh",
             "https://static.scarf.sh/",
-            # "https://avatars.slack-edge.com", # Uncomment when SLACK_ENABLE_AVATARS is True  # noqa: E501
+            # "https://cdn.brandfolder.io", # Uncomment when SLACK_ENABLE_AVATARS is True  # noqa: E501
             "ows.terrestris.de",
         ],
         "worker-src": ["'self'", "blob:"],
@@ -1655,7 +1673,7 @@ TALISMAN_DEV_CONFIG = {
             "data:",
             "https://apachesuperset.gateway.scarf.sh",
             "https://static.scarf.sh/",
-            "https://avatars.slack-edge.com",
+            "https://cdn.brandfolder.io",
             "ows.terrestris.de",
         ],
         "worker-src": ["'self'", "blob:"],

@@ -225,7 +225,7 @@ test('Refresh should work', async () => {
   });
 
   // click schema reload
-  userEvent.click(screen.getByRole('button', { name: 'refresh' }));
+  userEvent.click(screen.getByRole('button', { name: 'sync' }));
 
   await waitFor(() => {
     expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
@@ -328,12 +328,16 @@ test('Should schema select display options', async () => {
   });
   expect(select).toBeInTheDocument();
   userEvent.click(select);
-  expect(
-    await screen.findByRole('option', { name: 'public' }),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByRole('option', { name: 'information_schema' }),
-  ).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+  const publicOption = await screen.findByRole('option', { name: 'public' });
+  expect(publicOption).toBeInTheDocument();
+
+  const infoSchemaOption = await screen.findByRole('option', {
+    name: 'information_schema',
+  });
+  expect(infoSchemaOption).toBeInTheDocument();
 });
 
 test('Sends the correct db when changing the database', async () => {

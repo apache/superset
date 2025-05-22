@@ -44,13 +44,14 @@ import DragHandle from 'src/dashboard/components/dnd/DragHandle';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
 import { isCurrentUserBot } from 'src/utils/isBot';
 import { useDebouncedEffect } from '../../../explore/exploreUtils';
@@ -188,7 +189,10 @@ const Row = props => {
       observerDisabler = new IntersectionObserver(
         ([entry]) => {
           if (!entry.isIntersecting && isComponentVisibleRef.current) {
-            setIsInView(false);
+            // Reference: https://www.w3.org/TR/intersection-observer/#dom-intersectionobserver-rootmargin
+            if (!isEmbedded()) {
+              setIsInView(false);
+            }
           }
         },
         {
@@ -288,7 +292,7 @@ const Row = props => {
             <DeleteComponentButton onDelete={handleDeleteComponent} />
             <IconButton
               onClick={handleChangeFocus}
-              icon={<Icons.Cog iconSize="xl" />}
+              icon={<Icons.SettingOutlined iconSize="xl" />}
             />
           </HoverMenu>
         )}

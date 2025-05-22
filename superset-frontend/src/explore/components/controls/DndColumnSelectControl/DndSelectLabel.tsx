@@ -29,7 +29,7 @@ import {
   DatasourcePanelDndItem,
   DndItemValue,
 } from 'src/explore/components/DatasourcePanel/types';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { DndItemType } from '../../DndItemType';
 import { DraggingContext, DropzoneContext } from '../../ExploreContainer';
 
@@ -100,7 +100,13 @@ export default function DndSelectLabel({
         cancelHover={!props.onClickGhostButton}
         onClick={props.onClickGhostButton}
       >
-        <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
+        <Icons.PlusOutlined
+          iconSize="m"
+          iconColor={theme.colors.grayscale.light1}
+          css={theme => ({
+            margin: `auto ${theme.gridUnit}px auto 0`,
+          })}
+        />
         {t(props.ghostButtonText)}
       </AddControlLabel>
     );

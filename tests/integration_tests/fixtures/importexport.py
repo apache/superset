@@ -689,4 +689,5 @@ saved_queries_config = {
     "uuid": "05b679b5-8eaf-452c-b874-a7a774cfa4e9",
     "version": "1.0.0",
     "database_uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "catalog": "default",
 }

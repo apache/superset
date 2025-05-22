@@ -34,6 +34,7 @@ import {
   t,
   withTheme,
   getClientErrorObject,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import { Select, AsyncSelect, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
@@ -51,12 +52,17 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
+import { executeQuery, resetDatabaseState } from 'src/database/actions';
+import { connect } from 'react-redux';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
 import { fetchSyncedColumns, updateColumns } from './utils';
+import FilterableTable from '../FilterableTable';
+
+const extensionsRegistry = getExtensionsRegistry();
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -137,6 +143,9 @@ const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
     margin-top: ${theme.gridUnit * 3}px;
     margin-left: ${theme.gridUnit * 3}px;
+    button>span>:first-of-type {
+      margin-right: 0;
+    }
   `}
 `;
 
@@ -583,6 +592,8 @@ function OwnersSelector({ datasource, onChange }) {
     />
   );
 }
+const ResultTable =
+  extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
 
 class DatasourceEditor extends PureComponent {
   constructor(props) {
@@ -695,6 +706,23 @@ class DatasourceEditor extends PureComponent {
     this.validate(this.onChange);
   }
 
+  async onQueryRun() {
+    this.props.runQuery({
+      client_id: this.props.clientId,
+      database_id: this.state.datasource.database.id,
+      json: true,
+      runAsync: false,
+      catalog: this.state.datasource.catalog,
+      schema: this.state.datasource.schema,
+      sql: this.state.datasource.sql,
+      tmp_table_name: '',
+      select_as_cta: false,
+      ctas_method: 'TABLE',
+      queryLimit: 25,
+      expand_data: true,
+    });
+  }
+
   tableChangeAndSyncMetadata() {
     this.validate(() => {
       this.syncMetadata();
@@ -712,7 +740,11 @@ class DatasourceEditor extends PureComponent {
         newCols,
         this.props.addSuccessToast,
       );
-      this.setColumns({ databaseColumns: columnChanges.finalColumns });
+      this.setColumns({
+        databaseColumns: columnChanges.finalColumns.filter(
+          col => !col.expression, // remove calculated columns
+        ),
+      });
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
     } catch (error) {
@@ -964,16 +996,26 @@ class DatasourceEditor extends PureComponent {
     );
   }
 
-  renderSourceFieldset(theme) {
+  renderSourceFieldset() {
     const { datasource } = this.state;
     return (
       <div>
         <EditLockContainer>
           <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
             {this.state.isEditMode ? (
-              <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
+              <Icons.UnlockOutlined
+                iconSize="xl"
+                css={theme => css`
+                  margin: auto ${theme.gridUnit}px auto 0;
+                `}
+              />
             ) : (
-              <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
+              <Icons.LockOutlined
+                iconSize="xl"
+                css={theme => ({
+                  margin: `auto ${theme.gridUnit}px auto 0`,
+                })}
+              />
             )}
           </span>
           {!this.state.isEditMode && (
@@ -1061,14 +1103,62 @@ class DatasourceEditor extends PureComponent {
                       <TextAreaControl
                         language="sql"
                         offerEditInModal={false}
-                        minLines={20}
+                        minLines={10}
                         maxLines={Infinity}
                         readOnly={!this.state.isEditMode}
                         resize="both"
                         tooltipOptions={sqlTooltipOptions}
                       />
                     }
+                    additionalControl={
+                      <div
+                        css={css`
+                          position: absolute;
+                          right: 0;
+                          top: 0;
+                          z-index: 2;
+                        `}
+                      >
+                        <Button
+                          css={css`
+                            align-self: flex-end;
+                            height: 24px;
+                            padding-left: 6px;
+                            padding-right: 6px;
+                          `}
+                          size="small"
+                          buttonStyle="primary"
+                          onClick={() => {
+                            this.onQueryRun();
+                          }}
+                        >
+                          <Icons.CaretRightFilled
+                            iconSize="s"
+                            css={theme => ({
+                              color: theme.colors.grayscale.light5,
+                            })}
+                          />
+                        </Button>
+                      </div>
+                    }
+                    errorMessage={
+                      this.props.database?.error && t('Error executing query.')
+                    }
                   />
+                  {this.props.database?.queryResult && (
+                    <ResultTable
+                      data={this.props.database.queryResult.data}
+                      queryId={this.props.database.queryResult.query.id}
+                      orderedColumnKeys={this.props.database.queryResult.columns.map(
+                        col => col.column_name,
+                      )}
+                      height={100}
+                      expandedColumns={
+                        this.props.database.queryResult.expandedColumns
+                      }
+                      allowHTML
+                    />
+                  )}
                 </>
               )}
             </div>
@@ -1380,9 +1470,7 @@ class DatasourceEditor extends PureComponent {
                     className="sync-from-source"
                     disabled={this.state.isEditMode}
                   >
-                    {/* TODO: Remove fa-icon */}
-                    {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-                    <i className="fa fa-database" />{' '}
+                    <Icons.DatabaseOutlined iconSize="m" />
                     {t('Sync columns from source')}
                   </Button>
                 </StyledButtonWrapper>
@@ -1451,6 +1539,10 @@ class DatasourceEditor extends PureComponent {
       </DatasourceContainer>
     );
   }
+
+  componentWillUnmount() {
+    this.props.resetQuery();
+  }
 }
 
 DatasourceEditor.defaultProps = defaultProps;
@@ -1458,4 +1550,14 @@ DatasourceEditor.propTypes = propTypes;
 
 const DataSourceComponent = withTheme(DatasourceEditor);
 
-export default withToasts(DataSourceComponent);
+const mapDispatchToProps = dispatch => ({
+  runQuery: payload => dispatch(executeQuery(payload)),
+  resetQuery: () => dispatch(resetDatabaseState()),
+});
+const mapStateToProps = state => ({
+  test: state.queryApi,
+  database: state.database,
+});
+export default withToasts(
+  connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent),
+);

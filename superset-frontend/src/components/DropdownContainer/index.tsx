@@ -35,7 +35,7 @@ import { Global } from '@emotion/react';
 import { css, t, useTheme, usePrevious } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import Badge from '../Badge';
-import Icons from '../Icons';
+import { Icons } from '../Icons';
 import Button from '../Button';
 import Popover from '../Popover';
 import { Tooltip } from '../Tooltip';
@@ -178,6 +178,42 @@ const DropdownContainer = forwardRef(
           : [[], []],
       [items, overflowingIndex],
     );
+
+    useEffect(() => {
+      const container = current?.children.item(0);
+      if (!container) return;
+
+      const childrenArray = Array.from(container.children);
+
+      const resizeObserver = new ResizeObserver(() => {
+        recalculateItemWidths();
+      });
+
+      childrenArray.map(child => resizeObserver.observe(child));
+
+      // eslint-disable-next-line consistent-return
+      return () => {
+        childrenArray.map(child => resizeObserver.unobserve(child));
+        resizeObserver.disconnect();
+      };
+    }, [items.length]);
+
+    // callback to update item widths so that the useLayoutEffect runs whenever
+    // width of any of the child changes
+    const recalculateItemWidths = () => {
+      const container = current?.children.item(0);
+      if (container) {
+        const { children } = container;
+        const childrenArray = Array.from(children);
+
+        const currentWidths = childrenArray.map(
+          child => child.getBoundingClientRect().width,
+        );
+
+        // Update state with new widths
+        setItemsWidth(currentWidths);
+      }
+    };
 
     useLayoutEffect(() => {
       if (popoverVisible) {

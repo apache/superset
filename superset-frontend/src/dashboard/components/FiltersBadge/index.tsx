@@ -37,7 +37,7 @@ import {
   t,
   usePrevious,
 } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import Badge from 'src/components/Badge';
@@ -309,7 +309,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
-        <Icons.Filter iconSize="m" />
+        <Icons.FilterOutlined iconSize="m" />
         <StyledBadge
           data-test="applied-filter-count"
           className="applied-count"

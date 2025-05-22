@@ -37,7 +37,7 @@ import {
   SLOW_DEBOUNCE,
 } from 'src/constants';
 import { Radio } from 'src/components/Radio';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import Button from 'src/components/Button';
 import Popover from 'src/components/Popover';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
@@ -67,30 +67,26 @@ export const CopyToClipboardButton = ({
 }: {
   data?: Record<string, any>;
   columns?: string[];
-}) => {
-  const theme = useTheme();
-  return (
-    <CopyToClipboard
-      text={
-        data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
-      }
-      wrapped={false}
-      copyNode={
-        <Icons.CopyOutlined
-          iconColor={theme.colors.grayscale.base}
-          iconSize="l"
-          aria-label={t('Copy')}
-          role="button"
-          css={css`
-            &.anticon > * {
-              line-height: 0;
-            }
-          `}
-        />
-      }
-    />
-  );
-};
+}) => (
+  <CopyToClipboard
+    text={
+      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
+    }
+    wrapped={false}
+    copyNode={
+      <Icons.CopyOutlined
+        iconSize="l"
+        aria-label={t('Copy')}
+        role="button"
+        css={css`
+          &.anticon > * {
+            line-height: 0;
+          }
+        `}
+      />
+    }
+  />
+);
 
 export const FilterInput = ({
   onChangeHandler,
@@ -112,7 +108,7 @@ export const FilterInput = ({
   const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
   return (
     <Input
-      prefix={<Icons.Search iconColor={theme.colors.grayscale.base} />}
+      prefix={<Icons.SearchOutlined iconSize="l" />}
       placeholder={t('Search')}
       onChange={(event: any) => {
         const filterText = event.target.value;

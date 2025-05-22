@@ -23,7 +23,7 @@ import { QueryFormData, t } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import Label from 'src/components/Label';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { safeStringify } from 'src/utils/safeStringify';
 import { Tooltip } from 'src/components/Tooltip';
 import ModalTrigger from '../ModalTrigger';
@@ -219,7 +219,7 @@ const AlteredSliceTag: FC<AlteredSliceTagProps> = props => {
     () => (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
         <Label
-          icon={<Icons.Warning iconSize="m" />}
+          icon={<Icons.ExclamationCircleOutlined iconSize="m" />}
           className="label"
           type="warning"
           onClick={() => {}}

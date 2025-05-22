@@ -1380,7 +1380,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if engine.dialect.identifier_preparer._double_percents:
                 sql = sql.replace("%%", "%")
 
-            df = pd.read_sql_query(sql=sql, con=engine)
+            df = pd.read_sql_query(sql=self.text(sql), con=engine)
             # replace NaN with None to ensure it can be serialized to JSON
             df = df.replace({np.nan: None})
             return df["column_values"].to_list()
@@ -1585,10 +1585,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # use the existing instance.
                     col = metrics_exprs_by_expr.get(str(col), col)
                     need_groupby = True
-            elif col in columns_by_name:
-                col = self.convert_tbl_column_to_sqla_col(
-                    columns_by_name[col], template_processor=template_processor
-                )
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
                 need_groupby = True
@@ -1597,6 +1593,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     template_processor=template_processor
                 )
                 need_groupby = True
+            elif col in columns_by_name:
+                col = self.convert_tbl_column_to_sqla_col(
+                    columns_by_name[col], template_processor=template_processor
+                )
 
             if isinstance(col, ColumnElement):
                 orderby_exprs.append(col)

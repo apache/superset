@@ -21,7 +21,7 @@ import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormLabel } from 'src/components/Form';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 type ValidationError = string;
 
@@ -151,8 +151,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           {warning && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={warning}>
-                <Icons.AlertSolid
+                <Icons.WarningOutlined
                   iconColor={colors.warning.base}
+                  css={css`
+                    vertical-align: baseline;
+                  `}
                   iconSize="s"
                 />
               </Tooltip>{' '}
@@ -161,7 +164,10 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           {danger && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={danger}>
-                <Icons.ErrorSolid iconColor={colors.error.base} iconSize="s" />
+                <Icons.ExclamationCircleOutlined
+                  iconColor={colors.error.base}
+                  iconSize="s"
+                />
               </Tooltip>{' '}
             </span>
           )}

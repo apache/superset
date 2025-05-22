@@ -22,7 +22,13 @@ import { EditableTabs } from 'src/components/Tabs';
 import { connect } from 'react-redux';
 import URI from 'urijs';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  styled,
+  t,
+  isFeatureEnabled,
+  css,
+} from '@superset-ui/core';
 import { Logger } from 'src/logger/LogUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
@@ -30,6 +36,8 @@ import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyState } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { locationContext } from 'src/pages/SqlLab/LocationContext';
+import { navigateWithState } from 'src/utils/navigationUtils';
+import { Icons } from 'src/components/Icons';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -141,7 +149,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       this.newQueryEditor();
 
       if (isNewQuery) {
-        window.history.replaceState({}, document.title, SQL_LAB_URL);
+        navigateWithState(SQL_LAB_URL, {}, { replace: true });
       }
     } else {
       const qe = this.activeQueryEditor();
@@ -164,7 +172,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
   popNewTab(urlParams: Record<string, string>) {
     // Clean the url in browser history
     const updatedUrl = `${URI(SQL_LAB_URL).query(urlParams)}`;
-    window.history.replaceState({}, document.title, updatedUrl);
+    navigateWithState(updatedUrl, {}, { replace: true });
   }
 
   activeQueryEditor() {
@@ -247,9 +255,13 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
               : t('New tab (Ctrl + t)')
           }
         >
-          {/* TODO: Remove fa-icon */}
-          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-          <i data-test="add-tab-icon" className="fa fa-plus-circle" />
+          <Icons.PlusCircleOutlined
+            iconSize="s"
+            css={css`
+              vertical-align: middle;
+            `}
+            data-test="add-tab-icon"
+          />
         </Tooltip>
       </StyledTab>
     );
@@ -291,9 +303,13 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
                 : t('New tab (Ctrl + t)')
             }
           >
-            {/* TODO: Remove fa-icon */}
-            {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-            <i data-test="add-tab-icon" className="fa fa-plus-circle" />
+            <Icons.PlusCircleOutlined
+              iconSize="l"
+              css={css`
+                vertical-align: middle;
+              `}
+              data-test="add-tab-icon"
+            />
           </Tooltip>
         }
       >
