@@ -90,7 +90,7 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
     [QueryMode.Raw, QueryModeLabel[QueryMode.Raw]],
   ],
   mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
-  rerender: ['all_columns', 'groupby', 'metrics', 'percent_metrics'],
+  rerender: ['all_columns', 'groupby', 'metrics'],
 };
 
 const allColumnsControl: typeof sharedControls.groupby = {
@@ -154,16 +154,12 @@ const config: ControlPanelConfig = {
                   originalMapStateToProps?.(state, controlState) ?? {};
                 newState.externalValidationErrors = validateAggControlValues(
                   controls,
-                  [
-                    controls.metrics?.value,
-                    controls.percent_metrics?.value,
-                    controlState.value,
-                  ],
+                  [controls.metrics?.value, controlState.value],
                 );
 
                 return newState;
               },
-              rerender: ['metrics', 'percent_metrics'],
+              rerender: ['metrics'],
             },
           },
         ],
@@ -220,11 +216,10 @@ const config: ControlPanelConfig = {
                 datasource,
                 externalValidationErrors: validateAggControlValues(controls, [
                   controls.groupby?.value,
-                  controls.percent_metrics?.value,
                   controlState.value,
                 ]),
               }),
-              rerender: ['groupby', 'percent_metrics'],
+              rerender: ['groupby'],
             },
           },
           {
