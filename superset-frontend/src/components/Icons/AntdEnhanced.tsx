@@ -52,6 +52,7 @@ import {
   DatabaseOutlined,
   DeleteFilled,
   DownSquareOutlined,
+  DoubleLeftOutlined,
   DeleteOutlined,
   DownOutlined,
   DownloadOutlined,
@@ -78,6 +79,7 @@ import {
   InsertRowBelowOutlined,
   LineChartOutlined,
   LinkOutlined,
+  LeftOutlined,
   MailOutlined,
   MinusCircleOutlined,
   LoadingOutlined,
@@ -115,6 +117,7 @@ import {
   UnorderedListOutlined,
   WarningOutlined,
   KeyOutlined,
+  DoubleRightOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
 import { IconType } from './types';
@@ -159,6 +162,8 @@ const AntdIcons = {
   DeleteOutlined,
   DownOutlined,
   DownloadOutlined,
+  DoubleLeftOutlined,
+  DoubleRightOutlined,
   EditOutlined,
   EllipsisOutlined,
   ExclamationCircleOutlined,
@@ -180,6 +185,7 @@ const AntdIcons = {
   InfoCircleFilled,
   InsertRowAboveOutlined,
   InsertRowBelowOutlined,
+  LeftOutlined,
   LineChartOutlined,
   LinkOutlined,
   LoadingOutlined,
