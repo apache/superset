@@ -188,6 +188,7 @@ function ListViewCard({
     >
       {loading && (
         <Card.Meta
+          data-test="skeleton-card"
           title={
             <>
               <TitleContainer>
