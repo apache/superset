@@ -35,6 +35,7 @@ import {
   EchartsRadarFormData,
   EchartsRadarLabelType,
   RadarChartTransformedProps,
+  SeriesNormalizedMap,
 } from './types';
 import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
 import {
@@ -51,13 +52,21 @@ export function formatLabel({
   params,
   labelType,
   numberFormatter,
+  denormalizedSeriesValues,
+  isNormalised,
 }: {
   params: CallbackDataParams;
   labelType: EchartsRadarLabelType;
   numberFormatter: NumberFormatter;
+  denormalizedSeriesValues: SeriesNormalizedMap;
+  isNormalised: boolean;
 }): string {
   const { name = '', value } = params;
-  const formattedValue = numberFormatter(value as number);
+  const formattedValue = numberFormatter(
+    isNormalised
+      ? (denormalizedSeriesValues[name][String(value)] as number)
+      : (value as number),
+  );
 
   switch (labelType) {
     case EchartsRadarLabelType.Value:
@@ -103,6 +112,7 @@ export default function transformProps(
     isCircle,
     columnConfig,
     sliceId,
+    isNormalised,
   }: EchartsRadarFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_RADAR_FORM_DATA,
@@ -111,11 +121,15 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
+  const denormalizedSeriesValues: SeriesNormalizedMap = {};
+
   const formatter = (params: CallbackDataParams) =>
     formatLabel({
       params,
       numberFormatter,
       labelType,
+      denormalizedSeriesValues,
+      isNormalised,
     });
 
   const metricLabels = metrics.map(getMetricLabel);
@@ -124,7 +138,7 @@ export default function transformProps(
   const metricLabelAndMaxValueMap = new Map<string, number>();
   const metricLabelAndMinValueMap = new Map<string, number>();
   const columnsLabelMap = new Map<string, string[]>();
-  const transformedData: RadarSeriesDataItemOption[] = [];
+  let transformedData: RadarSeriesDataItemOption[] = [];
   data.forEach(datum => {
     const joinedName = extractGroupbyLabel({
       datum,
@@ -212,7 +226,40 @@ export default function transformProps(
     {},
   );
 
+  // Add normalization function
+  const normalizeArray = (arr: number[], decimals = 10, seriesName: string) => {
+    const max = Math.max(...arr);
+    return arr.map(value => {
+      const normalisedValue = Number((value / max).toFixed(decimals));
+      denormalizedSeriesValues[seriesName][normalisedValue] = value;
+      return normalisedValue;
+    });
+  };
+
+  if (isNormalised) {
+    // Normalize the transformed data
+    transformedData = transformedData.map(series => {
+      if (Array.isArray(series.value)) {
+        const seriesName = String(series?.name || '');
+        denormalizedSeriesValues[seriesName] = {};
+
+        return {
+          ...series,
+          value: normalizeArray(series.value as number[], 10, seriesName),
+        };
+      }
+      return series;
+    });
+  }
+
   const indicator = metricLabels.map(metricLabel => {
+    if (isNormalised) {
+      return {
+        name: metricLabel,
+        max: 1,
+        min: 0,
+      };
+    }
     const maxValueInControl = columnConfig?.[metricLabel]?.radarMetricMaxValue;
     const minValueInControl = columnConfig?.[metricLabel]?.radarMetricMinValue;
 
@@ -259,6 +306,31 @@ export default function transformProps(
     },
   ];
 
+  const NormalisedTooltipFormaterr = function (params: any) {
+    const { color } = params;
+    const seriesName = params.name || '';
+    const values = params.value;
+
+    const colorDot = `<span style="display:inline-block;margin-right:5px;border-radius:50%;width:5px;height:5px;background-color:${color}"></span>`;
+
+    // Start with series name without dot
+    let tooltip = `<div style="font-weight:bold;margin-bottom:5px;">${seriesName || 'series0'}</div>`;
+
+    metricLabels.forEach((metric, index) => {
+      const normalizedValue = values[index];
+      const originalValue =
+        denormalizedSeriesValues[seriesName][normalizedValue];
+      tooltip += `
+        <div style="display:flex;">
+          <div>${colorDot}${metric}:</div>
+          <div style="font-weight:bold;margin-left:auto;">${originalValue}</div>
+        </div>
+      `;
+    });
+
+    return tooltip;
+  };
+
   const echartOptions: EChartsCoreOption = {
     grid: {
       ...defaultGrid,
@@ -267,6 +339,9 @@ export default function transformProps(
       ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
+      ...(isNormalised && {
+        formatter: NormalisedTooltipFormaterr,
+      }),
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),
