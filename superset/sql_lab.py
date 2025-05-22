@@ -19,7 +19,6 @@ import dataclasses
 import logging
 import sys
 import uuid
-from collections import defaultdict
 from contextlib import closing
 from datetime import datetime
 from sys import getsizeof
@@ -59,7 +58,7 @@ from superset.extensions import celery_app, event_logger
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql.parse import BaseSQLStatement, CTASMethod, RLSMethod, SQLScript, Table
+from superset.sql.parse import BaseSQLStatement, CTASMethod, SQLScript, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
 from superset.utils import json
@@ -207,26 +206,22 @@ def apply_rls(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
     # There are two ways to insert RLS: either replacing the table with a subquery
     # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
     # safer, but not supported in all databases.
-    method = (
-        RLSMethod.AS_SUBQUERY
-        if query.database.db_engine_spec.allows_subqueries
-        and query.database.db_engine_spec.allows_alias_in_select
-        else RLSMethod.AS_PREDICATE
-    )
+    method = query.database.db_engine_spec.get_rls_method()
 
     # collect all RLS predicates
-    predicates: dict[Table, list[Any]] = defaultdict(list)
-    for table in parsed_statement.tables:
-        if table_predicates := get_predicates_for_table(
-            table,
-            query.database,
-            query.catalog,
-            default_schema,
-        ):
-            predicates[table].extend(
-                parsed_statement.parse_predicate(predicate)
-                for predicate in table_predicates
+    predicates: dict[Table, list[Any]] = {
+        table: [
+            parsed_statement.parse_predicate(predicate)
+            for predicate in get_predicates_for_table(
+                table,
+                query.database,
+                query.catalog,
+                default_schema,
             )
+            if predicate
+        ]
+        for table in parsed_statement.tables
+    }
 
     parsed_statement.apply_rls(query.catalog, default_schema, predicates, method)
 
@@ -234,7 +229,7 @@ def apply_rls(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
 def get_predicates_for_table(
     table: Table,
     database: Database,
-    catalog: str,
+    catalog: str | None,
     schema: str,
 ) -> list[str]:
     """
