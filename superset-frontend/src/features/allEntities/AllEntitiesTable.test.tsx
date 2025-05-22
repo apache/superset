@@ -148,5 +148,32 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Engagement')).toBeInTheDocument();
 
     expect(screen.queryByText('Current Tag')).not.toBeInTheDocument();
+
+    expect(screen.getByText('Edit tag')).toBeInTheDocument();
+  });
+
+  it('Do not show the edit tag button if the user does not have permission', () => {
+    render(
+      <AllEntitiesTable
+        search=""
+        setShowTagModal={mockSetShowTagModal}
+        objects={mockObjectsWithTags}
+        canEditTag
+      />,
+      { useRouter: true },
+    );
+
+    expect(screen.getByText('Sales Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Sales')).toBeInTheDocument();
+
+    expect(screen.getByText('Monthly Revenue')).toBeInTheDocument();
+    expect(screen.getByText('Revenue')).toBeInTheDocument();
+
+    expect(screen.getByText('User Engagement')).toBeInTheDocument();
+    expect(screen.getByText('Engagement')).toBeInTheDocument();
+
+    expect(screen.queryByText('Current Tag')).not.toBeInTheDocument();
+
+    expect(screen.queryByText('Edit tag')).not.toBeInTheDocument();
   });
 });

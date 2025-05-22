@@ -65,10 +65,10 @@ export default function AllEntitiesTable({
   type objectType = 'dashboard' | 'chart' | 'query';
 
   const [tagId] = useQueryParam('id', NumberParam);
-  const showListViewObjs =
-    objects.dashboard.length > 0 ||
-    objects.chart.length > 0 ||
-    objects.query.length > 0;
+  const showDashboardList = objects.dashboard.length > 0;
+  const showChartList = objects.chart.length > 0;
+  const showQueryList = objects.query.length > 0;
+  const showListViewObjs = showDashboardList || showChartList || showQueryList;
 
   const renderTable = (type: objectType) => {
     const data = objects[type].map((o: TaggedObject) => ({
@@ -136,12 +136,24 @@ export default function AllEntitiesTable({
     <AllEntitiesTableContainer>
       {showListViewObjs ? (
         <>
-          <div className="entity-title">{t('Dashboards')}</div>
-          {renderTable('dashboard')}
-          <div className="entity-title">{t('Charts')}</div>
-          {renderTable('chart')}
-          <div className="entity-title">{t('Queries')}</div>
-          {renderTable('query')}
+          {showDashboardList && (
+            <>
+              <div className="entity-title">{t('Dashboards')}</div>
+              {renderTable('dashboard')}
+            </>
+          )}
+          {showChartList && (
+            <>
+              <div className="entity-title">{t('Charts')}</div>
+              {renderTable('chart')}
+            </>
+          )}
+          {showQueryList && (
+            <>
+              <div className="entity-title">{t('Queries')}</div>
+              {renderTable('query')}
+            </>
+          )}
         </>
       ) : (
         <>

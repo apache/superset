@@ -35,8 +35,9 @@ import { fetchObjectsByTagIds, fetchSingleTag } from 'src/features/tags/tags';
 import Loading from 'src/components/Loading';
 import getOwnerName from 'src/utils/getOwnerName';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
-import { store } from 'src/views/store';
 import { findPermission } from 'src/utils/findPermission';
+import { useSelector } from 'react-redux';
+import { RootState } from 'src/dashboard/types';
 
 const additionalItemsStyles = (theme: SupersetTheme) => css`
   display: flex;
@@ -102,9 +103,9 @@ function AllEntities() {
     query: [],
   });
 
-  const state = store?.getState();
-  const user = state?.user;
-  const canEditTag = findPermission('can_write', 'Tag', user?.roles);
+  const canEditTag = useSelector((state: RootState) =>
+    findPermission('can_write', 'Tag', state.user?.roles),
+  );
 
   const editableTitleProps = {
     title: tag?.name || '',
@@ -224,7 +225,7 @@ function AllEntities() {
                   onClick={() => setShowTagModal(true)}
                   showMarginRight={false}
                 >
-                  {t('Edit Tag')}{' '}
+                  {t('Edit tag')}{' '}
                 </Button>
               )}
             </>
