@@ -56,8 +56,7 @@ from superset.models.helpers import (
     ExtraJSONMixin,
     ImportExportMixin,
 )
-from superset.sql.parse import CTASMethod
-from superset.sql_parse import extract_tables_from_jinja_sql, Table
+from superset.sql.parse import CTASMethod, extract_tables_from_jinja_sql, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import json
 from superset.utils.core import (

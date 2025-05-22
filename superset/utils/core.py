@@ -86,7 +86,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.sql_parse import sanitize_clause
+from superset.sql.parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -1204,6 +1204,7 @@ def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
 
 def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
     form_data: FormData,
+    engine: str,
 ) -> None:
     """
     Mutates form data to restructure the adhoc filters in the form of the three base
@@ -1229,7 +1230,7 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                     )
             elif expression_type == "SQL":
                 sql_expression = adhoc_filter.get("sqlExpression")
-                sql_expression = sanitize_clause(sql_expression)
+                sql_expression = sanitize_clause(sql_expression, engine)
                 if clause == "WHERE":
                     sql_where_filters.append(sql_expression)
                 elif clause == "HAVING":

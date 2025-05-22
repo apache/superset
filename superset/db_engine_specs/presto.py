@@ -63,7 +63,7 @@ from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.models.core import Database
-    from superset.sql_parse import Table
+    from superset.sql.parse import Table
 
     with contextlib.suppress(ImportError):  # pyhive may not be installed
         from pyhive.presto import Cursor

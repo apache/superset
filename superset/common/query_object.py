@@ -34,7 +34,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
 )
 from superset.extensions import event_logger
-from superset.sql_parse import sanitize_clause
+from superset.sql.parse import sanitize_clause
 from superset.superset_typing import Column, Metric, OrderBy
 from superset.utils import json, pandas_postprocessing
 from superset.utils.core import (
@@ -186,13 +186,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         #   1. 'metric_name'   - name of predefined metric
         #   2. { label: 'label_name' }  - legacy format for a predefined metric
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
-        def is_str_or_adhoc(metric: Metric) -> bool:
-            return isinstance(metric, str) or is_adhoc_metric(metric)
+        out = []
+        for metric in metrics or []:
+            if isinstance(metric, str) or is_adhoc_metric(metric):
+                out.append(metric)
+            elif label := metric.get("label"):
+                out.append(label)
 
-        self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
-            for x in metrics
-        ]
+        self.metrics = out if out else None
 
     def _set_post_processing(
         self, post_processing: list[dict[str, Any] | None] | None
@@ -260,9 +261,11 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         """Return metrics names (labels), coerce adhoc metrics to strings."""
         return get_metric_names(
             self.metrics or [],
-            self.datasource.verbose_map
-            if self.datasource and hasattr(self.datasource, "verbose_map")
-            else None,
+            (
+                self.datasource.verbose_map
+                if self.datasource and hasattr(self.datasource, "verbose_map")
+                else None
+            ),
         )
 
     @property
@@ -300,9 +303,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     def _sanitize_filters(self) -> None:
         for param in ("where", "having"):
             clause = self.extras.get(param)
-            if clause:
+            if clause and self.datasource:
                 try:
-                    sanitized_clause = sanitize_clause(clause)
+                    engine = self.datasource.database.db_engine_spec.engine
+                    sanitized_clause = sanitize_clause(clause, engine)
                     if sanitized_clause != clause:
                         self.extras[param] = sanitized_clause
                 except QueryClauseValidationException as ex:

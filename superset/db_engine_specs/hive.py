@@ -44,7 +44,7 @@ from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
