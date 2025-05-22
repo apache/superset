@@ -22,6 +22,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 
 from superset import is_feature_enabled
+from superset.constants import RouteMethod
 from superset.superset_typing import FlaskResponse
 from superset.tags.models import Tag
 from superset.views.base import SupersetModelView
@@ -33,7 +34,7 @@ class TaggedObjectsModelView(SupersetModelView):
     route_base = "/superset/all_entities"
     datamodel = SQLAInterface(Tag)
     class_permission_name = "Tags"
-    include_route_methods = {"list"}
+    include_route_methods = {RouteMethod.LIST}
 
     @has_access
     @expose("/")
