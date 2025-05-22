@@ -97,7 +97,7 @@ describe('Charts list', () => {
       cy.wait('@favoriteStatus');
 
       // Increase timeout to 15 seconds (from default 4 seconds)
-      cy.getBySel('count-crosslinks', { timeout: 15000 }).should('be.visible');
+      cy.getBySel('count-crosslinks').should('be.visible');
     });
   });
 
@@ -125,17 +125,19 @@ describe('Charts list', () => {
       cy.getBySel('sort-header').eq(1).click();
       cy.wait('@filtering');
       // cy.getBySel('table-row').should('be.visible').first().find('[data-test="table-row-cell"]').eq(2).contains('Area Chart');
+      cy.get('.loading').should('not.exist');
       cy.getBySel('table-row').first().contains('Area Chart');
 
       cy.getBySel('sort-header').eq(1).should('exist').click({ force: true });
       cy.wait('@filtering');
+      cy.get('.loading').should('not.exist');
       cy.getBySel('table-row').first().contains("World's Population");
       cy.getBySel('sort-header').eq(1).click();
     });
 
     it('should bulk select in list mode', () => {
       toggleBulkSelect();
-      cy.getBySel('header-toggle-all').click();
+      cy.get('[aria-label="Select all"]').click();
       cy.get('input[type="checkbox"]:checked').should('have.length', 26);
       cy.getBySel('bulk-select-copy').contains('25 Selected');
       cy.getBySel('bulk-select-action')
