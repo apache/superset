@@ -87,8 +87,10 @@ describe('Charts list', () => {
       saveChartToDashboard('1 - Sample chart', '1 - Sample dashboard');
       saveChartToDashboard('1 - Sample chart', '2 - Sample dashboard');
       saveChartToDashboard('1 - Sample chart', '3 - Sample dashboard');
-
+      saveChartToDashboard('1 - Sample chart', '4 - Sample dashboard');
+      saveChartToDashboard('1 - Sample chart', '5 - Sample dashboard');
       visitChartList();
+
       cy.getBySel('count-crosslinks').should('be.visible');
     });
   });
@@ -114,9 +116,8 @@ describe('Charts list', () => {
 
     it('should sort correctly in list mode', () => {
       interceptFiltering();
-      cy.getBySel('sort-header').eq(1).click();
+      cy.getBySel('sort-header').contains('Name').click();
       cy.wait('@filtering');
-      // cy.getBySel('table-row').should('be.visible').first().find('[data-test="table-row-cell"]').eq(2).contains('Area Chart');
       cy.get('.loading').should('not.exist');
       cy.getBySel('table-row').first().contains('Area Chart');
 
@@ -296,7 +297,7 @@ describe('Charts list', () => {
       cy.getBySel('properties-modal-name-input').type(' | EDITED');
       cy.get('button:contains("Save")').click();
       cy.wait('@update');
-      cy.getBySel('styled-card').eq(1).contains('1 - Sample chart | EDITED');
+      cy.getBySel('styled-card').eq(0).contains('1 - Sample chart | EDITED');
 
       // edits in list-view
       setGridMode('list');
