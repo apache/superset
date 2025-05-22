@@ -22,24 +22,23 @@ import {
   themeObject,
   exampleThemes,
   SerializableThemeConfig,
-  SupersetTheme,
+  useThemeContext,
 } from '@superset-ui/core';
 import { useState } from 'react';
 import { Icons } from 'src/components/Icons';
 
 interface ThemeEditorProps {
-  initialTheme?: SupersetTheme;
   tooltipTitle?: string;
   modalTitle?: string;
 }
 
 const ThemeEditor: React.FC<ThemeEditorProps> = ({
-  initialTheme = {},
   tooltipTitle = 'Edit Theme',
   modalTitle = 'Theme Editor',
 }) => {
+  const { theme, setTheme } = useThemeContext();
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const jsonTheme: string = themeObject.json();
+  const jsonTheme: string = JSON.stringify(theme.toSerializedConfig(), null, 2);
   const [jsonMetadata, setJsonMetadata] = useState<string>(jsonTheme);
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
 
@@ -53,6 +52,7 @@ const ThemeEditor: React.FC<ThemeEditorProps> = ({
 
   const handleOpenModal = (): void => {
     setIsModalOpen(true);
+    setJsonMetadata(JSON.stringify(theme.toSerializedConfig(), null, 2));
   };
 
   const handleCancel = (): void => {
@@ -63,7 +63,7 @@ const ThemeEditor: React.FC<ThemeEditorProps> = ({
     try {
       const parsedTheme = JSON.parse(jsonMetadata);
       console.log('Parsed theme:', parsedTheme);
-      themeObject.setConfig(parsedTheme);
+      setTheme(parsedTheme);
       setIsModalOpen(false);
     } catch (error) {
       console.error('Invalid JSON in theme editor:', error);

@@ -19,7 +19,7 @@
 import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
 import {
-  ThemeProvider,
+  EmotionThemeProvider,
   supersetTheme,
   GenericDataType,
 } from '@superset-ui/core';
@@ -53,9 +53,9 @@ const defaultProps: ColumnOptionProps = {
 
 const setup = (props: Partial<ColumnOptionProps> = {}) =>
   render(
-    <ThemeProvider theme={supersetTheme}>
+    <EmotionThemeProvider theme={supersetTheme}>
       <ColumnOption {...defaultProps} {...props} />
-    </ThemeProvider>,
+    </EmotionThemeProvider>,
   );
 test('shows a label with verbose_name', () => {
   const { container } = setup();

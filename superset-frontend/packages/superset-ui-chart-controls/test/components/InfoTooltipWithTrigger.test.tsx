@@ -18,7 +18,7 @@
  */
 import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { EmotionThemeProvider, supersetTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger, InfoTooltipWithTriggerProps } from '../../src';
 
 jest.mock('../../src/components/Tooltip', () => ({
@@ -31,9 +31,9 @@ const defaultProps = {};
 
 const setup = (props: Partial<InfoTooltipWithTriggerProps> = {}) =>
   render(
-    <ThemeProvider theme={supersetTheme}>
+    <EmotionThemeProvider theme={supersetTheme}>
       <InfoTooltipWithTrigger {...defaultProps} {...props} />
-    </ThemeProvider>,
+    </EmotionThemeProvider>,
   );
 
 test('renders a tooltip', () => {
