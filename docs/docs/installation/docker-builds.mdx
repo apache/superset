@@ -101,6 +101,7 @@ RUN . /app/.venv/bin/activate && \
     # Playwright works only with Chrome.
     # If you are still using Selenium instead of Playwright, you would instead install here the selenium package and a headless browser & webdriver
     playwright \
+    && playwright install-deps \
     && PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers playwright install chromium
 
 # Switch back to the superset user
