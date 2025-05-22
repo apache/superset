@@ -831,13 +831,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
                 : '';
           }
-
           const StyledCell = styled.td`
             color: ${theme.colorText};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
-            background: ${backgroundColor || undefined};
+            background: ${backgroundColor || theme.colorWhite};
             padding-left: ${column.isChildColumn
               ? `${theme.sizeUnit * 5}px`
               : `${theme.sizeUnit}px`};
