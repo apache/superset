@@ -330,7 +330,13 @@ export default function transformProps(
     },
   ];
 
-  const NormalisedTooltipFormaterr = function (params: any) {
+  const NormalisedTooltipFormater = (
+    params: CallbackDataParams & {
+      color: string;
+      name: string;
+      value: number[];
+    },
+  ) => {
     const { color } = params;
     const seriesName = params.name || '';
     const values = params.value;
@@ -366,7 +372,7 @@ export default function transformProps(
       show: !inContextMenu,
       trigger: 'item',
       ...(isNormalised && {
-        formatter: NormalisedTooltipFormaterr,
+        formatter: NormalisedTooltipFormater,
       }),
     },
     legend: {
