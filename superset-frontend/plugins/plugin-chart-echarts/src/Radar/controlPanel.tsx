@@ -224,6 +224,8 @@ const config: ControlPanelConfig = {
                   columnsPropsObject: { colnames, coltypes },
                 };
               },
+              visibility: ({ controls }) =>
+                Boolean(!controls?.is_normalised?.value),
             },
           },
         ],
