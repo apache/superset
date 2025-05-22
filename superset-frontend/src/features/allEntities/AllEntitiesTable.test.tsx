@@ -138,42 +138,41 @@ describe('AllEntitiesTable', () => {
       { useRouter: true },
     );
 
+    expect(screen.getByText('Dashboards')).toBeInTheDocument();
     expect(screen.getByText('Sales Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Sales')).toBeInTheDocument();
 
+    expect(screen.getByText('Charts')).toBeInTheDocument();
     expect(screen.getByText('Monthly Revenue')).toBeInTheDocument();
     expect(screen.getByText('Revenue')).toBeInTheDocument();
 
+    expect(screen.getByText('Queries')).toBeInTheDocument();
     expect(screen.getByText('User Engagement')).toBeInTheDocument();
     expect(screen.getByText('Engagement')).toBeInTheDocument();
 
     expect(screen.queryByText('Current Tag')).not.toBeInTheDocument();
-
-    expect(screen.getByText('Edit tag')).toBeInTheDocument();
   });
 
-  it('Do not show the edit tag button if the user does not have permission', () => {
+  it('Only list asset types that have entities', () => {
+    const mockObjects = {
+      dashboard: [],
+      chart: [mockObjectsWithTags.chart[0]],
+      query: [],
+    };
+
     render(
       <AllEntitiesTable
         search=""
         setShowTagModal={mockSetShowTagModal}
-        objects={mockObjectsWithTags}
+        objects={mockObjects}
         canEditTag
       />,
       { useRouter: true },
     );
 
-    expect(screen.getByText('Sales Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Sales')).toBeInTheDocument();
-
+    expect(screen.queryByText('Dashboards')).not.toBeInTheDocument();
+    expect(screen.getByText('Charts')).toBeInTheDocument();
     expect(screen.getByText('Monthly Revenue')).toBeInTheDocument();
-    expect(screen.getByText('Revenue')).toBeInTheDocument();
-
-    expect(screen.getByText('User Engagement')).toBeInTheDocument();
-    expect(screen.getByText('Engagement')).toBeInTheDocument();
-
-    expect(screen.queryByText('Current Tag')).not.toBeInTheDocument();
-
-    expect(screen.queryByText('Edit tag')).not.toBeInTheDocument();
+    expect(screen.queryByText('Queries')).not.toBeInTheDocument();
   });
 });
