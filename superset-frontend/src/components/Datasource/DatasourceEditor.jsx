@@ -1011,7 +1011,6 @@ class DatasourceEditor extends PureComponent {
 
   renderSqlEditotOverlay = () => (
     <div
-      className="vectorization-progress"
       css={theme => css`
         position: absolute;
         background: ${theme.colors.secondary.light5};
@@ -1224,14 +1223,14 @@ class DatasourceEditor extends PureComponent {
                   {this.props.sql_result && (
                     <>
                       <div
-                        css={css`
-                          margin-bottom: 16px;
+                        css={theme => css`
+                          margin-bottom: ${theme.gridUnit * 4}px;
                         `}
                       >
                         <span
                           css={theme => css`
                             color: ${theme.colors.grayscale.base};
-                            font-size: 12px;
+                            font-size: ${theme.typography.sizes.s}px;
                           `}
                         >
                           {t('In this view you can preview the first 25 rows.')}
@@ -1239,7 +1238,7 @@ class DatasourceEditor extends PureComponent {
                         <Link
                           css={theme => css`
                             color: ${theme.colors.grayscale.base};
-                            font-size: 12px;
+                            font-size: ${theme.typography.sizes.s}px;
                             text-decoration: underline;
                           `}
                           to={this.getSQLLabRouteProps()}
@@ -1250,7 +1249,7 @@ class DatasourceEditor extends PureComponent {
                         <span
                           css={theme => css`
                             color: ${theme.colors.grayscale.base};
-                            font-size: 12px;
+                            font-size: ${theme.typography.sizes.s}px;
                           `}
                         >
                           {t('to see details.')}
