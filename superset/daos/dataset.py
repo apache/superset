@@ -29,7 +29,7 @@ from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 from superset.views.base import DatasourceFilter
 

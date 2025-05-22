@@ -17,6 +17,8 @@
 # pylint: disable=too-many-lines
 """a collection of model-related helper classes and functions"""
 
+from __future__ import annotations
+
 import builtins
 import dataclasses
 import logging
@@ -66,11 +68,7 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql.parse import SQLScript, SQLStatement
-from superset.sql_lab import get_predicates_for_table
-from superset.sql_parse import (
-    sanitize_clause,
-)
+from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocMetric,
     Column as ColumnTyping,
@@ -91,6 +89,7 @@ from superset.utils.core import (
     remove_duplicates,
 )
 from superset.utils.dates import datetime_to_epoch
+from superset.utils.rls import get_predicates_for_table
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlMetric, TableColumn
@@ -853,7 +852,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 engine,
             )
             try:
-                expression = sanitize_clause(expression)
+                expression = sanitize_clause(expression, engine)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
         return expression
