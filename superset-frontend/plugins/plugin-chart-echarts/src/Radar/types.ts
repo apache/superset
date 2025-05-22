@@ -53,7 +53,7 @@ export type EchartsRadarFormData = QueryFormData &
     isCircle: boolean;
     numberFormat: string;
     dateFormat: string;
-    isNormalised: boolean;
+    isNormalized: boolean;
   };
 
 export enum EchartsRadarLabelType {

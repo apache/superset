@@ -93,14 +93,14 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'is_normalised',
+            name: 'is_normalized',
             config: {
               type: 'CheckboxControl',
-              label: t('Normalise Values'),
+              label: t('Normalize Values'),
               renderTrigger: true,
               default: false,
               description: t(
-                'Normalise the radar chart values between 0 & 1 to get consistent plotting.',
+                'Normalize the radar chart values between 0 & 1 to get consistent plotting.',
               ),
             },
           },
@@ -225,7 +225,7 @@ const config: ControlPanelConfig = {
                 };
               },
               visibility: ({ controls }) =>
-                Boolean(!controls?.is_normalised?.value),
+                Boolean(!controls?.is_normalized?.value),
             },
           },
         ],

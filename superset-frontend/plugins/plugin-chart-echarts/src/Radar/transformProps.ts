@@ -53,7 +53,7 @@ export function formatLabel({
   labelType,
   numberFormatter,
   getDenormalizedSeriesValue,
-  isNormalised,
+  isNormalized,
 }: {
   params: CallbackDataParams;
   labelType: EchartsRadarLabelType;
@@ -62,11 +62,11 @@ export function formatLabel({
     seriesName: string,
     normalisedValue: string,
   ) => number;
-  isNormalised: boolean;
+  isNormalized: boolean;
 }): string {
   const { name = '', value } = params;
   const formattedValue = numberFormatter(
-    isNormalised
+    isNormalized
       ? (getDenormalizedSeriesValue(name, String(value)) as number)
       : (value as number),
   );
@@ -115,7 +115,7 @@ export default function transformProps(
     isCircle,
     columnConfig,
     sliceId,
-    isNormalised,
+    isNormalized,
   }: EchartsRadarFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_RADAR_FORM_DATA,
@@ -153,7 +153,7 @@ export default function transformProps(
       numberFormatter,
       labelType,
       getDenormalizedSeriesValue,
-      isNormalised,
+      isNormalized,
     });
 
   const metricLabels = metrics.map(getMetricLabel);
@@ -260,7 +260,7 @@ export default function transformProps(
     });
   };
 
-  if (isNormalised) {
+  if (isNormalized) {
     // Normalize the transformed data
     transformedData = transformedData.map(series => {
       if (Array.isArray(series.value)) {
@@ -277,7 +277,7 @@ export default function transformProps(
   }
 
   const indicator = metricLabels.map(metricLabel => {
-    if (isNormalised) {
+    if (isNormalized) {
       return {
         name: metricLabel,
         max: 1,
@@ -371,7 +371,7 @@ export default function transformProps(
       ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
-      ...(isNormalised && {
+      ...(isNormalized && {
         formatter: NormalisedTooltipFormater,
       }),
     },
