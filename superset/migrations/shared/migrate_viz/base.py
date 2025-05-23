@@ -137,15 +137,11 @@ class MigrateViz:
             # because a source viz can be mapped to different target viz types
             slc.viz_type = clz.target_viz_type
 
-            # only backup params
-            slc.params = json.dumps(
-                {**clz.data, FORM_DATA_BAK_FIELD_NAME: form_data_bak}
-            )
+            backup = {FORM_DATA_BAK_FIELD_NAME: form_data_bak}
 
             query_context = try_load_json(slc.query_context)
 
             if query_context:
-
                 if "form_data" in query_context:
                     query_context["form_data"] = clz.data
 
@@ -158,9 +154,11 @@ class MigrateViz:
                 slc.query_context = json.dumps(
                     {
                         **query_context,
-                        QUERIES_BAK_FIELD_NAME: queries_bak,
                     }
                 )
+                backup[QUERIES_BAK_FIELD_NAME] = queries_bak
+
+            slc.params = json.dumps({**clz.data, **backup})
 
         except Exception as e:
             logger.warning(f"Failed to migrate slice {slc.id}: {e}")
@@ -175,7 +173,7 @@ class MigrateViz:
                 slc.params = json.dumps(form_data_bak)
                 slc.viz_type = form_data_bak.get("viz_type")
                 query_context = try_load_json(slc.query_context)
-                queries_bak = query_context.get(QUERIES_BAK_FIELD_NAME, {})
+                queries_bak = form_data.get(QUERIES_BAK_FIELD_NAME, {})
                 query_context["queries"] = queries_bak
                 if "form_data" in query_context:
                     query_context["form_data"] = form_data_bak
