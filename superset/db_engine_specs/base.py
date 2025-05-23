@@ -65,7 +65,6 @@ from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
 from superset.sql.parse import BaseSQLStatement, SQLScript, Table
-from superset.sql_parse import ParsedQuery
 from superset.superset_typing import (
     OAuth2ClientConfig,
     OAuth2State,
@@ -1221,8 +1220,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param sql: SQL query
         :return: Value of limit clause in query
         """
-        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
-        return parsed_query.limit
+        script = SQLScript(sql, engine=cls.engine)
+        return script.statements[-1].get_limit_value()
 
     @classmethod
     def set_or_update_query_limit(cls, sql: str, limit: int) -> str:
@@ -2087,14 +2086,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)
             raise
-
-    @classmethod
-    def is_select_query(cls, parsed_query: ParsedQuery) -> bool:
-        """
-        Determine if the statement should be considered as SELECT statement.
-        Some query dialects do not contain "SELECT" word in queries (eg. Kusto)
-        """
-        return parsed_query.is_select()
 
     @classmethod
     def get_column_spec(  # pylint: disable=unused-argument
