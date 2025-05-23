@@ -47,6 +47,7 @@ import {
 import { defaultGrid } from '../defaults';
 import { Refs } from '../types';
 import { getDefaultTooltip } from '../utils/tooltip';
+import { renderNormalizedTooltip } from './NormalizedTooltip';
 
 export function formatLabel({
   params,
@@ -129,23 +130,9 @@ export default function transformProps(
   const getDenormalizedSeriesValue = (
     seriesName: string,
     normalisedValue: string,
-  ): number => {
-    if (
-      Object.prototype.hasOwnProperty.call(
-        denormalizedSeriesValues,
-        seriesName,
-      ) &&
-      Object.prototype.hasOwnProperty.call(
-        denormalizedSeriesValues[seriesName],
-        normalisedValue,
-      )
-    ) {
-      return denormalizedSeriesValues[seriesName][normalisedValue];
-    }
-
-    // Fallback: return the normalised value itself as a number
-    return Number(normalisedValue);
-  };
+  ): number =>
+    denormalizedSeriesValues?.[seriesName]?.[normalisedValue] ??
+    Number(normalisedValue);
 
   const formatter = (params: CallbackDataParams) =>
     formatLabel({
@@ -336,32 +323,14 @@ export default function transformProps(
       name: string;
       value: number[];
     },
-  ) => {
-    const { color } = params;
-    const seriesName = params.name || '';
-    const values = params.value;
-
-    const colorDot = `<span style="display:inline-block;margin-right:5px;border-radius:50%;width:5px;height:5px;background-color:${color}"></span>`;
-
-    // Start with series name without dot
-    let tooltip = `<div style="font-weight:bold;margin-bottom:5px;">${seriesName || 'series0'}</div>`;
-
-    metricLabels.forEach((metric, index) => {
-      const normalizedValue = values[index];
-      const originalValue = getDenormalizedSeriesValue(
-        seriesName,
-        String(normalizedValue),
-      );
-      tooltip += `
-        <div style="display:flex;">
-          <div>${colorDot}${metric}:</div>
-          <div style="font-weight:bold;margin-left:auto;">${originalValue}</div>
-        </div>
-      `;
+  ) =>
+    renderNormalizedTooltip({
+      color: params.color,
+      seriesName: params.name || '',
+      metrics: metricLabels,
+      values: params.value,
+      getDenormalizedValue: getDenormalizedSeriesValue,
     });
-
-    return tooltip;
-  };
 
   const echartOptions: EChartsCoreOption = {
     grid: {
