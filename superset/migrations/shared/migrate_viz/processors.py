@@ -61,11 +61,11 @@ class MigrateTreeMap(MigrateViz):
         ):
             self.data["metric"] = self.data["metrics"][0]
 
-    def build_query(self):
+    def _build_query(self) -> dict[str, Any]:
         metric = self.data.get("metric")
         sort_by_metric = self.data.get("sort_by_metric")
 
-        def process(base_query_object: dict):
+        def process(base_query_object: dict[str, Any]) -> list[dict[str, Any]]:
             new_query_object = base_query_object.copy()
 
             if sort_by_metric:
@@ -109,7 +109,7 @@ class MigratePivotTable(MigrateViz):
 
         self.data["rowOrder"] = "value_z_to_a"
 
-    def build_query(self):
+    def _build_query(self) -> dict[str, Any]:
         groupby_columns = self.data.get("groupbyColumns", [])
         groupby_rows = self.data.get("groupbyRows", [])
         extra_form_data = self.data.get("extra_form_data", {})
@@ -131,7 +131,7 @@ class MigratePivotTable(MigrateViz):
                     or self.data.get("granularity_sqla") == col
                 )
             ):
-                col_dict = {    
+                col_dict = {
                     "timeGrain": time_grain_sqla,
                     "columnType": "BASE_AXIS",
                     "sqlExpression": col,
@@ -144,7 +144,7 @@ class MigratePivotTable(MigrateViz):
                 if col not in columns:
                     columns.append(col)
 
-        def process(base_query_object: dict):
+        def process(base_query_object: dict[str, Any]) -> list[dict[str, Any]]:
             series_limit_metric = base_query_object.get("series_limit_metric")
             metrics = base_query_object.get("metrics")
             order_desc = base_query_object.get("order_desc")
@@ -185,13 +185,13 @@ class MigrateDualLine(MigrateViz):
         super()._migrate_temporal_filter(rv_data)
         rv_data["adhoc_filters_b"] = rv_data.get("adhoc_filters") or []
 
-    def build_query(self):
+    def _build_query(self) -> dict[str, Any]:
         base_form_data = self.data.copy()
         form_data1 = remove_form_data_suffix(base_form_data, "_b")
         form_data2 = retain_form_data_suffix(base_form_data, "_b")
 
-        def process_fn(fd):
-            def process(base_query_object: dict):
+        def process_fn(fd: dict[str, Any]) -> dict[str, Any]:
+            def process(base_query_object: dict[str, Any]) -> list[dict[str, Any]]:
                 query_object = base_query_object.copy()
                 query_object["columns"] = (
                     ensure_is_array(get_x_axis_column(self.data))
@@ -240,11 +240,11 @@ class MigrateSunburst(MigrateViz):
     target_viz_type = "sunburst_v2"
     rename_keys = {"groupby": "columns"}
 
-    def build_query(self):
+    def _build_query(self) -> dict[str, Any]:
         metric = self.data.get("metric")
         sort_by_metric = self.data.get("sort_by_metric")
 
-        def process(base_query_object: dict):
+        def process(base_query_object: dict[str, Any]) -> list[dict[str, Any]]:
             result = base_query_object.copy()
             if sort_by_metric:
                 result["orderby"] = [[metric, False]]
@@ -307,10 +307,10 @@ class TimeseriesChart(MigrateViz):
         if x_ticks_layout := self.data.get("x_ticks_layout"):
             self.data["x_ticks_layout"] = 45 if x_ticks_layout == "45°" else 0
 
-    def build_query(self):
+    def _build_query(self) -> dict[str, Any]:
         groupby = self.data.get("groupby")
 
-        def query_builder(base_query_object):
+        def query_builder(base_query_object: dict[str, Any]) -> list[dict[str, Any]]:
             """
             The `pivot_operator_in_runtime` determines how to pivot the dataframe
               returned from the raw query.
@@ -382,8 +382,8 @@ class MigrateLineChart(TimeseriesChart):
             self.target_viz_type = "echarts_timeseries_step"
             self.data["seriesType"] = "end"
 
-    def build_query(self):
-        return super().build_query()
+    def _build_query(self) -> dict[str, Any]:
+        return super()._build_query()
 
 
 class MigrateAreaChart(TimeseriesChart):
@@ -406,8 +406,8 @@ class MigrateAreaChart(TimeseriesChart):
 
         self.data["opacity"] = 0.7
 
-    def build_query(self):
-        return super().build_query()
+    def _build_query(self) -> dict[str, Any]:
+        return super()._build_query()
 
 
 class MigrateBarChart(TimeseriesChart):
@@ -423,8 +423,8 @@ class MigrateBarChart(TimeseriesChart):
 
         self.data["stack"] = "Stack" if self.data.get("bar_stacked") else None
 
-    def build_query(self):
-        return super().build_query()
+    def _build_query(self) -> dict[str, Any]:
+        return super()._build_query()
 
 
 class MigrateDistBarChart(TimeseriesChart):
@@ -456,8 +456,8 @@ class MigrateDistBarChart(TimeseriesChart):
         self.data["stack"] = "Stack" if self.data.get("bar_stacked") else None
         self.data["x_ticks_layout"] = 45
 
-    def build_query(self):
-        return super().build_query()
+    def _build_query(self) -> dict[str, Any]:
+        return super()._build_query()
 
 
 class MigrateBubbleChart(MigrateViz):
@@ -488,12 +488,12 @@ class MigrateBubbleChart(MigrateViz):
         # Truncate y-axis by default to preserve layout
         self.data["y_axis_showminmax"] = True
 
-    def build_query(self):
+    def _build_query(self) -> dict[str, Any]:
         columns = ensure_is_array(self.data.get("entity")) + ensure_is_array(
             self.data.get("series")
         )
 
-        def process(base_query_object: dict):
+        def process(base_query_object: dict[str, Any]) -> list[dict[str, Any]]:
             if base_query_object.get("orderby"):
                 orderby = [
                     [
@@ -527,7 +527,7 @@ class MigrateHeatmapChart(MigrateViz):
     def _pre_action(self) -> None:
         self.data["legend_type"] = "continuous"
 
-    def build_query(self):
+    def _build_query(self) -> dict[str, Any]:
         groupby = self.data.get("groupby")
         normalize_across = self.data.get("normalize_across")
         sort_x_axis = self.data.get("sort_x_axis")
@@ -557,7 +557,7 @@ class MigrateHeatmapChart(MigrateViz):
         else:
             group_by = None
 
-        def process(base_query_object: dict):
+        def process(base_query_object: dict[str, Any]) -> list[dict[str, Any]]:
             new_query_object = base_query_object.copy()
             new_query_object["columns"] = columns
             if orderby:
@@ -597,11 +597,11 @@ class MigrateHistogramChart(MigrateViz):
         if not groupby:
             self.data["groupby"] = []
 
-    def build_query(self):
+    def _build_query(self) -> dict[str, Any]:
         column = self.data.get("column")
         groupby = self.data.get("groupby", [])
 
-        def process(base_query_object: dict):
+        def process(base_query_object: dict[str, Any]) -> list[dict[str, Any]]:
             result = base_query_object.copy()
             result["columns"] = groupby + [column]
             result["post_processing"] = [
@@ -625,14 +625,14 @@ class MigrateSankey(MigrateViz):
             self.data["source"] = groupby[0]
             self.data["target"] = groupby[1]
 
-    def build_query(self):
+    def _build_query(self) -> dict[str, Any]:
         metric = self.data.get("metric")
         sort_by_metric = self.data.get("sort_by_metric")
         source = self.data.get("source")
         target = self.data.get("target")
         groupby = [source, target]
 
-        def process(base_query_object: dict):
+        def process(base_query_object: dict[str, Any]) -> list[dict[str, Any]]:
             result = base_query_object.copy()
             result["groupby"] = groupby
             if sort_by_metric:

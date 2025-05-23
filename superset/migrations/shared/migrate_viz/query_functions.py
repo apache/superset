@@ -17,7 +17,7 @@
 import json
 import math
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 
 class RollingType(Enum):
@@ -72,10 +72,10 @@ class DatasourceKey:
         if type_str == "query":
             self.type = DatasourceType.Query
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.id}__{self.type.value}"
 
-    def to_object(self) -> dict:
+    def to_object(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": self.type.value,
@@ -172,7 +172,7 @@ def is_query_form_metric(metric: Any) -> bool:
     )
 
 
-def get_metric_label(metric: dict) -> str:
+def get_metric_label(metric: Any | dict[str, Any]) -> Any | dict[str, Any]:
     """
     Get the label for a given metric.
 
@@ -180,7 +180,7 @@ def get_metric_label(metric: dict) -> str:
         metric (dict): The metric object.
 
     Returns:
-        str: The label of the metric.
+        dict: The label of the metric.
     """
     if is_saved_metric(metric):
         return metric
@@ -226,8 +226,8 @@ def extract_extra_metrics(form_data: Dict[str, Any]) -> List[Any]:
 
 
 def get_metric_offsets_map(
-    form_data: Dict[str, List[str]], query_object: Dict[str, List[str]]
-) -> Dict[str, str]:
+    form_data: dict[str, List[str]], query_object: dict[str, List[str]]
+) -> dict[str, Any]:
     """
     Return a dictionary mapping metric offset-labels to metric-labels.
 
@@ -253,7 +253,7 @@ def get_metric_offsets_map(
     return metric_offset_map
 
 
-def is_time_comparison(form_data: dict, query_object: dict) -> bool:
+def is_time_comparison(form_data: dict[str, Any], query_object: dict[str, Any]) -> bool:
     """
     Determine if the query involves a time comparison.
 
@@ -273,7 +273,7 @@ def is_time_comparison(form_data: dict, query_object: dict) -> bool:
     )
 
 
-def ensure_is_int(value, default_value=None) -> int:
+def ensure_is_int(value: Any, default_value: Any = None) -> Any | float:
     """
     Convert the given value to an integer.
     If conversion fails, returns default_value if provided,
@@ -293,14 +293,14 @@ def is_physical_column(column: Any = None) -> bool:
 
 def is_adhoc_column(column: Any = None) -> bool:
     """Return True if column is an adhoc column (object with SQL expression)."""
-    if type(column) != dict:
-        return False    
+    if type(column) is not dict:
+        return False
     return (
-        'sqlExpression' in column.keys()
-        and column['sqlExpression'] is not None
-        and 'label' in column.keys()
-        and column['label'] is not None
-        and (not 'sqlExpression' in column.keys() or column['expressionType'] == "SQL")
+        "sqlExpression" in column.keys()
+        and column["sqlExpression"] is not None
+        and "label" in column.keys()
+        and column["label"] is not None
+        and ("sqlExpression" not in column.keys() or column["expressionType"] == "SQL")
     )
 
 
@@ -309,12 +309,12 @@ def is_query_form_column(column: Any) -> bool:
     return is_physical_column(column) or is_adhoc_column(column)
 
 
-def is_x_axis_set(form_data: dict) -> bool:
+def is_x_axis_set(form_data: dict[str, Any]) -> bool:
     """Return True if the x_axis is specified in form_data."""
     return is_query_form_column(form_data.get("x_axis"))
 
 
-def get_x_axis_column(form_data):
+def get_x_axis_column(form_data: dict[str, Any]) -> Optional[Any]:
     """Return x_axis column."""
     if not (form_data.get("granularity_sqla") or form_data.get("x_axis")):
         return None
@@ -334,15 +334,16 @@ def get_column_label(column: Any) -> Optional[str]:
     return column.get("sqlExpression", None)
 
 
-
-def get_x_axis_label(form_data: dict) -> Optional[str]:
+def get_x_axis_label(form_data: dict[str, Any]) -> Optional[str]:
     """Return the x_axis label from form_data."""
     if col := get_x_axis_column(form_data):
         return get_column_label(col)
     return None
 
 
-def time_compare_pivot_operator(form_data, query_object):
+def time_compare_pivot_operator(
+    form_data: dict[str, Any], query_object: dict[str, Any]
+) -> Optional[dict[str, Any]]:
     """
     A post-processing factory function for pivot operations.
 
@@ -382,7 +383,9 @@ def time_compare_pivot_operator(form_data, query_object):
     return None
 
 
-def pivot_operator(form_data, query_object):
+def pivot_operator(
+    form_data: dict[str, Any], query_object: dict[str, Any]
+) -> Optional[dict[str, Any]]:
     """
     Construct a pivot operator configuration for post-processing.
 
@@ -433,7 +436,7 @@ def pivot_operator(form_data, query_object):
     return None
 
 
-def normalize_order_by(query_object):
+def normalize_order_by(query_object: dict[str, Any]) -> dict[str, Any]:
     """
     Normalize the orderby clause in the query object.
 
@@ -499,7 +502,7 @@ def normalize_order_by(query_object):
     return clone_query_object
 
 
-def remove_duplicates(items, hash_func=None):
+def remove_duplicates(items: Any, hash_func: Any = None) -> list[Any]:
     """
     Remove duplicate items from a list.
 
@@ -525,8 +528,10 @@ def remove_duplicates(items, hash_func=None):
 
 
 def extract_fields_from_form_data(
-    rest_form_data: dict, query_field_aliases: dict, query_mode: str
-) -> tuple:
+    rest_form_data: dict[str, Any],
+    query_field_aliases: dict[str, Any],
+    query_mode: Any | str,
+) -> tuple[list[Any], list[Any], list[Any]]:
     """
     Extract fields from form data based on aliases and query mode.
 
@@ -566,7 +571,9 @@ def extract_fields_from_form_data(
     return columns, metrics, orderby
 
 
-def extract_query_fields(form_data, aliases=None):
+def extract_query_fields(
+    form_data: dict[Any, Any], aliases: Any = None
+) -> Union[dict[str, Any]]:
     """
     Extract query fields from form data.
 
@@ -598,7 +605,7 @@ def extract_query_fields(form_data, aliases=None):
         rest_form_data, query_field_aliases, query_mode
     )
 
-    result = {
+    result: dict[str, Any] = {
         "columns": remove_duplicates(
             [col for col in columns if col != ""], get_column_label
         ),
@@ -622,14 +629,14 @@ def extract_query_fields(form_data, aliases=None):
     return result
 
 
-def extract_extras(form_data: dict) -> dict:
+def extract_extras(form_data: dict[str, Any]) -> dict[str, Any]:
     """
     Extract extras from the form_data analogous to the TS version.
     """
-    applied_time_extras = {}
-    filters = []
-    extras = {}
-    extract = {
+    applied_time_extras: dict[str, Any] = {}
+    filters: list[Any] = []
+    extras: dict[str, Any] = {}
+    extract: dict[str, Any] = {
         "filters": filters,
         "extras": extras,
         "applied_time_extras": applied_time_extras,
@@ -656,13 +663,12 @@ def extract_extras(form_data: dict) -> dict:
             filters.append(filter_item)
 
     # SQL: set extra properties based on TS logic
-    if 'time_grain_sqla' in form_data.keys() or 'time_grain_sqla' in extract.keys():
+    if "time_grain_sqla" in form_data.keys() or "time_grain_sqla" in extract.keys():
         # If time_grain_sqla is set in form_data, use it
         # Otherwise, use the value from extract
         value = form_data.get("time_grain_sqla") or form_data.get("time_grain_sqla")
         extras["time_grain_sqla"] = value
 
-    
     extract["granularity"] = (
         extract.get("granularity_sqla")
         or form_data.get("granularity")
@@ -677,7 +683,7 @@ def extract_extras(form_data: dict) -> dict:
     return extract
 
 
-def is_defined(x):
+def is_defined(x: Any) -> bool:
     """
     Returns True if x is not None.
     This is equivalent to checking that x is neither null nor undefined in TypeScript.
@@ -698,32 +704,32 @@ def sanitize_clause(clause: str) -> str:
     return f"({sanitized_clause})"
 
 
-def is_unary_operator(operator: str) -> bool:
+def is_unary_operator(operator: Any | str) -> bool:
     """Return True if operator is unary."""
     return operator in unary_operator_set
 
 
-def is_binary_operator(operator: str) -> bool:
+def is_binary_operator(operator: Any | str) -> bool:
     """Return True if operator is binary."""
     return operator in binary_operator_set
 
 
-def is_set_operator(operator: str) -> bool:
+def is_set_operator(operator: Any | str) -> bool:
     """Return True if operator is a set operator."""
     return operator in set_operator_set
 
 
-def is_unary_adhoc_filter(filter_item: dict) -> bool:
+def is_unary_adhoc_filter(filter_item: dict[str, Any]) -> bool:
     """Return True if the filter's operator is unary."""
     return is_unary_operator(filter_item.get("operator"))
 
 
-def is_binary_adhoc_filter(filter_item: dict) -> bool:
+def is_binary_adhoc_filter(filter_item: dict[str, Any]) -> bool:
     """Return True if the filter's operator is binary."""
     return is_binary_operator(filter_item.get("operator"))
 
 
-def convert_filter(filter_item: dict) -> dict:
+def convert_filter(filter_item: dict[str, Any]) -> dict[str, Any]:
     """Convert an adhoc filter to a query clause dict."""
     subject = filter_item.get("subject")
     if is_unary_adhoc_filter(filter_item):
@@ -731,25 +737,25 @@ def convert_filter(filter_item: dict) -> dict:
         return {"col": subject, "op": operator}
     if is_binary_adhoc_filter(filter_item):
         operator = filter_item.get("operator")
-        val =  filter_item.get("comparator")
+        val = filter_item.get("comparator")
         result = {"col": subject, "op": operator}
         if val is not None:
-            result['val'] = val
+            result["val"] = val
         return result
     operator = filter_item.get("operator")
-    val =  filter_item.get("comparator")
+    val = filter_item.get("comparator")
     result = {"col": subject, "op": operator}
     if val is not None:
-        result['val'] = val
+        result["val"] = val
     return result
 
 
-def is_simple_adhoc_filter(filter_item: dict) -> bool:
+def is_simple_adhoc_filter(filter_item: dict[str, Any]) -> bool:
     """Return True if the filter is a simple adhoc filter."""
     return filter_item.get("expressionType") == "SIMPLE"
 
 
-def process_filters(form_data: dict) -> dict:
+def process_filters(form_data: dict[str, Any]) -> dict[str, Any]:
     """
     Process filters from form_data:
       - Split adhoc_filters according to clause and expression type.
@@ -790,7 +796,9 @@ def process_filters(form_data: dict) -> dict:
     }
 
 
-def override_extra_form_data(query_object: dict, override_form_data: dict) -> dict:
+def override_extra_form_data(
+    query_object: dict[str, Any], override_form_data: dict[str, Any]
+) -> dict[str, Any]:
     """
     Override parts of the query_object with values from override_form_data.
 
@@ -823,7 +831,9 @@ def override_extra_form_data(query_object: dict, override_form_data: dict) -> di
     return overridden_form_data
 
 
-def build_query_object(form_data, query_fields=None):
+def build_query_object(
+    form_data: dict[str, Any], query_fields: Any = None
+) -> dict[str, Any]:
     """
     Build a query object from form data.
 
@@ -843,13 +853,13 @@ def build_query_object(form_data, query_fields=None):
     row_limit = form_data.get("row_limit")
     row_offset = form_data.get("row_offset")
     order_desc = form_data.get("order_desc")
-    limit = form_data.get("limit")
+    limit: Any | int = form_data.get("limit")
     timeseries_limit_metric = form_data.get("timeseries_limit_metric")
     granularity = form_data.get("granularity")
     url_params = form_data.get("url_params", {})
     custom_params = form_data.get("custom_params", {})
     series_columns = form_data.get("series_columns")
-    series_limit = form_data.get("series_limit")
+    series_limit: Any | str = form_data.get("series_limit")
     series_limit_metric = form_data.get("series_limit_metric")
 
     # Create residual_form_data by removing extracted fields
@@ -896,8 +906,8 @@ def build_query_object(form_data, query_fields=None):
     )
 
     # Convert to numeric values
-    numeric_row_limit = float(row_limit) if row_limit is not None else None
-    numeric_row_offset = float(row_offset) if row_offset is not None else None
+    numeric_row_limit: Any = float(row_limit) if row_limit is not None else None
+    numeric_row_offset: Any = float(row_offset) if row_offset is not None else None
 
     # Extract query fields
     extracted_fields = extract_query_fields(residual_form_data, query_fields)
@@ -914,13 +924,13 @@ def build_query_object(form_data, query_fields=None):
     }
     extras_and_filters = process_filters({**form_data, **extras, **filter_form_data})
 
-    def normalize_series_limit_metric(metric):
+    def normalize_series_limit_metric(metric: Any) -> Optional[Any]:
         if is_query_form_metric(metric):
             return metric
         return None
 
     # Build the query object
-    query_object = {
+    query_object: dict[Any, Any] = {
         **extras,
         **extras_and_filters,
         "columns": columns,
@@ -972,14 +982,16 @@ def build_query_object(form_data, query_fields=None):
     return {**query_object, "custom_form_data": custom_form_data}
 
 
-def omit(d: dict, keys: list) -> dict:
+def omit(d: dict[str, Any], keys: list[Any]) -> dict[str, Any]:
     """
     Return a copy of dictionary d without the specified keys.
     """
     return {k: v for k, v in d.items() if k not in keys}
 
 
-def normalize_time_column(form_data: dict, query_object: dict) -> dict:
+def normalize_time_column(
+    form_data: dict[str, Any], query_object: dict[str, Any]
+) -> dict[str, Any]:
     """
     If x_axis is set in form_data, find its index in query_object's columns and update
       that column
@@ -989,11 +1001,11 @@ def normalize_time_column(form_data: dict, query_object: dict) -> dict:
     if not is_x_axis_set(form_data):
         return query_object
 
-    _columns = query_object.get("columns", [])
+    _columns: list[Any] = query_object.get("columns", [])
     _extras = query_object.get("extras", {})
     # Create a shallow copy of columns
     mutated_columns = list(_columns)
-    x_axis = form_data.get("x_axis")
+    x_axis: Any = form_data.get("x_axis")
     axis_idx = None
 
     # Find the index of the x_axis in the columns list
@@ -1009,17 +1021,15 @@ def normalize_time_column(form_data: dict, query_object: dict) -> dict:
             break
 
     if axis_idx is not None and axis_idx > -1 and x_axis and isinstance(_columns, list):
-        
         if is_adhoc_column(_columns[axis_idx]):
             # Update the adhoc column with additional keys.
             updated = dict(_columns[axis_idx])
             updated["columnType"] = "BASE_AXIS"
             if _extras:
-                if 'time_grain_sqla' in _extras.keys():
+                if "time_grain_sqla" in _extras.keys():
                     updated["timeGrain"] = _extras["time_grain_sqla"]
             mutated_columns[axis_idx] = updated
 
-            
         else:
             # For physical columns, create a new column entry.
             mutated_columns[axis_idx] = {
@@ -1029,9 +1039,9 @@ def normalize_time_column(form_data: dict, query_object: dict) -> dict:
                 "expressionType": "SQL",
             }
             if _extras:
-                if 'time_grain_sqla' in _extras.keys():
-                    mutated_columns[axis_idx]["timeGrain"]  = _extras["time_grain_sqla"]
-    
+                if "time_grain_sqla" in _extras.keys():
+                    mutated_columns[axis_idx]["timeGrain"] = _extras["time_grain_sqla"]
+
         # Create a new query object without the 'is_timeseries' key.
         new_query_object = omit(query_object, ["is_timeseries"])
         new_query_object["columns"] = mutated_columns
@@ -1041,9 +1051,11 @@ def normalize_time_column(form_data: dict, query_object: dict) -> dict:
     return query_object
 
 
-def build_query_context(form_data, options=None):
+def build_query_context(
+    form_data: dict[str, Any], options: Any = None
+) -> dict[str, Any]:
     # Handle options based on type
-    def default_build_query(x):
+    def default_build_query(x: Any) -> list[Any]:
         return [x]
 
     if callable(options):
@@ -1075,7 +1087,9 @@ def build_query_context(form_data, options=None):
     }
 
 
-def rolling_window_operator(form_data: dict, query_object: dict):
+def rolling_window_operator(
+    form_data: dict[str, Any], query_object: dict[str, Any]
+) -> Optional[dict[str, Any]]:
     """
     Builds a post-processing configuration for a rolling window.
 
@@ -1157,7 +1171,9 @@ def time_compare_operator(
     return None
 
 
-def resample_operator(form_data: dict, query_object: dict) -> dict:
+def resample_operator(
+    form_data: dict[str, Any], query_object: dict[str, Any]
+) -> Any | dict[str, Any]:
     """
     Returns a post-processing configuration for resampling if the required
     resample_method and resample_rule are provided in form_data.
@@ -1181,8 +1197,8 @@ def resample_operator(form_data: dict, query_object: dict) -> dict:
 
 
 def rename_operator(
-    form_data: Dict[str, Any], query_object: Dict[str, Any]
-) -> Optional[Dict[str, Any]]:
+    form_data: dict[str, Any], query_object: dict[str, Any]
+) -> Optional[dict[str, Any]]:
     """
     Produces a post-processing configuration to rename columns based on the criteria:
       1) Only one metric exists.
@@ -1195,7 +1211,7 @@ def rename_operator(
     Additionally, if time comparison is active and the comparison type is 'values',
     the operator renames the metric with the corresponding offset label.
     """
-    metrics = ensure_is_array(query_object.get("metrics"))
+    metrics: Any = ensure_is_array(query_object.get("metrics"))
     columns = ensure_is_array(
         query_object.get("series_columns")
         if query_object.get("series_columns") is not None
@@ -1221,7 +1237,7 @@ def rename_operator(
         and truncate_metric is not None
         and bool(truncate_metric)
     ):
-        rename_pairs: List[Tuple[str, Optional[str]]] = []
+        rename_pairs: Any = []
 
         if (
             is_time_comparison(form_data, query_object)
@@ -1250,7 +1266,9 @@ def rename_operator(
     return None
 
 
-def contribution_operator(form_data: dict, query_object: dict, time_shifts):
+def contribution_operator(
+    form_data: dict[str, Any], query_object: dict[str, Any], time_shifts: Any
+) -> Optional[dict[str, Any]]:
     """
     Returns a post-processing configuration for contribution if
     form_data.contributionMode is truthy.
@@ -1281,7 +1299,7 @@ def sort_operator(
     Otherwise, sort by the provided sort key.
     """
     # Build the sortable labels list
-    sortable_labels = [
+    sortable_labels: list[Any] = [
         get_x_axis_label(form_data),
     ]
     sortable_labels += [
@@ -1316,14 +1334,18 @@ def sort_operator(
     return None
 
 
-def flatten_operator(form_data: dict, query_object: dict) -> dict:
+def flatten_operator(
+    form_data: dict[str, Any], query_object: dict[str, Any]
+) -> dict[str, Any]:
     """
     Returns a post-processing configuration that indicates a flatten operation.
     """
     return {"operation": "flatten"}
 
 
-def prophet_operator(form_data: dict, query_object: dict) -> dict:
+def prophet_operator(
+    form_data: dict[str, Any], query_object: dict[str, Any]
+) -> Any | dict[str, Any]:
     """
     Returns a post-processing configuration for prophet forecasting
     if forecast is enabled and an x-axis label is present.
@@ -1354,7 +1376,9 @@ def prophet_operator(form_data: dict, query_object: dict) -> dict:
     return None
 
 
-def rank_operator(form_data: dict, query_object: dict, options: dict) -> dict:
+def rank_operator(
+    form_data: dict[str, Any], query_object: dict[str, Any], options: dict[str, Any]
+) -> dict[str, Any]:
     """
     Returns a post-processing configuration for ranking.
 
@@ -1367,17 +1391,21 @@ def rank_operator(form_data: dict, query_object: dict, options: dict) -> dict:
         dict: A configuration dict with the ranking operation.
     """
     options_dict = options
-    if options_dict.get('group_by') is None:
-        options_dict.pop('group_by', None)
+    if options_dict.get("group_by") is None:
+        options_dict.pop("group_by", None)
     return {
         "operation": "rank",
         "options": options_dict,
     }
 
-def drop_none_values(options: dict) -> dict:
+
+def drop_none_values(options: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in options.items() if v is not None}
 
-def histogram_operator(form_data: dict, query_object: dict) -> dict:
+
+def histogram_operator(
+    form_data: dict[str, str | Any], query_object: dict[str, Any]
+) -> dict[str, Any]:
     """
     Build a histogram operator configuration.
 
@@ -1396,7 +1424,7 @@ def histogram_operator(form_data: dict, query_object: dict) -> dict:
         dict: A dictionary with keys "operation" and "options"
           that defines the histogram operator.
     """
-    bins = form_data.get("bins")
+    bins: Any | int = form_data.get("bins")
     column = form_data.get("column")
     cumulative = form_data.get("cumulative")
     groupby = form_data.get("groupby", [])
@@ -1415,17 +1443,15 @@ def histogram_operator(form_data: dict, query_object: dict) -> dict:
         "cumulative": cumulative,
         "normalize": normalize,
     }
-    
-    result = {
-        "operation": "histogram",
-        "options": drop_none_values(options)
-    }
+
+    result = {"operation": "histogram", "options": drop_none_values(options)}
 
     return result
-    
 
 
-def retain_form_data_suffix(form_data: dict, control_suffix: str) -> dict:
+def retain_form_data_suffix(
+    form_data: dict[str, Any], control_suffix: str
+) -> dict[str, Any]:
     """
     Retain keys from the form data that end with a specified suffix
       and remove the suffix from them.
@@ -1458,7 +1484,9 @@ def retain_form_data_suffix(form_data: dict, control_suffix: str) -> dict:
     return new_form_data
 
 
-def remove_form_data_suffix(form_data: dict, control_suffix: str) -> dict:
+def remove_form_data_suffix(
+    form_data: dict[str, Any], control_suffix: str
+) -> dict[str, Any]:
     """
     Remove keys from the form data that end with a specified suffix.
 

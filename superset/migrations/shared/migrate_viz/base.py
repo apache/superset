@@ -147,7 +147,7 @@ class MigrateViz:
 
                 queries_bak = copy.deepcopy(query_context["queries"])
 
-                result = clz.build_query()
+                result = clz._build_query()
                 queries = result["queries"]
                 query_context["queries"] = queries
 
@@ -204,3 +204,6 @@ class MigrateViz:
             lambda current, total: logger.info(f"Downgraded {current}/{total} charts"),
         ):
             cls.downgrade_slice(slc)
+
+    def _build_query(self) -> Any | dict[str, Any]:
+        """Builds a query based on the form data."""
