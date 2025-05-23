@@ -22,18 +22,21 @@ import { Input } from 'src/components/Input';
 import { t } from '@superset-ui/core';
 import { FC } from 'react';
 import { GroupObject } from 'src/pages/GroupsList';
-import { FormattedPermission, UserObject } from './types';
+import AsyncSelect from 'src/components/Select/AsyncSelect';
+import { FormattedPermission } from './types';
+import { fetchUserOptions } from '../groups/utils';
 
 interface PermissionsFieldProps {
   permissions: FormattedPermission[];
 }
 
-interface UsersFieldProps {
-  users: UserObject[];
-}
-
 interface GroupsFieldProps {
   groups: GroupObject[];
+}
+
+interface UsersFieldProps {
+  addDangerToast: (msg: string) => void;
+  loading: boolean;
 }
 
 export const RoleNameField = () => (
@@ -63,13 +66,17 @@ export const PermissionsField: FC<PermissionsFieldProps> = ({
   </FormItem>
 );
 
-export const UsersField: FC<UsersFieldProps> = ({ users }) => (
+export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => (
   <FormItem name="roleUsers" label={t('Users')}>
-    <Select
-      mode="multiple"
+    <AsyncSelect
       name="roleUsers"
-      options={users.map(user => ({ label: user.username, value: user.id }))}
-      data-test="users-select"
+      mode="multiple"
+      placeholder={t('Select users')}
+      options={(filterValue, page, pageSize) =>
+        fetchUserOptions(filterValue, page, pageSize, addDangerToast)
+      }
+      loading={loading}
+      data-test="roles-select"
     />
   </FormItem>
 );

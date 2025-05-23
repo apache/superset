@@ -93,10 +93,9 @@ describe('GroupsList', () => {
     expect(await screen.findByText('List Groups')).toBeInTheDocument();
   });
 
-  it('fetches users and roles on load', async () => {
+  it('fetches roles on load', async () => {
     await renderComponent();
     await waitFor(() => {
-      expect(fetchMock.calls(usersEndpoint).length).toBeGreaterThan(0);
       expect(fetchMock.calls(rolesEndpoint).length).toBeGreaterThan(0);
     });
   });
@@ -130,7 +129,6 @@ describe('GroupsList', () => {
 
     expect(await within(table).findByText('Name')).toBeInTheDocument();
     expect(await within(table).findByText('Label')).toBeInTheDocument();
-    expect(await within(table).findByText('Description')).toBeInTheDocument();
     expect(await within(table).findByText('Roles')).toBeInTheDocument();
   });
 

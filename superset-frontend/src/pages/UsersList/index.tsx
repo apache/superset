@@ -38,6 +38,7 @@ import {
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { deleteUser } from 'src/features/users/utils';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
+import { Tooltip } from 'src/components/Tooltip';
 
 const PAGE_SIZE = 25;
 
@@ -278,7 +279,13 @@ function UsersList({ user }: UsersListProps) {
             original: { roles },
           },
         }: any) => (
-          <span>{roles?.map((role: Role) => role.name).join(', ')}</span>
+          <Tooltip
+            title={
+              roles?.map((role: Role) => role.name).join(', ') || t('No roles')
+            }
+          >
+            <span>{roles?.map((role: Role) => role.name).join(', ')}</span>
+          </Tooltip>
         ),
         disableSortBy: true,
       },
@@ -291,7 +298,14 @@ function UsersList({ user }: UsersListProps) {
             original: { groups },
           },
         }: any) => (
-          <span>{groups?.map((group: Group) => group.name).join(', ')}</span>
+          <Tooltip
+            title={
+              groups?.map((group: Group) => group.name).join(', ') ||
+              t('No groups')
+            }
+          >
+            <span>{groups?.map((group: Group) => group.name).join(', ')}</span>
+          </Tooltip>
         ),
         disableSortBy: true,
       },

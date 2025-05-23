@@ -110,8 +110,8 @@ function UserListModal({
 
   const initialValues = {
     ...user,
-    roles: user?.roles.map(role => role.id) || [],
-    groups: user?.groups.map(group => group.id) || [],
+    roles: user?.roles?.map(role => role.id) || [],
+    groups: user?.groups?.map(group => group.id) || [],
   };
 
   return (

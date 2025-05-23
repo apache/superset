@@ -36,8 +36,9 @@ import {
   GroupListEditModal,
 } from 'src/features/groups/GroupListModal';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { deleteGroup } from 'src/features/groups/utils';
+import { deleteGroup, fetchUserOptions } from 'src/features/groups/utils';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
+import { Tooltip } from 'src/components/Tooltip';
 
 const PAGE_SIZE = 25;
 
@@ -106,10 +107,8 @@ function GroupsList({ user }: GroupsListProps) {
     useState<GroupObject | null>(null);
   const [loadingState, setLoadingState] = useState({
     roles: true,
-    users: true,
   });
   const [roles, setRoles] = useState<Role[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
 
   const isAdmin = useMemo(() => isUserAdmin(user), [user]);
 
@@ -124,24 +123,9 @@ function GroupsList({ user }: GroupsListProps) {
     });
   }, [addDangerToast]);
 
-  const fetchUsers = useCallback(() => {
-    fetchPaginatedData({
-      endpoint: '/api/v1/security/users/',
-      setData: setUsers,
-      setLoadingState,
-      loadingKey: 'users',
-      addDangerToast,
-      errorMessage: t('Error while fetching users'),
-    });
-  }, [addDangerToast]);
-
   useEffect(() => {
     fetchRoles();
   }, [fetchRoles]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
 
   const handleGroupDelete = async ({ id, name }: GroupObject) => {
     try {
@@ -223,7 +207,13 @@ function GroupsList({ user }: GroupsListProps) {
             original: { roles },
           },
         }: any) => (
-          <span>{roles?.map((role: Role) => role.name).join(', ')}</span>
+          <Tooltip
+            title={
+              roles?.map((role: Role) => role.name).join(', ') || t('No roles')
+            }
+          >
+            <span>{roles?.map((role: Role) => role.name).join(', ')}</span>
+          </Tooltip>
         ),
         disableSortBy: true,
       },
@@ -301,7 +291,7 @@ function GroupsList({ user }: GroupsListProps) {
         onClick: () => {
           openModal(ModalType.ADD);
         },
-        loading: loadingState.roles || loadingState.users,
+        loading: loadingState.roles,
         'data-test': 'add-group-button',
       },
       {
@@ -355,14 +345,11 @@ function GroupsList({ user }: GroupsListProps) {
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
-        selects: users?.map(user => ({
-          label: user.username,
-          value: user.id,
-        })),
-        loading: loadingState.users,
+        fetchSelects: async (filterValue, page, pageSize) =>
+          fetchUserOptions(filterValue, page, pageSize, addDangerToast),
       },
     ],
-    [loadingState.roles, loadingState.users, roles, users],
+    [loadingState.roles, roles],
   );
 
   const emptyState = {
@@ -399,7 +386,6 @@ function GroupsList({ user }: GroupsListProps) {
           closeModal(ModalType.ADD);
         }}
         roles={roles}
-        users={users}
       />
       {modalState.edit && currentGroup && (
         <GroupListEditModal
@@ -411,7 +397,6 @@ function GroupsList({ user }: GroupsListProps) {
             closeModal(ModalType.EDIT);
           }}
           roles={roles}
-          users={users}
         />
       )}
 

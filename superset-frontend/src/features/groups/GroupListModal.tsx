@@ -22,14 +22,14 @@ import FormModal from 'src/components/Modal/FormModal';
 import { FormItem } from 'src/components/Form';
 import { Input } from 'src/components/Input';
 import Select from 'src/components/Select/Select';
-import { GroupObject, User, Role } from 'src/pages/GroupsList';
+import { GroupObject, Role } from 'src/pages/GroupsList';
 import { Actions } from 'src/constants';
+import AsyncSelect from 'src/components/Select/AsyncSelect';
 import { BaseGroupListModalProps, FormValues } from './types';
-import { createGroup, updateGroup } from './utils';
+import { createGroup, fetchUserOptions, updateGroup } from './utils';
 
 export interface GroupModalProps extends BaseGroupListModalProps {
   roles: Role[];
-  users: User[];
   isEditMode?: boolean;
   group?: GroupObject;
 }
@@ -41,7 +41,6 @@ function GroupListModal({
   roles,
   isEditMode = false,
   group,
-  users,
 }: GroupModalProps) {
   const { addDangerToast, addSuccessToast } = useToasts();
   const handleFormSubmit = async (values: FormValues) => {
@@ -92,11 +91,14 @@ function GroupListModal({
   };
 
   const requiredFields = ['name'];
-
   const initialValues = {
     ...group,
-    roles: group?.roles.map(role => role.id) || [],
-    users: group?.users.map(user => user.id) || [],
+    roles: group?.roles?.map(role => role.id) || [],
+    users:
+      group?.users?.map(user => ({
+        value: user.id,
+        label: user.username,
+      })) || [],
   };
 
   return (
@@ -141,16 +143,12 @@ function GroupListModal({
           />
         </FormItem>
         <FormItem name="users" label={t('Users')}>
-          <Select
+          <AsyncSelect
             name="users"
             mode="multiple"
             placeholder={t('Select users')}
-            options={users.map(user => ({
-              value: user.id,
-              label: user.username,
-            }))}
-            getPopupContainer={trigger =>
-              trigger.closest('.antd5-modal-content')
+            options={(filterValue, page, pageSize) =>
+              fetchUserOptions(filterValue, page, pageSize, addDangerToast)
             }
           />
         </FormItem>

@@ -22,6 +22,10 @@ export interface BaseGroupListModalProps {
   onSave: () => void;
 }
 
-export type FormValues = {
-  [key: string]: string | number | boolean | string[] | number[];
-};
+export interface FormValues {
+  name: string;
+  label?: string;
+  description?: string;
+  roles: number[];
+  users: { value: number; label: string }[];
+}
