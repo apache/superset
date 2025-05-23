@@ -309,7 +309,7 @@
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^7.2.0",
     "eslint-import-resolver-typescript": "^3.7.0",
-    "eslint-plugin-cypress": "^3.6.0",
+    "eslint-plugin-cypress": "^4.3.0",
     "eslint-plugin-file-progress": "^1.5.0",
     "eslint-plugin-icons": "file:eslint-rules/eslint-plugin-icons",
     "eslint-plugin-import": "^2.24.2",
