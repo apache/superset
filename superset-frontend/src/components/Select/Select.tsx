@@ -443,6 +443,7 @@ const Select = forwardRef(
         <StyledBulkActionsContainer className="select-bulk-actions" size={0}>
           <Button
             type="link"
+            buttonStyle="link"
             buttonSize="xsmall"
             disabled={bulkSelectCounts.selectable === 0}
             onMouseDown={e => {
@@ -455,6 +456,7 @@ const Select = forwardRef(
           </Button>
           <Button
             type="link"
+            buttonStyle="link"
             buttonSize="xsmall"
             disabled={bulkSelectCounts.deselectable === 0}
             onMouseDown={e => {
