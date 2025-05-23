@@ -4,7 +4,7 @@ RETURNS TRIGGER AS $$
 BEGIN
 
     DELETE FROM slice_user
-    WHERE user_id IN (
+    WHERE slice_id=NEW.id AND user_id IN (
     SELECT user_id
     FROM ab_user_role
     WHERE role_id in (SELECT id FROM ab_role WHERE name like '%Admin%'));
