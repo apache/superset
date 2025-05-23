@@ -102,6 +102,8 @@ export default function transformProps(
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
+  console.log(chartProps, 'chart props');
+
   const {
     colorScheme,
     groupby,
@@ -372,6 +374,24 @@ export default function transformProps(
       indicator,
     },
   };
+
+  console.log(
+    {
+      formData,
+      width,
+      height,
+      echartOptions,
+      emitCrossFilters,
+      setDataMask,
+      labelMap: Object.fromEntries(columnsLabelMap),
+      groupby,
+      selectedValues,
+      onContextMenu,
+      refs,
+      coltypeMapping,
+    },
+    'output',
+  );
 
   return {
     formData,

@@ -35,7 +35,7 @@ import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 type RadarColumnConfig = Record<
   string,
-  { radarMetricMaxValue?: number; radarMetricMinValue?: number }
+  { radarMetricMaxValue?: number | null; radarMetricMinValue?: number }
 >;
 
 export type EchartsRadarFormData = QueryFormData &

@@ -47,6 +47,15 @@ describe('Radar transformProps', () => {
     colorScheme: 'supersetColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
+    columnConfig: {
+      'MAX(na_sales)': {
+        radarMetricMaxValue: null,
+        radarMetricMinValue: 0,
+      },
+      'SUM(eu_sales)': {
+        radarMetricMaxValue: 5000,
+      },
+    },
     groupby: [],
     metrics: [
       'MAX(na_sales)',
@@ -55,7 +64,6 @@ describe('Radar transformProps', () => {
       'SUM(eu_sales)',
     ],
     viz_type: 'radar',
-    isNormalized: true,
     numberFormat: 'SMART_NUMBER',
     dateFormat: 'smart_date',
     showLegend: true,
@@ -82,7 +90,7 @@ describe('Radar transformProps', () => {
     theme: supersetTheme,
   });
 
-  it('should transform chart props for normalized radar chart', () => {
+  it('should transform chart props for normalized radar chart & normalize all metrics except the ones with custom min & max', () => {
     const transformedProps = transformProps(
       chartProps as EchartsRadarChartProps,
     );
@@ -90,14 +98,30 @@ describe('Radar transformProps', () => {
     const radar = transformedProps.echartOptions.radar as RadarChartConfig;
 
     expect((series[0].data as RadarSeriesData[])[0].value).toEqual([
-      0.0170451044, 0.5303701939, 0.3277269497, 1,
+      0.0170451044, 0.5303701939, 0.3277269497, 2434.13,
     ]);
 
     expect(radar.indicator).toEqual([
-      { name: 'MAX(na_sales)', max: 1, min: 0 },
-      { name: 'SUM(jp_sales)', max: 1, min: 0 },
-      { name: 'SUM(other_sales)', max: 1, min: 0 },
-      { name: 'SUM(eu_sales)', max: 1, min: 0 },
+      {
+        name: 'MAX(na_sales)',
+        max: 1,
+        min: 0,
+      },
+      {
+        name: 'SUM(jp_sales)',
+        max: 1,
+        min: 0,
+      },
+      {
+        name: 'SUM(other_sales)',
+        max: 1,
+        min: 0,
+      },
+      {
+        name: 'SUM(eu_sales)',
+        max: 5000,
+        min: 0,
+      },
     ]);
   });
 });
