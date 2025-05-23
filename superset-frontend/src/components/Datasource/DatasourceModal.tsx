@@ -120,71 +120,83 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const dialog = useRef<any>(null);
   const [modal, contextHolder] = Modal.useModal();
-  const buildPayload = (datasource: Record<string, any>) => ({
-    table_name: datasource.table_name,
-    database_id: datasource.database?.id,
-    sql: datasource.sql,
-    filter_select_enabled: datasource.filter_select_enabled,
-    fetch_values_predicate: datasource.fetch_values_predicate,
-    schema:
-      datasource.tableSelector?.schema ||
-      datasource.databaseSelector?.schema ||
-      datasource.schema,
-    description: datasource.description,
-    main_dttm_col: datasource.main_dttm_col,
-    normalize_columns: datasource.normalize_columns,
-    always_filter_main_dttm: datasource.always_filter_main_dttm,
-    offset: datasource.offset,
-    default_endpoint: datasource.default_endpoint,
-    cache_timeout:
-      datasource.cache_timeout === '' ? null : datasource.cache_timeout,
-    is_sqllab_view: datasource.is_sqllab_view,
-    template_params: datasource.template_params,
-    extra: datasource.extra,
-    is_managed_externally: datasource.is_managed_externally,
-    external_url: datasource.external_url,
-    metrics: datasource?.metrics?.map((metric: DatasetObject['metrics'][0]) => {
-      const metricBody: any = {
-        expression: metric.expression,
-        description: metric.description,
-        metric_name: metric.metric_name,
-        metric_type: metric.metric_type,
-        d3format: metric.d3format || null,
-        currency: !isDefined(metric.currency)
-          ? null
-          : JSON.stringify(metric.currency),
-        verbose_name: metric.verbose_name,
-        warning_text: metric.warning_text,
-        uuid: metric.uuid,
-        extra: buildExtraJsonObject(metric),
-      };
-      if (!Number.isNaN(Number(metric.id))) {
-        metricBody.id = metric.id;
-      }
-      return metricBody;
-    }),
-    columns: datasource?.columns?.map(
-      (column: DatasetObject['columns'][0]) => ({
-        id: typeof column.id === 'number' ? column.id : undefined,
-        column_name: column.column_name,
-        type: column.type,
-        advanced_data_type: column.advanced_data_type,
-        verbose_name: column.verbose_name,
-        description: column.description,
-        expression: column.expression,
-        filterable: column.filterable,
-        groupby: column.groupby,
-        is_active: column.is_active,
-        is_dttm: column.is_dttm,
-        python_date_format: column.python_date_format || null,
-        uuid: column.uuid,
-        extra: buildExtraJsonObject(column),
-      }),
-    ),
-    owners: datasource.owners.map(
-      (o: Record<string, number>) => o.value || o.id,
-    ),
-  });
+  const buildPayload = (datasource: Record<string, any>) => {
+    const payload: Record<string, any> = {
+      table_name: datasource.table_name,
+      database_id: datasource.database?.id,
+      sql: datasource.sql,
+      filter_select_enabled: datasource.filter_select_enabled,
+      fetch_values_predicate: datasource.fetch_values_predicate,
+      schema:
+        datasource.tableSelector?.schema ||
+        datasource.databaseSelector?.schema ||
+        datasource.schema,
+      description: datasource.description,
+      main_dttm_col: datasource.main_dttm_col,
+      normalize_columns: datasource.normalize_columns,
+      always_filter_main_dttm: datasource.always_filter_main_dttm,
+      offset: datasource.offset,
+      default_endpoint: datasource.default_endpoint,
+      cache_timeout:
+        datasource.cache_timeout === '' ? null : datasource.cache_timeout,
+      is_sqllab_view: datasource.is_sqllab_view,
+      template_params: datasource.template_params,
+      extra: datasource.extra,
+      is_managed_externally: datasource.is_managed_externally,
+      external_url: datasource.external_url,
+      metrics: datasource?.metrics?.map(
+        (metric: DatasetObject['metrics'][0]) => {
+          const metricBody: any = {
+            expression: metric.expression,
+            description: metric.description,
+            metric_name: metric.metric_name,
+            metric_type: metric.metric_type,
+            d3format: metric.d3format || null,
+            currency: !isDefined(metric.currency)
+              ? null
+              : JSON.stringify(metric.currency),
+            verbose_name: metric.verbose_name,
+            warning_text: metric.warning_text,
+            uuid: metric.uuid,
+            extra: buildExtraJsonObject(metric),
+          };
+          if (!Number.isNaN(Number(metric.id))) {
+            metricBody.id = metric.id;
+          }
+          return metricBody;
+        },
+      ),
+      columns: datasource?.columns?.map(
+        (column: DatasetObject['columns'][0]) => ({
+          id: typeof column.id === 'number' ? column.id : undefined,
+          column_name: column.column_name,
+          type: column.type,
+          advanced_data_type: column.advanced_data_type,
+          verbose_name: column.verbose_name,
+          description: column.description,
+          expression: column.expression,
+          filterable: column.filterable,
+          groupby: column.groupby,
+          is_active: column.is_active,
+          is_dttm: column.is_dttm,
+          python_date_format: column.python_date_format || null,
+          uuid: column.uuid,
+          extra: buildExtraJsonObject(column),
+        }),
+      ),
+      owners: datasource.owners.map(
+        (o: Record<string, number>) => o.value || o.id,
+      ),
+    };
+    // Handle catalog based on database's allow_multi_catalog setting
+    // If multi-catalog is disabled, don't include catalog in payload
+    // The backend will use the default catalog
+    // If multi-catalog is enabled, include the selected catalog
+    if (datasource.database?.allow_multi_catalog) {
+      payload.catalog = datasource.catalog;
+    }
+    return payload;
+  };
   const onConfirmSave = async () => {
     // Pull out extra fields into the extra object
     setIsSaving(true);
