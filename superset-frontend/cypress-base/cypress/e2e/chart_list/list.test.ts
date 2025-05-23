@@ -112,7 +112,10 @@ describe('Charts list', () => {
     });
 
     it('should sort correctly in list mode', () => {
+      cy.deleteChartByName('1 - Sample chart', false);
+      cy.deleteChartByName('1 - Sample chart | EDITED', false);
       interceptFiltering();
+      cy.getBySel('sort-header').contains('Name').should('be.visible');
       cy.getBySel('sort-header').contains('Name').click();
       cy.get('.loading').should('exist');
       cy.get('.loading').should('not.exist');
