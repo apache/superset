@@ -32,7 +32,6 @@ import numpy as np
 import pandas as pd
 import pytz
 import sqlalchemy as sa
-import sqlparse
 import yaml
 from flask import g
 from flask_appbuilder import Model
@@ -63,15 +62,13 @@ from superset.exceptions import (
     ColumnNotFoundException,
     QueryClauseValidationException,
     QueryObjectValidationError,
-    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql.parse import SQLScript
+from superset.sql.parse import SQLScript, SQLStatement
+from superset.sql_lab import get_predicates_for_table
 from superset.sql_parse import (
-    has_table_query,
-    insert_rls_in_predicate,
     sanitize_clause,
 )
 from superset.superset_typing import (
@@ -111,9 +108,10 @@ ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 
 def validate_adhoc_subquery(
     sql: str,
-    database_id: int,
-    engine: str,
+    database: Database,
+    catalog: str | None,
     default_schema: str,
+    engine: str,
 ) -> str:
     """
     Check if adhoc SQL contains sub-queries or nested sub-queries with table.
@@ -125,28 +123,38 @@ def validate_adhoc_subquery(
     :raise SupersetSecurityException if sql contains sub-queries or
     nested sub-queries with table
     """
-    statements = []
-    for statement in sqlparse.parse(sql):
-        try:
-            has_table = has_table_query(str(statement), engine)
-        except SupersetParseError:
-            has_table = True
-
-        if has_table:
-            if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
-                raise SupersetSecurityException(
-                    SupersetError(
-                        error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                        message=_("Custom SQL fields cannot contain sub-queries."),
-                        level=ErrorLevel.ERROR,
-                    )
+    parsed_statement = SQLStatement(sql, engine)
+    if parsed_statement.tables:
+        if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                    message=_("Custom SQL fields cannot contain sub-queries."),
+                    level=ErrorLevel.ERROR,
                 )
-            # TODO (betodealmeida): reimplement with sqlglot
-            statement = insert_rls_in_predicate(statement, database_id, default_schema)
+            )
 
-        statements.append(statement)
+        predicates = {
+            table: [
+                parsed_statement.parse_predicate(predicate)
+                for predicate in get_predicates_for_table(
+                    table,
+                    database,
+                    catalog,
+                    default_schema,
+                )
+                if predicate
+            ]
+            for table in parsed_statement.tables
+        }
+        parsed_statement.apply_rls(
+            catalog,
+            default_schema,
+            predicates,
+            database.db_engine.spec.get_rls_method(),
+        )
 
-    return ";\n".join(str(statement) for statement in statements)
+    return parsed_statement.format()
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
@@ -839,9 +847,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             expression = validate_adhoc_subquery(
                 expression,
-                database_id,
-                engine,
+                self.database,
+                self.catalog,
                 schema,
+                engine,
             )
             try:
                 expression = sanitize_clause(expression)
@@ -1636,9 +1645,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     else:
                         selected = validate_adhoc_subquery(
                             selected,
-                            self.database_id,
-                            self.database.backend,
+                            self.database,
+                            self.catalog,
                             self.schema,
+                            self.database.db_engine_spec.engine,
                         )
                         outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
@@ -1663,9 +1673,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 selected = validate_adhoc_subquery(
                     _sql,
-                    self.database_id,
-                    self.database.backend,
+                    self.database,
+                    self.catalog,
                     self.schema,
+                    self.database.db_engine_spec.engine,
                 )
 
                 select_exprs.append(
