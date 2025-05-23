@@ -56,6 +56,7 @@ import { Icons } from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import { executeQuery, resetDatabaseState } from 'src/database/actions';
 import { connect } from 'react-redux';
+import { Link, withRouter } from 'react-router-dom';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
@@ -148,14 +149,6 @@ const StyledButtonWrapper = styled.span`
     }
   `}
 `;
-
-const sqlTooltipOptions = {
-  placement: 'topRight',
-  title: t(
-    'If changes are made to your SQL query, ' +
-      'columns in your dataset will be synced when saving the dataset.',
-  ),
-};
 
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
@@ -723,6 +716,26 @@ class DatasourceEditor extends PureComponent {
     });
   }
 
+  getSQLLabRouteProps() {
+    return {
+      pathname: `/sqllab/`,
+      state: {
+        requestedQuery: {
+          dbid: this.state.datasource.database.id,
+          sql: this.state.datasource.sql,
+          name: this.state.datasource.datasource_name,
+          schema: this.state.datasource.schema,
+          autorun: true,
+        },
+        isDataset: true,
+      },
+    };
+  }
+
+  openOnSqlLab() {
+    this.props.history.push(this.getSQLLabRouteProps());
+  }
+
   tableChangeAndSyncMetadata() {
     this.validate(() => {
       this.syncMetadata();
@@ -996,8 +1009,42 @@ class DatasourceEditor extends PureComponent {
     );
   }
 
+  renderSqlEditotOverlay = () => (
+    <div
+      css={theme => css`
+        position: absolute;
+        background: ${theme.colors.secondary.light5};
+        align-items: center;
+        display: flex;
+        height: 100%;
+        width: 100%;
+        justify-content: center;
+      `}
+    >
+      <div>
+        <Loading position="inline-centered" />
+        <span
+          css={theme => css`
+            display: block;
+            margin: ${theme.gridUnit * 4}px auto;
+            width: fit-content;
+            color: ${theme.colors.grayscale.base};
+          `}
+        >
+          {t('We are working on your query')}
+        </span>
+      </div>
+    </div>
+  );
+
   renderSourceFieldset() {
     const { datasource } = this.state;
+    const floatingButtonCss = css`
+      align-self: flex-end;
+      height: 24px;
+      padding-left: 6px;
+      padding-right: 6px;
+    `;
     return (
       <div>
         <EditLockContainer>
@@ -1097,35 +1144,63 @@ class DatasourceEditor extends PureComponent {
                     description={t(
                       'When specifying SQL, the datasource acts as a view. ' +
                         'Superset will use this statement as a subquery while grouping and filtering ' +
-                        'on the generated parent queries.',
+                        'on the generated parent queries.' +
+                        'If changes are made to your SQL query, ' +
+                        'columns in your dataset will be synced when saving the dataset.',
                     )}
                     control={
-                      <TextAreaControl
-                        language="sql"
-                        offerEditInModal={false}
-                        minLines={10}
-                        maxLines={Infinity}
-                        readOnly={!this.state.isEditMode}
-                        resize="both"
-                        tooltipOptions={sqlTooltipOptions}
-                      />
+                      this.props.isQueryRunning ? (
+                        <>
+                          {this.renderSqlEditotOverlay()}
+                          <TextAreaControl
+                            language="sql"
+                            offerEditInModal={false}
+                            minLines={10}
+                            maxLines={Infinity}
+                            readOnly={!this.state.isEditMode}
+                            resize="both"
+                          />
+                        </>
+                      ) : (
+                        <TextAreaControl
+                          language="sql"
+                          offerEditInModal={false}
+                          minLines={10}
+                          maxLines={Infinity}
+                          readOnly={!this.state.isEditMode}
+                          resize="both"
+                        />
+                      )
                     }
                     additionalControl={
                       <div
-                        css={css`
-                          position: absolute;
-                          right: 0;
-                          top: 0;
-                          z-index: 2;
-                        `}
+                        css={{
+                          position: 'absolute',
+                          right: 0,
+                          top: 0,
+                          zIndex: 2,
+                        }}
                       >
                         <Button
-                          css={css`
-                            align-self: flex-end;
-                            height: 24px;
-                            padding-left: 6px;
-                            padding-right: 6px;
-                          `}
+                          disabled={this.props.isQueryRunning}
+                          tooltip={t('Open SQL Lab in a new tab')}
+                          css={floatingButtonCss}
+                          size="small"
+                        >
+                          <Icons.ExportOutlined
+                            iconSize="s"
+                            css={theme => ({
+                              color: theme.colors.primary.dark1,
+                            })}
+                            onClick={() => {
+                              this.openOnSqlLab();
+                            }}
+                          />
+                        </Button>
+                        <Button
+                          disabled={this.props.isQueryRunning}
+                          tooltip={t('Run query')}
+                          css={floatingButtonCss}
                           size="small"
                           buttonStyle="primary"
                           onClick={() => {
@@ -1145,19 +1220,52 @@ class DatasourceEditor extends PureComponent {
                       this.props.database?.error && t('Error executing query.')
                     }
                   />
-                  {this.props.database?.queryResult && (
-                    <ResultTable
-                      data={this.props.database.queryResult.data}
-                      queryId={this.props.database.queryResult.query.id}
-                      orderedColumnKeys={this.props.database.queryResult.columns.map(
-                        col => col.column_name,
-                      )}
-                      height={100}
-                      expandedColumns={
-                        this.props.database.queryResult.expandedColumns
-                      }
-                      allowHTML
-                    />
+                  {this.props.sql_result && (
+                    <>
+                      <div
+                        css={theme => css`
+                          margin-bottom: ${theme.gridUnit * 4}px;
+                        `}
+                      >
+                        <span
+                          css={theme => css`
+                            color: ${theme.colors.grayscale.base};
+                            font-size: ${theme.typography.sizes.s}px;
+                          `}
+                        >
+                          {t('In this view you can preview the first 25 rows.')}
+                        </span>
+                        <Link
+                          css={theme => css`
+                            color: ${theme.colors.grayscale.base};
+                            font-size: ${theme.typography.sizes.s}px;
+                            text-decoration: underline;
+                          `}
+                          to={this.getSQLLabRouteProps()}
+                          type="link"
+                        >
+                          {t('Open in SQL lab')}{' '}
+                        </Link>
+                        <span
+                          css={theme => css`
+                            color: ${theme.colors.grayscale.base};
+                            font-size: ${theme.typography.sizes.s}px;
+                          `}
+                        >
+                          {t('to see details.')}
+                        </span>
+                      </div>
+                      <ResultTable
+                        data={this.props.sql_result.data}
+                        queryId={this.props.sql_result.query.id}
+                        orderedColumnKeys={this.props.sql_result.columns.map(
+                          col => col.column_name,
+                        )}
+                        height={100}
+                        expandedColumns={this.props.sql_result.expandedColumns}
+                        allowHTML
+                      />
+                    </>
                   )}
                 </>
               )}
@@ -1555,9 +1663,9 @@ const mapDispatchToProps = dispatch => ({
   resetQuery: () => dispatch(resetDatabaseState()),
 });
 const mapStateToProps = state => ({
-  test: state.queryApi,
-  database: state.database,
+  sql_result: state?.database?.queryResult,
+  isQueryRunning: state?.database?.isLoading,
 });
 export default withToasts(
-  connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent),
+  withRouter(connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent)),
 );
