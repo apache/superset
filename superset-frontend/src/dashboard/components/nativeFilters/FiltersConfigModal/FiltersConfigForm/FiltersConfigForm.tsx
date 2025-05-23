@@ -81,6 +81,7 @@ import DateFilterControl from 'src/explore/components/controls/DateFilterControl
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
+import { RangeDisplayMode } from 'src/filters/components/Range/types';
 import {
   getFormData,
   mergeExtraFormData,
@@ -815,6 +816,13 @@ const FiltersConfigForm = (
     </StyledRowFormItem>
   );
 
+  const isValidFilterValue = (value: any, isRangeFilter: boolean) => {
+    if (isRangeFilter) {
+      return Array.isArray(value) && (value[0] !== null || value[1] !== null);
+    }
+    return !!value;
+  };
+
   return (
     <StyledTabs
       activeKey={activeTabKey}
@@ -1157,50 +1165,104 @@ const FiltersConfigForm = (
                   </CollapsibleControl>
                 </CleanFormItem>
               ) : (
-                <CleanFormItem name={['filters', filterId, 'rangeFilter']}>
-                  <CollapsibleControl
-                    initialValue={hasEnableSingleValue}
-                    title={t('Single Value')}
-                    onChange={checked => {
-                      onEnableSingleValueChanged(
-                        checked ? SingleValueType.Exact : undefined,
-                      );
-                      formChanged();
-                    }}
-                  >
+                <>
+                  <CleanFormItem name={['filters', filterId, 'rangeFilter']}>
+                    <CollapsibleControl
+                      initialValue={hasEnableSingleValue}
+                      title={t('Single Value')}
+                      onChange={checked => {
+                        onEnableSingleValueChanged(
+                          checked ? SingleValueType.Exact : undefined,
+                        );
+                        formChanged();
+                      }}
+                    >
+                      <StyledRowFormItem
+                        expanded={expanded}
+                        name={[
+                          'filters',
+                          filterId,
+                          'controlValues',
+                          'enableSingleValue',
+                        ]}
+                        initialValue={enableSingleValue}
+                        label={
+                          <StyledLabel>{t('Single value type')}</StyledLabel>
+                        }
+                      >
+                        <Radio.GroupWrapper
+                          onChange={value => {
+                            onEnableSingleValueChanged(value.target.value);
+                            formChanged();
+                          }}
+                          options={[
+                            {
+                              label: t('Minimum'),
+                              value: SingleValueType.Minimum,
+                            },
+                            { label: t('Exact'), value: SingleValueType.Exact },
+                            {
+                              label: t('Maximum'),
+                              value: SingleValueType.Maximum,
+                            },
+                          ]}
+                        />
+                      </StyledRowFormItem>
+                    </CollapsibleControl>
+                  </CleanFormItem>
+
+                  <CleanFormItem name={['filters', filterId, 'rangeType']}>
                     <StyledRowFormItem
                       expanded={expanded}
                       name={[
                         'filters',
                         filterId,
                         'controlValues',
-                        'enableSingleValue',
+                        'rangeDisplayMode',
                       ]}
-                      initialValue={enableSingleValue}
-                      label={
-                        <StyledLabel>{t('Single value type')}</StyledLabel>
+                      initialValue={
+                        formFilter?.controlValues?.rangeDisplayMode ||
+                        filterToEdit?.controlValues?.rangeDisplayMode ||
+                        RangeDisplayMode.SliderAndInput
                       }
+                      label={<StyledLabel>{t('Range Type')}</StyledLabel>}
                     >
-                      <Radio.GroupWrapper
-                        onChange={value => {
-                          onEnableSingleValueChanged(value.target.value);
-                          formChanged();
-                        }}
+                      <Select
+                        ariaLabel={t('Range Type')}
                         options={[
                           {
-                            label: t('Minimum'),
-                            value: SingleValueType.Minimum,
+                            value: RangeDisplayMode.Slider,
+                            label: t('Slider'),
                           },
-                          { label: t('Exact'), value: SingleValueType.Exact },
                           {
-                            label: t('Maximum'),
-                            value: SingleValueType.Maximum,
+                            value: RangeDisplayMode.Input,
+                            label: t('Range Inputs'),
+                          },
+                          {
+                            value: RangeDisplayMode.SliderAndInput,
+                            label: t('Slider and range input'),
                           },
                         ]}
+                        onChange={value => {
+                          const previous =
+                            form.getFieldValue('filters')?.[filterId]
+                              .controlValues || {};
+                          const rangeDisplayMode =
+                            value || RangeDisplayMode.SliderAndInput;
+                          setNativeFilterFieldValues(form, filterId, {
+                            controlValues: {
+                              ...previous,
+                              rangeDisplayMode,
+                            },
+                          });
+
+                          forceUpdate();
+                          formChanged();
+                        }}
                       />
                     </StyledRowFormItem>
-                  </CollapsibleControl>
-                </CleanFormItem>
+                  </CleanFormItem>
+                </>
               )}
             </Collapse.Panel>
           )}
@@ -1235,6 +1297,23 @@ const FiltersConfigForm = (
                     setNativeFilterFieldValues(form, filterId, {
                       defaultDataMask: null,
                     });
+                  } else {
+                    // When the checkbox is checked, explicitly set an empty default data mask
+                    // for range filters to trigger validation
+                    if (formFilter?.filterType === 'filter_range') {
+                      setNativeFilterFieldValues(form, filterId, {
+                        defaultDataMask: {
+                          extraFormData: {},
+                          filterState: {
+                            value: [null, null],
+                          },
+                        },
+                      });
+                    }
+                    // Validate immediately when the checkbox is checked
+                    form.validateFields([
+                      ['filters', filterId, 'defaultDataMask'],
+                    ]);
                   }
                   formChanged();
                 }}
@@ -1250,9 +1329,19 @@ const FiltersConfigForm = (
                     rules={[
                       {
                         validator: () => {
-                          if (formFilter?.defaultDataMask?.filterState?.value) {
-                            // requires managing the error as the DefaultValue
-                            // component does not use an Antdesign compatible input
+                          // For range filters, check if at least one of the values in the array is non-null
+                          const value =
+                            formFilter?.defaultDataMask?.filterState?.value;
+                          const isRangeFilter =
+                            formFilter?.filterType === 'filter_range';
+
+                          // Check if value exists and is valid
+                          const hasValidValue = isValidFilterValue(
+                            value,
+                            isRangeFilter,
+                          );
+
+                          if (hasValidValue) {
                             const formValidationFields = form.getFieldsError();
                             setErroredFilters(prevErroredFilters => {
                               if (
@@ -1267,6 +1356,7 @@ const FiltersConfigForm = (
                             });
                             return Promise.resolve();
                           }
+
                           setErroredFilters(prevErroredFilters => {
                             if (prevErroredFilters.includes(filterId)) {
                               return prevErroredFilters;
