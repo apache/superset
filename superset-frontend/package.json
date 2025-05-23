@@ -163,7 +163,7 @@
     "mapbox-gl": "^2.10.0",
     "markdown-to-jsx": "^7.7.4",
     "match-sorter": "^6.3.4",
-    "memoize-one": "^5.2.1",
+    "memoize-one": "^6.0.0",
     "mousetrap": "^1.6.5",
     "mustache": "^4.2.0",
     "nanoid": "^5.0.9",
