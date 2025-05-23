@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import Badge from '.';
+import { Badge } from '.';
 
 const mockedProps = {
   count: 9,

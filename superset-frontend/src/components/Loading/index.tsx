@@ -20,17 +20,7 @@
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
 import Loader from 'src/assets/images/loading.gif';
-
-export type PositionOption =
-  | 'floating'
-  | 'inline'
-  | 'inline-centered'
-  | 'normal';
-export interface Props {
-  position?: PositionOption;
-  className?: string;
-  image?: string;
-}
+import type { LoadingProps } from './types';
 
 const LoaderImg = styled.img`
   z-index: 99;
@@ -56,11 +46,11 @@ const LoaderImg = styled.img`
     transform: translate(-50%, -50%);
   }
 `;
-export default function Loading({
+export function Loading({
   position = 'floating',
   image,
   className,
-}: Props) {
+}: LoadingProps) {
   return (
     <LoaderImg
       className={cls('loading', position, className)}
@@ -73,3 +63,5 @@ export default function Loading({
     />
   );
 }
+
+export type { LoadingProps };

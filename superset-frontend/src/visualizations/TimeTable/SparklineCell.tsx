@@ -208,7 +208,7 @@ const SparklineCell = ({
           snapTooltipToDatumX
           snapTooltipToDatumY
           verticalCrosshairStyle={{
-            stroke: `${theme.colors.grayscale.dark1}`,
+            stroke: `${theme.colorText}`,
             strokeDasharray: '3 3',
             strokeWidth: 1,
           }}

@@ -63,10 +63,6 @@ const restrictedImportsRules = {
     name: 'antd',
     message: 'Please import Ant components from the index of src/components',
   },
-  'no-antd-v5': {
-    name: 'antd-v5',
-    message: 'Please import Ant v5 components from the index of src/components',
-  },
   'no-superset-theme': {
     name: '@superset-ui/core',
     importNames: ['supersetTheme'],
@@ -295,9 +291,9 @@ module.exports = {
           'error',
           {
             paths: Object.values(restrictedImportsRules).filter(
-              r => r.name !== 'antd-v5',
+              r => r.name !== 'antd',
             ),
-            patterns: ['antd/*'],
+            patterns: [],
           },
         ],
       },
@@ -373,7 +369,7 @@ module.exports = {
         'fixtures.*',
         'cypress-base/cypress/**/*',
         'Stories.tsx',
-        'packages/superset-ui-core/src/style/index.tsx',
+        'packages/superset-ui-core/src/theme/index.tsx',
       ],
       rules: {
         'theme-colors/no-literal-colors': 0,

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import { IconButton } from 'src/components/IconButton';
+import { IconButton } from '.';
 
 const defaultProps = {
   buttonText: 'This is the IconButton text',

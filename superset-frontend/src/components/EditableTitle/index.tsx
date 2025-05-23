@@ -16,40 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { css, styled, SupersetTheme, t } from '@superset-ui/core';
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import cx from 'classnames';
-import { css, styled, SupersetTheme, t } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
-import CertifiedBadge from '../CertifiedBadge';
-
-export interface EditableTitleProps {
-  canEdit?: boolean;
-  editing?: boolean;
-  emptyText?: string;
-  extraClasses?: Array<string> | string;
-  multiLine?: boolean;
-  noPermitTooltip?: string;
-  onSaveTitle: (arg0: string) => void;
-  showTooltip?: boolean;
-  style?: object;
-  title?: string;
-  defaultTitle?: string;
-  placeholder?: string;
-  certifiedBy?: string;
-  certificationDetails?: string;
-  url?: string;
-}
+import { Tooltip } from '../Tooltip';
+import { CertifiedBadge } from '../CertifiedBadge';
+import { Input, TextAreaRef } from '../Input';
+import type { EditableTitleProps } from './types';
 
 const StyledCertifiedBadge = styled(CertifiedBadge)`
   vertical-align: middle;
 `;
 
-export default function EditableTitle({
+export function EditableTitle({
   canEdit = false,
   editing = false,
   extraClasses,
-  multiLine = false,
   noPermitTooltip,
   onSaveTitle,
   showTooltip = true,
@@ -60,17 +43,36 @@ export default function EditableTitle({
   certifiedBy,
   certificationDetails,
   url,
+  maxWidth,
+  autoSize = true,
   // rest is related to title tooltip
   ...rest
 }: EditableTitleProps) {
   const [isEditing, setIsEditing] = useState(editing);
   const [currentTitle, setCurrentTitle] = useState(title);
   const [lastTitle, setLastTitle] = useState(title);
-  const [contentBoundingRect, setContentBoundingRect] =
-    useState<DOMRect | null>(null);
-  // Used so we can access the DOM element if a user clicks on this component.
+  const [inputWidth, setInputWidth] = useState<number>(0);
+  const contentRef = useRef<TextAreaRef>(null);
 
-  const contentRef = useRef<any | HTMLInputElement | HTMLTextAreaElement>();
+  function measureTextWidth(text: string, font = '14px Arial') {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.font = font;
+      return context.measureText(text).width;
+    }
+    return 0;
+  }
+
+  useEffect(() => {
+    const { font } = window.getComputedStyle(
+      contentRef.current?.resizableTextArea?.textArea || document.body,
+    );
+    const textWidth = measureTextWidth(currentTitle || '', font);
+    const padding = 20;
+    const maxAllowedWidth = typeof maxWidth === 'number' ? maxWidth : Infinity;
+    setInputWidth(Math.min(textWidth + padding, maxAllowedWidth));
+  }, [currentTitle]);
 
   useEffect(() => {
     if (title !== currentTitle) {
@@ -80,39 +82,33 @@ export default function EditableTitle({
   }, [title]);
 
   useEffect(() => {
-    if (isEditing) {
-      contentRef.current.focus();
-      // move cursor and scroll to the end
-      if (contentRef.current.setSelectionRange) {
-        const { length } = contentRef.current.value;
-        contentRef.current.setSelectionRange(length, length);
-        contentRef.current.scrollLeft = contentRef.current.scrollWidth;
-        contentRef.current.scrollTop = contentRef.current.scrollHeight;
+    if (isEditing && contentRef.current) {
+      const textArea = contentRef.current.resizableTextArea?.textArea;
+      // set focus, move cursor and scroll to the end
+      if (textArea) {
+        textArea.focus();
+        const { length } = textArea.value;
+        textArea.setSelectionRange(length, length);
+        textArea.scrollTop = textArea.scrollHeight;
       }
     }
   }, [isEditing]);
 
   function handleClick() {
-    if (!canEdit || isEditing) {
-      return;
+    if (!canEdit || isEditing) return;
+    const textArea = contentRef.current?.resizableTextArea?.textArea;
+    if (textArea) {
+      textArea.focus();
+      const { length } = textArea.value;
+      textArea.setSelectionRange(length, length);
     }
-
-    // For multi-line values, save the actual rendered size of the displayed text.
-    // Later, if a textarea is constructed for editing the value, we'll need this.
-    const contentBounding = contentRef.current
-      ? contentRef.current.getBoundingClientRect()
-      : null;
     setIsEditing(true);
-    setContentBoundingRect(contentBounding);
   }
 
   function handleBlur() {
     const formattedTitle = currentTitle.trim();
 
-    if (!canEdit) {
-      return;
-    }
-
+    if (!canEdit) return;
     setIsEditing(false);
 
     if (!formattedTitle.length) {
@@ -134,27 +130,34 @@ export default function EditableTitle({
   // the ' ' key (among others, including all arrows) the onChange() doesn't fire. Somehow
   // keydown is still called so we can detect this and manually add a ' ' to the current title
   function handleKeyDown(event: any) {
-    if (event.key === ' ') {
+    const stopPropagationKeys = [
+      'Backspace',
+      'Delete',
+      ' ',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown',
+    ];
+
+    if (stopPropagationKeys.includes(event.key)) {
       event.stopPropagation();
     }
+
     if (event.key === 'Enter') {
       event.preventDefault();
       handleBlur();
     }
   }
 
-  function handleChange(ev: any) {
-    if (!canEdit) {
-      return;
-    }
-    setCurrentTitle(ev.target.value);
+  function handleChange(event: any) {
+    if (!canEdit) return;
+    setCurrentTitle(event.target.value);
   }
 
-  function handleKeyPress(ev: any) {
-    if (ev.key === 'Enter') {
-      ev.preventDefault();
-      handleBlur();
-    }
+  function handleKeyPress(event: React.KeyboardEvent) {
+    event.preventDefault();
+    handleBlur();
   }
 
   let value: string | undefined;
@@ -163,49 +166,36 @@ export default function EditableTitle({
     value = defaultTitle || title;
   }
 
-  // Construct an inline style based on previously-saved height of the rendered label. Only
-  // used in multi-line contexts.
-  const editStyle =
-    isEditing && contentBoundingRect
-      ? { height: `${contentBoundingRect.height}px` }
-      : undefined;
+  let titleComponent = (
+    <Input.TextArea
+      size="small"
+      data-test="textarea-editable-title-input"
+      ref={contentRef}
+      value={value}
+      className={!title ? 'text-muted' : undefined}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      onPressEnter={handleKeyPress}
+      placeholder={placeholder}
+      variant={isEditing ? 'outlined' : 'borderless'}
+      autoSize={autoSize ? { minRows: 1, maxRows: 3 } : false}
+      css={theme => css`
+        && {
+          width: ${inputWidth}px;
+          min-width: ${theme.sizeUnit * 10}px;
+          transition: auto;
+        }
+      `}
+    />
+  );
 
-  // Create a textarea when we're editing a multi-line value, otherwise create an input (which may
-  // be text or a button).
-  let titleComponent =
-    multiLine && isEditing ? (
-      <textarea
-        data-test="editable-title-input"
-        ref={contentRef}
-        value={value}
-        className={!title ? 'text-muted' : undefined}
-        onKeyDown={handleKeyDown}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        onClick={handleClick}
-        onKeyPress={handleKeyPress}
-        placeholder={placeholder}
-        style={editStyle}
-      />
-    ) : (
-      <input
-        data-test="editable-title-input"
-        ref={contentRef}
-        type={isEditing ? 'text' : 'button'}
-        value={value}
-        className={!title ? 'text-muted' : undefined}
-        onKeyDown={handleKeyDown}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        onClick={handleClick}
-        onKeyPress={handleKeyPress}
-        placeholder={placeholder}
-      />
-    );
   if (showTooltip && !isEditing) {
     titleComponent = (
       <Tooltip
         id="title-tooltip"
+        placement="topLeft"
         title={
           canEdit
             ? t('Click to edit')
@@ -222,9 +212,9 @@ export default function EditableTitle({
     titleComponent = url ? (
       <Link
         to={url}
-        data-test="editable-title-input"
+        data-test="link-title"
         css={(theme: SupersetTheme) => css`
-          color: ${theme.colors.grayscale.dark1};
+          color: ${theme.colorText};
           text-decoration: none;
           :hover {
             text-decoration: underline;
@@ -235,7 +225,7 @@ export default function EditableTitle({
         {value}
       </Link>
     ) : (
-      <span data-test="editable-title-input">{value}</span>
+      <span data-test="span-title">{value}</span>
     );
   }
   return (
@@ -263,3 +253,5 @@ export default function EditableTitle({
     </span>
   );
 }
+
+export type { EditableTitleProps };

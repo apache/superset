@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import InfoTooltip, { InfoTooltipProps } from 'src/components/InfoTooltip';
+import type { InfoTooltipProps } from './types';
+import { InfoTooltip } from '.';
 
 export default {
-  title: 'InfoTooltip',
+  title: 'Components/InfoTooltip',
   component: InfoTooltip,
 };
 

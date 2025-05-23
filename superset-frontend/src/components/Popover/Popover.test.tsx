@@ -24,8 +24,8 @@ import {
 } from 'spec/helpers/testing-library';
 import { supersetTheme } from '@superset-ui/core';
 import { Icons } from 'src/components/Icons';
-import Button from 'src/components/Button';
 import Popover from 'src/components/Popover';
+import { Button } from '../Button';
 
 test('should render', () => {
   const { container } = render(<Popover />);
@@ -83,6 +83,6 @@ test('renders with theme', () => {
   render(<Popover content="Content sample" title="Popover title" open />);
   const title = screen.getByText('Popover title');
   expect(title).toHaveStyle({
-    fontSize: supersetTheme.gridUnit * 3.5,
+    fontSize: supersetTheme.sizeUnit * 3.5,
   });
 });

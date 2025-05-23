@@ -23,11 +23,16 @@ import {
   Comparator,
   MultipleValueComparators,
 } from '@superset-ui/chart-controls';
-import { Form, FormItem, FormProps } from 'src/components/Form';
-import Select from 'src/components/Select/Select';
-import { Col, Row } from 'src/components';
-import { InputNumber } from 'src/components/Input';
-import Button from 'src/components/Button';
+import {
+  Select,
+  Button,
+  Form,
+  FormItem,
+  InputNumber,
+  Col,
+  Row,
+  type FormProps,
+} from 'src/components';
 import { ConditionalFormattingConfig } from './types';
 
 const FullWidthInputNumber = styled(InputNumber)`
@@ -40,12 +45,9 @@ const JustifyEnd = styled.div`
 `;
 
 const colorSchemeOptions = (theme: SupersetTheme) => [
-  { value: theme.colors.success.light1, label: t('success') },
-  { value: theme.colors.warning.light1, label: t('alert') },
-  { value: theme.colors.error.light1, label: t('error') },
-  { value: theme.colors.success.dark1, label: t('success dark') },
-  { value: theme.colors.warning.dark1, label: t('alert dark') },
-  { value: theme.colors.error.dark1, label: t('error dark') },
+  { value: theme.colorSuccessBg, label: t('success') },
+  { value: theme.colorWarningBg, label: t('alert') },
+  { value: theme.colorErrorBg, label: t('error') },
 ];
 
 const operatorOptions = [

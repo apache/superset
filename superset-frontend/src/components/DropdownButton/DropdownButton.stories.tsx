@@ -17,10 +17,11 @@
  * under the License.
  */
 import { Menu } from 'src/components/Menu';
-import { DropdownButton, DropdownButtonProps } from '.';
+import { DropdownButton } from '.';
+import type { DropdownButtonProps } from './types';
 
 export default {
-  title: 'DropdownButton',
+  title: 'Components/DropdownButton',
 };
 
 const menu = (

@@ -16,17 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { type ComponentProps } from 'react';
-
-import { Dropdown } from 'antd-v5';
-import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
+import { Dropdown } from 'antd';
 import { kebabCase } from 'lodash';
 import { css, useTheme } from '@superset-ui/core';
-
-export type DropdownButtonProps = ComponentProps<typeof Dropdown.Button> & {
-  tooltip?: string;
-  tooltipPlacement?: TooltipPlacement;
-};
+import { Tooltip } from '../Tooltip';
+import type { DropdownButtonProps } from './types';
 
 export const DropdownButton = ({
   dropdownRender,
@@ -40,7 +34,7 @@ export const DropdownButton = ({
   // divider implementation for default (non-primary) buttons
   const defaultBtnCss = css`
     ${(!buttonType || buttonType === 'default') &&
-    `.antd5-dropdown-trigger {
+    `.ant-dropdown-trigger {
       position: relative;
       &:before {
         content: '';
@@ -49,7 +43,6 @@ export const DropdownButton = ({
         top: 0;
         width: 1px;
         height: 100%;
-        background-color: ${theme.colors.grayscale.light2};
       }
       .anticon {
         vertical-align: middle;
@@ -63,11 +56,11 @@ export const DropdownButton = ({
       css={[
         defaultBtnCss,
         css`
-          .antd5-btn {
+          .ant-btn {
             height: 30px;
             box-shadow: none;
-            font-size: ${theme.typography.sizes.s}px;
-            font-weight: ${theme.typography.weights.bold};
+            font-size: ${theme.fontSizeSM}px;
+            font-weight: ${theme.fontWeightStrong};
           }
         `,
       ]}
@@ -88,3 +81,5 @@ export const DropdownButton = ({
   }
   return button;
 };
+
+export type { DropdownButtonProps };

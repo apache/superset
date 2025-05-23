@@ -34,16 +34,17 @@ import {
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import Label from 'src/components/Label';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import Popover from 'src/components/Popover';
 import { commonMenuData } from 'src/features/home/commonMenuData';
-import ListView, {
-  Filters,
-  FilterOperator,
-  ListViewProps,
-} from 'src/components/ListView';
-import { Tooltip } from 'src/components/Tooltip';
+import {
+  Label,
+  Tooltip,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewProps,
+  type ListViewFilters,
+} from 'src/components';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
@@ -60,14 +61,14 @@ const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;
 
 const TopAlignedListView = styled(ListView)<ListViewProps<QueryObject>>`
-  table .table-cell {
+  table .ant-table-cell {
     vertical-align: top;
   }
 `;
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
-  height: ${({ theme }) => theme.gridUnit * 26}px;
+  height: ${({ theme }) => theme.sizeUnit * 26}px;
   overflow: hidden !important; /* needed to override inline styles */
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -81,7 +82,7 @@ interface QueryListProps {
 const StyledTableLabel = styled.div`
   .count {
     margin-left: 5px;
-    color: ${({ theme }) => theme.colors.primary.base};
+    color: ${({ theme }) => theme.colorPrimary};
     text-decoration: underline;
     cursor: pointer;
   }
@@ -93,7 +94,7 @@ const StyledPopoverItem = styled.div`
 
 const TimerLabel = styled(Label)`
   text-align: left;
-  font-family: ${({ theme }) => theme.typography.families.monospace};
+  font-family: ${({ theme }) => theme.fontFamilyCode};
 `;
 
 function QueryList({ addDangerToast }: QueryListProps) {
@@ -162,7 +163,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             statusConfig.name = (
               <Icons.CheckOutlined
                 iconSize="m"
-                iconColor={theme.colors.success.base}
+                iconColor={theme.colorSuccess}
                 css={css`
                   vertical-align: -webkit-baseline-middle;
                 `}
@@ -178,7 +179,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
                 iconSize="xs"
                 iconColor={
                   status === QueryState.Failed
-                    ? theme.colors.error.base
+                    ? theme.colorError
                     : theme.colors.grayscale.base
                 }
               />
@@ -186,7 +187,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             statusConfig.label = t('Failed');
           } else if (status === QueryState.Running) {
             statusConfig.name = (
-              <Icons.Running iconColor={theme.colors.primary.base} />
+              <Icons.Running iconColor={theme.colorPrimary} />
             );
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {
@@ -210,6 +211,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         accessor: QueryObjectColumns.Status,
         size: 'xs',
         disableSortBy: true,
+        id: QueryObjectColumns.Status,
       },
       {
         accessor: QueryObjectColumns.StartTime,
@@ -233,6 +235,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           );
           return formattedStartTime;
         },
+        id: QueryObjectColumns.StartTime,
       },
       {
         Header: t('Duration'),
@@ -254,25 +257,30 @@ function QueryList({ addDangerToast }: QueryListProps) {
             </TimerLabel>
           );
         },
+        id: 'duration',
       },
       {
         accessor: QueryObjectColumns.TabName,
         Header: t('Tab name'),
         size: 'xl',
+        id: QueryObjectColumns.TabName,
       },
       {
         accessor: QueryObjectColumns.DatabaseName,
         Header: t('Database'),
         size: 'xl',
+        id: QueryObjectColumns.DatabaseName,
       },
       {
         accessor: QueryObjectColumns.Database,
         hidden: true,
+        id: QueryObjectColumns.Database,
       },
       {
         accessor: QueryObjectColumns.Schema,
         Header: t('Schema'),
         size: 'xl',
+        id: QueryObjectColumns.Schema,
       },
       {
         Cell: ({
@@ -311,6 +319,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         Header: t('Tables'),
         size: 'xl',
         disableSortBy: true,
+        id: QueryObjectColumns.SqlTables,
       },
       {
         accessor: QueryObjectColumns.UserFirstName,
@@ -321,15 +330,18 @@ function QueryList({ addDangerToast }: QueryListProps) {
             original: { user },
           },
         }: any) => getOwnerName(user),
+        id: QueryObjectColumns.UserFirstName,
       },
       {
         accessor: QueryObjectColumns.User,
         hidden: true,
+        id: QueryObjectColumns.User,
       },
       {
         accessor: QueryObjectColumns.Rows,
         Header: t('Rows'),
         size: 'md',
+        id: QueryObjectColumns.Rows,
       },
       {
         accessor: QueryObjectColumns.Sql,
@@ -346,6 +358,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             </StyledSyntaxHighlighter>
           </div>
         ),
+        id: QueryObjectColumns.Sql,
       },
       {
         Header: t('Actions'),
@@ -367,7 +380,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
     [],
   );
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Database'),

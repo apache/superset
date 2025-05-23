@@ -18,7 +18,7 @@
  */
 
 import { render, fireEvent, screen } from 'spec/helpers/testing-library';
-import { NoAnimationDropdown } from './index'; // adjust the import path as needed
+import { NoAnimationDropdown } from '.';
 
 const props = {
   overlay: <div>Test Overlay</div>,

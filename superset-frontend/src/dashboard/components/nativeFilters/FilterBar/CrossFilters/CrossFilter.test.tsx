@@ -64,7 +64,7 @@ test('Column and value should be visible', () => {
 
 test('Tag should be closable', () => {
   setup(mockedProps);
-  expect(screen.getByRole('button', { name: 'close' })).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'Close' })).toBeInTheDocument();
 });
 
 test('Divider should not be visible', () => {

@@ -18,11 +18,19 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { omit } from 'lodash';
-import { Input } from 'src/components/Input';
-import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
-import Button from 'src/components/Button';
-import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
+import {
+  Button,
+  AsyncSelect,
+  Form,
+  FormItem,
+  JsonEditor,
+  Modal,
+  Row,
+  Col,
+  Input,
+} from 'src/components';
+import { Typography } from 'src/components/Typography';
 import rison from 'rison';
 import {
   ensureIsArray,
@@ -36,15 +44,12 @@ import {
   css,
 } from '@superset-ui/core';
 
-import Modal from 'src/components/Modal';
-import { JsonEditor } from 'src/components/AsyncAceEditor';
-
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import TagType from 'src/types/TagType';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
-import { loadTags } from 'src/components/Tags/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import {
   applyColors,
   getColorNamespace,
@@ -65,7 +70,7 @@ const StyledFormItem = styled(FormItem)`
 
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
+  border: 1px solid ${({ theme }) => theme.colorPrimaryBorder};
 `;
 
 type PropertiesModalProps = {
@@ -111,7 +116,7 @@ const PropertiesModal = ({
   show = false,
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
-  const [form] = AntdForm.useForm();
+  const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
@@ -382,8 +387,10 @@ const PropertiesModal = ({
     currentJsonMetadata = jsonStringify(metadata);
 
     const moreOnSubmitProps: { roles?: Roles } = {};
-    const morePutProps: { roles?: number[]; tags?: (number | undefined)[] } =
-      {};
+    const morePutProps: {
+      roles?: number[];
+      tags?: (string | number | undefined)[];
+    } = {};
     if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);
@@ -438,7 +445,9 @@ const PropertiesModal = ({
     return (
       <Row gutter={16}>
         <Col xs={24} md={12}>
-          <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
+          <Typography.Title level={3} style={{ marginTop: '1em' }}>
+            {t('Access')}
+          </Typography.Title>
           <StyledFormItem label={t('Owners')}>
             <AsyncSelect
               allowClear
@@ -459,7 +468,9 @@ const PropertiesModal = ({
           </p>
         </Col>
         <Col xs={24} md={12}>
-          <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
+          <Typography.Title level={3} style={{ marginTop: '1em' }}>
+            {t('Colors')}
+          </Typography.Title>
           <ColorSchemeControlWrapper
             hasCustomLabelsColor={hasCustomLabelsColor}
             onChange={onColorSchemeChange}
@@ -480,7 +491,9 @@ const PropertiesModal = ({
       <>
         <Row>
           <Col xs={24} md={24}>
-            <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
+            <Typography.Title level={3} style={{ marginTop: '1em' }}>
+              {t('Access')}
+            </Typography.Title>
           </Col>
         </Row>
         <Row gutter={16}>
@@ -602,6 +615,7 @@ const PropertiesModal = ({
           <Button
             htmlType="button"
             buttonSize="small"
+            buttonStyle="secondary"
             onClick={handleOnCancel}
             data-test="properties-modal-cancel-button"
             cta
@@ -630,7 +644,7 @@ const PropertiesModal = ({
       }
       responsive
     >
-      <AntdForm
+      <Form
         form={form}
         onFinish={onFinish}
         data-test="dashboard-edit-properties-form"
@@ -639,7 +653,9 @@ const PropertiesModal = ({
       >
         <Row>
           <Col xs={24} md={24}>
-            <h3>{t('Basic information')}</h3>
+            <Typography.Title level={3}>
+              {t('Basic information')}
+            </Typography.Title>
           </Col>
         </Row>
         <Row gutter={16}>
@@ -666,7 +682,7 @@ const PropertiesModal = ({
           : getRowsWithoutRoles()}
         <Row>
           <Col xs={24} md={24}>
-            <h3>{t('Certification')}</h3>
+            <Typography.Title level={3}>{t('Certification')}</Typography.Title>
           </Col>
         </Row>
         <Row gutter={16}>
@@ -693,7 +709,9 @@ const PropertiesModal = ({
         {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
+              <Typography.Title level={3} css={{ marginTop: '1em' }}>
+                {t('Tags')}
+              </Typography.Title>
             </Col>
           </Row>
         ) : null}
@@ -718,7 +736,7 @@ const PropertiesModal = ({
         ) : null}
         <Row>
           <Col xs={24} md={24}>
-            <h3 style={{ marginTop: '1em' }}>
+            <Typography.Title level={3} style={{ marginTop: '1em' }}>
               <Button
                 buttonStyle="link"
                 onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
@@ -733,7 +751,7 @@ const PropertiesModal = ({
                 />
                 {t('Advanced')}
               </Button>
-            </h3>
+            </Typography.Title>
             {isAdvancedOpen && (
               <>
                 <StyledFormItem label={t('JSON metadata')}>
@@ -774,7 +792,7 @@ const PropertiesModal = ({
             )}
           </Col>
         </Row>
-      </AntdForm>
+      </Form>
     </Modal>
   );
 };

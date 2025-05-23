@@ -19,10 +19,9 @@
 import rison from 'rison';
 import { PureComponent, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import { executeQuery, resetDatabaseState } from 'src/database/actions';
+import { connect } from 'react-redux';
 import { Radio } from 'src/components/Radio';
-import Card from 'src/components/Card';
-import Alert from 'src/components/Alert';
-import Badge from 'src/components/Badge';
 import {
   css,
   isFeatureEnabled,
@@ -36,42 +35,46 @@ import {
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { Select, AsyncSelect, Row, Col } from 'src/components';
-import { FormLabel } from 'src/components/Form';
-import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
-import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
-import DatabaseSelector from 'src/components/DatabaseSelector';
-import Label from 'src/components/Label';
-import Loading from 'src/components/Loading';
 import TableSelector from 'src/components/TableSelector';
-import EditableTitle from 'src/components/EditableTitle';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Icons } from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
-import { executeQuery, resetDatabaseState } from 'src/database/actions';
-import { connect } from 'react-redux';
+import { Loading } from '../Loading';
+import { Alert } from '../Alert';
+import { Badge } from '../Badge';
+import { Card } from '../Card';
+import { Select, AsyncSelect } from '../Select';
+import { Button } from '../Button';
+import { CertifiedBadge } from '../CertifiedBadge';
+import { DatabaseSelector } from '../DatabaseSelector';
+import { EditableTitle } from '../EditableTitle';
+import { FormLabel } from '../Form';
+import { Row, Col } from '../Grid';
+import { Label } from '../Label';
+import { Icons } from '../Icons';
+import { Divider } from '../Divider';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
 import { fetchSyncedColumns, updateColumns } from './utils';
-import FilterableTable from '../FilterableTable';
+import { Typography } from '../Typography';
+import { FilterableTable } from '../FilterableTable';
 
 const extensionsRegistry = getExtensionsRegistry();
 
 const DatasourceContainer = styled.div`
   .change-warning {
     margin: 16px 10px 0;
-    color: ${({ theme }) => theme.colors.warning.base};
+    color: ${({ theme }) => theme.colorWarning};
   }
 
   .change-warning .bold {
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
   }
 
   .form-group.has-feedback > .help-block {
@@ -88,7 +91,7 @@ const FlexRowContainer = styled.div`
   display: flex;
 
   svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -100,15 +103,15 @@ const StyledTableTabs = styled(Tabs)`
 `;
 
 const StyledBadge = styled(Badge)`
-  .antd5-badge-count {
-    line-height: ${({ theme }) => theme.gridUnit * 4}px;
-    height: ${({ theme }) => theme.gridUnit * 4}px;
-    margin-left: ${({ theme }) => theme.gridUnit}px;
+  .ant-badge-count {
+    line-height: ${({ theme }) => theme.sizeUnit * 4}px;
+    height: ${({ theme }) => theme.sizeUnit * 4}px;
+    margin-left: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
 const EditLockContainer = styled.div`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   display: flex;
   align-items: center;
   a {
@@ -118,14 +121,14 @@ const EditLockContainer = styled.div`
 
 const ColumnButtonWrapper = styled.div`
   text-align: right;
-  ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
+  ${({ theme }) => `margin-bottom: ${theme.sizeUnit * 2}px`}
 `;
 
 const StyledLabelWrapper = styled.div`
   display: flex;
   align-items: center;
   span {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -135,14 +138,14 @@ const StyledColumnsTabWrapper = styled.div`
   }
 
   .ant-tag {
-    margin-top: ${({ theme }) => theme.gridUnit}px;
+    margin-top: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
 const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
-    margin-top: ${theme.gridUnit * 3}px;
-    margin-left: ${theme.gridUnit * 3}px;
+    margin-top: ${theme.sizeUnit * 3}px;
+    margin-left: ${theme.sizeUnit * 3}px;
     button>span>:first-of-type {
       margin-right: 0;
     }
@@ -166,6 +169,15 @@ const DATA_TYPES = [
   { value: 'DATETIME', label: t('DATETIME') },
   { value: 'BOOLEAN', label: t('BOOLEAN') },
 ];
+
+const TABS_KEYS = {
+  SOURCE: 'SOURCE',
+  METRICS: 'METRICS',
+  COLUMNS: 'COLUMNS',
+  CALCULATED_COLUMNS: 'CALCULATED_COLUMNS',
+  SETTINGS: 'SETTINGS',
+  SPATIAL: 'SPATIAL',
+};
 
 const DATASOURCE_TYPES_ARR = [
   { key: 'physical', label: t('Physical (table or view)') },
@@ -325,13 +337,13 @@ function ColumnCollectionTable({
                 /* Note the fragmented translations may not work. */
                 <div>
                   {t('The pattern of timestamp format. For strings use ')}
-                  <a href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
+                  <Typography.Link href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
                     {t('Python datetime string pattern')}
-                  </a>
+                  </Typography.Link>
                   {t(' expression which needs to adhere to the ')}
-                  <a href="https://en.wikipedia.org/wiki/ISO_8601">
+                  <Typography.Link href="https://en.wikipedia.org/wiki/ISO_8601">
                     {t('ISO 8601')}
-                  </a>
+                  </Typography.Link>
                   {t(` standard to ensure that the lexicographical ordering
                       coincides with the chronological ordering. If the
                       timestamp format does not adhere to the ISO 8601 standard
@@ -427,9 +439,7 @@ function ColumnCollectionTable({
                 ),
               main_dttm_col: (value, _onItemChange, _label, record) => {
                 const checked = datasource.main_dttm_col === record.column_name;
-                const disabled = !columns.find(
-                  column => column.column_name === record.column_name,
-                ).is_dttm;
+                const disabled = !record?.is_dttm;
                 return (
                   <Radio
                     data-test={`radio-default-dttm-${record.column_name}`}
@@ -477,9 +487,7 @@ function ColumnCollectionTable({
                 ),
               main_dttm_col: (value, _onItemChange, _label, record) => {
                 const checked = datasource.main_dttm_col === record.column_name;
-                const disabled = !columns.find(
-                  column => column.column_name === record.column_name,
-                ).is_dttm;
+                const disabled = !record?.is_dttm;
                 return (
                   <Radio
                     data-test={`radio-default-dttm-${record.column_name}`}
@@ -632,7 +640,7 @@ class DatasourceEditor extends PureComponent {
         col => !!col.expression,
       ),
       metadataLoading: false,
-      activeTabKey: 0,
+      activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
         ? DATASOURCE_TYPES.virtual.key
         : DATASOURCE_TYPES.physical.key,
@@ -968,11 +976,11 @@ class DatasourceEditor extends PureComponent {
   renderSpatialTab() {
     const { datasource } = this.state;
     const { spatials, all_cols: allCols } = datasource;
-    return (
-      <Tabs.TabPane
-        tab={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
-        key={4}
-      >
+
+    return {
+      key: TABS_KEYS.SPATIAL,
+      label: <CollectionTabTitle collection={spatials} title={t('Spatial')} />,
+      children: (
         <CollectionTable
           tableColumns={['name', 'config']}
           onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
@@ -992,8 +1000,8 @@ class DatasourceEditor extends PureComponent {
             ),
           }}
         />
-      </Tabs.TabPane>
-    );
+      ),
+    };
   }
 
   renderSourceFieldset() {
@@ -1006,14 +1014,14 @@ class DatasourceEditor extends PureComponent {
               <Icons.UnlockOutlined
                 iconSize="xl"
                 css={theme => css`
-                  margin: auto ${theme.gridUnit}px auto 0;
+                  margin: auto ${theme.sizeUnit}px auto 0;
                 `}
               />
             ) : (
               <Icons.LockOutlined
                 iconSize="xl"
                 css={theme => ({
-                  margin: `auto ${theme.gridUnit}px auto 0`,
+                  margin: `auto ${theme.sizeUnit}px auto 0`,
                 })}
               />
             )}
@@ -1039,7 +1047,7 @@ class DatasourceEditor extends PureComponent {
             </Radio>
           ))}
         </div>
-        <hr />
+        <Divider />
         <Fieldset item={datasource} onChange={this.onDatasourceChange} compact>
           {this.state.datasourceType === DATASOURCE_TYPES.virtual.key && (
             <div>
@@ -1234,7 +1242,7 @@ class DatasourceEditor extends PureComponent {
     if (this.state.errors.length > 0) {
       return (
         <Alert
-          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+          css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
           type="error"
           message={
             <>
@@ -1370,7 +1378,12 @@ class DatasourceEditor extends PureComponent {
                   warningMarkdown={record.warning_markdown}
                 />
               )}
-              <EditableTitle canEdit title={v} onSaveTitle={onChange} />
+              <EditableTitle
+                canEdit
+                title={v}
+                onSaveTitle={onChange}
+                maxWidth={300}
+              />
             </FlexRowContainer>
           ),
           verbose_name: (v, onChange) => (
@@ -1418,7 +1431,7 @@ class DatasourceEditor extends PureComponent {
       <DatasourceContainer data-test="datasource-editor">
         {this.renderErrors()}
         <Alert
-          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+          css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
           type="warning"
           message={
             <>
@@ -1431,111 +1444,122 @@ class DatasourceEditor extends PureComponent {
           }
         />
         <StyledTableTabs
-          fullWidth={false}
           id="table-tabs"
           data-test="edit-dataset-tabs"
           onChange={this.handleTabSelect}
           defaultActiveKey={activeTabKey}
-        >
-          <Tabs.TabPane key={0} tab={t('Source')}>
-            {this.renderSourceFieldset(theme)}
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            tab={
-              <CollectionTabTitle
-                collection={sortedMetrics}
-                title={t('Metrics')}
-              />
-            }
-            key={1}
-          >
-            {this.renderMetricCollection()}
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            tab={
-              <CollectionTabTitle
-                collection={this.state.databaseColumns}
-                title={t('Columns')}
-              />
-            }
-            key={2}
-          >
-            <StyledColumnsTabWrapper>
-              <ColumnButtonWrapper>
-                <StyledButtonWrapper>
-                  <Button
-                    buttonSize="small"
-                    buttonStyle="tertiary"
-                    onClick={this.syncMetadata}
-                    className="sync-from-source"
-                    disabled={this.state.isEditMode}
-                  >
-                    <Icons.DatabaseOutlined iconSize="m" />
-                    {t('Sync columns from source')}
-                  </Button>
-                </StyledButtonWrapper>
-              </ColumnButtonWrapper>
-              <ColumnCollectionTable
-                className="columns-table"
-                columns={this.state.databaseColumns}
-                datasource={datasource}
-                onColumnsChange={databaseColumns =>
-                  this.setColumns({ databaseColumns })
-                }
-                onDatasourceChange={this.onDatasourceChange}
-              />
-              {this.state.metadataLoading && <Loading />}
-            </StyledColumnsTabWrapper>
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            tab={
-              <CollectionTabTitle
-                collection={this.state.calculatedColumns}
-                title={t('Calculated columns')}
-              />
-            }
-            key={3}
-          >
-            <StyledColumnsTabWrapper>
-              <ColumnCollectionTable
-                columns={this.state.calculatedColumns}
-                onColumnsChange={calculatedColumns =>
-                  this.setColumns({ calculatedColumns })
-                }
-                columnLabelTooltips={{
-                  column_name: t(
-                    'This field is used as a unique identifier to attach ' +
-                      'the calculated dimension to charts. It is also used ' +
-                      'as the alias in the SQL query.',
-                  ),
-                }}
-                onDatasourceChange={this.onDatasourceChange}
-                datasource={datasource}
-                editableColumnName
-                showExpression
-                allowAddItem
-                allowEditDataType
-                itemGenerator={() => ({
-                  column_name: t('<new column>'),
-                  filterable: true,
-                  groupby: true,
-                  expression: t('<enter SQL expression here>'),
-                  __expanded: true,
-                })}
-              />
-            </StyledColumnsTabWrapper>
-          </Tabs.TabPane>
-          <Tabs.TabPane key={4} tab={t('Settings')}>
-            <Row gutter={16}>
-              <Col xs={24} md={12}>
-                <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
-              </Col>
-              <Col xs={24} md={12}>
-                <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
-              </Col>
-            </Row>
-          </Tabs.TabPane>
-        </StyledTableTabs>
+          items={[
+            {
+              key: TABS_KEYS.SOURCE,
+              label: t('Source'),
+              children: this.renderSourceFieldset(theme),
+            },
+            {
+              key: TABS_KEYS.METRICS,
+              label: (
+                <CollectionTabTitle
+                  collection={sortedMetrics}
+                  title={t('Metrics')}
+                />
+              ),
+              children: this.renderMetricCollection(),
+            },
+            {
+              key: TABS_KEYS.COLUMNS,
+              label: (
+                <CollectionTabTitle
+                  collection={this.state.databaseColumns}
+                  title={t('Columns')}
+                />
+              ),
+              children: (
+                <StyledColumnsTabWrapper>
+                  <ColumnButtonWrapper>
+                    <StyledButtonWrapper>
+                      <Button
+                        buttonSize="small"
+                        buttonStyle="tertiary"
+                        onClick={this.syncMetadata}
+                        className="sync-from-source"
+                        disabled={this.state.isEditMode}
+                      >
+                        <Icons.DatabaseOutlined iconSize="m" />
+                        {t('Sync columns from source')}
+                      </Button>
+                    </StyledButtonWrapper>
+                  </ColumnButtonWrapper>
+                  <ColumnCollectionTable
+                    className="columns-table"
+                    columns={this.state.databaseColumns}
+                    datasource={datasource}
+                    onColumnsChange={databaseColumns =>
+                      this.setColumns({ databaseColumns })
+                    }
+                    onDatasourceChange={this.onDatasourceChange}
+                  />
+                  {this.state.metadataLoading && <Loading />}
+                </StyledColumnsTabWrapper>
+              ),
+            },
+            {
+              key: TABS_KEYS.CALCULATED_COLUMNS,
+              label: (
+                <CollectionTabTitle
+                  collection={this.state.calculatedColumns}
+                  title={t('Calculated columns')}
+                />
+              ),
+              children: (
+                <StyledColumnsTabWrapper>
+                  <ColumnCollectionTable
+                    columns={this.state.calculatedColumns}
+                    onColumnsChange={calculatedColumns =>
+                      this.setColumns({ calculatedColumns })
+                    }
+                    columnLabelTooltips={{
+                      column_name: t(
+                        'This field is used as a unique identifier to attach ' +
+                          'the calculated dimension to charts. It is also used ' +
+                          'as the alias in the SQL query.',
+                      ),
+                    }}
+                    onDatasourceChange={this.onDatasourceChange}
+                    datasource={datasource}
+                    editableColumnName
+                    showExpression
+                    allowAddItem
+                    allowEditDataType
+                    itemGenerator={() => ({
+                      column_name: t('<new column>'),
+                      filterable: true,
+                      groupby: true,
+                      expression: t('<enter SQL expression here>'),
+                      expanded: true,
+                    })}
+                  />
+                </StyledColumnsTabWrapper>
+              ),
+            },
+            {
+              key: TABS_KEYS.SETTINGS,
+              label: t('Settings'),
+              children: (
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <FormContainer>
+                      {this.renderSettingsFieldset()}
+                    </FormContainer>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <FormContainer>
+                      {this.renderAdvancedFieldset()}
+                    </FormContainer>
+                  </Col>
+                </Row>
+              ),
+            },
+          ]}
+        />
       </DatasourceContainer>
     );
   }

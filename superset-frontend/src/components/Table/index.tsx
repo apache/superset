@@ -16,21 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useRef, Key } from 'react';
+import { useState, useEffect, useRef, Key, FC } from 'react';
 
-// eslint-disable-next-line no-restricted-imports
-import AntTable, {
-  ColumnsType,
-  TableProps as AntTableProps,
-} from 'antd/lib/table'; // TODO: Remove antd
-// eslint-disable-next-line no-restricted-imports
-import { PaginationProps } from 'antd/lib/pagination'; // TODO: Remove antd
+import { Table as AntTable } from 'antd';
+import { ColumnsType, TableProps as AntTableProps } from 'antd/es/table';
+import { PaginationProps } from 'antd/es/pagination';
 import { t, useTheme, logging, styled } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
-// eslint-disable-next-line no-restricted-imports
-import { RowSelectionType } from 'antd/lib/table/interface'; // TODO: Remove antd
+import { Loading } from 'src/components';
+import { RowSelectionType } from 'antd/es/table/interface';
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
-import VirtualTable from './VirtualTable';
+import VirtualTable, { VirtualTableProps } from './VirtualTable';
 
 export const SUPERSET_TABLE_COLUMN = 'superset/table-column';
 
@@ -49,15 +44,18 @@ export enum ETableAction {
 }
 
 export type { ColumnsType };
+export type { TablePaginationConfig } from 'antd/es/table';
+export type { SorterResult } from 'antd/es/table/interface';
 export type OnChangeFunction<RecordType> =
   AntTableProps<RecordType>['onChange'];
 
 export enum TableSize {
   Small = 'small',
   Middle = 'middle',
+  Large = 'large',
 }
 
-export interface TableProps<RecordType> {
+export interface TableProps<RecordType> extends AntTableProps<RecordType> {
   /**
    * Data that will populate the each row and map to the column key.
    */
@@ -81,7 +79,7 @@ export interface TableProps<RecordType> {
   /**
    * Controls the size of the table.
    */
-  size: TableSize;
+  size?: TableSize;
   /**
    * Controls if table rows are selectable and if multiple select is supported.
    */
@@ -163,16 +161,20 @@ const defaultRowSelection: Key[] = [];
 const PAGINATION_HEIGHT = 40;
 const HEADER_HEIGHT = 68;
 
-const StyledTable = styled(AntTable)<{ height?: number }>(
+const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
   ({ theme, height }) => `
+    color: ${theme.colorText};
     .ant-table-body {
       overflow: auto;
       height: ${height ? `${height}px` : undefined};
     }
 
-    th.ant-table-cell {
-      font-weight: ${theme.typography.weights.bold};
-      color: ${theme.colors.grayscale.dark1};
+    .ant-spin-nested-loading .ant-spin .ant-spin-dot {
+      width: ${theme.sizeXXL}px;
+      height: unset;
+    }
+
+   td.ant-table-cell {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -181,20 +183,16 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
     .ant-table-tbody > tr > td {
       white-space: nowrap;
       overflow: hidden;
-      text-overflow: ellipsis;
-      border-bottom: 1px solid ${theme.colors.grayscale.light3};
-    }
-
-    .ant-pagination-item-active {
-      border-color: ${theme.colors.primary.base};
     }
 
     .ant-table.ant-table-small {
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
     }
   `,
 );
-const StyledVirtualTable = styled(VirtualTable)(
+const StyledVirtualTable = styled(
+  VirtualTable as React.FC<VirtualTableProps<any>>,
+)(
   ({ theme }) => `
   .virtual-table .ant-table-container:before,
   .virtual-table .ant-table-container:after {
@@ -202,7 +200,7 @@ const StyledVirtualTable = styled(VirtualTable)(
   }
   .virtual-table-cell {
     box-sizing: border-box;
-    padding: ${theme.gridUnit * 4}px;
+    padding: ${theme.sizeUnit * 4}px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -264,6 +262,7 @@ export function Table<RecordType extends object>(
     onRow,
     allowHTML = false,
     childrenColumnName,
+    ...rest
   } = props;
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -405,6 +404,7 @@ export function Table<RecordType extends object>(
           {...sharedProps}
           rowSelection={selectionTypeValue !== null ? rowSelection : undefined}
           sticky={sticky}
+          {...rest}
         />
       )}
       {virtualize && (
@@ -419,6 +419,7 @@ export function Table<RecordType extends object>(
             }),
           }}
           allowHTML={allowHTML}
+          {...rest}
         />
       )}
     </div>

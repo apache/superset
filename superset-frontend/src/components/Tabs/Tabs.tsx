@@ -16,77 +16,63 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@superset-ui/core';
+import { css, styled, useTheme } from '@superset-ui/core';
+
 // eslint-disable-next-line no-restricted-imports
-import AntdTabs, { TabsProps as AntdTabsProps } from 'antd/lib/tabs'; // TODO: Remove antd
+import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd';
 import { Icons } from 'src/components/Icons';
 
 export interface TabsProps extends AntdTabsProps {
-  fullWidth?: boolean;
   allowOverflow?: boolean;
 }
 
 const StyledTabs = ({
   animated = false,
-  fullWidth = true,
   allowOverflow = true,
   ...props
-}: TabsProps) => (
-  <AntdTabs
-    animated={animated}
-    {...props}
-    css={theme => css`
-      overflow: ${allowOverflow ? 'visible' : 'hidden'};
+}: TabsProps) => {
+  const theme = useTheme();
+  return (
+    <AntdTabs
+      animated={animated}
+      {...props}
+      tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
+      css={theme => css`
+        overflow: ${allowOverflow ? 'visible' : 'hidden'};
 
-      .ant-tabs-content-holder {
-        overflow: ${allowOverflow ? 'visible' : 'auto'};
-      }
-      .ant-tabs-tab {
-        flex: 1 1 auto;
-        &.ant-tabs-tab-active .ant-tabs-tab-btn {
-          color: inherit;
+        .ant-tabs-content-holder {
+          overflow: ${allowOverflow ? 'visible' : 'auto'};
         }
-        &:hover {
-          .anchor-link-container {
-            cursor: pointer;
-            .fa.fa-link {
-              visibility: visible;
+        .ant-tabs-tab {
+          flex: 1 1 auto;
+
+          .short-link-trigger.btn {
+            padding: 0 ${theme.sizeUnit}px;
+            & > .fa.fa-link {
+              top: 0;
             }
           }
         }
-        .short-link-trigger.btn {
-          padding: 0 ${theme.gridUnit}px;
-          & > .fa.fa-link {
-            top: 0;
+        .ant-tabs-tab-btn {
+          display: flex;
+          flex: 1 1 auto;
+          align-items: center;
+          justify-content: center;
+          font-size: ${theme.fontSizeSM}px;
+          text-align: center;
+          user-select: none;
+          .required {
+            margin-left: ${theme.sizeUnit / 2}px;
+            color: ${theme.colorError};
+          }
+          &:focus-visible {
+            box-shadow: none;
           }
         }
-      }
-      ${fullWidth &&
-      css`
-        .ant-tabs-nav-list {
-          width: 100%;
-        }
-      `};
-
-      .ant-tabs-tab-btn {
-        display: flex;
-        flex: 1 1 auto;
-        align-items: center;
-        justify-content: center;
-        font-size: ${theme.typography.sizes.s}px;
-        text-align: center;
-        user-select: none;
-        .required {
-          margin-left: ${theme.gridUnit / 2}px;
-          color: ${theme.colors.error.base};
-        }
-      }
-      .ant-tabs-ink-bar {
-        background: ${theme.colors.secondary.base};
-      }
-    `}
-  />
-);
+      `}
+    />
+  );
+};
 
 const StyledTabPane = styled(AntdTabs.TabPane)``;
 
@@ -95,7 +81,7 @@ const Tabs = Object.assign(StyledTabs, {
 });
 
 const StyledEditableTabs = styled(StyledTabs)`
-  ${({ theme, fullWidth }) => `
+  ${({ theme }) => `
     .ant-tabs-content-holder {
       background: ${theme.colors.grayscale.light5};
     }
@@ -107,17 +93,7 @@ const StyledEditableTabs = styled(StyledTabs)`
     .ant-tabs-tab-remove {
       padding-top: 0;
       padding-bottom: 0;
-      height: ${theme.gridUnit * 6}px;
-    }
-
-    ${
-      fullWidth
-        ? css`
-            .ant-tabs-nav-list {
-              width: 100%;
-            }
-          `
-        : ''
+      height: ${theme.sizeUnit * 6}px;
     }
   `}
 `;
@@ -131,7 +107,6 @@ export const EditableTabs = Object.assign(StyledEditableTabs, {
 
 EditableTabs.defaultProps = {
   type: 'editable-card',
-  fullWidth: false,
   animated: { inkBar: true, tabPane: false },
 };
 
@@ -141,8 +116,8 @@ EditableTabs.TabPane.defaultProps = {
 
 export const StyledLineEditableTabs = styled(EditableTabs)`
   &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
-    margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
-    padding: ${({ theme }) => `${theme.gridUnit * 3}px ${theme.gridUnit}px`};
+    margin: 0 ${({ theme }) => theme.sizeUnit * 4}px;
+    padding: ${({ theme }) => `${theme.sizeUnit * 3}px ${theme.sizeUnit}px`};
     background: transparent;
     border: none;
   }
@@ -152,7 +127,7 @@ export const StyledLineEditableTabs = styled(EditableTabs)`
   }
 
   .ant-tabs-tab-btn {
-    font-size: ${({ theme }) => theme.typography.sizes.m}px;
+    font-size: ${({ theme }) => theme.fontSize}px;
   }
 
   .ant-tabs-tab-remove {

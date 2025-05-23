@@ -25,7 +25,7 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import Select from 'src/components/Select/Select';
+import { Select } from '.';
 
 type Option = {
   label: string;
@@ -36,7 +36,7 @@ type Option = {
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
-const NO_DATA = 'No Data';
+const NO_DATA = 'No data';
 const LOADING = 'Loading...';
 const OPTIONS: Option[] = [
   { label: 'John', value: 1, gender: 'Male' },
@@ -123,10 +123,12 @@ const matchOrder = async (expectedLabels: string[]) => {
   return true;
 };
 
-const type = (text: string) => {
+const type = (text: string, delay?: number, clear = true) => {
   const select = getSelect();
-  userEvent.clear(select);
-  return userEvent.type(select, text, { delay: 10 });
+  if (clear) {
+    userEvent.clear(select);
+  }
+  return userEvent.type(select, text, { delay: delay ?? 10 });
 };
 
 const clearTypedText = () => {
@@ -267,6 +269,15 @@ test('should sort selected to the top when in multi mode', async () => {
   expect(await matchOrder(originalLabels)).toBe(true);
 });
 
+test('order of selected values is preserved until dropdown is closed', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowSelectAll={false} />);
+  const originalLabels = OPTIONS.map(option => option.label);
+  await open();
+  userEvent.click(await findSelectOption(originalLabels[1]));
+  userEvent.click(await findSelectOption(originalLabels[5]));
+  expect(await matchOrder(originalLabels)).toBe(true);
+});
+
 test('searches for label or value', async () => {
   const option = OPTIONS[11];
   render(<Select {...defaultProps} />);
@@ -341,7 +352,9 @@ test('searches for custom fields', async () => {
   expect(options[4]).toHaveTextContent('Nikole');
   expect(options[5]).toHaveTextContent('Olivia');
   await type('1');
-  expect(screen.getByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    screen.getByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('removes duplicated values', async () => {
@@ -363,9 +376,9 @@ test('removes duplicated values', async () => {
 
 test('renders a custom label', async () => {
   const options = [
-    { label: 'John', value: 1, customLabel: <h1>John</h1> },
-    { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
-    { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+    { value: 'John', label: <h1>John</h1> },
+    { value: 'Liam', label: <h1>Liam</h1> },
+    { value: 'Olivia', label: <h1>Olivia</h1> },
   ];
   render(<Select {...defaultProps} options={options} />);
   await open();
@@ -376,9 +389,9 @@ test('renders a custom label', async () => {
 
 test('searches for a word with a custom label', async () => {
   const options = [
-    { label: 'John', value: 1, customLabel: <h1>John</h1> },
-    { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
-    { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+    { value: 'John', label: <h1>John</h1> },
+    { value: 'Liam', label: <h1>Liam</h1> },
+    { value: 'Olivia', label: <h1>Olivia</h1> },
   ];
   render(<Select {...defaultProps} options={options} />);
   await type('Liam');
@@ -417,7 +430,9 @@ test('does not add a new option if allowNewOptions is false', async () => {
   render(<Select {...defaultProps} options={OPTIONS} />);
   await open();
   await type(NEW_OPTION);
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('adds the null option when selected in single mode', async () => {
@@ -452,7 +467,9 @@ test('renders the select with default props', () => {
 test('opens the select without any data', async () => {
   render(<Select {...defaultProps} options={[]} />);
   await open();
-  expect(screen.getByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    screen.getByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('makes a selection in single mode', async () => {
@@ -526,7 +543,9 @@ test('shows "No data" when allowNewOptions is false and a new option is entered'
   render(<Select {...defaultProps} allowNewOptions={false} />);
   await open();
   await type(NEW_OPTION);
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('does not show "No data" when allowNewOptions is true and a new option is entered', async () => {
@@ -998,6 +1017,29 @@ test('does not fire onChange if the same value is selected in single mode', asyn
   expect(onChange).toHaveBeenCalledTimes(1);
   userEvent.click(await findSelectOption(optionText));
   expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+// Reference for the bug this tests: https://github.com/apache/superset/pull/33043#issuecomment-2809419640
+test('typing and deleting the last character for a new option displays correctly', async () => {
+  jest.useFakeTimers();
+  render(<Select {...defaultProps} allowNewOptions />);
+
+  await open();
+  await type('aaa', 0, false);
+
+  jest.runAllTimers();
+
+  await type('{backspace}', 0, false);
+  await type('a', 0, false);
+
+  jest.runAllTimers();
+
+  expect(
+    screen.queryByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).not.toBeInTheDocument();
+  expect(await findSelectOption('aaa')).toBeInTheDocument();
+
+  jest.useRealTimers();
 });
 
 /*

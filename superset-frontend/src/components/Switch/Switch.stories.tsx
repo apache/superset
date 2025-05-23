@@ -17,10 +17,10 @@
  * under the License.
  */
 import { useArgs } from '@storybook/preview-api';
-import { Switch, SwitchProps } from '.';
+import { Switch, type SwitchProps } from '.';
 
 export default {
-  title: 'Switch',
+  title: 'Components/Switch',
 };
 
 export const InteractiveSwitch = ({ checked, ...rest }: SwitchProps) => {

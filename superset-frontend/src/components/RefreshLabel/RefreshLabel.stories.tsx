@@ -19,7 +19,7 @@
 import RefreshLabel, { RefreshLabelProps } from '.';
 
 export default {
-  title: 'RefreshLabel',
+  title: 'Components/RefreshLabel',
 };
 
 export const InteractiveRefreshLabel = (args: RefreshLabelProps) => (

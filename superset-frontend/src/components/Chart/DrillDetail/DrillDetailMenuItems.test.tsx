@@ -144,12 +144,13 @@ const setupMenu = (filters: BinaryQueryObjectFilterClause[]) => {
  * Drill to Detail modal should appear with correct initial filters
  */
 const expectDrillToDetailModal = async (
-  buttonName: string,
+  buttonName: string | null,
   filters: BinaryQueryObjectFilterClause[] = [],
 ) => {
-  const button = screen.getByRole('menuitem', { name: buttonName });
-
-  userEvent.click(button);
+  if (buttonName) {
+    const button = screen.getByRole('menuitem', { name: buttonName });
+    userEvent.click(button);
+  }
   const modal = await screen.findByRole('dialog', {
     name: `Drill to detail: ${chartName}`,
   });
@@ -282,13 +283,14 @@ const expectDrillToDetailByAll = async (
     'drill-to-detail-by-submenu',
   );
 
-  const menuItemName = 'Drill to detail by all';
   const drillToDetailBySubmenuItem = await within(
     drillToDetailBySubMenus[1],
-  ).findByRole('menuitem', { name: menuItemName });
+  ).findByText(/all/i);
 
   await expectMenuItemEnabled(drillToDetailBySubmenuItem);
-  await expectDrillToDetailModal(menuItemName, filters);
+
+  userEvent.click(drillToDetailBySubmenuItem);
+  await expectDrillToDetailModal(null, filters);
 };
 
 beforeAll(() => {

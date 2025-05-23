@@ -28,25 +28,27 @@ interface PaginationProps {
 }
 
 const PaginationList = styled.ul`
+  ${({ theme }) => `
   display: inline-block;
-  margin: 16px 0;
-  padding: 0;
+  padding: ${theme.sizeUnit * 3}px;
 
   li {
     display: inline;
     margin: 0 4px;
 
-    span {
+    > span {
       padding: 8px 12px;
       text-decoration: none;
-      background-color: ${({ theme }) => theme.colors.grayscale.light5};
-      border-radius: ${({ theme }) => theme.borderRadius}px;
+      background-color: ${theme.colorBgContainer};
+      border: 1px solid ${theme.colorBorder};
+      border-radius: ${theme.borderRadius}px;
+      color: ${theme.colorText};
 
       &:hover,
       &:focus {
         z-index: 2;
-        color: ${({ theme }) => theme.colors.grayscale.dark1};
-        background-color: ${({ theme }) => theme.colors.grayscale.light3};
+        color: ${theme.colorText};
+        background-color: ${theme.colorBgLayout};
       }
     }
 
@@ -63,9 +65,9 @@ const PaginationList = styled.ul`
     &.active {
       span {
         z-index: 3;
-        color: ${({ theme }) => theme.colors.grayscale.light5};
+        color: ${theme.colorBgLayout};
         cursor: default;
-        background-color: ${({ theme }) => theme.colors.primary.base};
+        background-color: ${theme.colorPrimary};
 
         &:focus {
           outline: none;
@@ -73,6 +75,7 @@ const PaginationList = styled.ul`
       }
     }
   }
+`}
 `;
 
 function Pagination({ children }: PaginationProps) {

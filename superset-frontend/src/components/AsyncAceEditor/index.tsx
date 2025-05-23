@@ -27,7 +27,8 @@ import type {
 import type AceEditor from 'react-ace';
 import type { IAceEditorProps } from 'react-ace';
 
-import AsyncEsmComponent, {
+import {
+  AsyncEsmComponent,
   PlaceholderProps,
 } from 'src/components/AsyncEsmComponent';
 import useEffectEvent from 'src/hooks/useEffectEvent';
@@ -67,7 +68,7 @@ export interface AceCompleterKeyword extends AceCompleterKeywordData {
  * Async loaders to import brace modules. Must manually create call `import(...)`
  * promises because webpack can only analyze async imports statically.
  */
-const aceModuleLoaders = {
+export const aceModuleLoaders = {
   'mode/sql': () => import('brace/mode/sql'),
   'mode/markdown': () => import('brace/mode/markdown'),
   'mode/css': () => import('brace/mode/css'),
@@ -102,7 +103,7 @@ export type AsyncAceEditorOptions = {
 /**
  * Get an async AceEditor with automatical loading of specified ace modules.
  */
-export default function AsyncAceEditor(
+export function AsyncAceEditor(
   aceModules: AceModule[],
   {
     defaultMode,
@@ -196,31 +197,31 @@ export default function AsyncAceEditor(
                   all: unset;
                   position: fixed;
                   z-index: 9999;
-                  background: ${supersetTheme.colors.grayscale.light5};
-                  border: 1px solid ${supersetTheme.colors.grayscale.light1};
-                  padding: ${supersetTheme.gridUnit}px
-                    ${supersetTheme.gridUnit * 2}px;
+                  background: ${supersetTheme.colorBgLayout};
+                  border: 1px solid ${supersetTheme.colorBorder};
+                  padding: ${supersetTheme.sizeUnit}px
+                    ${supersetTheme.sizeUnit * 2}px;
                   line-height: 1.4;
                   max-width: 400px;
                   min-width: 200px;
                   pointer-events: auto;
-                  font-size: ${supersetTheme.typography.sizes.m}px;
+                  font-size: ${supersetTheme.fontSizeSM}px;
                 }
 
                 & .tooltip-detail {
                   & .tooltip-detail-title {
                     font-weight: bold;
-                    font-size: ${supersetTheme.typography.sizes.m}px;
+                    font-size: ${supersetTheme.fontSize}px;
                   }
                   & .tooltip-detail-body {
-                    font-size: ${supersetTheme.typography.sizes.s}px;
-                    padding: ${supersetTheme.gridUnit}px;
+                    font-size: ${supersetTheme.fontSizeSM}px;
+                    padding: ${supersetTheme.sizeUnit}px;
                   }
                   & .tooltip-detail-head,
                   & .tooltip-detail-body {
                   }
                   & .tooltip-detail-footer {
-                    font-size: ${supersetTheme.typography.sizes.s}px;
+                    font-size: ${supersetTheme.fontSizeSM}px;
                   }
                 }
               `}

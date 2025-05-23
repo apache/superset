@@ -29,7 +29,7 @@ import { OptionProps } from 'src/explore/components/controls/DndColumnSelectCont
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 const StyledInfoTooltipWithTrigger = styled(InfoTooltipWithTrigger)`
-  margin: 0 ${({ theme }) => theme.gridUnit}px;
+  margin: 0 ${({ theme }) => theme.sizeUnit}px;
 `;
 
 export default function Option({
@@ -72,9 +72,8 @@ export default function Option({
       <Label data-test="control-label">{children}</Label>
       {(!!datasourceWarningMessage || isExtra) && (
         <StyledInfoTooltipWithTrigger
-          icon="exclamation-triangle"
+          type="warning"
           placement="top"
-          bsStyle="warning"
           tooltip={
             datasourceWarningMessage ||
             t(`
@@ -89,7 +88,7 @@ export default function Option({
           <Icons.RightOutlined
             iconSize="m"
             css={css`
-              margin-top: ${theme.gridUnit}px;
+              margin: ${theme.sizeUnit}px;
             `}
             iconColor={theme.colors.grayscale.light1}
           />

@@ -16,5 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './Modal';
-export { default } from './Modal';
+export { Modal, StyledModal } from './Modal';
+export { FormModal } from './FormModal';
+export type { ModalProps, FormModalProps } from './types';

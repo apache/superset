@@ -37,7 +37,7 @@ interface IModalTriggerProps {
 }
 
 export default {
-  title: 'ModalTrigger',
+  title: 'Components/ModalTrigger',
   component: ModalTrigger,
 };
 

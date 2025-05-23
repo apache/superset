@@ -18,8 +18,8 @@
  */
 
 import { render, screen } from 'spec/helpers/testing-library';
-import Button from 'src/components/Button';
-import ButtonGroup from '.';
+import { Button } from '../Button';
+import { ButtonGroup } from '.';
 
 test('renders 1 button', () => {
   render(

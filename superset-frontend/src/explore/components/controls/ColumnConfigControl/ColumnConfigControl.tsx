@@ -129,8 +129,8 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
       <ControlHeader {...props} />
       <div
         css={{
-          border: `1px solid ${theme.colors.grayscale.light2}`,
-          borderRadius: theme.gridUnit,
+          border: `1px solid ${theme.colorBorder}`,
+          borderRadius: theme.borderRadius,
         }}
       >
         {columnsWithChildInfo.map(col => (
@@ -166,11 +166,11 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
             role="button"
             tabIndex={-1}
             css={{
-              padding: theme.gridUnit * 2,
+              padding: theme.sizeUnit * 2,
               textAlign: 'center',
               cursor: 'pointer',
-              fontSize: theme.typography.sizes.xs,
-              color: theme.colors.text.label,
+              fontSize: theme.fontSizeXS,
+              color: theme.colorTextLabel,
               ':hover': {
                 backgroundColor: theme.colors.grayscale.light4,
               },

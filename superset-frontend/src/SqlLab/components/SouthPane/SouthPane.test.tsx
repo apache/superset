@@ -143,7 +143,9 @@ test('should render tabs for table metadata view', () => {
     initialState: mockState,
   });
 
-  const tabs = getAllByRole('tab');
+  const tabs = getAllByRole('tab').filter(
+    tab => !tab.classList.contains('ant-tabs-tab-remove'),
+  );
   expect(tabs).toHaveLength(mockState.sqlLab.tables.length + 2);
   expect(tabs[0]).toHaveTextContent('Results');
   expect(tabs[1]).toHaveTextContent('Query history');
@@ -158,15 +160,23 @@ test('should remove tab', async () => {
     initialState: mockState,
   });
 
-  const tabs = getAllByRole('tab');
+  const tabs = getAllByRole('tab').filter(
+    tab => !tab.classList.contains('ant-tabs-tab-remove'),
+  );
   const totalTabs = mockState.sqlLab.tables.length + 2;
   expect(tabs).toHaveLength(totalTabs);
   const removeButton = within(tabs[2].parentElement as HTMLElement).getByRole(
-    'button',
+    'tab',
     {
       name: /remove/,
     },
   );
   userEvent.click(removeButton);
-  await waitFor(() => expect(getAllByRole('tab')).toHaveLength(totalTabs - 1));
+  await waitFor(() =>
+    expect(
+      getAllByRole('tab').filter(
+        tab => !tab.classList.contains('ant-tabs-tab-remove'),
+      ),
+    ).toHaveLength(totalTabs - 1),
+  );
 });
