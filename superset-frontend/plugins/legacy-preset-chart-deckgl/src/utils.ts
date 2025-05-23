@@ -25,9 +25,15 @@ import {
   QueryFormData,
   SequentialScheme,
 } from '@superset-ui/core';
+import { GeoBoundingBox, TileLayer } from '@deck.gl/geo-layers';
+import { BitmapLayer, PathLayer } from '@deck.gl/layers';
 import { hexToRGB } from './utils/colors';
 
 const DEFAULT_NUM_BUCKETS = 10;
+
+export const MAPBOX_LAYER_PREFIX = 'mapbox://';
+export const TILE_LAYER_PREFIX = 'tile://';
+export const OSM_LAYER_KEYWORDS = ['openstreetmap', 'osm'];
 
 export type Buckets = {
   break_points: string[];
@@ -189,4 +195,43 @@ export function getBuckets(
   });
 
   return buckets;
+}
+
+export function buildTileLayer(url: string, id: string) {
+  interface TileLayerProps {
+    id: string;
+    data: string;
+    minZoom: number;
+    maxZoom: number;
+    tileSize: number;
+    renderSubLayers: (props: any) => (BitmapLayer | PathLayer)[];
+  }
+
+  interface RenderSubLayerProps {
+    tile: {
+      bbox: GeoBoundingBox;
+    };
+    data: any;
+  }
+
+  return new TileLayer({
+    data: url,
+    id,
+    minZoom: 0,
+    maxZoom: 19,
+    tileSize: 256,
+
+    renderSubLayers: (props: RenderSubLayerProps): BitmapLayer[] => {
+      const { west, north, east, south } = props.tile.bbox as GeoBoundingBox;
+
+      // Ajouter une BitmapLayer
+      const bitmapLayer = new BitmapLayer(props, {
+        data: undefined,
+        image: props.data,
+        bounds: [west, south, east, north],
+      });
+
+      return [bitmapLayer];
+    },
+  } as TileLayerProps);
 }
