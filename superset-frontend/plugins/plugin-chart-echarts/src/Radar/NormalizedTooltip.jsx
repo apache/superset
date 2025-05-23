@@ -53,15 +53,15 @@ const NormalizedTooltip = ({
   metrics,
   values,
   getDenormalizedValue,
+  metricsWithCustomBounds,
 }) => (
   <div>
     <SeriesName>{seriesName || 'series0'}</SeriesName>
     {metrics.map((metric, index) => {
-      const normalizedValue = values[index];
-      const originalValue = getDenormalizedValue(
-        seriesName,
-        String(normalizedValue),
-      );
+      const value = values[index];
+      const originalValue = metricsWithCustomBounds.has(metric)
+        ? value
+        : getDenormalizedValue(seriesName, String(value));
       return (
         <MetricRow key={metric}>
           <MetricLabel>

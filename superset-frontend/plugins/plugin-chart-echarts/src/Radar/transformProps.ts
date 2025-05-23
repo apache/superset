@@ -29,6 +29,7 @@ import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import type { RadarSeriesDataItemOption } from 'echarts/types/src/chart/radar/RadarSeries';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { RadarSeriesOption } from 'echarts/charts';
+import { isNull, isUndefined } from 'lodash';
 import {
   DEFAULT_FORM_DATA as DEFAULT_RADAR_FORM_DATA,
   EchartsRadarChartProps,
@@ -54,22 +55,23 @@ export function formatLabel({
   labelType,
   numberFormatter,
   getDenormalizedSeriesValue,
-  isNormalized,
+  metricsWithCustomBounds,
+  metricLabels,
 }: {
   params: CallbackDataParams;
   labelType: EchartsRadarLabelType;
   numberFormatter: NumberFormatter;
-  getDenormalizedSeriesValue: (
-    seriesName: string,
-    normalisedValue: string,
-  ) => number;
-  isNormalized: boolean;
+  getDenormalizedSeriesValue: (seriesName: string, value: string) => number;
+  metricsWithCustomBounds: Set<string>;
+  metricLabels: string[];
 }): string {
-  const { name = '', value } = params;
+  const { name = '', value, dimensionIndex = 0 } = params;
+  const metricLabel = metricLabels[dimensionIndex];
+
   const formattedValue = numberFormatter(
-    isNormalized
-      ? (getDenormalizedSeriesValue(name, String(value)) as number)
-      : (value as number),
+    metricsWithCustomBounds.has(metricLabel)
+      ? (value as number)
+      : (getDenormalizedSeriesValue(name, String(value)) as number),
   );
 
   switch (labelType) {
@@ -116,7 +118,6 @@ export default function transformProps(
     isCircle,
     columnConfig,
     sliceId,
-    isNormalized,
   }: EchartsRadarFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_RADAR_FORM_DATA,
@@ -129,10 +130,12 @@ export default function transformProps(
 
   const getDenormalizedSeriesValue = (
     seriesName: string,
-    normalisedValue: string,
+    normalizedValue: string,
   ): number =>
-    denormalizedSeriesValues?.[seriesName]?.[normalisedValue] ??
-    Number(normalisedValue);
+    denormalizedSeriesValues?.[seriesName]?.[normalizedValue] ??
+    Number(normalizedValue);
+
+  const metricLabels = metrics.map(getMetricLabel);
 
   const formatter = (params: CallbackDataParams) =>
     formatLabel({
@@ -140,11 +143,24 @@ export default function transformProps(
       numberFormatter,
       labelType,
       getDenormalizedSeriesValue,
-      isNormalized,
+      metricsWithCustomBounds,
+      metricLabels,
     });
 
-  const metricLabels = metrics.map(getMetricLabel);
   const groupbyLabels = groupby.map(getColumnLabel);
+
+  const metricsWithCustomBounds = new Set(
+    metricLabels.filter(metricLabel => {
+      const config = columnConfig?.[metricLabel];
+      const hasMax =
+        !isNull(config?.radarMetricMaxValue) &&
+        !isUndefined(config?.radarMetricMaxValue);
+      const hasMin =
+        !isUndefined(config?.radarMetricMinValue) &&
+        config?.radarMetricMinValue !== 0;
+      return hasMax || hasMin;
+    }),
+  );
 
   const metricLabelAndMaxValueMap = new Map<string, number>();
   const metricLabelAndMinValueMap = new Map<string, number>();
@@ -237,34 +253,37 @@ export default function transformProps(
     {},
   );
 
-  // Add normalization function
-  const normalizeArray = (arr: number[], decimals = 10, seriesName: string) => {
-    const max = Math.max(...arr);
-    return arr.map(value => {
+  const normalizeArray = (arr: number[], decimals = 10, seriesName: string) =>
+    arr.map((value, index) => {
+      const metricLabel = metricLabels[index];
+      if (metricsWithCustomBounds.has(metricLabel)) {
+        return value;
+      }
+
+      const max = Math.max(...arr);
       const normalizedValue = Number((value / max).toFixed(decimals));
+
       denormalizedSeriesValues[seriesName][String(normalizedValue)] = value;
       return normalizedValue;
     });
-  };
 
-  if (isNormalized) {
-    // Normalize the transformed data
-    transformedData = transformedData.map(series => {
-      if (Array.isArray(series.value)) {
-        const seriesName = String(series?.name || '');
-        denormalizedSeriesValues[seriesName] = {};
+  // Normalize the transformed data
+  transformedData = transformedData.map(series => {
+    if (Array.isArray(series.value)) {
+      const seriesName = String(series?.name || '');
+      denormalizedSeriesValues[seriesName] = {};
 
-        return {
-          ...series,
-          value: normalizeArray(series.value as number[], 10, seriesName),
-        };
-      }
-      return series;
-    });
-  }
+      return {
+        ...series,
+        value: normalizeArray(series.value as number[], 10, seriesName),
+      };
+    }
+    return series;
+  });
 
   const indicator = metricLabels.map(metricLabel => {
-    if (isNormalized) {
+    const isMetricWithCustomBounds = metricsWithCustomBounds.has(metricLabel);
+    if (!isMetricWithCustomBounds) {
       return {
         name: metricLabel,
         max: 1,
@@ -317,7 +336,7 @@ export default function transformProps(
     },
   ];
 
-  const NormalisedTooltipFormater = (
+  const NormalizedTooltipFormater = (
     params: CallbackDataParams & {
       color: string;
       name: string;
@@ -330,6 +349,7 @@ export default function transformProps(
       metrics: metricLabels,
       values: params.value,
       getDenormalizedValue: getDenormalizedSeriesValue,
+      metricsWithCustomBounds,
     });
 
   const echartOptions: EChartsCoreOption = {
@@ -340,9 +360,7 @@ export default function transformProps(
       ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
-      ...(isNormalized && {
-        formatter: NormalisedTooltipFormater,
-      }),
+      formatter: NormalizedTooltipFormater,
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),

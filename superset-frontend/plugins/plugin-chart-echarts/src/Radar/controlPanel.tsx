@@ -91,20 +91,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'is_normalized',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Normalize Values'),
-              renderTrigger: true,
-              default: false,
-              description: t(
-                'Normalize the radar chart values between 0 & 1 to get consistent plotting.',
-              ),
-            },
-          },
-        ],
       ],
     },
     {
@@ -191,9 +177,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'ColumnConfigControl',
               label: t('Customize Metrics'),
-              description: t(
-                'Further customize how to display each metric, this control wont be available when values are Normalised',
-              ),
+              description: t('Further customize how to display each metric'),
               renderTrigger: true,
               configFormLayout: {
                 [GenericDataType.Numeric]: [
@@ -226,8 +210,6 @@ const config: ControlPanelConfig = {
                   columnsPropsObject: { colnames, coltypes },
                 };
               },
-              visibility: ({ controls }) =>
-                Boolean(!controls?.is_normalized?.value),
             },
           },
         ],
