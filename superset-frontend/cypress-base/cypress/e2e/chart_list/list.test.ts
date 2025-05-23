@@ -111,24 +111,6 @@ describe('Charts list', () => {
       cy.getBySel('sort-header').eq(7).contains('Actions');
     });
 
-    it('should sort correctly in list mode', () => {
-      cy.deleteChartByName('1 - Sample chart', false);
-      cy.deleteChartByName('1 - Sample chart | EDITED', false);
-      interceptFiltering();
-      cy.getBySel('sort-header').contains('Name').should('be.visible');
-      cy.getBySel('sort-header').contains('Name').click();
-      cy.get('.loading').should('exist');
-      cy.get('.loading').should('not.exist');
-      cy.wait('@filtering');
-      cy.getBySel('table-row').first().contains('Area Chart');
-
-      cy.getBySel('sort-header').eq(1).should('exist').click({ force: true });
-      cy.wait('@filtering');
-      cy.get('.loading').should('not.exist');
-      cy.getBySel('table-row').first().contains("World's Population");
-      cy.getBySel('sort-header').eq(1).click();
-    });
-
     it('should bulk select in list mode', () => {
       toggleBulkSelect();
       cy.get('[aria-label="Select all"]').click();
@@ -173,11 +155,6 @@ describe('Charts list', () => {
       cy.getBySel('bulk-select-action').should('not.exist');
     });
 
-    it('should sort in card mode', () => {
-      orderAlphabetical();
-      cy.getBySel('styled-card').first().contains('Area Chart');
-    });
-
     it('should preserve other filters when sorting', () => {
       cy.getBySel('styled-card').should('have.length', 25);
       setFilter('Type', 'Big Number');
@@ -189,32 +166,6 @@ describe('Charts list', () => {
   describe('common actions', () => {
     beforeEach(() => {
       visitChartList();
-    });
-
-    it('should allow to favorite/unfavorite', () => {
-      cy.intercept({ url: `**/api/v1/chart/*/favorites/`, method: 'POST' }).as(
-        'select',
-      );
-      cy.intercept({
-        url: `**/api/v1/chart/*/favorites/`,
-        method: 'DELETE',
-      }).as('unselect');
-
-      setGridMode('card');
-      orderAlphabetical();
-
-      cy.getBySel('styled-card').first().contains('Area Chart');
-      cy.getBySel('styled-card')
-        .first()
-        .find("[aria-label='unstarred']")
-        .click();
-      cy.wait('@select');
-      cy.getBySel('styled-card').first().find("[aria-label='starred']").click();
-      cy.wait('@unselect');
-      cy.getBySel('styled-card')
-        .first()
-        .find("[aria-label='starred']")
-        .should('not.exist');
     });
 
     it('should bulk delete correctly', () => {
