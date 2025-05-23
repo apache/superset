@@ -19,12 +19,11 @@
 import { useState } from 'react';
 import { getClientErrorObject, t, useTheme } from '@superset-ui/core';
 import Popover, { PopoverProps } from 'src/components/Popover';
-import { CopyToClipboard } from 'src/components';
+import { CopyToClipboard, Button, Icons } from 'src/components';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { shallowEqual, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
-import { Icons } from 'src/components/Icons';
 import { Typography } from 'src/components/Typography';
 
 export type URLShortLinkButtonProps = {
@@ -107,19 +106,18 @@ export default function URLShortLinkButton({
         </div>
       }
     >
-      <span
-        className="short-link-trigger btn btn-default btn-sm"
+      <Button
         tabIndex={-1}
-        role="button"
+        buttonStyle="link"
+        icon={
+          <Icons.LinkOutlined iconSize="m" className="short-link-trigger" />
+        }
         onClick={e => {
           e.stopPropagation();
           getCopyUrl();
         }}
         aria-label={t('Copy URL')}
-      >
-        <Icons.LinkOutlined iconSize="m" className="short-link-trigger" />
-        &nbsp;
-      </span>
+      />
     </Popover>
   );
 }

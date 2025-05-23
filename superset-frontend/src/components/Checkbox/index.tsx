@@ -16,7 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Checkbox } from 'antd';
-
-export { Checkbox };
+export { Checkbox } from 'antd';
 export type { CheckboxProps, CheckboxChangeEvent } from './types';

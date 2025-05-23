@@ -59,9 +59,9 @@ const StyledTable = styled(Table)`
       display: flex;
       white-space: nowrap;
       min-width: 100px;
-      svg,
-      i {
-        margin-right: 8px;
+      .action-button {
+        margin-right: ${theme.sizeUnit * 2}px;
+        cursor: pointer;
         &:hover {
           path {
             fill: ${theme.colorPrimary};

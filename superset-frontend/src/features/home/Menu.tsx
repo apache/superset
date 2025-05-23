@@ -312,7 +312,7 @@ export function Menu({
   return (
     <StyledHeader className="top" id="main-menu" role="navigation">
       <Row>
-        <Col md={16} xs={24}>
+        <Col md={16} xs={24} style={{ display: 'flex' }}>
           <Tooltip
             id="brand-tooltip"
             placement="bottomLeft"

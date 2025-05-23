@@ -23,7 +23,12 @@ import {
   OutPortal,
 } from 'react-reverse-portal';
 import { styled, SupersetTheme, truncationCSS } from '@superset-ui/core';
-import { FormItem as StyledFormItem, Form, Tooltip } from 'src/components';
+import {
+  FormItem as StyledFormItem,
+  Form,
+  Icons,
+  Tooltip,
+} from 'src/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
@@ -248,13 +253,11 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
         whiteSpace: 'normal',
       }}
     >
-      {/* TODO: Remove fa-icon */}
-      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-      <i
-        className="fa fa-info-circle text-muted"
+      <Icons.InfoCircleOutlined
+        className="text-muted"
+        role="button"
         css={(theme: SupersetTheme) => ({
           paddingLeft: `${theme.sizeUnit}px`,
-          cursor: 'pointer',
         })}
       />
     </Tooltip>

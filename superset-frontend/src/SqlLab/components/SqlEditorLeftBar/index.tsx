@@ -33,7 +33,7 @@ import {
   addDangerToast,
   resetState,
 } from 'src/SqlLab/actions/sqlLab';
-import { Button, EmptyState, type DatabaseObject } from 'src/components';
+import { Button, EmptyState, Icons, type DatabaseObject } from 'src/components';
 import { t, styled, css } from '@superset-ui/core';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
@@ -247,9 +247,7 @@ const SqlEditorLeftBar = ({
           buttonStyle="danger"
           onClick={handleResetState}
         >
-          {/* TODO: Remove fa-icon */}
-          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-          <i className="fa fa-bomb" /> {t('Reset state')}
+          <Icons.ClearOutlined /> {t('Reset state')}
         </Button>
       )}
     </LeftBarStyles>

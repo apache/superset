@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { css, styled, SupersetTheme, t } from '@superset-ui/core';
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
@@ -27,6 +28,45 @@ import type { EditableTitleProps } from './types';
 
 const StyledCertifiedBadge = styled(CertifiedBadge)`
   vertical-align: middle;
+`;
+
+const StyledEditableTitle = styled.span<{
+  editing: boolean;
+  canEdit: boolean;
+}>`
+  &.editable-title {
+    display: inline-block;
+    width: 100%;
+
+    input,
+    textarea {
+      outline: none;
+      background: transparent;
+      box-shadow: none;
+      cursor: initial;
+      font-feature-settings:
+        'liga' 0,
+        'calt' 0;
+      font-variant-ligatures: none;
+      font-weight: bold;
+    }
+
+    input[type='text'],
+    textarea {
+      border: 1px solid ${({ theme }) => theme.colorSplit};
+      color: ${({ theme }) => theme.colorTextTertiary};
+      border-radius: ${({ theme }) => theme.sizeUnit}px;
+      font-size: ${({ theme }) => theme.fontSizeLG}px;
+      padding: ${({ theme }) => theme.sizeUnit / 2}px;
+      min-height: 100px;
+      width: 95%;
+    }
+
+    &.datasource-sql-expression {
+      min-width: 315px;
+      width: 100%;
+    }
+  }
 `;
 
 export function EditableTitle({
@@ -45,7 +85,6 @@ export function EditableTitle({
   url,
   maxWidth,
   autoSize = true,
-  // rest is related to title tooltip
   ...rest
 }: EditableTitleProps) {
   const [isEditing, setIsEditing] = useState(editing);
@@ -84,7 +123,6 @@ export function EditableTitle({
   useEffect(() => {
     if (isEditing && contentRef.current) {
       const textArea = contentRef.current.resizableTextArea?.textArea;
-      // set focus, move cursor and scroll to the end
       if (textArea) {
         textArea.focus();
         const { length } = textArea.value;
@@ -125,10 +163,6 @@ export function EditableTitle({
     }
   }
 
-  // tl;dr when a EditableTitle is being edited, typically the Tab that wraps it has been
-  // clicked and is focused/active. For accessibility, when the focused tab anchor intercepts
-  // the ' ' key (among others, including all arrows) the onChange() doesn't fire. Somehow
-  // keydown is still called so we can detect this and manually add a ' ' to the current title
   function handleKeyDown(event: any) {
     const stopPropagationKeys = [
       'Backspace',
@@ -160,8 +194,7 @@ export function EditableTitle({
     handleBlur();
   }
 
-  let value: string | undefined;
-  value = currentTitle;
+  let value: string | undefined = currentTitle;
   if (!isEditing && !currentTitle) {
     value = defaultTitle || title;
   }
@@ -207,8 +240,8 @@ export function EditableTitle({
       </Tooltip>
     );
   }
+
   if (!canEdit) {
-    // don't actually want an input in this case
     titleComponent = url ? (
       <Link
         to={url}
@@ -228,8 +261,9 @@ export function EditableTitle({
       <span data-test="span-title">{value}</span>
     );
   }
+
   return (
-    <span
+    <StyledEditableTitle
       data-test="editable-title"
       className={cx(
         'editable-title',
@@ -238,6 +272,8 @@ export function EditableTitle({
         isEditing && 'editable-title--editing',
       )}
       style={style}
+      editing={isEditing}
+      canEdit={canEdit}
       {...rest}
     >
       {certifiedBy && (
@@ -250,7 +286,7 @@ export function EditableTitle({
         </>
       )}
       {titleComponent}
-    </span>
+    </StyledEditableTitle>
   );
 }
 

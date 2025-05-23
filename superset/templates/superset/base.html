@@ -35,13 +35,16 @@
 
 {% block head_js %}
   {{ super() }}
-  {% include "head_custom_extra.html" %}
   {{ js_bundle(assets_prefix, "theme") }}
+{% endblock %}
+
+{% block body %}
+  <div id="app-menu"></div>
+  {{ super() }}
 {% endblock %}
 
 {% block tail_js %}
   {{ super() }}
   {{ js_bundle(assets_prefix, "preamble") }}
   {{ js_bundle(assets_prefix, 'menu') }}
-  {% include "tail_js_custom_extra.html" %}
 {% endblock %}

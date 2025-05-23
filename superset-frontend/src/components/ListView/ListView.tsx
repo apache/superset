@@ -388,6 +388,7 @@ export function ListView<T extends object = any>({
                     <>
                       <span
                         data-test="bulk-select-deselect-all"
+                        style={{ cursor: 'pointer' }}
                         role="button"
                         tabIndex={0}
                         className="deselect-all"
@@ -415,6 +416,7 @@ export function ListView<T extends object = any>({
                         <span
                           data-test="bulk-select-tag-btn"
                           role="button"
+                          style={{ cursor: 'pointer' }}
                           tabIndex={0}
                           className="tag-btn"
                           onClick={() => setShowBulkTagModal(true)}

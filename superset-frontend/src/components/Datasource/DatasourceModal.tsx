@@ -326,7 +326,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           <Button
             data-test="datasource-modal-cancel"
             buttonSize="small"
-            className="m-r-5"
+            buttonStyle="secondary"
             onClick={onHide}
           >
             {t('Cancel')}

@@ -28,6 +28,7 @@ interface IconButtonProps {
 const StyledDiv = styled.div`
   display: flex;
   align-items: center;
+  cursor: pointer;
   color: ${({ theme }) => theme.colors.grayscale.base};
   &:hover {
     color: ${({ theme }) => theme.colorPrimary};

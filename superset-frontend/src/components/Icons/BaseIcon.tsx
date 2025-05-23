@@ -51,6 +51,7 @@ export const BaseIconComponent: React.FC<
   const style = {
     color: iconColor,
     fontSize: iconSize ? themeObject.getFontSize(iconSize) : theme.fontSize,
+    cursor: rest?.onClick ? 'pointer' : undefined,
   };
 
   return customIcons ? (
