@@ -306,13 +306,8 @@ export default function transformProps(
         : maxValueInControl;
 
     let min: number;
-    // If the min value doesn't exist, set it to 0 (default),
-    // if it is null, set it to the min value of the data,
-    // otherwise, use the value from the control
-    if (minValueInControl === undefined) {
+    if (isUndefined(minValueInControl) || isNull(minValueInControl)) {
       min = 0;
-    } else if (minValueInControl === null) {
-      min = metricLabelAndMinValueMap.get(metricLabel) || 0;
     } else {
       min = minValueInControl;
     }
