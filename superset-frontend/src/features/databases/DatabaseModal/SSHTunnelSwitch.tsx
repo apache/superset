@@ -23,8 +23,8 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { Switch } from 'src/components/Switch';
-import { InfoTooltip } from 'src/components';
+import { Switch } from '@superset-ui/core/components/Switch';
+import { InfoTooltip } from '@superset-ui/core/components';
 import { isEmpty } from 'lodash';
 import { infoTooltip, toggleStyle } from './styles';
 import { SwitchProps } from '../types';

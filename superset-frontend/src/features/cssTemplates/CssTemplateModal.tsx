@@ -21,10 +21,10 @@ import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Input, CssEditor, Modal } from 'src/components';
-import { Typography } from 'src/components/Typography';
+import { Input, CssEditor, Modal } from '@superset-ui/core/components';
+import { Typography } from '@superset-ui/core/components/Typography';
 
 import { OnlyKeyWithType } from 'src/utils/types';
 import { TemplateObject } from './types';

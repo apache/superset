@@ -24,7 +24,7 @@ import {
   getNumberFormatter,
 } from '@superset-ui/core';
 import { useCallback } from 'react';
-import Echart from '../components/Echart';
+import Echart from '@superset-ui/core/components/Echart';
 import { NULL_STRING } from '../constants';
 import { EventHandlers } from '../types';
 import { extractTreePathInfo } from './constants';

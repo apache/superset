@@ -32,7 +32,7 @@ import rison from 'rison';
 import type {
   ListViewFetchDataConfig as FetchDataConfig,
   ListViewFilterValue as FilterValue,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';

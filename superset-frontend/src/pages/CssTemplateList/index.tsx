@@ -35,12 +35,12 @@ import {
   type ListViewProps,
   type ListViewActionProps,
   type ListViewFilters,
-} from 'src/components';
+} from '@superset-ui/core/components';
 
 import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 const PAGE_SIZE = 25;
 

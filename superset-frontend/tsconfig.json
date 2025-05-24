@@ -13,6 +13,8 @@
     "moduleResolution": "node",
     "paths": {
       "@superset-ui/core": ["./packages/superset-ui-core/src"],
+      "@superset-ui/core/components": ["./packages/superset-ui-core/src/components"],
+      "@superset-ui/core/components/*": ["./packages/superset-ui-core/src/components/*"],
       "@superset-ui/chart-controls": [
         "./packages/superset-ui-chart-controls/src"
       ],

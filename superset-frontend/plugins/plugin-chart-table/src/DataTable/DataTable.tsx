@@ -43,17 +43,17 @@ import {
 import { matchSorter, rankings } from 'match-sorter';
 import { isEqual } from 'lodash';
 import { Space } from 'antd';
-import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
+import GlobalFilter, { GlobalFilterProps } from '@superset-ui/core/components/GlobalFilter';
 import SelectPageSize, {
   SelectPageSizeProps,
   SizeOption,
-} from './components/SelectPageSize';
-import SimplePagination from './components/Pagination';
+} from '@superset-ui/core/components/SelectPageSize';
+import SimplePagination from '@superset-ui/core/components/Pagination';
 import useSticky from './hooks/useSticky';
 import { PAGE_SIZE_OPTIONS } from '../consts';
 import { sortAlphanumericCaseInsensitive } from './utils/sortAlphanumericCaseInsensitive';
 import { SearchOption, SortByItem } from '../types';
-import SearchSelectDropdown from './components/SearchSelectDropdown';
+import SearchSelectDropdown from '@superset-ui/core/components/SearchSelectDropdown';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;

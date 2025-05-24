@@ -31,7 +31,7 @@ import { ControlConfig } from '@superset-ui/chart-controls';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { matchSorter, rankings } from 'match-sorter';
-import { Alert, Input } from 'src/components';
+import { Alert, Input } from '@superset-ui/core/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { FAST_DEBOUNCE } from 'src/constants';

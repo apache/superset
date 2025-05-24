@@ -22,7 +22,7 @@ import {
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
-import type { ButtonProps, DropdownButtonProps } from 'src/components';
+import type { ButtonProps, DropdownButtonProps } from '@superset-ui/core/components';
 import type { TableMetaData } from 'src/hooks/apiResources';
 
 export type QueryButtonProps = DropdownButtonProps | ButtonProps;

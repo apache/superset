@@ -28,7 +28,7 @@ import {
   QueryFormData,
   usePrevious,
 } from '@superset-ui/core';
-import { ErrorBoundary } from 'src/components';
+import { ErrorBoundary } from '@superset-ui/core/components';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import controlMap from './controls';
 

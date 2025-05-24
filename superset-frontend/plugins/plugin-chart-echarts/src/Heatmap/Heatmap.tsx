@@ -17,7 +17,7 @@
  * under the License.
  */
 import { HeatmapTransformedProps } from './types';
-import Echart from '../components/Echart';
+import Echart from '@superset-ui/core/components/Echart';
 
 export default function Heatmap(props: HeatmapTransformedProps) {
   const { height, width, echartOptions, refs } = props;

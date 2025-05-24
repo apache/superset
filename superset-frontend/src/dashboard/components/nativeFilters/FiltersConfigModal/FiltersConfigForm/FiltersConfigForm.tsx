@@ -69,11 +69,11 @@ import {
   Flex,
   Input,
   Loading,
-} from 'src/components';
-import { Icons } from 'src/components/Icons';
+} from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { Radio } from 'src/components/Radio';
-import Tabs from 'src/components/Tabs';
+import { Radio } from '@superset-ui/core/components/Radio';
+import Tabs from '@superset-ui/core/components/Tabs';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
   Chart,

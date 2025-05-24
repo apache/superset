@@ -34,11 +34,11 @@ import {
   ListViewFilterOperator as FilterOperator,
   type ListViewFilters,
   type ListViewProps,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
 import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';

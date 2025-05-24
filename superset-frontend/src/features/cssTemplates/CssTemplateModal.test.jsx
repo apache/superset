@@ -20,7 +20,7 @@ import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { Modal, CssEditor } from 'src/components';
+import { Modal, CssEditor } from '@superset-ui/core/components';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
 import CssTemplateModal from './CssTemplateModal';

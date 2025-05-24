@@ -19,7 +19,7 @@
 
 import { useMemo, useState } from 'react';
 import { css, SupersetTheme, t } from '@superset-ui/core';
-import { Radio } from 'src/components/Radio';
+import { Radio } from '@superset-ui/core/components/Radio';
 import { DrillByType } from '../types';
 
 export const useDisplayModeToggle = () => {

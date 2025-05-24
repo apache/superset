@@ -26,7 +26,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import {
   BaseFormData,
   Behavior,
@@ -45,9 +45,9 @@ import {
 import rison from 'rison';
 import { debounce } from 'lodash';
 import { FixedSizeList as List } from 'react-window';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { Input, Loading } from 'src/components';
+import { Input, Loading } from '@superset-ui/core/components';
 import {
   cachedSupersetGet,
   supersetGetCache,

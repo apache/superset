@@ -35,7 +35,7 @@ import {
   Tooltip,
   usePluginContext,
   ImageLoader,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { assetUrl } from 'src/utils/assetUrl';
 import { Theme } from '@emotion/react';
 

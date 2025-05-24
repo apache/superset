@@ -50,9 +50,9 @@ import {
   CollapseLabelInModal,
   TreeSelect,
   type CheckboxChangeEvent,
-} from 'src/components';
-import TimezoneSelector from 'src/components/TimezoneSelector';
-import { propertyComparator } from 'src/components/Select/utils';
+} from '@superset-ui/core/components';
+import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
+import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
@@ -78,11 +78,11 @@ import {
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { Icons } from 'src/components/Icons';
-import { Typography } from 'src/components/Typography';
-import NumberInput from './components/NumberInput';
-import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
-import { NotificationMethod } from './components/NotificationMethod';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
+import NumberInput from '@superset-ui/core/components/NumberInput';
+import { AlertReportCronScheduler } from '@superset-ui/core/components/AlertReportCronScheduler';
+import { NotificationMethod } from '@superset-ui/core/components/NotificationMethod';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 
 const TIMEOUT_MIN = 1;

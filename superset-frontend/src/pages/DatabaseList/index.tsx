@@ -44,11 +44,11 @@ import {
   ListViewFilterOperator as FilterOperator,
   ListViewFilters,
   Loading,
-} from 'src/components';
-import { Typography } from 'src/components/Typography';
+} from '@superset-ui/core/components';
+import { Typography } from '@superset-ui/core/components/Typography';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import handleResourceExport from 'src/utils/export';
 import { ExtensionConfigs } from 'src/features/home/types';
@@ -58,7 +58,7 @@ import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { DatabaseObject } from 'src/features/databases/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { WIDER_DROPDOWN_WIDTH } from '@superset-ui/core/components/ListView/utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(

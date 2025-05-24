@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FunnelChartTransformedProps } from './types';
-import Echart from '../components/Echart';
+import Echart from '@superset-ui/core/components/Echart';
 import { allEventHandlers } from '../utils/eventHandlers';
 
 export default function EchartsFunnel(props: FunnelChartTransformedProps) {

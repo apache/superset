@@ -21,7 +21,7 @@ import { css, styled, t } from '@superset-ui/core';
 import dayjs from 'dayjs';
 import { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Tooltip, ListView } from 'src/components';
+import { Tooltip, ListView } from '@superset-ui/core/components';
 import SubMenu from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { fDuration } from 'src/utils/dates';

@@ -19,8 +19,8 @@
 import { useRef, FC } from 'react';
 
 import { NativeFilterType, styled, t, useTheme } from '@superset-ui/core';
-import { Button } from 'src/components';
-import { Icons } from 'src/components/Icons';
+import { Button } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 import FilterTitleContainer from './FilterTitleContainer';
 import { FilterRemoval } from './types';

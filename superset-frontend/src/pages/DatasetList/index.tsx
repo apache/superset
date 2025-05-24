@@ -52,14 +52,14 @@ import {
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilters,
-} from 'src/components';
-import { Typography } from 'src/components/Typography';
+} from '@superset-ui/core/components';
+import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Icons } from 'src/components/Icons';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import { Icons } from '@superset-ui/core/components/Icons';
+import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 
 import {
@@ -71,7 +71,7 @@ import {
 import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { WIDER_DROPDOWN_WIDTH } from '@superset-ui/core/components/ListView/utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(

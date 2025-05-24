@@ -18,7 +18,7 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Button, Input, Select, Row, Col, Divider } from 'src/components';
+import { Button, Input, Select, Row, Col, Divider } from '@superset-ui/core/components';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import BoundsControl from '../BoundsControl';

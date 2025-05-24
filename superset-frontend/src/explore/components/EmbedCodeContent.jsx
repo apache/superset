@@ -18,10 +18,10 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { css, t } from '@superset-ui/core';
-import { Input, CopyToClipboard, Space, Typography } from 'src/components';
+import { Input, CopyToClipboard, Space, Typography } from '@superset-ui/core/components';
 import { URL_PARAMS } from 'src/constants';
 import { getChartPermalink } from 'src/utils/urlUtils';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 const EmbedCodeContent = ({ formData, addDangerToast }) => {
   const [height, setHeight] = useState('400');

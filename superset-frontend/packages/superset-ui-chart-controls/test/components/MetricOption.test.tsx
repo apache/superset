@@ -21,23 +21,23 @@ import { render } from '@testing-library/react';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { MetricOption, MetricOptionProps } from '../../src';
 
-jest.mock('../../src/components/InfoTooltipWithTrigger', () => ({
+jest.mock('../../@superset-ui/core/components/InfoTooltipWithTrigger', () => ({
   InfoTooltipWithTrigger: () => (
     <div data-test="mock-info-tooltip-with-trigger" />
   ),
 }));
 
-jest.mock('../../src/components/ColumnTypeLabel/ColumnTypeLabel', () => ({
+jest.mock('../../@superset-ui/core/components/ColumnTypeLabel/ColumnTypeLabel', () => ({
   ColumnTypeLabel: () => <div data-test="mock-column-type-label" />,
 }));
 jest.mock(
-  '../../src/components/Tooltip',
+  '../../@superset-ui/core/components/Tooltip',
   () =>
     ({ children }: { children: React.ReactNode }) => (
       <div data-test="mock-tooltip">{children}</div>
     ),
 );
-jest.mock('../../src/components/SQLPopover', () => ({
+jest.mock('../../@superset-ui/core/components/SQLPopover', () => ({
   SQLPopover: () => <div data-test="mock-sql-popover" />,
 }));
 

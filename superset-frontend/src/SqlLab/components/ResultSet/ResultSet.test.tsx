@@ -41,7 +41,7 @@ import {
   failedQueryWithFrontendTimeoutErrors,
 } from 'src/SqlLab/fixtures';
 
-jest.mock('src/components/ErrorMessage', () => ({
+jest.mock('@superset-ui/core/components/ErrorMessage', () => ({
   ErrorMessageWithStackTrace: () => <div data-test="error-message">Error</div>,
 }));
 

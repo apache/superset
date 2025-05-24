@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import Popover from 'src/components/Popover';
+import Popover from '@superset-ui/core/components/Popover';
 import { FilterCardContent } from './FilterCardContent';
 import { FilterCardProps } from './types';
 

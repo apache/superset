@@ -385,5 +385,8 @@
   "scarfSettings": {
     "allowTopLevel": true
   },
-  "_id": "superset@0.0.0-dev"
+  "_id": "superset@0.0.0-dev",
+  "alias": {
+    "src/components": "@superset-ui/core/components"
+  }
 }

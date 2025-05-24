@@ -32,7 +32,7 @@ import {
   CurrentQuarter,
   CurrentDay,
 } from 'src/explore/components/controls/DateFilterControl/types';
-import { CheckboxOptionType } from 'src/components/Radio';
+import { CheckboxOptionType } from '@superset-ui/core/components/Radio';
 import { extendedDayjs } from 'src/utils/dates';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [

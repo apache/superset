@@ -18,8 +18,8 @@
  */
 
 import { styled, css, SupersetTheme } from '@superset-ui/core';
-import { Button, CronPicker, Modal } from 'src/components';
-import { Radio } from 'src/components/Radio';
+import { Button, CronPicker, Modal } from '@superset-ui/core/components';
+import { Radio } from '@superset-ui/core/components/Radio';
 
 export const StyledModal = styled(Modal)`
   .ant-modal-body {

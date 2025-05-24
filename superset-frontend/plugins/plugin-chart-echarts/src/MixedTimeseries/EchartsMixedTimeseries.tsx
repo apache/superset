@@ -27,7 +27,7 @@ import {
   getTimeFormatter,
 } from '@superset-ui/core';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
-import Echart from '../components/Echart';
+import Echart from '@superset-ui/core/components/Echart';
 import { EventHandlers } from '../types';
 import { formatSeriesName } from '../utils/series';
 

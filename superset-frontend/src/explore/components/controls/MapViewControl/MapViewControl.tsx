@@ -18,8 +18,8 @@
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
 import { css, styled, t } from '@superset-ui/core';
-import { Button } from 'src/components';
-import Popover from 'src/components/Popover';
+import { Button } from '@superset-ui/core/components';
+import Popover from '@superset-ui/core/components/Popover';
 import { FC, useState } from 'react';
 import { mix } from 'polished';
 import { MapViewConfigs, MapViewConfigsControlProps } from './types';

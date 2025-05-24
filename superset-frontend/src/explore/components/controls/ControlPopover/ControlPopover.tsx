@@ -21,9 +21,9 @@ import React, { FC, useCallback, useRef, useEffect, useState } from 'react';
 
 import Popover, {
   PopoverProps as BasePopoverProps,
-} from 'src/components/Popover';
+} from '@superset-ui/core/components/Popover';
 
-import { TooltipPlacement } from 'src/components/Tooltip/types';
+import { TooltipPlacement } from '@superset-ui/core/components/Tooltip/types';
 
 const sectionContainerId = 'controlSections';
 export const getSectionContainerElement = () =>

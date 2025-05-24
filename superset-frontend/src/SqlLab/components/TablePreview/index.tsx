@@ -30,7 +30,7 @@ import {
   t,
 } from '@superset-ui/core';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import {
   Alert,
@@ -41,8 +41,8 @@ import {
   Dropdown,
   FilterableTable,
   Skeleton,
-} from 'src/components';
-import Tabs from 'src/components/Tabs';
+} from '@superset-ui/core/components';
+import Tabs from '@superset-ui/core/components/Tabs';
 import {
   tableApiUtil,
   TableMetaData,
@@ -50,7 +50,7 @@ import {
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
 import { runTablePreviewQuery } from 'src/SqlLab/actions/sqlLab';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import ResultSet from '../ResultSet';
 import ShowSQL from '../ShowSQL';
 

@@ -20,7 +20,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
 import { omit } from 'lodash';
-import { EmptyState, Skeleton } from 'src/components';
+import { EmptyState, Skeleton } from '@superset-ui/core/components';
 import {
   t,
   styled,

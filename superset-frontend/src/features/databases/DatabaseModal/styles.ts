@@ -18,7 +18,7 @@
  */
 
 import { css, styled, SupersetTheme } from '@superset-ui/core';
-import { Button, JsonEditor } from 'src/components';
+import { Button, JsonEditor } from '@superset-ui/core/components';
 
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 108;
 const EXPOSE_IN_SQLLAB_FORM_HEIGHT = CTAS_CVAS_SCHEMA_FORM_HEIGHT + 153;

@@ -18,11 +18,11 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, Checkbox, Label } from 'src/components';
+import { Row, Col, Checkbox, Label } from '@superset-ui/core/components';
 import { t } from '@superset-ui/core';
 
-import Popover from 'src/components/Popover';
-import PopoverSection from 'src/components/PopoverSection';
+import Popover from '@superset-ui/core/components/Popover';
+import PopoverSection from '@superset-ui/core/components/PopoverSection';
 import ControlHeader from '../ControlHeader';
 import SelectControl from './SelectControl';
 

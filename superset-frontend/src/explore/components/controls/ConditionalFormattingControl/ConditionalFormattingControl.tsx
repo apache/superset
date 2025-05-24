@@ -19,7 +19,7 @@
 import { useEffect, useState } from 'react';
 import { styled, css, t } from '@superset-ui/core';
 import { Comparator } from '@superset-ui/chart-controls';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { FormattingPopover } from './FormattingPopover';
 import {

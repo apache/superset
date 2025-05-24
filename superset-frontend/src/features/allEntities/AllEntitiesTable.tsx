@@ -18,13 +18,13 @@
  */
 import { extendedDayjs } from 'src/utils/dates';
 import { t, styled } from '@superset-ui/core';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import TagsList from 'src/components/TagsList';
+import TableView, { EmptyWrapperType } from '@superset-ui/core/components/TableView';
+import TagsList from '@superset-ui/core/components/TagsList';
 import Tag from 'src/types/TagType';
-import { EmptyState, FacePile } from 'src/components';
+import { EmptyState, FacePile } from '@superset-ui/core/components';
 import { NumberParam, useQueryParam } from 'use-query-params';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
-import { Typography } from 'src/components/Typography';
+import { Typography } from '@superset-ui/core/components/Typography';
 
 const MAX_TAGS_TO_SHOW = 3;
 const PAGE_SIZE = 10;

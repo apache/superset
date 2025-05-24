@@ -18,7 +18,7 @@
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import { t } from '@superset-ui/core';
 import { isEmpty } from 'lodash';
 import { URL_PARAMS } from 'src/constants';

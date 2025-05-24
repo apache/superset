@@ -35,7 +35,7 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import Popover from 'src/components/Popover';
+import Popover from '@superset-ui/core/components/Popover';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import {
   Label,
@@ -44,14 +44,14 @@ import {
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilters,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import getOwnerName from 'src/utils/getOwnerName';

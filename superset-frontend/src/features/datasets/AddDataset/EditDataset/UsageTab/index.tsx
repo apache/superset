@@ -31,17 +31,17 @@ import Table, {
   ColumnsType,
   TableSize,
   OnChangeFunction,
-} from 'src/components/Table';
+} from '@superset-ui/core/components/Table';
 import {
   EmptyState,
   ListViewFilterOperator as FilterOperator,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import ChartImage from 'src/assets/images/chart.svg';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { extendedDayjs } from 'src/utils/dates';
-import TruncatedList from 'src/components/TruncatedList';
+import TruncatedList from '@superset-ui/core/components/TruncatedList';
 
 interface DatasetUsageProps {
   datasetId: string;

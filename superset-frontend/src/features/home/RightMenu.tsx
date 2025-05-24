@@ -25,7 +25,7 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { get, isEmpty } from 'lodash';
-import ThemeEditor from 'src/components/ThemeEditor';
+import ThemeEditor from '@superset-ui/core/components/ThemeEditor';
 
 import {
   t,
@@ -38,10 +38,10 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
-import { Label, Tooltip } from 'src/components';
-import { Icons } from 'src/components/Icons';
-import { Typography } from 'src/components/Typography';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { Label, Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -54,7 +54,7 @@ import { RootState } from 'src/dashboard/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
-import TelemetryPixel from 'src/components/TelemetryPixel';
+import TelemetryPixel from '@superset-ui/core/components/TelemetryPixel';
 import LanguagePicker from './LanguagePicker';
 import {
   ExtensionConfigs,

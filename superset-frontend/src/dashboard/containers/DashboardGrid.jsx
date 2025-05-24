@@ -18,7 +18,7 @@
  */
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import DashboardGrid from '../components/DashboardGrid';
+import DashboardGrid from '@superset-ui/core/components/DashboardGrid';
 
 import {
   handleComponentDrop,

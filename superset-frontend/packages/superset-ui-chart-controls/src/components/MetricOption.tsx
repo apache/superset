@@ -22,9 +22,9 @@ import {
   css,
   styled,
   Metric,
-  SafeMarkdown,
   SupersetTheme,
 } from '@superset-ui/core';
+import { SafeMarkdown } from '@superset-ui/core/components';
 import { Typography } from 'antd';
 import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';

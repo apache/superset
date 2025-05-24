@@ -36,7 +36,7 @@ import {
   DatasourceType,
 } from '@superset-ui/core';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 import {
   Button,
   Form,
@@ -44,7 +44,7 @@ import {
   Select,
   SQLEditor,
   EmptyState,
-} from 'src/components';
+} from '@superset-ui/core/components';
 
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';

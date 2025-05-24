@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import { rgba } from 'emotion-rgba';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 import { t, css, SupersetTheme } from '@superset-ui/core';
 import SliceAdder from 'src/dashboard/containers/SliceAdder';
 import dashboardComponents from 'src/visualizations/presets/dashboardComponents';

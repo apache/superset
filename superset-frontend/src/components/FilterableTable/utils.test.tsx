@@ -19,8 +19,8 @@
 import { render } from 'spec/helpers/testing-library';
 import { renderResultCell } from './utils';
 
-jest.mock('src/components/JsonModal', () => ({
-  ...jest.requireActual('src/components/JsonModal'),
+jest.mock('@superset-ui/core/components/JsonModal', () => ({
+  ...jest.requireActual('@superset-ui/core/components/JsonModal'),
   JsonModal: () => <div data-test="mock-json-modal" />,
 }));
 

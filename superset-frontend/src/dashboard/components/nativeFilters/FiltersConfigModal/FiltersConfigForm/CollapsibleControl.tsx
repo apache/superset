@@ -18,7 +18,7 @@
  */
 import { ReactNode, useEffect, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import { Checkbox } from 'src/components';
+import { Checkbox } from '@superset-ui/core/components';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 interface CollapsibleControlProps {

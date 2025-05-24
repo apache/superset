@@ -19,14 +19,14 @@
 
 import { useCallback, useState, FormEvent } from 'react';
 
-import { Radio, RadioChangeEvent } from 'src/components/Radio';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import {
   AsyncSelect,
   Button,
   Modal,
   Input,
   type SelectValue,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import {
   styled,
   t,

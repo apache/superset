@@ -18,7 +18,7 @@
  */
 import { Layout, Menu, Button, Card, Alert, Input, Table, Space } from 'antd';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 const { Header, Content, Sider } = Layout;
 

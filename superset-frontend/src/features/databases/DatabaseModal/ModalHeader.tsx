@@ -19,8 +19,8 @@
 
 import { t } from '@superset-ui/core';
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
-import { UploadFile } from 'src/components/Upload';
-import { Typography } from 'src/components/Typography';
+import { UploadFile } from '@superset-ui/core/components/Upload';
+import { Typography } from '@superset-ui/core/components/Typography';
 import { DatabaseForm, DatabaseObject } from '../types';
 import {
   EditHeaderTitle,

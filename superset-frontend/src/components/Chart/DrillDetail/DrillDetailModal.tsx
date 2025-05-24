@@ -26,7 +26,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Button, Modal } from 'src/components';
+import { Button, Modal } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { Slice } from 'src/types/Chart';

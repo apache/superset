@@ -20,8 +20,8 @@ import { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Mustache from 'mustache';
 import { scaleLinear } from 'd3-scale';
-import TableView from 'src/components/TableView';
-import { Typography } from 'src/components/Typography';
+import TableView from '@superset-ui/core/components/TableView';
+import { Typography } from '@superset-ui/core/components/Typography';
 import { styled, t } from '@superset-ui/core';
 import {
   InfoTooltipWithTrigger,

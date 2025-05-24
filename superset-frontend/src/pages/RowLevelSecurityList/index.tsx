@@ -27,8 +27,8 @@ import {
   type ListViewProps,
   type ListViewFilters,
   type ListViewFetchDataConfig as FetchDataConfig,
-} from 'src/components';
-import { Icons } from 'src/components/Icons';
+} from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import rison from 'rison';

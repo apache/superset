@@ -91,5 +91,22 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "exports": {
+    ".": {
+      "import": "./esm/index.js",
+      "require": "./lib/index.js",
+      "types": "./lib/index.d.ts"
+    },
+    "./components": {
+      "import": "./esm/components/index.js",
+      "require": "./lib/components/index.js",
+      "types": "./lib/components/index.d.ts"
+    },
+    "./components/*": {
+      "import": "./esm/components/*/index.js",
+      "require": "./lib/components/*/index.js",
+      "types": "./lib/components/*/index.d.ts"
+    }
   }
 }

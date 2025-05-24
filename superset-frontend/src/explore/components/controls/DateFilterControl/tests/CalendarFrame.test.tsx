@@ -18,7 +18,7 @@
  */
 
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import { CalendarFrame } from '../components/CalendarFrame';
+import { CalendarFrame } from '@superset-ui/core/components/CalendarFrame';
 import { PreviousCalendarWeek, PreviousCalendarQuarter } from '../types';
 import { CALENDAR_RANGE_OPTIONS } from '../utils/constants';
 

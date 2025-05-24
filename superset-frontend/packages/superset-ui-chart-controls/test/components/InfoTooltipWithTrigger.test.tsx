@@ -21,7 +21,7 @@ import { fireEvent, render } from '@testing-library/react';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger, InfoTooltipWithTriggerProps } from '../../src';
 
-jest.mock('../../src/components/Tooltip', () => ({
+jest.mock('../../@superset-ui/core/components/Tooltip', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => (
     <div data-test="mock-tooltip">{children}</div>
   ),

@@ -20,7 +20,7 @@ import { styled, css, SupersetTheme, useTheme } from '@superset-ui/core';
 import cx from 'classnames';
 import { Interweave } from 'interweave';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { ToastType, ToastMeta } from './types';
 
 const ToastContainer = styled.div`

@@ -34,14 +34,14 @@ import {
   type ListViewProps,
   type ListViewActionProps,
   type ListViewFilters,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import {
   FormattedPermission,
   PermissionResource,
   UserObject,
 } from 'src/features/roles/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 const PAGE_SIZE = 25;
 

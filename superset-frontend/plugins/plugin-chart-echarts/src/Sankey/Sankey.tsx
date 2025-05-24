@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SankeyTransformedProps } from './types';
-import Echart from '../components/Echart';
+import Echart from '@superset-ui/core/components/Echart';
 
 export default function Sankey(props: SankeyTransformedProps) {
   const { height, width, echartOptions, refs } = props;

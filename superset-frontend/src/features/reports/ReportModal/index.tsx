@@ -41,11 +41,11 @@ import {
   Input,
   LabeledErrorBoundInput,
   type CronError,
-} from 'src/components';
-import TimezoneSelector from 'src/components/TimezoneSelector';
-import { Icons } from 'src/components/Icons';
-import { Typography } from 'src/components/Typography';
-import { Radio, RadioChangeEvent } from 'src/components/Radio';
+} from '@superset-ui/core/components';
+import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
 import {

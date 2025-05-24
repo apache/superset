@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 
-import { Icons } from 'src/components';
+import { Icons } from '@superset-ui/core/components';
 import { COLUMN_TYPE } from '../../../util/componentTypes';
 import { NEW_COLUMN_ID } from '../../../util/constants';
 import DraggableNewComponent from './DraggableNewComponent';

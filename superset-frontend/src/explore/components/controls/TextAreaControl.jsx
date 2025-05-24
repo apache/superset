@@ -24,10 +24,10 @@ import {
   TooltipProps,
   Button,
   TextAreaEditor,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { t, withTheme } from '@superset-ui/core';
 
-import ModalTrigger from 'src/components/ModalTrigger';
+import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 

@@ -37,7 +37,7 @@ import {
 } from '@superset-ui/core';
 import { ParentSize } from '@visx/responsive';
 import { pick } from 'lodash';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
   DashboardInfo,

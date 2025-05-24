@@ -49,15 +49,15 @@ import {
   type ListViewProps,
   type ListViewFilter,
   type ListViewFilters,
-} from 'src/components';
-import TagsList from 'src/components/TagsList';
+} from '@superset-ui/core/components';
+import TagsList from '@superset-ui/core/components/TagsList';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import Owner from 'src/types/Owner';
 import Tag from 'src/types/TagType';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
@@ -65,13 +65,13 @@ import {
   Dashboard as CRUDDashboard,
   QueryObjectColumns,
 } from 'src/views/CRUD/types';
-import { loadTags } from 'src/components/Tag/utils';
+import { loadTags } from '@superset-ui/core/components/Tag/utils';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { navigateTo } from 'src/utils/navigationUtils';
-import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { WIDER_DROPDOWN_WIDTH } from '@superset-ui/core/components/ListView/utils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(

@@ -41,13 +41,13 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import { Menu } from 'src/components/Menu';
-import { NoAnimationDropdown, Tooltip, Button } from 'src/components';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { NoAnimationDropdown, Tooltip, Button } from '@superset-ui/core/components';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
-import { Icons } from 'src/components/Icons';
-import ModalTrigger from 'src/components/ModalTrigger';
+import { Icons } from '@superset-ui/core/components/Icons';
+import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';

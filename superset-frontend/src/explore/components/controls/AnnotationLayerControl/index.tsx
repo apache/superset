@@ -28,14 +28,14 @@ import {
   withTheme,
 } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { AsyncEsmComponent, List } from 'src/components';
+import { AsyncEsmComponent, List } from '@superset-ui/core/components';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import ControlPopover, {
   getSectionContainerElement,
 } from '../ControlPopover/ControlPopover';

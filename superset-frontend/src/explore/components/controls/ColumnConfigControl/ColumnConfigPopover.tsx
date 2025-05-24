@@ -17,7 +17,7 @@
  * under the License.
  */
 import { GenericDataType } from '@superset-ui/core';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 import {
   SHARED_COLUMN_CONFIG_PROPS,
   SharedColumnConfigProp,

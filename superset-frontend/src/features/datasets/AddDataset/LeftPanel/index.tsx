@@ -18,8 +18,8 @@
  */
 import { useEffect, SetStateAction, Dispatch, useCallback } from 'react';
 import { styled, t } from '@superset-ui/core';
-import TableSelector, { TableOption } from 'src/components/TableSelector';
-import { EmptyState, type DatabaseObject } from 'src/components';
+import TableSelector, { TableOption } from '@superset-ui/core/components/TableSelector';
+import { EmptyState, type DatabaseObject } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
 import {
@@ -27,7 +27,7 @@ import {
   DatasetObject,
 } from 'src/features/datasets/AddDataset/types';
 import { Table } from 'src/hooks/apiResources';
-import { Typography } from 'src/components/Typography';
+import { Typography } from '@superset-ui/core/components/Typography';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;

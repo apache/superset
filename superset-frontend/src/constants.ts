@@ -20,7 +20,7 @@ import {
   t,
   DEFAULT_D3_FORMAT,
   DEFAULT_D3_TIME_FORMAT,
-} from '@superset-ui/core';
+} from '@superset-ui/core/components/constants';
 
 import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
 

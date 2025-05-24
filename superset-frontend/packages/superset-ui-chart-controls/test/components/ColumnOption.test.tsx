@@ -26,16 +26,16 @@ import {
 
 import { ColumnOption, ColumnOptionProps } from '../../src';
 
-jest.mock('../../src/components/SQLPopover', () => ({
+jest.mock('../../@superset-ui/core/components/SQLPopover', () => ({
   SQLPopover: () => <div data-test="mock-sql-popover" />,
 }));
-jest.mock('../../src/components/ColumnTypeLabel/ColumnTypeLabel', () => ({
+jest.mock('../../@superset-ui/core/components/ColumnTypeLabel/ColumnTypeLabel', () => ({
   ColumnTypeLabel: ({ type }: { type: string }) => (
     <div data-test="mock-column-type-label">{type}</div>
   ),
 }));
 
-jest.mock('../../src/components/InfoTooltipWithTrigger', () => ({
+jest.mock('../../@superset-ui/core/components/InfoTooltipWithTrigger', () => ({
   InfoTooltipWithTrigger: () => (
     <div data-test="mock-info-tooltip-with-trigger" />
   ),

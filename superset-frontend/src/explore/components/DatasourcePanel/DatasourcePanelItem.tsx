@@ -26,8 +26,8 @@ import {
   useTheme,
 } from '@superset-ui/core';
 
-import { Icons } from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Tooltip } from '@superset-ui/core/components/Tooltip';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { DndItemValue, FlattenedItem, Folder } from './types';

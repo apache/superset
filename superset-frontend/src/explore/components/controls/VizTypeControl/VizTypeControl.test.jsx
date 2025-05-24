@@ -26,7 +26,7 @@ import {
   userEvent,
 } from 'spec/helpers/testing-library';
 import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
-import { DynamicPluginProvider } from 'src/components';
+import { DynamicPluginProvider } from '@superset-ui/core/components';
 
 const defaultProps = {
   name: 'viz_type',

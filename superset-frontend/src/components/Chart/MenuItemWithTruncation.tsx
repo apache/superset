@@ -19,8 +19,8 @@
 
 import { ReactNode, CSSProperties } from 'react';
 import { css, truncationCSS, useCSSTextTruncation } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
-import { Tooltip } from 'src/components';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { Tooltip } from '@superset-ui/core/components';
 import { MenuItemProps } from 'antd';
 
 export type MenuItemWithTruncationProps = {

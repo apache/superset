@@ -28,7 +28,7 @@ import {
   BinaryQueryObjectFilterClause,
   themeObject,
 } from '@superset-ui/core';
-import Echart from '../components/Echart';
+import Echart from '@superset-ui/core/components/Echart';
 import { BigNumberVizProps } from './types';
 import { EventHandlers } from '../types';
 

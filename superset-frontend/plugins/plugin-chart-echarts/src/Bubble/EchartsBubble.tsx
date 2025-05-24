@@ -17,7 +17,7 @@
  * under the License.
  */
 import { BubbleChartTransformedProps } from './types';
-import Echart from '../components/Echart';
+import Echart from '@superset-ui/core/components/Echart';
 
 export default function EchartsBubble(props: BubbleChartTransformedProps) {
   const { height, width, echartOptions, refs } = props;

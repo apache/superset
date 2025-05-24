@@ -18,9 +18,9 @@
  */
 import { useState } from 'react';
 import { t } from '@superset-ui/core';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 import { RoleObject } from 'src/pages/RolesList';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import TableView, { EmptyWrapperType } from '@superset-ui/core/components/TableView';
 import {
   BaseModalProps,
   FormattedPermission,
@@ -28,7 +28,7 @@ import {
   UserObject,
 } from 'src/features/roles/types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { FormModal } from 'src/components';
+import { FormModal } from '@superset-ui/core/components';
 import { PermissionsField, RoleNameField, UsersField } from './RoleFormItems';
 import {
   updateRoleName,

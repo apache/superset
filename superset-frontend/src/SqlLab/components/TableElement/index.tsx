@@ -31,7 +31,7 @@ import {
   IconTooltip,
   Loading,
   type CollapseProps,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { t, styled, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
@@ -46,11 +46,11 @@ import {
   useTableExtendedMetadataQuery,
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
-import ModalTrigger from 'src/components/ModalTrigger';
+import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { ActionType } from 'src/types/Action';
-import { Icons } from 'src/components/Icons';
-import { Space } from 'src/components/Space';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Space } from '@superset-ui/core/components/Space';
 import ColumnElement, { ColumnKeyTypeType } from '../ColumnElement';
 import ShowSQL from '../ShowSQL';
 

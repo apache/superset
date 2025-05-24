@@ -27,9 +27,9 @@ import {
   useCSSTextTruncation,
   fetchTimeRange,
 } from '@superset-ui/core';
-import { Button, Divider, Modal, Tooltip, Select } from 'src/components';
+import { Button, Divider, Modal, Tooltip, Select } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { noOp } from 'src/utils/common';
@@ -49,7 +49,7 @@ import {
   AdvancedFrame,
   DateLabel,
 } from './components';
-import { CurrentCalendarFrame } from './components/CurrentCalendarFrame';
+import { CurrentCalendarFrame } from '@superset-ui/core/components/CurrentCalendarFrame';
 
 const StyledRangeType = styled(Select)`
   width: 272px;

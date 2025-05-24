@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Icons } from 'src/components/Icons';
-import { Button, Tag } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Button, Tag } from '@superset-ui/core/components';
 import { FC } from 'react';
 import { LayerTreeItemProps } from './types';
 

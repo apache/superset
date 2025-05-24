@@ -19,7 +19,7 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { fetchSlices, updateSlices } from '../actions/sliceEntities';
-import SliceAdder from '../components/SliceAdder';
+import SliceAdder from '@superset-ui/core/components/SliceAdder';
 
 function mapStateToProps(
   { sliceEntities, dashboardInfo, dashboardState },

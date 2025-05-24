@@ -23,7 +23,7 @@ import { t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { Loading } from 'src/components';
+import { Loading } from '@superset-ui/core/components';
 import {
   useDashboard,
   useDashboardCharts,
@@ -58,7 +58,7 @@ import {
 } from '../styles';
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
-} from '../components/SyncDashboardState';
+} from '@superset-ui/core/components/SyncDashboardState';
 
 export const DashboardPageIdContext = createContext('');
 

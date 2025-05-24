@@ -18,7 +18,7 @@
  */
 
 import { forwardRef, RefObject, MouseEvent } from 'react';
-import { Button, ErrorAlert } from 'src/components';
+import { Button, ErrorAlert } from '@superset-ui/core/components';
 
 interface ControlPanelAlertProps {
   title: string;

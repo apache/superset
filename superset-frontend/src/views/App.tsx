@@ -26,7 +26,7 @@ import {
 } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { css } from '@superset-ui/core';
-import { ErrorBoundary, Layout, Loading } from 'src/components';
+import { ErrorBoundary, Layout, Loading } from '@superset-ui/core/components';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
