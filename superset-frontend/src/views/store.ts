@@ -23,8 +23,8 @@ import {
 } from '@reduxjs/toolkit';
 import thunk from 'redux-thunk';
 import { api } from 'src/hooks/apiResources/queryApi';
-import messageToastReducer from 'src/core/components/MessageToasts/reducers';
-import charts from 'src/core/components/Chart/chartReducer';
+import messageToastReducer from 'src/components/MessageToasts/reducers';
+import charts from 'src/components/Chart/chartReducer';
 import dataMask from 'src/dataMask/reducer';
 import reports from 'src/features/reports/ReportModal/reducer';
 import dashboardInfo from 'src/dashboard/reducers/dashboardInfo';

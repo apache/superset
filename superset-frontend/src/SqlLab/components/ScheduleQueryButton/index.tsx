@@ -23,7 +23,7 @@ import { FormValidation } from '@rjsf/utils';
 import validator from '@rjsf/validator-ajv8';
 import { t, styled } from '@superset-ui/core';
 import { parseDate } from 'chrono-node';
-import ModalTrigger, { ModalTriggerRef } from '@superset-ui/core/components/ModalTrigger';
+import { ModalTrigger, ModalTriggerRef } from '@superset-ui/core/components/ModalTrigger';
 import { Input, Button, Form, FormItem, Row, Col } from '@superset-ui/core/components';
 import getBootstrapData from 'src/utils/getBootstrapData';
 

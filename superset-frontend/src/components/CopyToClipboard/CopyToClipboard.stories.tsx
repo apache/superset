@@ -18,7 +18,7 @@
  */
 import { Icons } from '@superset-ui/core/components/Icons';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
-import { Button } from '../Button';
+import { Button } from '@superset-ui/core/components';
 import { CopyToClipboard } from '.';
 
 export default {

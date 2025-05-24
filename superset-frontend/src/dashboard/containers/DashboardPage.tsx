@@ -58,7 +58,7 @@ import {
 } from '../styles';
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
-} from '@superset-ui/core/components/SyncDashboardState';
+} from '../components/SyncDashboardState';
 
 export const DashboardPageIdContext = createContext('');
 

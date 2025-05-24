@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
-import { CurrentCalendarFrame } from '@superset-ui/core/components/CurrentCalendarFrame';
+import { CurrentCalendarFrame } from '../components/CurrentCalendarFrame';
 import { CurrentWeek } from '../types';
 
 const mockOnChange = jest.fn();

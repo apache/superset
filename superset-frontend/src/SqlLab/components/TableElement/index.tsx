@@ -26,12 +26,13 @@ import {
   Card,
   Collapse,
   Tooltip,
-  CopyToClipboard,
   Flex,
   IconTooltip,
   Loading,
+  ModalTrigger,
   type CollapseProps,
 } from '@superset-ui/core/components';
+import { CopyToClipboard } from 'src/components';
 import { t, styled, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
@@ -46,7 +47,6 @@ import {
   useTableExtendedMetadataQuery,
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
-import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { ActionType } from 'src/types/Action';
 import { Icons } from '@superset-ui/core/components/Icons';

@@ -34,14 +34,13 @@ import {
   ButtonGroup,
   Tooltip,
   Card,
-  CopyToClipboard,
   ErrorMessageWithStackTrace,
   Modal,
-  FilterableTable,
   Input,
   Label,
   Loading,
 } from '@superset-ui/core/components';
+import { CopyToClipboard, FilterableTable } from 'src/components';
 import { nanoid } from 'nanoid';
 import {
   QueryState,

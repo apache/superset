@@ -21,7 +21,8 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 
-import { css, styled, t, SafeMarkdown } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
+import { SafeMarkdown } from '@superset-ui/core/components';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { MarkdownEditor } from '@superset-ui/core/components';
 

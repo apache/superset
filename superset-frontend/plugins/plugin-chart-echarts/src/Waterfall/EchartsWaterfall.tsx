@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Echart from '@superset-ui/core/components/Echart';
+import Echart from '../components/Echart';
 import { WaterfallChartTransformedProps } from './types';
 import { EventHandlers } from '../types';
 

@@ -34,11 +34,11 @@ import {
   DataMaskWithId,
   Filter,
   DataMask,
-  SLOW_DEBOUNCE,
   isNativeFilter,
   usePrevious,
   styled,
 } from '@superset-ui/core';
+import { SLOW_DEBOUNCE } from '@superset-ui/core/components/constants';
 import { useHistory } from 'react-router-dom';
 import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
 import { useImmer } from 'use-immer';

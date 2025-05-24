@@ -20,8 +20,7 @@ import { useState, useEffect } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
-import { Badge, ConfigEditor, Tooltip } from '@superset-ui/core/components';
-import ModalTrigger from '@superset-ui/core/components/ModalTrigger';
+import { Badge, ConfigEditor, ModalTrigger, Tooltip } from '@superset-ui/core/components';
 import { FAST_DEBOUNCE } from 'src/constants';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 

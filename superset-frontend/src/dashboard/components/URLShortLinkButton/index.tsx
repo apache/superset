@@ -19,7 +19,8 @@
 import { useState } from 'react';
 import { getClientErrorObject, t, useTheme } from '@superset-ui/core';
 import Popover, { PopoverProps } from '@superset-ui/core/components/Popover';
-import { CopyToClipboard, Button, Icons } from '@superset-ui/core/components';
+import { Button, Icons } from '@superset-ui/core/components';
+import { CopyToClipboard } from 'src/components';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { shallowEqual, useSelector } from 'react-redux';

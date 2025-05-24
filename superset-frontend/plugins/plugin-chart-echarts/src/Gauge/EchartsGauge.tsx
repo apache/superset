@@ -17,7 +17,7 @@
  * under the License.
  */
 import { GaugeChartTransformedProps } from './types';
-import Echart from '@superset-ui/core/components/Echart';
+import Echart from '../components/Echart';
 import { allEventHandlers } from '../utils/eventHandlers';
 
 export default function EchartsGauge(props: GaugeChartTransformedProps) {

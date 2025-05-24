@@ -18,7 +18,8 @@
  */
 import { FC, useEffect, useState } from 'react';
 
-import { FAST_DEBOUNCE, css, styled } from '@superset-ui/core';
+import { css, styled } from '@superset-ui/core';
+import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { useDragDropManager } from 'react-dnd';

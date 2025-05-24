@@ -32,7 +32,6 @@ import {
   Behavior,
   Column,
   ContextMenuFilters,
-  FAST_DEBOUNCE,
   JsonResponse,
   css,
   ensureIsArray,
@@ -42,6 +41,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
+import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
 import rison from 'rison';
 import { debounce } from 'lodash';
 import { FixedSizeList as List } from 'react-window';

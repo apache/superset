@@ -21,7 +21,7 @@ import { bindActionCreators } from 'redux';
 
 import { updateDashboardFiltersScope } from '../actions/dashboardFilters';
 import { setUnsavedChanges } from '../actions/dashboardState';
-import FilterScopeSelector from '@superset-ui/core/components/filterscope/FilterScopeSelector';
+import FilterScopeSelector from '../components/filterscope/FilterScopeSelector';
 
 function mapStateToProps({ dashboardLayout, dashboardFilters }) {
   return {

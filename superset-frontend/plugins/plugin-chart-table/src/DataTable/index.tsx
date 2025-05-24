@@ -17,9 +17,9 @@
  * under the License.
  */
 export * from './hooks/useSticky';
-export * from '@superset-ui/core/components/GlobalFilter';
-export * from '@superset-ui/core/components/Pagination';
-export * from '@superset-ui/core/components/SelectPageSize';
+export * from './components/GlobalFilter';
+export * from './components/Pagination';
+export * from './components/SelectPageSize';
 export * from './DataTable';
 
 export { default } from './DataTable';

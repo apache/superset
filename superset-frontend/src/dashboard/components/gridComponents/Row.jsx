@@ -29,12 +29,12 @@ import PropTypes from 'prop-types';
 import cx from 'classnames';
 import {
   css,
-  FAST_DEBOUNCE,
   FeatureFlag,
   isFeatureEnabled,
   styled,
   t,
 } from '@superset-ui/core';
+import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
 
 import {
   Draggable,

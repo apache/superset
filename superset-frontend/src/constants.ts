@@ -17,10 +17,10 @@
  * under the License.
  */
 import {
-  t,
   DEFAULT_D3_FORMAT,
   DEFAULT_D3_TIME_FORMAT,
-} from '@superset-ui/core/components/constants';
+} from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 
 import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
 

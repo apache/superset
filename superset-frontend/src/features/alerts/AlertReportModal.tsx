@@ -80,9 +80,9 @@ import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
-import NumberInput from '@superset-ui/core/components/NumberInput';
-import { AlertReportCronScheduler } from '@superset-ui/core/components/AlertReportCronScheduler';
-import { NotificationMethod } from '@superset-ui/core/components/NotificationMethod';
+import NumberInput from './components/NumberInput';
+import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
+import { NotificationMethod } from './components/NotificationMethod';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 
 const TIMEOUT_MIN = 1;

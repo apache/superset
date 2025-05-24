@@ -32,7 +32,7 @@ import {
 } from 'src/logger/LogUtils';
 import { RootState } from 'src/dashboard/types';
 import { getDashboardUrlParams } from 'src/utils/urlUtils';
-import { DownloadScreenshotFormat } from '@superset-ui/core/components/menu/DownloadMenuItems/types';
+import { DownloadScreenshotFormat } from '../components/menu/DownloadMenuItems/types';
 
 const RETRY_INTERVAL = 3000;
 const MAX_RETRIES = 30;

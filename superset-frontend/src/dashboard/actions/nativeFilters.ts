@@ -30,7 +30,7 @@ import {
   dashboardInfoChanged,
   nativeFiltersConfigChanged,
 } from './dashboardInfo';
-import { SaveFilterChangesType } from '@superset-ui/core/components/nativeFilters/FiltersConfigModal/types';
+import { SaveFilterChangesType } from '../components/nativeFilters/FiltersConfigModal/types';
 
 export const SET_NATIVE_FILTERS_CONFIG_BEGIN =
   'SET_NATIVE_FILTERS_CONFIG_BEGIN';

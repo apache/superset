@@ -49,7 +49,7 @@ import {
   AdvancedFrame,
   DateLabel,
 } from './components';
-import { CurrentCalendarFrame } from '@superset-ui/core/components/CurrentCalendarFrame';
+import { CurrentCalendarFrame } from './components/CurrentCalendarFrame';
 
 const StyledRangeType = styled(Select)`
   width: 272px;

@@ -18,7 +18,7 @@
  */
 import { styled } from '@superset-ui/core';
 import { createRef } from 'react';
-import { HandlebarsViewer } from '@superset-ui/core/components/Handlebars/HandlebarsViewer';
+import { HandlebarsViewer } from './components/Handlebars/HandlebarsViewer';
 import { HandlebarsProps, HandlebarsStylesProps } from './types';
 
 const Styles = styled.div<HandlebarsStylesProps>`

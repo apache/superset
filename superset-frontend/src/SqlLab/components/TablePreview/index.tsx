@@ -25,10 +25,10 @@ import {
   ClientErrorObject,
   css,
   getExtensionsRegistry,
-  SafeMarkdown,
   styled,
   t,
 } from '@superset-ui/core';
+import { SafeMarkdown } from '@superset-ui/core/components';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
@@ -37,11 +37,13 @@ import {
   Breadcrumb,
   Button,
   Card,
-  CopyToClipboard,
   Dropdown,
-  FilterableTable,
   Skeleton,
 } from '@superset-ui/core/components';
+import {
+  CopyToClipboard,
+  FilterableTable,
+} from 'src/components';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
   tableApiUtil,
