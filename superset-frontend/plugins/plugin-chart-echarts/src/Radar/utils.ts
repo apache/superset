@@ -20,7 +20,7 @@
  function for finding the max metric values among all series data for Radar Chart
 */
 export const findGlobalMax = (
-  data: Record<string, number | string>[],
+  data: Record<string, unknown>[],
   metrics: string[],
 ): number => {
   if (!data?.length || !metrics?.length) return 0;
