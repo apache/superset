@@ -49,6 +49,7 @@ import { defaultGrid } from '../defaults';
 import { Refs } from '../types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { renderNormalizedTooltip } from './NormalizedTooltip';
+import { findGlobalMax } from './utils';
 
 export function formatLabel({
   params,
@@ -100,9 +101,8 @@ export default function transformProps(
   } = chartProps;
   const refs: Refs = {};
   const { data = [] } = queriesData[0];
+  const globalMax = findGlobalMax(data, Object.keys(data[0] || {}));
   const coltypeMapping = getColtypesMapping(queriesData[0]);
-
-  console.log(chartProps, 'chart props');
 
   const {
     colorScheme,
@@ -296,12 +296,14 @@ export default function transformProps(
     const minValueInControl = columnConfig?.[metricLabel]?.radarMetricMinValue;
 
     // Ensure that 0 is at the center of the polar coordinates
-    const metricValueAsMax =
+    const maxValue =
       metricLabelAndMaxValueMap.get(metricLabel) === 0
         ? Number.MAX_SAFE_INTEGER
-        : metricLabelAndMaxValueMap.get(metricLabel);
+        : globalMax;
     const max =
-      maxValueInControl === null ? metricValueAsMax : maxValueInControl;
+      isNull(maxValueInControl) || isUndefined(maxValueInControl)
+        ? maxValue
+        : maxValueInControl;
 
     let min: number;
     // If the min value doesn't exist, set it to 0 (default),
@@ -374,24 +376,6 @@ export default function transformProps(
       indicator,
     },
   };
-
-  console.log(
-    {
-      formData,
-      width,
-      height,
-      echartOptions,
-      emitCrossFilters,
-      setDataMask,
-      labelMap: Object.fromEntries(columnsLabelMap),
-      groupby,
-      selectedValues,
-      onContextMenu,
-      refs,
-      coltypeMapping,
-    },
-    'output',
-  );
 
   return {
     formData,
