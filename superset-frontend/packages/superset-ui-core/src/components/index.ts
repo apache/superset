@@ -51,7 +51,8 @@ export {
   type AvatarGroupProps,
 } from './Avatar';
 export { Badge, type BadgeProps } from './Badge';
-export { Tooltip, type TooltipProps } from './Tooltip';
+export { Tooltip } from './Tooltip';
+export type { TooltipProps } from './Tooltip';
 export { Button, type ButtonProps, type OnClickHandler } from './Button';
 export { ButtonGroup, type ButtonGroupProps } from './ButtonGroup';
 export { Breadcrumb, type BreadcrumbProps } from './Breadcrumb';

@@ -19,7 +19,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
 import { EmptyState, Loading } from '@superset-ui/core/components';
-import TableView, { EmptyWrapperType } from '@superset-ui/core/components/TableView';
+import TableView, {
+  EmptyWrapperType,
+} from '@superset-ui/core/components/TableView';
 import {
   useFilteredTableData,
   useTableColumns,

@@ -17,7 +17,14 @@
  * under the License.
  */
 import { useMemo, ReactNode } from 'react';
-import { Card, Button, Tooltip, Label } from '@superset-ui/core/components';
+import {
+  Card,
+  Button,
+  Tooltip,
+  Label,
+  Icons,
+  ModalTrigger,
+} from '@superset-ui/core/components';
 import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { t, useTheme, QueryResponse } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
@@ -31,7 +38,6 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import TableView from '@superset-ui/core/components/TableView';
 import { fDuration, extendedDayjs } from 'src/utils/dates';
-import { Icons, ModalTrigger } from '@superset-ui/core/components';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import ResultSet from '../ResultSet';

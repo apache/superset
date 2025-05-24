@@ -21,7 +21,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { t, SupersetClient } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { ActionsBar, ActionProps } from '@superset-ui/core/components/ListView/ActionsBar';
+import {
+  ActionsBar,
+  ActionProps,
+} from '@superset-ui/core/components/ListView/ActionsBar';
 import {
   DeleteModal,
   ListView,

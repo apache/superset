@@ -29,11 +29,7 @@ import {
   ReactElement,
 } from 'react';
 
-import {
-  ensureIsArray,
-  t,
-  usePrevious,
-} from '@superset-ui/core';
+import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
 import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
 import {
   LabeledValue as AntdLabeledValue,

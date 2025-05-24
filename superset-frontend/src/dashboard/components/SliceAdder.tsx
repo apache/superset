@@ -23,7 +23,13 @@ import { FixedSizeList as List } from 'react-window';
 // @ts-ignore
 import { createFilter } from 'react-search-input';
 import { t, styled, css } from '@superset-ui/core';
-import { Button, Select, Checkbox, Input, Loading } from '@superset-ui/core/components';
+import {
+  Button,
+  Select,
+  Checkbox,
+  Input,
+  Loading,
+} from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   LocalStorageKeys,

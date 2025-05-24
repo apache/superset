@@ -23,7 +23,12 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { extendedDayjs } from 'src/utils/dates';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Input, JsonEditor, Modal, RangePicker } from '@superset-ui/core/components';
+import {
+  Input,
+  JsonEditor,
+  Modal,
+  RangePicker,
+} from '@superset-ui/core/components';
 
 import { OnlyKeyWithType } from 'src/utils/types';
 import { AnnotationObject } from './types';

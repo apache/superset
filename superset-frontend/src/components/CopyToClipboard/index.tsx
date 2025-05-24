@@ -19,8 +19,8 @@
 import { Component, cloneElement, ReactElement } from 'react';
 import { t } from '@superset-ui/core';
 import copyTextToClipboard from 'src/utils/copy';
-import withToasts from '../MessageToasts/withToasts';
 import { Tooltip } from '@superset-ui/core/components';
+import withToasts from '../MessageToasts/withToasts';
 import type { CopyToClipboardProps } from './types';
 
 const defaultProps: Partial<CopyToClipboardProps> = {

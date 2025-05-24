@@ -17,12 +17,9 @@
  * under the License.
  */
 import { useEffect, useRef, useState } from 'react';
-import { useTheme } from '@superset-ui/core';
-import type { LabelType } from '@superset-ui/core/components/Label/types';
-import { Label } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
-
-import { now, fDuration } from 'src/utils/dates';
+import { now, fDuration } from '../../utils/dates';
+import { useTheme } from '../..';
+import { Label, Icons, type LabelType } from '..';
 
 export interface TimerProps {
   endTime?: number;

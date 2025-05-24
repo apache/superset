@@ -18,12 +18,7 @@
  */
 import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
 
-import {
-  css,
-  styled,
-  Metric,
-  SupersetTheme,
-} from '@superset-ui/core';
+import { css, styled, Metric, SupersetTheme } from '@superset-ui/core';
 import { SafeMarkdown } from '@superset-ui/core/components';
 import { Typography } from 'antd';
 import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';

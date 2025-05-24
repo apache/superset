@@ -22,7 +22,7 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { Button, Upload } from '@superset-ui/core/components';
+import { Button, Upload } from '..';
 
 describe('Upload Component', () => {
   test('renders upload button and triggers file upload', async () => {

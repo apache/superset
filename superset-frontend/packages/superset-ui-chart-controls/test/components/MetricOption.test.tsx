@@ -27,9 +27,12 @@ jest.mock('../../@superset-ui/core/components/InfoTooltipWithTrigger', () => ({
   ),
 }));
 
-jest.mock('../../@superset-ui/core/components/ColumnTypeLabel/ColumnTypeLabel', () => ({
-  ColumnTypeLabel: () => <div data-test="mock-column-type-label" />,
-}));
+jest.mock(
+  '../../@superset-ui/core/components/ColumnTypeLabel/ColumnTypeLabel',
+  () => ({
+    ColumnTypeLabel: () => <div data-test="mock-column-type-label" />,
+  }),
+);
 jest.mock(
   '../../@superset-ui/core/components/Tooltip',
   () =>

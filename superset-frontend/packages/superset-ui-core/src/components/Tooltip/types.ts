@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type { TooltipProps } from 'antd/es/tooltip';
+import { Tooltip } from 'antd';
+
+export type TooltipProps = React.ComponentProps<typeof Tooltip> & {
+  overlayStyle?: React.CSSProperties;
+};
 
 export type TooltipPlacement =
   | 'top'

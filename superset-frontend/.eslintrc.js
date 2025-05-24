@@ -25,6 +25,9 @@ Object.entries(packageConfig.dependencies).forEach(([pkg]) => {
   }
 });
 
+// Add internal paths to core modules
+importCoreModules.push('src', 'spec');
+
 // ignore files in production mode
 let ignorePatterns = [];
 if (process.env.NODE_ENV === 'production') {
@@ -96,6 +99,10 @@ module.exports = {
         extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
         // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
         moduleDirectory: ['node_modules', '.'],
+      },
+      typescript: {
+        alwaysTryTypes: true,
+        project: './tsconfig.json',
       },
     },
     // only allow import from top level of module
@@ -326,7 +333,10 @@ module.exports = {
       rules: {
         'import/no-extraneous-dependencies': [
           'error',
-          { devDependencies: true },
+          { 
+            devDependencies: true,
+            packageDir: ['.', './packages/superset-ui-core'],
+          },
         ],
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,

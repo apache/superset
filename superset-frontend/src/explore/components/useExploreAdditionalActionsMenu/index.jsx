@@ -27,9 +27,8 @@ import {
   useTheme,
   VizType,
 } from '@superset-ui/core';
-import { Icons, ModalTrigger } from '@superset-ui/core/components';
+import { Icons, ModalTrigger, Button } from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
-import { Button } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';

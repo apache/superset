@@ -18,7 +18,14 @@
  */
 import { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
-import { Input, Form, FormLabel, Col, Row, Tooltip } from '@superset-ui/core/components';
+import {
+  Input,
+  Form,
+  FormLabel,
+  Col,
+  Row,
+  Tooltip,
+} from '@superset-ui/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { DatabaseObject, FieldPropTypes } from '../types';

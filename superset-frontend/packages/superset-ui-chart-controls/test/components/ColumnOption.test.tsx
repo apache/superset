@@ -29,11 +29,14 @@ import { ColumnOption, ColumnOptionProps } from '../../src';
 jest.mock('../../@superset-ui/core/components/SQLPopover', () => ({
   SQLPopover: () => <div data-test="mock-sql-popover" />,
 }));
-jest.mock('../../@superset-ui/core/components/ColumnTypeLabel/ColumnTypeLabel', () => ({
-  ColumnTypeLabel: ({ type }: { type: string }) => (
-    <div data-test="mock-column-type-label">{type}</div>
-  ),
-}));
+jest.mock(
+  '../../@superset-ui/core/components/ColumnTypeLabel/ColumnTypeLabel',
+  () => ({
+    ColumnTypeLabel: ({ type }: { type: string }) => (
+      <div data-test="mock-column-type-label">{type}</div>
+    ),
+  }),
+);
 
 jest.mock('../../@superset-ui/core/components/InfoTooltipWithTrigger', () => ({
   InfoTooltipWithTrigger: () => (

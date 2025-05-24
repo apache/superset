@@ -17,7 +17,11 @@
  * under the License.
  */
 import { useState, FC } from 'react';
-import { ParagraphProps, Typography, Tooltip } from '@superset-ui/core/components';
+import {
+  ParagraphProps,
+  Typography,
+  Tooltip,
+} from '@superset-ui/core/components';
 
 const TooltipParagraph: FC<ParagraphProps> = ({
   children,

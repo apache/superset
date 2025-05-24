@@ -45,6 +45,7 @@ import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
+import { FilterableTable } from 'src/components/FilterableTable';
 import { Loading } from '../Loading';
 import { Alert } from '../Alert';
 import { Badge } from '../Badge';
@@ -64,7 +65,6 @@ import Fieldset from './Fieldset';
 import Field from './Field';
 import { fetchSyncedColumns, updateColumns } from './utils';
 import { Typography } from '../Typography';
-import { FilterableTable } from 'src/components/FilterableTable';
 
 const extensionsRegistry = getExtensionsRegistry();
 

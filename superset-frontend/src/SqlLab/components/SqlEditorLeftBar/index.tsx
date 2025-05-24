@@ -33,7 +33,12 @@ import {
   addDangerToast,
   resetState,
 } from 'src/SqlLab/actions/sqlLab';
-import { Button, EmptyState, Icons, type DatabaseObject } from '@superset-ui/core/components';
+import {
+  Button,
+  EmptyState,
+  Icons,
+  type DatabaseObject,
+} from '@superset-ui/core/components';
 import { t, styled, css } from '@superset-ui/core';
 import { TableSelectorMultiple } from '@superset-ui/core/components/TableSelector';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';

@@ -26,7 +26,14 @@ import {
   getExtensionsRegistry,
 } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { Button, FormItem, Input, Modal, Loading, Form } from '@superset-ui/core/components';
+import {
+  Button,
+  FormItem,
+  Input,
+  Modal,
+  Loading,
+  Form,
+} from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { EmbeddedDashboard } from 'src/dashboard/types';
 import { Typography } from '@superset-ui/core/components/Typography';
