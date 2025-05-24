@@ -58,6 +58,8 @@ import {
 } from '../../util/activeDashboardFilters';
 import getFormDataWithExtraFilters from '../../util/charts/getFormDataWithExtraFilters';
 import { PLACEHOLDER_DATASOURCE } from '../../constants';
+import * as XLSX from 'xlsx';
+import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -471,6 +473,7 @@ const Chart = props => {
         formData={formData}
         width={width}
         height={getHeaderHeight()}
+        exportPivotExcel={exportPivotExcel}
       />
 
       {/*
