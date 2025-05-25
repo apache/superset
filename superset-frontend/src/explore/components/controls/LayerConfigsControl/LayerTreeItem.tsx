@@ -17,7 +17,8 @@
  * under the License.
  */
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Button, Tag } from '@superset-ui/core/components';
+import { Button } from '@superset-ui/core/components';
+import { Tag } from 'src/components';
 import { FC } from 'react';
 import { LayerTreeItemProps } from './types';
 

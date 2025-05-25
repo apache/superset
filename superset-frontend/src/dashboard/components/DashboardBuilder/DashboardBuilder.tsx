@@ -29,12 +29,8 @@ import {
   useElementOnScreen,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  ErrorBoundary,
-  EmptyState,
-  BasicErrorAlert,
-  Loading,
-} from '@superset-ui/core/components';
+import { EmptyState, Loading } from '@superset-ui/core/components';
+import { ErrorBoundary, BasicErrorAlert } from 'src/components';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
 import { Icons } from '@superset-ui/core/components/Icons';

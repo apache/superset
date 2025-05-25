@@ -43,7 +43,7 @@ import Tabs from '@superset-ui/core/components/Tabs';
 import {
   Alert,
   Button,
-  ErrorMessageWithStackTrace,
+  Icons,
   LabeledErrorBoundInput as ValidatedInput,
   Modal,
   Select,
@@ -55,9 +55,8 @@ import {
   type UploadFile,
   FormLabel,
 } from '@superset-ui/core/components';
+import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { ErrorAlert } from 'src/components/ImportModal/ErrorAlert';
-import { Icons } from '@superset-ui/core/components/Icons';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -1525,10 +1524,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     return (
       <StyledAlertMargin>
-        <ErrorAlert
-          errorMessage={importingErrorMessage}
-          showDbInstallInstructions={passwordFields.length > 0}
-        />
+        <ErrorAlert message={importingErrorMessage} />
       </StyledAlertMargin>
     );
   };

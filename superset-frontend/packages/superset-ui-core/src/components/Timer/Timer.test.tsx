@@ -19,9 +19,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, sleep, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { Timer, TimerProps } from '.';
 import { now } from '../../utils/dates';
+
+function sleep(time: number) {
+  return new Promise(resolve => {
+    setTimeout(resolve, time);
+  });
+}
 
 function parseTime(text?: string | null) {
   return !!text && Number(text.replace(/:/g, ''));

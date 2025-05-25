@@ -23,8 +23,10 @@ import type { Column, ColumnPinnedType, GridApi } from 'ag-grid-community';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Menu } from '@superset-ui/core/components/Menu';
 import copyTextToClipboard from 'src/utils/copy';
-import { MenuDotsDropdown } from '../Dropdown';
-import type { DropdownProps } from '../Dropdown/types';
+import {
+  MenuDotsDropdown,
+  type DropdownProps,
+} from '@superset-ui/core/components';
 import { PIVOT_COL_ID } from './constants';
 
 const IconEmpty = styled.span`

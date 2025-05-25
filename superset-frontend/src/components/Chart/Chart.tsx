@@ -30,11 +30,8 @@ import {
   ChartDataResponse,
 } from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
-import {
-  EmptyState,
-  ErrorBoundary,
-  Loading,
-} from '@superset-ui/core/components';
+import { EmptyState, Loading } from '@superset-ui/core/components';
+import { ErrorBoundary } from 'src/components';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';

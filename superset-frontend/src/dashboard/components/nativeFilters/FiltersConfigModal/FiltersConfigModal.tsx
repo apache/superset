@@ -29,8 +29,8 @@ import {
 } from '@superset-ui/core';
 import { SLOW_DEBOUNCE } from '@superset-ui/core/components/constants';
 import { useDispatch } from 'react-redux';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { ErrorBoundary, Form, StyledModal } from '@superset-ui/core/components';
+import { Form, Icons, StyledModal } from '@superset-ui/core/components';
+import { ErrorBoundary } from 'src/components';
 import { testWithId } from 'src/utils/testUtils';
 import { updateCascadeParentIds } from 'src/dashboard/actions/nativeFilters';
 import useEffectEvent from 'src/hooks/useEffectEvent';

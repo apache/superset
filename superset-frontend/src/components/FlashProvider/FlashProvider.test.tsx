@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import { store } from 'src/views/store';
 import type { FlashMessage } from './types';

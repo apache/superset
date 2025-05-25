@@ -29,9 +29,9 @@ import {
   Tooltip,
   ModifiedInfo,
   FaveStar,
-  Tag as AntdTag,
 } from '@superset-ui/core/components';
 import {
+  Tag as AntdTag,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewFilters,

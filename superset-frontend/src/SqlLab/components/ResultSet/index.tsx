@@ -34,13 +34,16 @@ import {
   ButtonGroup,
   Tooltip,
   Card,
-  ErrorMessageWithStackTrace,
   Modal,
   Input,
   Label,
   Loading,
 } from '@superset-ui/core/components';
-import { CopyToClipboard, FilterableTable } from 'src/components';
+import {
+  CopyToClipboard,
+  FilterableTable,
+  ErrorMessageWithStackTrace,
+} from 'src/components';
 import { nanoid } from 'nanoid';
 import {
   QueryState,

@@ -22,9 +22,8 @@ import {
   TableView,
   EmptyWrapperType,
 } from '@superset-ui/core/components/TableView';
-import TagsList from '@superset-ui/core/components/TagsList';
-import Tag from 'src/types/TagType';
 import { EmptyState, FacePile } from '@superset-ui/core/components';
+import { TagsList, type TagType } from 'src/components';
 import { NumberParam, useQueryParam } from 'use-query-params';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
 import { Typography } from '@superset-ui/core/components/Typography';
@@ -99,14 +98,14 @@ export default function AllEntitiesTable({
             }: {
               row: {
                 original: {
-                  tags: Tag[];
+                  tags: TagType[];
                 };
               };
             }) => (
               // Only show custom type tags
               <TagsList
                 tags={tags.filter(
-                  (tag: Tag) =>
+                  (tag: TagType) =>
                     tag.type !== undefined &&
                     ['TagType.custom', 1].includes(tag.type) &&
                     tag.id !== tagId,

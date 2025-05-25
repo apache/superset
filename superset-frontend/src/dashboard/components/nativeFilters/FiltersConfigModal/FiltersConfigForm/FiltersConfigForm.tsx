@@ -59,18 +59,17 @@ import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/
 import { useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import {
-  BasicErrorAlert,
-  ErrorMessageWithStackTrace,
   FormItem,
   type FormInstance,
   Collapse,
+  Icons,
   Select,
   Tooltip,
   Flex,
   Input,
   Loading,
 } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { BasicErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { Radio } from '@superset-ui/core/components/Radio';
 import Tabs from '@superset-ui/core/components/Tabs';

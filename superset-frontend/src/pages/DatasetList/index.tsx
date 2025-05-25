@@ -41,13 +41,12 @@ import {
   Tooltip,
   ModifiedInfo,
   FacePile,
-  GenericLink,
   InfoTooltip,
   DatasetTypeLabel,
   Loading,
   List,
 } from '@superset-ui/core/components';
-import { DatasourceModal } from 'src/components';
+import { DatasourceModal, GenericLink } from 'src/components';
 import {
   ImportModal as ImportModelsModal,
   ListView,

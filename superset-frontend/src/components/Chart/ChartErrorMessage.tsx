@@ -20,7 +20,7 @@
 import { ClientErrorObject, SupersetError } from '@superset-ui/core';
 import { FC } from 'react';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
-import { ErrorMessageWithStackTrace } from '@superset-ui/core/components';
+import { ErrorMessageWithStackTrace } from 'src/components';
 import { ChartSource } from 'src/types/ChartSource';
 
 export type Props = {

@@ -25,7 +25,7 @@ import {
   Button,
   Modal,
 } from '@superset-ui/core/components';
-import { loadTags } from '@superset-ui/core/components/Tag/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import { TaggableResourceOption } from 'src/features/tags/TagModal';
 
 const BulkTagModalContainer = styled.div`

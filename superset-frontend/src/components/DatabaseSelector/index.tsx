@@ -39,10 +39,10 @@ import {
   AsyncSelect,
   Label,
   FormLabel,
-  ErrorMessageWithStackTrace,
   LabeledValue as AntdLabeledValue,
 } from '@superset-ui/core/components';
 
+import { ErrorMessageWithStackTrace } from 'src/components';
 import type {
   DatabaseSelectorProps,
   DatabaseValue,

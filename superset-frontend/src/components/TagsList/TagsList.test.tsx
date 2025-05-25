@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from '@testing-library/react';
-import TagsList, { TagsListProps } from '.';
+import { render, waitFor } from 'spec/helpers/testing-library';
+import { TagsList, TagsListProps } from '.';
 
 const testTags = [
   {

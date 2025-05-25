@@ -21,14 +21,8 @@ import { styled, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav, MenuMode } from '@superset-ui/core/components/Menu';
-import {
-  GenericLink,
-  Tooltip,
-  Grid,
-  Row,
-  Col,
-  Image,
-} from '@superset-ui/core/components';
+import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
+import { GenericLink } from 'src/components';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';

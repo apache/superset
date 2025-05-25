@@ -17,7 +17,6 @@
  * under the License.
  */
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { store } from 'src/views/store';
 import { FacePile } from '.';
 import { getRandomColor } from './utils';
 
@@ -39,12 +38,13 @@ describe('FacePile', () => {
   let container: HTMLElement;
 
   beforeEach(() => {
-    ({ container } = render(<FacePile users={users} />, { store }));
+    ({ container } = render(<FacePile users={users} />));
   });
 
   it('is a valid element', () => {
     const exposedFaces = screen.getAllByText(/U/);
     expect(exposedFaces).toHaveLength(4);
+
     const overflownFaces = screen.getByText('+6');
     expect(overflownFaces).toBeVisible();
 

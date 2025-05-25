@@ -35,9 +35,9 @@ import {
   Button,
   Modal,
   AsyncEsmComponent,
-  ErrorMessageWithStackTrace,
 } from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { ErrorMessageWithStackTrace } from 'src/components';
 import {
   startMetaDataLoading,
   stopMetaDataLoading,

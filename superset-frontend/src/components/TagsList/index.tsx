@@ -20,7 +20,7 @@
 import { useMemo, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import TagType from 'src/types/TagType';
-import { Tag } from '@superset-ui/core/components/Tag';
+import { Tag } from 'src/components/Tag';
 
 export type TagsListProps = {
   tags: TagType[];
@@ -41,7 +41,7 @@ const TagsDiv = styled.div`
   flex-wrap: wrap;
 `;
 
-const TagsList = ({
+export const TagsList = ({
   tags,
   editable = false,
   onDelete,
@@ -112,5 +112,3 @@ const TagsList = ({
     </TagsDiv>
   );
 };
-
-export default TagsList;

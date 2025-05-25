@@ -17,9 +17,7 @@
  * under the License.
  */
 import { Meta, StoryObj } from '@storybook/react';
-import TagsList, {
-  type TagsListProps,
-} from '@superset-ui/core/components/TagsList';
+import { TagsList, type TagsListProps } from 'src/components/TagsList';
 
 export default {
   title: 'Components/TagsList',

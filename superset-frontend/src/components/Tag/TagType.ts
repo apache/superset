@@ -16,25 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { CSSProperties, MouseEventHandler, ReactNode } from 'react';
+import { SerializedStyles } from '@emotion/react';
 
-import { ConfigType } from 'dayjs';
-import { TagType } from 'src/components';
-import Owner from './Owner';
-
-export interface TaggedObject {
-  id: number;
-  type: string;
-  name: string;
-  url: string;
-  changed_on: ConfigType;
-  created_by: number | undefined;
-  creator: string;
-  owners: Owner[];
-  tags: TagType[];
-}
-
-export interface TaggedObjects {
-  dashboard: TaggedObject[];
-  chart: TaggedObject[];
-  query: TaggedObject[];
+export interface TagType {
+  id?: number;
+  className?: string;
+  type?: string | number;
+  editable?: boolean;
+  onDelete?: (index: number) => void;
+  onClick?: MouseEventHandler<HTMLSpanElement>;
+  onMouseDown?: MouseEventHandler<HTMLSpanElement>;
+  onClose?: () => void;
+  color?: string;
+  name?: string;
+  index?: number;
+  toolTipTitle?: string;
+  children?: ReactNode;
+  role?: string;
+  style?: CSSProperties;
+  icon?: ReactNode;
+  css?: SerializedStyles;
+  closable?: boolean;
 }

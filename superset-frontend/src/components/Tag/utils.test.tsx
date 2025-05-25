@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { tagToSelectOption } from '@superset-ui/core/components/Tag/utils';
+import { tagToSelectOption } from 'src/components/Tag/utils';
 
 describe('tagToSelectOption', () => {
-  it('converts a Tag object with table_name to a SelectTagsValue', () => {
+  test('converts a Tag object with table_name to a SelectTagsValue', () => {
     const tag = {
       id: 1,
       name: 'TagName',

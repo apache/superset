@@ -34,17 +34,19 @@ import {
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
-  ConfirmStatusChange,
-  Tooltip,
-  ModifiedInfo,
   CertifiedBadge,
+  ConfirmStatusChange,
   DeleteModal,
   FacePile,
   FaveStar,
-  PublishedLabel,
   Loading,
+  ModifiedInfo,
+  PublishedLabel,
+  Tooltip,
 } from '@superset-ui/core/components';
 import {
+  TagType,
+  TagsList,
   ImportModal as ImportModelsModal,
   ListView,
   ListViewFilterOperator as FilterOperator,
@@ -52,12 +54,10 @@ import {
   type ListViewFilter,
   type ListViewFilters,
 } from 'src/components';
-import TagsList from '@superset-ui/core/components/TagsList';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import Owner from 'src/types/Owner';
-import Tag from 'src/types/TagType';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -67,7 +67,7 @@ import {
   Dashboard as CRUDDashboard,
   QueryObjectColumns,
 } from 'src/views/CRUD/types';
-import { loadTags } from '@superset-ui/core/components/Tag/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -109,7 +109,7 @@ export interface Dashboard {
   url: string;
   thumbnail_url: string;
   owners: Owner[];
-  tags: Tag[];
+  tags: TagType[];
   created_by: object;
 }
 
@@ -368,14 +368,15 @@ function DashboardList(props: DashboardListProps) {
         }: {
           row: {
             original: {
-              tags: Tag[];
+              tags: TagType[];
             };
           };
         }) => (
           // Only show custom type tags
           <TagsList
             tags={tags.filter(
-              (tag: Tag) => tag.type === 'TagTypes.custom' || tag.type === 1,
+              (tag: TagType) =>
+                tag.type === 'TagTypes.custom' || tag.type === 1,
             )}
             maxTags={3}
           />

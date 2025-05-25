@@ -10,7 +10,7 @@ import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
 import { isPlainObject } from 'lodash';
 import { Languages } from 'src/features/home/LanguagePicker';
-import type { FlashMessage } from '@superset-ui/core/components';
+import type { FlashMessage } from 'src/components';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
