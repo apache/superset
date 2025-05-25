@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
+import {
+  BOOL_FALSE_DISPLAY,
+  BOOL_TRUE_DISPLAY,
+} from '@superset-ui/core/components/constants';
 
 export interface BooleanCellProps {
   value?: boolean;

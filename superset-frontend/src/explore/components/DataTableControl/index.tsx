@@ -29,8 +29,9 @@ import {
 } from '@superset-ui/core';
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
-import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
 import {
+  BOOL_FALSE_DISPLAY,
+  BOOL_TRUE_DISPLAY,
   NULL_DISPLAY,
   SLOW_DEBOUNCE,
 } from '@superset-ui/core/components/constants';

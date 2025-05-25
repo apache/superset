@@ -18,7 +18,10 @@
  */
 import { GenericDataType } from '@superset-ui/core';
 import { renderHook } from '@testing-library/react-hooks';
-import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
+import {
+  BOOL_FALSE_DISPLAY,
+  BOOL_TRUE_DISPLAY,
+} from '@superset-ui/core/components/constants';
 import { useTableColumns } from '.';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

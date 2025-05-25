@@ -17,7 +17,10 @@
  * under the License.
  */
 import { render, screen } from '@testing-library/react';
-import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
+import {
+  BOOL_FALSE_DISPLAY,
+  BOOL_TRUE_DISPLAY,
+} from '@superset-ui/core/components/constants';
 import BooleanCell from '.';
 
 test('renders true value', async () => {

@@ -29,3 +29,6 @@ export const FAST_DEBOUNCE = 250;
 export const SLOW_DEBOUNCE = 500;
 
 export const NULL_DISPLAY = t('N/A');
+
+export const BOOL_TRUE_DISPLAY = t('True');
+export const BOOL_FALSE_DISPLAY = t('False');
