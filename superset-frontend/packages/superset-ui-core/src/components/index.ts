@@ -98,7 +98,6 @@ export {
 export { EditableTitle, type EditableTitleProps } from './EditableTitle';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { Empty, type EmptyProps } from './EmptyState/Empty';
-export { FacePile, type FacePileProps } from './FacePile';
 export { FaveStar, type FaveStarProps } from './FaveStar';
 export {
   Modal,

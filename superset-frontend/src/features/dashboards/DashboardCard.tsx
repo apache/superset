@@ -28,7 +28,6 @@ import { CardStyles } from 'src/views/CRUD/utils';
 import {
   Dropdown,
   Button,
-  FacePile,
   FaveStar,
   PublishedLabel,
   ListViewCard,
@@ -37,6 +36,7 @@ import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Dashboard } from 'src/views/CRUD/types';
 import { assetUrl } from 'src/utils/assetUrl';
+import { FacePile } from 'src/components';
 
 interface DashboardCardProps {
   isChart?: boolean;

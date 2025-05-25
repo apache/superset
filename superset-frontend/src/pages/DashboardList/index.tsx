@@ -37,13 +37,13 @@ import {
   CertifiedBadge,
   ConfirmStatusChange,
   DeleteModal,
-  FacePile,
   FaveStar,
   Loading,
   PublishedLabel,
   Tooltip,
 } from '@superset-ui/core/components';
 import {
+  FacePile,
   TagType,
   TagsList,
   ModifiedInfo,

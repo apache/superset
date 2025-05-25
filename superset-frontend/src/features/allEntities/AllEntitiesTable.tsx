@@ -22,8 +22,8 @@ import {
   TableView,
   EmptyWrapperType,
 } from '@superset-ui/core/components/TableView';
-import { EmptyState, FacePile } from '@superset-ui/core/components';
-import { TagsList, type TagType } from 'src/components';
+import { EmptyState } from '@superset-ui/core/components';
+import { FacePile, TagsList, type TagType } from 'src/components';
 import { NumberParam, useQueryParam } from 'use-query-params';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
 import { Typography } from '@superset-ui/core/components/Typography';

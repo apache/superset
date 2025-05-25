@@ -36,7 +36,6 @@ import {
   EmptyWrapperType,
   Input,
   Loading,
-  FacePile,
   Button,
   Alert,
   Modal,
@@ -45,6 +44,7 @@ import {
   ServerPagination,
   SortByType,
 } from '@superset-ui/core/components/TableView/types';
+import { FacePile } from 'src/components';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';

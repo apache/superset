@@ -22,13 +22,13 @@ import {
   ConfirmStatusChange,
   Button,
   Dropdown,
-  FacePile,
   FaveStar,
   Label,
   ListViewCard,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Chart from 'src/types/Chart';
+import { FacePile } from 'src/components';
 
 import { Menu } from '@superset-ui/core/components/Menu';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';

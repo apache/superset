@@ -28,13 +28,13 @@ import {
 } from '@superset-ui/core';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
-  FacePile,
   Tooltip,
   ConfirmStatusChange,
   DeleteModal,
   LastUpdated,
 } from '@superset-ui/core/components';
 import {
+  FacePile,
   ModifiedInfo,
   ListView,
   ListViewFilterOperator as FilterOperator,

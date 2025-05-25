@@ -45,12 +45,12 @@ import {
   CertifiedBadge,
   Tooltip,
   FaveStar,
-  FacePile,
   InfoTooltip,
   Loading,
   type LabeledValue,
 } from '@superset-ui/core/components';
 import {
+  FacePile,
   ImportModal as ImportModelsModal,
   ModifiedInfo,
   GenericLink,

@@ -39,7 +39,6 @@ import {
   CertifiedBadge,
   DeleteModal,
   Tooltip,
-  FacePile,
   InfoTooltip,
   DatasetTypeLabel,
   Loading,
@@ -47,6 +46,7 @@ import {
 } from '@superset-ui/core/components';
 import { DatasourceModal, GenericLink } from 'src/components';
 import {
+  FacePile,
   ImportModal as ImportModelsModal,
   ModifiedInfo,
   ListView,

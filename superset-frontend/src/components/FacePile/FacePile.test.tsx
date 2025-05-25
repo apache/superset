@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
+import { store } from 'src/views/store';
 import { FacePile } from '.';
 import { getRandomColor } from './utils';
 
@@ -38,13 +39,12 @@ describe('FacePile', () => {
   let container: HTMLElement;
 
   beforeEach(() => {
-    ({ container } = render(<FacePile users={users} />));
+    ({ container } = render(<FacePile users={users} />, { store }));
   });
 
   it('is a valid element', () => {
     const exposedFaces = screen.getAllByText(/U/);
     expect(exposedFaces).toHaveLength(4);
-
     const overflownFaces = screen.getByText('+6');
     expect(overflownFaces).toBeVisible();
 
