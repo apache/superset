@@ -32,7 +32,7 @@ from watchdog.observers import Observer
 from superset_sdk.utils import read_json, read_toml
 
 REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
-FRONTEND_DIST_REGEX = re.compile(r"\/frontend\/dist")
+FRONTEND_DIST_REGEX = re.compile(r"/frontend/dist")
 
 
 def clean_dist(cwd: Path) -> None:
@@ -79,10 +79,10 @@ def write_manifest(cwd: Path, manifest: dict[str, Any]) -> None:
     (dist_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True)
     )
+    click.secho("✅ Manifest updated in dist/manifest.json", fg="green")
 
 
 def run_frontend_build(frontend_dir: Path) -> subprocess.CompletedProcess[str]:
-    """Run npm build in frontend/ and return the result."""
     click.echo()
     click.secho("⚙️  Building frontend assets…", fg="cyan")
     return subprocess.run(  # noqa: S603
@@ -93,10 +93,6 @@ def run_frontend_build(frontend_dir: Path) -> subprocess.CompletedProcess[str]:
 
 
 def copy_frontend_dist(cwd: Path) -> str:
-    """
-    Copy everything from frontend/dist → dist/,
-    return the remoteEntry filename (or exit on error).
-    """
     dist_dir = cwd / "dist"
     frontend_dist = cwd / "frontend" / "dist"
     remote_entry: str | None = None
@@ -117,11 +113,10 @@ def copy_frontend_dist(cwd: Path) -> str:
 
 
 def copy_backend_files(cwd: Path) -> None:
-    """Copy all backend files listed in extension.json → dist/."""
     dist_dir = cwd / "dist"
     extension = read_json(cwd / "extension.json")
     if not extension:
-        click.secho("❌ No extension json file found.", err=True, fg="red")
+        click.secho("❌ No extension.json file found.", err=True, fg="red")
         sys.exit(1)
 
     for pat in extension.get("backend", {}).get("files", []):
@@ -133,15 +128,34 @@ def copy_backend_files(cwd: Path) -> None:
             shutil.copy2(f, tgt)
 
 
+def rebuild_frontend(cwd: Path, frontend_dir: Path) -> str:
+    """Clean and rebuild frontend, return the remoteEntry filename."""
+    clean_dist_frontend(cwd)
+
+    res = run_frontend_build(frontend_dir)
+    if res.returncode != 0:
+        click.secho("❌ Frontend build failed", fg="red")
+        sys.exit(1)
+
+    remote_entry = copy_frontend_dist(cwd)
+    click.secho("✅ Frontend rebuilt", fg="green")
+    return remote_entry
+
+
+def rebuild_backend(cwd: Path) -> None:
+    """Copy backend files (no manifest update)."""
+    copy_backend_files(cwd)
+    click.secho("✅ Backend files synced", fg="green")
+
+
 class FrontendChangeHandler(FileSystemEventHandler):
     def __init__(self, trigger_build: Callable[[], None]):
         self.trigger_build = trigger_build
 
     def on_any_event(self, event: Any) -> None:
-        # Ignore changes in dist/
         if FRONTEND_DIST_REGEX.search(event.src_path):
             return
-        click.secho(f"🔁 Change detected in: {event.src_path}", fg="yellow")
+        click.secho(f"🔁 Frontend change detected: {event.src_path}", fg="yellow")
         self.trigger_build()
 
 
@@ -152,46 +166,27 @@ def app() -> None:
 
 @app.command()
 def validate() -> None:
-    """
-    Validate extension.
-    """
-    # TODO: add validation logic
     click.secho("✅ Validation successful", fg="green")
 
 
 @app.command()
 def build() -> None:
-    """
-    Build extension end-to-end: clean dist/, build frontend,
-    collect assets, write manifest, then copy backend.
-    """
     cwd = Path.cwd()
     frontend_dir = cwd / "frontend"
     backend_dir = cwd / "backend"
 
-    # 1) clean dist/
     clean_dist(cwd)
 
-    # 2) build frontend
-    result = run_frontend_build(frontend_dir)
-    if result.returncode != 0:
-        click.secho("❌ Frontend build failed.", err=True, fg="red")
-        click.echo(result.stderr or "", err=True)
-        sys.exit(1)
+    remote_entry = rebuild_frontend(cwd, frontend_dir)
 
-    # 3) copy frontend dist → dist/
-    remote_entry = copy_frontend_dist(cwd)
+    pyproject = read_toml(backend_dir / "pyproject.toml")
+    if pyproject:
+        rebuild_backend(cwd)
 
-    # 4) build and write manifest
     manifest = build_manifest(cwd, remote_entry)
     write_manifest(cwd, manifest)
 
-    # 5) copy backend files
-    pyproject = read_toml(backend_dir / "pyproject.toml")
-    if pyproject:
-        copy_backend_files(cwd)
-
-    click.secho("✅ Build completed in dist/", fg="green")
+    click.secho("✅ Full build completed in dist/", fg="green")
 
 
 @app.command()
@@ -203,9 +198,6 @@ def build() -> None:
 )
 @click.pass_context
 def bundle(ctx: click.Context, output: Path | None) -> None:
-    """
-    Bundle dist/ into a zip file: {name}-{version}.supx
-    """
     ctx.invoke(build)
 
     cwd = Path.cwd()
@@ -245,55 +237,36 @@ def bundle(ctx: click.Context, output: Path | None) -> None:
 
 @app.command()
 def dev() -> None:
-    """
-    Watch frontend/ and backend/, clean once, then rebuild on changes.
-    """
     cwd = Path.cwd()
     frontend_dir = cwd / "frontend"
     backend_dir = cwd / "backend"
 
-    # 1) clean dist/
     clean_dist(cwd)
-
-    # 2) initial frontend build + copy
-    res = run_frontend_build(frontend_dir)
-    if res.returncode != 0:
-        click.secho("❌ Frontend build failed.", fg="red")
-        sys.exit(1)
-    remote_entry = copy_frontend_dist(cwd)
-
-    # 3) build and write manifest
+    remote_entry = rebuild_frontend(cwd, frontend_dir)
+    rebuild_backend(cwd)
     manifest = build_manifest(cwd, remote_entry)
     write_manifest(cwd, manifest)
 
-    # 4) copy backend files
-    copy_backend_files(cwd)
-
-    # 5) start file watchers
-    def build_frontend() -> None:
-        clean_dist_frontend(cwd)  # ✅ just remove frontend outputs
-
-        res = run_frontend_build(frontend_dir)
-        if res.returncode != 0:
-            click.secho("❌ Frontend build failed.", fg="red")
-            return
-
-        remote_entry = copy_frontend_dist(cwd)
+    def frontend_watcher() -> None:
+        remote_entry = rebuild_frontend(cwd, frontend_dir)
         manifest = build_manifest(cwd, remote_entry)
         write_manifest(cwd, manifest)
 
-    def sync_backend() -> None:
-        click.echo()
-        click.secho("⚙️  Copying backend files…", fg="cyan")
-        copy_backend_files(cwd)
+    def backend_watcher() -> None:
+        rebuild_backend(cwd)
+        dist_dir = cwd / "dist"
+        manifest_path = dist_dir / "manifest.json"
+        if manifest_path.exists():
+            manifest = json.loads(manifest_path.read_text())
+            write_manifest(cwd, manifest)
 
     click.secho(
         f"👀 Watching for changes in: {frontend_dir}, {backend_dir}", fg="green"
     )
 
-    frontend_handler = FrontendChangeHandler(trigger_build=build_frontend)
+    frontend_handler = FrontendChangeHandler(trigger_build=frontend_watcher)
     backend_handler = FileSystemEventHandler()
-    backend_handler.on_any_event = lambda event: sync_backend()
+    backend_handler.on_any_event = lambda event: backend_watcher()
 
     observer = Observer()
     observer.schedule(frontend_handler, str(frontend_dir), recursive=True)
@@ -304,7 +277,7 @@ def dev() -> None:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        click.secho("\n🛑 Stopping watch mode.", fg="blue")
+        click.secho("\n🛑 Stopping watch mode", fg="blue")
         observer.stop()
 
     observer.join()
