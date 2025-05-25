@@ -18,6 +18,15 @@
 #}
 {% extends "superset/basic.html" %}
 
+{% block head_meta %}
+  {% if title %}<meta property="og:title" content="{{ title }}" />{% endif %}
+  {% if dashboard_description %}
+    <meta property="og:description" content="{{ dashboard_description }}" />
+  {% endif %}
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="{{ request.url }}" />
+{% endblock %}
+
 {% block navbar %}
 {% endblock %}
 
