@@ -18,7 +18,8 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
-import { Tooltip, usePluginContext } from '@superset-ui/core/components';
+import { Tooltip } from '@superset-ui/core/components';
+import { usePluginContext } from 'src/components';
 import { VizTileProps } from './types';
 
 export const VizTile = ({

@@ -95,12 +95,6 @@ export {
   DynamicEditableTitle,
   type DynamicEditableTitleProps,
 } from './DynamicEditableTitle';
-export {
-  DynamicPluginProvider,
-  PluginContext,
-  usePluginContext,
-  type PluginContextType,
-} from './DynamicPlugins';
 export { EditableTitle, type EditableTitleProps } from './EditableTitle';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { Empty, type EmptyProps } from './EmptyState/Empty';

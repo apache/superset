@@ -61,9 +61,9 @@ import {
   Modal,
   Loading,
   Tooltip,
-  PluginContext,
 } from '@superset-ui/core/components';
 import Tabs from '@superset-ui/core/components/Tabs';
+import { PluginContext } from 'src/components';
 
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';

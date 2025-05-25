@@ -25,3 +25,9 @@ export { GridTable, type TableProps } from './GridTable';
 export * from './Tag';
 export * from './TagsList';
 export { ModifiedInfo, type ModifiedInfoProps } from './AuditInfo';
+export {
+  DynamicPluginProvider,
+  PluginContext,
+  usePluginContext,
+  type PluginContextType,
+} from './DynamicPlugins';
