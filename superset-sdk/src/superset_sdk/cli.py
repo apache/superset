@@ -71,7 +71,7 @@ def copy_frontend_dist(cwd: Path) -> str:
 
 
 def copy_backend_files(cwd: Path) -> None:
-    """Copy all backend files listed in extensionension.json → dist/."""
+    """Copy all backend files listed in extension.json → dist/."""
     dist_dir = cwd / "dist"
     extension = read_json(cwd / "extension.json")
     if not extension:
@@ -99,7 +99,7 @@ class FrontendChangeHandler(FileSystemEventHandler):
         self.trigger_build()
 
 
-@click.group(help="CLI for validating and bundling Superset extensionensions.")
+@click.group(help="CLI for validating and bundling Superset extensions.")
 def app() -> None:
     pass
 
@@ -107,7 +107,7 @@ def app() -> None:
 @app.command()
 def validate() -> None:
     """
-    Validate extensionension.
+    Validate extension.
     """
     # TODO: add validation logic
     click.secho("✅ Validation successful", fg="green")
@@ -116,7 +116,7 @@ def validate() -> None:
 @app.command()
 def build() -> None:
     """
-    Build extensionension end-to-end: clean dist/, build frontend,
+    Build extension end-to-end: clean dist/, build frontend,
     collect assets, write manifest, then copy backend.
     """
     cwd = Path.cwd()
@@ -137,30 +137,28 @@ def build() -> None:
         sys.exit(1)
 
     # 3) load configs
-    extensionension = read_json(cwd / "extensionension.json")
+    extension = read_json(cwd / "extension.json")
     package = read_json(frontend_dir / "package.json")
     pyproject = read_toml(backend_dir / "pyproject.toml")
-    if not extensionension:
-        click.secho("❌ extensionension.json not found.", err=True, fg="red")
+    if not extension:
+        click.secho("❌ extension.json not found.", err=True, fg="red")
         sys.exit(1)
 
     # 4) build manifest
     manifest: dict[str, Any] = {
-        "name": extensionension["name"],
-        "version": extensionension["version"],
-        "permissions": extensionension["permissions"],
-        "dependencies": extensionension.get("dependencies", []),
+        "name": extension["name"],
+        "version": extension["version"],
+        "permissions": extension["permissions"],
+        "dependencies": extension.get("dependencies", []),
         "frontend": {
-            "contributions": extensionension.get("frontend", {}).get(
-                "contributions", []
-            ),
-            "moduleFederation": extensionension.get("frontend", {}).get(
+            "contributions": extension.get("frontend", {}).get("contributions", []),
+            "moduleFederation": extension.get("frontend", {}).get(
                 "moduleFederation", {}
             ),
         },
         "backend": {},
     }
-    if entry_points := extensionension.get("backend", {}).get("entryPoints"):
+    if entry_points := extension.get("backend", {}).get("entryPoints"):
         manifest["backend"]["entryPoints"] = entry_points
 
     # 5) collect dist files & record remoteEntry
