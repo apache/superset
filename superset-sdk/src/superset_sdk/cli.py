@@ -35,6 +35,52 @@ REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
 FRONTEND_DIST_REGEX = re.compile(r"\/frontend\/dist")
 
 
+def clean_dist(cwd: Path) -> None:
+    dist_dir = cwd / "dist"
+    if dist_dir.exists():
+        shutil.rmtree(dist_dir)
+    dist_dir.mkdir(parents=True)
+
+
+def clean_dist_frontend(cwd: Path) -> None:
+    frontend_dist = cwd / "dist" / "frontend"
+    if frontend_dist.exists():
+        shutil.rmtree(frontend_dist)
+
+
+def build_manifest(cwd: Path, remote_entry: str) -> dict[str, Any]:
+    extension = read_json(cwd / "extension.json")
+    if not extension:
+        click.secho("❌ extension.json not found.", err=True, fg="red")
+        sys.exit(1)
+
+    manifest = {
+        "name": extension["name"],
+        "version": extension["version"],
+        "permissions": extension["permissions"],
+        "dependencies": extension.get("dependencies", []),
+        "frontend": {
+            "contributions": extension.get("frontend", {}).get("contributions", []),
+            "moduleFederation": extension.get("frontend", {}).get(
+                "moduleFederation", {}
+            ),
+            "remoteEntry": remote_entry,
+        },
+        "backend": {},
+    }
+    if entry_points := extension.get("backend", {}).get("entryPoints"):
+        manifest["backend"]["entryPoints"] = entry_points
+
+    return manifest
+
+
+def write_manifest(cwd: Path, manifest: dict[str, Any]) -> None:
+    dist_dir = cwd / "dist"
+    (dist_dir / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True)
+    )
+
+
 def run_frontend_build(frontend_dir: Path) -> subprocess.CompletedProcess[str]:
     """Run npm build in frontend/ and return the result."""
     click.echo()
@@ -120,61 +166,32 @@ def build() -> None:
     collect assets, write manifest, then copy backend.
     """
     cwd = Path.cwd()
-    dist_dir = cwd / "dist"
     frontend_dir = cwd / "frontend"
     backend_dir = cwd / "backend"
 
-    # 1) clean
-    if dist_dir.exists():
-        shutil.rmtree(dist_dir)
-    dist_dir.mkdir(parents=True)
+    # 1) clean dist/
+    clean_dist(cwd)
 
-    # 2) build & copy frontend
+    # 2) build frontend
     result = run_frontend_build(frontend_dir)
     if result.returncode != 0:
         click.secho("❌ Frontend build failed.", err=True, fg="red")
         click.echo(result.stderr or "", err=True)
         sys.exit(1)
 
-    # 3) load configs
-    extension = read_json(cwd / "extension.json")
-    package = read_json(frontend_dir / "package.json")
+    # 3) copy frontend dist → dist/
+    remote_entry = copy_frontend_dist(cwd)
+
+    # 4) build and write manifest
+    manifest = build_manifest(cwd, remote_entry)
+    write_manifest(cwd, manifest)
+
+    # 5) copy backend files
     pyproject = read_toml(backend_dir / "pyproject.toml")
-    if not extension:
-        click.secho("❌ extension.json not found.", err=True, fg="red")
-        sys.exit(1)
-
-    # 4) build manifest
-    manifest: dict[str, Any] = {
-        "name": extension["name"],
-        "version": extension["version"],
-        "permissions": extension["permissions"],
-        "dependencies": extension.get("dependencies", []),
-        "frontend": {
-            "contributions": extension.get("frontend", {}).get("contributions", []),
-            "moduleFederation": extension.get("frontend", {}).get(
-                "moduleFederation", {}
-            ),
-        },
-        "backend": {},
-    }
-    if entry_points := extension.get("backend", {}).get("entryPoints"):
-        manifest["backend"]["entryPoints"] = entry_points
-
-    # 5) collect dist files & record remoteEntry
-    if package:
-        manifest["frontend"]["remoteEntry"] = copy_frontend_dist(cwd)
-
-    # 6) write manifest.json
-    (dist_dir / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, sort_keys=True)
-    )
-
-    # 7) copy backend files
     if pyproject:
         copy_backend_files(cwd)
 
-    click.secho("✅ Build completed in dist()", fg="green")
+    click.secho("✅ Build completed in dist/", fg="green")
 
 
 @app.command()
@@ -229,18 +246,41 @@ def bundle(ctx: click.Context, output: Path | None) -> None:
 @app.command()
 def dev() -> None:
     """
-    Watch frontend/ and backend/ and only re-run the small pieces on change.
+    Watch frontend/ and backend/, clean once, then rebuild on changes.
     """
     cwd = Path.cwd()
     frontend_dir = cwd / "frontend"
     backend_dir = cwd / "backend"
 
+    # 1) clean dist/
+    clean_dist(cwd)
+
+    # 2) initial frontend build + copy
+    res = run_frontend_build(frontend_dir)
+    if res.returncode != 0:
+        click.secho("❌ Frontend build failed.", fg="red")
+        sys.exit(1)
+    remote_entry = copy_frontend_dist(cwd)
+
+    # 3) build and write manifest
+    manifest = build_manifest(cwd, remote_entry)
+    write_manifest(cwd, manifest)
+
+    # 4) copy backend files
+    copy_backend_files(cwd)
+
+    # 5) start file watchers
     def build_frontend() -> None:
+        clean_dist_frontend(cwd)  # ✅ just remove frontend outputs
+
         res = run_frontend_build(frontend_dir)
         if res.returncode != 0:
             click.secho("❌ Frontend build failed.", fg="red")
             return
-        copy_frontend_dist(cwd)
+
+        remote_entry = copy_frontend_dist(cwd)
+        manifest = build_manifest(cwd, remote_entry)
+        write_manifest(cwd, manifest)
 
     def sync_backend() -> None:
         click.echo()
