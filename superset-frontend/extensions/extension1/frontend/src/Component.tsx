@@ -30,15 +30,12 @@ const Component: React.FC = () => {
     const callApi = async () => {
       try {
         const csrfToken = await authentication.getCSRFToken();
-        const response = await fetch(
-          'http://localhost:9000/api/v1/extension1/hello',
-          {
-            method: 'GET',
-            headers: {
-              'X-CSRFToken': csrfToken!,
-            },
+        const response = await fetch('/api/v1/extension1/hello', {
+          method: 'GET',
+          headers: {
+            'X-CSRFToken': csrfToken!,
           },
-        );
+        });
         const data = await response.json();
         setApiResponse(data.result);
       } catch (err) {
