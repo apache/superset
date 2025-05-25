@@ -38,7 +38,7 @@ import {
   type ListViewProps,
 } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { dangerouslyGetItemDoNotUse } from '@superset-ui/core/utils/localStorageHelpers';
+import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Link } from 'react-router-dom';

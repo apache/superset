@@ -21,7 +21,7 @@ import {
   LocalStorageKeys,
   setItem,
   getItem,
-} from '@superset-ui/core/utils/localStorageHelpers';
+} from 'src/utils/localStorageHelpers';
 
 export const getTimeColumns = (datasourceId?: string): string[] => {
   const colsMap = getItem(

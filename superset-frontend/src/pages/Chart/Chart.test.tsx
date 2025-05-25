@@ -26,7 +26,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { getExploreFormData } from 'spec/fixtures/mockExploreFormData';
 import { getDashboardFormData } from 'spec/fixtures/mockDashboardFormData';
-import { LocalStorageKeys } from '@superset-ui/core/utils/localStorageHelpers';
+import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { URL_PARAMS } from 'src/constants';
 import { JsonObject, VizType } from '@superset-ui/core';

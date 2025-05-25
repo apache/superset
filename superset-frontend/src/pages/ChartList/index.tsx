@@ -65,7 +65,7 @@ import {
 } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { Link, useHistory } from 'react-router-dom';
-import { dangerouslyGetItemDoNotUse } from '@superset-ui/core/utils/localStorageHelpers';
+import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';

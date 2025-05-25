@@ -24,7 +24,7 @@ import {
   screen,
 } from 'spec/helpers/testing-library';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
-import useStoredSidebarWidth from '@superset-ui/core/components/ResizableSidebar/useStoredSidebarWidth';
+import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
   fetchFaveStar,
   setActiveTab,
@@ -50,9 +50,7 @@ jest.mock('src/dashboard/actions/dashboardState', () => ({
   setActiveTab: jest.fn(),
   setDirectPathToChild: jest.fn(),
 }));
-jest.mock(
-  '@superset-ui/core/components/ResizableSidebar/useStoredSidebarWidth',
-);
+jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 
 // mock following dependent components to fix the prop warnings
 jest.mock('@superset-ui/core/components/Select/Select', () => () => (

@@ -37,7 +37,7 @@ import {
   getItem,
   setItem,
   LocalStorageKeys,
-} from '@superset-ui/core/utils/localStorageHelpers';
+} from 'src/utils/localStorageHelpers';
 import { Alert } from '@superset-ui/core/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';

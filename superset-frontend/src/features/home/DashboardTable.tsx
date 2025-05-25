@@ -26,7 +26,7 @@ import {
   getItem,
   LocalStorageKeys,
   setItem,
-} from '@superset-ui/core/utils/localStorageHelpers';
+} from 'src/utils/localStorageHelpers';
 import { LoadingCards } from 'src/pages/Home';
 import {
   CardContainer,

@@ -56,7 +56,7 @@ import {
 } from 'src/components';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { dangerouslyGetItemDoNotUse } from '@superset-ui/core/utils/localStorageHelpers';
+import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';

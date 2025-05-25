@@ -40,7 +40,7 @@ import {
   getItem,
   setItem,
   LocalStorageKeys,
-} from '@superset-ui/core/utils/localStorageHelpers';
+} from 'src/utils/localStorageHelpers';
 import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
 import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
 import { areObjectsEqual } from 'src/reduxUtils';

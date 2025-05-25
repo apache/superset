@@ -21,7 +21,7 @@ import {
   LocalStorageKeys,
   setItem,
   getItem,
-} from '@superset-ui/core/utils/localStorageHelpers';
+} from 'src/utils/localStorageHelpers';
 
 export default function useStoredSidebarWidth(
   id: string,

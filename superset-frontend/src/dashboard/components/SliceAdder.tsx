@@ -35,7 +35,7 @@ import {
   LocalStorageKeys,
   getItem,
   setItem,
-} from '@superset-ui/core/utils/localStorageHelpers';
+} from 'src/utils/localStorageHelpers';
 import {
   CHART_TYPE,
   NEW_COMPONENT_SOURCE_TYPE,

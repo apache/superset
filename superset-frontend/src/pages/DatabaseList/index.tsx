@@ -26,10 +26,7 @@ import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
-import {
-  LocalStorageKeys,
-  setItem,
-} from '@superset-ui/core/utils/localStorageHelpers';
+import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
   createErrorHandler,

@@ -61,7 +61,7 @@ import {
   Modal,
   Timer,
 } from '@superset-ui/core/components';
-import ResizableSidebar from '@superset-ui/core/components/ResizableSidebar';
+import ResizableSidebar from 'src/components/ResizableSidebar';
 import { Skeleton } from '@superset-ui/core/components/Skeleton';
 import { Switch } from '@superset-ui/core/components/Switch';
 import { Menu } from '@superset-ui/core/components/Menu';
@@ -104,7 +104,7 @@ import {
   getItem,
   LocalStorageKeys,
   setItem,
-} from '@superset-ui/core/utils/localStorageHelpers';
+} from 'src/utils/localStorageHelpers';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import useLogAction from 'src/logger/useLogAction';
 import {

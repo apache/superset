@@ -18,7 +18,7 @@
  */
 import { ReactElement, JSXElementConstructor } from 'react';
 import { useTheme } from '@superset-ui/core';
-import ResizableSidebar from '@superset-ui/core/components/ResizableSidebar';
+import ResizableSidebar from 'src/components/ResizableSidebar';
 
 import {
   StyledLayoutWrapper,

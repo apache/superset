@@ -63,7 +63,7 @@ import {
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import { useUiConfig } from 'src/components/UiConfigContext';
-import ResizableSidebar from '@superset-ui/core/components/ResizableSidebar';
+import ResizableSidebar from 'src/components/ResizableSidebar';
 import {
   BUILDER_SIDEPANEL_WIDTH,
   CLOSED_FILTER_BAR_WIDTH,

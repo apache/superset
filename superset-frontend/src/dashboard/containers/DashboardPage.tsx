@@ -37,10 +37,7 @@ import {
   getRelevantDataMask,
 } from 'src/dashboard/util/activeAllDashboardFilters';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import {
-  LocalStorageKeys,
-  setItem,
-} from '@superset-ui/core/utils/localStorageHelpers';
+import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';

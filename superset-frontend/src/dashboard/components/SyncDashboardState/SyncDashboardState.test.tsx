@@ -17,10 +17,7 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
-import {
-  getItem,
-  LocalStorageKeys,
-} from '@superset-ui/core/utils/localStorageHelpers';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import SyncDashboardState from '.';
 
 test('stores the dashboard info with local storages', () => {

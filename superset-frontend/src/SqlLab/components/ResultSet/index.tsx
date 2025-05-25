@@ -68,10 +68,7 @@ import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
-import {
-  getItem,
-  LocalStorageKeys,
-} from '@superset-ui/core/utils/localStorageHelpers';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import {
   addQueryEditor,
   clearQueryResults,
