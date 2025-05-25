@@ -20,6 +20,7 @@
 import { FC } from 'react';
 import { antdEnhancedIcons } from './AntdEnhanced';
 import AsyncIcon from './AsyncIcon';
+
 import type { IconType } from './types';
 
 /**
@@ -76,3 +77,4 @@ export const Icons: IconComponentType = {
   ...antdEnhancedIcons,
   ...iconOverrides,
 };
+export type { IconType };

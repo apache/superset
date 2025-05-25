@@ -28,7 +28,7 @@ import {
   DynamicPluginProvider,
   FlashProvider,
 } from '@superset-ui/core/components';
-import { EmbeddedUiConfigProvider } from '@superset-ui/core/components/UiConfigContext';
+import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { store } from './store';
 import '../preamble';
 

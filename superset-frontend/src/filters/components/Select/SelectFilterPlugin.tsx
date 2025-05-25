@@ -39,7 +39,7 @@ import {
   Select,
   Space,
 } from '@superset-ui/core/components';
-import { SLOW_DEBOUNCE } from 'src/constants';
+import { SLOW_DEBOUNCE } from '@superset-ui/core/components/constants';
 import {
   hasOption,
   propertyComparator,

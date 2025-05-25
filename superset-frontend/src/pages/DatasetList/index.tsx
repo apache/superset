@@ -37,22 +37,24 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
   ConfirmStatusChange,
   CertifiedBadge,
-  DatasourceModal,
   DeleteModal,
   Tooltip,
   ModifiedInfo,
   FacePile,
   GenericLink,
-  ImportModal as ImportModelsModal,
   InfoTooltip,
   DatasetTypeLabel,
   Loading,
   List,
+} from '@superset-ui/core/components';
+import { DatasourceModal } from 'src/components';
+import {
+  ImportModal as ImportModelsModal,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilters,
-} from '@superset-ui/core/components';
+} from 'src/components';
 import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
@@ -71,7 +73,7 @@ import {
 import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { WIDER_DROPDOWN_WIDTH } from '@superset-ui/core/components/ListView/utils';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(

@@ -56,7 +56,7 @@ import {
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
 import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
-import { FAST_DEBOUNCE } from 'src/constants';
+import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';

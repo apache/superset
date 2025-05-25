@@ -18,7 +18,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import { supersetTheme } from '@superset-ui/core';
-import { NULL_DISPLAY } from 'src/constants';
+import { NULL_DISPLAY } from '../../../constants';
 import NullCell from '.';
 
 test('renders null value', async () => {

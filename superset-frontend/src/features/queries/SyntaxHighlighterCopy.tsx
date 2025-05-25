@@ -81,7 +81,7 @@ export default function SyntaxHighlighterCopy({
       <Icons.CopyOutlined
         tabIndex={0}
         role="button"
-        onClick={e => {
+        onClick={(e: React.MouseEvent<HTMLElement>) => {
           e.preventDefault();
           e.currentTarget.blur();
           copyToClipboard(children);

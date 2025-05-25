@@ -26,7 +26,7 @@ import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
 import setupPlugins from 'src/setup/setupPlugins';
-import { useUiConfig } from '@superset-ui/core/components/UiConfigContext';
+import { useUiConfig } from 'src/components/UiConfigContext';
 import { RootContextProviders } from 'src/views/RootContextProviders';
 import { store, USER_LOADED } from 'src/views/store';
 import { ErrorBoundary, Loading } from '@superset-ui/core/components';

@@ -30,11 +30,13 @@ import {
   ModifiedInfo,
   FaveStar,
   Tag as AntdTag,
+} from '@superset-ui/core/components';
+import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewFilters,
   type ListViewProps,
-} from '@superset-ui/core/components';
+} from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';

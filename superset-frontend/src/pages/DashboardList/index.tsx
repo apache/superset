@@ -41,15 +41,17 @@ import {
   DeleteModal,
   FacePile,
   FaveStar,
-  ImportModal as ImportModelsModal,
   PublishedLabel,
+  Loading,
+} from '@superset-ui/core/components';
+import {
+  ImportModal as ImportModelsModal,
   ListView,
   ListViewFilterOperator as FilterOperator,
-  Loading,
   type ListViewProps,
   type ListViewFilter,
   type ListViewFilters,
-} from '@superset-ui/core/components';
+} from 'src/components';
 import TagsList from '@superset-ui/core/components/TagsList';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
@@ -71,7 +73,7 @@ import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { navigateTo } from 'src/utils/navigationUtils';
-import { WIDER_DROPDOWN_WIDTH } from '@superset-ui/core/components/ListView/utils';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(

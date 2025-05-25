@@ -66,7 +66,7 @@ import {
   DashboardStandaloneMode,
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
-import { useUiConfig } from '@superset-ui/core/components/UiConfigContext';
+import { useUiConfig } from 'src/components/UiConfigContext';
 import ResizableSidebar from '@superset-ui/core/components/ResizableSidebar';
 import {
   BUILDER_SIDEPANEL_WIDTH,

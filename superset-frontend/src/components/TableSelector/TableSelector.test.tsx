@@ -26,7 +26,7 @@ import {
   waitFor,
   within,
   defaultStore as store,
-} from '@testing-library/react';
+} from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
 import fetchMock from 'fetch-mock';
 import TableSelector, { TableSelectorMultiple } from '.';

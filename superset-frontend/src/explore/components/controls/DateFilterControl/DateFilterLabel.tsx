@@ -37,7 +37,7 @@ import {
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
-import { SLOW_DEBOUNCE } from 'src/constants';
+import { SLOW_DEBOUNCE } from '@superset-ui/core/components/constants';
 import { noOp } from 'src/utils/common';
 import ControlPopover from '../ControlPopover/ControlPopover';
 

@@ -139,7 +139,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
             {isRemoved ? null : (
               <Icons.DeleteOutlined
                 iconSize="l"
-                onClick={event => {
+                onClick={(event: React.MouseEvent<HTMLElement>) => {
                   event.stopPropagation();
                   onRemove(id);
                 }}

@@ -17,13 +17,8 @@
  * under the License.
  */
 
-import {
-  render,
-  fireEvent,
-  screen,
-  userEvent,
-  waitFor,
-} from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { FormModalProps } from './types';
 import { FormItem } from '../Form';
 import { Input } from '../Input';

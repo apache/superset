@@ -53,14 +53,14 @@ import type { DatabaseObject } from 'src/features/databases/types';
 import { debounce, throttle, isEmpty } from 'lodash';
 import Mousetrap from 'mousetrap';
 import {
-  Input,
-  Button,
   Alert,
+  Button,
   Dropdown,
   EmptyState,
+  Input,
   Modal,
+  Timer,
 } from '@superset-ui/core/components';
-import Timer from '@superset-ui/core/components/Timer';
 import ResizableSidebar from '@superset-ui/core/components/ResizableSidebar';
 import { Skeleton } from '@superset-ui/core/components/Skeleton';
 import { Switch } from '@superset-ui/core/components/Switch';

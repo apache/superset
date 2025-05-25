@@ -31,7 +31,16 @@ import {
   styled,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { TableView, EmptyWrapperType } from '@superset-ui/core/components';
+import {
+  TableView,
+  EmptyWrapperType,
+  Input,
+  Loading,
+  FacePile,
+  Button,
+  Alert,
+  Modal,
+} from '@superset-ui/core/components';
 import {
   ServerPagination,
   SortByType,
@@ -46,12 +55,6 @@ import {
 } from 'src/features/datasets/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { InputRef } from 'antd';
-import { Loading } from '../Loading';
-import { Input } from '../Input';
-import { FacePile } from '../FacePile';
-import { Button } from '../Button';
-import { Alert } from '../Alert';
-import { Modal } from '../Modal';
 import type { Datasource, ChangeDatasourceModalProps } from './types';
 
 const CONFIRM_WARNING_MESSAGE = t(

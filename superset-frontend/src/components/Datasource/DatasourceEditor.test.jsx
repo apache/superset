@@ -19,9 +19,9 @@
 import fetchMock from 'fetch-mock';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import DatasourceEditor from '@superset-ui/core/components/Datasource/DatasourceEditor';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import { isFeatureEnabled } from '@superset-ui/core';
+import DatasourceEditor from '.';
 
 /* eslint-disable jest/no-export */
 

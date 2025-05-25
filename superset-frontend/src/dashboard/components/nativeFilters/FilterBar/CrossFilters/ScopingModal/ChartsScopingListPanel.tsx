@@ -73,7 +73,7 @@ const ScopingTitle = ({
       <Icons.DeleteOutlined
         iconColor={theme.colors.grayscale.light3}
         iconSize="xl"
-        onClick={event => {
+        onClick={(event: React.MouseEvent<HTMLElement>) => {
           event.stopPropagation();
           onRemove(id);
         }}

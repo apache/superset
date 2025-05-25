@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import CrossLinksTooltip, { CrossLinksTooltipProps } from './CrossLinksTooltip';
 
 const mockedProps = {

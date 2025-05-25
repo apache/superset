@@ -25,10 +25,12 @@ import {
 } from 'react';
 
 import { t, styled, useTheme } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { FormLabel } from '../../Form';
-import { Input } from '../../Input';
-import { InfoTooltip } from '../../InfoTooltip';
+import {
+  Input,
+  InfoTooltip,
+  FormLabel,
+  Icons,
+} from '@superset-ui/core/components';
 import { BaseFilter, FilterHandler, FilterContainer } from './Base';
 
 interface SearchHeaderProps extends BaseFilter {

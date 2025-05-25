@@ -17,7 +17,7 @@
  * under the License.
  */
 import { fireEvent, render, screen } from '@testing-library/react';
-import { Input } from '../Input';
+import { Input } from '@superset-ui/core/components';
 
 import Field from './Field';
 

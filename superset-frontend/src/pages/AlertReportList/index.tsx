@@ -34,13 +34,15 @@ import {
   ConfirmStatusChange,
   DeleteModal,
   LastUpdated,
+} from '@superset-ui/core/components';
+import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   ListViewActionsBar,
   type ListViewActionProps,
   type ListViewProps,
   type ListViewFilters,
-} from '@superset-ui/core/components';
+} from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { Switch } from '@superset-ui/core/components/Switch';
 import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
@@ -58,7 +60,7 @@ import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { WIDER_DROPDOWN_WIDTH } from '@superset-ui/core/components/ListView/utils';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 

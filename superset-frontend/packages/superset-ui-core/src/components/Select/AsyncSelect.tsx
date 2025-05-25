@@ -42,8 +42,8 @@ import {
   RefSelectProps,
 } from 'antd/es/select';
 import { debounce, isEqual, uniq } from 'lodash';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
+import { Icons } from '@superset-ui/core/components';
+import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from '../constants';
 import { Space } from '../Space';
 import {
   getValue,

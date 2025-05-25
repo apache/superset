@@ -31,19 +31,21 @@ import {
   DeleteModal,
   ConfirmStatusChange,
   ModifiedInfo,
+} from '@superset-ui/core/components';
+import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   ListViewActionsBar,
   type ListViewActionProps,
   type ListViewProps,
   type ListViewFilters,
-} from '@superset-ui/core/components';
+} from 'src/components';
 import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerModal';
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';
-import { WIDER_DROPDOWN_WIDTH } from '@superset-ui/core/components/ListView/utils';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const PAGE_SIZE = 25;
 

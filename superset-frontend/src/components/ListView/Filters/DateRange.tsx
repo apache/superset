@@ -27,11 +27,13 @@ import {
 import { styled, t } from '@superset-ui/core';
 import { Dayjs } from 'dayjs';
 import { useLocale } from 'src/hooks/useLocale';
-import { extendedDayjs } from '../../../utils/dates';
-import { Loading } from '../../Loading';
-import { AntdThemeProvider } from '../../AntdThemeProvider';
-import { FormLabel } from '../../Form';
-import { RangePicker } from '../../DatePicker';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import {
+  AntdThemeProvider,
+  Loading,
+  FormLabel,
+  RangePicker,
+} from '@superset-ui/core/components';
 import { BaseFilter, FilterHandler } from './Base';
 
 interface DateRangeFilterProps extends BaseFilter {

@@ -29,7 +29,14 @@ import {
   css,
 } from '@superset-ui/core';
 
-import { Icons } from '@superset-ui/core/components/Icons';
+import {
+  Icons,
+  Alert,
+  Button,
+  Modal,
+  AsyncEsmComponent,
+  ErrorMessageWithStackTrace,
+} from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   startMetaDataLoading,
@@ -39,13 +46,8 @@ import {
 import {
   fetchSyncedColumns,
   updateColumns,
-} from '@superset-ui/core/components/Datasource/utils';
+} from 'src/components/Datasource/utils';
 import type { DatasetObject } from 'src/features/datasets/types';
-import { ErrorMessageWithStackTrace } from '../ErrorMessage';
-import { AsyncEsmComponent } from '../AsyncEsmComponent';
-import { Button } from '../Button';
-import { Alert } from '../Alert';
-import { Modal } from '../Modal';
 import type { DatasourceModalProps } from './types';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));

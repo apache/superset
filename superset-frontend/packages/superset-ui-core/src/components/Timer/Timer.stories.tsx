@@ -17,7 +17,7 @@
  * under the License.
  */
 import { extendedDayjs } from '../../utils/dates';
-import Timer, { TimerProps } from './index';
+import { Timer, TimerProps } from '.';
 
 export default {
   title: 'Components/Timer',

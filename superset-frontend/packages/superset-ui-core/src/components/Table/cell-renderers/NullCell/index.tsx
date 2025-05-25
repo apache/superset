@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { NULL_DISPLAY } from 'src/constants';
+import { NULL_DISPLAY } from '../../../constants';
 
 const GrayCell = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.light1};

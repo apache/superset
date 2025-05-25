@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { FAST_DEBOUNCE } from 'src/constants';
+import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
 
 export function useDebounceValue<T>(value: T, delay = FAST_DEBOUNCE) {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);

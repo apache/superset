@@ -34,23 +34,25 @@ import {
   createFetchRelated,
 } from 'src/views/CRUD/utils';
 import { useSelector } from 'react-redux';
-import Popover from '@superset-ui/core/components/Popover';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
+  Popover,
   ConfirmStatusChange,
   Tooltip,
   ModifiedInfo,
   DeleteModal,
-  ImportModal as ImportModelsModal,
   Loading,
+} from '@superset-ui/core/components';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import { useListViewResource } from 'src/views/CRUD/hooks';
+import {
+  ImportModal as ImportModelsModal,
   ListView,
   ListViewActionsBar,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewActionProps,
   type ListViewFilters,
-} from '@superset-ui/core/components';
+} from 'src/components';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { ButtonProps, SubMenuProps } from 'src/features/home/SubMenu';
 import TagsList from '@superset-ui/core/components/TagsList';

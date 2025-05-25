@@ -29,15 +29,18 @@ import {
 } from '@superset-ui/core';
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
-import {
-  BOOL_FALSE_DISPLAY,
-  BOOL_TRUE_DISPLAY,
-} from 'src/constants';
+import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
 import {
   NULL_DISPLAY,
   SLOW_DEBOUNCE,
 } from '@superset-ui/core/components/constants';
-import { Button, Icons, Input, Popover, Radio } from '@superset-ui/core/components';
+import {
+  Button,
+  Icons,
+  Input,
+  Popover,
+  Radio,
+} from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getTimeColumns, setTimeColumns } from './utils';
@@ -186,7 +189,9 @@ const DataTableTemporalHeaderCell = ({
   const overlayContent = useMemo(
     () =>
       datasourceId ? ( // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-        <FormatPickerContainer onClick={e => e.stopPropagation()}>
+        <FormatPickerContainer
+          onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
+        >
           {/* hack to disable click propagation from popover content to table header, which triggers sorting column */}
           <FormatPickerLabel>{t('Column Formatting')}</FormatPickerLabel>
           <FormatPicker
@@ -214,7 +219,7 @@ const DataTableTemporalHeaderCell = ({
           iconSize="m"
           iconColor={theme.colors.grayscale.light1}
           css={{ marginRight: `${theme.sizeUnit}px` }}
-          onClick={e => e.stopPropagation()}
+          onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
         />
       </Popover>
       {columnName}

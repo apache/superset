@@ -22,12 +22,14 @@ import {
   ConfirmStatusChange,
   Tooltip,
   ModifiedInfo,
+} from '@superset-ui/core/components';
+import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilters,
   type ListViewFetchDataConfig as FetchDataConfig,
-} from '@superset-ui/core/components';
+} from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';

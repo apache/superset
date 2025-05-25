@@ -32,7 +32,7 @@ import {
 import { NavLink, useLocation } from 'react-router-dom';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
-import { useUiConfig } from '@superset-ui/core/components/UiConfigContext';
+import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
 import {
   MenuObjectChildProps,

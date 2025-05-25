@@ -34,12 +34,15 @@ import {
   useSchemas,
   SchemaOption,
 } from 'src/hooks/apiResources';
-import { Label } from '../Label';
-import { Select, AsyncSelect } from '../Select';
-import { FormLabel } from '../Form';
-import { ErrorMessageWithStackTrace } from '../ErrorMessage';
+import {
+  Select,
+  AsyncSelect,
+  Label,
+  FormLabel,
+  ErrorMessageWithStackTrace,
+  LabeledValue as AntdLabeledValue,
+} from '@superset-ui/core/components';
 
-import type { LabeledValue as AntdLabeledValue } from '../Select';
 import type {
   DatabaseSelectorProps,
   DatabaseValue,

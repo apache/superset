@@ -34,11 +34,11 @@ import {
 import {
   FormLabel,
   CertifiedBadge,
-  DatabaseSelector,
   Select,
 } from '@superset-ui/core/components';
+import { DatabaseSelector } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import type { DatabaseObject } from '@superset-ui/core/components/DatabaseSelector/types';
+import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';

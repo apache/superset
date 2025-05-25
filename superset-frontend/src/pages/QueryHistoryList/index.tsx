@@ -35,16 +35,14 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import Popover from '@superset-ui/core/components/Popover';
+import { Popover, Label, Tooltip } from '@superset-ui/core/components';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import {
-  Label,
-  Tooltip,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilters,
-} from '@superset-ui/core/components';
+} from 'src/components';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';

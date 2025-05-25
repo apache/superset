@@ -18,10 +18,11 @@
  */
 
 import { FunctionComponent } from 'react';
-import { t } from '@superset-ui/core';
+import { t, SupersetTheme } from '@superset-ui/core';
 
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
-import { ErrorAlert } from '../ErrorMessage';
+import { Alert } from '@superset-ui/core/components';
+import { antdWarningAlertStyles } from './styles';
 
 const supersetTextDocs = getDatabaseDocumentationLinks();
 export const DOCUMENTATION_LINK = supersetTextDocs
@@ -33,13 +34,15 @@ export interface IProps {
   showDbInstallInstructions: boolean;
 }
 
-export const ImportErrorAlert: FunctionComponent<IProps> = ({
+export const ErrorAlert: FunctionComponent<IProps> = ({
   errorMessage,
   showDbInstallInstructions,
 }) => (
-  <ErrorAlert
+  <Alert
+    closable={false}
+    css={(theme: SupersetTheme) => antdWarningAlertStyles(theme)}
     type="error"
-    errorType={t('Import Error')}
+    showIcon
     message={errorMessage}
     description={
       showDbInstallInstructions ? (

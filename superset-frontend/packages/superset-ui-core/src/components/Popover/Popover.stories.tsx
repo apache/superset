@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Popover, { PopoverProps } from '@superset-ui/core/components/Popover';
+import { Popover, PopoverProps } from '@superset-ui/core/components/Popover';
 import { Button } from '../Button';
 
 export default {

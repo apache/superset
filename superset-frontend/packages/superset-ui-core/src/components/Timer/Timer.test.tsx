@@ -20,7 +20,7 @@
  * under the License.
  */
 import { render, sleep, waitFor } from '@testing-library/react';
-import Timer, { TimerProps } from '@superset-ui/core/components/Timer';
+import { Timer, TimerProps } from '.';
 import { now } from '../../utils/dates';
 
 function parseTime(text?: string | null) {

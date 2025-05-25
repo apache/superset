@@ -17,7 +17,8 @@
  * under the License.
  */
 import { Tooltip as AntdTooltip } from 'antd';
-import type { TooltipProps } from './types';
+
+import type { TooltipProps, TooltipPlacement } from './types';
 
 export const Tooltip = ({ overlayStyle, ...props }: TooltipProps) => (
   <AntdTooltip
@@ -28,5 +29,4 @@ export const Tooltip = ({ overlayStyle, ...props }: TooltipProps) => (
     {...props}
   />
 );
-
-export type { TooltipProps };
+export type { TooltipProps, TooltipPlacement };

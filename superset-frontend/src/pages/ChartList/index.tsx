@@ -48,17 +48,19 @@ import {
   FaveStar,
   FacePile,
   GenericLink,
-  ImportModal as ImportModelsModal,
   InfoTooltip,
+  Loading,
+  type LabeledValue,
+} from '@superset-ui/core/components';
+import {
+  ImportModal as ImportModelsModal,
   ListView,
   ListViewFilterOperator as FilterOperator,
   DashboardCrossLinks,
-  Loading,
   type ListViewProps,
   type ListViewFilters,
   type ListViewFilter,
-  type LabeledValue,
-} from '@superset-ui/core/components';
+} from 'src/components';
 import TagsList from '@superset-ui/core/components/TagsList';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { Link, useHistory } from 'react-router-dom';
@@ -74,7 +76,7 @@ import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { WIDER_DROPDOWN_WIDTH } from '@superset-ui/core/components/ListView/utils';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const FlexRowContainer = styled.div`
   align-items: center;

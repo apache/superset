@@ -24,7 +24,7 @@ import {
   setHoveredNativeFilter,
   unsetHoveredNativeFilter,
 } from 'src/dashboard/actions/nativeFilters';
-import { FAST_DEBOUNCE } from 'src/constants';
+import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
 
 export const dispatchHoverAction = debounce(
   (dispatch: Dispatch<any>, id?: string) => {

@@ -32,10 +32,8 @@ import Table, {
   TableSize,
   OnChangeFunction,
 } from '@superset-ui/core/components/Table';
-import {
-  EmptyState,
-  ListViewFilterOperator as FilterOperator,
-} from '@superset-ui/core/components';
+import { EmptyState } from '@superset-ui/core/components';
+import { ListViewFilterOperator as FilterOperator } from 'src/components';
 import ChartImage from 'src/assets/images/chart.svg';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';

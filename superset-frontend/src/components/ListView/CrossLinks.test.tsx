@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import CrossLinks, { CrossLinksProps } from './CrossLinks';
 
 const mockedProps = {

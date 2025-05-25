@@ -60,7 +60,7 @@ import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { DatabaseObject } from 'src/features/databases/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { WIDER_DROPDOWN_WIDTH } from '@superset-ui/core/components/ListView/utils';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(

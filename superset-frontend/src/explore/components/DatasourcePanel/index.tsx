@@ -34,7 +34,7 @@ import { matchSorter, rankings } from 'match-sorter';
 import { Alert, Input } from '@superset-ui/core/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
-import { FAST_DEBOUNCE } from 'src/constants';
+import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';

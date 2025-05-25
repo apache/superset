@@ -18,10 +18,9 @@
  */
 import { useEffect, SetStateAction, Dispatch, useCallback } from 'react';
 import { styled, t } from '@superset-ui/core';
-import TableSelector, {
-  TableOption,
-} from '@superset-ui/core/components/TableSelector';
-import { EmptyState, type DatabaseObject } from '@superset-ui/core/components';
+import TableSelector, { TableOption } from 'src/components/TableSelector';
+import { EmptyState } from '@superset-ui/core/components';
+import { type DatabaseObject } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
 import {

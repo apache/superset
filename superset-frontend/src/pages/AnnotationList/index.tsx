@@ -29,14 +29,13 @@ import {
 import dayjs from 'dayjs';
 import rison from 'rison';
 
+import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
 import {
-  ConfirmStatusChange,
-  DeleteModal,
   ListView,
   ListViewActionsBar,
   type ListViewProps,
   type ListViewActionProps,
-} from '@superset-ui/core/components';
+} from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';

@@ -25,16 +25,15 @@ import RoleListEditModal from 'src/features/roles/RoleListEditModal';
 import RoleListDuplicateModal from 'src/features/roles/RoleListDuplicateModal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
+import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
 import {
-  ConfirmStatusChange,
-  DeleteModal,
   ListView,
   ListViewFilterOperator as FilterOperator,
   ListViewActionsBar,
   type ListViewProps,
   type ListViewActionProps,
   type ListViewFilters,
-} from '@superset-ui/core/components';
+} from 'src/components';
 import {
   FormattedPermission,
   PermissionResource,

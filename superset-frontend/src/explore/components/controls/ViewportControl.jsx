@@ -19,10 +19,9 @@
 import { Component } from 'react';
 import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
-import Popover from '@superset-ui/core/components/Popover';
+import { Popover, FormLabel, Label } from '@superset-ui/core/components';
 import { decimal2sexagesimal } from 'geolib';
 
-import { FormLabel, Label } from '@superset-ui/core/components';
 import TextControl from './TextControl';
 import ControlHeader from '../ControlHeader';
 

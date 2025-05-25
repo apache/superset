@@ -56,7 +56,7 @@ import {
   FormLabel,
 } from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { ErrorAlert } from '@superset-ui/core/components/ImportModal/ErrorAlert';
+import { ErrorAlert } from 'src/components/ImportModal/ErrorAlert';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   testDatabaseConnection,

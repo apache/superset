@@ -28,7 +28,7 @@ export interface TimerProps {
   status?: LabelType;
 }
 
-export default function Timer({
+export function Timer({
   endTime,
   isRunning,
   startTime,

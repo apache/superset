@@ -25,9 +25,9 @@ import {
   screen,
   userEvent,
   waitFor,
-} from '@testing-library/react';
+} from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
-import { EmptyState } from '../EmptyState';
+import { EmptyState } from '@superset-ui/core/components';
 import { DatabaseSelector } from '.';
 import type { DatabaseSelectorProps } from './types';
 

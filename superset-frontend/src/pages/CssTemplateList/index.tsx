@@ -29,13 +29,15 @@ import {
   DeleteModal,
   ConfirmStatusChange,
   ModifiedInfo,
+} from '@superset-ui/core/components';
+import {
   ListView,
   ListViewActionsBar,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewActionProps,
   type ListViewFilters,
-} from '@superset-ui/core/components';
+} from 'src/components';
 
 import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
