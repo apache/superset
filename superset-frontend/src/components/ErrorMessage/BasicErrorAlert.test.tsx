@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import { ErrorLevel, supersetTheme } from '@superset-ui/core';
 import { BasicErrorAlert } from './BasicErrorAlert';
 
 jest.mock(
-  '@superset-ui/core/components/Icons/AsyncIcon',
+  'src/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />

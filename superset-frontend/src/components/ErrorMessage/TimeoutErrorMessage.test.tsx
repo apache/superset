@@ -18,12 +18,11 @@
  */
 
 import { ErrorSource, ErrorTypeEnum, ErrorLevel } from '@superset-ui/core';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { TimeoutErrorMessage } from './TimeoutErrorMessage';
 
 jest.mock(
-  '@superset-ui/core/components/Icons/AsyncIcon',
+  'src/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />
@@ -63,19 +62,19 @@ test('should render the default title', () => {
   expect(screen.getByText('Timeout error')).toBeInTheDocument();
 });
 
-test('should render the issue codes', async () => {
+test('should render the issue codes', () => {
   render(<TimeoutErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  await userEvent.click(button);
+  userEvent.click(button);
   expect(screen.getByText(/This may be triggered by:/)).toBeInTheDocument();
   expect(screen.getByText(/Issue code message A/)).toBeInTheDocument();
   expect(screen.getByText(/Issue code message B/)).toBeInTheDocument();
 });
 
-test('should render the owners', async () => {
+test('should render the owners', () => {
   render(<TimeoutErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  await userEvent.click(button);
+  userEvent.click(button);
   expect(
     screen.getByText('Please reach out to the Chart Owners for assistance.'),
   ).toBeInTheDocument();
@@ -84,7 +83,7 @@ test('should render the owners', async () => {
   ).toBeInTheDocument();
 });
 
-test('should NOT render the owners', async () => {
+test('should NOT render the owners', () => {
   const noVisualizationProps = {
     ...mockedProps,
     source: 'sqllab' as ErrorSource,
@@ -93,16 +92,16 @@ test('should NOT render the owners', async () => {
     useRedux: true,
   });
   const button = screen.getByText('See more');
-  await userEvent.click(button);
+  userEvent.click(button);
   expect(
     screen.queryByText('Chart Owners: Owner A, Owner B'),
   ).not.toBeInTheDocument();
 });
 
-test('should render the timeout message', async () => {
+test('should render the timeout message', () => {
   render(<TimeoutErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  await userEvent.click(button);
+  userEvent.click(button);
   expect(
     screen.getByText(
       /We’re having trouble loading this visualization. Queries are set to timeout after 30 seconds./,

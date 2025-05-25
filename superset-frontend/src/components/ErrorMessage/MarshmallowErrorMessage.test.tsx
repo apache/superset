@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import { ErrorLevel, ErrorTypeEnum } from '@superset-ui/core';
 import { MarshmallowErrorMessage } from './MarshmallowErrorMessage';
 
@@ -43,25 +43,25 @@ describe('MarshmallowErrorMessage', () => {
     level: 'error' as ErrorLevel,
   };
 
-  it('renders without crashing', () => {
+  test('renders without crashing', () => {
     render(<MarshmallowErrorMessage error={mockError} />);
     expect(screen.getByText('Validation failed')).toBeInTheDocument();
   });
 
-  it('renders the provided subtitle', () => {
+  test('renders the provided subtitle', () => {
     render(
       <MarshmallowErrorMessage error={mockError} subtitle="Error Alert" />,
     );
     expect(screen.getByText('Error Alert')).toBeInTheDocument();
   });
 
-  it('renders extracted invalid values', () => {
+  test('renders extracted invalid values', () => {
     render(<MarshmallowErrorMessage error={mockError} />);
     expect(screen.getByText("can't be blank:")).toBeInTheDocument();
     expect(screen.getByText('is too low: 10')).toBeInTheDocument();
   });
 
-  it('renders the JSONTree when details are expanded', () => {
+  test('renders the JSONTree when details are expanded', () => {
     render(<MarshmallowErrorMessage error={mockError} />);
     fireEvent.click(screen.getByText('Details'));
     expect(screen.getByText('"can\'t be blank"')).toBeInTheDocument();

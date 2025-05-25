@@ -18,13 +18,12 @@
  */
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { ErrorMessageWithStackTrace } from './ErrorMessageWithStackTrace';
 import { BasicErrorAlert } from './BasicErrorAlert';
 
 jest.mock(
-  '@superset-ui/core/components/Icons/AsyncIcon',
+  'src/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />
@@ -43,17 +42,17 @@ test('should render', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render the stacktrace', async () => {
+test('should render the stacktrace', () => {
   render(<ErrorMessageWithStackTrace {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  await userEvent.click(button);
+  userEvent.click(button);
   expect(screen.getByText('Stacktrace')).toBeInTheDocument();
 });
 
-test('should render the link', async () => {
+test('should render the link', () => {
   render(<ErrorMessageWithStackTrace {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  await userEvent.click(button);
+  userEvent.click(button);
   const link = screen.getByRole('link');
   expect(link).toHaveTextContent('Request Access');
   expect(link).toHaveAttribute('href', mockedProps.link);

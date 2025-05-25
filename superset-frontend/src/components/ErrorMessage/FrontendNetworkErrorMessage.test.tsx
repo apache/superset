@@ -18,11 +18,11 @@
  */
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
-import { render, screen } from '@testing-library/react';
-import { DatasetNotFoundErrorMessage } from './DatasetNotFoundErrorMessage';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { FrontendNetworkErrorMessage } from './FrontendNetworkErrorMessage';
 
 jest.mock(
-  '@superset-ui/core/components/Icons/AsyncIcon',
+  'src/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />
@@ -31,22 +31,39 @@ jest.mock(
 
 const mockedProps = {
   error: {
-    error_type: ErrorTypeEnum.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
-    level: 'error' as ErrorLevel,
-    message: 'The dataset associated with this chart no longer exists',
+    error_type: ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
     extra: {},
+    level: 'error' as ErrorLevel,
+    message: 'Error message',
   },
   source: 'dashboard' as ErrorSource,
+  subtitle: 'Error message',
 };
 
 test('should render', () => {
+  const nullExtraProps = {
+    ...mockedProps,
+    error: {
+      ...mockedProps.error,
+      extra: null,
+    },
+  };
   const { container } = render(
-    <DatasetNotFoundErrorMessage {...mockedProps} />,
+    <FrontendNetworkErrorMessage {...nullExtraProps} />,
   );
   expect(container).toBeInTheDocument();
 });
 
-test('should render the default title', () => {
-  render(<DatasetNotFoundErrorMessage {...mockedProps} />);
-  expect(screen.getByText('Missing dataset')).toBeInTheDocument();
+test('should render the error message', () => {
+  render(<FrontendNetworkErrorMessage {...mockedProps} />, { useRedux: true });
+  expect(screen.getByText('Error message')).toBeInTheDocument();
+});
+
+test("should render error message in compact mode if 'compact' is true", () => {
+  render(<FrontendNetworkErrorMessage {...mockedProps} compact />, {
+    useRedux: true,
+  });
+  expect(screen.queryByText('Error message')).not.toBeInTheDocument();
+  userEvent.click(screen.getByRole('button'));
+  expect(screen.getByText('Error message')).toBeInTheDocument();
 });

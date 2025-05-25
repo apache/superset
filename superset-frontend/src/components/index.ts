@@ -17,3 +17,4 @@ export {
 export { DatabaseSelector, type DatabaseObject } from './DatabaseSelector';
 export * from './Datasource';
 export { ImportModal, type ImportModelsModalProps } from './ImportModal';
+export { ErrorBoundary, type ErrorBoundaryProps } from './ErrorBoundary';

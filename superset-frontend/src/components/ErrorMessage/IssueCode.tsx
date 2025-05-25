@@ -16,30 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Icons } from '@superset-ui/core/components';
+import { useTheme } from '@superset-ui/core';
 
-import { render, screen } from '@testing-library/react';
-import { IssueCode } from './IssueCode';
+interface IssueCodeProps {
+  code: number;
+  message: string;
+}
 
-const mockedProps = {
-  code: 1,
-  message: 'Error message',
-};
-
-test('should render', () => {
-  const { container } = render(<IssueCode {...mockedProps} />);
-  expect(container).toBeInTheDocument();
-});
-
-test('should render the message', () => {
-  render(<IssueCode {...mockedProps} />);
-  expect(screen.getByText('Error message')).toBeInTheDocument();
-});
-
-test('should render the link', () => {
-  render(<IssueCode {...mockedProps} />);
-  const link = screen.getByRole('link');
-  expect(link).toHaveAttribute(
-    'href',
-    `https://superset.apache.org/docs/using-superset/issue-codes#issue-${mockedProps.code}`,
+export function IssueCode({ code, message }: IssueCodeProps) {
+  const theme = useTheme();
+  return (
+    <>
+      {message}{' '}
+      <a
+        href={`https://superset.apache.org/docs/using-superset/issue-codes#issue-${code}`}
+        rel="noopener noreferrer"
+        target="_blank"
+        aria-label="Superset docs link"
+      >
+        <Icons.Full iconSize="m" iconColor={theme.colors.primary.dark1} />
+      </a>
+    </>
   );
-});
+}

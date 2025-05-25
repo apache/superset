@@ -18,12 +18,11 @@
  */
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { ParameterErrorMessage } from './ParameterErrorMessage';
 
 jest.mock(
-  '@superset-ui/core/components/Icons/AsyncIcon',
+  'src/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />
@@ -64,26 +63,26 @@ test('should render the default title', () => {
   expect(screen.getByText('Parameter error')).toBeInTheDocument();
 });
 
-test('should render the error message', async () => {
+test('should render the error message', () => {
   render(<ParameterErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  await userEvent.click(button);
+  userEvent.click(button);
   expect(screen.getByText('Error message')).toBeInTheDocument();
 });
 
-test('should render the issue codes', async () => {
+test('should render the issue codes', () => {
   render(<ParameterErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  await userEvent.click(button);
+  userEvent.click(button);
   expect(screen.getByText(/This may be triggered by:/)).toBeInTheDocument();
   expect(screen.getByText(/Issue code message A/)).toBeInTheDocument();
   expect(screen.getByText(/Issue code message B/)).toBeInTheDocument();
 });
 
-test('should render the suggestions', async () => {
+test('should render the suggestions', () => {
   render(<ParameterErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  await userEvent.click(button);
+  userEvent.click(button);
   expect(screen.getByText(/Did you mean:/)).toBeInTheDocument();
   expect(screen.getByText('"state" instead of "stat?"')).toBeInTheDocument();
   expect(screen.getByText('"country" instead of "count?"')).toBeInTheDocument();

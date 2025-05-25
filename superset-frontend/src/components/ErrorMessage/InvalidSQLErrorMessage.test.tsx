@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import { render, cleanup } from '@testing-library/react';
+import { render, cleanup } from 'spec/helpers/testing-library';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { InvalidSQLErrorMessage } from './InvalidSQLErrorMessage';
 

@@ -18,12 +18,11 @@
  */
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { FrontendNetworkErrorMessage } from './FrontendNetworkErrorMessage';
+import { render, screen } from 'spec/helpers/testing-library';
+import { DatasetNotFoundErrorMessage } from './DatasetNotFoundErrorMessage';
 
 jest.mock(
-  '@superset-ui/core/components/Icons/AsyncIcon',
+  'src/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />
@@ -32,39 +31,22 @@ jest.mock(
 
 const mockedProps = {
   error: {
-    error_type: ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
-    extra: {},
+    error_type: ErrorTypeEnum.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
     level: 'error' as ErrorLevel,
-    message: 'Error message',
+    message: 'The dataset associated with this chart no longer exists',
+    extra: {},
   },
   source: 'dashboard' as ErrorSource,
-  subtitle: 'Error message',
 };
 
 test('should render', () => {
-  const nullExtraProps = {
-    ...mockedProps,
-    error: {
-      ...mockedProps.error,
-      extra: null,
-    },
-  };
   const { container } = render(
-    <FrontendNetworkErrorMessage {...nullExtraProps} />,
+    <DatasetNotFoundErrorMessage {...mockedProps} />,
   );
   expect(container).toBeInTheDocument();
 });
 
-test('should render the error message', () => {
-  render(<FrontendNetworkErrorMessage {...mockedProps} />, { useRedux: true });
-  expect(screen.getByText('Error message')).toBeInTheDocument();
-});
-
-test("should render error message in compact mode if 'compact' is true", async () => {
-  render(<FrontendNetworkErrorMessage {...mockedProps} compact />, {
-    useRedux: true,
-  });
-  expect(screen.queryByText('Error message')).not.toBeInTheDocument();
-  await userEvent.click(screen.getByRole('button'));
-  expect(screen.getByText('Error message')).toBeInTheDocument();
+test('should render the default title', () => {
+  render(<DatasetNotFoundErrorMessage {...mockedProps} />);
+  expect(screen.getByText('Missing dataset')).toBeInTheDocument();
 });

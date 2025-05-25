@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactElement } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import type { ErrorBoundaryProps } from './types';
 import { ErrorBoundary } from '.';
 
