@@ -39,7 +39,6 @@ import {
   CertifiedBadge,
   DeleteModal,
   Tooltip,
-  ModifiedInfo,
   FacePile,
   InfoTooltip,
   DatasetTypeLabel,
@@ -49,6 +48,7 @@ import {
 import { DatasourceModal, GenericLink } from 'src/components';
 import {
   ImportModal as ImportModelsModal,
+  ModifiedInfo,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,

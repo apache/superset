@@ -27,7 +27,7 @@ import {
   getItem,
   LocalStorageKeys,
   setItem,
-} from 'src/utils/localStorageHelpers';
+} from '@superset-ui/core/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useHistory } from 'react-router-dom';
 import { Filter, TableTab } from 'src/views/CRUD/types';

@@ -20,6 +20,9 @@ import { styled, t } from '@superset-ui/core';
 import ReactCronPicker from 'react-js-cron';
 import type { Locale, CronProps } from './types';
 
+// Styles for the crontab-related lib
+import 'react-js-cron/dist/styles.css';
+
 export const LOCALE: Locale = {
   everyText: t('every'),
   emptyMonths: t('every month'),

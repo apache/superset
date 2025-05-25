@@ -32,10 +32,9 @@ import Table, {
   TableSize,
   OnChangeFunction,
 } from '@superset-ui/core/components/Table';
-import { EmptyState } from '@superset-ui/core/components';
+import { EmptyState, Icons } from '@superset-ui/core/components';
 import { ListViewFilterOperator as FilterOperator } from 'src/components';
-import ChartImage from 'src/assets/images/chart.svg';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { chart as ChartImage } from '@superset-ui/core/components/assets';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';

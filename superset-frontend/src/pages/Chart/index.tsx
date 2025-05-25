@@ -39,7 +39,10 @@ import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
 import ExploreViewContainer from 'src/explore/components/ExploreViewContainer';
 import { ExploreResponsePayload, SaveActionType } from 'src/explore/types';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
-import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import {
+  getItem,
+  LocalStorageKeys,
+} from '@superset-ui/core/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
 
 const isValidResult = (rv: JsonObject): boolean =>

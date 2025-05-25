@@ -24,3 +24,4 @@ export { FlashProvider, type FlashMessage } from './FlashProvider';
 export { GridTable, type TableProps } from './GridTable';
 export * from './Tag';
 export * from './TagsList';
+export { ModifiedInfo, type ModifiedInfoProps } from './AuditInfo';

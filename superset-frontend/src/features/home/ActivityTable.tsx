@@ -19,7 +19,10 @@
 import { useEffect, useState } from 'react';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { styled, t } from '@superset-ui/core';
-import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import {
+  setItem,
+  LocalStorageKeys,
+} from '@superset-ui/core/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
 import { ListViewCard } from '@superset-ui/core/components';
 import { Dashboard, SavedQueryObject, TableTab } from 'src/views/CRUD/types';

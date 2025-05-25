@@ -17,14 +17,16 @@
  * under the License.
  */
 import { styled, css, SupersetTheme, t } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
-import errorIcon from 'src/assets/images/icons/error.svg';
-import { Button } from '../Button';
-import { InfoTooltip } from '../InfoTooltip';
-import { Input } from '../Input';
-import { Tooltip } from '../Tooltip';
-import { FormItem } from './FormItem';
-import { FormLabel } from './FormLabel';
+import { error as errorIcon } from '@superset-ui/core/components/assets/svgs/error.svg';
+import {
+  Button,
+  Icons,
+  Input,
+  InfoTooltip,
+  Tooltip,
+  FormItem,
+  FormLabel,
+} from '..';
 import type { LabeledErrorBoundInputProps } from './types';
 
 const StyledInput = styled(Input)`

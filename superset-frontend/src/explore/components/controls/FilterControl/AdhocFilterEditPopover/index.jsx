@@ -18,7 +18,8 @@
  */
 import { createRef, Component } from 'react';
 import PropTypes from 'prop-types';
-import { Button, ErrorBoundary, Icons } from '@superset-ui/core/components';
+import { Button, Icons } from '@superset-ui/core/components';
+import { ErrorBoundary } from 'src/components';
 import { styled, t } from '@superset-ui/core';
 
 import Tabs from '@superset-ui/core/components/Tabs';

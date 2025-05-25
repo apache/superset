@@ -27,18 +27,18 @@ import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
   ConfirmStatusChange,
   Tooltip,
-  ModifiedInfo,
   FaveStar,
 } from '@superset-ui/core/components';
 import {
   Tag as AntdTag,
   ListView,
+  ModifiedInfo,
   ListViewFilterOperator as FilterOperator,
   type ListViewFilters,
   type ListViewProps,
 } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
+import { dangerouslyGetItemDoNotUse } from '@superset-ui/core/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Link } from 'react-router-dom';

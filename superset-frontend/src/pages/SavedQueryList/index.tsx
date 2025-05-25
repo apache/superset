@@ -38,7 +38,6 @@ import {
   ConfirmStatusChange,
   DeleteModal,
   Loading,
-  ModifiedInfo,
   Popover,
   Tooltip,
 } from '@superset-ui/core/components';
@@ -47,6 +46,7 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
   ImportModal as ImportModelsModal,
   TagType,
+  ModifiedInfo,
   TagsList,
   ListView,
   ListViewActionsBar,

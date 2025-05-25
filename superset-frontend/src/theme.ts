@@ -17,6 +17,3 @@
  * under the License.
  */
 import 'src/public-path';
-
-// Styles for the crontab-related lib
-import 'react-js-cron/dist/styles.css';

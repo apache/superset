@@ -21,7 +21,7 @@ import {
   LocalStorageKeys,
   setItem,
   getItem,
-} from 'src/utils/localStorageHelpers';
+} from '@superset-ui/core/utils/localStorageHelpers';
 import useStoredSidebarWidth from './useStoredSidebarWidth';
 
 const INITIAL_WIDTH = 300;

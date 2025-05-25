@@ -42,7 +42,6 @@ export {
   type AsyncAceEditorProps,
   type Editor,
 } from './AsyncAceEditor';
-export { ModifiedInfo, type ModifiedInfoProps } from './AuditInfo';
 export { AutoComplete, type AutoCompleteProps } from './AutoComplete';
 export {
   Avatar,

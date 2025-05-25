@@ -22,7 +22,10 @@ import TableSelector, { TableOption } from 'src/components/TableSelector';
 import { EmptyState } from '@superset-ui/core/components';
 import { type DatabaseObject } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
+import {
+  LocalStorageKeys,
+  getItem,
+} from '@superset-ui/core/utils/localStorageHelpers';
 import {
   DatasetActionType,
   DatasetObject,

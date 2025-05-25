@@ -38,7 +38,10 @@ import {
 import { CheckboxChangeEvent } from '@superset-ui/core/components/Checkbox/types';
 
 import { useHistory } from 'react-router-dom';
-import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import {
+  setItem,
+  LocalStorageKeys,
+} from '@superset-ui/core/utils/localStorageHelpers';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
   Alert,

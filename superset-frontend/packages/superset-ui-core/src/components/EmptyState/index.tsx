@@ -20,22 +20,21 @@ import { ReactNode, SyntheticEvent } from 'react';
 import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 
 // Importing svg images
-import FilterResultsImage from 'src/assets/images/filter-results.svg';
-import ChartImage from 'src/assets/images/chart.svg';
-import FilterImage from 'src/assets/images/filter.svg';
-import EmptyChartsImage from 'src/assets/images/empty-charts.svg';
-import EmptyDashboardImage from 'src/assets/images/empty-dashboard.svg';
-import UnionImage from 'src/assets/images/union.svg';
-import StarCircleImage from 'src/assets/images/star-circle.svg';
-import VectorImage from 'src/assets/images/vector.svg';
-import DocumentImage from 'src/assets/images/document.svg';
-import DatasetImage from 'src/assets/images/empty-dataset.svg';
-import EmptySqlChartImage from 'src/assets/images/empty_sql_chart.svg';
-import EmptyQueryImage from 'src/assets/images/empty-query.svg';
-import EmptyTableImage from 'src/assets/images/empty-table.svg';
-import EmptyImage from 'src/assets/images/empty.svg';
-import { Button } from '../Button';
-import { Empty } from './Empty';
+import FilterResultsImage from './svgs/filter-results.svg';
+import ChartImage from '../assets/svgs/chart.svg';
+import FilterImage from './svgs/filter.svg';
+import EmptyChartsImage from './svgs/empty-charts.svg';
+import EmptyDashboardImage from './svgs/empty-dashboard.svg';
+import UnionImage from './svgs/union.svg';
+import StarCircleImage from './svgs/star-circle.svg';
+import VectorImage from './svgs/vector.svg';
+import DocumentImage from './svgs/document.svg';
+import DatasetImage from './svgs/empty-dataset.svg';
+import EmptySqlChartImage from './svgs/empty_sql_chart.svg';
+import EmptyQueryImage from './svgs/empty-query.svg';
+import EmptyTableImage from './svgs/empty-table.svg';
+import EmptyImage from './svgs/empty.svg';
+import { Button, Empty } from '..';
 import type { EmptyStateProps, EmptyStateSize } from './types';
 
 export const imageMap = {

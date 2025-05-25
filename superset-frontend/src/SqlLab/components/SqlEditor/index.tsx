@@ -104,7 +104,7 @@ import {
   getItem,
   LocalStorageKeys,
   setItem,
-} from 'src/utils/localStorageHelpers';
+} from '@superset-ui/core/utils/localStorageHelpers';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import useLogAction from 'src/logger/useLogAction';
 import {

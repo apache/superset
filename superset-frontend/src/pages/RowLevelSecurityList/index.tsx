@@ -18,12 +18,9 @@
  */
 import { t, SupersetClient } from '@superset-ui/core';
 import { useMemo, useState } from 'react';
+import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
 import {
-  ConfirmStatusChange,
-  Tooltip,
   ModifiedInfo,
-} from '@superset-ui/core/components';
-import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,

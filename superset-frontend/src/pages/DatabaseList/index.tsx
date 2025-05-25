@@ -26,7 +26,10 @@ import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
-import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
+import {
+  LocalStorageKeys,
+  setItem,
+} from '@superset-ui/core/utils/localStorageHelpers';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
   createErrorHandler,
@@ -38,11 +41,11 @@ import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import {
   DeleteModal,
   Tooltip,
-  ModifiedInfo,
   List,
   Loading,
 } from '@superset-ui/core/components';
 import {
+  ModifiedInfo,
   ListView,
   ListViewFilterOperator as FilterOperator,
   ListViewFilters,

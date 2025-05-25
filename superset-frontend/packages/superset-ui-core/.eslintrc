@@ -33,7 +33,10 @@
   ],
   "overrides": [
 	{
-  	  "files": ["**/*.stories.*"],
+  	  "files": [
+        "**/*.stories.*",
+        "**/*.overview.*"
+      ],
   	  "rules": {
         "import/no-extraneous-dependencies": "off"
       }

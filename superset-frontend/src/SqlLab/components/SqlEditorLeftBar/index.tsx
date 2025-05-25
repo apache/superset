@@ -42,7 +42,7 @@ import {
   getItem,
   LocalStorageKeys,
   setItem,
-} from 'src/utils/localStorageHelpers';
+} from '@superset-ui/core/utils/localStorageHelpers';
 import TableElement from '../TableElement';
 
 export interface SqlEditorLeftBarProps {

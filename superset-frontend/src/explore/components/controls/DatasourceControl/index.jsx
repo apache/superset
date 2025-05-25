@@ -34,10 +34,13 @@ import {
   Dropdown,
   Tooltip,
   Button,
-  ErrorAlert,
   ModalTrigger,
 } from '@superset-ui/core/components';
-import { ChangeDatasourceModal, DatasourceModal } from 'src/components';
+import {
+  ChangeDatasourceModal,
+  DatasourceModal,
+  ErrorAlert,
+} from 'src/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';

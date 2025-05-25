@@ -26,7 +26,7 @@ import {
   getItem,
   LocalStorageKeys,
   setItem,
-} from 'src/utils/localStorageHelpers';
+} from '@superset-ui/core/utils/localStorageHelpers';
 import { RootState } from 'src/dashboard/types';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';

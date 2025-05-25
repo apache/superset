@@ -18,7 +18,7 @@
  */
 
 import { FC, SVGProps, useEffect, useRef, useState } from 'react';
-import TransparentIcon from 'src/assets/images/icons/transparent.svg';
+import TransparentIcon from './svgs/transparent.svg';
 import { IconType } from './types';
 import { BaseIconComponent } from './BaseIcon';
 

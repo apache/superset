@@ -27,12 +27,9 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { Typography } from '@superset-ui/core/components/Typography';
 
+import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
 import {
-  DeleteModal,
-  ConfirmStatusChange,
   ModifiedInfo,
-} from '@superset-ui/core/components';
-import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   ListViewActionsBar,

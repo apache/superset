@@ -25,7 +25,10 @@ import {
   userEvent,
   waitForElementToBeRemoved,
 } from 'spec/helpers/testing-library';
-import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import {
+  setItem,
+  LocalStorageKeys,
+} from '@superset-ui/core/utils/localStorageHelpers';
 import { DataTablesPane } from '..';
 import { createDataTablesPaneProps } from './fixture';
 

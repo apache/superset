@@ -30,7 +30,7 @@ import {
   getItem,
   setItem,
   LocalStorageKeys,
-} from 'src/utils/localStorageHelpers';
+} from '@superset-ui/core/utils/localStorageHelpers';
 import {
   SamplesPane,
   TableControlsWrapper,
