@@ -18,12 +18,8 @@
  */
 
 import { FC } from 'react';
-import {
-  render,
-  waitFor,
-  screen,
-  userEvent,
-} from 'spec/helpers/testing-library';
+import { render, waitFor, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { TimezoneSelectorProps } from './index';
 
 const loadComponent = (mockCurrentTime?: string) => {
@@ -52,7 +48,7 @@ test('render timezones in correct order for daylight saving time', async () => {
   );
 
   const searchInput = screen.getByRole('combobox');
-  userEvent.click(searchInput);
+  await userEvent.click(searchInput);
 
   const options = await waitFor(() =>
     document.querySelectorAll('.ant-select-item-option-content'),

@@ -16,21 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 
 test('renders with default props', async () => {
   render(<RefreshLabel tooltipContent="Tooltip" onClick={jest.fn()} />);
   const refresh = await screen.findByRole('button');
   expect(refresh).toBeInTheDocument();
-  userEvent.hover(refresh);
+  await userEvent.hover(refresh);
 });
 
 test('renders tooltip on hover', async () => {
   const tooltipText = 'Tooltip';
   render(<RefreshLabel tooltipContent={tooltipText} onClick={jest.fn()} />);
   const refresh = screen.getByRole('button');
-  userEvent.hover(refresh);
+  await userEvent.hover(refresh);
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
   expect(tooltip).toHaveTextContent(tooltipText);
@@ -40,6 +41,6 @@ test('triggers on click event', async () => {
   const onClick = jest.fn();
   render(<RefreshLabel tooltipContent="Tooltip" onClick={onClick} />);
   const refresh = await screen.findByRole('button');
-  userEvent.click(refresh);
+  await userEvent.click(refresh);
   expect(onClick).toHaveBeenCalled();
 });

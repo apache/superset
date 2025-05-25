@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render } from 'spec/helpers/testing-library';
+import { fireEvent, render } from '@testing-library/react';
 import { EditableTitle } from '.';
 
 const mockEvent = {
@@ -48,7 +48,7 @@ test('should not render an input if it is not editable', () => {
 });
 
 describe('should handle click', () => {
-  test('should enable editing mode on click', () => {
+  it('should enable editing mode on click', () => {
     const { getByTestId, container } = render(<EditableTitle {...mockProps} />);
 
     fireEvent.click(getByTestId('textarea-editable-title-input'));
@@ -59,7 +59,7 @@ describe('should handle click', () => {
 });
 
 describe('should handle change', () => {
-  test('should change title', () => {
+  it('should change title', () => {
     const { getByTestId } = render(<EditableTitle {...mockProps} editing />);
     const textarea = getByTestId('textarea-editable-title-input');
     fireEvent.change(textarea, mockEvent);
@@ -74,7 +74,7 @@ describe('should handle blur', () => {
     return selectors;
   };
 
-  test('should trigger callback', () => {
+  it('should trigger callback', () => {
     const callback = jest.fn();
     const { getByTestId } = setup({ onSaveTitle: callback });
     fireEvent.change(getByTestId('textarea-editable-title-input'), mockEvent);
@@ -83,7 +83,7 @@ describe('should handle blur', () => {
     expect(callback).toHaveBeenCalledWith('new title');
   });
 
-  test('should not trigger callback', () => {
+  it('should not trigger callback', () => {
     const callback = jest.fn();
     const { getByTestId } = setup({ onSaveTitle: callback });
     fireEvent.blur(getByTestId('textarea-editable-title-input'));
@@ -91,7 +91,7 @@ describe('should handle blur', () => {
     expect(callback).not.toHaveBeenCalled();
   });
 
-  test('should not save empty title', () => {
+  it('should not save empty title', () => {
     const callback = jest.fn();
     const { getByTestId } = setup({ onSaveTitle: callback });
     const textarea = getByTestId('textarea-editable-title-input');

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { DeleteModal } from '.';
 
 test('Must display title and content', () => {
@@ -34,7 +35,7 @@ test('Must display title and content', () => {
   expect(screen.getByTestId('test-description')).toBeInTheDocument();
 });
 
-test('Calling "onHide"', () => {
+test('Calling "onHide"', async () => {
   const props = {
     title: <div data-test="test-title">Title</div>,
     description: <div data-test="test-description">Description</div>,
@@ -48,12 +49,12 @@ test('Calling "onHide"', () => {
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // type "del" in the input
-  userEvent.type(screen.getByTestId('delete-modal-input'), 'del');
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'del');
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('del');
 
   // close the modal
   expect(screen.getByText('×')).toBeInTheDocument();
-  userEvent.click(screen.getByText('×'));
+  await userEvent.click(screen.getByText('×'));
   expect(props.onHide).toHaveBeenCalledTimes(1);
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
@@ -61,7 +62,7 @@ test('Calling "onHide"', () => {
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
 });
 
-test('Calling "onConfirm" only after typing "delete" in the input', () => {
+test('Calling "onConfirm" only after typing "delete" in the input', async () => {
   const props = {
     title: <div data-test="test-title">Title</div>,
     description: <div data-test="test-description">Description</div>,
@@ -76,12 +77,12 @@ test('Calling "onConfirm" only after typing "delete" in the input', () => {
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // do not execute "onConfirm" if you have not typed "delete"
-  userEvent.click(screen.getByText('Delete'));
+  await userEvent.click(screen.getByText('Delete'));
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // execute "onConfirm" if you have typed "delete"
-  userEvent.type(screen.getByTestId('delete-modal-input'), 'delete');
-  userEvent.click(screen.getByText('Delete'));
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'delete');
+  await userEvent.click(screen.getByText('Delete'));
   expect(props.onConfirm).toHaveBeenCalledTimes(1);
 
   // confirm input has been cleared

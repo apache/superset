@@ -117,7 +117,7 @@ const PaginationStyles = styled.div<{
   }
 `;
 
-const TableView = ({
+const RawTableView = ({
   columns,
   data,
   pageSize: initialPageSize,
@@ -262,4 +262,4 @@ const TableView = ({
   );
 };
 
-export default memo(TableView);
+export const TableView = memo(RawTableView);

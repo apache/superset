@@ -33,7 +33,7 @@ import {
   CurrentDay,
 } from 'src/explore/components/controls/DateFilterControl/types';
 import { CheckboxOptionType } from '@superset-ui/core/components/Radio';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Common', label: t('Last') },

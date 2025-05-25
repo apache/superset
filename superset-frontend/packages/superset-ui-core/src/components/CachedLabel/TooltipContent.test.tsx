@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { render, screen } from 'spec/helpers/testing-library';
-import { extendedDayjs } from 'src/utils/dates';
+import { render, screen } from '@testing-library/react';
+import { extendedDayjs } from '../../utils/dates';
 import { TooltipContent } from './TooltipContent';
 
 test('Rendering TooltipContent correctly - no timestep', () => {

@@ -18,7 +18,7 @@
  */
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { isEmpty, isEqual } from 'lodash';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   parseDttmToDate,
   BinaryAdhocFilter,

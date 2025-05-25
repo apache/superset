@@ -24,6 +24,7 @@ import {
   Label,
   Icons,
   ModalTrigger,
+  TableView,
 } from '@superset-ui/core/components';
 import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { t, useTheme, QueryResponse } from '@superset-ui/core';
@@ -36,8 +37,7 @@ import {
   clearQueryResults,
   removeQuery,
 } from 'src/SqlLab/actions/sqlLab';
-import TableView from '@superset-ui/core/components/TableView';
-import { fDuration, extendedDayjs } from 'src/utils/dates';
+import { fDuration, extendedDayjs } from '@superset-ui/core/utils/dates';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import ResultSet from '../ResultSet';

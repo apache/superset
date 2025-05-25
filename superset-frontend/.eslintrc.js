@@ -25,9 +25,6 @@ Object.entries(packageConfig.dependencies).forEach(([pkg]) => {
   }
 });
 
-// Add internal paths to core modules
-importCoreModules.push('src', 'spec');
-
 // ignore files in production mode
 let ignorePatterns = [];
 if (process.env.NODE_ENV === 'production') {
@@ -333,9 +330,8 @@ module.exports = {
       rules: {
         'import/no-extraneous-dependencies': [
           'error',
-          { 
-            devDependencies: true,
-            packageDir: ['.', './packages/superset-ui-core'],
+          {
+            devDependencies: true ,
           },
         ],
         'no-only-tests/no-only-tests': 'error',

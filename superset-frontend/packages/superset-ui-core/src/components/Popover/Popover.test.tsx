@@ -16,15 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
-import { supersetTheme } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
-import Popover from '@superset-ui/core/components/Popover';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { supersetTheme } from '../..';
+import { Icons, Popover } from '..';
 import { Button } from '../Button';
 
 test('should render', () => {
@@ -75,7 +70,7 @@ test('fires an event when visibility is changed', async () => {
       <Button>Hover me</Button>
     </Popover>,
   );
-  userEvent.hover(screen.getByRole('button'));
+  await userEvent.hover(screen.getByRole('button'));
   await waitFor(() => expect(onOpenChange).toHaveBeenCalledTimes(1));
 });
 

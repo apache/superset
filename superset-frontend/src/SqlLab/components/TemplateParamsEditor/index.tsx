@@ -26,7 +26,7 @@ import {
   ModalTrigger,
   Tooltip,
 } from '@superset-ui/core/components';
-import { FAST_DEBOUNCE } from 'src/constants';
+import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 const StyledConfigEditor = styled(ConfigEditor)`

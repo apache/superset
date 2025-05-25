@@ -40,11 +40,13 @@ import {
   Tooltip,
   ModifiedInfo,
   List,
+  Loading,
+} from '@superset-ui/core/components';
+import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   ListViewFilters,
-  Loading,
-} from '@superset-ui/core/components';
+} from 'src/components';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';

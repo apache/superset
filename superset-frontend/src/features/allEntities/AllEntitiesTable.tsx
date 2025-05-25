@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { t, styled } from '@superset-ui/core';
-import TableView, {
+import {
+  TableView,
   EmptyWrapperType,
 } from '@superset-ui/core/components/TableView';
 import TagsList from '@superset-ui/core/components/TagsList';

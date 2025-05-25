@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { IconButton } from '.';
 
 const defaultProps = {

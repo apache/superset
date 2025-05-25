@@ -17,12 +17,7 @@
  * under the License.
  */
 import type { Column, GridApi } from 'ag-grid-community';
-import {
-  fireEvent,
-  render,
-  waitFor,
-  screen,
-} from 'spec/helpers/testing-library';
+import { fireEvent, render, waitFor, screen } from '@testing-library/react';
 import { HeaderMenu } from './HeaderMenu';
 
 jest.mock('@superset-ui/core/components/Menu', () => {
@@ -181,7 +176,7 @@ test('renders unhide when invisible column exists', async () => {
 });
 
 describe('for main menu', () => {
-  test('renders Copy to Clipboard', async () => {
+  it('renders Copy to Clipboard', async () => {
     const { getByText } = render(<HeaderMenu {...mockedProps} isMain />);
     fireEvent.click(getByText('Copy the current data'));
     await waitFor(() =>
@@ -194,7 +189,7 @@ describe('for main menu', () => {
     });
   });
 
-  test('renders Download to CSV', async () => {
+  it('renders Download to CSV', async () => {
     const { getByText } = render(<HeaderMenu {...mockedProps} isMain />);
     fireEvent.click(getByText('Download to CSV'));
     await waitFor(() =>
@@ -205,7 +200,7 @@ describe('for main menu', () => {
     });
   });
 
-  test('renders autosize column', async () => {
+  it('renders autosize column', async () => {
     const { getByText } = render(<HeaderMenu {...mockedProps} isMain />);
     fireEvent.click(getByText('Autosize all columns'));
     await waitFor(() =>
@@ -213,7 +208,7 @@ describe('for main menu', () => {
     );
   });
 
-  test('renders all unhide all hidden columns when multiple invisible columns exist', async () => {
+  it('renders all unhide all hidden columns when multiple invisible columns exist', async () => {
     render(
       <HeaderMenu
         {...mockedProps}
@@ -232,7 +227,7 @@ describe('for main menu', () => {
     );
   });
 
-  test('reset columns configuration', async () => {
+  it('reset columns configuration', async () => {
     const { getByText } = render(
       <HeaderMenu
         {...mockedProps}

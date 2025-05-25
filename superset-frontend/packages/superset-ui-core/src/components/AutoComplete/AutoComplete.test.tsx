@@ -17,12 +17,8 @@
  * under the License.
  */
 import { useState } from 'react';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Input } from '../Input';
 import { AutoComplete } from '.';
 
@@ -49,17 +45,17 @@ const AutoCompleteTest = () => {
 };
 
 describe('AutoComplete Component', () => {
-  test('renders input field', () => {
+  it('renders input field', () => {
     render(<AutoCompleteTest />);
     expect(
       screen.getByPlaceholderText('Type to search...'),
     ).toBeInTheDocument();
   });
 
-  test('shows options when user types', async () => {
+  it('shows options when user types', async () => {
     render(<AutoCompleteTest />);
     const input = screen.getByPlaceholderText('Type to search...');
-    userEvent.type(input, 'test');
+    await userEvent.type(input, 'test');
 
     await waitFor(() => {
       expect(screen.getByText('test result 0')).toBeInTheDocument();
@@ -68,16 +64,16 @@ describe('AutoComplete Component', () => {
     });
   });
 
-  test('selecting an option updates input value', async () => {
+  it('selecting an option updates input value', async () => {
     render(<AutoCompleteTest />);
     const input = screen.getByPlaceholderText('Type to search...');
-    userEvent.type(input, 'test');
+    await userEvent.type(input, 'test');
 
     await waitFor(() => {
       expect(screen.getByText('test result 0')).toBeInTheDocument();
     });
 
-    userEvent.click(screen.getByText('test result 0'));
+    await userEvent.click(screen.getByText('test result 0'));
     expect(input).toHaveValue('test0');
   });
 });

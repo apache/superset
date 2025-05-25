@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render } from 'spec/helpers/testing-library';
+import { render } from '@testing-library/react';
 import { Spin } from '.';
 
 test('renders spin with default props', () => {

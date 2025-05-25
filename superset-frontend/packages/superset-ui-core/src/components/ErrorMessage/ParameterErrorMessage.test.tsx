@@ -18,7 +18,8 @@
  */
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ParameterErrorMessage } from './ParameterErrorMessage';
 
 jest.mock(
@@ -63,26 +64,26 @@ test('should render the default title', () => {
   expect(screen.getByText('Parameter error')).toBeInTheDocument();
 });
 
-test('should render the error message', () => {
+test('should render the error message', async () => {
   render(<ParameterErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(screen.getByText('Error message')).toBeInTheDocument();
 });
 
-test('should render the issue codes', () => {
+test('should render the issue codes', async () => {
   render(<ParameterErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(screen.getByText(/This may be triggered by:/)).toBeInTheDocument();
   expect(screen.getByText(/Issue code message A/)).toBeInTheDocument();
   expect(screen.getByText(/Issue code message B/)).toBeInTheDocument();
 });
 
-test('should render the suggestions', () => {
+test('should render the suggestions', async () => {
   render(<ParameterErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(screen.getByText(/Did you mean:/)).toBeInTheDocument();
   expect(screen.getByText('"state" instead of "stat?"')).toBeInTheDocument();
   expect(screen.getByText('"country" instead of "count?"')).toBeInTheDocument();

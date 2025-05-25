@@ -18,9 +18,7 @@
  */
 import { useState } from 'react';
 import { t } from '@superset-ui/core';
-import TableView, {
-  EmptyWrapperType,
-} from '@superset-ui/core/components/TableView';
+import { TableView, EmptyWrapperType } from '@superset-ui/core/components';
 import {
   useFilteredTableData,
   useTableColumns,

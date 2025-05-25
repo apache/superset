@@ -26,7 +26,7 @@ import {
   styled,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   FacePile,
   Tooltip,

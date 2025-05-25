@@ -23,7 +23,7 @@ import {
   epochTimeXDaysAgo,
   epochTimeXYearsAgo,
   extendedDayjs,
-} from 'src/utils/dates';
+} from './dates';
 
 describe('extendedDayjs', () => {
   it('returns dayjs object with extended methods', () => {

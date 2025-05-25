@@ -24,7 +24,7 @@ import {
   userEvent,
   waitFor,
   within,
-} from 'spec/helpers/testing-library';
+} from '@testing-library/react';
 import { AsyncSelect } from '.';
 
 const ARIA_LABEL = 'Test';
@@ -137,9 +137,9 @@ const matchOrder = async (expectedLabels: string[]) => {
   return true;
 };
 
-const type = (text: string) => {
+const type = async (text: string) => {
   const select = getSelect();
-  userEvent.clear(select);
+  await userEvent.clear(select);
   return userEvent.type(select, text, { delay: 10 });
 };
 
@@ -200,7 +200,7 @@ test('does not add a new option if the value is already in the options', async (
 test('inverts the selection', async () => {
   render(<AsyncSelect {...defaultProps} invertSelection />);
   await open();
-  userEvent.click(await findSelectOption(OPTIONS[0].label));
+  await userEvent.click(await findSelectOption(OPTIONS[0].label));
   expect(await screen.findByLabelText('stop')).toBeInTheDocument();
 });
 
@@ -236,7 +236,7 @@ test('should sort selected to top when in single mode', async () => {
   render(<AsyncSelect {...defaultProps} mode="single" />);
   const originalLabels = OPTIONS.map(option => option.label);
   await open();
-  userEvent.click(await findSelectOption(originalLabels[1]));
+  await userEvent.click(await findSelectOption(originalLabels[1]));
   // after selection, keep the original order
   expect(await matchOrder(originalLabels)).toBe(true);
 
@@ -249,7 +249,7 @@ test('should sort selected to top when in single mode', async () => {
 
   // keep clicking other items, the updated order should still based on
   // original order
-  userEvent.click(await findSelectOption(originalLabels[5]));
+  await userEvent.click(await findSelectOption(originalLabels[5]));
   await matchOrder(labels);
   await type('{esc}');
   await open();
@@ -258,7 +258,7 @@ test('should sort selected to top when in single mode', async () => {
   expect(await matchOrder(labels)).toBe(true);
 
   // should revert to original order
-  clearAll();
+  await clearAll();
   await type('{esc}');
   await open();
   expect(await matchOrder(originalLabels)).toBe(true);
@@ -270,7 +270,7 @@ test('should sort selected to the top when in multi mode', async () => {
   let labels = originalLabels.slice();
 
   await open();
-  userEvent.click(await findSelectOption(labels[1]));
+  await userEvent.click(await findSelectOption(labels[1]));
   expect(await matchOrder(labels)).toBe(true);
 
   await type('{esc}');
@@ -279,14 +279,14 @@ test('should sort selected to the top when in multi mode', async () => {
   expect(await matchOrder(labels)).toBe(true);
 
   await open();
-  userEvent.click(await findSelectOption(labels[5]));
+  await userEvent.click(await findSelectOption(labels[5]));
   await type('{esc}');
   await open();
   labels = [labels.splice(0, 1)[0], labels.splice(4, 1)[0]].concat(labels);
   expect(await matchOrder(labels)).toBe(true);
 
   // should revert to original order
-  clearAll();
+  await clearAll();
   await type('{esc}');
   await open();
   expect(await matchOrder(originalLabels)).toBe(true);
@@ -449,7 +449,7 @@ test('clear all the values', async () => {
       onClear={onClear}
     />,
   );
-  clearAll();
+  await clearAll();
   expect(onClear).toHaveBeenCalled();
   const values = await findAllSelectValues();
   expect(values.length).toBe(0);
@@ -471,7 +471,7 @@ test('adds the null option when selected in single mode', async () => {
   }));
   render(<AsyncSelect {...defaultProps} options={loadOptions} />);
   await open();
-  userEvent.click(await findSelectOption(NULL_OPTION.label));
+  await userEvent.click(await findSelectOption(NULL_OPTION.label));
   const values = await findAllSelectValues();
   expect(values[0]).toHaveTextContent(NULL_OPTION.label);
 });
@@ -485,8 +485,8 @@ test('adds the null option when selected in multiple mode', async () => {
     <AsyncSelect {...defaultProps} options={loadOptions} mode="multiple" />,
   );
   await open();
-  userEvent.click(await findSelectOption(OPTIONS[0].label));
-  userEvent.click(await findSelectOption(NULL_OPTION.label));
+  await userEvent.click(await findSelectOption(OPTIONS[0].label));
+  await userEvent.click(await findSelectOption(NULL_OPTION.label));
   const values = await findAllSelectValues();
   expect(values[0]).toHaveTextContent(OPTIONS[0].label);
   expect(values[1]).toHaveTextContent(NULL_OPTION.label);
@@ -512,8 +512,8 @@ test('opens the select without any data', async () => {
 
 test('displays the loading indicator when opening', async () => {
   render(<AsyncSelect {...defaultProps} />);
-  await waitFor(() => {
-    userEvent.click(getSelect());
+  await waitFor(async () => {
+    await userEvent.click(getSelect());
     expect(screen.getByText(LOADING)).toBeInTheDocument();
   });
   expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
@@ -523,7 +523,7 @@ test('makes a selection in single mode', async () => {
   render(<AsyncSelect {...defaultProps} />);
   const optionText = 'Emma';
   await open();
-  userEvent.click(await findSelectOption(optionText));
+  await userEvent.click(await findSelectOption(optionText));
   expect(await findSelectValue()).toHaveTextContent(optionText);
 });
 
@@ -531,8 +531,8 @@ test('multiple selections in multiple mode', async () => {
   render(<AsyncSelect {...defaultProps} mode="multiple" />);
   await open();
   const [firstOption, secondOption] = OPTIONS;
-  userEvent.click(await findSelectOption(firstOption.label));
-  userEvent.click(await findSelectOption(secondOption.label));
+  await userEvent.click(await findSelectOption(firstOption.label));
+  await userEvent.click(await findSelectOption(secondOption.label));
   const values = await findAllSelectValues();
   expect(values[0]).toHaveTextContent(firstOption.label);
   expect(values[1]).toHaveTextContent(secondOption.label);
@@ -543,7 +543,7 @@ test('changes the selected item in single mode', async () => {
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);
   await open();
   const [firstOption, secondOption] = OPTIONS;
-  userEvent.click(await findSelectOption(firstOption.label));
+  await userEvent.click(await findSelectOption(firstOption.label));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({
       label: firstOption.label,
@@ -552,7 +552,7 @@ test('changes the selected item in single mode', async () => {
     expect.objectContaining(firstOption),
   );
   expect(await findSelectValue()).toHaveTextContent(firstOption.label);
-  userEvent.click(await findSelectOption(secondOption.label));
+  await userEvent.click(await findSelectOption(secondOption.label));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({
       label: secondOption.label,
@@ -568,8 +568,8 @@ test('deselects an item in multiple mode', async () => {
   await open();
   const option3 = OPTIONS[2];
   const option8 = OPTIONS[7];
-  userEvent.click(await findSelectOption(option8.label));
-  userEvent.click(await findSelectOption(option3.label));
+  await userEvent.click(await findSelectOption(option8.label));
+  await userEvent.click(await findSelectOption(option3.label));
 
   let options = await findAllSelectOptions();
   expect(options).toHaveLength(Math.min(defaultProps.pageSize, OPTIONS.length));
@@ -591,7 +591,7 @@ test('deselects an item in multiple mode', async () => {
   expect(values[0]).toHaveTextContent(option8.label);
   expect(values[1]).toHaveTextContent(option3.label);
 
-  userEvent.click(await findSelectOption(option3.label));
+  await userEvent.click(await findSelectOption(option3.label));
   values = await findAllSelectValues();
   expect(values.length).toBe(1);
   expect(values[0]).toHaveTextContent(option8.label);
@@ -848,8 +848,8 @@ test('does not fire onChange when searching but no selection', async () => {
   );
   await open();
   await type('Joh');
-  userEvent.click(await findSelectOption('John'));
-  userEvent.click(screen.getByRole('main'));
+  await userEvent.click(await findSelectOption('John'));
+  await userEvent.click(screen.getByRole('main'));
   expect(onChange).toHaveBeenCalledTimes(1);
 });
 
@@ -863,7 +863,7 @@ test('fires onChange when clearing the selection in single mode', async () => {
       value={OPTIONS[0]}
     />,
   );
-  clearAll();
+  await clearAll();
   expect(onChange).toHaveBeenCalledTimes(1);
 });
 
@@ -877,7 +877,7 @@ test('fires onChange when clearing the selection in multiple mode', async () => 
       value={OPTIONS[0]}
     />,
   );
-  clearAll();
+  await clearAll();
   expect(onChange).toHaveBeenCalledTimes(1);
 });
 
@@ -1006,9 +1006,9 @@ test('does not fire onChange if the same value is selected in single mode', asyn
   const optionText = 'Emma';
   await open();
   expect(onChange).toHaveBeenCalledTimes(0);
-  userEvent.click(await findSelectOption(optionText));
+  await userEvent.click(await findSelectOption(optionText));
   expect(onChange).toHaveBeenCalledTimes(1);
-  userEvent.click(await findSelectOption(optionText));
+  await userEvent.click(await findSelectOption(optionText));
   expect(onChange).toHaveBeenCalledTimes(1);
 });
 

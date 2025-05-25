@@ -40,7 +40,7 @@ import ChartImage from 'src/assets/images/chart.svg';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import TruncatedList from '@superset-ui/core/components/TruncatedList';
 
 interface DatasetUsageProps {

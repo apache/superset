@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { render } from '@testing-library/react';
 
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import CollectionTable from './CollectionTable';

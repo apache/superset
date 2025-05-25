@@ -17,21 +17,22 @@
  * under the License.
  */
 
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Ellipsis } from './Ellipsis';
 
-test('Ellipsis - click when the button is enabled', () => {
+test('Ellipsis - click when the button is enabled', async () => {
   const click = jest.fn();
   render(<Ellipsis onClick={click} />);
   expect(click).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(click).toHaveBeenCalledTimes(1);
 });
 
-test('Ellipsis - click when the button is disabled', () => {
+test('Ellipsis - click when the button is disabled', async () => {
   const click = jest.fn();
   render(<Ellipsis onClick={click} disabled />);
   expect(click).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(click).toHaveBeenCalledTimes(0);
 });

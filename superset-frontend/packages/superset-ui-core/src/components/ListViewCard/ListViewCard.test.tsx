@@ -18,7 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
 import { ListViewCard } from '.';
 
 global.URL.createObjectURL = jest.fn(() => '/local_url');

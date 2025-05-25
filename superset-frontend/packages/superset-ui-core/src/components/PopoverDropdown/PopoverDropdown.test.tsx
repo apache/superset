@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import PopoverDropdown, {
   PopoverDropdownProps,
   OptionProps,
@@ -42,7 +43,7 @@ test('renders with default props', async () => {
 
 test('renders the menu on click', async () => {
   render(<PopoverDropdown {...defaultProps} />);
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(await screen.findByRole('menu')).toBeInTheDocument();
 });
 
@@ -71,14 +72,14 @@ test('renders with custom option', async () => {
       )}
     />,
   );
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(await screen.findByText('Custom Option 1')).toBeInTheDocument();
 });
 
 test('triggers onChange', async () => {
   render(<PopoverDropdown {...defaultProps} />);
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(await screen.findByText('Option 2')).toBeInTheDocument();
-  userEvent.click(screen.getByText('Option 2'));
+  await userEvent.click(screen.getByText('Option 2'));
   expect(defaultProps.onChange).toHaveBeenCalled();
 });

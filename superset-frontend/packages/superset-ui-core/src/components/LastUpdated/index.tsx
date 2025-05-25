@@ -18,10 +18,10 @@
  */
 import { useEffect, useState, FunctionComponent } from 'react';
 
-import { extendedDayjs } from 'src/utils/dates';
 import { t, styled, css } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
 import dayjs from 'dayjs';
+import { extendedDayjs } from '../../utils/dates';
+import { Icons } from '../Icons';
 import type { LastUpdatedProps } from './types';
 
 const REFRESH_INTERVAL = 60000; // every minute

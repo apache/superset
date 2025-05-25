@@ -18,7 +18,7 @@
  */
 
 import { isValidElement } from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
 import { CachedLabel } from '.';
 import type { CacheLabelProps } from './types';
 

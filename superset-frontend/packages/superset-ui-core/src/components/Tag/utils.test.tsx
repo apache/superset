@@ -19,7 +19,7 @@
 import { tagToSelectOption } from '@superset-ui/core/components/Tag/utils';
 
 describe('tagToSelectOption', () => {
-  test('converts a Tag object with table_name to a SelectTagsValue', () => {
+  it('converts a Tag object with table_name to a SelectTagsValue', () => {
     const tag = {
       id: 1,
       name: 'TagName',

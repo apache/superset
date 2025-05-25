@@ -25,9 +25,9 @@ import {
 } from 'react';
 
 import { styled, t } from '@superset-ui/core';
-import { extendedDayjs } from 'src/utils/dates';
 import { Dayjs } from 'dayjs';
 import { useLocale } from 'src/hooks/useLocale';
+import { extendedDayjs } from '../../../utils/dates';
 import { Loading } from '../../Loading';
 import { AntdThemeProvider } from '../../AntdThemeProvider';
 import { FormLabel } from '../../Form';

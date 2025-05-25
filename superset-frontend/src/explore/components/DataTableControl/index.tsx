@@ -32,14 +32,13 @@ import { debounce } from 'lodash';
 import {
   BOOL_FALSE_DISPLAY,
   BOOL_TRUE_DISPLAY,
+} from 'src/constants';
+import {
   NULL_DISPLAY,
   SLOW_DEBOUNCE,
-} from 'src/constants';
-import { Radio } from '@superset-ui/core/components/Radio';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Input, Button } from '@superset-ui/core/components';
+} from '@superset-ui/core/components/constants';
+import { Button, Icons, Input, Popover, Radio } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
-import Popover from '@superset-ui/core/components/Popover';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getTimeColumns, setTimeColumns } from './utils';
 

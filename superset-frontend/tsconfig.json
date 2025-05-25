@@ -15,6 +15,7 @@
       "@superset-ui/core": ["./packages/superset-ui-core/src"],
       "@superset-ui/core/components": ["./packages/superset-ui-core/src/components"],
       "@superset-ui/core/components/*": ["./packages/superset-ui-core/src/components/*"],
+      "@superset-ui/core/utils/*": ["./packages/superset-ui-core/src/utils/*"],
       "@superset-ui/chart-controls": [
         "./packages/superset-ui-chart-controls/src"
       ],

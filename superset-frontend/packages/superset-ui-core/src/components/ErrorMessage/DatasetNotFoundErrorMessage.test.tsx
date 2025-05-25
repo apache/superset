@@ -18,7 +18,7 @@
  */
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
 import { DatasetNotFoundErrorMessage } from './DatasetNotFoundErrorMessage';
 
 jest.mock(

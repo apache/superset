@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { Input } from '../Input';
 
 import Field from './Field';

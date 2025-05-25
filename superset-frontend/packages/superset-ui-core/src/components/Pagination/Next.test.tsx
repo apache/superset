@@ -17,21 +17,22 @@
  * under the License.
  */
 
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Next } from './Next';
 
-test('Next - click when the button is enabled', () => {
+test('Next - click when the button is enabled', async () => {
   const click = jest.fn();
   render(<Next onClick={click} />);
   expect(click).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(click).toHaveBeenCalledTimes(1);
 });
 
-test('Next - click when the button is disabled', () => {
+test('Next - click when the button is disabled', async () => {
   const click = jest.fn();
   render(<Next onClick={click} disabled />);
   expect(click).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(click).toHaveBeenCalledTimes(0);
 });

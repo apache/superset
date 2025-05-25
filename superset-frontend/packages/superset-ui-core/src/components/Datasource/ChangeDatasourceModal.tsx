@@ -31,9 +31,7 @@ import {
   styled,
   getClientErrorObject,
 } from '@superset-ui/core';
-import TableView, {
-  EmptyWrapperType,
-} from '@superset-ui/core/components/TableView';
+import { TableView, EmptyWrapperType } from '@superset-ui/core/components';
 import {
   ServerPagination,
   SortByType,
@@ -41,7 +39,7 @@ import {
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
-import { SLOW_DEBOUNCE } from 'src/constants';
+import { SLOW_DEBOUNCE } from '@superset-ui/core/components/constants';
 import {
   PAGE_SIZE as DATASET_PAGE_SIZE,
   SORT_BY as DATASET_SORT_BY,

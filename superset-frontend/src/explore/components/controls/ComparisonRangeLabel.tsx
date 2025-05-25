@@ -35,7 +35,7 @@ import ControlHeader, {
 } from 'src/explore/components/ControlHeader';
 import { RootState } from 'src/views/store';
 import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 const DAYJS_FORMAT = 'YYYY-MM-DD';
 

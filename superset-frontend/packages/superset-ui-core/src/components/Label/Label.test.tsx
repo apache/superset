@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render } from 'spec/helpers/testing-library';
+import { fireEvent, render } from '@testing-library/react';
 
 import { Label } from '.';
 import { LabelGallery, options } from './Label.stories';

@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import TooltipParagraph from '.';
 
 test('starts hidden with default props', () => {
@@ -38,7 +34,7 @@ test('not render on hover when not truncated', async () => {
     </div>,
   );
 
-  userEvent.hover(screen.getByTestId('test-text'));
+  await userEvent.hover(screen.getByTestId('test-text'));
 
   // Wait a moment for any potential tooltip to appear
   await new Promise(resolve => setTimeout(resolve, 100));
@@ -63,7 +59,7 @@ test('render on hover when truncated', async () => {
   expect(ellipsisElement).toBeInTheDocument();
 
   // Hover over the text
-  userEvent.hover(screen.getByTestId('test-text'));
+  await userEvent.hover(screen.getByTestId('test-text'));
 
   // In Ant Design v5, we can check if the aria-describedby attribute is present
   // which indicates the tooltip functionality is active

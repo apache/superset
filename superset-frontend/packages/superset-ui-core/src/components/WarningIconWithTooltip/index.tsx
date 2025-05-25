@@ -17,10 +17,7 @@
  * under the License.
  */
 import { useTheme } from '@superset-ui/core';
-import { SafeMarkdown } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
-import type { IconType } from '@superset-ui/core/components/Icons/types';
-import { Tooltip } from '../Tooltip';
+import { Icons, type IconType, SafeMarkdown, Tooltip } from '..';
 
 export interface WarningIconWithTooltipProps {
   warningMarkdown: string;

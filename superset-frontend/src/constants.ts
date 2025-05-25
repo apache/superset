@@ -127,21 +127,6 @@ export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
   URL_PARAMS.preselectFilters.name,
 ];
 
-/**
- * Faster debounce delay for inputs without expensive operation.
- */
-export const FAST_DEBOUNCE = 250;
-
-/**
- * Slower debounce delay for inputs with expensive API calls.
- */
-export const SLOW_DEBOUNCE = 500;
-
-/**
- * Display null as `N/A`
- */
-export const NULL_DISPLAY = t('N/A');
-
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   application_root: '/',
   static_assets_prefix: '',

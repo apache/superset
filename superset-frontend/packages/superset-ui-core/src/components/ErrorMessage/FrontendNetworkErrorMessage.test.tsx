@@ -18,7 +18,8 @@
  */
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { FrontendNetworkErrorMessage } from './FrontendNetworkErrorMessage';
 
 jest.mock(
@@ -59,11 +60,11 @@ test('should render the error message', () => {
   expect(screen.getByText('Error message')).toBeInTheDocument();
 });
 
-test("should render error message in compact mode if 'compact' is true", () => {
+test("should render error message in compact mode if 'compact' is true", async () => {
   render(<FrontendNetworkErrorMessage {...mockedProps} compact />, {
     useRedux: true,
   });
   expect(screen.queryByText('Error message')).not.toBeInTheDocument();
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(screen.getByText('Error message')).toBeInTheDocument();
 });

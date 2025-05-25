@@ -18,8 +18,8 @@
  */
 
 import { FC } from 'react';
-import { extendedDayjs } from 'src/utils/dates';
 import { t } from '@superset-ui/core';
+import { extendedDayjs } from '../../utils/dates';
 
 interface Props {
   cachedTimestamp?: string;

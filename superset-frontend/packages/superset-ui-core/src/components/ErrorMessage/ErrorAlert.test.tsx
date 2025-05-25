@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { screen, fireEvent } from '@testing-library/react';
-import { render } from 'spec/helpers/testing-library';
+import { screen, fireEvent, render } from '@testing-library/react';
 import { ErrorAlert } from './ErrorAlert';
 
 describe('ErrorAlert', () => {

@@ -24,7 +24,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Tooltip, ListView } from '@superset-ui/core/components';
 import SubMenu from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { fDuration } from 'src/utils/dates';
+import { fDuration } from '@superset-ui/core/utils/dates';
 import AlertStatusIcon from 'src/features/alerts/components/AlertStatusIcon';
 import {
   useListViewResource,

@@ -16,16 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Button, Upload } from '..';
 
 describe('Upload Component', () => {
-  test('renders upload button and triggers file upload', async () => {
+  it('renders upload button and triggers file upload', async () => {
     const handleChange = jest.fn();
 
     render(

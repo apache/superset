@@ -17,10 +17,11 @@
  * under the License.
  */
 
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Item } from './Item';
 
-test('Item - click when the item is not active', () => {
+test('Item - click when the item is not active', async () => {
   const click = jest.fn();
   render(
     <Item onClick={click}>
@@ -28,12 +29,12 @@ test('Item - click when the item is not active', () => {
     </Item>,
   );
   expect(click).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(click).toHaveBeenCalledTimes(1);
   expect(screen.getByTestId('test')).toBeInTheDocument();
 });
 
-test('Item - click when the item is active', () => {
+test('Item - click when the item is active', async () => {
   const click = jest.fn();
   render(
     <Item onClick={click} active>
@@ -41,7 +42,7 @@ test('Item - click when the item is active', () => {
     </Item>,
   );
   expect(click).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(click).toHaveBeenCalledTimes(0);
   expect(screen.getByTestId('test')).toBeInTheDocument();
 });

@@ -17,13 +17,9 @@
  * under the License.
  */
 import { FC } from 'react';
-import { extendedDayjs } from 'src/utils/dates';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { extendedDayjs } from '../../utils/dates';
 import type { TimezoneSelectorProps } from './index';
 
 const loadComponent = (mockCurrentTime?: string) => {
@@ -40,9 +36,9 @@ const loadComponent = (mockCurrentTime?: string) => {
 const getSelectOptions = () =>
   waitFor(() => document.querySelectorAll('.ant-select-item-option-content'));
 
-const openSelectMenu = () => {
+const openSelectMenu = async () => {
   const searchInput = screen.getByRole('combobox');
-  userEvent.click(searchInput);
+  await userEvent.click(searchInput);
 };
 
 jest.spyOn(extendedDayjs.tz, 'guess').mockReturnValue('America/New_York');
@@ -111,10 +107,10 @@ test('can select a timezone values and returns canonical timezone name', async (
 
   const searchInput = screen.getByRole('combobox');
   // search for mountain time
-  userEvent.type(searchInput, 'mou');
+  await userEvent.type(searchInput, 'mou');
   const findTitle = 'GMT -07:00 (Mountain Standard Time)';
   const selectOption = await screen.findByTitle(findTitle);
-  userEvent.click(selectOption);
+  await userEvent.click(selectOption);
   expect(onTimezoneChange).toHaveBeenCalledTimes(1);
   expect(onTimezoneChange).toHaveBeenLastCalledWith('America/Boise');
 });

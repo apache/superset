@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DatasourceEditor from '@superset-ui/core/components/Datasource/DatasourceEditor';
 import { props, DATASOURCE_ENDPOINT } from './DatasourceEditor.test';

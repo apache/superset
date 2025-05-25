@@ -23,7 +23,7 @@ import {
   screen,
   userEvent,
   waitFor,
-} from 'spec/helpers/testing-library';
+} from '@testing-library/react';
 import type { FormModalProps } from './types';
 import { FormItem } from '../Form';
 import { Input } from '../Input';
@@ -76,7 +76,7 @@ describe('FormModal Component', () => {
     renderComponent();
 
     const nameInput = screen.getByPlaceholderText('Enter your name');
-    userEvent.type(nameInput, 'Jane Doe');
+    await userEvent.type(nameInput, 'Jane Doe');
 
     await waitFor(() => {
       expect(screen.getByTestId('form-modal-save-button')).toBeEnabled();
@@ -87,7 +87,7 @@ describe('FormModal Component', () => {
     renderComponent();
 
     const emailInput = screen.getByPlaceholderText('Enter your email');
-    userEvent.type(emailInput, 'test@example.com');
+    await userEvent.type(emailInput, 'test@example.com');
 
     await waitFor(() => {
       expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
@@ -97,8 +97,11 @@ describe('FormModal Component', () => {
   it('should call formSubmitHandler with correct values when submitted', async () => {
     renderComponent();
 
-    userEvent.type(screen.getByPlaceholderText('Enter your name'), 'Jane Doe');
-    userEvent.type(
+    await userEvent.type(
+      screen.getByPlaceholderText('Enter your name'),
+      'Jane Doe',
+    );
+    await userEvent.type(
       screen.getByPlaceholderText('Enter your email'),
       'test@example.com',
     );

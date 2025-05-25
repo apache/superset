@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { FaveStar } from '.';
 
 jest.mock('@superset-ui/core/components/Tooltip', () => ({
@@ -35,7 +36,7 @@ test('render right content', async () => {
   expect(screen.getByRole('img', { name: 'starred' })).toBeInTheDocument();
 
   expect(props.saveFaveStar).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(props.saveFaveStar).toHaveBeenCalledTimes(1);
   expect(props.saveFaveStar).toHaveBeenCalledWith(props.itemId, true);
 
@@ -43,7 +44,7 @@ test('render right content', async () => {
   expect(await findByRole('img', { name: 'unstarred' })).toBeInTheDocument();
 
   expect(props.saveFaveStar).toHaveBeenCalledTimes(1);
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(props.saveFaveStar).toHaveBeenCalledTimes(2);
   expect(props.saveFaveStar).toHaveBeenCalledWith(props.itemId, false);
 });

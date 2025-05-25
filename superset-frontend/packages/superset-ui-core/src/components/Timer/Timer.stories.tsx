@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '../../utils/dates';
 import Timer, { TimerProps } from './index';
 
 export default {

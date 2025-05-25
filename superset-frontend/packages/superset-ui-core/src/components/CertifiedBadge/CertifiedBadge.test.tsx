@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { CertifiedBadge } from '.';
 import type { CertifiedBadgeProps } from './types';
 
@@ -35,20 +31,20 @@ test('renders with default props', async () => {
 
 test('renders a tooltip when hovered', async () => {
   await asyncRender();
-  userEvent.hover(screen.getByRole('img'));
+  await userEvent.hover(screen.getByRole('img'));
   expect(await screen.findByRole('tooltip')).toBeInTheDocument();
 });
 
 test('renders with certified by', async () => {
   const certifiedBy = 'Trusted Authority';
   await asyncRender({ certifiedBy });
-  userEvent.hover(screen.getByRole('img'));
+  await userEvent.hover(screen.getByRole('img'));
   expect(await screen.findByRole('tooltip')).toHaveTextContent(certifiedBy);
 });
 
 test('renders with details', async () => {
   const details = 'All requirements have been met.';
   await asyncRender({ details });
-  userEvent.hover(screen.getByRole('img'));
+  await userEvent.hover(screen.getByRole('img'));
   expect(await screen.findByRole('tooltip')).toHaveTextContent(details);
 });

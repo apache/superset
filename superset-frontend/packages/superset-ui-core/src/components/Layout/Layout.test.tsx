@@ -17,12 +17,12 @@
  * under the License.
  */
 import { useState } from 'react';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Layout } from '.';
 import { Button } from '../Button';
 
 describe('Layout Component', () => {
-  test('renders Layout with Header, Content, and Footer', () => {
+  it('renders Layout with Header, Content, and Footer', () => {
     render(
       <Layout hasSider={false}>
         <Layout.Header>Header</Layout.Header>
@@ -36,7 +36,7 @@ describe('Layout Component', () => {
     expect(screen.getByText('Ant Design Layout Footer')).toBeInTheDocument();
   });
 
-  test('renders Layout with Sider when hasSider is true', () => {
+  it('renders Layout with Sider when hasSider is true', () => {
     render(
       <Layout hasSider>
         <Layout.Sider>Sider Content</Layout.Sider>
@@ -46,7 +46,7 @@ describe('Layout Component', () => {
     expect(screen.getByText('Sider Content')).toBeInTheDocument();
   });
 
-  test('hides Header when headerVisible is false', () => {
+  it('hides Header when headerVisible is false', () => {
     render(
       <Layout>
         {false && <Layout.Header>Header</Layout.Header>}
@@ -58,7 +58,7 @@ describe('Layout Component', () => {
     expect(screen.queryByText('Header')).not.toBeInTheDocument();
   });
 
-  test('hides Footer when footerVisible is false', () => {
+  it('hides Footer when footerVisible is false', () => {
     render(
       <Layout>
         <Layout.Header>Header</Layout.Header>
@@ -71,7 +71,7 @@ describe('Layout Component', () => {
       screen.queryByText('Ant Design Layout Footer'),
     ).not.toBeInTheDocument();
   });
-  test('collapses Sider when clicked', () => {
+  it('collapses Sider when clicked', () => {
     const TestLayout = () => {
       const [collapsed, setCollapsed] = useState(false);
 

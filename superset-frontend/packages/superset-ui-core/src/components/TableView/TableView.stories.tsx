@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import TableView, { TableViewProps, EmptyWrapperType } from '.';
+import { TableView, TableViewProps, EmptyWrapperType } from '.';
 
 export default {
   title: 'Components/TableView',

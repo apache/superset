@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import ActionCell, { appendDataToMenu } from './index';
 import { exampleMenuOptions, exampleRow } from './fixtures';
 
@@ -25,13 +26,13 @@ test('renders with default props', async () => {
   exampleMenuOptions[0].onClick = clickHandler;
   render(<ActionCell menuOptions={exampleMenuOptions} row={exampleRow} />);
   // Open the menu
-  userEvent.click(await screen.findByTestId('dropdown-trigger'));
+  await userEvent.click(await screen.findByTestId('dropdown-trigger'));
   // verify all of the menu items are being displayed
-  exampleMenuOptions.forEach((item, index) => {
+  exampleMenuOptions.forEach(async (item, index) => {
     expect(screen.getByText(item.label)).toBeInTheDocument();
     if (index === 0) {
       // verify the menu items' onClick gets invoked
-      userEvent.click(screen.getByText(item.label));
+      await userEvent.click(screen.getByText(item.label));
     }
   });
   expect(clickHandler).toHaveBeenCalled();

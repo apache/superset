@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
 import { Button } from '../Button';
 import { ButtonGroup } from '.';
 

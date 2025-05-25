@@ -38,7 +38,7 @@ import {
 import type {
   ListViewFetchDataConfig as FetchDataConfig,
   ListViewFilterValue as FilterValue,
-} from '@superset-ui/core/components';
+} from 'src/components';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { ensureAppRoot } from 'src/utils/pathUtils';

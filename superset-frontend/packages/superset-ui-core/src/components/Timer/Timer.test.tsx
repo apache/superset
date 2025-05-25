@@ -19,9 +19,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, sleep, waitFor } from 'spec/helpers/testing-library';
+import { render, sleep, waitFor } from '@testing-library/react';
 import Timer, { TimerProps } from '@superset-ui/core/components/Timer';
-import { now } from 'src/utils/dates';
+import { now } from '../../utils/dates';
 
 function parseTime(text?: string | null) {
   return !!text && Number(text.replace(/:/g, ''));

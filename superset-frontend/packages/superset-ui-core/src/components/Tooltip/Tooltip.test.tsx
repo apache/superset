@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { Button } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Tooltip } from '.';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Button, Icons, Tooltip } from '..';
 
 test('starts hidden with default props', () => {
   render(
@@ -36,7 +35,7 @@ test('renders on hover', async () => {
       <Button>Hover me</Button>
     </Tooltip>,
   );
-  userEvent.hover(screen.getByRole('button'));
+  await userEvent.hover(screen.getByRole('button'));
   expect(await screen.findByRole('tooltip')).toBeInTheDocument();
 });
 
@@ -46,6 +45,6 @@ test('renders with icon child', async () => {
       <Icons.WarningOutlined>Hover me</Icons.WarningOutlined>
     </Tooltip>,
   );
-  userEvent.hover(screen.getByRole('img'));
+  await userEvent.hover(screen.getByRole('img'));
   expect(await screen.findByRole('tooltip')).toBeInTheDocument();
 });

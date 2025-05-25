@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, screen, cleanup } from 'spec/helpers/testing-library';
+import { render, screen, cleanup } from '@testing-library/react';
 import Wrapper from './Wrapper';
 
 // Add cleanup after each test

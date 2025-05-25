@@ -20,7 +20,7 @@
 import * as reduxHooks from 'react-redux';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
-import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
+import { render, fireEvent, waitFor } from '@testing-library/react';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';

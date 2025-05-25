@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Fragment, useMemo, useCallback, RefObject, createRef } from 'react';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { useDispatch } from 'react-redux';
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import { useInView } from 'react-intersection-observer';

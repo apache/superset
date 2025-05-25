@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, fireEvent, screen } from 'spec/helpers/testing-library';
+import { render, fireEvent, screen } from '@testing-library/react';
 import { LabeledErrorBoundInput } from './LabeledErrorBoundInput';
 
 const defaultProps = {

@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import PopoverSection from '@superset-ui/core/components/PopoverSection';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import PopoverSection from '.';
 
 test('renders with default props', async () => {
   render(
@@ -44,7 +45,7 @@ test('renders a tooltip when hovered', async () => {
       <div role="form" />
     </PopoverSection>,
   );
-  userEvent.hover(screen.getAllByRole('img')[0]);
+  await userEvent.hover(screen.getAllByRole('img')[0]);
   expect(await screen.findByRole('tooltip')).toBeInTheDocument();
 });
 
@@ -55,6 +56,6 @@ test('calls onSelect when clicked', async () => {
       <div role="form" />
     </PopoverSection>,
   );
-  userEvent.click(await screen.findByRole('img'));
+  await userEvent.click(await screen.findByRole('img'));
   expect(onSelect).toHaveBeenCalled();
 });

@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   styled,

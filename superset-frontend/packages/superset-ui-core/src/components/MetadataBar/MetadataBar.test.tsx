@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  render,
-  screen,
-  userEvent,
-  within,
-} from 'spec/helpers/testing-library';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import * as resizeDetector from 'react-resize-detector';
 import { supersetTheme, hexToRgb } from '@superset-ui/core';
 import MetadataBar, {
@@ -137,9 +133,9 @@ test('collapses the bar when min width is reached', async () => {
 test('always renders a tooltip when the bar is collapsed', async () => {
   await runWithBarCollapsed(async () => {
     render(<MetadataBar items={ITEMS.slice(0, 2)} />);
-    userEvent.hover(screen.getAllByRole('img')[0]);
+    await userEvent.hover(screen.getAllByRole('img')[0]);
     expect(await screen.findByText(DASHBOARD_DESCRIPTION)).toBeInTheDocument();
-    userEvent.hover(screen.getAllByRole('img')[1]);
+    await userEvent.hover(screen.getAllByRole('img')[1]);
     expect(await screen.findByText(DESCRIPTION_VALUE)).toBeInTheDocument();
   });
 });
@@ -147,16 +143,16 @@ test('always renders a tooltip when the bar is collapsed', async () => {
 test('renders a tooltip when one is provided even if not collapsed', async () => {
   render(<MetadataBar items={ITEMS.slice(0, 2)} />);
   expect(screen.getByText(DASHBOARD_TITLE)).toBeInTheDocument();
-  userEvent.hover(screen.getAllByRole('img')[0]);
+  await userEvent.hover(screen.getAllByRole('img')[0]);
   expect(await screen.findByText(DASHBOARD_DESCRIPTION)).toBeInTheDocument();
 });
 
-test('renders underlined text and emits event when clickable', () => {
+test('renders underlined text and emits event when clickable', async () => {
   const onClick = jest.fn();
   const items = [{ ...ITEMS[0], onClick }, ITEMS[1]];
   render(<MetadataBar items={items} />);
   const element = screen.getByText(DASHBOARD_TITLE);
-  userEvent.click(element);
+  await userEvent.click(element);
   expect(onClick).toHaveBeenCalled();
   const style = window.getComputedStyle(element);
   expect(style.textDecoration).toBe('underline');
@@ -189,7 +185,7 @@ test('renders the items sorted', () => {
 
 test('correctly renders the dashboards tooltip', async () => {
   render(<MetadataBar items={ITEMS.slice(0, 2)} />);
-  userEvent.hover(screen.getByText(DASHBOARD_TITLE));
+  await userEvent.hover(screen.getByText(DASHBOARD_TITLE));
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
   expect(within(tooltip).getByText(DASHBOARD_TITLE)).toBeInTheDocument();
@@ -199,7 +195,7 @@ test('correctly renders the dashboards tooltip', async () => {
 test('correctly renders the description tooltip', async () => {
   await runWithBarCollapsed(async () => {
     render(<MetadataBar items={ITEMS.slice(0, 2)} />);
-    userEvent.hover(screen.getAllByRole('img')[1]);
+    await userEvent.hover(screen.getAllByRole('img')[1]);
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toBeInTheDocument();
     expect(within(tooltip).getByText(DESCRIPTION_VALUE)).toBeInTheDocument();
@@ -208,7 +204,7 @@ test('correctly renders the description tooltip', async () => {
 
 test('correctly renders the last modified tooltip', async () => {
   render(<MetadataBar items={ITEMS.slice(0, 3)} />);
-  userEvent.hover(screen.getByText(TWO_DAYS_AGO));
+  await userEvent.hover(screen.getByText(TWO_DAYS_AGO));
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
   expect(within(tooltip).getByText(TWO_DAYS_AGO)).toBeInTheDocument();
@@ -217,7 +213,7 @@ test('correctly renders the last modified tooltip', async () => {
 
 test('correctly renders the owner tooltip', async () => {
   render(<MetadataBar items={ITEMS.slice(0, 4)} />);
-  userEvent.hover(screen.getByText(CREATED_BY));
+  await userEvent.hover(screen.getByText(CREATED_BY));
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
   expect(within(tooltip).getByText(CREATED_BY)).toBeInTheDocument();
@@ -230,7 +226,7 @@ test('correctly renders the owner tooltip', async () => {
 test('correctly renders the rows tooltip', async () => {
   await runWithBarCollapsed(async () => {
     render(<MetadataBar items={ITEMS.slice(4, 8)} />);
-    userEvent.hover(screen.getAllByRole('img')[2]);
+    await userEvent.hover(screen.getAllByRole('img')[2]);
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toBeInTheDocument();
     expect(within(tooltip).getByText(ROWS_TITLE)).toBeInTheDocument();
@@ -240,7 +236,7 @@ test('correctly renders the rows tooltip', async () => {
 test('correctly renders the sql tooltip', async () => {
   await runWithBarCollapsed(async () => {
     render(<MetadataBar items={ITEMS.slice(4, 8)} />);
-    userEvent.hover(screen.getAllByRole('img')[1]);
+    await userEvent.hover(screen.getAllByRole('img')[1]);
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toBeInTheDocument();
     expect(within(tooltip).getByText(SQL_TITLE)).toBeInTheDocument();
@@ -250,7 +246,7 @@ test('correctly renders the sql tooltip', async () => {
 test('correctly renders the table tooltip', async () => {
   await runWithBarCollapsed(async () => {
     render(<MetadataBar items={ITEMS.slice(4, 8)} />);
-    userEvent.hover(screen.getAllByRole('img')[0]);
+    await userEvent.hover(screen.getAllByRole('img')[0]);
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toBeInTheDocument();
     expect(within(tooltip).getByText(TABLE_TITLE)).toBeInTheDocument();
@@ -260,7 +256,7 @@ test('correctly renders the table tooltip', async () => {
 test('correctly renders the tags tooltip', async () => {
   await runWithBarCollapsed(async () => {
     render(<MetadataBar items={ITEMS.slice(4, 8)} />);
-    userEvent.hover(screen.getAllByRole('img')[3]);
+    await userEvent.hover(screen.getAllByRole('img')[3]);
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toBeInTheDocument();
     TAGS.forEach(tag =>

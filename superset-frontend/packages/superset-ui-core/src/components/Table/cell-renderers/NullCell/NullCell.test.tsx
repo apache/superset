@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen } from '@testing-library/react';
 import { supersetTheme } from '@superset-ui/core';
 import { NULL_DISPLAY } from 'src/constants';
 import NullCell from '.';

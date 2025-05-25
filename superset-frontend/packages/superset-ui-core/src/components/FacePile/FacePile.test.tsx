@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { store } from 'src/views/store';
 import { FacePile } from '.';
 import { getRandomColor } from './utils';
