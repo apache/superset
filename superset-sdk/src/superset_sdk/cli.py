@@ -79,7 +79,7 @@ def write_manifest(cwd: Path, manifest: dict[str, Any]) -> None:
     (dist_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True)
     )
-    click.secho("✅ Manifest updated in dist/manifest.json", fg="green")
+    click.secho("✅ Manifest updated", fg="green")
 
 
 def run_frontend_build(frontend_dir: Path) -> subprocess.CompletedProcess[str]:
