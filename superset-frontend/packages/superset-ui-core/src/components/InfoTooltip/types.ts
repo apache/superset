@@ -16,26 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ActionType } from 'src/types/Action';
+import type { TooltipProps } from 'antd';
 
 export interface InfoTooltipProps {
   iconStyle?: React.CSSProperties;
   tooltip: string;
-  placement?:
-    | 'bottom'
-    | 'left'
-    | 'right'
-    | 'top'
-    | 'topLeft'
-    | 'topRight'
-    | 'bottomLeft'
-    | 'bottomRight'
-    | 'leftTop'
-    | 'leftBottom'
-    | 'rightTop'
-    | 'rightBottom'
-    | undefined;
-  trigger?: ActionType | ActionType[];
+  placement?: TooltipProps['placement'];
+  trigger?: TooltipProps['trigger'];
   overlayStyle?: any;
   bgColor?: string;
   viewBox?: string;
