@@ -151,11 +151,7 @@ class MigrateViz:
                 queries = result["queries"]
                 query_context["queries"] = queries
 
-                slc.query_context = json.dumps(
-                    {
-                        **query_context,
-                    }
-                )
+                slc.query_context = json.dumps(query_context)
                 backup[QUERIES_BAK_FIELD_NAME] = queries_bak
 
             slc.params = json.dumps({**clz.data, **backup})
