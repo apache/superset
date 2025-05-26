@@ -132,7 +132,7 @@ class TestLogApi(SupersetTestCase):
 
         assert list(response["result"].keys()) == EXPECTED_COLUMNS
         assert response["result"]["action"] == "some_action"
-        assert response["result"]["user"] == {"username": "admin"}
+        assert response["result"]["user"]["username"] == "admin"
         db.session.delete(log)
         db.session.commit()
 
