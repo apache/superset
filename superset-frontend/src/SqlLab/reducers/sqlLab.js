@@ -429,12 +429,21 @@ export default function sqlLabReducer(state = {}, action) {
       };
     },
     [actions.GENERATE_SQL_SET_PROMPT]() {
+      const queryEditors = state.queryEditors.map(qe => {
+        if (qe.id === action.queryEditorId) {
+          return {
+            ...qe,
+            queryGenerator: {
+              ...qe.queryGenerator,
+              prompt: action.prompt,
+            },
+          };
+        }
+        return qe;
+      });
       return {
         ...state,
-        queryGenerator: {
-          ...state.queryGenerator,
-          prompt: action.prompt,
-        },
+        queryEditors,
       };
     },
     [actions.SET_ACTIVE_QUERY_EDITOR]() {

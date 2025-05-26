@@ -4,6 +4,7 @@ from typing import List
 
 class BaseLlm():
     llm_type = "Base"
+    max_results = 1000
 
     def __init__(self, pk, dialect, context):
         self.pk = pk
@@ -33,8 +34,15 @@ class BaseLlm():
 
     def get_system_instructions() -> str:
         raise NotImplementedError
+
+    @staticmethod
+    def get_models() -> List[str]:
+        """
+        Return a list of available models for the LLM.
+        """
+        raise NotImplementedError
     
-    def get_context_size() -> int:
+    def get_context_size(self) -> int:
         """
         Return the size of the context in tokens.
         """

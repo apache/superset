@@ -66,7 +66,6 @@ const databaseFixture: DatabaseObject = {
   name: 'PostgresDB',
   is_managed_externally: false,
   driver: 'psycopg2',
-  llm_context_options: '{}',
 };
 
 describe('DatabaseModal', () => {

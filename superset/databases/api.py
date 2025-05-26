@@ -118,6 +118,7 @@ from superset.exceptions import (
     TableNotFoundException,
 )
 from superset.extensions import security_manager
+from superset.llms import dispatcher
 from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse
@@ -169,6 +170,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "upload",
         "oauth2",
         "llm_schema",
+        "llm_defaults",
     }
 
     resource_name = "database"
@@ -195,7 +197,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "is_managed_externally",
         "engine_information",
         "llm_available",
-        "llm_enabled",
+        "llm_connection",
+        "llm_context_options",
     ]
     list_columns = [
         "allow_file_upload",
@@ -225,7 +228,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "allow_multi_catalog",
         "engine_information",
         "llm_available",
-        "llm_enabled",
+        "llm_connection",
+        "llm_context_options",
     ]
     add_columns = [
         "database_name",
@@ -244,7 +248,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "encrypted_extra",
         "server_cert",
         "llm_available",
-        "llm_enabled",
     ]
 
     edit_columns = add_columns
@@ -259,7 +262,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "expose_in_sqllab",
         "uuid",
         "llm_available",
-        "llm_enabled",
     ]
     search_filters = { "allow_file_upload": [DatabaseUploadEnabledFilter] }
     allowed_rel_fields = {"changed_by", "created_by"}
@@ -274,6 +276,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "created_by.first_name",
         "database_name",
         "expose_in_sqllab",
+        "llm_available",
     ]
     # Removes the local limit for the page size
     max_page_size = -1
@@ -2210,3 +2213,17 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             database, database.get_default_catalog(), schemas_allowed, True
         )
         return self.response(200, schemas=schemas_allowed_processed)
+
+    @expose("/<int:pk>/llm_defaults/")
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".llm_defaults",
+        log_to_statsd=False,
+    )
+    def llm_defaults(self, pk: int) -> Response:
+        return self.response(
+            200,
+            **dispatcher.get_default_options(pk)  # type: ignore[operator]  # noqa: E501,
+        )

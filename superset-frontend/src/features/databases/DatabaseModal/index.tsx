@@ -68,8 +68,9 @@ import {
   CatalogObject,
   Engines,
   ExtraJson,
-  CustomTextType,
   DatabaseParameters,
+  LlmConnection,
+  LlmContextOptions,
 } from '../types';
 import AIAssistantOptions from './AIAssistantOptions';
 import ExtraOptions from './ExtraOptions';
@@ -170,6 +171,8 @@ export enum ActionType {
   ParametersSSHTunnelChange,
   SetSSHTunnelLoginMethod,
   RemoveSSHTunnelConfig,
+  LlmConnectionChange,
+  LlmContextOptionsChange,
 }
 
 export enum AuthType {
@@ -242,6 +245,14 @@ export type DBReducerActionType =
       payload: {
         login_method: AuthType;
       };
+    }
+  | {
+      type: ActionType.LlmConnectionChange;
+      payload: LlmConnection;
+    }
+  | {
+      type: ActionType.LlmContextOptionsChange;
+      payload: LlmContextOptions;
     };
 
 const StyledBtns = styled.div`
@@ -502,6 +513,16 @@ export function dbReducer(
         ...trimmedState,
         [action.payload.name]: action.payload.value,
       };
+    case ActionType.LlmConnectionChange:
+      return {
+        ...trimmedState,
+        llm_connection: { ...trimmedState.llm_connection, ...action.payload },
+      };
+    case ActionType.LlmContextOptionsChange:
+      return {
+        ...trimmedState,
+        llm_context_options: { ...trimmedState.llm_context_options, ...action.payload },
+      };
     case ActionType.Fetched:
       // convert query to a string and store in query_input
       query = action.payload?.parameters?.query || {};
@@ -745,7 +766,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onChange = useCallback(
     (
       type: DBReducerActionType['type'],
-      payload: CustomTextType | DBReducerPayloadType,
+      payload: any,
     ) => {
       setDB({ type, payload } as DBReducerActionType);
     },
@@ -831,11 +852,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // Clone DB object
     const dbToUpdate = { ...(db || {}) };
 
-    // If the database has no context_options or extra set, set them to empty objects to ensure the
+    // If the database has no extra set, set it to an empty object to ensure the
     // save request doesn't fail
-    if (!dbToUpdate.llm_context_options) {
-      dbToUpdate.llm_context_options = "{}";
-    }
     if (!dbToUpdate.extra) {
       dbToUpdate.extra = "{}";
     }
@@ -2001,31 +2019,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <Tabs.TabPane tab={<span>{t('AI Assistant')}</span>} key="3">
           <AIAssistantOptions
             db={db as DatabaseObject}
-            onInputChange={({ target }: { target: HTMLInputElement }) =>
-              onChange(ActionType.InputChange, {
-                type: target.type,
-                name: target.name,
-                checked: target.checked,
-                value: target.value,
-              })
+            onLlmConnectionChange={(connection: LlmConnection) =>
+              onChange(ActionType.LlmConnectionChange, connection)
             }
-            onSelectChange={({ target }: { target: HTMLSelectElement }) =>
-              onChange(ActionType.SelectChange, {
-                name: target.name,
-                value: target.value,
-              })
-            }
-            onSwitchChange={({ target }: { target: HTMLInputElement }) =>
-              onChange(ActionType.SwitchChange, {
-                name: target.name,
-                checked: target.checked,
-              })
-            }
-            onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
-              onChange(ActionType.TextChange, {
-                name: target.name,
-                value: target.value,
-              })
+            onLlmContextOptionsChange={(options: LlmContextOptions) =>
+              onChange(ActionType.LlmContextOptionsChange, options)
             }
           />
         </Tabs.TabPane>

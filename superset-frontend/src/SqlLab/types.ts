@@ -67,6 +67,7 @@ export interface QueryEditor {
   southPercent?: number;
   updatedAt?: number;
   cursorPosition?: CursorPosition;
+  queryGenerator?: QueryGenerator;
 }
 
 export type toastState = {
@@ -116,7 +117,6 @@ export type SqlLabRootState = {
     editorTabLastUpdatedAt: number;
     lastUpdatedActiveTab: string;
     destroyedQueryEditors: Record<string, number>;
-    queryGenerator: QueryGenerator;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];

@@ -1,8 +1,6 @@
-import { ChangeEvent, EventHandler, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  css,
   t,
-  styled,
   SupersetClient,
   SupersetTheme,
 } from '@superset-ui/core';
@@ -13,75 +11,38 @@ import { Switch } from 'src/components/Switch';
 import { useDatabaseTables } from 'src/hooks/apiResources';
 import { Select } from 'src/components';
 import {
+  StyledContextError,
+  StyledContextWrapper,
   StyledInputContainer,
+  StyledLlmSwitch,
   StyledTokenEstimate,
   StyledTopKForm,
   antdCollapseStyles,
 } from './styles';
-import {
-  DatabaseObject,
-  LlmProvider,
-  LlmContextJson
-} from '../types';
+import { DatabaseObject } from '../types';
 import SchemaSelector from './SchemaSelector';
 import { wideButton } from './styles';
 import Button from 'src/components/Button';
-import { SavedContextStatus, useLlmContextStatus } from 'src/hooks/apiResources';
+import { LlmDefaults, SavedContextStatus, useLlmContextStatus, useLlmDefaults } from 'src/hooks/apiResources';
 
-const AI_ASSISTANT_DEFAULT_INSTRUCTIONS = `You are a postgresql database expert. Given an input question, create a syntactically correct postgresql query. You MUST only answer with the SQL query, nothing else. Unless the user specifies a specific number of results they wish to obtain, always limit your query to at most return 1000 results. You can order the results by relevant columns. You MUST check that the query doesn't contain syntax errors or incorrect table, views, column names or joins on wrong columns. Fix any error you might find before returning your answer. DO NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the database. To construct your database query you MUST ALWAYS use the database metadata information provided to you as a JSON file. Do NOT skip this step. This JSON file specifies all the database schemas, for each schema all its relations (which are tables, and views) and for each table its columns, indexes, and foreign key constraints. The unique indexes are very useful to understand what differentiates one record to another in the same relation. The foreign key constraints are very useful to find the correct columns to join.`;
-
-const StyledLlmSwitch = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    align-items: center;
-    margin-top: ${theme.gridUnit * 6}px;
-    margin-left: ${theme.gridUnit * 4}px;
-    margin-bottom: ${theme.gridUnit * 6}px;
-
-    .control-label {
-      font-family: ${theme.typography.families.sansSerif};
-      font-size: ${theme.typography.sizes.m}px;
-      margin-right: ${theme.gridUnit * 4}px;
-    }
-
-    .input-container {
-      display: flex;
-      align-items: center;
-
-      label {
-        margin-left: ${theme.gridUnit * 2}px;
-        margin-top: ${theme.gridUnit * 2}px;
-      }
-    }
-  `}
-`;
-
-const GEMINI_MODELS = {
-  'models/gemini-1.5-flash-002': 'Gemini 1.5 Flash',
-  'models/gemini-2.0-flash': 'Gemini 2.0 Flash',
-  'models/gemini-2.0-flash-thinking-exp': 'Gemini 2.5 Flash Preview',
-  'models/gemini-1.5-pro-002': 'Gemini 1.5 Pro',
-  'models/gemini-2.0-pro-exp': 'Gemini 2.5 Pro Experimental',
-}
 
 const AIAssistantOptions = ({
     db,
-    onInputChange,
-    onSelectChange,
-    onSwitchChange,
-    onTextChange,
+    onLlmConnectionChange,
+    onLlmContextOptionsChange,
 }: {
     db: DatabaseObject | null,
-    onInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
-    onSelectChange: Function;
-    onSwitchChange: Function;
-    onTextChange: EventHandler<ChangeEvent<HTMLTextAreaElement>>;
+    onLlmConnectionChange: Function;
+    onLlmContextOptionsChange: Function;
 }) => {
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(db?.llm_provider || null);
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(db?.llm_connection?.provider || null);
   const [regenerating, setRegenerating] = useState(false);
   const [savedContext, setSavedContext] = useState<SavedContextStatus | null>(null);
+  const [contextError, setContextError] = useState<string | null>(null);
+  const [llmDefaults, setLlmDefaults] = useState<LlmDefaults | null>(null);
+  const [selectedModelTokenLimit, setSelectedModelTokenLimit] = useState<number | null>(null);
   const tables = useDatabaseTables(db?.id || 0);
-  const contextJson: LlmContextJson = JSON.parse(db?.llm_context_options || '{}');
+  const contextSettings = db?.llm_context_options;
 
   const contextStatus = useLlmContextStatus({
     dbId: db?.id || 0,
@@ -90,35 +51,38 @@ const AIAssistantOptions = ({
       if (result.context) {
         setSavedContext(result.context);
       }
+      setContextError(result.error ? result.error.build_time : null);
     }
   });
 
-  const handleProviderChange = (value: string) => {
-    setSelectedProvider(value);
-    onSelectChange({ target: { name: 'llm_provider', value } });
-  };
+  useLlmDefaults({
+    dbId: db?.id || 0,
+    onSuccess: result => {
+      if (result) {
+        setLlmDefaults(result);
+      }
+    },
+  });
 
-  const handleModelChange = (value: string) => {
-    onSelectChange({ target: { name: 'llm_model', value } });
-  };
+  useEffect(() => {
+    if (llmDefaults && selectedProvider && llmDefaults[selectedProvider]) {
+      const model = db?.llm_connection?.model || Object.keys(llmDefaults[selectedProvider].models)[0];
+      setSelectedModelTokenLimit(llmDefaults[selectedProvider].models[model]?.input_token_limit || null);
+    } else {
+      setSelectedModelTokenLimit(null);
+    }
+  }, [llmDefaults, selectedProvider, db?.llm_connection?.model]);
 
-  const handleLlmEnabledChange = (checked: boolean) => {
-    onSwitchChange({ target: { name: 'llm_enabled', checked } });
-  };
+  const handleLlmConnectionChange = (name: string, value: any) => {
+    onLlmConnectionChange({ ...db?.llm_connection, [name]: value });
+  }
 
-  const onContextInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const newJson = { ...contextJson, [event.target.name]: event.target.value };
-    onSelectChange({ target: { name: 'llm_context_options', value: JSON.stringify(newJson) } });
-  };
-
-  const onInstructionsChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    const newJson = { ...contextJson, instructions: event.target.value };
-    onSelectChange({ target: { name: 'llm_context_options', value: JSON.stringify(newJson) } });
-  };
+  const handleContextOptionsChange = (name: string, value: any) => {
+    onLlmContextOptionsChange({ ...db?.llm_context_options, [name]: value });
+  }
 
   const onSchemasChange = (value: string[]) => {
-    const newJson = { ...contextJson, schemas: value };
-    onSelectChange({ target: { name: 'llm_context_options', value: JSON.stringify(newJson) } });
+    handleContextOptionsChange('schemas', JSON.stringify(value));
   };
 
   return (
@@ -127,9 +91,9 @@ const AIAssistantOptions = ({
         <div className="control-label">{t('Enable large language model support in SQL Lab')}</div>
         <div className="input-container">
           <Switch
-            id="llm_enabled"
-            checked={db?.llm_enabled || false}
-            onChange={handleLlmEnabledChange}
+            id="enabled"
+            checked={db?.llm_connection?.enabled || false}
+            onChange={(checked: boolean) => handleLlmConnectionChange('enabled', checked)}
           />
         </div>
       </StyledLlmSwitch>
@@ -153,45 +117,51 @@ const AIAssistantOptions = ({
             <div className="input-container">
               <Select
                 options={
-                  [
-                    { value: LlmProvider.Gemini, label: LlmProvider.Gemini },
-                  ]
+                  llmDefaults ?
+                  Object.keys(llmDefaults).map(provider => ({
+                    value: provider,
+                    label: provider,
+                  }))
+                  : []
                 }
-                value={db?.llm_provider}
-                onChange={handleProviderChange}
+                value={db?.llm_connection?.provider}
+                onChange={(value) => {
+                  setSelectedProvider(value as string);
+                  handleLlmConnectionChange('provider', value)
+                }}
               />
             </div>
           </StyledInputContainer>
           {selectedProvider && (
             <>
               <StyledInputContainer className="mb-8">
-                  <div className="control-label">{t('Provider API key')}</div>
-                  <div className="input-container">
-                  <input
-                      type="text"
-                      name="llm_api_key"
-                      value={db?.llm_api_key || ''}
-                      placeholder={t('Enter your API key')}
-                      onChange={onInputChange}
-                  />
-                  </div>
+                <div className="control-label">{t('Provider API key')}</div>
+                <div className="input-container">
+                <input
+                  type="text"
+                  name="api_key"
+                  value={db?.llm_connection?.api_key || ''}
+                  placeholder={t('Enter your API key')}
+                  onChange={(e) => handleLlmConnectionChange('api_key', e.target.value)}
+                />
+                </div>
               </StyledInputContainer>
               <StyledInputContainer className="mb-8">
-                  <div className="control-label">{t('Model')}</div>
-                  <div className="input-container">
-                      <Select
-                          options={
-                              selectedProvider === LlmProvider.Gemini ?
-                              Object.entries(GEMINI_MODELS).map(([model, label]) => ({
-                                  value: model,
-                                  label: label
-                              })) :
-                              []
-                          }
-                          value={db?.llm_model}
-                          onChange={handleModelChange}
-                      />
-                  </div>
+                <div className="control-label">{t('Model')}</div>
+                <div className="input-container">
+                  <Select
+                    options={
+                      (llmDefaults && selectedProvider in llmDefaults)
+                        ? Object.entries(llmDefaults[selectedProvider].models).map(([model, data]) => ({
+                            value: model,
+                            label: data.name
+                          }))
+                        : []
+                    }
+                    value={db?.llm_connection?.model}
+                    onChange={(value) => handleLlmConnectionChange('model', value)}
+                  />
+                </div>
               </StyledInputContainer>
             </>
           )}
@@ -206,14 +176,28 @@ const AIAssistantOptions = ({
           }
           key="2"
         >
-          {savedContext && savedContext.size && (
-          <StyledTokenEstimate>
-            <div>
-              <span>Estimated context size: </span> 
-              <span>{savedContext.size} tokens</span>
-            </div>
-            <div>Last context build: {new Date(savedContext.build_time + 'Z').toLocaleString()}</div>
-          </StyledTokenEstimate>
+          {(savedContext && savedContext.size || contextError) && (
+            <StyledContextWrapper>
+              { savedContext && savedContext.size && (
+                <StyledTokenEstimate>
+                  <div>
+                    <span>Estimated context size: </span>
+                    <span>{savedContext.size} tokens</span>
+                  </div>
+                  {selectedModelTokenLimit && (savedContext.size > selectedModelTokenLimit) && (
+                    <div className="warning">
+                      This exceeds the model's input token limit of {selectedModelTokenLimit} tokens.
+                    </div>
+                  )}
+                  <div>Last context build: {new Date(savedContext.build_time + 'Z').toLocaleString()}</div>
+                </StyledTokenEstimate>
+              )}
+              {contextError && (
+                <StyledContextError>
+                  The last context build for this database failed at {new Date(contextError + 'Z').toLocaleString()}.
+                </StyledContextError>
+              )}
+            </StyledContextWrapper>
           )}
           <StyledInputContainer>
             <div className="control-label">{t('Context refresh interval (hours)')}</div>
@@ -221,9 +205,9 @@ const AIAssistantOptions = ({
               <input
                 type="number"
                 name="refresh_interval"
-                value={contextJson.refresh_interval || ''}
+                value={contextSettings?.refresh_interval !== undefined ? contextSettings.refresh_interval : ''}
                 placeholder={t('12')}
-                onChange={onContextInputChange}
+                onChange={(e) => handleContextOptionsChange('refresh_interval', e.target.value)}
               />
             </div>
             <div className="helper">
@@ -234,83 +218,95 @@ const AIAssistantOptions = ({
             </div>
           </StyledInputContainer>
           <StyledInputContainer className="mb-8">
-              <div className="control-label">{t('Select tables to include in the context')}</div>
+            <div className="control-label">{t('Select tables to include in the context')}</div>
+            <div className="input-container">
+              <SchemaSelector
+                value={JSON.parse(contextSettings?.schemas || "[]")}
+                options={tables.result || {}}
+                loading={tables.status === 'loading'}
+                error={tables.error}
+                onSchemasChange={onSchemasChange}
+                maxContentHeight={500}
+              />
+            </div>
+            <div className="helper">
+              {t(
+                  'Tables that aren\'t included will not be available for the AI Assistant to query.'
+              )}
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="input-container">
+            <IndeterminateCheckbox
+              id="include_indexes"
+              indeterminate={false}
+              checked={!!contextSettings?.include_indexes}
+              onChange={(e) => handleContextOptionsChange('include_indexes', (e.target as HTMLInputElement).checked)}
+              labelText={t('Include indexes in the database context')}
+            />
+            <InfoTooltip
+              tooltip={t(
+                'Indexes increase the size of the database context but may improve' +
+                ' the AI Assistant\'s ability to generate queries.',
+              )}
+            />
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="control-label">{t('Include up to k most common results from the first n rows')}</div>
+            <StyledTopKForm>
               <div className="input-container">
-                <SchemaSelector
-                  value={contextJson.schemas || []}
-                  options={tables.result || {}}
-                  loading={tables.status === 'loading'}
-                  error={tables.error}
-                  onSchemasChange={onSchemasChange}
-                  maxContentHeight={500}
+                <div className="control-label">{t('Results (k)')}</div>
+                <input
+                  type="text"
+                  name="top_k"
+                  value={contextSettings?.top_k || ''}
+                  placeholder={t('10')}
+                  onChange={(e) => handleContextOptionsChange('top_k', e.target.value)}
+                />
+              </div>
+              <div className="input-container">
+                <div className="control-label">{t('Row limit (n)')}</div>
+                <input
+                  type="text"
+                  name="top_k_limit"
+                  value={contextSettings?.top_k_limit || ''}
+                  placeholder={t('50000')}
+                  onChange={(e) => handleContextOptionsChange('top_k_limit', e.target.value)}
                 />
               </div>
               <div className="helper">
-                  {t(
-                      'Tables that aren\'t included will not be available for the AI Assistant to query.'
-                  )}
-              </div>
-          {/* </div> */}
-          </StyledInputContainer>
-          <StyledInputContainer>
-              <div className="input-container">
-              <IndeterminateCheckbox
-                id="include_indexes"
-                indeterminate={false}
-                checked={!!contextJson?.include_indexes}
-                onChange={onContextInputChange}
-                labelText={t('Include indexes in the database context')}
-              />
-              <InfoTooltip
-                tooltip={t(
-                  'Indexes increase the size of the database context but may improve' +
-                  ' the AI Assistant\'s ability to generate queries.',
+                {t(
+                  'The "top k" most common values on text columns are included to ' +
+                  'increase the model\'s ability to perform text matching. Row ' +
+                  'limit is the number of rows we scan to calculate the most common values',
                 )}
-              />
               </div>
+            </StyledTopKForm>
           </StyledInputContainer>
           <StyledInputContainer>
-              <div className="control-label">{t('Include up to k most common results from the first n rows')}</div>
-              <StyledTopKForm>
-                <div className="input-container">
-                  <div className="control-label">{t('Results (k)')}</div>
-                  <input
-                      type="text"
-                      name="top_k"
-                      value={contextJson.top_k || ''}
-                      placeholder={t('10')}
-                      onChange={onContextInputChange}
-                  />
-                </div>
-                <div className="input-container">
-                  <div className="control-label">{t('Row limit (n)')}</div>
-                  <input
-                      type="text"
-                      name="top_k_row_limit"
-                      value={contextJson.top_k_row_limit || ''}
-                      placeholder={t('50000')}
-                      onChange={onContextInputChange}
-                  />
-                </div>
-                <div className="helper">
-                  {t(
-                    'The "top k" most common values on text columns are included to ' +
-                    'increase the model\'s ability to perform text matching. Row ' +
-                    'limit is the number of rows we scan to calculate the most common values',
-                  )}
-                </div>
-              </StyledTopKForm>
-          </StyledInputContainer>
-          <StyledInputContainer>
-              <div className="control-label">{t('LLM Instructions')}</div>
-              <div className="input-container">
+            <div className="input-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+              <div className="control-label" style={{ marginBottom: '0' }}>
+                {t('LLM Instructions')}
+              </div>
+              <Button
+                buttonStyle="link"
+                onClick={() => {
+                  const defaultInstructions = llmDefaults?.[selectedProvider || '']?.instructions || '';
+                  handleContextOptionsChange('instructions', defaultInstructions);
+                }}
+              >
+                {t('Reset')}
+              </Button>
+            </div>
+            <div className="input-container">
               <textarea
-                  name="instructions"
-                  value={contextJson.instructions || ''}
-                  placeholder={t(AI_ASSISTANT_DEFAULT_INSTRUCTIONS)}
-                  onChange={onInstructionsChange}
+                name="instructions"
+                value={contextSettings?.instructions || llmDefaults?.[selectedProvider || '']?.instructions || ''}
+                onChange={(e) => handleContextOptionsChange('instructions', e.target.value)}
+                style={{ flex: 1 }}
               />
-              </div>
+            </div>
           </StyledInputContainer>
             <Button
               onClick={() => {
@@ -330,7 +326,7 @@ const AIAssistantOptions = ({
               cta
               buttonStyle="link"
               css={(theme: SupersetTheme) => wideButton(theme)}
-              >
+            >
               {regenerating ? t('Regenerating...') : t('Regenerate context')}
             </Button>
         </Collapse.Panel>

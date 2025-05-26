@@ -46,7 +46,6 @@ import {
 } from '@superset-ui/core';
 import type {
   QueryEditor,
-  QueryGenerator,
   SqlLabRootState,
   CursorPosition,
 } from 'src/SqlLab/types';
@@ -271,12 +270,14 @@ const SqlEditor: FC<Props> = ({
     'schema',
   ]);
   const [savedLlmContext, setSavedLlmContext] = useState<SavedContextStatus | null>(null);
+  const [contextError, setContextError] = useState<string | null>(null);
   useLlmContextStatus({
     dbId: storedQueryEditor.dbId || 0,
     onSuccess: result => {
       if (result.context) {
         setSavedLlmContext(result.context);
       }
+      setContextError(result.error ? result.error.build_time : null);
     }
   });
 
@@ -286,7 +287,6 @@ const SqlEditor: FC<Props> = ({
     hideLeftBar,
     currentQueryEditorId,
     hasSqlStatement,
-    queryGenerator,
   } = useSelector<
     SqlLabRootState,
     {
@@ -295,9 +295,8 @@ const SqlEditor: FC<Props> = ({
       hideLeftBar?: boolean;
       currentQueryEditorId: QueryEditor['id'];
       hasSqlStatement: boolean;
-      queryGenerator: QueryGenerator;
     }
-  >(({ sqlLab: { unsavedQueryEditor, databases, queries, tabHistory, queryGenerator } }) => {
+  >(({ sqlLab: { unsavedQueryEditor, databases, queries, tabHistory } }) => {
     let { dbId, latestQueryId, hideLeftBar } = queryEditor;
     if (unsavedQueryEditor?.id === queryEditor.id) {
       dbId = unsavedQueryEditor.dbId || dbId;
@@ -313,7 +312,6 @@ const SqlEditor: FC<Props> = ({
       latestQuery: queries[latestQueryId || ''],
       hideLeftBar,
       currentQueryEditorId: tabHistory.slice(-1)[0],
-      queryGenerator,
     };
   }, shallowEqual);
 
@@ -907,17 +905,19 @@ const SqlEditor: FC<Props> = ({
   };
 
   const renderAiAssistantEditor = () => {
-    const disabledMessage = !savedLlmContext
+    const disabledMessage = savedLlmContext && contextError
+      ? t('Context build error; falling back to an older context')
+      : !savedLlmContext && contextError
+      ? t('AI Assistant is unavailable due to a context build error')
+      : !savedLlmContext && !contextError
       ? t('AI Assistant is unavailable - please try again in a few minutes')
-      : savedLlmContext.status === 'FAILURE'
-      ? t('AI Assistant is unavailable due to a backend error')
       : undefined;
 
-    return database?.llm_enabled && (
+    return database?.llm_connection?.enabled && (
       <AiAssistantEditor
         queryEditorId={queryEditor.id}
         onGenerateSql={runAiAssistant}
-        isGeneratingSql={queryGenerator.isGeneratingQuery}
+        isGeneratingSql={queryEditor?.queryGenerator?.isGeneratingQuery || false}
         disabledMessage={disabledMessage}
         schema={storedQueryEditor.schema}
       />

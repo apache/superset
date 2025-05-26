@@ -174,6 +174,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "slack_channels": "write",
     "put_filters": "write",
     "put_colors": "write",
+    "llm_defaults": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

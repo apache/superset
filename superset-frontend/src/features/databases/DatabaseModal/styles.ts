@@ -560,13 +560,58 @@ export const StyledUploadWrapper = styled.div`
   }
 `;
 
+export const StyledContextWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  gap: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
+export const StyledLlmSwitch = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    margin-top: ${theme.gridUnit * 6}px;
+    margin-left: ${theme.gridUnit * 4}px;
+    margin-bottom: ${theme.gridUnit * 6}px;
+
+    .control-label {
+      font-family: ${theme.typography.families.sansSerif};
+      font-size: ${theme.typography.sizes.m}px;
+      margin-right: ${theme.gridUnit * 4}px;
+    }
+
+    .input-container {
+      display: flex;
+      align-items: center;
+
+      label {
+        margin-left: ${theme.gridUnit * 2}px;
+        margin-top: ${theme.gridUnit * 2}px;
+      }
+    }
+  `}
+`;
+
 export const StyledTokenEstimate = styled.div`
   border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-radius: ${({ theme }) => theme.gridUnit}px;
   padding: ${({ theme }) => theme.gridUnit * 3}px;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
+
+  .warning {
+    color: ${({ theme }) => theme.colors.error.base};
+  }
+`;
+
+export const StyledContextError = styled.div`
+  border: 1px solid ${({ theme }) => theme.colors.error.base};
+  border-radius: ${({ theme }) => theme.gridUnit}px;
+  padding: ${({ theme }) => theme.gridUnit * 3}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  background-color: ${({ theme }) => theme.colors.error.light2};
+  color: ${({ theme }) => theme.colors.error.base};
 `;
 
 export const StyledTopKForm = styled.div`

@@ -374,16 +374,15 @@ export function generateSql(databaseId, queryEditor, prompt) {
         // dispatch(formatQuery(queryEditor));
       })
       .catch(() => {
-        // TODO(AW): Same question as above
+        // TODO(AW): Same question as above - should we try to combine these two events?
         dispatch(addDangerToast(t('An error occurred while generating the SQL')))
         dispatch({ type: GENERATE_SQL_DONE, prompt: prompt });
-      }
-      );
+      });
   };
 }
 
-export function setGenerateSqlPrompt(prompt) {
-  return { type: GENERATE_SQL_SET_PROMPT, prompt };
+export function setGenerateSqlPrompt(queryEditorId, prompt) {
+  return { type: GENERATE_SQL_SET_PROMPT, queryEditorId, prompt };
 }
 
 export function runQuery(query, runPreviewOnly) {

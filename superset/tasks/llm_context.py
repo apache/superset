@@ -40,7 +40,7 @@ def check_for_expired_llm_context():
 
     with override_user(admin_user):
         databases = DatabaseDAO.find_all()
-        databases = [database for database in databases if database.llm_enabled]
+        databases = [database for database in databases if database.llm_connection and database.llm_connection.enabled]
 
     # For the list of candidate DBs, we need to determine if we need to generate a context for them.
     # We need to genereate one if any of the following are true:
@@ -61,8 +61,7 @@ def check_for_expired_llm_context():
             logger.info(f"Old context failed - generating for database {database.id}")
             initiate_context_generation(database.id)
         elif task_result.status == "SUCCESS":
-            context_settings = json.loads(database.llm_context_options or "{}")
-            refresh_interval = int(context_settings.get("refresh_interval", "12")) * 60 * 60
+            refresh_interval = int(database.llm_context_options.refresh_interval or 12) * 60 * 60
             old_started_time = latest_task.started_time.replace(tzinfo=datetime.timezone.utc)
             if (datetime.datetime.now(datetime.timezone.utc) - old_started_time).total_seconds() > refresh_interval:
                 logger.info(f"Old LLM context expired - generating for database {database.id}")
@@ -115,11 +114,11 @@ def generate_llm_context(self, db_id: int):
             if not database:
                 return {"status_code": 404, "message": "Database not found"}
 
-            context_settings = json.loads(database.llm_context_options or "{}")
-            selected_schemas = context_settings.get("schemas", None)
-            include_indexes = context_settings.get("include_indexes", True)
-            top_k = context_settings.get("top_k", 10)
-            top_k_limit = context_settings.get("top_k_limit", 10000)
+            settings = database.llm_context_options
+            selected_schemas = json.loads(settings.schemas) if settings.schemas else None
+            include_indexes = settings.include_indexes if settings.include_indexes else True
+            top_k = settings.top_k if settings.top_k else 10
+            top_k_limit = settings.top_k_limit if settings.top_k_limit else 50000
 
             schemas = get_database_metadata(database, None, include_indexes, selected_schemas, top_k, top_k_limit)
             logger.info(f"Done generating LLM context for database {db_id}")

@@ -55,7 +55,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
@@ -169,25 +169,6 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
     server_cert = Column(encrypted_field_factory.create(Text), nullable=True)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
-    llm_provider = Column(String(100), nullable=True)
-    llm_model = Column(String(100), nullable=True)
-    llm_api_key = Column(String(100), nullable=True)
-    llm_enabled = Column(Boolean, default=False)
-    llm_context_options = Column(
-        Text,
-        default=textwrap.dedent(
-            """\
-    {
-        "schemas": [],
-        "include_indexes": true,
-        "refresh_interval": 0,
-        "top_k": 10,
-        "top_k_row_limit": 50000,
-        "instructions": ""
-    }
-    """
-        ),
-    )
 
     export_fields = [
         "database_name",
@@ -202,7 +183,8 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         "extra",
         "impersonate_user",
         "llm_available",
-        "llm_enabled",
+        "llm_connection",
+        "llm_context_options",
     ]
     extra_import_fields = [
         "password",
@@ -293,6 +275,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             "allow_multi_catalog": self.allow_multi_catalog,
             "parameters_schema": self.parameters_schema,
             "engine_information": self.engine_information,
+            "llm_connection": self.llm_connection,
         }
 
     @property
@@ -391,7 +374,12 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
     @property
     def llm_available(self) -> bool:
-        return bool(self.llm_provider) and bool(self.llm_model) and bool(self.llm_api_key) and bool(self.llm_enabled)
+        c = self.llm_connection
+        return bool(c.provider) and bool(c.model) and bool(c.api_key) and bool(c.enabled)
+
+    @property
+    def llm_connection(self) -> LlmConnection:
+        return self.get_extra().get("llm_connection", {})
 
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
@@ -1279,3 +1267,27 @@ class ContextBuilderTask(Model):
     status = Column(String(255), nullable=True)
     duration = Column(Integer, nullable=True)
     params = Column(utils.MediumText())
+
+
+class LlmConnection(Model, AuditMixinNullable):
+    __tablename__ = "llm_connection"
+    id = Column(Integer, primary_key=True)
+    database_id = Column(Integer, ForeignKey("dbs.id"))
+    enabled = Column(Boolean, default=False)
+    provider = Column(String(255), nullable=False)
+    model = Column(String(255), nullable=False)
+    api_key = Column(Text, nullable=True)
+    database = relationship("Database", backref=backref("llm_connection", uselist=False), uselist=False)
+
+
+class LlmContextOptions(Model, AuditMixinNullable):
+    __tablename__ = "llm_context_options"
+    id = Column(Integer, primary_key=True)
+    database_id = Column(Integer, ForeignKey("dbs.id"))
+    refresh_interval = Column(Integer, default=12)
+    schemas = Column(utils.MediumText(), nullable=True)
+    include_indexes = Column(Boolean, default=True)
+    top_k = Column(Integer, default=10)
+    top_k_limit = Column(Integer, default=10000)
+    instructions = Column(utils.MediumText(), nullable=True)
+    database = relationship("Database", backref=backref("llm_context_options", uselist=False))

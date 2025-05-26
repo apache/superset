@@ -141,10 +141,16 @@ const AiAssistantEditor = ({
   const logAction = useLogAction({ queryEditorId });
 
   const changePrompt = (event: ChangeEvent<HTMLInputElement>) => {
-    dispatch(setGenerateSqlPrompt(event.target.value));
+    dispatch(setGenerateSqlPrompt(queryEditorId, event.target.value));
   };
 
-  const prompt = useSelector((state: SqlLabRootState) => state.sqlLab.queryGenerator.prompt);
+  const prompt = useSelector((state: SqlLabRootState) => {
+    const queryEditor = state.sqlLab.queryEditors.find(qe => qe.id === queryEditorId);
+    if (queryEditor) {
+      return queryEditor.queryGenerator?.prompt || '';
+    }
+    return '';
+  });
 
   const isDisabled = isGeneratingSql || !!disabledMessage;
 

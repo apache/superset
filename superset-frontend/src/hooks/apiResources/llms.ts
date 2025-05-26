@@ -30,6 +30,7 @@ export interface SavedContextStatus {
 
 export interface LlmContextStatus {
   context?: SavedContextStatus;
+  error?: { build_time: string };
   status: 'waiting' | 'building'
 }
 
@@ -38,6 +39,19 @@ export type FetchLlmContextStatusQueryParams = {
   onSuccess?: (data: LlmContextStatus, isRefetched: boolean) => void;
   onError?: (error: Response) => void;
 };
+
+export interface LlmDefaults {
+  [provider: string]: {
+    models: { [modelName: string]: { name: string, input_token_limit: number } },
+    instructions: string
+  };
+}
+
+export type LlmDefaultsParams = {
+  dbId: number;
+  onSuccess?: (data: LlmDefaults, isRefetched: boolean) => void;
+  onError?: (error: Response) => void;
+}
 
 const llmContextApi = api.injectEndpoints({
   endpoints: builder => ({
@@ -49,11 +63,19 @@ const llmContextApi = api.injectEndpoints({
         transformResponse: ({ json }: JsonResponse) => json,
       }),
     }),
+    llmDefaults: builder.query<LlmDefaults, number>({
+      providesTags: ['LlmDefaults'],
+      query: (dbId) => ({
+        endpoint: `api/v1/database/${dbId}/llm_defaults/`,
+        transformResponse: ({ json }: JsonResponse) => json,
+      }),
+    }),
   }),
 });
 
 export const {
   useContextStatusQuery,
+  useLlmDefaultsQuery,
   endpoints: llmEndpoints,
 } = llmContextApi;
 
@@ -109,6 +131,49 @@ export function useLlmContextStatus(options: FetchLlmContextStatusQueryParams) {
       }
     }
   }, [result, handleOnSuccess, handleOnError]);
+
+  return {
+    ...result,
+  };
+}
+
+export function useLlmDefaults(options: LlmDefaultsParams) {
+  const { dbId, onSuccess, onError } = options || {};
+  const result = useLlmDefaultsQuery(
+    dbId,
+    {
+      skip: !dbId,
+      refetchOnMountOrArgChange: true,
+    },
+  );
+
+  const handleOnSuccess = useEffectEvent((data: LlmDefaults, isRefetched: boolean) => {
+    onSuccess?.(data, isRefetched);
+  });
+
+  const handleOnError = useEffectEvent((error: Response) => {
+    onError?.(error);
+  });
+
+  useEffect(() => {
+    const {
+      requestId,
+      isSuccess,
+      isError,
+      isFetching,
+      currentData,
+      error,
+    } = result;
+    if (requestId && !isFetching) {
+      if (isSuccess && currentData) {
+        handleOnSuccess(currentData, false);
+      }
+      if (isError) {
+        handleOnError(error as Response);
+      }
+    }
+  }
+  , [result, handleOnSuccess, handleOnError]);
 
   return {
     ...result,
