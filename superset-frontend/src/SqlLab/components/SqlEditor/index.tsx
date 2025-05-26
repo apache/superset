@@ -905,8 +905,18 @@ const SqlEditor: FC<Props> = ({
       css={css`
         margin-bottom: ${theme.gridUnit * 2}px;
         padding-top: ${theme.gridUnit * 4}px;
+        .antd5-alert-action {
+          align-self: center;
+        }
       `}
       type="info"
+      action={
+        <CopyToClipboard
+          wrapText={false}
+          copyNode={renderCopyQueryButton()}
+          getText={copyQuery}
+        />
+      }
       description={
         <div
           css={css`
@@ -944,11 +954,6 @@ const SqlEditor: FC<Props> = ({
               )}{' '}
             </p>
           </div>
-          <CopyToClipboard
-            wrapText={false}
-            copyNode={renderCopyQueryButton()}
-            getText={copyQuery}
-          />
         </div>
       }
       message=""

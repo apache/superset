@@ -1009,7 +1009,7 @@ class DatasourceEditor extends PureComponent {
     );
   }
 
-  renderSqlEditotOverlay = () => (
+  renderSqlEditorOverlay = () => (
     <div
       css={theme => css`
         position: absolute;
@@ -1151,7 +1151,7 @@ class DatasourceEditor extends PureComponent {
                     control={
                       this.props.isQueryRunning ? (
                         <>
-                          {this.renderSqlEditotOverlay()}
+                          {this.renderSqlEditorOverlay()}
                           <TextAreaControl
                             language="sql"
                             offerEditInModal={false}
@@ -1174,12 +1174,12 @@ class DatasourceEditor extends PureComponent {
                     }
                     additionalControl={
                       <div
-                        css={{
-                          position: 'absolute',
-                          right: 0,
-                          top: 0,
-                          zIndex: 2,
-                        }}
+                        css={css`
+                          position: absolute;
+                          right: 0;
+                          top: 0;
+                          z-index: 2;
+                        `}
                       >
                         <Button
                           disabled={this.props.isQueryRunning}
