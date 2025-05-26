@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { forwardRef, useEffect, ComponentType } from 'react';
+import { forwardRef, useEffect, useCallback, ComponentType } from 'react';
 
 import type {
   Editor as OrigEditor,
@@ -31,7 +31,6 @@ import {
   AsyncEsmComponent,
   PlaceholderProps,
 } from '@superset-ui/core/components/AsyncEsmComponent';
-import useEffectEvent from 'src/hooks/useEffectEvent';
 import { useTheme, css } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 
@@ -158,7 +157,8 @@ export function AsyncAceEditor(
       ) {
         const supersetTheme = useTheme();
         const langTools = acequire('ace/ext/language_tools');
-        const setCompleters = useEffectEvent(
+
+        const setCompleters = useCallback(
           (keywords: AceCompleterKeyword[]) => {
             const completer = {
               getCompletions: (
@@ -181,7 +181,9 @@ export function AsyncAceEditor(
             };
             langTools.setCompleters([completer]);
           },
+          [langTools, mode],
         );
+
         useEffect(() => {
           if (keywords) {
             setCompleters(keywords);
