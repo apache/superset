@@ -35,7 +35,8 @@
 	{
   	  "files": [
         "**/*.stories.*",
-        "**/*.overview.*"
+        "**/*.overview.*",
+        "**/fixtures.*"
       ],
   	  "rules": {
         "import/no-extraneous-dependencies": "off"

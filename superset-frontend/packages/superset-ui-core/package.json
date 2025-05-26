@@ -99,6 +99,7 @@
     "@testing-library/user-event": "*",
     "@types/react": "*",
     "@types/react-loadable": "*",
+    "@types/react-window": "^1.8.8",
     "@types/tinycolor2": "*",
     "nanoid": "^5.0.9",
     "react": "^17.0.2",

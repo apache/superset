@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled, css, SupersetTheme, t } from '@superset-ui/core';
-import { error as errorIcon } from '@superset-ui/core/components/assets/svgs/error.svg';
+import { error as errorIcon } from '@superset-ui/core/components/assets/svgs';
 import {
   Button,
   Icons,
