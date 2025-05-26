@@ -92,7 +92,7 @@ class MapBox extends Component {
     });
 
     setTimeout(() => {
-      this.forceUpdate(); // force re-draw
+      this.forceUpdate(); // 🔥 re-draw force
     }, 300);
   }
 
