@@ -365,15 +365,15 @@ export const CardContainer = styled.div<{
   ${({ showThumbnails, theme }) => `
     overflow: hidden;
     display: grid;
-    justify-content: center;
+    justify-content: start;
     grid-gap: ${theme.sizeUnit * 12}px ${theme.sizeUnit * 4}px;
     grid-template-columns: repeat(auto-fit, 300px);
     max-height: ${showThumbnails ? '314' : '148'}px;
     margin-top: ${theme.sizeUnit * -6}px;
     padding: ${
       showThumbnails
-        ? `${theme.sizeUnit * 8 + 3}px ${theme.sizeUnit * 9}px`
-        : `${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 9}px`
+        ? `${theme.sizeUnit * 8 + 3}px ${theme.sizeUnit * 20}px`
+        : `${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 20}px`
     };
   `}
 `;
