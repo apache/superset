@@ -20,6 +20,15 @@
 import ReactDOMServer from 'react-dom/server';
 import { styled } from '@superset-ui/core';
 
+interface NormalizedTooltipProps {
+  color: string;
+  seriesName: string;
+  metrics: string[];
+  values: number[];
+  getDenormalizedValue: (seriesName: string, value: string) => number;
+  metricsWithCustomBounds: Set<string>;
+}
+
 const SeriesName = styled.div`
   font-weight: bold;
   margin-bottom: 5px;
@@ -38,7 +47,9 @@ const MetricValue = styled.div`
   margin-left: auto;
 `;
 
-const Dot = styled.span`
+const Dot = styled.span<{
+  color: string;
+}>`
   margin-right: 5px;
   border-radius: 50%;
   width: 5px;
@@ -47,7 +58,7 @@ const Dot = styled.span`
   background-color: ${({ color }) => color};
 `;
 
-const NormalizedTooltip = ({
+const NormalizedTooltip: React.FC<NormalizedTooltipProps> = ({
   color,
   seriesName,
   metrics,
@@ -75,5 +86,7 @@ const NormalizedTooltip = ({
   </div>
 );
 
-export const renderNormalizedTooltip = props =>
+export const renderNormalizedTooltip = (
+  props: NormalizedTooltipProps,
+): string =>
   ReactDOMServer.renderToStaticMarkup(<NormalizedTooltip {...props} />);
