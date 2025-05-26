@@ -24,7 +24,13 @@ import {
   useRef,
   useState,
 } from 'react';
-import { css, getExtensionsRegistry, styled, t } from '@superset-ui/core';
+import {
+  css,
+  getExtensionsRegistry,
+  SupersetTheme,
+  styled,
+  t,
+} from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip, EditableTitle } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
@@ -35,6 +41,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import { Link } from 'react-router-dom';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -194,6 +201,22 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
 
     const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
+    const renderExploreLink = (title: string) => (
+      <Link
+        to={exploreUrl}
+        css={(theme: SupersetTheme) => css`
+          color: ${theme.colorText};
+          text-decoration: none;
+          :hover {
+            text-decoration: underline;
+          }
+          display: inline-block;
+        `}
+      >
+        {title}
+      </Link>
+    );
+
     return (
       <ChartHeaderStyles data-test="slice-header" ref={ref}>
         <div className="header-title" ref={headerRef}>
@@ -208,7 +231,9 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               canEdit={editMode}
               onSaveTitle={updateSliceName}
               showTooltip={false}
-              url={canExplore ? exploreUrl : undefined}
+              renderLink={
+                canExplore && exploreUrl ? renderExploreLink : undefined
+              }
             />
           </Tooltip>
           {!!Object.values(annotationQuery).length && (

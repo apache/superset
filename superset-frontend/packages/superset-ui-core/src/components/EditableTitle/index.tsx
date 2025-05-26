@@ -17,9 +17,8 @@
  * under the License.
  */
 
-import { css, styled, SupersetTheme, t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import cx from 'classnames';
 import { Tooltip } from '../Tooltip';
 import { CertifiedBadge } from '../CertifiedBadge';
@@ -82,7 +81,7 @@ export function EditableTitle({
   placeholder = '',
   certifiedBy,
   certificationDetails,
-  url,
+  renderLink,
   maxWidth,
   autoSize = true,
   ...rest
@@ -199,7 +198,7 @@ export function EditableTitle({
     value = defaultTitle || title;
   }
 
-  let titleComponent = (
+  let titleComponent: React.ReactNode = (
     <Input.TextArea
       size="small"
       data-test="textarea-editable-title-input"
@@ -242,24 +241,12 @@ export function EditableTitle({
   }
 
   if (!canEdit) {
-    titleComponent = url ? (
-      <Link
-        to={url}
-        data-test="link-title"
-        css={(theme: SupersetTheme) => css`
-          color: ${theme.colorText};
-          text-decoration: none;
-          :hover {
-            text-decoration: underline;
-          }
-          display: inline-block;
-        `}
-      >
-        {value}
-      </Link>
-    ) : (
-      <span data-test="span-title">{value}</span>
-    );
+    if (renderLink) {
+      // New approach: let caller provide the link component
+      titleComponent = renderLink(value || '');
+    } else {
+      titleComponent = <span data-test="span-title">{value}</span>;
+    }
   }
 
   return (

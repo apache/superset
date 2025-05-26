@@ -30,7 +30,7 @@ export interface EditableTitleProps {
   placeholder?: string;
   certifiedBy?: string;
   certificationDetails?: string;
-  url?: string;
+  renderLink?: (title: string) => React.ReactNode;
   maxWidth?: number;
   autoSize?: boolean;
 }
