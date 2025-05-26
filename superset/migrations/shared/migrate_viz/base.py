@@ -147,8 +147,7 @@ class MigrateViz:
 
                 queries_bak = copy.deepcopy(query_context["queries"])
 
-                result = clz._build_query()
-                queries = result["queries"]
+                queries = clz._build_query()["queries"]
                 query_context["queries"] = queries
 
                 slc.query_context = json.dumps(query_context)
