@@ -19,7 +19,7 @@
 
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
-import { Loading } from '../assets';
+import { Loading as Loader } from '../assets';
 import type { LoadingProps } from './types';
 
 const LoaderImg = styled.img`

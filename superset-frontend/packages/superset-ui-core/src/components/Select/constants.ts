@@ -17,8 +17,8 @@
  * under the License.
  */
 import { LabeledValue as AntdLabeledValue } from 'antd/es/select';
-import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 import { t } from '@superset-ui/core';
+import { rankedSearchCompare } from '../../utils/rankedSearchCompare';
 import { RawValue } from './types';
 
 export const MAX_TAG_COUNT = 4;

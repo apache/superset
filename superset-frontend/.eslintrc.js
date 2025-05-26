@@ -331,7 +331,7 @@ module.exports = {
         'import/no-extraneous-dependencies': [
           'error',
           {
-            devDependencies: true ,
+            devDependencies: true,
           },
         ],
         'no-only-tests/no-only-tests': 'error',

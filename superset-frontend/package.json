@@ -357,6 +357,12 @@
     "webpack-sources": "^3.2.3",
     "webpack-visualizer-plugin2": "^1.1.0"
   },
+  "peerDependencies": {
+    "react-ace": "^10.1.0",
+    "ace-builds": "^1.41.0",
+    "regenerator-runtime": "^0.14.1",
+    "core-js": "^3.38.1"
+  },
   "engines": {
     "node": "^20.16.0",
     "npm": "^10.8.1"
