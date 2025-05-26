@@ -165,7 +165,7 @@ export default function transformProps(
   const metricLabelAndMaxValueMap = new Map<string, number>();
   const metricLabelAndMinValueMap = new Map<string, number>();
   const columnsLabelMap = new Map<string, string[]>();
-  let transformedData: RadarSeriesDataItemOption[] = [];
+  const transformedData: RadarSeriesDataItemOption[] = [];
   data.forEach(datum => {
     const joinedName = extractGroupbyLabel({
       datum,
@@ -268,7 +268,7 @@ export default function transformProps(
     });
 
   // Normalize the transformed data
-  transformedData = transformedData.map(series => {
+  const normalizedTransformedData = transformedData.map(series => {
     if (Array.isArray(series.value)) {
       const seriesName = String(series?.name || '');
       denormalizedSeriesValues[seriesName] = {};
@@ -326,7 +326,7 @@ export default function transformProps(
           backgroundColor: theme.colors.grayscale.light5,
         },
       },
-      data: transformedData,
+      data: normalizedTransformedData,
     },
   ];
 
