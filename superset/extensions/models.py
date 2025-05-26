@@ -18,10 +18,8 @@ import json
 from base64 import b64decode
 
 from flask_appbuilder import Model
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 
-from superset import security_manager
 from superset.extensions.types import Manifest
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 
@@ -44,11 +42,7 @@ class Extension(AuditMixinNullable, ImportExportMixin, Model):
     backend = Column(Text(), nullable=False)
     enabled = Column(Boolean(), nullable=False)
     created_on = Column(DateTime, nullable=True)
-    created_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     changed_on = Column(DateTime, nullable=True)
-    changed_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
-    created_by = relationship(security_manager.user_model, foreign_keys=[created_by_fk])
-    changed_by = relationship(security_manager.user_model, foreign_keys=[changed_by_fk])
 
     @property
     def frontend_dict(self) -> dict[str, bytes] | None:
