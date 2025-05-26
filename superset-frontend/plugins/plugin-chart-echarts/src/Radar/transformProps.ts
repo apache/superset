@@ -139,6 +139,17 @@ export default function transformProps(
 
   const metricLabels = metrics.map(getMetricLabel);
 
+  const metricsWithCustomBounds = new Set(
+    metricLabels.filter(metricLabel => {
+      const config = columnConfig?.[metricLabel];
+      const hasMax = !!isDefined(config?.radarMetricMaxValue);
+      const hasMin =
+        isDefined(config?.radarMetricMinValue) &&
+        config?.radarMetricMinValue !== 0;
+      return hasMax || hasMin;
+    }),
+  );
+
   const formatter = (params: CallbackDataParams) =>
     formatLabel({
       params,
@@ -150,17 +161,6 @@ export default function transformProps(
     });
 
   const groupbyLabels = groupby.map(getColumnLabel);
-
-  const metricsWithCustomBounds = new Set(
-    metricLabels.filter(metricLabel => {
-      const config = columnConfig?.[metricLabel];
-      const hasMax = !!isDefined(config?.radarMetricMaxValue);
-      const hasMin =
-        isDefined(config?.radarMetricMinValue) &&
-        config?.radarMetricMinValue !== 0;
-      return hasMax || hasMin;
-    }),
-  );
 
   const metricLabelAndMaxValueMap = new Map<string, number>();
   const metricLabelAndMinValueMap = new Map<string, number>();
