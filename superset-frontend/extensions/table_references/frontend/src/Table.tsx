@@ -52,7 +52,7 @@ const Table: React.FC<{ metadata: MetadataRow[] }> = ({ metadata }) => (
         <th style={{ ...CELL_STYLE, background: HEADER_COLOR }}>Table name</th>
         <th style={{ ...CELL_STYLE, background: HEADER_COLOR }}>Owners</th>
         <th style={{ ...CELL_STYLE, background: HEADER_COLOR }}>
-          Last available partition
+          Latest available partition
         </th>
         <th style={{ ...CELL_STYLE, background: HEADER_COLOR }}>
           Estimated row count
@@ -85,7 +85,7 @@ const Table: React.FC<{ metadata: MetadataRow[] }> = ({ metadata }) => (
                 );
               })}
             </td>
-            <td style={CELL_STYLE}>{row.last_partition}</td>
+            <td style={CELL_STYLE}>{row.latest_partition}</td>
             <td style={CELL_STYLE}>
               {row.estimated_row_count?.toLocaleString()}
             </td>

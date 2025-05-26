@@ -19,6 +19,6 @@
 export interface MetadataRow {
   table_name: string;
   owners: string[];
-  last_partition: string;
+  latest_partition: string;
   estimated_row_count?: number;
 }

@@ -82,7 +82,7 @@ class TableReferencesAPI(RestApi):
         for table_name in tables:
             # Generate a random date within the last 60 days
             days_ago = random.randint(0, 60)
-            last_partition = (datetime.today() - timedelta(days=days_ago)).strftime(
+            latest_partition = (datetime.today() - timedelta(days=days_ago)).strftime(
                 "%Y-%m-%d"
             )
             estimated_row_count = row_counts.get(table_name)
@@ -90,7 +90,7 @@ class TableReferencesAPI(RestApi):
                 {
                     "table_name": table_name,
                     "owners": owners_map.get(table_name, []),
-                    "last_partition": last_partition,
+                    "latest_partition": latest_partition,
                     "estimated_row_count": estimated_row_count,
                 }
             )
