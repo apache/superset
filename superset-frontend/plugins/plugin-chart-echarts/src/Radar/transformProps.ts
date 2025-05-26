@@ -48,8 +48,7 @@ import {
 import { defaultGrid } from '../defaults';
 import { Refs } from '../types';
 import { getDefaultTooltip } from '../utils/tooltip';
-import { renderNormalizedTooltip } from './NormalizedTooltip';
-import { findGlobalMax } from './utils';
+import { findGlobalMax, renderNormalizedTooltip } from './utils';
 
 export function formatLabel({
   params,
@@ -337,14 +336,12 @@ export default function transformProps(
       value: number[];
     },
   ) =>
-    renderNormalizedTooltip({
-      color: params.color,
-      seriesName: params.name || '',
-      metrics: metricLabels,
-      values: params.value,
-      getDenormalizedValue: getDenormalizedSeriesValue,
+    renderNormalizedTooltip(
+      params,
+      metricLabels,
+      getDenormalizedSeriesValue,
       metricsWithCustomBounds,
-    });
+    );
 
   const echartOptions: EChartsCoreOption = {
     grid: {
