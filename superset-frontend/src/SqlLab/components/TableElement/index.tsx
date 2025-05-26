@@ -228,7 +228,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           ))}
           triggerNode={
             <IconTooltip
-              className="pull-left m-l-2"
+              className="pull-left"
               tooltip={t('View keys & indexes (%s)', tableData.indexes.length)}
             >
               <Icons.TableOutlined
@@ -253,7 +253,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
             <ButtonGroup>
               <Space size="small">
                 <IconTooltip
-                  className="pull-left m-l-2 pointer"
+                  className="pull-left pointer"
                   onClick={refreshTableMetadata}
                   tooltip={t('Refresh table schema')}
                 >
@@ -305,7 +305,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
                   />
                 )}
                 <IconTooltip
-                  className=" table-remove pull-left m-l-2 pointer"
+                  className=" table-remove pull-left pointer"
                   onClick={removeTable}
                   tooltip={t('Remove table preview')}
                 >

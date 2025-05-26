@@ -33,7 +33,6 @@ export const TableControlsWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: ${theme.sizeUnit * 2}px;
 
     span {
       flex-shrink: 0;

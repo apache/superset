@@ -22,7 +22,6 @@ import {
   t,
   DatabaseConnectionExtension,
   isFeatureEnabled,
-  SupersetTheme,
   useTheme,
   FeatureFlag,
 } from '@superset-ui/core';
@@ -31,9 +30,9 @@ import {
   Checkbox,
   Collapse,
   InfoTooltip,
+  CollapseLabelInModal,
   type CheckboxChangeEvent,
 } from 'src/components';
-import { Typography } from 'src/components/Typography';
 import {
   StyledInputContainer,
   StyledJsonEditor,
@@ -99,12 +98,13 @@ const ExtraOptions = ({
         {
           key: 'sql-lab',
           label: (
-            <div>
-              <Typography.Title level={4}>{t('SQL Lab')}</Typography.Title>
-              <Typography.Paragraph>
-                {t('Adjust how this database will interact with SQL Lab.')}
-              </Typography.Paragraph>
-            </div>
+            <CollapseLabelInModal
+              title={t('SQL Lab')}
+              subtitle={t(
+                'Adjust how this database will interact with SQL Lab.',
+              )}
+              testId="sql-lab-label-test"
+            />
           ),
           children: (
             <>
@@ -289,12 +289,11 @@ const ExtraOptions = ({
         {
           key: 'performance',
           label: (
-            <div>
-              <Typography.Title level={4}>{t('Performance')}</Typography.Title>
-              <Typography.Paragraph>
-                {t('Adjust performance settings of this database.')}
-              </Typography.Paragraph>
-            </div>
+            <CollapseLabelInModal
+              title={t('Performance')}
+              subtitle={t('Adjust performance settings of this database.')}
+              testId="performance-label-test"
+            />
           ),
           children: (
             <>
@@ -417,12 +416,11 @@ const ExtraOptions = ({
         {
           key: 'security',
           label: (
-            <div>
-              <Typography.Title level={4}>{t('Security')}</Typography.Title>
-              <Typography.Paragraph>
-                {t('Add extra connection information.')}
-              </Typography.Paragraph>
-            </div>
+            <CollapseLabelInModal
+              title={t('Security')}
+              testId="security-label-test"
+              subtitle={t('Add extra connection information.')}
+            />
           ),
           children: (
             <>
@@ -545,20 +543,16 @@ const ExtraOptions = ({
                   ? ('icon' as const)
                   : ('disabled' as const),
                 label: (
-                  <div>
-                    {ExtraExtensionLogo && <ExtraExtensionLogo />}
-                    <span
-                      css={(theme: SupersetTheme) => ({
-                        fontSize: theme.fontSizeLG,
-                        fontWeight: theme.fontWeightStrong,
-                      })}
-                    >
-                      {extraExtension?.title}
-                    </span>
-                    <p>
-                      <ExtensionDescription />
-                    </p>
-                  </div>
+                  <CollapseLabelInModal
+                    key={extraExtension?.title}
+                    title={
+                      <>
+                        {ExtraExtensionLogo && <ExtraExtensionLogo />}
+                        {extraExtension?.title}
+                      </>
+                    }
+                    subtitle={<ExtensionDescription />}
+                  />
                 ),
                 children: (
                   <StyledInputContainer css={no_margin_bottom}>
@@ -574,12 +568,11 @@ const ExtraOptions = ({
         {
           key: 'other',
           label: (
-            <div>
-              <Typography.Title level={4}>{t('Other')}</Typography.Title>
-              <Typography.Paragraph>
-                {t('Additional settings.')}
-              </Typography.Paragraph>
-            </div>
+            <CollapseLabelInModal
+              title={t('Other')}
+              subtitle={t('Additional settings.')}
+              testId="other-label-test"
+            />
           ),
           children: (
             <>

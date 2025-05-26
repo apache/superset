@@ -341,7 +341,6 @@ const ContourPopoverControl = ({
           disabled={!isComplete || containsErrors()}
           buttonStyle="primary"
           buttonSize="small"
-          className="m-r-5"
           onClick={handleSave}
           cta
         >

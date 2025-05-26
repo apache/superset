@@ -65,12 +65,10 @@ const defaultProps = {
 const SortableListItem = SortableElement(CustomListItem);
 const SortableList = SortableContainer(List);
 const SortableDragger = SortableHandle(() => (
-  // TODO: Remove fa-icon
-  // eslint-disable-next-line icons/no-fa-icons-usage
-  <i
+  <Icons.MenuOutlined
     role="img"
     aria-label="drag"
-    className="fa fa-bars text-primary"
+    className="text-primary"
     style={{ cursor: 'ns-resize' }}
   />
 ));

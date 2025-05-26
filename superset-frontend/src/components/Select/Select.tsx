@@ -457,6 +457,7 @@ const Select = forwardRef(
       () => (
         <StyledBulkActionsContainer justify="center">
           <Button
+            type="link"
             buttonStyle="link"
             buttonSize="xsmall"
             disabled={bulkSelectCounts.selectable === 0}
@@ -469,6 +470,7 @@ const Select = forwardRef(
             {`${t('Select all')} (${bulkSelectCounts.selectable})`}
           </Button>
           <Button
+            type="link"
             buttonStyle="link"
             buttonSize="xsmall"
             disabled={bulkSelectCounts.deselectable === 0}

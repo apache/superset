@@ -455,7 +455,7 @@ export function applyAdvancedTimeRangeFilterOnDashboard(
   startRange?: string,
   endRange?: string,
 ) {
-  cy.get('.control-label').contains('RANGE TYPE').should('be.visible');
+  cy.get('.control-label').contains('Range type').should('be.visible');
   cy.get('.ant-popover-content .ant-select-selector')
     .should('be.visible')
     .click();

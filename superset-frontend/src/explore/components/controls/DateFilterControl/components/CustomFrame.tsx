@@ -120,14 +120,14 @@ export function CustomFrame(props: FrameComponentProps) {
         <Row gutter={24}>
           <Col span={12}>
             <div className="control-label">
-              {t('START (INCLUSIVE)')}{' '}
+              {t('Start (inclusive)')}{' '}
               <InfoTooltipWithTrigger
                 tooltip={t('Start date included in time range')}
                 placement="right"
               />
             </div>
             <Select
-              ariaLabel={t('START (INCLUSIVE)')}
+              ariaLabel={t('Start (inclusive)')}
               options={SINCE_MODE_OPTIONS}
               value={sinceMode}
               onChange={(value: string) => onChange('sinceMode', value)}
@@ -179,14 +179,14 @@ export function CustomFrame(props: FrameComponentProps) {
           </Col>
           <Col span={12}>
             <div className="control-label">
-              {t('END (EXCLUSIVE)')}{' '}
+              {t('End (exclusive)')}{' '}
               <InfoTooltipWithTrigger
                 tooltip={t('End date excluded from time range')}
                 placement="right"
               />
             </div>
             <Select
-              ariaLabel={t('END (EXCLUSIVE)')}
+              ariaLabel={t('End (exclusive)')}
               options={UNTIL_MODE_OPTIONS}
               value={untilMode}
               onChange={(value: string) => onChange('untilMode', value)}

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useRef, useState } from 'react';
-import { styled, useTheme } from '@superset-ui/core';
+import { useTheme } from '@superset-ui/core';
 import type { LabelType } from 'src/components/Label/types';
 import { Label } from 'src/components';
 import { Icons } from 'src/components/Icons';
@@ -31,11 +31,6 @@ export interface TimerProps {
   status?: LabelType;
 }
 
-const TimerLabel = styled(Label)`
-  text-align: left;
-  font-family: ${({ theme }) => theme.fontFamilyCode};
-`;
-
 export default function Timer({
   endTime,
   isRunning,
@@ -46,20 +41,6 @@ export default function Timer({
   const [clockStr, setClockStr] = useState('00:00:00.00');
   const timer = useRef<ReturnType<typeof setInterval>>();
 
-  const getIconColor = (status: LabelType) => {
-    const { colors } = theme;
-
-    const colorMap: Record<LabelType, string> = {
-      success: colors.success.dark2,
-      warning: colors.warning.dark2,
-      info: colors.info.dark2,
-      default: colors.grayscale.dark1,
-      primary: colors.primary.dark2,
-      error: theme.colorError,
-    };
-
-    return colorMap[status] || colors.grayscale.dark1;
-  };
   useEffect(() => {
     const stopTimer = () => {
       if (timer.current) {
@@ -85,17 +66,13 @@ export default function Timer({
   }, [endTime, isRunning, startTime]);
 
   return (
-    <TimerLabel
-      icon={
-        <Icons.ClockCircleOutlined
-          iconColor={getIconColor(status)}
-          iconSize="m"
-        />
-      }
+    <Label
+      icon={<Icons.ClockCircleOutlined iconSize="m" />}
       type={status}
       role="timer"
+      style={{ fontFamily: theme.fontFamilyCode }}
     >
       {clockStr}
-    </TimerLabel>
+    </Label>
   );
 }

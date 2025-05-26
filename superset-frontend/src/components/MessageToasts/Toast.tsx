@@ -26,16 +26,23 @@ import { ToastType, ToastMeta } from './types';
 const ToastContainer = styled.div`
   ${({ theme }) => css`
     display: flex;
-    justify-content: center;
+    justify-content: space-between; // Changed from center to space-between
     align-items: center;
 
-    span {
-      padding: 0 ${theme.sizeUnit * 2}px;
+    // Content container for icon and text
+    .toast__content {
+      display: flex;
+      align-items: center;
+      flex: 1; // Take available space
+    }
+
+    .anticon {
+      padding: 0 ${theme.sizeUnit}px;
     }
 
     .toast__close,
     .toast__close span {
-      padding: 0;
+      padding-left: ${theme.sizeUnit * 4}px;
     }
   `}
 `;
@@ -54,6 +61,7 @@ interface ToastPresenterProps {
 export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();
   const [visible, setVisible] = useState(false);
+
   const showToast = () => {
     setVisible(true);
   };
@@ -73,7 +81,6 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
 
   useEffect(() => {
     setTimeout(showToast);
-
     if (toast.duration > 0) {
       hideTimer.current = setTimeout(handleClosePress, toast.duration);
     }
@@ -85,7 +92,6 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
   }, [handleClosePress, toast.duration]);
 
   const theme = useTheme();
-
   let className = 'toast--success';
   let icon = (
     <Icons.CheckCircleFilled
@@ -126,11 +132,14 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
       data-test="toast-container"
       role="alert"
     >
-      {icon}
-      <Interweave content={toast.text} noHtml={!toast.allowHtml} />
+      <div className="toast__content">
+        {icon}
+        <Interweave content={toast.text} noHtml={!toast.allowHtml} />
+      </div>
       <Icons.CloseOutlined
         iconSize="m"
         className="toast__close pointer"
+        iconColor="#888"
         role="button"
         tabIndex={0}
         onClick={handleClosePress}

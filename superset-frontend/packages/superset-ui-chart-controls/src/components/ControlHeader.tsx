@@ -100,7 +100,6 @@ export function ControlHeader({
             tabIndex={0}
             onClick={onClick}
             className={labelClass}
-            style={{ cursor: onClick ? 'pointer' : '' }}
           >
             {label}
           </span>{' '}
@@ -145,11 +144,7 @@ export function ControlHeader({
             </span>
           )}
           {renderOptionalIcons()}
-          {required && (
-            <span className="text-danger m-l-4">
-              <strong>*</strong>
-            </span>
-          )}
+          {required && <strong> *</strong>}
         </label>
       </div>
       {rightNode && <div className="pull-right">{rightNode}</div>}

@@ -63,7 +63,12 @@ export {
   type CheckboxProps,
   type CheckboxChangeEvent,
 } from './Checkbox';
-export { Collapse, type CollapseProps } from './Collapse';
+export {
+  Collapse,
+  type CollapseProps,
+  CollapseLabelInModal,
+  type CollapseLabelInModalProps,
+} from './Collapse';
 export {
   ConfirmStatusChange,
   type ConfirmStatusChangeProps,

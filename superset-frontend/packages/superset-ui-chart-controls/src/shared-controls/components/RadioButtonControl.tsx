@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { JsonValue, useTheme } from '@superset-ui/core';
+import { JsonValue } from '@superset-ui/core';
 import { Radio } from 'antd';
 import { ControlHeader } from '../../components/ControlHeader';
 
@@ -43,37 +43,10 @@ export default function RadioButtonControl({
   ...props
 }: RadioButtonControlProps) {
   const currentValue = initialValue || options[0][0];
-  const theme = useTheme();
   return (
-    <div
-      css={{
-        '.btn svg': {
-          position: 'relative',
-          top: '0.2em',
-        },
-        '.btn:focus': {
-          outline: 'none',
-        },
-        '.control-label': {
-          color: theme.colors.grayscale.base,
-          marginBottom: theme.sizeUnit,
-        },
-        '.control-label + .btn-group': {
-          marginTop: '1px',
-        },
-        '.btn-group .btn-default': {
-          color: theme.colorText,
-        },
-        '.btn-group .btn.active': {
-          background: theme.colors.grayscale.light4,
-          fontWeight: theme.fontWeightStrong,
-          boxShadow: 'none',
-        },
-      }}
-    >
+    <div>
       <ControlHeader {...props} />
       <Radio.Group
-        size="small"
         value={currentValue}
         onChange={e => onChange(e.target.value)}
       >

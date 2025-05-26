@@ -58,9 +58,6 @@ export const ChartPills = forwardRef(
             display: flex;
             justify-content: flex-end;
             padding-bottom: ${theme.sizeUnit * 4}px;
-            & .ant-tag:last-of-type {
-              margin: 0;
-            }
           `}
         >
           {!isLoading && firstQueryResponse && (

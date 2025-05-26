@@ -18,7 +18,7 @@
  */
 import { getNumberFormatter, t, tn } from '@superset-ui/core';
 
-import { Label, Tooltip } from 'src/components';
+import { Label, Icons, Tooltip } from 'src/components';
 
 type RowCountLabelProps = {
   rowcount?: number;
@@ -37,7 +37,7 @@ export default function RowCountLabel(props: RowCountLabelProps) {
     limitReached || (rowcount === 0 && !loading) ? 'error' : 'default';
   const formattedRowCount = getNumberFormatter()(rowcount);
   const label = (
-    <Label type={type}>
+    <Label type={type} icon={<Icons.OrderedListOutlined />}>
       {loading ? (
         t('Loading...')
       ) : (

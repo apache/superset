@@ -385,7 +385,7 @@ test('paginates', async () => {
   expect(chartNameValues[24]).toHaveTextContent('Sample chart 25');
 
   // Second page
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('button', {
       name: /right/i,
     }),
@@ -400,7 +400,7 @@ test('paginates', async () => {
   expect(chartNameValues[24]).toHaveTextContent('Sample chart 50');
 
   // Third page
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('button', {
       name: /right/i,
     }),

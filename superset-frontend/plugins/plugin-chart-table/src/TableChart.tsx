@@ -644,7 +644,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             css={css`
               float: right;
               & svg {
-                color: ${theme.colorText} !important;
+                color: ${theme.colorIcon} !important;
               }
             `}
           >
@@ -758,7 +758,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         isUsingTimeComparison &&
         Array.isArray(basicColorFormatters) &&
         basicColorFormatters.length > 0;
-
       const valueRange =
         !hasBasicColorFormatters &&
         !hasColumnColorFormatters &&
@@ -832,14 +831,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
                 : '';
           }
-
           const StyledCell = styled.td`
             color: ${theme.colorText};
-            background-color: ${theme.colorBgBase};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
-            background: ${backgroundColor || undefined};
+            background: ${backgroundColor || theme.colorWhite};
             padding-left: ${column.isChildColumn
               ? `${theme.sizeUnit * 5}px`
               : `${theme.sizeUnit}px`};
@@ -1033,7 +1030,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   align-items: center;
                   & svg {
                     margin-left: ${theme.sizeUnit}px;
-                    color: ${theme.colorText} !important;
+                    color: ${theme.colorBorder} !important;
                   }
                 `}
               >

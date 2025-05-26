@@ -120,6 +120,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           css={(theme: SupersetTheme) => css`
             margin-bottom: ${theme.sizeUnit * 0.5}px;
             position: relative;
+            font-size: ${theme.fontSizeSM}px;
           `}
         >
           {leftNode && <span>{leftNode} </span>}

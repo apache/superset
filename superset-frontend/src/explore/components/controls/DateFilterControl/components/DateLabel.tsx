@@ -39,7 +39,6 @@ const LabelContainer = styled.div<{
   isPlaceholder?: boolean;
 }>`
   ${({ theme, isActive, isPlaceholder }) => css`
-    width: 100%;
     height: ${theme.sizeUnit * 8}px;
 
     display: flex;
