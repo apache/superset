@@ -55,12 +55,6 @@ enum AuthType {
   AuthOauth = 4,
 }
 
-const AuthIconMap: Record<string, React.JSX.Element> = {
-  github: <Icons.GithubOutlined />,
-  google: <Icons.GoogleOutlined />,
-  facebook: <Icons.FacebookOutlined />,
-};
-
 const StyledCard = styled(Card)`
   ${({ theme }) => css`
     width: 40%;
@@ -96,6 +90,23 @@ export default function Login() {
     });
   };
 
+  const getAuthIconElement = (
+    providerName: string,
+  ): React.JSX.Element | undefined => {
+    if (!providerName || typeof providerName !== 'string') {
+      return undefined;
+    }
+    const iconComponentName = `${capitalize(providerName)}Outlined`;
+    const IconComponent = (Icons as Record<string, React.ComponentType<any>>)[
+      iconComponentName
+    ];
+
+    if (IconComponent && typeof IconComponent === 'function') {
+      return <IconComponent />;
+    }
+    return undefined;
+  };
+
   return (
     <Flex
       justify="center"
@@ -114,7 +125,7 @@ export default function Login() {
                     href={`/login/${provider.name}`}
                     block
                     iconPosition="start"
-                    icon={AuthIconMap[provider.name]}
+                    icon={getAuthIconElement(provider.name)}
                   >
                     {t('Sign in with')} {capitalize(provider.name)}
                   </Button>
@@ -132,7 +143,7 @@ export default function Login() {
                     href={`/login/${provider.name}`}
                     block
                     iconPosition="start"
-                    icon={AuthIconMap[provider.name]}
+                    icon={getAuthIconElement(provider.name)}
                   >
                     {t('Sign in with')} {capitalize(provider.name)}
                   </Button>
