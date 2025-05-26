@@ -16,39 +16,8 @@
 # under the License.
 
 from dataclasses import dataclass
-from typing import TypedDict
 
-
-class ModuleFederationConfig(TypedDict):
-    exposes: dict[str, str]
-    filename: str
-    shared: dict[str, str]
-    remotes: dict[str, str]
-
-
-class FrontendContributionConfig(TypedDict):
-    commands: dict[str, list[dict[str, str]]]
-    views: dict[str, list[dict[str, str]]]
-    menus: dict[str, list[dict[str, str]]]
-
-
-class FrontendManifest(TypedDict):
-    contributions: FrontendContributionConfig
-    moduleFederation: ModuleFederationConfig
-    remoteEntry: str
-
-
-class BackendManifest(TypedDict):
-    entryPoints: list[str]
-
-
-class Manifest(TypedDict, total=False):
-    name: str
-    description: str
-    version: str
-    frontend: FrontendManifest
-    backend: BackendManifest
-    permissions: list[str]
+from superset_primitives.extensions.types import Manifest
 
 
 @dataclass

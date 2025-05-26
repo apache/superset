@@ -21,10 +21,11 @@ import logging
 from base64 import b64encode
 from typing import Any, cast
 
+from superset_primitives.extensions.types import Manifest
+
 from superset import db
 from superset.daos.base import BaseDAO
 from superset.extensions.models import Extension
-from superset.extensions.types import Manifest
 
 logger = logging.getLogger(__name__)
 

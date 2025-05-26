@@ -29,6 +29,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
+    "apache-superset-primitives>=0.0.1, <0.2",
     "click>=8.0.3",
     "tomli>=2.2.1; python_version < '3.11'",
     "watchdog>=6.0.0",

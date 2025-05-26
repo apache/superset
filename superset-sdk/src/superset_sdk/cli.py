@@ -23,9 +23,10 @@ import sys
 import time
 import zipfile
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 import click
+from superset_primitives.extensions.types import Manifest, Metadata
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
@@ -48,33 +49,32 @@ def clean_dist_frontend(cwd: Path) -> None:
         shutil.rmtree(frontend_dist)
 
 
-def build_manifest(cwd: Path, remote_entry: str) -> dict[str, Any]:
-    extension = read_json(cwd / "extension.json")
+def build_manifest(cwd: Path, remote_entry: str) -> Manifest:
+    extension: Metadata = cast(Metadata, read_json(cwd / "extension.json"))
     if not extension:
         click.secho("❌ extension.json not found.", err=True, fg="red")
         sys.exit(1)
 
-    manifest = {
+    manifest: Manifest = {
         "name": extension["name"],
         "version": extension["version"],
         "permissions": extension["permissions"],
         "dependencies": extension.get("dependencies", []),
-        "frontend": {
-            "contributions": extension.get("frontend", {}).get("contributions", []),
-            "moduleFederation": extension.get("frontend", {}).get(
-                "moduleFederation", {}
-            ),
-            "remoteEntry": remote_entry,
-        },
-        "backend": {},
     }
+    if frontend := extension.get("frontend"):
+        manifest["frontend"] = {
+            "contributions": frontend["contributions"],
+            "moduleFederation": frontend["moduleFederation"],
+            "remoteEntry": remote_entry,
+        }
+
     if entry_points := extension.get("backend", {}).get("entryPoints"):
-        manifest["backend"]["entryPoints"] = entry_points
+        manifest["backend"] = {"entryPoints": entry_points}
 
     return manifest
 
 
-def write_manifest(cwd: Path, manifest: dict[str, Any]) -> None:
+def write_manifest(cwd: Path, manifest: Manifest) -> None:
     dist_dir = cwd / "dist"
     (dist_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True)

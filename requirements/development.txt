@@ -3,7 +3,9 @@
 -e .
     # via -r requirements/development.in
 -e ./superset-primitives
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   apache-superset-sdk
 -e ./superset-sdk
     # via apache-superset
 alembic==1.15.1
