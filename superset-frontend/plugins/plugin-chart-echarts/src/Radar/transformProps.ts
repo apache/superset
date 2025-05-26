@@ -24,12 +24,12 @@ import {
   getNumberFormatter,
   getTimeFormatter,
   NumberFormatter,
+  isDefined,
 } from '@superset-ui/core';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import type { RadarSeriesDataItemOption } from 'echarts/types/src/chart/radar/RadarSeries';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { RadarSeriesOption } from 'echarts/charts';
-import { isNull, isUndefined } from 'lodash';
 import {
   DEFAULT_FORM_DATA as DEFAULT_RADAR_FORM_DATA,
   EchartsRadarChartProps,
@@ -154,11 +154,9 @@ export default function transformProps(
   const metricsWithCustomBounds = new Set(
     metricLabels.filter(metricLabel => {
       const config = columnConfig?.[metricLabel];
-      const hasMax =
-        !isNull(config?.radarMetricMaxValue) &&
-        !isUndefined(config?.radarMetricMaxValue);
+      const hasMax = !!isDefined(config?.radarMetricMaxValue);
       const hasMin =
-        !isUndefined(config?.radarMetricMinValue) &&
+        isDefined(config?.radarMetricMinValue) &&
         config?.radarMetricMinValue !== 0;
       return hasMax || hasMin;
     }),
@@ -300,16 +298,13 @@ export default function transformProps(
       metricLabelAndMaxValueMap.get(metricLabel) === 0
         ? Number.MAX_SAFE_INTEGER
         : globalMax;
-    const max =
-      isNull(maxValueInControl) || isUndefined(maxValueInControl)
-        ? maxValue
-        : maxValueInControl;
+    const max = isDefined(maxValueInControl) ? maxValueInControl : maxValue;
 
     let min: number;
-    if (isUndefined(minValueInControl) || isNull(minValueInControl)) {
-      min = 0;
-    } else {
+    if (isDefined(minValueInControl)) {
       min = minValueInControl;
+    } else {
+      min = 0;
     }
 
     return {
