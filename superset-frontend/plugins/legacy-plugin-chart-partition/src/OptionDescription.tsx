@@ -30,13 +30,15 @@ const propTypes = {
 
 // This component provides a general tooltip for options
 // in a SelectControl
+// TODO use theme.sizeUnit once theme can be imported in plugins
 export default function OptionDescription({ option }: { option: ColumnMeta }) {
   return (
     <span>
-      <span className="m-r-5 option-label">{option.label}</span>
+      <span className="option-label" style={{ marginRight: 4 }}>
+        {option.label}
+      </span>
       {option.description && (
         <InfoTooltipWithTrigger
-          className="m-r-5"
           type="question"
           tooltip={option.description}
           label={`descr-${option.label}`}

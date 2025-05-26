@@ -19,8 +19,8 @@
 /* eslint-env browser */
 import { createRef, PureComponent } from 'react';
 import { Radio, RadioChangeEvent } from 'src/components/Radio';
-import { Button, Checkbox, Input, Divider } from 'src/components';
-import { t, JsonResponse } from '@superset-ui/core';
+import { Button, Checkbox, Form, Input, Divider, Space } from 'src/components';
+import { t, themeObject, JsonResponse } from '@superset-ui/core';
 
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
 import {
@@ -160,56 +160,66 @@ class SaveModal extends PureComponent<SaveModalProps, SaveModalState> {
   }
 
   render() {
+    const { theme } = themeObject;
     return (
       <ModalTrigger
         ref={this.modal}
         triggerNode={this.props.triggerNode}
         modalTitle={t('Save dashboard')}
         modalBody={
-          <div>
-            <Radio
-              value={SAVE_TYPE_OVERWRITE}
-              onChange={this.handleSaveTypeChange}
-              checked={this.state.saveType === SAVE_TYPE_OVERWRITE}
-              disabled={!this.props.canOverwrite}
-            >
-              {t('Overwrite Dashboard [%s]', this.props.dashboardTitle)}
-            </Radio>
+          <Form layout="vertical">
+            <Form.Item>
+              <Radio
+                value={SAVE_TYPE_OVERWRITE}
+                onChange={this.handleSaveTypeChange}
+                checked={this.state.saveType === SAVE_TYPE_OVERWRITE}
+                disabled={!this.props.canOverwrite}
+              >
+                {t('Overwrite Dashboard [%s]', this.props.dashboardTitle)}
+              </Radio>
+            </Form.Item>
+
             <Divider />
-            <Radio
-              value={SAVE_TYPE_NEWDASHBOARD}
-              onChange={this.handleSaveTypeChange}
-              checked={this.state.saveType === SAVE_TYPE_NEWDASHBOARD}
-            >
-              {t('Save as:')}
-            </Radio>
-            <Input
-              type="text"
-              placeholder={t('[dashboard name]')}
-              value={this.state.newDashName}
-              onFocus={e => this.handleNameChange(e.target.value)}
-              onChange={e => this.handleNameChange(e.target.value)}
-            />
-            <div className="m-l-25 m-t-5">
+
+            <Form.Item style={{ marginBottom: theme.sizeUnit }}>
+              <Radio
+                value={SAVE_TYPE_NEWDASHBOARD}
+                onChange={this.handleSaveTypeChange}
+                checked={this.state.saveType === SAVE_TYPE_NEWDASHBOARD}
+              >
+                {t('Save as:')}
+              </Radio>
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: theme.sizeUnit }}>
+              <Input
+                placeholder={t('[dashboard name]')}
+                value={this.state.newDashName}
+                onFocus={e => this.handleNameChange(e.target.value)}
+                onChange={e => this.handleNameChange(e.target.value)}
+              />
+            </Form.Item>
+
+            <Form.Item>
               <Checkbox
                 checked={this.state.duplicateSlices}
                 onChange={() => this.toggleDuplicateSlices()}
               >
                 {t('also copy (duplicate) charts')}
               </Checkbox>
-            </div>
-          </div>
+            </Form.Item>
+          </Form>
         }
         modalFooter={
-          <div>
+          <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Button
+              type="primary"
               data-test="modal-save-dashboard-button"
-              buttonStyle="primary"
               onClick={this.saveDashboard}
             >
               {t('Save')}
             </Button>
-          </div>
+          </Space>
         }
       />
     );

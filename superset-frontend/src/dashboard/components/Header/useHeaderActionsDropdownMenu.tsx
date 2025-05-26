@@ -164,7 +164,6 @@ export const useHeaderActionsMenu = ({
     const isEmbedded = !dashboardInfo?.userId;
     const refreshIntervalOptions =
       dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
-
     return (
       <Menu
         selectable={false}
@@ -287,9 +286,7 @@ export const useHeaderActionsMenu = ({
         {editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes) && (
           <Menu.Item key={MenuKeys.SetFilterMapping}>
             <FilterScopeModal
-              triggerNode={
-                <div className="m-r-5">{t('Set filter mapping')}</div>
-              }
+              triggerNode={<div>{t('Set filter mapping')}</div>}
             />
           </Menu.Item>
         )}

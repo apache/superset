@@ -65,12 +65,14 @@ export const FaveStar = ({
           aria-label="starred"
           iconSize="l"
           iconColor={theme.colors.warning.base}
+          name="favorite-selected"
         />
       ) : (
         <Icons.StarOutlined
           aria-label="unstarred"
           iconSize="l"
           iconColor={theme.colors.grayscale.light1}
+          name="favorite-unselected"
         />
       )}
     </StyledLink>

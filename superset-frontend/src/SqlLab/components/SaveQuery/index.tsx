@@ -228,18 +228,12 @@ const SaveQuery = ({
             <Button
               buttonStyle={isSaved ? undefined : 'primary'}
               onClick={onSaveWrapper}
-              className="m-r-3"
               cta
             >
               {isSaved ? t('Save as new') : t('Save')}
             </Button>
             {isSaved && (
-              <Button
-                buttonStyle="primary"
-                onClick={onUpdateWrapper}
-                className="m-r-3"
-                cta
-              >
+              <Button buttonStyle="primary" onClick={onUpdateWrapper} cta>
                 {t('Update')}
               </Button>
             )}

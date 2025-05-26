@@ -16,17 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/*************************************************************************/
-/* USAGE NOTES : Add font all licenses to LICENSE.text                   */
-/*************************************************************************/
-
-/******************************* Inter UI ********************************/
-@import '~@fontsource/inter/200.css';
-@import '~@fontsource/inter/400.css';
-@import '~@fontsource/inter/500.css';
-@import '~@fontsource/inter/600.css';
-
-@import '~@fontsource/fira-code/400.css';
-@import '~@fontsource/fira-code/500.css';
-@import '~@fontsource/fira-code/600.css';
+export const CONTRIBUTION_SUFFIX = '__contribution' as const;

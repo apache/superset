@@ -81,7 +81,7 @@ import DataTable, {
 
 import Styles from './Styles';
 import { formatColumnValue } from './utils/formatValue';
-import { PAGE_SIZE_OPTIONS } from './consts';
+import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
 
@@ -309,7 +309,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
     const getServerPagination = (n: number) => n <= rowCount;
-    return PAGE_SIZE_OPTIONS.filter(([n]) =>
+    return (
+      serverPagination ? SERVER_PAGE_SIZE_OPTIONS : PAGE_SIZE_OPTIONS
+    ).filter(([n]) =>
       serverPagination ? getServerPagination(n) : n <= 2 * data.length,
     ) as SizeOption[];
   }, [data.length, rowCount, serverPagination]);
@@ -642,7 +644,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             css={css`
               float: right;
               & svg {
-                color: ${theme.colorText} !important;
+                color: ${theme.colorIcon} !important;
               }
             `}
           >
@@ -756,7 +758,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         isUsingTimeComparison &&
         Array.isArray(basicColorFormatters) &&
         basicColorFormatters.length > 0;
-
       const valueRange =
         !hasBasicColorFormatters &&
         !hasColumnColorFormatters &&
@@ -830,14 +831,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
                 : '';
           }
-
           const StyledCell = styled.td`
             color: ${theme.colorText};
-            background-color: ${theme.colorBgBase};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
-            background: ${backgroundColor || undefined};
+            background: ${backgroundColor || theme.colorWhite};
             padding-left: ${column.isChildColumn
               ? `${theme.sizeUnit * 5}px`
               : `${theme.sizeUnit}px`};
@@ -1031,7 +1030,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   align-items: center;
                   & svg {
                     margin-left: ${theme.sizeUnit}px;
-                    color: ${theme.colorText} !important;
+                    color: ${theme.colorBorder} !important;
                   }
                 `}
               >

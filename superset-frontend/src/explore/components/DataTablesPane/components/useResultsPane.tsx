@@ -56,6 +56,7 @@ export const useResultsPane = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
   const queryCount = metadata?.queryObjectCount ?? 1;
+  const isQueryCountDynamic = metadata?.dynamicQueryObjectCount;
 
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
@@ -109,7 +110,7 @@ export const useResultsPane = ({
   if (errorMessage) {
     const title = t('Run a query to display results');
     return Array(queryCount).fill(
-      <EmptyState image="document.svg" title={title} />,
+      <EmptyState image="document.svg" title={title} size="small" />,
     );
   }
 
@@ -135,22 +136,24 @@ export const useResultsPane = ({
   if (resultResp.length === 0) {
     const title = t('No results were returned for this query');
     return Array(queryCount).fill(
-      <EmptyState image="document.svg" title={title} />,
+      <EmptyState image="document.svg" title={title} size="small" />,
     );
   }
-  return resultResp
-    .slice(0, queryCount)
-    .map((result, idx) => (
-      <SingleQueryResultPane
-        data={result.data}
-        colnames={result.colnames}
-        coltypes={result.coltypes}
-        rowcount={result.rowcount}
-        dataSize={dataSize}
-        datasourceId={queryFormData.datasource}
-        key={idx}
-        isVisible={isVisible}
-        canDownload={canDownload}
-      />
-    ));
+  const resultRespToDisplay = isQueryCountDynamic
+    ? resultResp
+    : resultResp.slice(0, queryCount);
+
+  return resultRespToDisplay.map((result, idx) => (
+    <SingleQueryResultPane
+      data={result.data}
+      colnames={result.colnames}
+      coltypes={result.coltypes}
+      rowcount={result.rowcount}
+      dataSize={dataSize}
+      datasourceId={queryFormData.datasource}
+      key={idx}
+      isVisible={isVisible}
+      canDownload={canDownload}
+    />
+  ));
 };

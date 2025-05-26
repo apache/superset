@@ -18,7 +18,13 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Input, Tooltip, Button, TextAreaEditor } from 'src/components';
+import {
+  Input,
+  Tooltip,
+  TooltipProps,
+  Button,
+  TextAreaEditor,
+} from 'src/components';
 import { t, withTheme } from '@superset-ui/core';
 
 import ModalTrigger from 'src/components/ModalTrigger';
@@ -53,7 +59,7 @@ const propTypes = {
     'vertical',
   ]),
   textAreaStyles: PropTypes.object,
-  tooltipOptions: PropTypes.oneOf([null, PropTypes.object]),
+  tooltipOptions: PropTypes.oneOf([null, TooltipProps]),
 };
 
 const defaultProps = {
@@ -153,7 +159,10 @@ class TextAreaControl extends Component {
           <ModalTrigger
             modalTitle={controlHeader}
             triggerNode={
-              <Button buttonSize="small" className="m-t-5">
+              <Button
+                buttonSize="small"
+                style={{ marginTop: this.props.theme.sizeUnit }}
+              >
                 {t('Edit')} <strong>{this.props.language}</strong>{' '}
                 {t('in modal')}
               </Button>

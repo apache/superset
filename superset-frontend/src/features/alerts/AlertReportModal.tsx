@@ -47,6 +47,7 @@ import {
   Select,
   AsyncSelect,
   Checkbox,
+  CollapseLabelInModal,
   TreeSelect,
   type CheckboxChangeEvent,
 } from 'src/components';
@@ -82,7 +83,6 @@ import { Typography } from 'src/components/Typography';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
-import ValidatedPanelHeader from './components/ValidatedPanelHeader';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 
 const TIMEOUT_MIN = 1;
@@ -1470,7 +1470,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           {
             key: 'general',
             label: (
-              <ValidatedPanelHeader
+              <CollapseLabelInModal
                 title={TRANSLATIONS.GENERAL_TITLE}
                 subtitle={t(
                   'Set up basic details, such as name and description.',
@@ -1556,7 +1556,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 {
                   key: 'condition',
                   label: (
-                    <ValidatedPanelHeader
+                    <CollapseLabelInModal
                       title={TRANSLATIONS.ALERT_CONDITION_TITLE}
                       subtitle={t(
                         'Define the database, SQL query, and triggering conditions for alert.',
@@ -1667,7 +1667,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           {
             key: 'contents',
             label: (
-              <ValidatedPanelHeader
+              <CollapseLabelInModal
                 title={
                   isReport
                     ? TRANSLATIONS.REPORT_CONTENTS_TITLE
@@ -1835,7 +1835,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           {
             key: 'schedule',
             label: (
-              <ValidatedPanelHeader
+              <CollapseLabelInModal
                 title={TRANSLATIONS.SCHEDULE_TITLE}
                 subtitle={t(
                   'Define delivery schedule, timezone, and frequency settings.',
@@ -1918,7 +1918,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           {
             key: 'notification',
             label: (
-              <ValidatedPanelHeader
+              <CollapseLabelInModal
                 title={TRANSLATIONS.NOTIFICATION_TITLE}
                 subtitle={t('Choose notification method and recipients.')}
                 validateCheckStatus={

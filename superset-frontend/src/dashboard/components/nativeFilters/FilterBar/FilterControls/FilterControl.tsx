@@ -23,7 +23,12 @@ import {
   OutPortal,
 } from 'react-reverse-portal';
 import { styled, SupersetTheme, truncationCSS } from '@superset-ui/core';
-import { FormItem as StyledFormItem, Form, Tooltip } from 'src/components';
+import {
+  FormItem as StyledFormItem,
+  Form,
+  Icons,
+  Tooltip,
+} from 'src/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
@@ -46,7 +51,7 @@ const VerticalFilterControlTitle = styled.h4`
 
 const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
   font-weight: ${({ theme }) => theme.fontWeightNormal};
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
   ${truncationCSS};
 `;
 
@@ -61,7 +66,6 @@ const VerticalFilterControlTitleBox = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const HorizontalFilterControlTitleBox = styled(VerticalFilterControlTitleBox)`
@@ -74,8 +78,21 @@ const HorizontalOverflowFilterControlTitleBox = styled(
   width: 100%;
 `;
 
-const VerticalFilterControlContainer = styled(Form)`
+const AllFilterControlContainer = styled(Form)`
+  // TODO this is a hack related to having form items inside others which is not
+  // normal antd-expected usage
+  .ant-form-item .ant-form-item {
+    margin-bottom: 0 !important;
+  }
+`;
+
+const VerticalFilterControlContainer = styled(AllFilterControlContainer)`
   width: 100%;
+
+  .ant-form-item {
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+  }
+
   && .ant-form-item-label > label {
     text-transform: none;
     width: 100%;
@@ -86,7 +103,7 @@ const VerticalFilterControlContainer = styled(Form)`
   }
 `;
 
-const HorizontalFilterControlContainer = styled(Form)`
+const HorizontalFilterControlContainer = styled(AllFilterControlContainer)`
   && .ant-form-item-label > label {
     margin-bottom: 0;
     text-transform: none;
@@ -248,13 +265,11 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
         whiteSpace: 'normal',
       }}
     >
-      {/* TODO: Remove fa-icon */}
-      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-      <i
-        className="fa fa-info-circle text-muted"
+      <Icons.InfoCircleOutlined
+        className="text-muted"
+        role="button"
         css={(theme: SupersetTheme) => ({
           paddingLeft: `${theme.sizeUnit}px`,
-          cursor: 'pointer',
         })}
       />
     </Tooltip>

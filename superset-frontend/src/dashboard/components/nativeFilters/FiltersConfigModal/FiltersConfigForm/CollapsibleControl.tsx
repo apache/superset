@@ -36,8 +36,6 @@ const StyledContainer = styled.div<{ checked: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  min-height: ${({ theme }) => theme.sizeUnit * 10}px;
-  padding-top: ${({ theme }) => theme.sizeUnit * 2 + 2}px;
 
   & > div {
     margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;

@@ -26,7 +26,6 @@ import FilterImage from 'src/assets/images/filter.svg';
 import EmptyChartsImage from 'src/assets/images/empty-charts.svg';
 import EmptyDashboardImage from 'src/assets/images/empty-dashboard.svg';
 import UnionImage from 'src/assets/images/union.svg';
-import EmptyQueriesImage from 'src/assets/images/empty-queries.svg';
 import StarCircleImage from 'src/assets/images/star-circle.svg';
 import VectorImage from 'src/assets/images/vector.svg';
 import DocumentImage from 'src/assets/images/document.svg';
@@ -45,7 +44,6 @@ export const imageMap = {
   'empty-charts.svg': <EmptyChartsImage />,
   'empty-dashboard.svg': <EmptyDashboardImage />,
   'empty-dataset.svg': <DatasetImage />,
-  'empty-queries.svg': <EmptyQueriesImage />,
   'empty-query.svg': <EmptyQueryImage />,
   'empty-table.svg': <EmptyTableImage />,
   'empty.svg': <EmptyImage />,
