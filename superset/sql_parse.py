@@ -972,7 +972,7 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
             node.data = "NULL"
 
     # re-render template back into a string
-    rendered_template = Template(template).render()
+    rendered_template = Template(template).render(processor._context)
 
     return (
         tables
