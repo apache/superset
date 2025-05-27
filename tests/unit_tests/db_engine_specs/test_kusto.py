@@ -80,19 +80,6 @@ def test_kql_has_mutation(kql: str, expected: bool) -> None:
     )
 
 
-def test_kql_parse_sql() -> None:
-    """
-    parse_sql method should always return a list with a single element
-    which is an original query
-    """
-
-    from superset.db_engine_specs.kusto import KustoKqlEngineSpec
-
-    queries = KustoKqlEngineSpec.parse_sql("let foo = 1; tbl | where bar == foo")
-
-    assert queries == ["let foo = 1; tbl | where bar == foo"]
-
-
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [

@@ -747,6 +747,34 @@ Events | take 100""",
     assert query.get_settings() == {"querytrace": True}
 
 
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        (
+            " SELECT foo FROM tbl ; ",
+            "postgresql",
+            ["SELECT\n  foo\nFROM tbl"],
+        ),
+        (
+            "SELECT foo FROM tbl1; SELECT bar FROM tbl2;",
+            "postgresql",
+            ["SELECT\n  foo\nFROM tbl1", "SELECT\n  bar\nFROM tbl2"],
+        ),
+        (
+            "let foo = 1; tbl | where bar == foo",
+            "kustokql",
+            ["let foo = 1", "tbl | where bar == foo"],
+        ),
+    ],
+)
+def test_sqlscript_split(sql: str, engine: str, expected: list[str]) -> None:
+    """
+    Test the `SQLScript` class with a script that has a single statement.
+    """
+    script = SQLScript(sql, engine)
+    assert [statement.format() for statement in script.statements] == expected
+
+
 def test_sqlstatement() -> None:
     """
     Test the `SQLStatement` class.
