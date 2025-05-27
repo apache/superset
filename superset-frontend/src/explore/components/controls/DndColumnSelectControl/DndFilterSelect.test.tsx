@@ -25,7 +25,6 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import { TimeseriesDefaultFormData } from '@superset-ui/plugin-chart-echarts';
 
 import {
   fireEvent,
@@ -127,7 +126,6 @@ test('renders options with saved metric', async () => {
     setup({
       formData: {
         ...baseFormData,
-        ...TimeseriesDefaultFormData,
         metrics: ['saved_metric'],
       },
     }),
@@ -172,7 +170,6 @@ test('renders options with adhoc metric', async () => {
     setup({
       formData: {
         ...baseFormData,
-        ...TimeseriesDefaultFormData,
         metrics: [adhocMetric],
       },
     }),
@@ -212,7 +209,6 @@ test('cannot drop a column that is not part of the simple column selection', () 
       {setup({
         formData: {
           ...baseFormData,
-          ...TimeseriesDefaultFormData,
           metrics: [adhocMetric],
         },
         columns: [{ column_name: 'order_date' }],
@@ -342,7 +338,6 @@ describe('when disallow_adhoc_metrics is set', () => {
         {setup({
           formData: {
             ...baseFormData,
-            ...TimeseriesDefaultFormData,
             metrics: [adhocMetric],
           },
           datasource: {
@@ -391,7 +386,6 @@ describe('when disallow_adhoc_metrics is set', () => {
         {setup({
           formData: {
             ...baseFormData,
-            ...TimeseriesDefaultFormData,
             metrics: [adhocMetric],
           },
           datasource: {
