@@ -34,6 +34,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
+    "anthropic>=0.52.0, <1",
     "backoff>=1.8.0",
     "celery>=5.3.6, <6.0.0",
     "click>=8.0.3",

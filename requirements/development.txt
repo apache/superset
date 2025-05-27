@@ -14,9 +14,14 @@ annotated-types==0.7.0
     # via
     #   -c requirements/base.txt
     #   pydantic
+anthropic==0.52.0
+    # via
+    #   -c requirements/base.txt
+    #   apache-superset
 anyio==4.9.0
     # via
     #   -c requirements/base.txt
+    #   anthropic
     #   google-genai
     #   httpx
     #   openai
@@ -172,6 +177,7 @@ distlib==0.3.8
 distro==1.9.0
     # via
     #   -c requirements/base.txt
+    #   anthropic
     #   openai
 dnspython==2.7.0
     # via
@@ -359,6 +365,7 @@ httpcore==1.0.9
 httpx==0.28.1
     # via
     #   -c requirements/base.txt
+    #   anthropic
     #   google-genai
     #   openai
 humanize==4.11.0
@@ -403,6 +410,7 @@ jinja2==3.1.4
 jiter==0.10.0
     # via
     #   -c requirements/base.txt
+    #   anthropic
     #   openai
 jsonpath-ng==1.7.0
     # via
@@ -639,6 +647,7 @@ pycparser==2.22
 pydantic==2.11.5
     # via
     #   -c requirements/base.txt
+    #   anthropic
     #   google-genai
     #   openai
 pydantic-core==2.33.2
@@ -817,6 +826,7 @@ slack-sdk==3.33.4
 sniffio==1.3.1
     # via
     #   -c requirements/base.txt
+    #   anthropic
     #   anyio
     #   openai
     #   trio
@@ -887,6 +897,7 @@ typing-extensions==4.12.2
     # via
     #   -c requirements/base.txt
     #   alembic
+    #   anthropic
     #   anyio
     #   apache-superset
     #   flask-limiter

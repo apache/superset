@@ -12,7 +12,7 @@ from superset.daos.context_builder_task import ContextBuilderTaskDAO
 from superset.exceptions import DatabaseNotFoundException
 from superset.models.core import ContextBuilderTask
 from superset.tasks.llm_context import initiate_context_generation, generate_llm_context
-from superset.llms import gemini, openai
+from superset.llms import anthropic, gemini, openai
 from superset.llms.base_llm import BaseLlm
 from superset.llms.exceptions import NoContextError, NoProviderError
 

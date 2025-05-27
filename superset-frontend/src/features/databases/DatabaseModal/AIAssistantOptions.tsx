@@ -73,6 +73,15 @@ const AIAssistantOptions = ({
     }
   }, [llmDefaults, selectedProvider, db?.llm_connection?.model]);
 
+  const handleProviderChange = (value: string) => {
+    setSelectedProvider(value);
+    onLlmConnectionChange({
+      ...db?.llm_connection,
+      provider: value,
+      model: llmDefaults?.[value]?.models ? Object.keys(llmDefaults[value].models)[0] : '',
+    });
+  }
+
   const handleLlmConnectionChange = (name: string, value: any) => {
     onLlmConnectionChange({ ...db?.llm_connection, [name]: value });
   }
@@ -125,10 +134,7 @@ const AIAssistantOptions = ({
                   : []
                 }
                 value={db?.llm_connection?.provider}
-                onChange={(value) => {
-                  setSelectedProvider(value as string);
-                  handleLlmConnectionChange('provider', value)
-                }}
+                onChange={handleProviderChange}
               />
             </div>
           </StyledInputContainer>
@@ -189,7 +195,7 @@ const AIAssistantOptions = ({
                       This exceeds the model's input token limit of {selectedModelTokenLimit} tokens.
                     </div>
                   )}
-                  <div>Last context build: {new Date(savedContext.build_time + 'Z').toLocaleString()}</div>
+                  <div>Context build time: {new Date(savedContext.build_time + 'Z').toLocaleString()}</div>
                 </StyledTokenEstimate>
               )}
               {contextError && (
