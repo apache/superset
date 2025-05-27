@@ -172,6 +172,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           css={(theme: SupersetTheme) => css`
             margin-top: ${theme.sizeUnit * 4}px;
             z-index: 1;
+            box-shadow: none;
           `}
         >
           {buttonText}
