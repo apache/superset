@@ -217,6 +217,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     filterState,
     inputRef,
     filterBarOrientation = FilterBarOrientation.Vertical,
+    isOverflowingFilterBar,
   } = props;
 
   const [row] = data;
