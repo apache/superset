@@ -81,7 +81,7 @@ describe('NumberFormatterRegistry', () => {
       expect(registry.format(',d', 100)).toEqual('100');
     });
     it('falls back to the default formatter if the format is undefined', () => {
-      expect(registry.format(undefined, 1000)).toEqual('1k');
+      expect(registry.format(undefined, 1000)).toEqual('1Tsd');
     });
   });
 });
