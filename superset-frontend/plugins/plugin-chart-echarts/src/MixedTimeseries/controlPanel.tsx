@@ -19,7 +19,7 @@
 import { ensureIsArray, t } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
-  ControlPanelConfig,
+  ControlPanelConfig, ControlPanelsContainerProps,
   ControlPanelSectionConfig,
   ControlSetRow,
   ControlSubSectionHeader,
@@ -38,6 +38,7 @@ import {
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
+  onlyTotalControl,
 } from '../controls';
 
 const {
@@ -195,6 +196,22 @@ function createCustomizeSection(
           ),
         },
       },
+    ],
+    [
+      {
+        name: `only_total${controlSuffix}`,
+        config: {
+          type: 'CheckboxControl',
+          label: t('Only Total'),
+          default: true,
+          renderTrigger: true,
+          description: t(
+            'Only show the total value on the stacked chart, and not show on the selected category',
+          ),
+          // visibility: ({ controls }: ControlPanelsContainerProps) =>
+          //  Boolean(controls?.show_value?.value) && Boolean(controls?.stack?.value),
+        },
+      }
     ],
     [
       {
