@@ -645,7 +645,7 @@ class BaseTemplateProcessor:
         """
         Returns the current template context.
         """
-        return self._context
+        return self._context.copy()
 
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
