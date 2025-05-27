@@ -30,6 +30,7 @@ ADHOC_FILTERS = [
 ]
 
 SOURCE_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
     "metric": "num_boys",
     "y_axis_format": ",d",
     "y_axis_bounds": [50, 100],
@@ -44,6 +45,7 @@ SOURCE_FORM_DATA: dict[str, Any] = {
 }
 
 TARGET_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
     "metrics": ["num_boys"],
     "y_axis_format": ",d",
     "y_axis_bounds": [50, 100],

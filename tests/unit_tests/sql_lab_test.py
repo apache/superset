@@ -52,7 +52,6 @@ def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
     database.apply_limit_to_sql.return_value = "SELECT 42 AS answer LIMIT 2"
     database.mutate_sql_based_on_config.return_value = "SELECT 42 AS answer LIMIT 2"
     db_engine_spec = database.db_engine_spec
-    db_engine_spec.is_select_query.return_value = True
     db_engine_spec.fetch_data.return_value = [(42,)]
 
     cursor = mocker.MagicMock()
@@ -95,7 +94,6 @@ def test_execute_sql_statement_with_rls(
     database.apply_limit_to_sql.return_value = sql_statement_with_rls_and_limit
     database.mutate_sql_based_on_config.return_value = sql_statement_with_rls_and_limit
     db_engine_spec = database.db_engine_spec
-    db_engine_spec.is_select_query.return_value = True
     db_engine_spec.fetch_data.return_value = [(42,)]
 
     cursor = mocker.MagicMock()
@@ -140,7 +138,6 @@ def test_execute_sql_statement_exceeds_payload_limit(mocker: MockerFixture) -> N
     query = mocker.MagicMock()
     query.limit = 1
     query.database = mocker.MagicMock()
-    query.database.db_engine_spec.is_select_query.return_value = True
     query.database.cache_timeout = 100
     query.status = "RUNNING"
     query.select_as_cta = False
@@ -193,7 +190,6 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture) -> No
     query = mocker.MagicMock()
     query.limit = 1
     query.database = mocker.MagicMock()
-    query.database.db_engine_spec.is_select_query.return_value = True
     query.database.cache_timeout = 100
     query.status = "RUNNING"
     query.select_as_cta = False
