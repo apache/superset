@@ -294,9 +294,11 @@ class TimeseriesChart(MigrateViz):
         if (rolling_type := self.data.get("rolling_type")) and rolling_type != "None":
             self.data["rolling_type"] = rolling_type
 
-        if time_compare := self.data.get("time_compare"):
+        if (time_compare := self.data.get("time_compare")) is not None:
             self.data["time_compare"] = [
-                value + " ago" for value in as_list(time_compare) if value
+                v if v.endswith(" ago") else v + " ago"
+                for value in as_list(time_compare)
+                if (v := value.strip())
             ]
 
         comparison_type = self.data.get("comparison_type") or "values"
