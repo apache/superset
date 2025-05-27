@@ -22,8 +22,14 @@
  * their imports by other components.
  * E.g. import { Select } from '@superset-ui/core/components', probably in the future from '@superset-ui/components'
  */
+export * from './Input';
 export { AntdThemeProvider } from './AntdThemeProvider';
+export {
+  ConfirmStatusChange,
+  type ConfirmStatusChangeProps,
+} from './ConfirmStatusChange';
 export { Alert, type AlertProps } from './Alert';
+export { CertifiedBadge } from './CertifiedBadge';
 export * from './Icons';
 export * from './Timer';
 export {
@@ -56,8 +62,6 @@ export { ButtonGroup, type ButtonGroupProps } from './ButtonGroup';
 export { Breadcrumb, type BreadcrumbProps } from './Breadcrumb';
 export { CachedLabel, type CacheLabelProps } from './CachedLabel';
 export { Card } from './Card';
-export * from './ModalTrigger';
-export { CertifiedBadge } from './CertifiedBadge';
 export {
   Checkbox,
   type CheckboxProps,
@@ -69,10 +73,6 @@ export {
   CollapseLabelInModal,
   type CollapseLabelInModalProps,
 } from './Collapse';
-export {
-  ConfirmStatusChange,
-  type ConfirmStatusChangeProps,
-} from './ConfirmStatusChange';
 export { CronPicker, type CronError } from './CronPicker';
 export * from './DatePicker';
 export { DeleteModal, type DeleteModalProps } from './DeleteModal';
@@ -106,6 +106,7 @@ export {
   type ModalProps,
   type FormModalProps,
 } from './Modal';
+export * from './ModalTrigger';
 export { Flex, type FlexProps } from './Flex';
 export {
   Form,
@@ -120,13 +121,6 @@ export { Grid, Row, Col, type RowProps, type ColProps } from './Grid';
 export { IconButton, type IconButtonProps } from './IconButton';
 export { IconTooltip, type IconTooltipProps } from './IconTooltip';
 export { InfoTooltip, type InfoTooltipProps } from './InfoTooltip';
-export {
-  Input,
-  InputNumber,
-  type InputProps,
-  type TextAreaProps,
-  type InputNumberProps,
-} from './Input';
 export {
   Label,
   DatasetTypeLabel,

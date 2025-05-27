@@ -16,17 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css, SupersetTheme, t } from '@superset-ui/core';
-import { error as errorIcon } from '@superset-ui/core/components/assets/svgs';
-import {
-  Button,
-  Icons,
-  Input,
-  InfoTooltip,
-  Tooltip,
-  FormItem,
-  FormLabel,
-} from '..';
+import { styled, css, SupersetTheme, t } from '../..';
+import { error as errorIcon } from '../assets/svgs';
+import { Button, Icons, InfoTooltip, Tooltip } from '..';
+import { Input } from '../Input';
+import { FormLabel } from './FormLabel';
+import { FormItem } from './FormItem';
 import type { LabeledErrorBoundInputProps } from './types';
 
 const StyledInput = styled(Input)`
