@@ -110,15 +110,31 @@ const ChartCustomizationModal = ({
     form
       .validateFields()
       .then(() => {
-        onSave(dashboardId, items);
+        const formValues = form.getFieldsValue();
+        const updatedItems = items.map(item => {
+          const formItemValues = formValues.filters?.[item.id] || {};
+          return {
+            ...item,
+            customization: {
+              ...item.customization,
+              ...formItemValues,
+              dataset: formItemValues.dataset
+                ? typeof formItemValues.dataset === 'object' &&
+                  'value' in formItemValues.dataset
+                  ? formItemValues.dataset.value
+                  : formItemValues.dataset
+                : item.customization.dataset,
+            },
+          };
+        });
+
+        onSave(dashboardId, updatedItems);
         onCancel();
       })
       .catch(() => {
-        // If validation fails, show the save alert to prevent accidental data loss
         setSaveAlertVisible(true);
       });
   }, [form, items, onSave, onCancel, dashboardId, setSaveAlertVisible]);
-
   const hasUnsavedChanges = useCallback(
     () => form.isFieldsTouched() || form.getFieldValue('changed'),
     [form],
@@ -141,24 +157,63 @@ const ChartCustomizationModal = ({
 
   useEffect(() => {
     if (isOpen && !initialLoadComplete) {
+      form.resetFields();
+
       if (existingItems && existingItems.length > 0) {
         setItems(existingItems);
 
-        // Use initialItemId if provided and valid, otherwise default to first item
         const initialItem = initialItemId
           ? existingItems.find(item => item.id === initialItemId)
           : existingItems[0];
 
-        setCurrentId(initialItem?.id || existingItems[0].id);
+        const selectedItemId = initialItem?.id || existingItems[0].id;
+        setCurrentId(selectedItemId);
+
+        const formFilters: Record<string, any> = {};
+        existingItems.forEach(item => {
+          formFilters[item.id] = {
+            ...item.customization,
+            dataset: item.customization.dataset
+              ? typeof item.customization.dataset === 'object'
+                ? item.customization.dataset
+                : {
+                    value: item.customization.dataset,
+                    label: `Dataset ${item.customization.dataset}`,
+                  }
+              : null,
+          };
+        });
+
+        form.setFieldsValue({
+          filters: formFilters,
+          changed: false,
+        });
       } else {
         const newItem = createDefaultChartCustomizationItem();
         setCurrentId(newItem.id);
         setItems([newItem]);
+
+        form.setFieldsValue({
+          filters: {
+            [newItem.id]: {
+              name: '',
+              description: '',
+              dataset: null,
+              column: null,
+              sortFilter: false,
+              sortAscending: true,
+              sortMetric: null,
+              hasDefaultValue: false,
+              isRequired: false,
+              selectFirst: false,
+            },
+          },
+          changed: false,
+        });
       }
       setInitialLoadComplete(true);
     }
-  }, [isOpen, initialLoadComplete, existingItems, initialItemId]);
-
+  }, [isOpen, initialLoadComplete, existingItems, initialItemId, form]);
   useEffect(() => {
     if (!isOpen) {
       setInitialLoadComplete(false);
@@ -216,26 +271,27 @@ const ChartCustomizationModal = ({
               setCurrentId={setCurrentId}
               onChange={setCurrentId}
               onAdd={item => {
-                // Add the new item to the list
                 setItems([...items, item]);
                 setCurrentId(item.id);
 
-                // Reset the form with empty values to ensure a clean slate
-                form.resetFields();
-
-                // Set initial values for the new item
+                const currentFilters = form.getFieldValue('filters') || {};
                 form.setFieldsValue({
-                  name: item.customization.name || '',
-                  column: null,
-                  dataset: null,
-                  description: '',
-                  sortFilter: false,
-                  sortAscending: true,
-                  sortMetric: null,
-                  hasDefaultValue: false,
-                  isRequired: false,
-                  selectFirst: false,
-                  changed: false,
+                  filters: {
+                    ...currentFilters,
+                    [item.id]: {
+                      name: item.customization.name || '',
+                      column: null,
+                      dataset: null,
+                      description: '',
+                      sortFilter: false,
+                      sortAscending: true,
+                      sortMetric: null,
+                      hasDefaultValue: false,
+                      isRequired: false,
+                      selectFirst: false,
+                    },
+                  },
+                  changed: true,
                 });
               }}
               onRemove={(id, shouldRemove) => {
@@ -322,6 +378,10 @@ const ChartCustomizationModal = ({
                         i.id === updatedItem.id ? updatedItem : i,
                       ),
                     );
+
+                    form.setFieldsValue({
+                      changed: true,
+                    });
                   }}
                 />
               ))}

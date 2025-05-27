@@ -17,10 +17,15 @@
  * under the License.
  */
 export interface GroupByCustomization {
-  name: string; // Display name for the customization
+  name: string;
   dataset: string | null;
+  datasetInfo?: {
+    label: string;
+    value: number;
+    table_name: string;
+  };
   description?: string;
-  column: string | null; // The actual column to group by
+  column: string | null;
   sortFilter?: boolean;
   sortAscending?: boolean;
   sortMetric?: string;
@@ -30,14 +35,8 @@ export interface GroupByCustomization {
   selectFirst?: boolean;
   aggregation?: string;
   isGroupByValueRequired?: boolean;
-  defaultDataMask?: {
-    filterState?: {
-      value?: any;
-      [key: string]: any;
-    };
-    [key: string]: any;
-  };
-  defaultValueQueriesData?: any; // Data needed for the DefaultValue component to display saved values
+  defaultDataMask?: null;
+  defaultValueQueriesData?: any;
 }
 
 export interface ChartCustomizationItem {
@@ -54,4 +53,15 @@ export interface ChartCustomizationItem {
     selectFirstByDefault: boolean;
   };
   customization: GroupByCustomization;
+}
+
+export interface ChartCustomizationChangesType {
+  modified: string[];
+  deleted: string[];
+  reordered: string[];
+}
+
+export interface ChartCustomizationRemoval {
+  isPending: boolean;
+  timerId: number;
 }

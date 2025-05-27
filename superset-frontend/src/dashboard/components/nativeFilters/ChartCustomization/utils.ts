@@ -17,11 +17,25 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ChartCustomizationItem } from './types';
+import { ChartCustomizationItem, GroupByCustomization } from './types';
 
 export function generateGroupById(): string {
   return `groupby_${Date.now()}`;
 }
+
+/**
+ * Gets an array of all chart customization item IDs
+ */
+export const getChartCustomizationIds = (items: ChartCustomizationItem[]) =>
+  items.map(item => item.id);
+
+export const validateCustomizationForm = async (
+  form: any,
+  currentId: string,
+  setCurrentId: (id: string) => void,
+) => {
+  // Implementation similar to FiltersConfigModal validation
+};
 
 export const createDefaultChartCustomizationItem =
   (): ChartCustomizationItem => ({
@@ -46,3 +60,13 @@ export const createDefaultChartCustomizationItem =
       selectFirst: false,
     },
   });
+
+// Helper function to ensure customization object always has required properties
+export const ensureValidCustomization = (
+  customization: Partial<GroupByCustomization> = {},
+): GroupByCustomization => ({
+  name: customization.name || '',
+  dataset: customization.dataset || null,
+  column: customization.column || null,
+  ...customization,
+});

@@ -130,6 +130,32 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
 
+  // Shared section styling
+  const sectionContainerStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      margin-bottom: ${theme.gridUnit * 4}px;
+      padding: ${theme.gridUnit * 2}px;
+      background-color: ${theme.colors.grayscale.light5};
+      border-radius: ${theme.gridUnit}px;
+    `,
+    [],
+  );
+
+  const sectionHeaderStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      margin-bottom: ${theme.gridUnit * 2}px;
+    `,
+    [],
+  );
+
+  const sectionTitleStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      margin: 0;
+      font-size: ${theme.typography.sizes.s}px;
+      font-weight: ${theme.typography.weights.bold};
+    `,
+    [],
+  );
   const renderer = useCallback(
     ({ id }: Filter | Divider, index: number | undefined) => {
       const filterIndex = filtersWithValues.findIndex(f => f.id === id);
@@ -150,84 +176,18 @@ const FilterControls: FC<FilterControlsProps> = ({
     () => (
       <>
         {filtersInScope.length > 0 && (
-          <div
-            css={(theme: SupersetTheme) => css`
-              margin-bottom: ${theme.gridUnit * 4}px;
-              padding: ${theme.gridUnit * 2}px;
-              background-color: ${theme.colors.grayscale.light5};
-              border-radius: ${theme.gridUnit}px;
-            `}
-          >
-            <div
-              css={(theme: SupersetTheme) => css`
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: ${theme.gridUnit * 2}px;
-              `}
-            >
-              <h4
-                css={(theme: SupersetTheme) => css`
-                  margin: 0;
-                  font-size: ${theme.typography.sizes.s}px;
-                  font-weight: ${theme.typography.weights.bold};
-                `}
-              >
-                {t('Filters')}
-              </h4>
-              <span
-                css={(theme: SupersetTheme) => css`
-                  font-size: ${theme.typography.sizes.s}px;
-                  color: ${theme.colors.grayscale.base};
-                  background: ${theme.colors.grayscale.light2};
-                  border-radius: ${theme.gridUnit * 5}px;
-                  padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
-                `}
-              >
-                {filtersInScope.length}
-              </span>
+          <div css={sectionContainerStyle}>
+            <div css={sectionHeaderStyle}>
+              <h4 css={sectionTitleStyle}>{t('Filters')}</h4>
             </div>
             <div>{filtersInScope.map(renderer)}</div>
           </div>
         )}
 
         {chartCustomizationItems.length > 0 && (
-          <div
-            css={(theme: SupersetTheme) => css`
-              margin-bottom: ${theme.gridUnit * 4}px;
-              padding: ${theme.gridUnit * 2}px;
-              background-color: ${theme.colors.grayscale.light5};
-              border-radius: ${theme.gridUnit}px;
-            `}
-          >
-            <div
-              css={(theme: SupersetTheme) => css`
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: ${theme.gridUnit * 2}px;
-              `}
-            >
-              <h4
-                css={(theme: SupersetTheme) => css`
-                  margin: 0;
-                  font-size: ${theme.typography.sizes.s}px;
-                  font-weight: ${theme.typography.weights.bold};
-                `}
-              >
-                {t('Chart Customization')}
-              </h4>
-              <span
-                css={(theme: SupersetTheme) => css`
-                  font-size: ${theme.typography.sizes.s}px;
-                  color: ${theme.colors.grayscale.base};
-                  background: ${theme.colors.grayscale.light2};
-                  border-radius: ${theme.gridUnit * 5}px;
-                  padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
-                `}
-              >
-                {chartCustomizationItems.filter(item => !item.removed).length}
-              </span>
+          <div css={sectionContainerStyle}>
+            <div css={sectionHeaderStyle}>
+              <h4 css={sectionTitleStyle}>{t('Chart Customization')}</h4>
             </div>
             <div
               css={(theme: SupersetTheme) => css`
@@ -249,7 +209,9 @@ const FilterControls: FC<FilterControlsProps> = ({
           <FiltersOutOfScopeCollapsible
             filtersOutOfScope={filtersOutOfScope}
             forceRender={hasRequiredFirst}
-            hasTopMargin={filtersInScope.length > 0}
+            hasTopMargin={
+              filtersInScope.length > 0 || chartCustomizationItems.length > 0
+            }
             renderer={renderer}
           />
         )}
@@ -262,6 +224,9 @@ const FilterControls: FC<FilterControlsProps> = ({
       filtersOutOfScope,
       hasRequiredFirst,
       chartCustomizationItems,
+      sectionContainerStyle,
+      sectionHeaderStyle,
+      sectionTitleStyle,
     ],
   );
 
@@ -331,49 +296,15 @@ const FilterControls: FC<FilterControlsProps> = ({
     () => (
       <div
         css={(theme: SupersetTheme) => css`
-          padding: ${theme.gridUnit * 4}px;
-           {/* Dataset row */}    padding-top: 0;
+          padding: 0 ${theme.gridUnit * 4}px;
           min-width: 0;
           flex: 1;
         `}
       >
         {chartCustomizationItems.length > 0 && (
-          <div
-            css={(theme: SupersetTheme) => css`
-              margin-bottom: ${theme.gridUnit * 4}px;
-              padding: ${theme.gridUnit * 2}px;
-              background-color: ${theme.colors.grayscale.light5};
-              border-radius: ${theme.gridUnit}px;
-            `}
-          >
-            <div
-              css={(theme: SupersetTheme) => css`
-                display: flex;
-                justify-content: space-between;
-           {/* Dataset row */}          align-items: center;
-                margin-bottom: ${theme.gridUnit * 2}px;
-              `}
-            >
-              <h4
-                css={(theme: SupersetTheme) => css`
-                  margin: 0;
-                  font-size: ${theme.typography.sizes.s}px;
-                  font-weight: ${theme.typography.weights.bold};
-                `}
-              >
-                {t('Chart Customization')}
-              </h4>
-              <span
-                css={(theme: SupersetTheme) => css`
-                  font-size: ${theme.typography.sizes.s}px;
-                  color: ${theme.colors.grayscale.base};
-                  background: ${theme.colors.grayscale.light2};
-                  border-radius: ${theme.gridUnit * 5}px;
-                  padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
-                `}
-              >
-                {chartCustomizationItems.filter(item => !item.removed).length}
-              </span>
+          <div css={sectionContainerStyle}>
+            <div css={sectionHeaderStyle}>
+              <h4 css={sectionTitleStyle}>{t('Chart Customization')}</h4>
             </div>
             <div
               css={(theme: SupersetTheme) => css`
@@ -459,6 +390,9 @@ const FilterControls: FC<FilterControlsProps> = ({
       hasRequiredFirst,
       overflowedIds,
       chartCustomizationItems,
+      sectionContainerStyle,
+      sectionHeaderStyle,
+      sectionTitleStyle,
     ],
   );
 

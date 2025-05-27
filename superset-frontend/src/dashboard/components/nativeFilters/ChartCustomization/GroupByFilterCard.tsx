@@ -16,17 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Form } from 'src/components/Form';
-import Button from 'src/components/Button';
 import Popover from 'src/components/Popover';
-import { Typography, Tag, Select } from 'src/components';
+import { Typography, Select } from 'src/components';
 import { Icons } from 'src/components/Icons';
 import Loading from 'src/components/Loading';
-import { styled, t, SupersetClient, css } from '@superset-ui/core';
-import { useDispatch } from 'react-redux';
-import { debounce } from 'lodash';
+import {
+  styled,
+  t,
+  SupersetClient,
+  css,
+  useTruncation,
+  DataMaskStateWithId,
+  AdhocFilter,
+} from '@superset-ui/core';
+import { useDispatch, useSelector } from 'react-redux';
+import { debounce, isEqual } from 'lodash';
 import { saveChartCustomization } from 'src/dashboard/actions/dashboardInfo';
+import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
+import { RootState } from '../../../types';
+import { mergeExtraFormData } from '../utils';
 import { ChartCustomizationItem } from './types';
 
 interface GroupByFilterCardProps {
@@ -89,37 +99,28 @@ const FilterTitle = styled(Typography.Text)`
   display: flex;
   align-items: center;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   &:hover {
     color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
 
-const StyledTag = styled(Tag)`
-  margin: ${({ theme }) => theme.gridUnit / 2}px;
-  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
-  border-radius: ${({ theme }) => theme.gridUnit}px;
-  padding: ${({ theme }) => theme.gridUnit / 2}px
-    ${({ theme }) => theme.gridUnit}px;
-  background: ${({ theme }) => theme.colors.primary.light4};
-  border: 1px solid ${({ theme }) => theme.colors.primary.light2};
-  color: ${({ theme }) => theme.colors.primary.dark1};
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const TagContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  max-width: 100%;
-  margin-top: ${({ theme }) => theme.gridUnit}px;
-`;
-
 const StyledSelect = styled.div`
   .ant-select {
     width: 100%;
+  }
+
+  /* Ensure the dropdown is fully interactive */
+  .ant-select-selector {
+    cursor: pointer !important;
+  }
+
+  /* Make sure dropdown shows on click */
+  .ant-select-selection-search {
+    cursor: pointer;
   }
 `;
 
@@ -140,46 +141,38 @@ const Description = styled(Typography.Text)`
 const GroupByFilterCardContent: FC<{
   customizationItem: ChartCustomizationItem;
   hidePopover: () => void;
-}> = ({ customizationItem, hidePopover }) => {
+}> = ({ customizationItem }) => {
   const { title, description, customization } = customizationItem;
-  const { name, dataset, aggregation } = customization || {};
-
-  const dispatch = useDispatch();
-
-  const handleReset = () => {
-    if (customizationItem) {
-      const updatedCustomization = {
-        ...customizationItem.customization,
-        defaultValue: '',
-      };
-
-      dispatch(
-        saveChartCustomization([
-          {
-            id: customizationItem.id,
-            title: customizationItem.title,
-            removed: customizationItem.removed,
-            customization: updatedCustomization,
-          },
-        ]),
-      );
-      hidePopover();
-    }
-  };
+  const { dataset, aggregation } = customization || {};
+  const [titleRef, , titleTruncated] = useTruncation();
 
   const datasetLabel = useMemo(() => {
-    if (customizationItem.customization.dataset) {
-      if (
-        typeof customizationItem.customization.dataset === 'object' &&
-        'label' in customizationItem.customization.dataset
-      ) {
-        return (customizationItem.customization.dataset as { label: string })
-          .label;
+    const { datasetInfo, dataset: datasetValue } =
+      customizationItem.customization;
+    if (datasetInfo) {
+      if ('table_name' in datasetInfo) {
+        return (datasetInfo as { table_name: string }).table_name;
+      }
+      if ('label' in datasetInfo) {
+        return (datasetInfo as { label: string }).label;
+      }
+    }
+
+    if (datasetValue) {
+      if (typeof datasetValue === 'object' && 'label' in datasetValue) {
+        return (datasetValue as { label: string }).label;
+      }
+      if (typeof datasetValue === 'object' && 'table_name' in datasetValue) {
+        return (datasetValue as { table_name: string }).table_name;
       }
       return `Dataset ${dataset}`;
     }
     return t('Not set');
-  }, [customizationItem.customization.dataset, dataset]);
+  }, [
+    customizationItem.customization.dataset,
+    customizationItem.customization.datasetInfo,
+    dataset,
+  ]);
 
   const aggregationDisplay = useMemo(
     () => (aggregation ? aggregation.toUpperCase() : t('None')),
@@ -201,7 +194,13 @@ const GroupByFilterCardContent: FC<{
               margin-right: ${theme.gridUnit}px;
             `}
           />
-          <Typography.Text strong>{title || t('Group By')}</Typography.Text>
+          <TooltipWithTruncation
+            title={titleTruncated ? title || t('Group By') : null}
+          >
+            <Typography.Text strong ref={titleRef}>
+              {title || t('Group By')}
+            </Typography.Text>
+          </TooltipWithTruncation>
         </InternalRow>
       </Row>
       <Row>
@@ -210,7 +209,7 @@ const GroupByFilterCardContent: FC<{
       </Row>
 
       <Row>
-        <RowLabel>{t('Name')}</RowLabel>
+        <RowLabel>{t('Dataset')}</RowLabel>
         <RowValue>{datasetLabel}</RowValue>
       </Row>
 
@@ -235,12 +234,6 @@ const GroupByFilterCardContent: FC<{
           </Typography.Text>
         </Row>
       )}
-
-      <div style={{ marginTop: 16, textAlign: 'right' }}>
-        <Button size="small" onClick={handleReset}>
-          {t('Reset')}
-        </Button>
-      </div>
     </div>
   );
 };
@@ -248,8 +241,9 @@ const GroupByFilterCardContent: FC<{
 const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   customizationItem,
 }) => {
-  const { title, customization } = customizationItem;
-  const { name, dataset, defaultValue } = customization || {};
+  const { customization } = customizationItem;
+  const { name, dataset, defaultValue, column } = customization || {};
+  const [filterTitleRef, , titleElementsTruncated] = useTruncation();
 
   const [options, setOptions] = useState<FilterOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -268,38 +262,146 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
   const dispatch = useDispatch();
 
+  const columnDisplayName = useMemo(() => {
+    if (name) return name;
+    if (typeof column === 'string') return column;
+    return t('Group By');
+  }, [column, name]);
+
+  const columnName = useMemo(() => {
+    if (typeof column === 'string') return column;
+    if (name) return name;
+    return null;
+  }, [column, name]);
+
+  const useChartCustomizationDependencies = () => {
+    const dataMask = useSelector<RootState, DataMaskStateWithId>(
+      state => state.dataMask,
+    );
+    const filters = useSelector<RootState, any>(
+      state => state.nativeFilters.filters,
+    );
+
+    return useMemo(() => {
+      let dependencies = {};
+
+      Object.entries(filters).forEach(([filterId, filter]: [string, any]) => {
+        if (
+          filter.type === 'DIVIDER' ||
+          !dataMask[filterId]?.filterState?.value
+        ) {
+          return;
+        }
+
+        const filterState = dataMask[filterId];
+        dependencies = mergeExtraFormData(
+          dependencies,
+          filterState?.extraFormData,
+        );
+      });
+
+      return dependencies;
+    }, [dataMask, filters]);
+  };
+
+  const dependencies = useChartCustomizationDependencies();
+
   const fetchFilterValues = useCallback(
     async (datasetId: string, columnName: string, search?: string) => {
       setLoading(true);
       try {
-        const endpoint = `/api/v1/dataset/${datasetId}/column/${columnName}/values${
-          search ? `?q=${search}` : ''
-        }`;
+        const queryParams = new URLSearchParams();
 
-        const response = await SupersetClient.get({ endpoint });
+        if (search) {
+          queryParams.append('q', search);
+        }
+
+        if (dependencies && Object.keys(dependencies).length > 0) {
+          queryParams.append('extra_form_data', JSON.stringify(dependencies));
+        }
+
+        const formData = {
+          datasource: `${datasetId}__table`,
+          viz_type: 'filter_select',
+          adhoc_filters: [] as AdhocFilter[],
+          extra_filters: [],
+          extra_form_data: dependencies,
+          granularity_sqla: 'ds',
+          groupby: [columnName],
+          metrics: ['count'],
+          row_limit: 1000,
+          time_range: 'No filter',
+        };
+
+        if (search) {
+          formData.adhoc_filters = [
+            {
+              clause: 'WHERE',
+              expressionType: 'SIMPLE',
+              operator: 'ILIKE',
+              subject: columnName,
+              comparator: `%${search}%`,
+            },
+          ];
+        }
+
+        const chartDataEndpoint = '/api/v1/chart/data';
+        const response = await SupersetClient.post({
+          endpoint: chartDataEndpoint,
+          jsonPayload: {
+            form_data: formData,
+          },
+        });
+
         if (response?.json?.result) {
-          const values = response.json.result.map((value: any) => ({
-            label: value.toString(),
-            value: value.toString(),
-          }));
-          setOptions(values);
+          const data = response.json.result[0]?.data || [];
+
+          if (data.length > 0) {
+            const uniqueValues = new Set();
+            const formattedValues: FilterOption[] = [];
+
+            data.forEach((row: any) => {
+              const value = row[columnName];
+              if (
+                value !== null &&
+                value !== undefined &&
+                !uniqueValues.has(value)
+              ) {
+                uniqueValues.add(value);
+                formattedValues.push({
+                  label: value.toString(),
+                  value: value.toString(),
+                });
+              }
+            });
+
+            formattedValues.sort((a, b) => a.label.localeCompare(b.label));
+            setOptions(formattedValues);
+          } else {
+            setOptions([]);
+          }
         } else {
           setOptions([]);
         }
       } catch (error) {
+        console.warn('Failed to fetch filter values:', error);
         setOptions([]);
       } finally {
         setLoading(false);
       }
     },
-    [],
+    [dependencies],
   );
 
-  const handleSearch = debounce((search: string) => {
-    if (dataset && name) {
-      fetchFilterValues(dataset, name, search);
-    }
-  }, 300);
+  const handleSearch = useMemo(
+    () =>
+      debounce((search: string) => {
+        if (dataset && columnName) {
+          fetchFilterValues(dataset, columnName, search);
+        }
+      }, 300),
+    [dataset, columnName, fetchFilterValues],
+  );
 
   const handleValuesChange = (values: string[]) => {
     setSelectedValues(values || []);
@@ -309,7 +411,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         ...customizationItem.customization,
         defaultValue:
           values && values.length > 0 ? values.join(',') : undefined,
-
         defaultValueArray: values && values.length > 0 ? values : undefined,
       };
 
@@ -329,17 +430,30 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     setIsHoverCardVisible(false);
   }, []);
 
+  const displayTitle = columnDisplayName;
+
+  const prevDependenciesRef = useRef(dependencies);
+
   useEffect(() => {
-    if (dataset && name) {
-      fetchFilterValues(dataset, name);
+    if (dataset && columnName) {
+      if (!isEqual(prevDependenciesRef.current, dependencies)) {
+        fetchFilterValues(dataset, columnName);
+      }
+      prevDependenciesRef.current = dependencies;
     }
-  }, [dataset, name, fetchFilterValues]);
+  }, [dataset, columnName, fetchFilterValues, dependencies]);
+
+  useEffect(() => {
+    if (dataset && columnName) {
+      fetchFilterValues(dataset, columnName);
+    }
+  }, [dataset, columnName, fetchFilterValues]);
 
   return (
     <FilterValueContainer>
       <Popover
         placement="right"
-        overlayStyle={{ width: '240px' }}
+        overlayStyle={{ width: '280px' }}
         content={
           <GroupByFilterCardContent
             customizationItem={customizationItem}
@@ -355,9 +469,11 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         arrow={false}
       >
         <div>
-          <FilterTitle>
-            {title || t('Group By')}: {name || t('None')}
-          </FilterTitle>
+          <TooltipWithTruncation
+            title={titleElementsTruncated ? displayTitle : null}
+          >
+            <FilterTitle ref={filterTitleRef}>{displayTitle}</FilterTitle>
+          </TooltipWithTruncation>
           {customizationItem.description && (
             <Description>{customizationItem.description}</Description>
           )}
@@ -379,19 +495,14 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
               allowClear
               onChange={handleValuesChange}
               value={selectedValues}
+              showArrow
             />
           </StyledSelect>
         </Form.Item>
       </Form>
 
-      {selectedValues.length > 0 ? (
-        <TagContainer>
-          {selectedValues.map(value => (
-            <StyledTag key={value}>{value}</StyledTag>
-          ))}
-        </TagContainer>
-      ) : (
-        !loading && <NoDataMessage>{t('No selection')}</NoDataMessage>
+      {selectedValues.length === 0 && !loading && (
+        <NoDataMessage>{t('No selection')}</NoDataMessage>
       )}
 
       {loading && (
@@ -400,7 +511,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         </div>
       )}
 
-      {!loading && options.length === 0 && (
+      {!loading && options.length === 0 && columnName && (
         <NoDataMessage>{t('No data available')}</NoDataMessage>
       )}
     </FilterValueContainer>
