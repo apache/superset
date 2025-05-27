@@ -972,12 +972,12 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
             node.data = "NULL"
 
     # re-render template back into a string
-    rendered_template = Template(template).render()
+    rendered_sql = Template(template).render(processor.get_context())
 
     return (
         tables
         | ParsedQuery(
-            sql_statement=processor.process_template(rendered_template),
+            sql_statement=processor.process_template(rendered_sql),
             engine=database.db_engine_spec.engine,
         ).tables
     )

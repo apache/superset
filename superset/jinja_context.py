@@ -590,6 +590,12 @@ class BaseTemplateProcessor:
         self._context.update(kwargs)
         self._context.update(context_addons())
 
+    def get_context(self) -> dict[str, Any]:
+        """
+        Returns the current template context.
+        """
+        return self._context.copy()
+
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
 
