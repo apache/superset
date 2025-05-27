@@ -34,6 +34,9 @@ export const FilterContainer = styled.div`
     display: block;
     margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   }
+  .anticon-info-circle {
+    margin-bottom: ${({ theme }) => theme.sizeUnit}px;
+  }
 `;
 
 export type FilterHandler = {
