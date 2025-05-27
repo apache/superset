@@ -533,7 +533,7 @@ def has_table_query(expression: str, engine: str) -> bool:
         expression = f"({expression})"
 
     sql = f"SELECT {expression}"
-    statement = SQLStatement(sql, engine)
+    statement = SQLStatement(statement=sql, engine=engine)
     return any(statement.tables)
 
 
