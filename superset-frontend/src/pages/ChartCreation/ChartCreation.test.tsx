@@ -29,7 +29,7 @@ import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { supersetTheme } from '@superset-ui/core';
 
-jest.mock('@superset-ui/core/components/DynamicPlugins', () => ({
+jest.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
     mountedPluginMetadata: { table: { name: 'Table', tags: [] } },
   }),

@@ -20,11 +20,11 @@ import {
   createEvent,
   fireEvent,
   render,
+  userEvent,
   screen,
   waitFor,
   within,
-} from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+} from '../../../spec';
 import { AsyncSelect } from '.';
 
 const ARIA_LABEL = 'Test';
