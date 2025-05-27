@@ -680,6 +680,7 @@ const ResultSet = ({
                 css={css`
                   display: flex;
                   justify-content: space-between;
+                  align-items: center;
                   gap: ${GAP}px;
                 `}
               >
