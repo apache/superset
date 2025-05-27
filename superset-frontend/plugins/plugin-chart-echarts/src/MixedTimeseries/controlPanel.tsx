@@ -19,7 +19,7 @@
 import { ensureIsArray, t } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
-  ControlPanelConfig, ControlPanelsContainerProps,
+  ControlPanelConfig,
   ControlPanelSectionConfig,
   ControlSetRow,
   ControlSubSectionHeader,
@@ -38,7 +38,6 @@ import {
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
-  onlyTotalControl,
 } from '../controls';
 
 const {
@@ -211,7 +210,7 @@ function createCustomizeSection(
           // visibility: ({ controls }: ControlPanelsContainerProps) =>
           //  Boolean(controls?.show_value?.value) && Boolean(controls?.stack?.value),
         },
-      }
+      },
     ],
     [
       {
