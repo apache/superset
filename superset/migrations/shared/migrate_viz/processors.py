@@ -296,7 +296,9 @@ class TimeseriesChart(MigrateViz):
 
         if time_compare := self.data.get("time_compare"):
             self.data["time_compare"] = [
-                value + " ago" for value in as_list(time_compare) if value
+                value if value.endswith(" ago") else value + " ago"
+                for value in as_list(time_compare)
+                if value
             ]
 
         comparison_type = self.data.get("comparison_type") or "values"
