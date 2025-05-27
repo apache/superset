@@ -29,6 +29,7 @@ x-superset-volumes: &superset-volumes
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
   - ./tests:/app/tests
+  - ../superset_wfs_dialect:/app/superset_wfs_dialect
 
 x-common-build: &common-build
   context: .
@@ -87,10 +88,14 @@ services:
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
     ports:
       - 8088:8088
       # When in cypress-mode ->
       - 8081:8081
+      # Open debug port
+      - 5678:5678
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user
@@ -101,6 +106,7 @@ services:
     environment:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
       SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
+      DEBUGGER: "1"
 
   superset-websocket:
     container_name: superset_websocket

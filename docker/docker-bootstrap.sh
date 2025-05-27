@@ -72,7 +72,12 @@ case "${1}" in
     ;;
   app)
     echo "Starting web app (using development server)..."
-    flask run -p $PORT --with-threads --reload --debugger --host=0.0.0.0
+    if [ "$DEBUGGER" = "1" ]; then
+        echo "Starting with debugpy..."
+        python -m debugpy --listen 0.0.0.0:5678 -m flask run -p $PORT --with-threads --reload --debugger --host=0.0.0.0
+    else
+        flask run -p $PORT --with-threads --reload --debugger --host=0.0.0.0
+    fi
     ;;
   app-gunicorn)
     echo "Starting web app..."
