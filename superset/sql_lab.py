@@ -242,7 +242,10 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
     if not database.allow_dml:
         errors = []
         try:
-            parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
+            parsed_statement = SQLStatement(
+                statement=sql_statement,
+                engine=db_engine_spec.engine,
+            )
             disallowed = parsed_statement.is_mutating()
         except SupersetParseError as ex:
             # if we fail to parse the query, disallow by default
