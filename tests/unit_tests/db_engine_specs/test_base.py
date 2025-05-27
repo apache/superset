@@ -206,9 +206,6 @@ def test_select_star(mocker: MockerFixture) -> None:
     """
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    class NoLimitDBEngineSpec(BaseEngineSpec):
-        allow_limit_clause = False
-
     cols: list[ResultSetColumnType] = [
         {
             "column_name": "a",
@@ -243,19 +240,7 @@ def test_select_star(mocker: MockerFixture) -> None:
         latest_partition=False,
         cols=cols,
     )
-    assert sql == "SELECT a\nFROM my_table\nLIMIT ?\nOFFSET ?"
-
-    sql = NoLimitDBEngineSpec.select_star(
-        database=database,
-        table=Table("my_table"),
-        engine=engine,
-        limit=100,
-        show_cols=True,
-        indent=True,
-        latest_partition=False,
-        cols=cols,
-    )
-    assert sql == "SELECT a\nFROM my_table"
+    assert sql == "SELECT\n  a\nFROM my_table\nLIMIT ?\nOFFSET ?"
 
 
 def test_extra_table_metadata(mocker: MockerFixture) -> None:

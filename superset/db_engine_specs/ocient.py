@@ -225,7 +225,6 @@ def _find_columns_to_sanitize(cursor: Any) -> list[PlacedSanitizeFunc]:
 class OcientEngineSpec(BaseEngineSpec):
     engine = "ocient"
     engine_name = "Ocient"
-    # limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
     max_column_name_length = 30
 

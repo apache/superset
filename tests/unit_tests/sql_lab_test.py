@@ -297,7 +297,7 @@ def test_sql_lab_insert_rls_as_subquery(
 |  3 |   3 |
 |  4 |   4 |""".strip()
     )
-    assert query.executed_sql == "SELECT c FROM t\nLIMIT 6"
+    assert query.executed_sql == "SELECT\n  c\nFROM t\nLIMIT 6"
 
     # now with RLS
     rls = RowLevelSecurityFilter(
@@ -333,7 +333,18 @@ def test_sql_lab_insert_rls_as_subquery(
     )
     assert (
         query.executed_sql
-        == "SELECT c FROM (SELECT * FROM t WHERE (t.c > 5)) AS t\nLIMIT 6"
+        == """SELECT
+  c
+FROM (
+  SELECT
+    *
+  FROM t
+  WHERE
+    (
+      t.c > 5
+    )
+) AS t
+LIMIT 6"""
     )
 
 

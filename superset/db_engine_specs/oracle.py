@@ -20,13 +20,12 @@ from typing import Any, Optional
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.db_engine_specs.base import BaseEngineSpec
 
 
 class OracleEngineSpec(BaseEngineSpec):
     engine = "oracle"
     engine_name = "Oracle"
-    limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
     max_column_name_length = 30
 

@@ -254,36 +254,6 @@ def test_cte_query_parsing(original: TypeEngine, expected: str) -> None:
     assert actual == expected
 
 
-@pytest.mark.parametrize(
-    "original,expected,top",
-    [
-        ("SEL TOP 1000 * FROM My_table", "SEL TOP 100 * FROM My_table", 100),
-        ("SEL TOP 1000 * FROM My_table;", "SEL TOP 100 * FROM My_table", 100),
-        ("SEL TOP 1000 * FROM My_table;", "SEL TOP 1000 * FROM My_table", 10000),
-        ("SEL TOP 1000 * FROM My_table;", "SEL TOP 1000 * FROM My_table", 1000),
-        (
-            """with abc as (select * from test union select * from test1)
-select TOP 100 * from currency""",
-            """WITH abc as (select * from test union select * from test1)
-select TOP 100 * from currency""",
-            1000,
-        ),
-        ("SELECT DISTINCT x from tbl", "SELECT DISTINCT TOP 100 x from tbl", 100),
-        ("SELECT 1 as cnt", "SELECT TOP 10 1 as cnt", 10),
-        (
-            "select TOP 1000 * from abc where id=1",
-            "select TOP 10 * from abc where id=1",
-            10,
-        ),
-    ],
-)
-def test_top_query_parsing(original: TypeEngine, expected: str, top: int) -> None:
-    from superset.db_engine_specs.mssql import MssqlEngineSpec
-
-    actual = MssqlEngineSpec.apply_top_to_sql(original, top)
-    assert actual == expected
-
-
 def test_extract_errors() -> None:
     """
     Test that custom error messages are extracted correctly.

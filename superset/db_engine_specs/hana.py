@@ -20,8 +20,8 @@ from typing import Any, Optional
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import LimitMethod
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+from superset.sql.parse import LimitMethod
 
 
 class HanaEngineSpec(PostgresBaseEngineSpec):
