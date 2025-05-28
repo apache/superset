@@ -202,6 +202,10 @@ export default function transformProps(
     yAxisTitleMargin,
     yAxisTitlePosition,
     sliceId,
+    sortSeriesType,
+    sortSeriesTypeB,
+    sortSeriesAscending,
+    sortSeriesAscendingB,
     timeGrainSqla,
     percentageThreshold,
     metrics = [],
@@ -222,14 +226,38 @@ export default function transformProps(
   }
 
   const rebasedDataA = rebaseForecastDatum(data1, verboseMap);
-  const [rawSeriesA] = extractSeries(rebasedDataA, {
+  const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+    rebasedDataA,
+    {
+      stack,
+      percentageThreshold,
+      xAxisCol: xAxisLabel,
+    },
+  );
+  const [rawSeriesA, sortedTotalValuesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
     xAxis: xAxisLabel,
+    sortSeriesType,
+    sortSeriesAscending,
+    stack,
+    totalStackedValues,
   });
   const rebasedDataB = rebaseForecastDatum(data2, verboseMap);
-  const [rawSeriesB] = extractSeries(rebasedDataB, {
+  const {
+    totalStackedValues: totalStackedValuesB,
+    thresholdValues: thresholdValuesB,
+  } = extractDataTotalValues(rebasedDataB, {
+    stack: Boolean(stackB),
+    percentageThreshold,
+    xAxisCol: xAxisLabel,
+  });
+  const [rawSeriesB, sortedTotalValuesB] = extractSeries(rebasedDataB, {
     fillNeighborValue: stackB ? 0 : undefined,
     xAxis: xAxisLabel,
+    sortSeriesType: sortSeriesTypeB,
+    sortSeriesAscending: sortSeriesAscendingB,
+    stack: Boolean(stackB),
+    totalStackedValues: totalStackedValuesB,
   });
 
   const dataTypes = getColtypesMapping(queriesData[0]);
@@ -292,22 +320,6 @@ export default function transformProps(
   const showValueIndexesB = extractShowValueIndexes(rawSeriesB, {
     stack,
     onlyTotal,
-  });
-  const { totalStackedValues, thresholdValues } = extractDataTotalValues(
-    rebasedDataA,
-    {
-      stack,
-      percentageThreshold,
-      xAxisCol: xAxisLabel,
-    },
-  );
-  const {
-    totalStackedValues: totalStackedValuesB,
-    thresholdValues: thresholdValuesB,
-  } = extractDataTotalValues(rebasedDataB, {
-    stack: Boolean(stackB),
-    percentageThreshold,
-    xAxisCol: xAxisLabel,
   });
 
   annotationLayers
@@ -409,8 +421,8 @@ export default function transformProps(
                 formatter: seriesFormatter,
               })
             : seriesFormatter,
+        totalStackedValues: sortedTotalValuesA,
         showValueIndexes: showValueIndexesA,
-        totalStackedValues,
         thresholdValues,
       },
     );
@@ -459,8 +471,8 @@ export default function transformProps(
                 formatter: seriesFormatter,
               })
             : seriesFormatter,
+        totalStackedValues: sortedTotalValuesB,
         showValueIndexes: showValueIndexesB,
-        totalStackedValues: totalStackedValuesB,
         thresholdValues: thresholdValuesB,
       },
     );
