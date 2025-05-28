@@ -156,6 +156,13 @@ const Register = lazy(
 const GroupsList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "GroupsList" */ 'src/pages/GroupsList'),
 );
+const UserRegistrations = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "UserRegistrations" */ 'src/pages/UserRegistrations'
+    ),
+);
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -274,6 +281,10 @@ export const routes: Routes = [
   {
     path: '/actionlog/list',
     Component: ActionLogList,
+  },
+  {
+    path: '/registrations/',
+    Component: UserRegistrations,
   },
 ];
 

@@ -18,11 +18,11 @@ import logging
 from typing import Any
 
 from flask import current_app, request, Response
-from flask_appbuilder import expose
-from flask_appbuilder.api import rison, safe
+from flask_appbuilder import expose, ModelRestApi
+from flask_appbuilder.api import rison, safe, SQLAInterface
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
-from flask_appbuilder.security.sqla.models import Role
+from flask_appbuilder.security.sqla.models import RegisterUser, Role
 from flask_wtf.csrf import generate_csrf
 from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
 from sqlalchemy import asc, desc
@@ -337,3 +337,21 @@ class RoleRestAPI(BaseSupersetApi):
             return self.response_403(message=str(e))
         except Exception as e:
             return self.response_500(message=str(e))
+
+
+class UserRegistrationsRestAPI(ModelRestApi):
+    """
+    APIs for listing user registrations (Admin only)
+    """
+
+    resource_name = "user_registrations"
+    datamodel = SQLAInterface(RegisterUser)
+    allow_browser_login = True
+    list_columns = [
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "registration_date",
+        "registration_hash",
+    ]
