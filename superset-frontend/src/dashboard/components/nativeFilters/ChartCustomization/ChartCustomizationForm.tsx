@@ -97,7 +97,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
   );
 
   const [metrics, setMetrics] = useState<any[]>([]);
-  const [hasMetrics, setHasMetrics] = useState(false);
   const [isDefaultValueLoading, setIsDefaultValueLoading] = useState(false);
   const [error, setError] = useState<any>(null);
   const [datasetDetails, setDatasetDetails] = useState<{
@@ -417,7 +416,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     form.setFieldsValue(initialValues);
 
     if (customization.dataset) {
-      setHasMetrics(true);
       fetchDatasetInfo();
     }
 

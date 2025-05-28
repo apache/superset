@@ -23,11 +23,20 @@ import {
   DataRecordValue,
   JsonObject,
   PartialFilters,
+  ExtraFormData,
 } from '@superset-ui/core';
-import { ChartConfiguration, ChartQueryPayload } from 'src/dashboard/types';
-import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
-import { areObjectsEqual } from 'src/reduxUtils';
+import {
+  ChartConfiguration,
+  ChartQueryPayload,
+  RootState,
+} from 'src/dashboard/types';
+import {
+  getExtraFormData,
+  mergeExtraFormData,
+} from 'src/dashboard/components/nativeFilters/utils';
 import { isEqual } from 'lodash';
+import { areObjectsEqual } from 'src/reduxUtils';
+import { selectChartCustomizationItems } from '../../components/nativeFilters/ChartCustomization/selectors';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
@@ -45,6 +54,7 @@ interface CachedFormData {
   label_colors?: Record<string, string>;
   shared_label_colors?: string[];
   map_label_colors?: Record<string, string>;
+  chart_customization?: JsonObject;
 }
 
 export type CachedFormDataWithExtraControls = CachedFormData & {
@@ -77,6 +87,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   labelsColorMap?: Record<string, string>;
   sharedLabelsColors?: string[];
   allSliceIds: number[];
+  chartCustomization?: JsonObject;
 }
 
 // this function merge chart's formData with dashboard filters value,
@@ -97,6 +108,7 @@ export default function getFormDataWithExtraFilters({
   labelsColorMap,
   sharedLabelsColors,
   allSliceIds,
+  chartCustomization,
 }: GetFormDataWithExtraFiltersArguments) {
   // if dashboard metadata + filters have not changed, use cache if possible
   const cachedFormData = cachedFormdataByChart[sliceId];
@@ -120,6 +132,9 @@ export default function getFormDataWithExtraFilters({
     }) &&
     areObjectsEqual(cachedFormData?.extraControls, extraControls, {
       ignoreUndefined: true,
+    }) &&
+    areObjectsEqual(cachedFormData?.chart_customization, chartCustomization, {
+      ignoreUndefined: true,
     })
   ) {
     return cachedFormData;
@@ -135,11 +150,69 @@ export default function getFormDataWithExtraFilters({
   const filterIdsAppliedOnChart = Object.entries(activeFilters)
     .filter(([, { scope }]) => scope.includes(chart.id))
     .map(([filterId]) => filterId);
+  // Get basic extra form data from filters
+  let extraFormData: ExtraFormData = {};
   if (filterIdsAppliedOnChart.length) {
-    extraData = {
-      extra_form_data: getExtraFormData(dataMask, filterIdsAppliedOnChart),
-    };
+    extraFormData = getExtraFormData(dataMask, filterIdsAppliedOnChart);
   }
+
+  try {
+    const state = nativeFilters as unknown as RootState;
+    const chartCustomizationItems = selectChartCustomizationItems(state);
+
+    if (chartCustomizationItems && chartCustomizationItems.length > 0) {
+      const chartDataset = chart.form_data?.datasource;
+      if (chartDataset) {
+        // Extract the dataset ID from the chart's datasource
+        // Format is typically: "<dataset_id>__<table_name>" or just "<dataset_id>"
+        const chartDatasetParts = String(chartDataset).split('__');
+        const chartDatasetId = chartDatasetParts[0]; // Always get the first part (the ID)
+
+        const matchingCustomizations = chartCustomizationItems.filter(item => {
+          if (item.removed) return false;
+
+          const targetDataset = item.customization?.dataset;
+          if (!targetDataset) return false;
+
+          // If target dataset contains '__', extract its ID part
+          const targetParts = String(targetDataset).split('__');
+          const targetDatasetId = targetParts[0];
+
+          // Compare dataset IDs
+          return chartDatasetId === targetDatasetId;
+        });
+
+        matchingCustomizations.forEach(item => {
+          const { customization } = item;
+
+          if (customization?.column) {
+            const customExtraFormData: ExtraFormData = {
+              groupby: [customization.column],
+            } as unknown as ExtraFormData;
+            if (customization.sortFilter && customization.sortMetric) {
+              (customExtraFormData as any).order_by_cols = [
+                JSON.stringify([
+                  customization.sortMetric,
+                  !customization.sortAscending,
+                ]),
+              ];
+            }
+
+            extraFormData = mergeExtraFormData(
+              extraFormData,
+              customExtraFormData,
+            );
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error applying chart customization:', error);
+  }
+
+  extraData = {
+    extra_form_data: extraFormData,
+  };
 
   const formData: CachedFormDataWithExtraControls = {
     ...chart.form_data,
@@ -154,10 +227,16 @@ export default function getFormDataWithExtraFilters({
     extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
     ...extraControls,
+    ...(chartCustomization && { chart_customization: chartCustomization }),
   };
 
   cachedFiltersByChart[sliceId] = filters;
-  cachedFormdataByChart[sliceId] = { ...formData, dataMask, extraControls };
+  cachedFormdataByChart[sliceId] = {
+    ...formData,
+    dataMask,
+    extraControls,
+    ...(chartCustomization && { chart_customization: chartCustomization }),
+  };
 
   return formData;
 }

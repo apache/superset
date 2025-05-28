@@ -39,10 +39,22 @@ export interface ChartCustomizationSavePayload {
   customization: {
     name: string;
     dataset: string | null;
+    datasetInfo?: {
+      label: string;
+      value: number;
+      table_name: string;
+    };
+    column: string | null;
+    description?: string;
     sortFilter?: boolean;
     sortAscending?: boolean;
+    sortMetric?: string;
     hasDefaultValue?: boolean;
     defaultValue?: string;
+    isRequired?: boolean;
+    selectFirst?: boolean;
+    defaultDataMask?: any;
+    defaultValueQueriesData?: any;
   };
 }
 
@@ -165,16 +177,14 @@ function getAffectedChartIdsFromCustomization(
       }
 
       const chartDatasetParts = String(chartDataset).split('__');
-      const chartDatasetName =
-        chartDatasetParts.length > 1
-          ? chartDatasetParts[1]
-          : chartDatasetParts[0];
+      const chartDatasetId = chartDatasetParts[0];
 
-      return targetDatasets.some(
-        targetDataset =>
-          chartDatasetName === targetDataset ||
-          String(chartDataset) === targetDataset,
-      );
+      return targetDatasets.some(targetDataset => {
+        const targetParts = String(targetDataset).split('__');
+        const targetDatasetId = targetParts[0];
+
+        return chartDatasetId === targetDatasetId;
+      });
     })
     .map(id => parseInt(id, 10));
 }
@@ -272,10 +282,18 @@ export function saveChartCustomization(
         customization: {
           name: item.customization?.name || '',
           dataset: item.customization?.dataset || null,
+          datasetInfo: item.customization?.datasetInfo,
+          column: item.customization?.column || null,
+          description: item.customization?.description,
           sortFilter: !!item.customization?.sortFilter,
-          sortAscending: !!item.customization?.sortAscending,
+          sortAscending: item.customization?.sortAscending !== false,
+          sortMetric: item.customization?.sortMetric || undefined,
           hasDefaultValue: !!item.customization?.hasDefaultValue,
           defaultValue: item.customization?.defaultValue,
+          isRequired: !!item.customization?.isRequired,
+          selectFirst: !!item.customization?.selectFirst,
+          defaultDataMask: item.customization?.defaultDataMask,
+          defaultValueQueriesData: item.customization?.defaultValueQueriesData,
         },
       }));
 
