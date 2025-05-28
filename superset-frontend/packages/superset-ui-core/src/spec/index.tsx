@@ -28,6 +28,7 @@ export {
   fireEvent,
   screen,
   waitFor,
+  cleanup,
   within,
 } from '@testing-library/react';
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { userEvent, screen, render } from '@superset-ui/core/spec';
-import { Button, Icons } from '../Button';
+import { Button, Icons } from '..';
 import { DropdownContainer } from '.';
 
 const generateItems = (n: number) =>
