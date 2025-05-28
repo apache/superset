@@ -155,7 +155,7 @@ export function AsyncAceEditor(
         },
         ref,
       ) {
-        const supersetTheme = useTheme();
+        const token = useTheme();
         const langTools = acequire('ace/ext/language_tools');
 
         const setCompleters = useCallback(
@@ -195,36 +195,148 @@ export function AsyncAceEditor(
             <Global
               key="ace-tooltip-global"
               styles={css`
+                .ace_editor {
+                  border: 1px solid ${token.colorBorder} !important;
+                  background-color: ${token.colorBgContainer} !important;
+                }
+
+                /* Basic editor styles with dark mode support */
+                .ace_editor.ace-github,
+                .ace_editor.ace-textmate {
+                  background-color: ${token.colorBgContainer} !important;
+                  color: ${token.colorText} !important;
+                }
+
+                /* Adjust gutter colors */
+                .ace_editor .ace_gutter {
+                  background-color: ${token.colorBgElevated} !important;
+                  color: ${token.colorTextSecondary} !important;
+                }
+
+                /* Adjust selection color */
+                .ace_editor .ace_selection {
+                  background-color: ${token.colorPrimaryBgHover} !important;
+                }
+
+                /* Improve active line highlighting */
+                .ace_editor .ace_active-line {
+                  background-color: ${token.colorPrimaryBg} !important;
+                }
+
+                /* Fix indent guides and print margin (80 chars line) */
+                .ace_editor .ace_indent-guide,
+                .ace_editor .ace_print-margin {
+                  background-color: ${token.colorSplit} !important;
+                  opacity: 0.5;
+                }
+
+                /* Adjust cursor color */
+                .ace_editor .ace_cursor {
+                  color: ${token.colorPrimaryText} !important;
+                }
+
+                /* Syntax highlighting using semantic color tokens */
+                .ace_editor .ace_keyword {
+                  color: ${token.colorPrimaryText} !important;
+                }
+
+                .ace_editor .ace_string {
+                  color: ${token.colorSuccessText} !important;
+                }
+
+                .ace_editor .ace_constant {
+                  color: ${token.colorWarningActive} !important;
+                }
+
+                .ace_editor .ace_function {
+                  color: ${token.colorInfoText} !important;
+                }
+
+                .ace_editor .ace_comment {
+                  color: ${token.colorTextTertiary} !important;
+                }
+
+                .ace_editor .ace_variable {
+                  color: ${token.colorTextSecondary} !important;
+                }
+
+                /* Adjust tooltip styles */
                 .ace_tooltip {
-                  all: unset;
-                  position: fixed;
-                  z-index: 9999;
-                  background: ${supersetTheme.colorBgLayout};
-                  border: 1px solid ${supersetTheme.colorBorder};
-                  padding: ${supersetTheme.sizeUnit}px
-                    ${supersetTheme.sizeUnit * 2}px;
-                  line-height: 1.4;
-                  max-width: 400px;
-                  min-width: 200px;
-                  pointer-events: auto;
-                  font-size: ${supersetTheme.fontSizeSM}px;
+                  margin-left: ${token.margin}px;
+                  padding: 0px;
+                  background-color: ${token.colorBgElevated} !important;
+                  color: ${token.colorText} !important;
+                  border: 1px solid ${token.colorBorderSecondary};
+                  box-shadow: ${token.boxShadow};
+                  border-radius: ${token.borderRadius}px;
                 }
 
                 & .tooltip-detail {
+                  background-color: ${token.colorBgContainer};
+                  white-space: pre-wrap;
+                  word-break: break-all;
+                  min-width: ${token.sizeXXL * 5}px;
+                  max-width: ${token.sizeXXL * 10}px;
+
+                  & .tooltip-detail-head {
+                    background-color: ${token.colorBgElevated};
+                    color: ${token.colorText};
+                    display: flex;
+                    column-gap: ${token.padding}px;
+                    align-items: baseline;
+                    justify-content: space-between;
+                  }
+
                   & .tooltip-detail-title {
-                    font-weight: bold;
-                    font-size: ${supersetTheme.fontSize}px;
+                    display: flex;
+                    column-gap: ${token.padding}px;
                   }
+
                   & .tooltip-detail-body {
-                    font-size: ${supersetTheme.fontSizeSM}px;
-                    padding: ${supersetTheme.sizeUnit}px;
+                    word-break: break-word;
+                    color: ${token.colorTextSecondary};
                   }
+
                   & .tooltip-detail-head,
                   & .tooltip-detail-body {
+                    padding: ${token.padding}px ${token.paddingLG}px;
                   }
+
                   & .tooltip-detail-footer {
-                    font-size: ${supersetTheme.fontSizeSM}px;
+                    border-top: 1px ${token.colorSplit} solid;
+                    padding: 0 ${token.paddingLG}px;
+                    color: ${token.colorTextTertiary};
+                    font-size: ${token.fontSizeSM}px;
                   }
+
+                  & .tooltip-detail-meta {
+                    & > .ant-tag {
+                      margin-right: 0px;
+                    }
+                  }
+                }
+
+                /* Adjust the searchbox to match theme */
+                .ace_search {
+                  background-color: ${token.colorBgContainer} !important;
+                  color: ${token.colorText} !important;
+                  border: 1px solid ${token.colorBorder} !important;
+                }
+
+                .ace_search_field {
+                  background-color: ${token.colorBgContainer} !important;
+                  color: ${token.colorText} !important;
+                  border: 1px solid ${token.colorBorder} !important;
+                }
+
+                .ace_button {
+                  background-color: ${token.colorBgElevated} !important;
+                  color: ${token.colorText} !important;
+                  border: 1px solid ${token.colorBorder} !important;
+                }
+
+                .ace_button:hover {
+                  background-color: ${token.colorPrimaryBg} !important;
                 }
               `}
             />

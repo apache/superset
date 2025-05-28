@@ -35,7 +35,6 @@ const customRender = (
   options?: Omit<RenderOptions, 'wrapper'>,
 ) => render(ui, { wrapper: AllTheProviders, ...options });
 
-export { customRender as render, userEvent };
 export {
   createEvent,
   fireEvent,
@@ -44,3 +43,4 @@ export {
   cleanup,
   within,
 } from '@testing-library/react';
+export { customRender as render, userEvent };

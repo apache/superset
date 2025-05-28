@@ -291,6 +291,7 @@ const ExploreChartPanel = ({
         css={css`
           display: flex;
           flex-direction: column;
+          padding-top: ${theme.sizeUnit * 2}px;
         `}
         ref={resizeObserverRef}
       >

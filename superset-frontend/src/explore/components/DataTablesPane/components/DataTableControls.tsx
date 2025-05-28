@@ -32,6 +32,7 @@ export const TableControlsWrapper = styled.div`
   ${({ theme }) => `
     display: flex;
     align-items: center;
+    padding-bottom: ${theme.sizeUnit * 2}px;
     justify-content: space-between;
 
     span {

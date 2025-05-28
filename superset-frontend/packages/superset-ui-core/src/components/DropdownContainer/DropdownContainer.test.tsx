@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { userEvent, screen, render } from '@superset-ui/core/spec';
+import { screen, render } from '@superset-ui/core/spec';
 import { Button, DropdownContainer, Icons } from '..';
 
 const generateItems = (n: number) =>
