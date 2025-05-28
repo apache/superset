@@ -137,7 +137,7 @@ function ActionLogList() {
           row: {
             original: { action },
           },
-        }: any) => <span>{action ?? '...'}</span>,
+        }: any) => <span>{action}</span>,
       },
       {
         accessor: 'user',
@@ -146,7 +146,7 @@ function ActionLogList() {
           row: {
             original: { user },
           },
-        }: any) => <span>{user?.username ?? '...'}</span>,
+        }: any) => <span>{user?.username}</span>,
       },
 
       {
@@ -157,7 +157,7 @@ function ActionLogList() {
           row: {
             original: { duration_ms },
           },
-        }: any) => <span>{duration_ms ?? '...'}</span>,
+        }: any) => <span>{duration_ms}</span>,
       },
       {
         accessor: 'dashboard_id',
@@ -167,7 +167,7 @@ function ActionLogList() {
           row: {
             original: { dashboard_id },
           },
-        }: any) => <span>{dashboard_id ?? '...'}</span>,
+        }: any) => <span>{dashboard_id}</span>,
       },
       {
         accessor: 'slice_id',
@@ -177,7 +177,7 @@ function ActionLogList() {
           row: {
             original: { slice_id },
           },
-        }: any) => <span>{slice_id ?? '...'}</span>,
+        }: any) => <span>{slice_id}</span>,
       },
       {
         accessor: 'json',
@@ -202,7 +202,7 @@ function ActionLogList() {
               tooltip: { styles: { root: { maxWidth: '900px' } }, title: json },
             }}
           >
-            {json ?? '...'}
+            {json}
           </Typography.Text>
         ),
       },
@@ -233,7 +233,7 @@ function ActionLogList() {
               },
             }}
           >
-            {referrer ?? '...'}
+            {referrer}
           </Typography.Text>
         ),
       },
@@ -244,7 +244,7 @@ function ActionLogList() {
           row: {
             original: { dttm },
           },
-        }: any) => <span>{dttm ?? '...'}</span>,
+        }: any) => <span>{dttm}</span>,
       },
     ],
     [],
