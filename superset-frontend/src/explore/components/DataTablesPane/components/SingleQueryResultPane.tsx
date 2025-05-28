@@ -18,7 +18,11 @@
  */
 import { useState } from 'react';
 import { t } from '@superset-ui/core';
-import { TableView, EmptyWrapperType } from '@superset-ui/core/components';
+import {
+  TableView,
+  TableSize,
+  EmptyWrapperType,
+} from '@superset-ui/core/components';
 import {
   useFilteredTableData,
   useTableColumns,
@@ -65,6 +69,7 @@ export const SingleQueryResultPane = ({
       />
       <TableView
         columns={columns}
+        size={TableSize.Small}
         data={filteredData}
         pageSize={dataSize}
         noDataText={t('No results')}

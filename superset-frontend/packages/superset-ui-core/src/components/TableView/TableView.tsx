@@ -23,6 +23,7 @@ import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
 import { Empty } from '@superset-ui/core/components';
 import Pagination from '@superset-ui/core/components/Pagination';
 import TableCollection from '@superset-ui/core/components/TableCollection';
+import { TableSize } from '@superset-ui/core/components/Table';
 import { SortByType, ServerPagination } from './types';
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -52,6 +53,7 @@ export interface TableViewProps {
   scrollTopOnPagination?: boolean;
   small?: boolean;
   columnsForWrapText?: string[];
+  size?: TableSize;
 }
 
 const EmptyWrapper = styled.div`
@@ -133,6 +135,7 @@ const RawTableView = ({
   columnsForWrapText,
   onServerPagination = () => {},
   scrollTopOnPagination = false,
+  size = TableSize.Middle,
   ...props
 }: TableViewProps) => {
   const initialState = {
@@ -219,6 +222,7 @@ const RawTableView = ({
           columns={columns}
           loading={loading}
           setSortBy={setSortBy}
+          size={size}
           columnsForWrapText={columnsForWrapText}
         />
         {isEmpty && (

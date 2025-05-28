@@ -169,6 +169,7 @@ export { Upload, type UploadFile, type UploadChangeParam } from './Upload';
 export { Menu } from './Menu';
 export * from './SafeMarkdown/SafeMarkdown';
 export * from './TableView';
+export * from './Table';
 export * from './Radio';
 export * from './Popover';
 export * from './Tag';

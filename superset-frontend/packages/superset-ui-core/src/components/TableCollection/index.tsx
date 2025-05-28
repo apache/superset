@@ -46,6 +46,7 @@ interface TableCollectionProps<T extends object> {
   toggleRowSelected?: (rowId: string, value: boolean) => void;
   toggleAllRowsSelected?: (value?: boolean) => void;
   sticky?: boolean;
+  size?: TableSize;
 }
 
 const StyledTable = styled(Table)`
@@ -104,6 +105,7 @@ function TableCollection<T extends object>({
   toggleAllRowsSelected,
   prepareRow,
   sticky,
+  size = TableSize.Middle,
 }: TableCollectionProps<T>) {
   const mappedColumns = mapColumns<T>(
     columns,
@@ -141,7 +143,7 @@ function TableCollection<T extends object>({
       sticky={sticky ?? false}
       columns={mappedColumns}
       data={mappedRows}
-      size={TableSize.Middle}
+      size={size}
       data-test="listview-table"
       pagination={false}
       tableLayout="auto"

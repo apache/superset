@@ -20,6 +20,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
 import {
   TableView,
+  TableSize,
   EmptyState,
   Loading,
   EmptyWrapperType,
@@ -151,6 +152,7 @@ export const SamplesPane = ({
         className="table-condensed"
         isPaginationSticky
         showRowCount={false}
+        size={TableSize.Small}
         small
       />
     </>
