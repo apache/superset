@@ -111,6 +111,22 @@ export class ThemeController {
   }
 
   /**
+   * Check if the current user can update the theme
+   * This is a placeholder method
+   */
+  public canUpdateTheme(): boolean {
+    return true;
+  }
+
+  /**
+   * Check if the current user can change dark mode
+   * This is a placeholder method
+   */
+  public canChangeDarkMode(): boolean {
+    return true;
+  }
+
+  /**
    * Get the current theme
    */
   public getTheme(): Theme {
@@ -121,6 +137,9 @@ export class ThemeController {
    * Set a new theme configuration
    */
   public setTheme(config: AnyThemeConfig): void {
+    if (!this.canUpdateTheme()) {
+      throw new Error('User does not have permission to update the theme');
+    }
     this.customizations = config;
     this.theme.setConfig(config);
     this.persistTheme();
@@ -131,6 +150,9 @@ export class ThemeController {
    * Toggle dark mode
    */
   public toggleDarkMode(isDark: boolean): void {
+    if (!this.canChangeDarkMode()) {
+      throw new Error('User does not have permission to update the theme');
+    }
     this.customizations.algorithm = isDark
       ? antdThemeImport.darkAlgorithm
       : antdThemeImport.defaultAlgorithm;
