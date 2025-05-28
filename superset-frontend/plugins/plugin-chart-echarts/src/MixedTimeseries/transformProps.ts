@@ -170,6 +170,8 @@ export default function transformProps(
     showLegend,
     showValue,
     showValueB,
+    onlyTotal,
+    onlyTotalB,
     stack,
     stackB,
     truncateXAxis,
@@ -285,9 +287,11 @@ export default function transformProps(
   );
   const showValueIndexesA = extractShowValueIndexes(rawSeriesA, {
     stack,
+    onlyTotal,
   });
   const showValueIndexesB = extractShowValueIndexes(rawSeriesB, {
     stack,
+    onlyTotal,
   });
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedDataA,
@@ -390,6 +394,7 @@ export default function transformProps(
         areaOpacity: opacity,
         seriesType,
         showValue,
+        onlyTotal,
         stack: Boolean(stack),
         stackIdSuffix: '\na',
         yAxisIndex,
@@ -437,6 +442,7 @@ export default function transformProps(
         areaOpacity: opacityB,
         seriesType: seriesTypeB,
         showValue: showValueB,
+        onlyTotal: onlyTotalB,
         stack: Boolean(stackB),
         stackIdSuffix: '\nb',
         yAxisIndex: yAxisIndexB,

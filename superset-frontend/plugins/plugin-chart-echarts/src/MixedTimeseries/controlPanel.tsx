@@ -19,6 +19,7 @@
 import { ensureIsArray, t } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
+  ControlPanelsContainerProps,
   ControlPanelConfig,
   ControlPanelSectionConfig,
   ControlSetRow,
@@ -207,8 +208,9 @@ function createCustomizeSection(
           description: t(
             'Only show the total value on the stacked chart, and not show on the selected category',
           ),
-          // visibility: ({ controls }: ControlPanelsContainerProps) =>
-          //  Boolean(controls?.show_value?.value) && Boolean(controls?.stack?.value),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            Boolean(controls?.show_value?.value) &&
+            Boolean(controls?.stack?.value),
         },
       },
     ],
