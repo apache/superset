@@ -39,15 +39,16 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import {
+  AsyncSelect,
+  Checkbox,
+  Collapse,
+  CollapseLabelInModal,
+  InfoTooltip,
   Input,
   InputNumber,
   Modal,
-  Switch,
-  Collapse,
   Select,
-  AsyncSelect,
-  Checkbox,
-  CollapseLabelInModal,
+  Switch,
   TreeSelect,
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
@@ -57,7 +58,6 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   NotificationMethodOption,
   NotificationSetting,
@@ -327,10 +327,6 @@ export const StyledInputContainer = styled.div`
       margin-left: 10px;
     }
   `}
-`;
-
-const StyledTooltip = styled(InfoTooltipWithTrigger)`
-  margin-left: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 // Notification Method components
@@ -1596,7 +1592,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       <StyledInputContainer>
                         <div className="control-label">
                           {t('SQL Query')}
-                          <StyledTooltip
+                          <InfoTooltip
                             tooltip={t(
                               'The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or "1" (compatible with Python\'s float() function).',
                             )}

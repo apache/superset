@@ -17,11 +17,7 @@
  * under the License.
  */
 /* eslint-disable react-hooks/rules-of-hooks */
-import {
-  ColumnMeta,
-  InfoTooltipWithTrigger,
-  Metric,
-} from '@superset-ui/chart-controls';
+import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
 import {
   AdhocFilter,
   Behavior,
@@ -65,6 +61,7 @@ import {
   Icons,
   Select,
   Tooltip,
+  InfoTooltip,
   Flex,
   Input,
   Loading,
@@ -699,7 +696,7 @@ const FiltersConfigForm = (
       label={
         <>
           <StyledLabel>{t('Time column')}</StyledLabel>&nbsp;
-          <InfoTooltipWithTrigger
+          <InfoTooltip
             placement="top"
             tooltip={
               hasTimeDependency
@@ -1120,7 +1117,7 @@ const FiltersConfigForm = (
                                                 {t('Sort Metric')}
                                               </StyledLabel>
                                               &nbsp;
-                                              <InfoTooltipWithTrigger
+                                              <InfoTooltip
                                                 placement="top"
                                                 tooltip={t(
                                                   'If a metric is specified, sorting will be done based on the metric value',

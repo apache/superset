@@ -18,7 +18,7 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { List } from '@superset-ui/core/components';
+import { InfoTooltip, List } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
 import { t, withTheme } from '@superset-ui/core';
 import {
@@ -32,7 +32,6 @@ import {
   HeaderContainer,
   AddIconButton,
 } from 'src/explore/components/controls/OptionControls';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import controlMap from '..';
@@ -140,7 +139,7 @@ class CollectionControl extends Component {
                   onChange={this.onChange.bind(this, i)}
                 />
               </div>
-              <InfoTooltipWithTrigger
+              <InfoTooltip
                 icon="times"
                 label="remove-item"
                 tooltip={t('Remove item')}

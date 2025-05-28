@@ -18,11 +18,11 @@
  */
 import { useState, useEffect } from 'react';
 import { t, styled } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 import {
   Badge,
   ConfigEditor,
+  InfoTooltip,
   ModalTrigger,
   Tooltip,
 } from '@superset-ui/core/components';
@@ -109,7 +109,7 @@ const TemplateParamsEditor = ({
             {t('Parameters ')}
             <Badge count={paramCount} />
             {!isValid && (
-              <InfoTooltipWithTrigger
+              <InfoTooltip
                 type="error"
                 tooltip={t('Invalid JSON')}
                 label="invalid-json"

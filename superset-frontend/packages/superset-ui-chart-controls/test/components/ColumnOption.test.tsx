@@ -38,10 +38,8 @@ jest.mock(
   }),
 );
 
-jest.mock('@superset-ui/core/components/InfoTooltipWithTrigger', () => ({
-  InfoTooltipWithTrigger: () => (
-    <div data-test="mock-info-tooltip-with-trigger" />
-  ),
+jest.mock('@superset-ui/core/components/InfoTooltip', () => ({
+  InfoTooltip: () => <div data-test="mock-info-tooltip-with-trigger" />,
 }));
 
 const defaultProps: ColumnOptionProps = {
@@ -120,11 +118,11 @@ test('dttm column has correct column label if showType is true', () => {
     String(GenericDataType.Temporal),
   );
 });
-test('doesnt show InfoTooltipWithTrigger when no warning', () => {
+test('doesnt show InfoTooltip when no warning', () => {
   const { queryByText } = setup();
   expect(queryByText('mock-info-tooltip-with-trigger')).not.toBeInTheDocument();
 });
-test('shows a warning with InfoTooltipWithTrigger when it contains warning', () => {
+test('shows a warning with InfoTooltip when it contains warning', () => {
   const { getByTestId } = setup({
     ...defaultProps,
     column: {

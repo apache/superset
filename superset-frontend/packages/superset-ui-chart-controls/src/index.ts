@@ -25,7 +25,6 @@ export * from './operators';
 // can't do `export * as sections from './sections'`, babel-transformer will fail
 export const sections = sectionsModule;
 
-export * from './components/InfoTooltipWithTrigger';
 export * from './components/ColumnOption';
 export * from './components/ColumnTypeLabel/ColumnTypeLabel';
 export * from './components/ControlSubSectionHeader';

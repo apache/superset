@@ -19,9 +19,11 @@
 import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
 
 import { css, styled, Metric, SupersetTheme } from '@superset-ui/core';
-import { SafeMarkdown } from '@superset-ui/core/components';
-import { Typography } from 'antd';
-import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';
+import {
+  SafeMarkdown,
+  Typography,
+  InfoTooltip,
+} from '@superset-ui/core/components';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import Tooltip from './Tooltip';
@@ -110,7 +112,7 @@ export function MetricOption({
         />
       )}
       {warningMarkdown && (
-        <InfoTooltipWithTrigger
+        <InfoTooltip
           type="warning"
           tooltip={<SafeMarkdown source={warningMarkdown} />}
           label={`warn-${metric.metric_name}`}

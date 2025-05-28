@@ -27,8 +27,11 @@ import {
   t,
   withTheme,
 } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { AsyncEsmComponent, List } from '@superset-ui/core/components';
+import {
+  AsyncEsmComponent,
+  List,
+  InfoTooltip,
+} from '@superset-ui/core/components';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
@@ -190,7 +193,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
     }
     if (annotationError[anno.name]) {
       return (
-        <InfoTooltipWithTrigger
+        <InfoTooltip
           label="validation-errors"
           type="error"
           tooltip={annotationError[anno.name]}

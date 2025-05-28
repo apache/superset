@@ -17,11 +17,11 @@
  * under the License.
  */
 import { t, customTimeRangeDecode } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { Radio } from '@superset-ui/core/components/Radio';
 import {
+  InfoTooltip,
   DatePicker,
   Select,
+  Radio,
   AntdThemeProvider,
   Col,
   Row,
@@ -121,7 +121,7 @@ export function CustomFrame(props: FrameComponentProps) {
           <Col span={12}>
             <div className="control-label">
               {t('Start (inclusive)')}{' '}
-              <InfoTooltipWithTrigger
+              <InfoTooltip
                 tooltip={t('Start date included in time range')}
                 placement="right"
               />
@@ -180,7 +180,7 @@ export function CustomFrame(props: FrameComponentProps) {
           <Col span={12}>
             <div className="control-label">
               {t('End (exclusive)')}{' '}
-              <InfoTooltipWithTrigger
+              <InfoTooltip
                 tooltip={t('End date excluded from time range')}
                 placement="right"
               />

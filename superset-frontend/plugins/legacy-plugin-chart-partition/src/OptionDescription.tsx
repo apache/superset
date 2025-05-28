@@ -19,10 +19,8 @@
 
 import PropTypes from 'prop-types';
 
-import {
-  ColumnMeta,
-  InfoTooltipWithTrigger,
-} from '@superset-ui/chart-controls';
+import { ColumnMeta } from '@superset-ui/chart-controls';
+import { InfoTooltip } from '@superset-ui/core/components';
 
 const propTypes = {
   option: PropTypes.object.isRequired,
@@ -38,7 +36,7 @@ export default function OptionDescription({ option }: { option: ColumnMeta }) {
         {option.label}
       </span>
       {option.description && (
-        <InfoTooltipWithTrigger
+        <InfoTooltip
           type="question"
           tooltip={option.description}
           label={`descr-${option.label}`}

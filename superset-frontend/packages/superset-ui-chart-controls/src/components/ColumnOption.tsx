@@ -18,7 +18,7 @@
  */
 import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
 import { css, styled, SupersetTheme } from '@superset-ui/core';
-import { SafeMarkdown } from '@superset-ui/core/components';
+import { SafeMarkdown, InfoTooltip } from '@superset-ui/core/components';
 import { Tooltip } from './Tooltip';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
@@ -29,7 +29,6 @@ import {
   getColumnTypeTooltipNode,
 } from './labelUtils';
 import { SQLPopover } from './SQLPopover';
-import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';
 
 export type ColumnOptionProps = {
   column: ColumnMeta;
@@ -99,7 +98,7 @@ export function ColumnOption({
         />
       )}
       {warningMarkdown && (
-        <InfoTooltipWithTrigger
+        <InfoTooltip
           type="warning"
           tooltip={<SafeMarkdown source={warningMarkdown} />}
           label={`warn-${column.column_name}`}

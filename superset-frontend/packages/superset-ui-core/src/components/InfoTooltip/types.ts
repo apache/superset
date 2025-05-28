@@ -26,4 +26,5 @@ export interface InfoTooltipProps {
   overlayStyle?: any;
   bgColor?: string;
   viewBox?: string;
+  onClick?: (e: React.MouseEvent<SVGSVGElement, MouseEvent>) => void;
 }

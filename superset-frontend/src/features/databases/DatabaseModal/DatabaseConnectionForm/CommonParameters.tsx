@@ -316,7 +316,6 @@ export const forceSSLField = ({
     <InfoTooltip
       tooltip={t('SSL Mode "require" will be used.')}
       placement="right"
-      viewBox="0 -5 24 24"
     />
   </div>
 );

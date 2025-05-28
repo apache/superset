@@ -89,7 +89,6 @@ const SSHTunnelSwitch = ({
       <InfoTooltip
         tooltip={t('SSH Tunnel configuration parameters')}
         placement="right"
-        viewBox="0 -5 24 24"
       />
     </div>
   ) : null;

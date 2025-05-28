@@ -16,15 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  CustomControlItem,
-  InfoTooltipWithTrigger,
-} from '@superset-ui/chart-controls';
+import { CustomControlItem } from '@superset-ui/chart-controls';
 import { ReactNode } from 'react';
 import {
   Checkbox,
-  Tooltip,
   FormItem,
+  InfoTooltip,
+  Tooltip,
   type FormInstance,
 } from '@superset-ui/core/components';
 import {
@@ -216,7 +214,7 @@ export default function getControlItemsMap({
                 <>
                   {controlItem.config.label}&nbsp;
                   {controlItem.config.description && (
-                    <InfoTooltipWithTrigger
+                    <InfoTooltip
                       placement="top"
                       tooltip={controlItem.config.description}
                     />

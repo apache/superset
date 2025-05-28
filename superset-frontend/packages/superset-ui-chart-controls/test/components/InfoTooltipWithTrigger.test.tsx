@@ -19,7 +19,7 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render } from '@superset-ui/core/spec';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
-import { InfoTooltipWithTrigger, InfoTooltipWithTriggerProps } from '../../src';
+import { InfoTooltip, InfoTooltipProps } from '@superset-ui/core/components';
 
 jest.mock('@superset-ui/core/components/Tooltip', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => (
@@ -29,10 +29,10 @@ jest.mock('@superset-ui/core/components/Tooltip', () => ({
 
 const defaultProps = {};
 
-const setup = (props: Partial<InfoTooltipWithTriggerProps> = {}) =>
+const setup = (props: Partial<InfoTooltipProps> = {}) =>
   render(
     <ThemeProvider theme={supersetTheme}>
-      <InfoTooltipWithTrigger {...defaultProps} {...props} />
+      <InfoTooltip {...defaultProps} {...props} />
     </ThemeProvider>,
   );
 

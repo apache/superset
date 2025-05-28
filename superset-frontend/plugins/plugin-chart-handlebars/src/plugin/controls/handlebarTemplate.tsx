@@ -20,10 +20,9 @@ import {
   ControlSetItem,
   CustomControlConfig,
   sharedControls,
-  InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty, useTheme } from '@superset-ui/core';
-import { SafeMarkdown } from '@superset-ui/core/components';
+import { InfoTooltip, SafeMarkdown } from '@superset-ui/core/components';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
 import { debounceFunc } from '../../consts';
@@ -71,7 +70,7 @@ ${helperDescriptions
       <ControlHeader>
         <div>
           {props.label}
-          <InfoTooltipWithTrigger
+          <InfoTooltip
             iconStyle={{ marginLeft: theme.sizeUnit }}
             tooltip={<SafeMarkdown source={helpersTooltipContent} />}
           />

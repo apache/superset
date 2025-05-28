@@ -25,10 +25,10 @@ import {
   css,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   Button,
   FormItem,
+  InfoTooltip,
   Input,
   Modal,
   Loading,
@@ -200,7 +200,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
           label={
             <span>
               {t('Allowed Domains (comma separated)')}{' '}
-              <InfoTooltipWithTrigger
+              <InfoTooltip
                 placement="top"
                 tooltip={t(
                   'A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.',

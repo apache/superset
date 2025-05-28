@@ -20,10 +20,9 @@ import { PureComponent, ReactNode } from 'react';
 
 import { nanoid } from 'nanoid';
 
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { t, styled, css } from '@superset-ui/core';
 
-import { Icons, Button } from '@superset-ui/core/components';
+import { Icons, Button, InfoTooltip } from '@superset-ui/core/components';
 import { FilterValue } from 'react-table';
 import Table, {
   type ColumnsType,
@@ -323,7 +322,7 @@ export default class CRUDCollection extends PureComponent<
             {tooltip && (
               <>
                 {' '}
-                <InfoTooltipWithTrigger
+                <InfoTooltip
                   label={t('description')}
                   tooltip={tooltip}
                   placement="top"

@@ -83,9 +83,7 @@ function SearchFilter(
         `}
       >
         <FormLabel>{Header}</FormLabel>
-        {toolTipDescription && (
-          <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
-        )}
+        {toolTipDescription && <InfoTooltip tooltip={toolTipDescription} />}
       </div>
       <StyledInput
         allowClear

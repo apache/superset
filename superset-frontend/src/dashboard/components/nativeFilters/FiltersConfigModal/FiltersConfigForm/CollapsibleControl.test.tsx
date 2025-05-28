@@ -22,7 +22,7 @@ import '@testing-library/jest-dom';
 import { CollapsibleControl } from './CollapsibleControl';
 
 jest.mock('@superset-ui/chart-controls', () => ({
-  InfoTooltipWithTrigger: ({ tooltip }: { tooltip: string }) => (
+  InfoTooltip: ({ tooltip }: { tooltip: string }) => (
     <span data-test="info-tooltip" data-tooltip={tooltip} />
   ),
 }));
