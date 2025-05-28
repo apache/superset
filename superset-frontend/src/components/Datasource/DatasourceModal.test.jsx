@@ -24,7 +24,7 @@ import {
   fireEvent,
   cleanup,
   defaultStore as store,
-} from '@testing-library/react';
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 import { SupersetClient } from '@superset-ui/core';

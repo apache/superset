@@ -27,7 +27,7 @@ import {
 } from 'spec/helpers/testing-library';
 import TablePreview from '.';
 
-jest.mock('@superset-ui/core/components/FilterableTable', () => ({
+jest.mock('src/components/FilterableTable', () => ({
   __esModule: true,
   FilterableTable: ({ data }: { data: Record<string, any>[] }) => (
     <div>

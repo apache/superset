@@ -17,9 +17,9 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import DatasourceEditor from '.';
+import DatasourceEditor from './DatasourceEditor';
 import { props, DATASOURCE_ENDPOINT } from './DatasourceEditor.test';
 
 // Optimized render function that doesn't use waitFor initially

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from '@testing-library/react';
+import { render } from 'spec/helpers/testing-library';
 import { setupAGGridModules } from 'src/setup/setupAGGridModules';
 import { GridTable } from '.';
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import type { Column, GridApi } from 'ag-grid-community';
-import { act, fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render } from 'spec/helpers/testing-library';
 import { Header } from './Header';
 import { PIVOT_COL_ID } from './constants';
 

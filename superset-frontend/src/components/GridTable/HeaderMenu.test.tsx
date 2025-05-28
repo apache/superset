@@ -17,7 +17,12 @@
  * under the License.
  */
 import type { Column, GridApi } from 'ag-grid-community';
-import { fireEvent, render, waitFor, screen } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  waitFor,
+  screen,
+} from 'spec/helpers/testing-library';
 import { HeaderMenu } from './HeaderMenu';
 
 jest.mock('@superset-ui/core/components/Menu', () => {

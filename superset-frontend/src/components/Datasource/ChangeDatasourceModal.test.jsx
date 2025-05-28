@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { waitFor, render, fireEvent } from '@testing-library/react';
+import { waitFor, render, fireEvent } from 'spec/helpers/testing-library';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';

@@ -17,14 +17,17 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  waitFor,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import { isFeatureEnabled } from '@superset-ui/core';
-import DatasourceEditor from '.';
+import DatasourceEditor from './DatasourceEditor';
 
 /* eslint-disable jest/no-export */
-
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
@@ -64,7 +67,7 @@ describe('DatasourceEditor', () => {
 
   afterEach(() => {
     fetchMock.restore();
-    jest.clearAllMocks();
+    // jest.clearAllMocks();
   });
 
   it('renders Tabs', () => {

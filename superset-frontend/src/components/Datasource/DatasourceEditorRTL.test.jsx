@@ -17,8 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, userEvent, waitFor } from 'spec/helpers/testing-library';
 import {
   props,
   asyncRender,
