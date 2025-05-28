@@ -1,0 +1,34 @@
+---
+title: Map Tiles
+sidebar_position: 12
+version: 1
+---
+
+# Map tiles
+
+Superset uses OSM and Mapbox tiles by default. OSM is free but you you need to set your API MAPBOX TOKEN in config.py
+
+# Default values are equivalent to
+```python
+DECKGL_BASE_MAP = [
+    ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
+    ['https://tile.osm.ch/osm-swiss-style/{z}/{x}/{y}.png', 'Topography (OSM)'],
+    ['mapbox://styles/mapbox/streets-v9', 'Streets'],
+    ['mapbox://styles/mapbox/dark-v9', 'Dark'],
+    ['mapbox://styles/mapbox/light-v9', 'Light'],
+    ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
+    ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
+    ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
+]
+```
+# For adding your own map tiles, you can use the following format:
+    - tile:// + your_personal_url or openstreetmap_url
+
+```python
+DECKGL_BASE_MAP = [
+    ['tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap']
+]
+```
+# Enable CORS and set map url in origins option.
+
+# Add also map url in connect-src of TALISMAN_CONFIG variable.
