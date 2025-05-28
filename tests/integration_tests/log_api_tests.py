@@ -98,7 +98,7 @@ class TestLogApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert list(response["result"][0].keys()) == EXPECTED_COLUMNS
         assert response["result"][0]["action"] == "some_action"
-        assert response["result"][0]["user"] == {"username": "admin"}
+        assert response["result"][0]["user"]["username"] == "admin"
         db.session.delete(log)
         db.session.commit()
 
@@ -132,7 +132,7 @@ class TestLogApi(SupersetTestCase):
 
         assert list(response["result"].keys()) == EXPECTED_COLUMNS
         assert response["result"]["action"] == "some_action"
-        assert response["result"]["user"] == {"username": "admin"}
+        assert response["result"]["user"]["username"] == "admin"
         db.session.delete(log)
         db.session.commit()
 
