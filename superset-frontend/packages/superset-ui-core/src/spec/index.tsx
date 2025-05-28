@@ -18,11 +18,24 @@
  */
 import userEvent from '@testing-library/user-event';
 import { ReactElement } from 'react';
-import { render as baseRender, RenderOptions } from '@testing-library/react';
+import { render, RenderOptions } from '@testing-library/react';
 import '@testing-library/jest-dom';
-
 import { themeObject } from '@superset-ui/core';
 
+// Define the wrapper component outside
+const AllTheProviders = ({ children }: { children: React.ReactNode }) => (
+  <themeObject.SupersetThemeProvider>
+    {children}
+  </themeObject.SupersetThemeProvider>
+);
+
+// Follow the exact pattern from RTL docs
+const customRender = (
+  ui: ReactElement,
+  options?: Omit<RenderOptions, 'wrapper'>,
+) => render(ui, { wrapper: AllTheProviders, ...options });
+
+export { customRender as render, userEvent };
 export {
   createEvent,
   fireEvent,
@@ -31,18 +44,3 @@ export {
   cleanup,
   within,
 } from '@testing-library/react';
-
-export const render = (
-  ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>,
-) =>
-  baseRender(ui, {
-    wrapper: ({ children }) => (
-      <themeObject.SupersetThemeProvider>
-        {children}
-      </themeObject.SupersetThemeProvider>
-    ),
-    ...options,
-  });
-
-export { userEvent };

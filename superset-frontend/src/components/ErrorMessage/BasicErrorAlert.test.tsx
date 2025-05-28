@@ -22,7 +22,7 @@ import { ErrorLevel, supersetTheme } from '@superset-ui/core';
 import { BasicErrorAlert } from './BasicErrorAlert';
 
 jest.mock(
-  'src/components/Icons/AsyncIcon',
+  '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />
