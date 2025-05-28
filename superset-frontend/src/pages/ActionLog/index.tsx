@@ -146,7 +146,7 @@ function ActionLogList() {
           row: {
             original: { user },
           },
-        }: any) => <span>{user.username ?? '...'}</span>,
+        }: any) => <span>{user?.username ?? '...'}</span>,
       },
 
       {
