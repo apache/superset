@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from '@superset-ui/core/spec';
 import { Next } from './Next';
 
 test('Next - click when the button is enabled', async () => {

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@superset-ui/core/spec';
 import Wrapper from './Wrapper';
 
 // Add cleanup after each test

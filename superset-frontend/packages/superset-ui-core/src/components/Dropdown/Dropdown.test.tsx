@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, fireEvent, screen } from '@testing-library/react';
+import { render, fireEvent, screen } from '@superset-ui/core/spec';
 import { NoAnimationDropdown } from '.';
 
 const props = {

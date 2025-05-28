@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from '@superset-ui/core/spec';
 import { Ellipsis } from './Ellipsis';
 
 test('Ellipsis - click when the button is enabled', async () => {

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render } from '@testing-library/react';
+import { render } from '@superset-ui/core/spec';
 import { Flex } from '.';
 
 test('should render', () => {

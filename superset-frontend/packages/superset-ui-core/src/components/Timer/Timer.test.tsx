@@ -19,7 +19,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@superset-ui/core/spec';
 import { Timer, TimerProps } from '.';
 import { now } from '../../utils/dates';
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@superset-ui/core/spec';
 import { Layout } from '.';
 import { Button } from '../Button';
 

@@ -17,8 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
 import { Input } from '../Input';
 import { AutoComplete } from '.';
 

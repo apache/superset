@@ -17,30 +17,30 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render } from '@testing-library/react';
+import { render } from '@superset-ui/core/spec';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { MetricOption, MetricOptionProps } from '../../src';
 
-jest.mock('../../@superset-ui/core/components/InfoTooltipWithTrigger', () => ({
+jest.mock('@superset-ui/core/components/InfoTooltipWithTrigger', () => ({
   InfoTooltipWithTrigger: () => (
     <div data-test="mock-info-tooltip-with-trigger" />
   ),
 }));
 
 jest.mock(
-  '../../@superset-ui/core/components/ColumnTypeLabel/ColumnTypeLabel',
+  '@superset-ui/core/components/ColumnTypeLabel/ColumnTypeLabel',
   () => ({
     ColumnTypeLabel: () => <div data-test="mock-column-type-label" />,
   }),
 );
 jest.mock(
-  '../../@superset-ui/core/components/Tooltip',
+  '@superset-ui/core/components/Tooltip',
   () =>
     ({ children }: { children: React.ReactNode }) => (
       <div data-test="mock-tooltip">{children}</div>
     ),
 );
-jest.mock('../../@superset-ui/core/components/SQLPopover', () => ({
+jest.mock('@superset-ui/core/components/SQLPopover', () => ({
   SQLPopover: () => <div data-test="mock-sql-popover" />,
 }));
 

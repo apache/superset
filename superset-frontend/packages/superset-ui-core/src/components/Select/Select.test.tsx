@@ -21,10 +21,10 @@ import {
   fireEvent,
   render,
   screen,
+  userEvent,
   waitFor,
   within,
-} from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+} from '@superset-ui/core/spec';
 import { Select } from '.';
 
 type Option = {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react-hooks';
 import { TableInstance, useTable } from 'react-table';
 import TableCollection from '.';

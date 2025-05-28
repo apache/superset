@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, userEvent, screen } from '@superset-ui/core/spec';
 import { DeleteModal } from '.';
 
 test('Must display title and content', () => {

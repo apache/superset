@@ -17,7 +17,7 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render } from '@testing-library/react';
+import { render } from '@superset-ui/core/spec';
 import { Space } from '.';
 
 test('should render', () => {

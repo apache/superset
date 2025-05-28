@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@superset-ui/core/spec';
 
 import { LastUpdated } from '.';
 

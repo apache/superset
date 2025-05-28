@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@superset-ui/core/spec';
 import { Button } from '../Button';
 import { ConfirmStatusChange } from '.';
 

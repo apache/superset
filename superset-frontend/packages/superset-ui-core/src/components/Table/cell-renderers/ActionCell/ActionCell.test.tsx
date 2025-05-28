@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from '@superset-ui/core/spec';
 import ActionCell, { appendDataToMenu } from './index';
 import { exampleMenuOptions, exampleRow } from './fixtures';
 

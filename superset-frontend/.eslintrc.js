@@ -52,7 +52,7 @@ const restrictedImportsRules = {
     message: 'Lodash Memoize is unsafe! Please use memoize-one instead',
   },
   'no-testing-library-react': {
-    name: '@testing-library/react',
+    name: '@superset-ui/core/spec',
     message: 'Please use spec/helpers/testing-library instead',
   },
   'no-testing-library-react-dom-utils': {

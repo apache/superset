@@ -18,8 +18,7 @@
  */
 
 import { FC } from 'react';
-import { render, waitFor, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, waitFor, screen, userEvent } from '@superset-ui/core/spec';
 import type { TimezoneSelectorProps } from './index';
 
 const loadComponent = (mockCurrentTime?: string) => {

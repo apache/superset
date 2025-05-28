@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@superset-ui/core/spec';
 import { extendedDayjs } from '../../utils/dates';
 import { TooltipContent } from './TooltipContent';
 

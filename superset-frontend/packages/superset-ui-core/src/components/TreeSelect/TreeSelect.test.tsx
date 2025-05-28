@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, fireEvent, screen } from '@testing-library/react';
+import { render, fireEvent, screen } from '@superset-ui/core/spec';
 import '@testing-library/jest-dom';
 import { TreeSelect } from '.';
 

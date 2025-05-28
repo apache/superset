@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
 import { CertifiedBadge } from '.';
 import type { CertifiedBadgeProps } from './types';
 

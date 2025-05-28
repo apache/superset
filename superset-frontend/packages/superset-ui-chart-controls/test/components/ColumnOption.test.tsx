@@ -17,7 +17,7 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render } from '@testing-library/react';
+import { render } from '@superset-ui/core/spec';
 import {
   ThemeProvider,
   supersetTheme,
@@ -26,11 +26,11 @@ import {
 
 import { ColumnOption, ColumnOptionProps } from '../../src';
 
-jest.mock('../../@superset-ui/core/components/SQLPopover', () => ({
+jest.mock('@superset-ui/core/components/SQLPopover', () => ({
   SQLPopover: () => <div data-test="mock-sql-popover" />,
 }));
 jest.mock(
-  '../../@superset-ui/core/components/ColumnTypeLabel/ColumnTypeLabel',
+  '@superset-ui/core/components/ColumnTypeLabel/ColumnTypeLabel',
   () => ({
     ColumnTypeLabel: ({ type }: { type: string }) => (
       <div data-test="mock-column-type-label">{type}</div>
@@ -38,7 +38,7 @@ jest.mock(
   }),
 );
 
-jest.mock('../../@superset-ui/core/components/InfoTooltipWithTrigger', () => ({
+jest.mock('@superset-ui/core/components/InfoTooltipWithTrigger', () => ({
   InfoTooltipWithTrigger: () => (
     <div data-test="mock-info-tooltip-with-trigger" />
   ),

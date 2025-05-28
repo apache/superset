@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@superset-ui/core/spec';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import thunk from 'redux-thunk';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { TimeFormats } from '@superset-ui/core';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@superset-ui/core/spec';
 import TimeCell from '.';
 
 const DATE = Date.parse('2022-01-01');

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from '@testing-library/react';
+import { render } from '@superset-ui/core/spec';
 import { Input, InputNumber } from '.';
 
 test('should render Input', () => {

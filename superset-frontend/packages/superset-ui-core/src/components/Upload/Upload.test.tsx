@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@superset-ui/core/spec';
 import { Button, Upload } from '..';
 
 describe('Upload Component', () => {

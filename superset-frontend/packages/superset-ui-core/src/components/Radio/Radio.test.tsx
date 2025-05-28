@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@superset-ui/core/spec';
 import '@testing-library/jest-dom';
 import { Radio } from '.';
 

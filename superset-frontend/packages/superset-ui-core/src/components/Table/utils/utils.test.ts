@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cleanup } from '@testing-library/react';
+import { cleanup } from '@superset-ui/core/spec';
 import { withinRange } from './utils';
 
 // Add cleanup after each test

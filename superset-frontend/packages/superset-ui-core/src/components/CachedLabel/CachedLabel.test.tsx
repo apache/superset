@@ -18,7 +18,7 @@
  */
 
 import { isValidElement } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@superset-ui/core/spec';
 import { CachedLabel } from '.';
 import type { CacheLabelProps } from './types';
 

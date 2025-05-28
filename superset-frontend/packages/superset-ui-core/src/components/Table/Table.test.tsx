@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@superset-ui/core/spec';
 import type { ColumnsType } from 'antd/es/table';
 import { Table, TableSize } from './index';
 

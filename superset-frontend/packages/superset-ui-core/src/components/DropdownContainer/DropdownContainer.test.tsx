@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { screen, render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Button } from '../Button';
+import { userEvent, screen, render } from '@superset-ui/core/spec';
+import { Button, Icons } from '../Button';
 import { DropdownContainer } from '.';
 
 const generateItems = (n: number) =>

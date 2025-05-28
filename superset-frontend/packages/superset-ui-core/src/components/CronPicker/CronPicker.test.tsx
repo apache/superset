@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render } from '@testing-library/react';
+import { render } from '@superset-ui/core/spec';
 import * as ReactCronPicker from 'react-js-cron';
 import { CronPicker } from '.';
 

@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from '@superset-ui/core/spec';
 import { PageHeaderWithActions, PageHeaderWithActionsProps } from './index';
 import { Menu } from '../Menu';
 

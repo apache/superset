@@ -17,8 +17,7 @@
  * under the License.
  */
 import { FC } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
 import { extendedDayjs } from '../../utils/dates';
 import type { TimezoneSelectorProps } from './index';
 
