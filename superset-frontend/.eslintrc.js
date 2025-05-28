@@ -99,7 +99,10 @@ module.exports = {
       },
       typescript: {
         alwaysTryTypes: true,
-        project: './tsconfig.json',
+        project: [
+          './tsconfig.json',
+          './packages/superset-ui-core/tsconfig.json',
+        ],
       },
     },
     // only allow import from top level of module

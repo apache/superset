@@ -27,7 +27,8 @@
       ],
       "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
       "@superset-ui/preset-chart-*": ["./plugins/preset-chart-*/src"],
-      "@superset-ui/switchboard": ["./packages/superset-ui-switchboard/src"]
+      "@superset-ui/switchboard": ["./packages/superset-ui-switchboard/src"],
+      "@superset-ui/core/spec": ["./packages/superset-ui-core/src/spec"]
     },
     "types": [
       "jest",

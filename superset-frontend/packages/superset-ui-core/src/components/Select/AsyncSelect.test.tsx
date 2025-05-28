@@ -24,7 +24,7 @@ import {
   screen,
   waitFor,
   within,
-} from '../../../spec';
+} from '@superset-ui/core/spec';
 import { AsyncSelect } from '.';
 
 const ARIA_LABEL = 'Test';
