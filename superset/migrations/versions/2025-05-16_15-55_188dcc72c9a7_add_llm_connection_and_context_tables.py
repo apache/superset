@@ -66,30 +66,6 @@ def upgrade():
         sa.PrimaryKeyConstraint('id')
     )
 
-    # Copy the data from the old columns to the new table
-    conn = op.get_bind()
-    connection = conn.execution_options(autocommit=True)
-    connection.execute(
-        sa.text(
-            """
-            INSERT INTO llm_connection (created_on, changed_on, database_id, enabled, provider, model, api_key)
-            SELECT created_on, changed_on, id, llm_enabled, llm_provider, llm_model, llm_api_key
-            FROM dbs
-            WHERE llm_provider IS NOT NULL AND llm_model IS NOT NULL and llm_api_key IS NOT NULL
-            """
-        )
-    )
-    connection.execute(
-        sa.text(
-            """
-            INSERT INTO llm_context_options (created_on, changed_on, database_id, refresh_interval, schemas, include_indexes, top_k, top_k_limit, instructions)
-            SELECT created_on, changed_on, id, llm_context_options->>'$.refresh_interval', llm_context_options->>'$.schemas', llm_context_options->>'$.include_indexes', llm_context_options->>'$.top_k', llm_context_options->>'$.top_k_limit', llm_context_options->>'$.instructions'
-            FROM dbs
-            WHERE llm_context_options IS NOT NULL AND llm_context_options != '{}'
-            """
-        )
-    )
-
     op.drop_column('dbs', 'llm_api_key')
     op.drop_column('dbs', 'llm_context_options')
     op.drop_column('dbs', 'llm_model')
@@ -104,41 +80,6 @@ def downgrade():
     op.add_column('dbs', sa.Column('llm_model', sa.VARCHAR(length=100), nullable=True))
     op.add_column('dbs', sa.Column('llm_context_options', sa.TEXT(), nullable=True))
     op.add_column('dbs', sa.Column('llm_api_key', sa.VARCHAR(length=100), nullable=True))
-
-    # Copy the data from the new tables back to the old columns
-    conn = op.get_bind()
-    connection = conn.execution_options(autocommit=True)
-    connection.execute(
-        sa.text(
-            """
-            UPDATE dbs
-            SET llm_enabled = llm_connection.enabled,
-                llm_provider = llm_connection.provider,
-                llm_model = llm_connection.model,
-                llm_api_key = llm_connection.api_key
-            FROM llm_connection
-            WHERE dbs.id = llm_connection.database_id
-            """
-        )
-    )
-    connection.execute(
-        sa.text(
-            """
-            UPDATE dbs
-            SET llm_context_options = 
-                '{'
-                || '"refresh_interval":' || COALESCE('"' || llm_context_options.refresh_interval || '"', 'null') || ','
-                || '"schemas":' || llm_context_options.schemas || ','
-                || '"include_indexes":' || COALESCE('"' || llm_context_options.include_indexes || '"', 'null') || ','
-                || '"top_k":' || COALESCE('"' || llm_context_options.top_k || '"', 'null') || ','
-                || '"top_k_limit":' || COALESCE('"' || llm_context_options.top_k_limit || '"', 'null') || ','
-                || '"instructions":' || COALESCE('"' || REPLACE(REPLACE(llm_context_options.instructions, '\\', '\\\\'), '"', '\\"') || '"', 'null')
-                || '}'
-            FROM llm_context_options
-            WHERE dbs.id = llm_context_options.database_id
-            """
-        )
-    )
 
     op.drop_table('llm_context_options')
     op.drop_table('llm_connection')
