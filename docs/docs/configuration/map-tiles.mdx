@@ -6,9 +6,26 @@ version: 1
 
 # Map tiles
 
-Superset uses OSM and Mapbox tiles by default. OSM is free but you you need to set your API MAPBOX TOKEN in config.py
+Superset uses OSM and Mapbox tiles by default. OSM is free but you still need setting your MAPBOX_API_KEY if you want to use mapbox maps.
 
-# Default values are equivalent to
+## Setting map tiles
+
+Map tiles can be set with `DECKGL_BASE_MAP` in your `superset_config.py` or `superset_config_docker.py`
+For adding your own map tiles, you can use the following format.
+
+```python
+DECKGL_BASE_MAP = [
+    ['tile://https://your_personal_url/{z}/{x}/{y}.png', 'MyTile']
+]
+```
+Openstreetmap tiles url can be added without prefix.
+```python
+DECKGL_BASE_MAP = [
+    ['https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap']
+]
+```
+
+Default values are:
 ```python
 DECKGL_BASE_MAP = [
     ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
@@ -21,14 +38,41 @@ DECKGL_BASE_MAP = [
     ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
 ]
 ```
-# For adding your own map tiles, you can use the following format:
-    - tile:// + your_personal_url or openstreetmap_url
+
+It is possible to set only mapbox by removing osm tiles and other way around.
+
+:::warning
+Setting `DECKGL_BASE_MAP` overwrite default values
+:::
+
+After defining your map tiles, set them in these variables:
+- `CORS_OPTIONS`
+- `connect-src` of `TALISMAN_CONFIG` and `TALISMAN_CONFIG_DEV` variables.
 
 ```python
-DECKGL_BASE_MAP = [
-    ['tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap']
-]
-```
-# Enable CORS and set map url in origins option.
+ENABLE_CORS = True
+CORS_OPTIONS: dict[Any, Any] = {
+    "origins": [
+        "https://tile.openstreetmap.org",
+        "https://tile.osm.ch",
+        "https://your_personal_url/{z}/{x}/{y}.png",
+    ]
+}
 
-# Add also map url in connect-src of TALISMAN_CONFIG variable.
+.
+.
+
+TALISMAN_CONFIG = {
+    "content_security_policy": {
+        ...
+        "connect-src": [
+            "'self'",
+            "https://api.mapbox.com",
+            "https://events.mapbox.com",
+            "https://tile.openstreetmap.org",
+            "https://tile.osm.ch",
+            "https://your_personal_url/{z}/{x}/{y}.png",
+        ],
+        ...
+}
+```
