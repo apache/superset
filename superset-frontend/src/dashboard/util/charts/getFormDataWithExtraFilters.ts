@@ -150,7 +150,7 @@ export default function getFormDataWithExtraFilters({
   const filterIdsAppliedOnChart = Object.entries(activeFilters)
     .filter(([, { scope }]) => scope.includes(chart.id))
     .map(([filterId]) => filterId);
-  // Get basic extra form data from filters
+
   let extraFormData: ExtraFormData = {};
   if (filterIdsAppliedOnChart.length) {
     extraFormData = getExtraFormData(dataMask, filterIdsAppliedOnChart);
@@ -163,10 +163,8 @@ export default function getFormDataWithExtraFilters({
     if (chartCustomizationItems && chartCustomizationItems.length > 0) {
       const chartDataset = chart.form_data?.datasource;
       if (chartDataset) {
-        // Extract the dataset ID from the chart's datasource
-        // Format is typically: "<dataset_id>__<table_name>" or just "<dataset_id>"
         const chartDatasetParts = String(chartDataset).split('__');
-        const chartDatasetId = chartDatasetParts[0]; // Always get the first part (the ID)
+        const chartDatasetId = chartDatasetParts[0];
 
         const matchingCustomizations = chartCustomizationItems.filter(item => {
           if (item.removed) return false;
@@ -174,11 +172,9 @@ export default function getFormDataWithExtraFilters({
           const targetDataset = item.customization?.dataset;
           if (!targetDataset) return false;
 
-          // If target dataset contains '__', extract its ID part
           const targetParts = String(targetDataset).split('__');
           const targetDatasetId = targetParts[0];
 
-          // Compare dataset IDs
           return chartDatasetId === targetDatasetId;
         });
 
