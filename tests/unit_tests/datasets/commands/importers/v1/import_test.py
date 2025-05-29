@@ -594,6 +594,69 @@ def test_import_dataset_extra_empty_string(
     assert sqla_table.extra is None  # noqa: E711
 
 
+def test_import_dataset_template_params_is_empty_string(
+    mocker: MockFixture, session: Session
+) -> None:
+    """
+    Test importing a dataset when the template_params field is an empty string.
+    """
+    from superset import security_manager
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.datasets.commands.importers.v1.utils import import_dataset
+    from superset.datasets.schemas import ImportV1DatasetSchema
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    session.add(database)
+    session.flush()
+
+    dataset_uuid = uuid.uuid4()
+    yaml_config: dict[str, Any] = {
+        "version": "1.0.0",
+        "table_name": "my_table",
+        "main_dttm_col": "ds",
+        "schema": "my_schema",
+        "sql": None,
+        "params": {
+            "remote_id": 64,
+            "database_name": "examples",
+            "import_time": 1606677834,
+        },
+        "template_params": "",
+        "extra": None,
+        "uuid": dataset_uuid,
+        "metrics": [
+            {
+                "metric_name": "cnt",
+                "expression": "COUNT(*)",
+            }
+        ],
+        "columns": [
+            {
+                "column_name": "profit",
+                "is_dttm": False,
+                "is_active": True,
+                "type": "INTEGER",
+                "groupby": False,
+                "filterable": False,
+                "expression": "revenue-expenses",
+            }
+        ],
+        "database_uuid": database.uuid,
+    }
+
+    schema = ImportV1DatasetSchema()
+    dataset_config = schema.load(yaml_config)
+    dataset_config["database_id"] = database.id
+    sqla_table = import_dataset(session, dataset_config)
+    assert sqla_table.template_params == None
+
+
 @patch("superset.commands.dataset.importers.v1.utils.request")
 def test_import_column_allowed_data_url(
     request: Mock,
