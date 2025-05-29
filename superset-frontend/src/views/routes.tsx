@@ -137,6 +137,10 @@ const RolesList = lazy(
 const UsersList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "UsersList" */ 'src/pages/UsersList'),
 );
+
+const UserInfo = lazy(
+  () => import(/* webpackChunkName: "UserInfo" */ 'src/pages/UserInfo'),
+);
 const ActionLogList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "ActionLogList" */ 'src/pages/ActionLog'),
 );
@@ -243,6 +247,7 @@ export const routes: Routes = [
     path: '/sqllab/',
     Component: SqlLab,
   },
+  { path: '/user_info/', Component: UserInfo },
   {
     path: '/actionlog/list',
     Component: ActionLogList,
