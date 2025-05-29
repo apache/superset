@@ -27,12 +27,9 @@ from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
 
 import sqlglot
-import sqlparse
-from deprecation import deprecated
 from sqlglot import exp
 from sqlglot.dialects.dialect import Dialect, Dialects
 from sqlglot.errors import ParseError
-from sqlglot.expressions import Func, Limit
 from sqlglot.optimizer.pushdown_predicates import pushdown_predicates
 from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 
@@ -58,7 +55,7 @@ SQLGLOT_DIALECTS = {
     # "db2": ???
     # "dremio": ???
     "drill": Dialects.DRILL,
-    # "druid": ???
+    "druid": Dialects.DRUID,
     "duckdb": Dialects.DUCKDB,
     # "dynamodb": ???
     # "elasticsearch": ???
@@ -97,6 +94,167 @@ SQLGLOT_DIALECTS = {
     "vertica": Dialects.POSTGRES,
     "yql": Dialects.CLICKHOUSE,
 }
+
+
+class LimitMethod(enum.Enum):
+    """
+    Limit methods.
+
+    This is used to determine how to add a limit to a SQL statement.
+    """
+
+    FORCE_LIMIT = enum.auto()
+    WRAP_SQL = enum.auto()
+    FETCH_MANY = enum.auto()
+
+
+class CTASMethod(enum.Enum):
+    TABLE = enum.auto()
+    VIEW = enum.auto()
+
+
+class RLSMethod(enum.Enum):
+    """
+    Methods for enforcing RLS.
+    """
+
+    AS_PREDICATE = enum.auto()
+    AS_SUBQUERY = enum.auto()
+
+
+class RLSTransformer:
+    """
+    AST transformer to apply RLS rules.
+    """
+
+    def __init__(
+        self,
+        catalog: str | None,
+        schema: str | None,
+        rules: dict[Table, list[exp.Expression]],
+    ) -> None:
+        self.catalog = catalog
+        self.schema = schema
+        self.rules = rules
+
+    def get_predicate(self, table_node: exp.Table) -> exp.Expression | None:
+        """
+        Get the combined RLS predicate for a table.
+        """
+        table = Table(
+            table_node.name,
+            table_node.db if table_node.db else self.schema,
+            table_node.catalog if table_node.catalog else self.catalog,
+        )
+        if predicates := self.rules.get(table):
+            return (
+                exp.And(
+                    this=predicates[0],
+                    expressions=predicates[1:],
+                )
+                if len(predicates) > 1
+                else predicates[0]
+            )
+
+        return None
+
+
+class RLSAsPredicateTransformer(RLSTransformer):
+    """
+    Apply Row Level Security role as a predicate.
+
+    This transformer will apply any RLS predicates to the relevant tables. For example,
+    given the RLS rule:
+
+        table: some_table
+        clause: id = 42
+
+    If a user subject to the rule runs the following query:
+
+        SELECT foo FROM some_table WHERE bar = 'baz'
+
+    The query will be modified to:
+
+        SELECT foo FROM some_table WHERE bar = 'baz' AND id = 42
+
+    This approach is probably less secure than using subqueries, so it's only used for
+    databases without support for subqueries.
+    """
+
+    def __call__(self, node: exp.Expression) -> exp.Expression:
+        if not isinstance(node, exp.Table):
+            return node
+
+        predicate = self.get_predicate(node)
+        if not predicate:
+            return node
+
+        # qualify columns with table name
+        for column in predicate.find_all(exp.Column):
+            column.set("table", node.alias or node.this)
+
+        if isinstance(node.parent, exp.From):
+            select = node.parent.parent
+            if where := select.args.get("where"):
+                predicate = exp.And(
+                    this=predicate,
+                    expression=exp.Paren(this=where.this),
+                )
+            select.set("where", exp.Where(this=predicate))
+
+        elif isinstance(node.parent, exp.Join):
+            join = node.parent
+            if on := join.args.get("on"):
+                predicate = exp.And(
+                    this=predicate,
+                    expression=exp.Paren(this=on),
+                )
+            join.set("on", predicate)
+
+        return node
+
+
+class RLSAsSubqueryTransformer(RLSTransformer):
+    """
+    Apply Row Level Security role as a subquery.
+
+    This transformer will apply any RLS predicates to the relevant tables. For example,
+    given the RLS rule:
+
+        table: some_table
+        clause: id = 42
+
+    If a user subject to the rule runs the following query:
+
+        SELECT foo FROM some_table WHERE bar = 'baz'
+
+    The query will be modified to:
+
+        SELECT foo FROM (SELECT * FROM some_table WHERE id = 42) AS some_table
+        WHERE bar = 'baz'
+
+    This approach is probably more secure than using predicates, but it doesn't work for
+    all databases.
+    """
+
+    def __call__(self, node: exp.Expression) -> exp.Expression:
+        if not isinstance(node, exp.Table):
+            return node
+
+        if predicate := self.get_predicate(node):
+            # use alias or name
+            alias = node.alias or node.sql()
+            node.set("alias", None)
+            node = exp.Subquery(
+                this=exp.Select(
+                    expressions=[exp.Star()],
+                    where=exp.Where(this=predicate),
+                    **{"from": exp.From(this=node.copy())},
+                ),
+                alias=alias,
+            )
+
+        return node
 
 
 @dataclass(eq=True, frozen=True)
@@ -155,12 +313,17 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
 
     def __init__(
         self,
-        statement: str,
-        engine: str,
+        statement: str | None = None,
+        engine: str = "base",
         ast: InternalRepresentation | None = None,
     ):
-        self._sql = statement
-        self._parsed = ast or self._parse_statement(statement, engine)
+        if ast:
+            self._parsed = ast
+        elif statement:
+            self._parsed = self._parse_statement(statement, engine)
+        else:
+            raise ValueError("Either statement or ast must be provided")
+
         self.engine = engine
         self.tables = self._extract_tables_from_statement(self._parsed, self.engine)
 
@@ -223,6 +386,12 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def is_select(self) -> bool:
+        """
+        Check if the statement is a `SELECT` statement.
+        """
+        raise NotImplementedError()
+
     def is_mutating(self) -> bool:
         """
         Check if the statement mutates data (DDL/DML).
@@ -252,6 +421,59 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def set_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """
+        Add a limit to the statement.
+        """
+        raise NotImplementedError()
+
+    def has_cte(self) -> bool:
+        """
+        Check if the statement has a CTE.
+
+        :return: True if the statement has a CTE at the top level.
+        """
+        raise NotImplementedError()
+
+    def as_cte(self, alias: str = "__cte") -> SQLStatement:
+        """
+        Rewrite the statement as a CTE.
+
+        :param alias: The alias to use for the CTE.
+        :return: A new SQLStatement with the CTE.
+        """
+        raise NotImplementedError()
+
+    def as_create_table(self, table: Table, method: CTASMethod) -> SQLStatement:
+        """
+        Rewrite the statement as a `CREATE TABLE AS` statement.
+
+        :param table: The table to create.
+        :param method: The method to use for creating the table.
+        :return: A new SQLStatement with the CTE.
+        """
+        raise NotImplementedError()
+
+    def apply_rls(
+        self,
+        catalog: str | None,
+        schema: str | None,
+        predicates: dict[Table, list[InternalRepresentation]],
+        method: RLSMethod,
+    ) -> None:
+        """
+        Apply relevant RLS rules to the statement inplace.
+
+        :param catalog: The default catalog for non-qualified table names
+        :param schema: The default schema for non-qualified table names
+        :param method: The method to use for applying the rules.
+        """
+        raise NotImplementedError()
+
     def __str__(self) -> str:
         return self.format()
 
@@ -265,8 +487,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
     def __init__(
         self,
-        statement: str,
-        engine: str,
+        statement: str | None = None,
+        engine: str = "base",
         ast: exp.Expression | None = None,
     ):
         self._dialect = SQLGLOT_DIALECTS.get(engine)
@@ -279,7 +501,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         dialect = SQLGLOT_DIALECTS.get(engine)
         try:
-            return sqlglot.parse(script, dialect=dialect)
+            statements = sqlglot.parse(script, dialect=dialect)
         except sqlglot.errors.ParseError as ex:
             error = ex.errors[0]
             raise SupersetParseError(
@@ -295,6 +517,20 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 engine,
                 message="Unable to parse script",
             ) from ex
+
+        # `sqlglot` will parse comments after the last semicolon as a separate
+        # statement; move them back to the last token in the last real statement
+        if len(statements) > 1 and isinstance(statements[-1], exp.Semicolon):
+            last_statement = statements.pop()
+            target = statements[-1]
+            for node in statements[-1].walk():
+                if hasattr(node, "comments"):
+                    target = node
+
+            target.comments = target.comments or []
+            target.comments.extend(last_statement.comments)
+
+        return statements
 
     @classmethod
     def split_script(
@@ -371,6 +607,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         dialect = SQLGLOT_DIALECTS.get(engine)
         return extract_tables_from_statement(parsed, dialect)
 
+    def is_select(self) -> bool:
+        """
+        Check if the statement is a `SELECT` statement.
+        """
+        return isinstance(self._parsed, exp.Select)
+
     def is_mutating(self) -> bool:
         """
         Check if the statement mutates data (DDL/DML).
@@ -404,7 +646,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             and self._parsed.expression.name.upper().startswith("ANALYZE ")
         ):
             analyzed_sql = self._parsed.expression.name[len("ANALYZE ") :]
-            return SQLStatement(analyzed_sql, self.engine).is_mutating()
+            return SQLStatement(
+                statement=analyzed_sql,
+                engine=self.engine,
+            ).is_mutating()
 
         return False
 
@@ -412,34 +657,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Pretty-format the SQL statement.
         """
-        if self._dialect:
-            try:
-                write = Dialect.get_or_raise(self._dialect)
-                return write.generate(
-                    self._parsed,
-                    copy=False,
-                    comments=comments,
-                    pretty=True,
-                )
-            except ValueError:
-                pass
-
-        return self._fallback_formatting()
-
-    @deprecated(deprecated_in="4.0")
-    def _fallback_formatting(self) -> str:
-        """
-        Format SQL without a specific dialect.
-
-        Reformatting SQL using the generic sqlglot dialect is known to break queries.
-        For example, it will change `foo NOT IN (1, 2)` to `NOT foo IN (1,2)`, which
-        breaks the query for Firebolt. To avoid this, we use sqlparse for formatting
-        when the dialect is not known.
-
-        In 5.0 we should remove `sqlparse`, and the method should return the query
-        unmodified.
-        """
-        return sqlparse.format(self._sql, reindent=True, keyword_case="upper")
+        return Dialect.get_or_raise(self._dialect).generate(
+            self._parsed,
+            copy=True,
+            comments=comments,
+            pretty=True,
+        )
 
     def get_settings(self) -> dict[str, str | bool]:
         """
@@ -462,12 +685,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         # only optimize statements that have a custom dialect
         if not self._dialect:
-            return SQLStatement(self._sql, self.engine, self._parsed.copy())
+            return SQLStatement(ast=self._parsed.copy(), engine=self.engine)
 
         optimized = pushdown_predicates(self._parsed, dialect=self._dialect)
-        sql = optimized.sql(dialect=self._dialect)
 
-        return SQLStatement(sql, self.engine, optimized)
+        return SQLStatement(ast=optimized, engine=self.engine)
 
     def check_functions_present(self, functions: set[str]) -> bool:
         """
@@ -482,7 +704,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 if function.sql_name() != "ANONYMOUS"
                 else function.name.upper()
             )
-            for function in self._parsed.find_all(Func)
+            for function in self._parsed.find_all(exp.Func)
         }
         return any(function.upper() in present for function in functions)
 
@@ -490,19 +712,107 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Parse a SQL query and return the `LIMIT` or `TOP` value, if present.
         """
-        limit_node = (
-            self._parsed
-            if isinstance(self._parsed, Limit)
-            else self._parsed.args.get("limit")
-        )
-        if not isinstance(limit_node, exp.Limit):
-            return None
-
-        literal = limit_node.args.get("expression") or getattr(limit_node, "this", None)
-        if isinstance(literal, exp.Literal) and literal.is_int:
-            return int(literal.name)
+        if limit_node := self._parsed.args.get("limit"):
+            literal = limit_node.args.get("expression") or getattr(
+                limit_node, "this", None
+            )
+            if isinstance(literal, exp.Literal) and literal.is_int:
+                return int(literal.name)
 
         return None
+
+    def set_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """
+        Modify the `LIMIT` or `TOP` value of the SQL statement inplace.
+        """
+        if method == LimitMethod.FORCE_LIMIT:
+            self._parsed.args["limit"] = exp.Limit(
+                expression=exp.Literal(this=str(limit), is_string=False)
+            )
+        elif method == LimitMethod.WRAP_SQL:
+            self._parsed = exp.Select(
+                expressions=[exp.Star()],
+                limit=exp.Limit(
+                    expression=exp.Literal(this=str(limit), is_string=False)
+                ),
+                **{"from": exp.From(this=exp.Subquery(this=self._parsed.copy()))},
+            )
+        else:  # method == LimitMethod.FETCH_MANY
+            pass
+
+    def has_cte(self) -> bool:
+        """
+        Check if the statement has a CTE.
+
+        :return: True if the statement has a CTE at the top level.
+        """
+        return "with" in self._parsed.args
+
+    def as_cte(self, alias: str = "__cte") -> SQLStatement:
+        """
+        Rewrite the statement as a CTE.
+
+        This is needed by MS SQL when the query includes CTEs. In that case the CTEs
+        need to be moved to the top of the query when we wrap it as a subquery when
+        building charts.
+
+        :param alias: The alias to use for the CTE.
+        :return: A new SQLStatement with the CTE.
+        """
+        existing_ctes = self._parsed.args["with"].expressions if self.has_cte() else []
+        self._parsed.args["with"] = None
+        new_cte = exp.CTE(
+            this=self._parsed.copy(),
+            alias=exp.TableAlias(this=exp.Identifier(this=alias)),
+        )
+        return SQLStatement(
+            ast=exp.With(expressions=[*existing_ctes, new_cte], this=None),
+            engine=self.engine,
+        )
+
+    def as_create_table(self, table: Table, method: CTASMethod) -> SQLStatement:
+        """
+        Rewrite the statement as a `CREATE TABLE AS` statement.
+
+        :param table: The table to create.
+        :param method: The method to use for creating the table.
+        :return: A new SQLStatement with the create table statement.
+        """
+        create_table = exp.Create(
+            this=sqlglot.parse_one(str(table), into=exp.Table),
+            kind=method.name,
+            expression=self._parsed.copy(),
+        )
+
+        return SQLStatement(ast=create_table, engine=self.engine)
+
+    def apply_rls(
+        self,
+        catalog: str | None,
+        schema: str | None,
+        predicates: dict[Table, list[exp.Expression]],
+        method: RLSMethod,
+    ) -> None:
+        """
+        Apply relevant RLS rules to the statement inplace.
+
+        :param catalog: The default catalog for non-qualified table names
+        :param schema: The default schema for non-qualified table names
+        :param method: The method to use for applying the rules.
+        """
+        transformers = {
+            RLSMethod.AS_PREDICATE: RLSAsPredicateTransformer,
+            RLSMethod.AS_SUBQUERY: RLSAsSubqueryTransformer,
+        }
+        if method not in transformers:
+            raise ValueError(f"Invalid RLS method: {method}")
+
+        transformer = transformers[method](catalog, schema, predicates)
+        self._parsed = self._parsed.transform(transformer)
 
 
 class KQLSplitState(enum.Enum):
@@ -561,7 +871,7 @@ def tokenize_kql(kql: str) -> list[tuple[KQLTokenType, str]]:
     state = KQLSplitState.OUTSIDE_STRING
     tokens: list[tuple[KQLTokenType, str]] = []
     buffer = ""
-    script = kql if kql.endswith(";") else kql + ";"
+    script = kql
 
     for i, ch in enumerate(script):
         if state == KQLSplitState.OUTSIDE_STRING:
@@ -630,6 +940,9 @@ def split_kql(kql: str) -> list[str]:
         else:
             current.append((ttype, val))
 
+    if current:
+        stmts_tokens.append(current)
+
     return ["".join(val for _, val in stmt) for stmt in stmts_tokens]
 
 
@@ -649,6 +962,14 @@ class KustoKQLStatement(BaseSQLStatement[str]):
     See https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/ for more
     details about it.
     """
+
+    def __init__(
+        self,
+        statement: str | None = None,
+        engine: str = "kustokql",
+        ast: str | None = None,
+    ):
+        super().__init__(statement, engine, ast)
 
     @classmethod
     def split_script(
@@ -707,7 +1028,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         Pretty-format the SQL statement.
         """
-        return self._sql.strip()
+        return self._parsed.strip()
 
     def get_settings(self) -> dict[str, str | bool]:
         """
@@ -724,6 +1045,12 @@ class KustoKQLStatement(BaseSQLStatement[str]):
 
         return {}
 
+    def is_select(self) -> bool:
+        """
+        Check if the statement is a `SELECT` statement.
+        """
+        return not self._parsed.startswith(".")
+
     def is_mutating(self) -> bool:
         """
         Check if the statement mutates data (DDL/DML).
@@ -738,7 +1065,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
 
         Kusto KQL doesn't support optimization, so this method is a no-op.
         """
-        return KustoKQLStatement(self._sql, self.engine, self._parsed)
+        return KustoKQLStatement(ast=self._parsed, engine=self.engine)
 
     def check_functions_present(self, functions: set[str]) -> bool:
         """
@@ -756,7 +1083,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         tokens = [
             token
-            for token in tokenize_kql(self._sql)
+            for token in tokenize_kql(self._parsed)
             if token[0] != KQLTokenType.WHITESPACE
         ]
         for idx, (ttype, val) in enumerate(tokens):
@@ -766,6 +1093,40 @@ class KustoKQLStatement(BaseSQLStatement[str]):
                 break
 
         return None
+
+    def set_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """
+        Add a limit to the statement.
+        """
+        if method != LimitMethod.FORCE_LIMIT:
+            raise SupersetParseError("Kusto KQL only supports the FORCE_LIMIT method.")
+
+        tokens = tokenize_kql(self._parsed)
+        found_limit_token = False
+        for idx, (ttype, val) in enumerate(tokens):
+            if ttype != KQLTokenType.STRING and val.lower() in {"take", "limit"}:
+                found_limit_token = True
+
+            if found_limit_token and ttype == KQLTokenType.NUMBER:
+                tokens[idx] = (KQLTokenType.NUMBER, str(limit))
+                break
+        else:
+            tokens.extend(
+                [
+                    (KQLTokenType.WHITESPACE, " "),
+                    (KQLTokenType.WORD, "|"),
+                    (KQLTokenType.WHITESPACE, " "),
+                    (KQLTokenType.WORD, "take"),
+                    (KQLTokenType.WHITESPACE, " "),
+                    (KQLTokenType.NUMBER, str(limit)),
+                ]
+            )
+
+        self._parsed = "".join(val for _, val in tokens)
 
 
 class SQLScript:
@@ -844,6 +1205,24 @@ class SQLScript:
             for statement in self.statements
         )
 
+    def is_valid_ctas(self) -> bool:
+        """
+        Check if the script contains a valid CTAS statement.
+
+        CTAS (`CREATE TABLE AS SELECT`) can only be run with scripts where the last
+        statement is a `SELECT`.
+        """
+        return self.statements[-1].is_select()
+
+    def is_valid_cvas(self) -> bool:
+        """
+        Check if the script contains a valid CVAS statement.
+
+        CVAS (`CREATE VIEW AS SELECT`) can only be run with scripts with a single
+        `SELECT` statement.
+        """
+        return len(self.statements) == 1 and self.statements[0].is_select()
+
 
 def extract_tables_from_statement(
     statement: exp.Expression,
@@ -852,7 +1231,7 @@ def extract_tables_from_statement(
     """
     Extract all table references in a single statement.
 
-    Please not that this is not trivial; consider the following queries:
+    Please note that this is not trivial; consider the following queries:
 
         DESCRIBE some_table;
         SHOW PARTITIONS FROM some_table;

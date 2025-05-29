@@ -27,7 +27,7 @@ from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.sql_types.mssql_sql_types import GUID
 from superset.utils.core import GenericDataType
@@ -52,10 +52,8 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 class MssqlEngineSpec(BaseEngineSpec):
     engine = "mssql"
     engine_name = "Microsoft SQL Server"
-    limit_method = LimitMethod.WRAP_SQL
     max_column_name_length = 128
     allows_cte_in_subquery = False
-    allow_limit_clause = False
     supports_multivalues_insert = True
 
     _time_grain_expressions = {

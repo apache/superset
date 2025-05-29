@@ -1104,46 +1104,6 @@ def test_unknown_select() -> None:
     assert not ParsedQuery(sql).is_select()
 
 
-def test_get_query_with_new_limit_comment() -> None:
-    """
-    Test that limit is applied correctly.
-    """
-    query = ParsedQuery("SELECT * FROM birth_names -- SOME COMMENT")
-    assert query.set_or_update_query_limit(1000) == (
-        "SELECT * FROM birth_names -- SOME COMMENT\nLIMIT 1000"
-    )
-
-
-def test_get_query_with_new_limit_comment_with_limit() -> None:
-    """
-    Test that limits in comments are ignored.
-    """
-    query = ParsedQuery("SELECT * FROM birth_names -- SOME COMMENT WITH LIMIT 555")
-    assert query.set_or_update_query_limit(1000) == (
-        "SELECT * FROM birth_names -- SOME COMMENT WITH LIMIT 555\nLIMIT 1000"
-    )
-
-
-def test_get_query_with_new_limit_lower() -> None:
-    """
-    Test that lower limits are not replaced.
-    """
-    query = ParsedQuery("SELECT * FROM birth_names LIMIT 555")
-    assert query.set_or_update_query_limit(1000) == (
-        "SELECT * FROM birth_names LIMIT 555"
-    )
-
-
-def test_get_query_with_new_limit_upper() -> None:
-    """
-    Test that higher limits are replaced.
-    """
-    query = ParsedQuery("SELECT * FROM birth_names LIMIT 2000")
-    assert query.set_or_update_query_limit(1000) == (
-        "SELECT * FROM birth_names LIMIT 1000"
-    )
-
-
 def test_basic_breakdown_statements() -> None:
     """
     Test that multiple statements are parsed correctly.
