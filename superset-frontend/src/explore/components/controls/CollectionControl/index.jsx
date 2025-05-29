@@ -141,6 +141,7 @@ class CollectionControl extends Component {
               </div>
               <InfoTooltip
                 icon="times"
+                role="button"
                 label="remove-item"
                 tooltip={t('Remove item')}
                 bsStyle="primary"
