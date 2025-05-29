@@ -289,6 +289,11 @@ class Slice(  # pylint: disable=too-many-public-methods
     def get_query_context(self) -> QueryContext | None:
         if self.query_context:
             try:
+                query_context = json.loads(self.query_context)
+                query_context["datasource"] = {
+                    "type": self.datasource_type,
+                    "id": self.datasource_id,
+                }
                 return self.get_query_context_factory().create(
                     **json.loads(self.query_context)
                 )
