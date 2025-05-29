@@ -45,6 +45,8 @@ export interface ThemeControllerOptions {
   storageKey?: string;
   defaultTheme?: AnyThemeConfig;
   onChange?: (theme: Theme) => void;
+  canUpdateTheme?: () => boolean;
+  canChangeDarkMode?: () => boolean;
 }
 
 export class ThemeController {
@@ -61,6 +63,10 @@ export class ThemeController {
   private customizations: AnyThemeConfig = {};
 
   private onChangeCallbacks: Set<(theme: Theme) => void> = new Set();
+
+  private canUpdateThemeFn: () => boolean;
+
+  private canChangeDarkModeFn: () => boolean;
 
   constructor(options: ThemeControllerOptions = {}) {
     this.storage = options.storage || new LocalStorageAdapter();
@@ -85,6 +91,8 @@ export class ThemeController {
     if (options.onChange) {
       this.onChangeCallbacks.add(options.onChange);
     }
+    this.canUpdateThemeFn = options.canUpdateTheme || (() => true);
+    this.canChangeDarkModeFn = options.canChangeDarkMode || (() => true);
   }
 
   /**
@@ -110,20 +118,12 @@ export class ThemeController {
     return ThemeController.instance;
   }
 
-  /**
-   * Check if the current user can update the theme
-   * This is a placeholder method
-   */
   public canUpdateTheme(): boolean {
-    return true;
+    return this.canUpdateThemeFn();
   }
 
-  /**
-   * Check if the current user can change dark mode
-   * This is a placeholder method
-   */
   public canChangeDarkMode(): boolean {
-    return true;
+    return this.canChangeDarkModeFn();
   }
 
   /**
