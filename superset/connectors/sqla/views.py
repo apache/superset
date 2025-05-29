@@ -17,11 +17,13 @@
 """Views used by the SqlAlchemy connector"""
 
 from flask_appbuilder import expose
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import (
     has_access,
     permission_name,
 )
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
@@ -39,6 +41,7 @@ class RowLevelSecurityView(BaseSupersetView):
 
 
 class TableModelView(BaseSupersetView):
+    datamodel = SQLAInterface(SqlaTable)
     class_permission_name = "Dataset"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 
