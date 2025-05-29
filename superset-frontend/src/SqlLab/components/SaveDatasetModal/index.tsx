@@ -290,15 +290,22 @@ export const SaveDatasetModal = ({
     // Remove the special filters entry from the templateParams
     // before saving the dataset.
     let templateParams;
-    if (typeof datasource?.templateParams === 'string' && includeTemplateParameters) {
-      const p = JSON.parse(datasource.templateParams);
-      /* eslint-disable-next-line no-underscore-dangle */
-      if (p._filters) {
+    if (
+      typeof datasource?.templateParams === 'string' &&
+      includeTemplateParameters
+    ) {
+      try {
+        const p = JSON.parse(datasource.templateParams);
         /* eslint-disable-next-line no-underscore-dangle */
-        delete p._filters;
-        // eslint-disable-next-line no-param-reassign
+        if (p._filters) {
+          /* eslint-disable-next-line no-underscore-dangle */
+          delete p._filters;
+        }
+        templateParams = JSON.stringify(p);
+      } catch (e) {
+        // malformed templateParams, do not include it
+        templateParams = undefined;
       }
-      templateParams = JSON.stringify(p);
     }
 
     dispatch(
