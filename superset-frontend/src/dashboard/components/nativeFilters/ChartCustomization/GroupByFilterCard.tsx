@@ -188,7 +188,7 @@ const GroupByFilterCardContent: FC<{
         `}
       >
         <InternalRow>
-          <Icons.BarChartOutlined
+          <Icons.GroupOutlined
             iconSize="s"
             css={theme => css`
               margin-right: ${theme.gridUnit}px;

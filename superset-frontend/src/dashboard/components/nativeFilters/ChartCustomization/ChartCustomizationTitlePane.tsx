@@ -92,7 +92,7 @@ const ChartCustomizationTitlePane: FC<Props> = ({
           buttonStyle="secondary"
           aria-label={t('Add dynamic group by')}
           icon={
-            <Icons.BarChartOutlined
+            <Icons.GroupOutlined
               iconColor={theme.colors.primary.dark1}
               iconSize="m"
             />

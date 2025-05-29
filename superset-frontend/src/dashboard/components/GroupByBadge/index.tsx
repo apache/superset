@@ -145,7 +145,7 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
         role="button"
         tabIndex={0}
       >
-        <Icons.TableOutlined iconSize="m" />
+        <Icons.GroupOutlined iconSize="m" />
         <StyledBadge
           data-test="applied-groupby-count"
           count={groupByCount}

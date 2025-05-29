@@ -29,14 +29,6 @@ export function generateGroupById(): string {
 export const getChartCustomizationIds = (items: ChartCustomizationItem[]) =>
   items.map(item => item.id);
 
-export const validateCustomizationForm = async (
-  form: any,
-  currentId: string,
-  setCurrentId: (id: string) => void,
-) => {
-  // Implementation similar to FiltersConfigModal validation
-};
-
 export const createDefaultChartCustomizationItem =
   (): ChartCustomizationItem => ({
     id: generateGroupById(),
