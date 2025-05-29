@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
-import { t, legacyValidateInteger } from '@superset-ui/core';
+import { t, validateNumber, validateInteger } from '@superset-ui/core';
 import { formatSelectOptions } from '../../utilities/utils';
 import {
   filterNulls,
@@ -77,14 +77,38 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'get_point_radius',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Point Radius'),
+              validators: [validateInteger],
+              default: 1,
+              choices: formatSelectOptions([1, 5, 10, 20, 50, 100]),
+              renderTrigger: true,
+            },
+          },
+          {
             name: 'point_radius_scale',
             config: {
               type: 'SelectControl',
               freeForm: true,
               label: t('Point Radius Scale'),
-              validators: [legacyValidateInteger],
-              default: null,
+              validators: [validateNumber],
+              default: 100,
               choices: formatSelectOptions([0, 100, 200, 300, 500]),
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'point_radius_units',
+            config: {
+              type: 'SelectControl',
+              label: t('Point Radius Units'),
+              default: 'meters',
+              choices: formatSelectOptions(['meters', 'common', 'pixels']),
             },
           },
         ],
