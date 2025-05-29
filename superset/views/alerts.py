@@ -19,6 +19,7 @@ from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose
 from flask_appbuilder.security.decorators import has_access
 
+from superset import is_feature_enabled
 from superset.superset_typing import FlaskResponse
 
 from .base import BaseSupersetView
@@ -34,8 +35,6 @@ class BaseAlertReportView(BaseSupersetView):
     @has_access
     @permission_name("read")
     def list(self) -> FlaskResponse:
-        from superset import is_feature_enabled
-
         if not is_feature_enabled("ALERT_REPORTS"):
             return abort(404)
         return super().render_app_template()
@@ -44,8 +43,6 @@ class BaseAlertReportView(BaseSupersetView):
     @has_access
     @permission_name("read")
     def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
-        from superset import is_feature_enabled
-
         if not is_feature_enabled("ALERT_REPORTS"):
             return abort(404)
 
