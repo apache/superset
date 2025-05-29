@@ -364,7 +364,7 @@ def test_safe_proxy_nested_lambda() -> None:
 @pytest.mark.parametrize(
     "add_to_cache_keys,mock_cache_key_wrapper_call_count",
     [
-        (True, 5),
+        (True, 4),
         (False, 0),
     ],
 )
@@ -400,8 +400,11 @@ def test_user_macros(
     assert cache.current_username(add_to_cache_keys) == "my_username"
     assert cache.current_user_email(add_to_cache_keys) == "my_email@test.com"
     assert cache.current_user_roles(add_to_cache_keys) == ["my_role1", "my_role2"]
-    assert cache.current_user_rls_rules(add_to_cache_keys) == ["1=1", "product_id=1"]
     assert mock_cache_key_wrapper.call_count == mock_cache_key_wrapper_call_count
+
+    # Testing {{ current_user_rls_rules() }} macro isolated and always without
+    # the param because it does not support it to avoid shared cache.
+    assert cache.current_user_rls_rules() == ["1=1", "product_id=1"]
 
 
 def test_user_macros_without_user_info(mocker: MockerFixture):
