@@ -22,7 +22,7 @@ from typing import Any, Callable, DefaultDict, Optional, Union
 
 import msgpack
 import pyarrow as pa
-from flask import current_app, flash, g, has_request_context, redirect, request
+from flask import flash, g, has_request_context, redirect, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
@@ -39,7 +39,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager, feature_flag_manager
+from superset.extensions import cache_manager, feature_flag_manager, security_manager
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -71,8 +71,8 @@ def sanitize_datasource_data(datasource_data: dict[str, Any]) -> dict[str, Any]:
 def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, Any]:
     if user.is_anonymous:
         payload = {}
-        user.roles = (current_app.appbuilder.sm.find_role("Public"),)
-    elif current_app.appbuilder.sm.is_guest_user(user):
+        user.roles = (security_manager.find_role("Public"),)
+    elif security_manager.is_guest_user(user):
         payload = {
             "username": user.username,
             "firstName": user.first_name,
@@ -107,7 +107,7 @@ def get_permissions(
         raise AttributeError("User object does not have roles or groups")
 
     data_permissions = defaultdict(set)
-    roles_permissions = current_app.appbuilder.sm.get_user_roles_permissions(user)
+    roles_permissions = security_manager.get_user_roles_permissions(user)
     for _, permissions in roles_permissions.items():  # noqa: F402
         for permission in permissions:
             if permission[0] in ("datasource_access", "database_access"):
