@@ -17,7 +17,6 @@
  * under the License.
  */
 import { StoryObj } from '@storybook/react';
-import ControlHeader from 'src/explore/components/ControlHeader';
 import { SelectOptionsType, SelectProps } from './types';
 import { Select } from '.';
 
@@ -72,21 +71,6 @@ const selectPositions = [
   },
 ];
 
-const mountHeader = (type: String) => {
-  let header;
-  if (type === 'text') {
-    header = 'Text header';
-  } else if (type === 'control') {
-    header = (
-      <ControlHeader
-        label="Control header"
-        warning="Example of warning message"
-      />
-    );
-  }
-  return header;
-};
-
 const generateOptions = (opts: SelectOptionsType, count: number) => {
   let generated = opts.slice();
   let iteration = 0;
@@ -122,7 +106,6 @@ export const InteractiveSelect: StoryObj = {
             ? generateOptions(options, optionsCount)
             : options
         }
-        header={mountHeader(header)}
         mode="multiple"
       />
     </div>

@@ -20,7 +20,7 @@ import { css, styled } from '@superset-ui/core';
 import { List as AntdList } from 'antd';
 import type { ListProps, ListItemProps, ListItemMetaProps } from './types';
 
-interface CompactListItemProps extends ListItemProps {
+export interface CompactListItemProps extends ListItemProps {
   compact?: boolean;
 }
 

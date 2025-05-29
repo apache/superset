@@ -19,11 +19,21 @@
 
 /**
  * This file contains utility functions for mapping columns and rows.
- * These functions act  as a compatibility layer between Ant Design Table and react-table.
+ * These functions act as a compatibility layer between Ant Design Table and react-table.
  */
 
 import { ReactNode } from 'react';
-import { ColumnInstance, HeaderGroup, Row, CellValue } from 'react-table';
+import {
+  CellValue,
+  Row,
+  ColumnInstance as RTColumnInstance,
+  HeaderGroup as RTHeaderGroup,
+  UseSortByColumnOptions,
+  UseSortByColumnProps,
+  UseResizeColumnsColumnOptions,
+  UseResizeColumnsColumnProps,
+} from 'react-table';
+
 import { SortOrder } from '../Table';
 
 type TableSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
@@ -39,8 +49,22 @@ const COLUMN_SIZE_MAP: Record<TableSize, number> = {
   xxl: 200,
 };
 
+type EnhancedColumnInstance<T extends object = any> = RTColumnInstance<T> &
+  Partial<UseSortByColumnOptions<T>> &
+  Partial<UseSortByColumnProps<T>> &
+  Partial<UseResizeColumnsColumnOptions<T>> &
+  Partial<UseResizeColumnsColumnProps<T>> & {
+    hidden?: boolean;
+    size?: keyof typeof COLUMN_SIZE_MAP;
+  };
+
+type EnhancedHeaderGroup<T extends object = any> = RTHeaderGroup<T> & {
+  isSorted?: boolean;
+  isSortedDesc?: boolean;
+};
+
 function getSortingInfo<T extends object>(
-  headerGroups: HeaderGroup<T>[],
+  headerGroups: EnhancedHeaderGroup<T>[],
   headerId: string,
 ): {
   isSorted: boolean;
@@ -59,8 +83,8 @@ function getSortingInfo<T extends object>(
 }
 
 export function mapColumns<T extends object>(
-  columns: ColumnInstance<T>[],
-  headerGroups: HeaderGroup<T>[],
+  columns: EnhancedColumnInstance<T>[],
+  headerGroups: EnhancedHeaderGroup<T>[],
   columnsForWrapText?: string[],
 ) {
   return columns.map(column => {
@@ -87,7 +111,7 @@ export function mapColumns<T extends object>(
           }: {
             value: CellValue<T>;
             row: { original: Row<T>; id: string };
-            column: ColumnInstance<T>;
+            column: RTColumnInstance<T>;
           }) => ReactNode;
 
           return cellRenderer({
