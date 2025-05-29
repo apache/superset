@@ -383,7 +383,7 @@ describe('DatabaseModal', () => {
       // ---------- TODO (lyndsiWilliams): Selector options, can't seem to get these to render properly.
 
       // renderAvailableSelector() => <Alert> - Supported databases alert
-      const alertIcon = screen.getByRole('img', { name: /info-circle/i });
+      const alertIcon = screen.getAllByRole('img', { name: /info-circle/i });
       const alertMessage = screen.getByText(/want to add a new database\?/i);
       const alertDescription = screen.getByText(
         /any databases that allow connections via sql alchemy uris can be added\. learn about how to connect a database driver \./i,
@@ -653,7 +653,7 @@ describe('DatabaseModal', () => {
       ) as HTMLInputElement[];
       const checkboxOff = allCheckboxes.filter(checkbox => !checkbox.checked);
       const tooltipIcons = within(advancedTabPanel).getAllByRole('img', {
-        name: /info-tooltip/i,
+        name: /info-tooltip-icon/i,
       });
 
       const exposeInSQLLabCheckbox = screen.getByRole('checkbox', {

@@ -22,11 +22,11 @@ import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { MetricOption, MetricOptionProps } from '../../src';
 
 jest.mock('@superset-ui/core/components/InfoTooltip', () => ({
-  InfoTooltip: () => <div data-test="mock-info-tooltip-with-trigger" />,
+  InfoTooltip: () => <div data-test="mock-tooltip" />,
 }));
 
 jest.mock(
-  '@superset-ui/core/components/ColumnTypeLabel/ColumnTypeLabel',
+  '@superset-ui/chart-controls/components/ColumnTypeLabel/ColumnTypeLabel',
   () => ({
     ColumnTypeLabel: () => <div data-test="mock-column-type-label" />,
   }),
@@ -38,7 +38,7 @@ jest.mock(
       <div data-test="mock-tooltip">{children}</div>
     ),
 );
-jest.mock('@superset-ui/core/components/SQLPopover', () => ({
+jest.mock('@superset-ui/chart-controls/components/SQLPopover', () => ({
   SQLPopover: () => <div data-test="mock-sql-popover" />,
 }));
 
@@ -71,7 +71,7 @@ test('shows a label with verbose_name', () => {
 });
 test('shows a InfoTooltip', () => {
   const { getByTestId } = setup();
-  expect(getByTestId('mock-info-tooltip-with-trigger')).toBeInTheDocument();
+  expect(getByTestId('mock-tooltip')).toBeInTheDocument();
 });
 test('shows SQL Popover trigger', () => {
   const { getByTestId } = setup();
@@ -93,7 +93,7 @@ test('doesnt show InfoTooltip when no warning', () => {
       warning_text: '',
     },
   });
-  expect(queryByText('mock-info-tooltip-with-trigger')).not.toBeInTheDocument();
+  expect(queryByText('mock-tooltip')).not.toBeInTheDocument();
 });
 test('sets target="_blank" when openInNewWindow is true', () => {
   const { getByRole } = setup({

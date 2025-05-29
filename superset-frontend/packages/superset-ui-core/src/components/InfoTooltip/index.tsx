@@ -81,6 +81,7 @@ export const InfoTooltip = ({
     <Button
       type="text"
       variant="text"
+      data-test="info-tooltip-icon"
       aria-label={t('Show info tooltip')}
       className={className}
       css={[
