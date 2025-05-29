@@ -17,16 +17,21 @@
  * under the License.
  */
 
-export const DASHBOARD_LIST = '/dashboard/list/';
-export const CHART_LIST = '/chart/list/';
-export const WORLD_HEALTH_DASHBOARD = '/superset/dashboard/world_health/';
-export const SAMPLE_DASHBOARD_1 = '/superset/dashboard/1-sample-dashboard/';
-export const SUPPORTED_CHARTS_DASHBOARD =
-  '/superset/dashboard/supported_charts_dash/';
-export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
-export const DATABASE_LIST = '/databaseview/list';
-export const DATASET_LIST_PATH = 'tablemodelview/list';
-export const ALERT_LIST = '/alert/list/';
-export const REPORT_LIST = '/report/list/';
-export const LOGIN = '/login/';
-export const REGISTER = '/register/';
+import { REGISTER } from 'cypress/utils/urls';
+
+describe('Register view', () => {
+  beforeEach(() => {
+    cy.visit(REGISTER);
+  });
+
+  it('should load register page', () => {
+    cy.getBySel('register-form').should('be.visible');
+    cy.getBySel('username-input').should('be.visible');
+    cy.getBySel('first-name-input').should('be.visible');
+    cy.getBySel('last-name-input').should('be.visible');
+    cy.getBySel('email-input').should('be.visible');
+    cy.getBySel('password-input').should('be.visible');
+    cy.getBySel('confirm-password-input').should('be.visible');
+    cy.getBySel('register-button').should('be.visible');
+  });
+});
