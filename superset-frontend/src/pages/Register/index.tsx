@@ -131,7 +131,10 @@ export default function Login() {
           <Form.Item<RegisterForm>
             label={t('Email')}
             name="email"
-            rules={[{ required: true, message: t('Please enter your email') }]}
+            rules={[
+              { required: true, message: t('Please enter your email') },
+              { type: 'email', message: t('Please enter a valid email') },
+            ]}
           >
             <Input
               placeholder={t('Email')}
