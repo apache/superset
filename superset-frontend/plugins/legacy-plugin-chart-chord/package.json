@@ -31,7 +31,7 @@
   "dependencies": {
     "d3": "^3.5.17",
     "prop-types": "^15.8.1",
-    "react": "^17.0.2"
+    "react": "^19.1.0"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
