@@ -653,7 +653,7 @@ describe('DatabaseModal', () => {
       ) as HTMLInputElement[];
       const checkboxOff = allCheckboxes.filter(checkbox => !checkbox.checked);
       const tooltipIcons = within(advancedTabPanel).getAllByRole('img', {
-        name: /info-tooltip-icon/i,
+        name: /Show info tooltip/i,
       });
 
       const exposeInSQLLabCheckbox = screen.getByRole('checkbox', {

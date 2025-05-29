@@ -121,24 +121,6 @@ jobs:
           files: merged-output/coverage-summary.json
           slug: apache/superset
 
-  core-cover:
-    needs: frontend-build
-    if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-image
-
-      - name: Load Docker Image
-        run: docker load < docker-image.tar.gz
-
-      - name: superset-ui/core coverage
-        run: |
-          docker run --rm $TAG bash -c \
-          "npm run core:cover"
-
   lint-frontend:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
