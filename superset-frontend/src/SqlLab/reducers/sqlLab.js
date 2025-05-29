@@ -410,22 +410,40 @@ export default function sqlLabReducer(state = {}, action) {
       return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.START_GENERATE_SQL]() {
+      const queryEditors = state.queryEditors.map(qe => {
+        if (qe.id === action.queryEditorId) {
+          return {
+            ...qe,
+            queryGenerator: {
+              ...qe.queryGenerator,
+              isGeneratingQuery: true,
+            },
+          };
+        }
+        return qe;
+      });
       return {
         ...state,
-        queryGenerator: {
-          ...state.queryGenerator,
-          isGeneratingQuery: true,
-        },
+        queryEditors,
       };
     },
     [actions.GENERATE_SQL_DONE]() {
+      const queryEditors = state.queryEditors.map(qe => {
+        if (qe.id === action.queryEditorId) {
+          return {
+            ...qe,
+            queryGenerator: {
+              ...qe.queryGenerator,
+              isGeneratingQuery: false,
+              prompt: action.prompt,
+            },
+          };
+        }
+        return qe;
+      });
       return {
         ...state,
-        queryGenerator: {
-          ...state.queryGenerator,
-          isGeneratingQuery: false,
-          prompt: action.prompt,
-        },
+        queryEditors,
       };
     },
     [actions.GENERATE_SQL_SET_PROMPT]() {
