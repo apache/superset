@@ -402,12 +402,7 @@ const AsyncSelect = forwardRef(
       const thresholdReached =
         vScroll.scrollTop > (vScroll.scrollHeight - vScroll.offsetHeight) * 0.7;
       const hasMoreData = page * pageSize + pageSize < totalCount;
-      /*
-      console.log(pageSize, page);
-      console.log(totalCount);
-      console.log('has more data: ', hasMoreData);
-      console.log('threshold reached', thresholdReached);
-    ] */
+
       if (!isLoading && hasMoreData && thresholdReached) {
         const newPage = page + 1;
         fetchPage(inputValue, newPage);

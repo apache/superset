@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import { useEffect, useRef, useState } from 'react';
+import { t } from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
 import { RoleObject } from 'src/pages/RolesList';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
@@ -25,13 +25,14 @@ import {
   BaseModalProps,
   FormattedPermission,
   RoleForm,
-  UserObject,
 } from 'src/features/roles/types';
 import { CellProps } from 'react-table';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import FormModal from 'src/components/Modal/FormModal';
 import { GroupObject } from 'src/pages/GroupsList';
-import rison from 'rison';
+import { FormInstance } from 'src/components';
+import { fetchPaginatedData } from 'src/utils/fetchOptions';
+import { UserObject } from 'src/pages/UsersList';
 import {
   GroupsField,
   PermissionsField,
@@ -100,36 +101,45 @@ function RoleListEditModal({
   const { addDangerToast, addSuccessToast } = useToasts();
   const [roleUsers, setRoleUsers] = useState<UserObject[]>([]);
   const [loadingRoleUsers, setLoadingRoleUsers] = useState(true);
-  const [formKey, setFormKey] = useState(0);
+  const formRef = useRef<FormInstance | null>(null);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      if (!user_ids.length) {
-        setRoleUsers([]);
-        setLoadingRoleUsers(false);
-        return;
-      }
+    if (!user_ids.length) {
+      setRoleUsers([]);
+      setLoadingRoleUsers(false);
+      return;
+    }
 
-      const query = rison.encode({
-        filters: [{ col: 'id', opr: 'in', value: user_ids }],
-        page: 0,
-        page_size: 100,
-      });
+    const filters = [{ col: 'id', opr: 'in', value: user_ids }];
 
-      try {
-        const response = await SupersetClient.get({
-          endpoint: `/api/v1/security/users/?q=${query}`,
-        });
-        setRoleUsers(response.json?.result || []);
-      } catch {
-        addDangerToast(t('There was an error loading users.'));
-      } finally {
-        setLoadingRoleUsers(false);
-        setFormKey(prevKey => prevKey + 1);
-      }
-    };
-    fetchUsers();
+    fetchPaginatedData({
+      endpoint: `/api/v1/security/users/`,
+      pageSize: 100,
+      setData: setRoleUsers,
+      filters,
+      setLoadingState: (loading: boolean) => setLoadingRoleUsers(loading),
+      loadingKey: 'roleUsers',
+      addDangerToast,
+      errorMessage: t('There was an error loading users.'),
+      mapResult: (user: UserObject) => ({
+        id: user.id,
+        username: user.username,
+      }),
+    });
   }, [user_ids]);
+
+  useEffect(() => {
+    if (!loadingRoleUsers && formRef.current && roleUsers.length >= 0) {
+      const userOptions = roleUsers.map(user => ({
+        value: user.id,
+        label: user.username,
+      }));
+
+      formRef.current.setFieldsValue({
+        roleUsers: userOptions,
+      });
+    }
+  }, [loadingRoleUsers, roleUsers]);
 
   const handleFormSubmit = async (values: RoleForm) => {
     try {
@@ -162,7 +172,6 @@ function RoleListEditModal({
 
   return (
     <FormModal
-      key={formKey}
       show={show}
       onHide={onHide}
       title={t('Edit Role')}
@@ -172,33 +181,39 @@ function RoleListEditModal({
       bodyStyle={{ height: '400px' }}
       requiredFields={['roleName']}
     >
-      <Tabs
-        activeKey={activeTabKey}
-        onChange={activeKey => setActiveTabKey(activeKey)}
-      >
-        <Tabs.TabPane
-          tab={roleTabs.edit.name}
-          key={roleTabs.edit.key}
-          forceRender
-        >
-          <>
-            <RoleNameField />
-            <PermissionsField permissions={permissions} />
-            <UsersField
-              addDangerToast={addDangerToast}
-              loading={loadingRoleUsers}
-            />
-            <GroupsField groups={groups} />
-          </>
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={roleTabs.users.name} key={roleTabs.users.key}>
-          <TableView
-            columns={userColumns}
-            data={roleUsers}
-            emptyWrapperType={EmptyWrapperType.Small}
-          />
-        </Tabs.TabPane>
-      </Tabs>
+      {(form: FormInstance) => {
+        formRef.current = form;
+
+        return (
+          <Tabs
+            activeKey={activeTabKey}
+            onChange={activeKey => setActiveTabKey(activeKey)}
+          >
+            <Tabs.TabPane
+              tab={roleTabs.edit.name}
+              key={roleTabs.edit.key}
+              forceRender
+            >
+              <>
+                <RoleNameField />
+                <PermissionsField permissions={permissions} />
+                <UsersField
+                  addDangerToast={addDangerToast}
+                  loading={loadingRoleUsers}
+                />
+                <GroupsField groups={groups} />
+              </>
+            </Tabs.TabPane>
+            <Tabs.TabPane tab={roleTabs.users.name} key={roleTabs.users.key}>
+              <TableView
+                columns={userColumns}
+                data={roleUsers}
+                emptyWrapperType={EmptyWrapperType.Small}
+              />
+            </Tabs.TabPane>
+          </Tabs>
+        );
+      }}
     </FormModal>
   );
 }

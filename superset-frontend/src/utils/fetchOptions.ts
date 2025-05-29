@@ -16,23 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { SupersetClient, t } from '@superset-ui/core';
+import rison from 'rison';
 
 interface FetchPaginatedOptions {
   endpoint: string;
   pageSize?: number;
   setData: (data: any[]) => void;
   setLoadingState: React.Dispatch<React.SetStateAction<any>>;
+  filters?: SupersetFilter[];
   loadingKey: string;
   addDangerToast: (message: string) => void;
   errorMessage?: string;
   mapResult?: (item: any) => any;
 }
 
+interface QueryObj {
+  page_size: number;
+  page: number;
+  filters?: SupersetFilter[];
+}
+
+interface SupersetFilter {
+  col: string;
+  opr: string;
+  value: string | number | (string | number)[];
+}
+
 export const fetchPaginatedData = async ({
   endpoint,
   pageSize = 100,
   setData,
+  filters,
   setLoadingState,
   loadingKey,
   addDangerToast,
@@ -41,8 +57,17 @@ export const fetchPaginatedData = async ({
 }: FetchPaginatedOptions) => {
   try {
     const fetchPage = async (pageIndex: number) => {
+      const queryObj: QueryObj = {
+        page_size: pageSize,
+        page: pageIndex,
+      };
+      if (filters) {
+        queryObj.filters = filters;
+      }
+      const encodedQuery = rison.encode(queryObj);
+
       const response = await SupersetClient.get({
-        endpoint: `${endpoint}?q=(page_size:${pageSize},page:${pageIndex})`,
+        endpoint: `${endpoint}?q=${encodedQuery}`,
       });
 
       return {
@@ -74,9 +99,14 @@ export const fetchPaginatedData = async ({
   } catch (err) {
     addDangerToast(t(errorMessage));
   } finally {
-    setLoadingState((prev: Record<string, boolean>) => ({
-      ...prev,
-      [loadingKey]: false,
-    }));
+    setLoadingState((prev: boolean | Record<string, boolean>) => {
+      if (typeof prev === 'boolean') {
+        return false;
+      }
+      return {
+        ...prev,
+        [loadingKey]: false,
+      };
+    });
   }
 };

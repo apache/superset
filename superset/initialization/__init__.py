@@ -292,17 +292,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
 
         appbuilder.add_view(
-            GroupsListView,
-            "List Groups",
-            label=__("List Groups"),
+            ActionLogView,
+            "Action Logs",
+            label=__("Action Logs"),
             category="Security",
             category_label=__("Security"),
         )
 
         appbuilder.add_view(
-            ActionLogView,
-            "Action Logs",
-            label=__("Action Logs"),
+            GroupsListView,
+            "List Groups",
+            label=__("List Groups"),
             category="Security",
             category_label=__("Security"),
         )
