@@ -194,9 +194,7 @@ class ExtraCache:
         except Exception:  # pylint: disable=broad-except
             return None
 
-    def current_user_rls_rules(
-        self, add_to_cache_keys: bool = True
-    ) -> list[str] | None:
+    def current_user_rls_rules(self) -> list[str] | None:
         """
         Return the row level security rules applied to the current user and dataset.
         """
@@ -217,8 +215,8 @@ class ExtraCache:
         )
         if not rls_rules:
             return None
-        if add_to_cache_keys:
-            self.cache_key_wrapper(json.dumps(rls_rules))
+
+        self.cache_key_wrapper(json.dumps(rls_rules))
         return rls_rules
 
     def cache_key_wrapper(self, key: Any) -> Any:
