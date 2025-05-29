@@ -26,12 +26,12 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-// eslint-disable-next-line no-restricted-imports
 import {
-  EmotionThemeProvider,
+  SupersetThemeProvider,
+  ThemeProvider,
+  // eslint-disable-next-line no-restricted-imports
   supersetTheme,
   themeController,
-  ThemeProvider,
 } from '@superset-ui/core';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -48,6 +48,7 @@ type Options = Omit<RenderOptions, 'queries'> & {
   useDnd?: boolean;
   useQueryParams?: boolean;
   useRouter?: boolean;
+  useTheme?: boolean;
   initialState?: {};
   reducers?: {};
   store?: Store;
@@ -73,6 +74,7 @@ export function createWrapper(options?: Options) {
     useRedux,
     useQueryParams,
     useRouter,
+    useTheme,
     initialState,
     reducers,
     store,
@@ -80,12 +82,16 @@ export function createWrapper(options?: Options) {
 
   return ({ children }: { children?: ReactNode }) => {
     let result = (
-      <ThemeProvider themeController={themeController}>
-        <EmotionThemeProvider theme={supersetTheme}>
-          {children}
-        </EmotionThemeProvider>
-      </ThemeProvider>
+      <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
     );
+
+    if (useTheme) {
+      result = (
+        <SupersetThemeProvider themeController={themeController}>
+          {result}
+        </SupersetThemeProvider>
+      );
+    }
 
     if (useDnd) {
       result = <DndProvider backend={HTML5Backend}>{result}</DndProvider>;

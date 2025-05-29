@@ -19,7 +19,7 @@
 
 import { Route } from 'react-router-dom';
 import {
-  ThemeProvider,
+  SupersetThemeProvider,
   getExtensionsRegistry,
   themeController,
 } from '@superset-ui/core';
@@ -41,7 +41,7 @@ export const RootContextProviders: React.FC = ({ children }) => {
     'root.context.provider',
   );
   return (
-    <ThemeProvider themeController={themeController}>
+    <SupersetThemeProvider themeController={themeController}>
       <ReduxProvider store={store}>
         <DndProvider backend={HTML5Backend}>
           <FlashProvider messages={common.flash_messages}>
@@ -64,6 +64,6 @@ export const RootContextProviders: React.FC = ({ children }) => {
           </FlashProvider>
         </DndProvider>
       </ReduxProvider>
-    </ThemeProvider>
+    </SupersetThemeProvider>
   );
 };

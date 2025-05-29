@@ -18,7 +18,7 @@
  */
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { EmotionThemeProvider, supersetTheme } from '@superset-ui/core';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
@@ -268,9 +268,9 @@ describe('plugin-chart-table', () => {
     describe('TableChart', () => {
       it('render basic data', () => {
         render(
-          <EmotionThemeProvider theme={supersetTheme}>
+          <ThemeProvider theme={supersetTheme}>
             <TableChart {...transformProps(testData.basic)} sticky={false} />,
-          </EmotionThemeProvider>,
+          </ThemeProvider>,
         );
 
         const firstDataRow = screen.getAllByRole('rowgroup')[1];
@@ -289,10 +289,10 @@ describe('plugin-chart-table', () => {
 
       it('render advanced data', () => {
         render(
-          <EmotionThemeProvider theme={supersetTheme}>
+          <ThemeProvider theme={supersetTheme}>
             <TableChart {...transformProps(testData.advanced)} sticky={false} />
             ,
-          </EmotionThemeProvider>,
+          </ThemeProvider>,
         );
         const secondColumnHeader = screen.getByText('Sum of Num');
         expect(secondColumnHeader).toBeInTheDocument();
@@ -413,9 +413,9 @@ describe('plugin-chart-table', () => {
 
       it('render empty data', () => {
         render(
-          <EmotionThemeProvider theme={supersetTheme}>
+          <ThemeProvider theme={supersetTheme}>
             <TableChart {...transformProps(testData.empty)} sticky={false} />,
-          </EmotionThemeProvider>,
+          </ThemeProvider>,
         );
         expect(screen.getByText('No records found')).toBeInTheDocument();
       });
@@ -499,9 +499,9 @@ describe('plugin-chart-table', () => {
         const props = transformProps(testData.comparison);
 
         render(
-          <EmotionThemeProvider theme={supersetTheme}>
+          <ThemeProvider theme={supersetTheme}>
             <TableChart {...props} sticky={false} />
-          </EmotionThemeProvider>,
+          </ThemeProvider>,
         );
         const groupHeaders = screen.getAllByRole('columnheader');
         expect(groupHeaders.length).toBeGreaterThan(0);

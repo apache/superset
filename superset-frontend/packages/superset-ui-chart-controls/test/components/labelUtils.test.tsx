@@ -19,7 +19,7 @@
 import { ReactElement } from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { EmotionThemeProvider, supersetTheme } from '@superset-ui/core';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import {
   getColumnLabelText,
   getColumnTooltipNode,
@@ -29,7 +29,7 @@ import {
 
 const renderWithTheme = (ui: ReactElement) =>
   render(
-    <EmotionThemeProvider theme={supersetTheme}>{ui}</EmotionThemeProvider>,
+    <ThemeProvider theme={supersetTheme}>{ui}</ThemeProvider>,
   );
 
 test("should get column name when column doesn't have verbose_name", () => {

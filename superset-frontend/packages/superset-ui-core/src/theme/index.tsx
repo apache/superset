@@ -27,7 +27,7 @@ export {
   css,
   keyframes,
   jsx,
-  ThemeProvider as EmotionThemeProvider,
+  ThemeProvider,
   CacheProvider as EmotionCacheProvider,
   withTheme,
 } from '@emotion/react';
@@ -59,6 +59,14 @@ const themeObject = themeController.getTheme();
 const { theme } = themeObject;
 const supersetTheme = theme;
 
-export { Theme, themeObject, styled, theme, supersetTheme, themeController };
-export { useThemeContext, ThemeProvider } from './ThemeProvider';
+export {
+  Theme,
+  themeObject,
+  styled,
+  theme,
+  supersetTheme,
+  themeController,
+  ThemeController,
+};
+export { useThemeContext, SupersetThemeProvider } from './ThemeProvider';
 export type { SupersetTheme, SerializableThemeConfig };

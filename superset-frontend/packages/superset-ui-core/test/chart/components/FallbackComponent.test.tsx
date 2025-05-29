@@ -20,7 +20,7 @@
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { FallbackProps } from 'react-error-boundary';
-import { EmotionThemeProvider, supersetTheme } from '../../../src/theme';
+import { ThemeProvider, supersetTheme } from '../../../src/theme';
 
 import FallbackComponent from '../../../src/chart/components/FallbackComponent';
 
@@ -28,9 +28,9 @@ const renderWithTheme = (
   props: Partial<FallbackProps> & FallbackProps['error'],
 ) =>
   render(
-    <EmotionThemeProvider theme={supersetTheme}>
+    <ThemeProvider theme={supersetTheme}>
       <FallbackComponent {...props} />
-    </EmotionThemeProvider>,
+    </ThemeProvider>,
   );
 
 const ERROR = new Error('CaffeineOverLoadException');

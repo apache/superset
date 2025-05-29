@@ -18,7 +18,7 @@
  */
 import {
   getChartComponentRegistry,
-  EmotionThemeProvider,
+  ThemeProvider,
 } from '@superset-ui/core';
 import { FC, useEffect, useState } from 'react';
 import { ChartWrapperProps } from '../types';
@@ -43,13 +43,13 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
   }, [vizType]);
 
   return (
-    <EmotionThemeProvider theme={theme}>
+    <ThemeProvider theme={theme}>
       {Chart === undefined ? (
         <></>
       ) : (
         <Chart {...chartConfig.properties} height={height} width={width} />
       )}
-    </EmotionThemeProvider>
+    </ThemeProvider>
   );
 };
 

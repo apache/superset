@@ -23,7 +23,7 @@ import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
 import {
   supersetTheme,
-  EmotionThemeProvider,
+  ThemeProvider,
   isFeatureEnabled,
 } from '@superset-ui/core';
 import {
@@ -72,9 +72,9 @@ jest.mock('@superset-ui/core', () => ({
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const standardProvider: FC = ({ children }) => (
-  <EmotionThemeProvider theme={supersetTheme}>
+  <ThemeProvider theme={supersetTheme}>
     <Provider store={store}>{children}</Provider>
-  </EmotionThemeProvider>
+  </ThemeProvider>
 );
 
 const unsavedQueryEditor = {
@@ -88,7 +88,7 @@ const unsavedQueryEditor = {
 };
 
 const standardProviderWithUnsaved: FC = ({ children }) => (
-  <EmotionThemeProvider theme={supersetTheme}>
+  <ThemeProvider theme={supersetTheme}>
     <Provider
       store={mockStore({
         ...initialState,
@@ -100,7 +100,7 @@ const standardProviderWithUnsaved: FC = ({ children }) => (
     >
       {children}
     </Provider>
-  </EmotionThemeProvider>
+  </ThemeProvider>
 );
 
 describe('ShareSqlLabQuery', () => {

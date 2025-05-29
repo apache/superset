@@ -31,7 +31,7 @@ import '@fontsource/fira-code/500.css';
 import '@fontsource/fira-code/600.css';
 
 import {
-  ThemeProvider as EmotionThemeProvider,
+  ThemeProvider,
   CacheProvider as EmotionCacheProvider,
 } from '@emotion/react';
 import createCache from '@emotion/cache';
@@ -306,12 +306,12 @@ export class Theme {
 
     return (
       <EmotionCacheProvider value={themeState.emotionCache}>
-        <EmotionThemeProvider theme={themeState.theme}>
+        <ThemeProvider theme={themeState.theme}>
           <GlobalStyles />
           <ConfigProvider theme={themeState.antdConfig}>
             {children}
           </ConfigProvider>
-        </EmotionThemeProvider>
+        </ThemeProvider>
       </EmotionCacheProvider>
     );
   }

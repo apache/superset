@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { EmotionThemeProvider } from '@superset-ui/core';
+import { ThemeProvider } from '@superset-ui/core';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 
@@ -25,7 +25,7 @@ export function ProviderWrapper(props: any) {
   const { children, theme } = props;
 
   return (
-    <EmotionThemeProvider theme={theme}>
+    <ThemeProvider theme={theme}>
       <Router>
         <QueryParamProvider
           ReactRouterRoute={Route}
@@ -34,6 +34,6 @@ export function ProviderWrapper(props: any) {
           {children}
         </QueryParamProvider>
       </Router>
-    </EmotionThemeProvider>
+    </ThemeProvider>
   );
 }

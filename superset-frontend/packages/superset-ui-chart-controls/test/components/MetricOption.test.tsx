@@ -18,7 +18,7 @@
  */
 import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
-import { EmotionThemeProvider, supersetTheme } from '@superset-ui/core';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { MetricOption, MetricOptionProps } from '../../src';
 
 jest.mock('../../src/components/InfoTooltipWithTrigger', () => ({
@@ -58,9 +58,9 @@ const defaultProps = {
 
 const setup = (props: Partial<MetricOptionProps> = {}) =>
   render(
-    <EmotionThemeProvider theme={supersetTheme}>
+    <ThemeProvider theme={supersetTheme}>
       <MetricOption {...defaultProps} {...props} />
-    </EmotionThemeProvider>,
+    </ThemeProvider>,
   );
 test('shows a label with verbose_name', () => {
   const { container } = setup();

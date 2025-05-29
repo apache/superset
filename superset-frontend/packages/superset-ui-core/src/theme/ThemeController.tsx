@@ -62,7 +62,7 @@ export class ThemeController {
 
   private onChangeCallbacks: Set<(theme: Theme) => void> = new Set();
 
-  private constructor(options: ThemeControllerOptions = {}) {
+  constructor(options: ThemeControllerOptions = {}) {
     this.storage = options.storage || new LocalStorageAdapter();
     this.storageKey = options.storageKey || 'superset-theme';
     this.defaultTheme = options.defaultTheme || {};

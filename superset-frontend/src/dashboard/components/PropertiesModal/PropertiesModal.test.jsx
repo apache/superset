@@ -23,7 +23,7 @@ import fetchMock from 'fetch-mock';
 import {
   supersetTheme,
   SupersetClient,
-  EmotionThemeProvider,
+  ThemeProvider,
 } from '@superset-ui/core';
 
 import { Modal } from 'src/components';
@@ -70,7 +70,7 @@ const setup = overrideProps =>
       <PropertiesModal {...requiredProps} {...overrideProps} />
     </Provider>,
     {
-      wrappingComponent: EmotionThemeProvider,
+      wrappingComponent: ThemeProvider,
       wrappingComponentProps: { theme: supersetTheme },
     },
   );

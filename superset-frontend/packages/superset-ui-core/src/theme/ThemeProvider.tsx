@@ -36,7 +36,7 @@ interface ThemeProviderProps {
   themeController: ThemeController;
 }
 
-export function ThemeProvider({
+export function SupersetThemeProvider({
   children,
   themeController,
 }: ThemeProviderProps): JSX.Element {
