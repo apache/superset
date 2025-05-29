@@ -469,39 +469,6 @@ class ParsedQuery:
         exec_sql += f"CREATE {method} {full_table_name} AS \n{sql}"
         return exec_sql
 
-    def set_or_update_query_limit(self, new_limit: int, force: bool = False) -> str:
-        """Returns the query with the specified limit.
-
-        Does not change the underlying query if user did not apply the limit,
-        otherwise replaces the limit with the lower value between existing limit
-        in the query and new_limit.
-
-        :param new_limit: Limit to be incorporated into returned query
-        :return: The original query with new limit
-        """
-        if not self._limit:
-            return f"{self.stripped()}\nLIMIT {new_limit}"
-        limit_pos = None
-        statement = self._parsed[0]
-        # Add all items to before_str until there is a limit
-        for pos, item in enumerate(statement.tokens):
-            if item.ttype in Keyword and item.value.lower() == "limit":
-                limit_pos = pos
-                break
-        _, limit = statement.token_next(idx=limit_pos)
-        # Override the limit only when it exceeds the configured value.
-        if limit.ttype == sqlparse.tokens.Literal.Number.Integer and (
-            force or new_limit < int(limit.value)
-        ):
-            limit.value = new_limit
-        elif limit.is_group:
-            limit.value = f"{next(limit.get_identifiers())}, {new_limit}"
-
-        str_res = ""
-        for i in statement.tokens:
-            str_res += str(i.value)
-        return str_res
-
 
 def sanitize_clause(clause: str) -> str:
     # clause = sqlparse.format(clause, strip_comments=True)
@@ -566,7 +533,7 @@ def has_table_query(expression: str, engine: str) -> bool:
         expression = f"({expression})"
 
     sql = f"SELECT {expression}"
-    statement = SQLStatement(sql, engine)
+    statement = SQLStatement(statement=sql, engine=engine)
     return any(statement.tables)
 
 
@@ -972,12 +939,12 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
             node.data = "NULL"
 
     # re-render template back into a string
-    rendered_template = Template(template).render()
+    rendered_sql = Template(template).render(processor.get_context())
 
     return (
         tables
         | ParsedQuery(
-            sql_statement=processor.process_template(rendered_template),
+            sql_statement=processor.process_template(rendered_sql),
             engine=database.db_engine_spec.engine,
         ).tables
     )
