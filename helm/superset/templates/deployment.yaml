@@ -177,7 +177,7 @@ spec:
           {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with .Values.supersetNode.tolerations }}
       tolerations: {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.imagePullSecrets }}
