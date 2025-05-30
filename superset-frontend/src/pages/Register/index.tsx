@@ -18,7 +18,7 @@
  */
 
 import { SupersetClient, styled, t, css } from '@superset-ui/core';
-import { Button, Card, Flex, Form, Input } from 'src/components';
+import { Button, Card, Flex, Form, Input } from '@superset-ui/core/components';
 import { useState } from 'react';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import ReactCAPTCHA from 'react-google-recaptcha';
