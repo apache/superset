@@ -28,4 +28,4 @@ export * from './constants';
 // we mutated the interface quite a bit here, and some internal packages
 // are still using the vanilla antd Select
 export { Select as RawAntdSelect } from 'antd';
-export { SelectProps as RawAntdSelectProps } from 'antd/es/select';
+export { type SelectProps as RawAntdSelectProps } from 'antd/es/select';
