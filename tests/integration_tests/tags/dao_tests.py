@@ -24,6 +24,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import ObjectType, Tag, TaggedObject
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.tags import (
     with_tagging_system_feature,  # noqa: F401
 )
@@ -148,6 +149,7 @@ class TestTagsDAO(SupersetTestCase):
     @pytest.mark.usefixtures("create_tags")
     # test get objects from tag
     def test_get_objects_from_tag(self):
+        self.login(ADMIN_USERNAME)
         # create tagged objects
         dashboard = (
             db.session.query(Dashboard)
@@ -216,6 +218,7 @@ class TestTagsDAO(SupersetTestCase):
     @pytest.mark.usefixtures("create_tags")
     # test get objects from tag
     def test_get_objects_from_tag_with_id(self):
+        self.login(ADMIN_USERNAME)
         # create tagged objects
         dashboard = (
             db.session.query(Dashboard)
