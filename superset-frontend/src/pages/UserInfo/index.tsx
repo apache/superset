@@ -117,7 +117,7 @@ export function UserInfo({ user }: UserInfoProps) {
           {t('Reset my password')}
         </>
       ),
-      buttonStyle: 'primary',
+      buttonStyle: 'secondary',
       onClick: () => {
         openModal(ModalType.ResetPassword);
       },
