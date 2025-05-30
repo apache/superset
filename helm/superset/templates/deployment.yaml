@@ -46,6 +46,7 @@ spec:
   selector:
     matchLabels:
     {{- include "supersetNode.selectorLabels" . | nindent 6 }}
+    {{- include "app.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
