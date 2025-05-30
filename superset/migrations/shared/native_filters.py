@@ -18,6 +18,8 @@ from collections import defaultdict
 from textwrap import dedent
 from typing import Any
 
+from flask import current_app
+
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
@@ -78,6 +80,11 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
     for filter_box in filter_boxes:
         key = str(filter_box.id)
         params = json.loads(filter_box.params or "{}")
+
+        parameter_configs = {
+            f"__parameter_{parameter_config['key']}": parameter_config
+            for parameter_config in params.get("parameter_configs", [])
+        }
 
         for field, filter_scope in filter_scope_by_key_and_field[key].items():
             default = default_filters.get(key, {}).get(field)
@@ -157,6 +164,107 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
                         "extraFormData": {"time_range": default},
                         "filterState": {"value": default},
                     }
+            elif field == "__group_by" and params.get("group_by_filters"):
+                fltr.update(
+                    {
+                        "filterType": "filter_groupby",
+                        "name": f"{filter_box.datasource_name} group by",
+                        "description": "",
+                        "targets": [
+                            {
+                                "datasetId": filter_box.datasource_id,
+                                "column": {"name": datasource_columns},  # XXX
+                            }
+                        ],
+                        "controlValues": {
+                            "enableEmptyFilter": False,
+                            "multiSelect": True,
+                        },
+                        "defaultDataMask": {
+                            "extraFormData": {},
+                            "filterState": {},
+                            "ownState": {},
+                        },
+                    }
+                )
+            elif field == "__exp_t_c" and params.get("exp_t_c_selectors"):
+                ab_test_col = (
+                    current_app.config["TABLE_DEF"]
+                    .get(filter_box.datasource_name, {})
+                    .get("ab_test_column")
+                )
+                fltr.extend(
+                    {
+                        "filterType": filter_type,
+                        "name": "Experiment Treatment",
+                        "description": "",
+                        "targets": [
+                            {
+                                "datasetId": filter_box.datasource_id,
+                                "column": {"name": ab_test_col},
+                            }
+                        ],
+                        "adhoc_filters": params.get("adhoc_filters", []),
+                        "time_range": params.get("time_range"),
+                        "granularity_sqla": params.get("granularity_sqla"),
+                        "controlValues": {"enableEmptyFilter": False},
+                        "defaultDataMask": {
+                            "extraFormData": {},
+                            "filterState": {},
+                            "ownState": {},
+                        },
+                    }
+                    for filter_type in ["filter_exp_c_select", "filter_exp_t_select"]
+                )
+            elif field in parameter_configs:
+                parameter_config = parameter_configs[field]
+                default_values = [
+                    value.strip()
+                    for value in parameter_config["defaultValue"].split(";")
+                ]
+                fltr.update(
+                    {
+                        "filterType": "filter_parameter",
+                        "name": (
+                            filter_box.datasource_name
+                            + " parameter "
+                            + parameter_config["parameter"]
+                        ),
+                        "description": "",
+                        "targets": [{"datasetId": filter_box.datasource_id}],
+                        "defaultDataMask": {
+                            "extraFormData": {
+                                "filters": [
+                                    {
+                                        "col": (
+                                            "__parameter_"
+                                            + parameter_config["dataType"]
+                                            + "_"
+                                            + parameter_config["parameter"]
+                                        ),
+                                        "OP": "IN",
+                                        "val": default_values,
+                                    },
+                                ],
+                            },
+                            "filterState": {
+                                "validateMessage": False,
+                                "validateStatus": False,
+                                "label": ", ".join(default_values),
+                                "value": default_values,
+                            },
+                        },
+                        "time_range": params.get("time_range"),
+                        "granularity_sqla": params.get("granularity_sqla"),
+                        "controlValues": {
+                            "parameterDataType": parameter_config["dataType"],
+                            "parameter": parameter_config["parameter"],
+                            "enableEmptyFilter": parameter_config["clearable"],
+                            "multiSelect": parameter_config["multiple"],
+                            "searchAllOptions": parameter_config["searchAllOptions"],
+                        },
+                    },
+                )
             else:
                 for config in params.get("filter_configs") or []:
                     if config["column"] == field:

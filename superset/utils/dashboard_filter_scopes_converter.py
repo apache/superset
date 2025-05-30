@@ -63,6 +63,16 @@ def convert_filter_scopes(  # noqa: C901
             add_filter_scope(filter_fields, "__time_col", filter_id)
         if slice_params.get("show_sqla_time_granularity"):
             add_filter_scope(filter_fields, "__time_grain", filter_id)
+        if slice_params.get("group_by_filters"):
+            add_filter_scope(filter_fields, "__group_by", filter_id)
+        if slice_params.get("exp_t_c_selectors"):
+            add_filter_scope(filter_fields, "__exp_t_c", filter_id)
+        for parameter_config in slice_params.get("parameter_configs", []):
+            add_filter_scope(
+                filter_fields,
+                f"__parameter_{parameter_config['key']}",
+                filter_id,
+            )
         for config in configs:
             add_filter_scope(filter_fields, config.get("column"), filter_id)
 
