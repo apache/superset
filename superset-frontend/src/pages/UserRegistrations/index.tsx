@@ -17,15 +17,20 @@
  * under the License.
  */
 
-import { useMemo } from 'react';
-import { t } from '@superset-ui/core';
+import { useMemo, useState } from 'react';
+import { SupersetClient, t } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
   ListViewFilters,
   ListViewFilterOperator,
   ListView,
+  DeleteModal,
 } from 'src/components';
+import { ActionProps, ActionsBar } from 'src/components/ListView/ActionsBar';
+import SubMenu from 'src/features/home/SubMenu';
+
+const PAGE_SIZE = 25;
 
 export type UserRegistration = {
   id: number;
@@ -39,6 +44,10 @@ export type UserRegistration = {
 
 export default function UserRegistrations() {
   const { addSuccessToast, addDangerToast } = useToasts();
+  const [
+    userRegistrationCurrentlyDeleting,
+    setUserRegistrationCurrentlyDeleting,
+  ] = useState<UserRegistration | null>(null);
 
   const {
     state: {
@@ -53,6 +62,24 @@ export default function UserRegistrations() {
     t('User Registrations'),
     addDangerToast,
   );
+
+  const handleUserRegistrationDelete = async ({
+    id,
+    username,
+  }: UserRegistration) => {
+    try {
+      await SupersetClient.delete({
+        endpoint: `/api/v1/user_registrations/${id}`,
+      });
+      refreshData();
+      setUserRegistrationCurrentlyDeleting(null);
+      addSuccessToast(t('Deleted user registration for user: %s', username));
+    } catch (error) {
+      addDangerToast(
+        t('There was an issue deleting registration for user: %s', username),
+      );
+    }
+  };
 
   const initialSort = [{ id: 'registration_date', desc: true }];
 
@@ -85,15 +112,35 @@ export default function UserRegistrations() {
       {
         accessor: 'registration_hash',
         id: 'registration_hash',
-        Header: t('Registration Hash'),
+        Header: t('Registration hash'),
         Cell: ({ row: { original } }: any) => original.registration_hash,
       },
       {
         accessor: 'registration_date',
         id: 'registration_date',
-        Header: t('Registration Date'),
-        Cell: ({ row: { original } }: any) =>
-          new Date(original.registration_date).toLocaleDateString(),
+        Header: t('Registration date'),
+        Cell: ({ row: { original } }: any) => original.registration_date,
+      },
+      {
+        id: 'actions',
+        Header: t('Actions'),
+        Cell: ({ row: { original } }: any) => {
+          const actions = [
+            {
+              label: 'registrations-list-delete-action',
+              tooltip: t('Delete user registration'),
+              placement: 'bottom',
+              icon: 'DeleteOutlined',
+              onClick: () => {
+                setUserRegistrationCurrentlyDeleting(original);
+              },
+            },
+          ];
+          return <ActionsBar actions={actions as ActionProps[]} />;
+        },
+        hidden: false,
+        disableSortBy: true,
+        size: 'xl',
       },
     ],
     [],
@@ -130,14 +177,14 @@ export default function UserRegistrations() {
         operator: ListViewFilterOperator.Contains,
       },
       {
-        Header: t('Registration Hash'),
+        Header: t('Registration hash'),
         key: 'registration_hash',
         id: 'registration_hash',
         input: 'search',
         operator: ListViewFilterOperator.Contains,
       },
       {
-        Header: t('Registration Date'),
+        Header: t('Registration date'),
         key: 'registration_date',
         id: 'registration_date',
         input: 'datetime_range',
@@ -154,20 +201,38 @@ export default function UserRegistrations() {
   };
 
   return (
-    <ListView<UserRegistration>
-      className="user-registrations-list-view"
-      columns={columns}
-      count={registrationsCount}
-      data={registrations}
-      fetchData={fetchData}
-      refreshData={refreshData}
-      addDangerToast={addDangerToast}
-      addSuccessToast={addSuccessToast}
-      filters={filters}
-      initialSort={initialSort}
-      loading={loading}
-      pageSize={25}
-      emptyState={emptyState}
-    />
+    <>
+      <SubMenu name={t('User registrations')} />
+      {userRegistrationCurrentlyDeleting && (
+        <DeleteModal
+          description={t(
+            'This action will permanently delete the user registration.',
+          )}
+          onConfirm={() => {
+            if (userRegistrationCurrentlyDeleting) {
+              handleUserRegistrationDelete(userRegistrationCurrentlyDeleting);
+            }
+          }}
+          onHide={() => setUserRegistrationCurrentlyDeleting(null)}
+          open
+          title={t('Delete user registration?')}
+        />
+      )}
+      <ListView<UserRegistration>
+        className="user-registrations-list-view"
+        columns={columns}
+        count={registrationsCount}
+        data={registrations}
+        fetchData={fetchData}
+        refreshData={refreshData}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        filters={filters}
+        initialSort={initialSort}
+        loading={loading}
+        pageSize={PAGE_SIZE}
+        emptyState={emptyState}
+      />
+    </>
   );
 }

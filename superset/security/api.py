@@ -18,7 +18,7 @@ import logging
 from typing import Any
 
 from flask import current_app, request, Response
-from flask_appbuilder import expose, ModelRestApi
+from flask_appbuilder import expose
 from flask_appbuilder.api import rison, safe, SQLAInterface
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
@@ -35,7 +35,11 @@ from superset.commands.exceptions import ForbiddenError
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import db, event_logger
 from superset.security.guest_token import GuestTokenResourceType
-from superset.views.base_api import BaseSupersetApi, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetApi,
+    BaseSupersetModelRestApi,
+    statsd_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -339,7 +343,7 @@ class RoleRestAPI(BaseSupersetApi):
             return self.response_500(message=str(e))
 
 
-class UserRegistrationsRestAPI(ModelRestApi):
+class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
     """
     APIs for listing user registrations (Admin only)
     """
@@ -348,6 +352,7 @@ class UserRegistrationsRestAPI(ModelRestApi):
     datamodel = SQLAInterface(RegisterUser)
     allow_browser_login = True
     list_columns = [
+        "id",
         "username",
         "email",
         "first_name",
