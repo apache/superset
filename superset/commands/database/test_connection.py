@@ -89,7 +89,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
         self._context = context
         self._uri = uri
 
-    def run(self) -> None:  # pylint: disable=too-many-statements,too-many-branches  # noqa: C901
+    def run(  # noqa: C901
+        self,
+    ) -> None:  # pylint: disable=too-many-statements,too-many-branches
         self.validate()
         ex_str = ""
         ssh_tunnel = self._properties.get("ssh_tunnel")
@@ -188,7 +190,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             # check for custom errors (wrong username, wrong password, etc)
             errors = database.db_engine_spec.extract_errors(ex, self._context)
-            raise SupersetErrorsException(errors) from ex
+            raise SupersetErrorsException(errors, status=400) from ex
         except OAuth2RedirectError:
             raise
         except SupersetSecurityException as ex:

@@ -125,7 +125,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                     "database": url.database,
                 }
                 errors = database.db_engine_spec.extract_errors(ex, context)
-                raise DatabaseTestConnectionFailedError(errors) from ex
+                raise DatabaseTestConnectionFailedError(errors, status=400) from ex
 
         if not alive:
             raise DatabaseOfflineError(
