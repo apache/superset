@@ -1237,6 +1237,35 @@ def test_check_sql_functions_exist() -> None:
     )
 
 
+def test_check_sql_functions_exist_with_comments() -> None:
+    """
+    Test sql functions are detected correctly with comments
+    """
+    assert not (
+        check_sql_functions_exist(
+            "select a, b from version/**/", {"version"}, "postgresql"
+        )
+    )
+
+    assert check_sql_functions_exist("select version/**/()", {"version"}, "postgresql")
+
+    assert check_sql_functions_exist(
+        "select version from version/**/()", {"version"}, "postgresql"
+    )
+
+    assert check_sql_functions_exist(
+        "select 1, a.version from (select version from version/**/()) as a",
+        {"version"},
+        "postgresql",
+    )
+
+    assert check_sql_functions_exist(
+        "select 1, a.version from (select version/**/()) as a",
+        {"version"},
+        "postgresql",
+    )
+
+
 def test_sanitize_clause_valid():
     # regular clauses
     assert sanitize_clause("col = 1") == "col = 1"

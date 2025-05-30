@@ -114,8 +114,8 @@ msgid ""
 "                      database/column name level via the extra parameter."
 msgstr ""
 "來確保字符的表達順序與時間順序一致的標準。如果時間戳格式不符合 ISO 8601 "
-"標準，则需要定義表達式和類型，以便將字符串轉换為日期或時間戳。注意：當前不支持時區。如果時間以epoch格式儲存，請输入 `epoch_s` or"
-" `epoch_ms` 。如果没有指定任何模式，我們可以通過額外的参數在每個資料庫/列名級别上使用可選的預設值。"
+"標準，则需要定義表達式和類型，以便將字符串轉换為日期或時間戳。注意：當前不支持時區。如果時間以 epoch 格式儲存，請输入 `epoch_s` "
+"or `epoch_ms` 。如果没有指定任何模式，我們可以通過額外的参數在每個 資料庫/欄位 名稱級別上使用可選的預設值。"
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -147,11 +147,11 @@ msgstr "% 計算"
 
 #, fuzzy, python-format
 msgid "% of parent"
-msgstr "父類"
+msgstr "% 父類"
 
 #, fuzzy, python-format
 msgid "% of total"
-msgstr "顯示總計"
+msgstr "% 顯示總計"
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
@@ -308,7 +308,7 @@ msgstr "%s 個選項"
 
 #, fuzzy, python-format
 msgid "%s recipients"
-msgstr "最近"
+msgstr "%s 最近"
 
 #, fuzzy, python-format
 msgid "%s row"
@@ -1617,7 +1617,7 @@ msgstr "應用的過濾器 (%d)"
 
 #, fuzzy, python-format
 msgid "Applied filters (%s)"
-msgstr "應用的過濾器 (%d)"
+msgstr "應用的過濾器 (%s)"
 
 #, fuzzy, python-format
 msgid "Applied filters: %s"
@@ -3538,7 +3538,7 @@ msgstr "無法從结果後端檢索數據。您需要重新運行原始查詢。
 
 #, fuzzy, python-format
 msgid "Data for %s"
-msgstr "給 JS 的額外數據"
+msgstr "給 %s 的數據"
 
 msgid "Data preview"
 msgstr "數據預覽"
@@ -3648,7 +3648,7 @@ msgstr "數據集"
 
 #, fuzzy, python-format
 msgid "Dataset %(table)s already exists"
-msgstr "數據集 %(name)s 已存在"
+msgstr "數據集 %(table)s 已存在"
 
 #, fuzzy
 msgid "Dataset Name"
@@ -5816,7 +5816,7 @@ msgstr "描述要發送給你的報告"
 
 #, fuzzy, python-format
 msgid "Include description to be sent with %s"
-msgstr "描述要發送給你的報告"
+msgstr ""
 
 msgid "Include series name as an axis"
 msgstr "包括系列名稱作為軸"
@@ -9178,7 +9178,7 @@ msgstr "搜索"
 
 #, fuzzy, python-format
 msgid "Search %s records"
-msgstr "搜索 / 過濾"
+msgstr "搜索 %s 紀錄"
 
 msgid "Search / Filter"
 msgstr "搜索 / 過濾"
@@ -9684,7 +9684,7 @@ msgstr "顯示"
 
 #, fuzzy, python-format
 msgid "Show %s entries"
-msgstr "顯示指標"
+msgstr "顯示 %s 指標"
 
 msgid "Show Bubbles"
 msgstr "顯示氣泡"
@@ -10450,7 +10450,7 @@ msgstr "表名"
 msgid ""
 "Table [%(table)s] could not be found, please double check your database "
 "connection, schema, and table name"
-msgstr "找不到 [%(table_name)s] 表，請仔細檢查您的資料庫連接、Schema 和 表名"
+msgstr "找不到 [%(table)s] 資料表，請仔細檢查您的資料庫連接、Schema 和 資料表名稱"
 
 msgid ""
 "Table already exists. You can change your 'if table already exists' "
@@ -12699,7 +12699,7 @@ msgstr "星期三"
 
 #, fuzzy, python-format
 msgid "Waiting on %s"
-msgstr "顯示 %s 個 總計 %s 個"
+msgstr "等待 %s 中"
 
 #, fuzzy
 msgid "Waiting on database..."

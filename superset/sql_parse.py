@@ -31,7 +31,6 @@ from sqlalchemy import and_
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
 from sqlparse.sql import (
-    Function,
     Identifier,
     IdentifierList,
     Parenthesis,
@@ -181,7 +180,7 @@ def check_sql_functions_exist(
     :param function_list: The list of functions to search for
     :param engine: The engine to use for parsing the SQL statement
     """
-    return ParsedQuery(sql, engine=engine).check_functions_exist(function_list)
+    return SQLScript(sql, engine=engine).check_functions_present(function_list)
 
 
 def strip_comments_from_sql(statement: str, engine: str = "base") -> str:
@@ -229,34 +228,6 @@ class ParsedQuery:
             self._tables = self._extract_tables_from_sql()
         return self._tables
 
-    def _check_functions_exist_in_token(
-        self, token: Token, functions: set[str]
-    ) -> bool:
-        if (
-            isinstance(token, Function)
-            and token.get_name() is not None
-            and token.get_name().lower() in functions
-        ):
-            return True
-        if hasattr(token, "tokens"):
-            for inner_token in token.tokens:
-                if self._check_functions_exist_in_token(inner_token, functions):
-                    return True
-        return False
-
-    def check_functions_exist(self, functions: set[str]) -> bool:
-        """
-        Check if the SQL statement contains any of the specified functions.
-
-        :param functions: A set of functions to search for
-        :return: True if the statement contains any of the specified functions
-        """
-        for statement in self._parsed:
-            for token in statement.tokens:
-                if self._check_functions_exist_in_token(token, functions):
-                    return True
-        return False
-
     def _extract_tables_from_sql(self) -> set[Table]:
         """
         Extract all table references in a query.
@@ -272,11 +243,12 @@ class ParsedQuery:
             logger.warning("Unable to parse SQL (%s): %s", self._dialect, self.sql)
             raise SupersetSecurityException(
                 SupersetError(
-                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
                     message=__(
                         "You may have an error in your SQL statement. {message}"
                     ).format(message=ex.error.message),
                     level=ErrorLevel.ERROR,
+                    extra=ex.error.extra,
                 )
             ) from ex
 
@@ -1000,12 +972,12 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
             node.data = "NULL"
 
     # re-render template back into a string
-    rendered_template = Template(template).render()
+    rendered_sql = Template(template).render(processor.get_context())
 
     return (
         tables
         | ParsedQuery(
-            sql_statement=processor.process_template(rendered_template),
+            sql_statement=processor.process_template(rendered_sql),
             engine=database.db_engine_spec.engine,
         ).tables
     )

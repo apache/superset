@@ -51,9 +51,9 @@ fi
 if [ -f "${REQUIREMENTS_LOCAL}" ]; then
   echo "Installing local overrides at ${REQUIREMENTS_LOCAL}"
   if command -v uv > /dev/null 2>&1; then
-      uv pip install --no-cache-dir -r "${REQUIREMENTS_LOCAL}"
+    uv pip install --no-cache-dir -r "${REQUIREMENTS_LOCAL}"
   else
-      pip install --no-cache-dir -r "${REQUIREMENTS_LOCAL}"
+    pip install --no-cache-dir -r "${REQUIREMENTS_LOCAL}"
   fi
 else
   echo "Skipping local overrides"
