@@ -400,7 +400,7 @@ describe('DatabaseModal', () => {
         selectorLabel,
         selectorPlaceholder,
         selectorArrow,
-        alertIcon,
+        alertIcon[0],
         alertMessage,
         alertDescription,
         alertLink,
@@ -483,7 +483,10 @@ describe('DatabaseModal', () => {
         name: /test connection/i,
       });
       // <Alert> - Basic tab's alert
-      const alertIcon = screen.getByRole('img', { name: /info-circle/i });
+      const alertIcons = screen.getAllByRole('img', { name: /info-circle/i });
+      const alertIcon =
+        alertIcons.find(icon => icon.closest('.ant-alert-icon') !== null) ||
+        alertIcons[0];
       const alertMessage = screen.getByText(
         /additional fields may be required/i,
       );
@@ -652,7 +655,7 @@ describe('DatabaseModal', () => {
         'checkbox',
       ) as HTMLInputElement[];
       const checkboxOff = allCheckboxes.filter(checkbox => !checkbox.checked);
-      const tooltipIcons = within(advancedTabPanel).getAllByRole('img', {
+      const tooltipButtons = within(advancedTabPanel).getAllByRole('button', {
         name: /Show info tooltip/i,
       });
 
@@ -730,14 +733,14 @@ describe('DatabaseModal', () => {
         checkboxOff[3],
         checkboxOff[4],
         checkboxOff[5],
-        tooltipIcons[0],
-        tooltipIcons[1],
-        tooltipIcons[2],
-        tooltipIcons[3],
-        tooltipIcons[4],
-        tooltipIcons[5],
-        tooltipIcons[6],
-        tooltipIcons[7],
+        tooltipButtons[0],
+        tooltipButtons[1],
+        tooltipButtons[2],
+        tooltipButtons[3],
+        tooltipButtons[4],
+        tooltipButtons[5],
+        tooltipButtons[6],
+        tooltipButtons[7],
         exposeInSQLLabText,
         allowCTASText,
         allowCVASText,
@@ -768,7 +771,7 @@ describe('DatabaseModal', () => {
         expect(component).not.toBeVisible();
       });
       expect(checkboxOff).toHaveLength(6);
-      expect(tooltipIcons).toHaveLength(8);
+      expect(tooltipButtons).toHaveLength(8);
     });
 
     test('renders the "Advanced" - PERFORMANCE tab correctly', async () => {
