@@ -328,6 +328,9 @@ supersetNode:
   podAnnotations: {}
   # -- Labels to be added to supersetNode pods
   podLabels: {}
+  ## Tolerations to be added to node pods
+  tolerations: []
+
   startupProbe:
     httpGet:
       path: /health
