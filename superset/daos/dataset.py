@@ -21,6 +21,7 @@ from datetime import datetime
 from typing import Any
 
 import dateutil.parser
+from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -184,15 +185,24 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         """
 
         if item and attributes:
+            force_update: bool = False
             if "columns" in attributes:
                 cls.update_columns(
                     item,
                     attributes.pop("columns"),
                     override_columns=bool(attributes.get("override_columns")),
                 )
+                force_update = True
 
             if "metrics" in attributes:
                 cls.update_metrics(item, attributes.pop("metrics"))
+                force_update = True
+
+            # columns and metrics are stored in separate tables so if they change we
+            # force an update to the dataset too to ensure the last_updated_timestamp
+            # is updated (it's possible no other dataset attributes are changed).
+            if force_update:
+                db.session.execute(update(SqlaTable).where(SqlaTable.id == item.id))
 
         return super().update(item, attributes)
 
