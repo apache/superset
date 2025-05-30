@@ -1149,7 +1149,7 @@ class DatasourceEditor extends PureComponent {
                         'columns in your dataset will be synced when saving the dataset.',
                     )}
                     control={
-                      this.props.isQueryRunning ? (
+                      this.props.database?.isLoading ? (
                         <>
                           {this.renderSqlEditorOverlay()}
                           <TextAreaControl
@@ -1182,7 +1182,7 @@ class DatasourceEditor extends PureComponent {
                         `}
                       >
                         <Button
-                          disabled={this.props.isQueryRunning}
+                          disabled={this.props.database?.isLoading}
                           tooltip={t('Open SQL Lab in a new tab')}
                           css={floatingButtonCss}
                           size="small"
@@ -1198,7 +1198,7 @@ class DatasourceEditor extends PureComponent {
                           />
                         </Button>
                         <Button
-                          disabled={this.props.isQueryRunning}
+                          disabled={this.props.database?.isLoading}
                           tooltip={t('Run query')}
                           css={floatingButtonCss}
                           size="small"
@@ -1220,7 +1220,7 @@ class DatasourceEditor extends PureComponent {
                       this.props.database?.error && t('Error executing query.')
                     }
                   />
-                  {this.props.sql_result && (
+                  {this.props.database?.queryResult && (
                     <>
                       <div
                         css={theme => css`
@@ -1256,13 +1256,15 @@ class DatasourceEditor extends PureComponent {
                         </span>
                       </div>
                       <ResultTable
-                        data={this.props.sql_result.data}
-                        queryId={this.props.sql_result.query.id}
-                        orderedColumnKeys={this.props.sql_result.columns.map(
+                        data={this.props.database?.queryResult.data}
+                        queryId={this.props.database?.queryResult.query.id}
+                        orderedColumnKeys={this.props.database?.queryResult.columns.map(
                           col => col.column_name,
                         )}
                         height={100}
-                        expandedColumns={this.props.sql_result.expandedColumns}
+                        expandedColumns={
+                          this.props.database?.queryResult.expandedColumns
+                        }
                         allowHTML
                       />
                     </>
@@ -1663,8 +1665,7 @@ const mapDispatchToProps = dispatch => ({
   resetQuery: () => dispatch(resetDatabaseState()),
 });
 const mapStateToProps = state => ({
-  sql_result: state?.database?.queryResult,
-  isQueryRunning: state?.database?.isLoading,
+  database: state?.database,
 });
 export default withToasts(
   withRouter(connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent)),
