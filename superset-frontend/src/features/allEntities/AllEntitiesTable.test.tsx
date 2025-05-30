@@ -127,7 +127,7 @@ describe('AllEntitiesTable', () => {
     expect(screen.queryByText('Add tag to entities')).not.toBeInTheDocument();
   });
 
-  it('renders the correct tags for each object type, excluding the current tag', () => {
+  it('renders the correct tags for each object type', () => {
     render(
       <AllEntitiesTable
         search=""
@@ -149,8 +149,6 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Queries')).toBeInTheDocument();
     expect(screen.getByText('User Engagement')).toBeInTheDocument();
     expect(screen.getByText('Engagement')).toBeInTheDocument();
-
-    expect(screen.queryByText('Current Tag')).not.toBeInTheDocument();
   });
 
   it('Only list asset types that have entities', () => {

@@ -23,7 +23,6 @@ import { TagsList } from 'src/components/Tags';
 import FacePile from 'src/components/FacePile';
 import Tag from 'src/types/TagType';
 import { EmptyState } from 'src/components/EmptyState';
-import { NumberParam, useQueryParam } from 'use-query-params';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
 
 const MAX_TAGS_TO_SHOW = 3;
@@ -64,7 +63,6 @@ export default function AllEntitiesTable({
 }: AllEntitiesTableProps) {
   type objectType = 'dashboard' | 'chart' | 'query';
 
-  const [tagId] = useQueryParam('id', NumberParam);
   const showDashboardList = objects.dashboard.length > 0;
   const showChartList = objects.chart.length > 0;
   const showQueryList = objects.query.length > 0;
@@ -106,8 +104,7 @@ export default function AllEntitiesTable({
                 tags={tags.filter(
                   (tag: Tag) =>
                     tag.type !== undefined &&
-                    ['TagType.custom', 1].includes(tag.type) &&
-                    tag.id !== tagId,
+                    ['TagType.custom', 1].includes(tag.type),
                 )}
                 maxTags={MAX_TAGS_TO_SHOW}
               />

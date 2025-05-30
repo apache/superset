@@ -179,20 +179,6 @@ export function addTag(
     .catch(response => error(response));
 }
 
-export function fetchObjects(
-  { tags = '', types }: { tags: string; types: string | null },
-  callback: (json: JsonObject) => void,
-  error: (response: Response) => void,
-) {
-  let url = `/api/v1/tag/get_objects/?tags=${tags}`;
-  if (types) {
-    url += `&types=${types}`;
-  }
-  SupersetClient.get({ endpoint: url })
-    .then(({ json }) => callback(json.result))
-    .catch(response => error(response));
-}
-
 export function fetchObjectsByTagIds(
   { tagIds = [], types }: { tagIds: number[] | string; types: string | null },
   callback: (json: JsonObject) => void,
