@@ -447,7 +447,11 @@ class TestSqlaTableModel(SupersetTestCase):
             return None
         old_inner_join = spec.allows_joins
         spec.allows_joins = inner_join
-        arbitrary_gby = "state || gender || '_test'"
+        arbitrary_gby = (
+            "state OR gender OR '_test'"
+            if get_example_database().backend == "mysql"
+            else "state || gender || '_test'"
+        )
         arbitrary_metric = dict(  # noqa: C408
             label="arbitrary", expressionType="SQL", sqlExpression="SUM(num_boys)"
         )

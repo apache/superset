@@ -232,7 +232,6 @@ def test_apply_rls(mocker: MockerFixture) -> None:
     database.get_default_schema_for_query.return_value = "public"
     database.get_default_catalog.return_value = "examples"
     database.db_engine_spec = PostgresEngineSpec
-    query = mocker.MagicMock(database=database, catalog="examples")
     get_predicates_for_table = mocker.patch(
         "superset.sql_lab.get_predicates_for_table",
         side_effect=[["c1 = 1"], ["c2 = 2"]],
@@ -241,12 +240,12 @@ def test_apply_rls(mocker: MockerFixture) -> None:
     parsed_statement = SQLStatement("SELECT * FROM t1, t2", "postgresql")
     parsed_statement.tables = sorted(parsed_statement.tables, key=lambda x: x.table)  # type: ignore
 
-    apply_rls(query, parsed_statement)
+    apply_rls(database, "examples", "public", parsed_statement)
 
     get_predicates_for_table.assert_has_calls(
         [
-            mocker.call(Table("t1", "public", "examples"), database, True),
-            mocker.call(Table("t2", "public", "examples"), database, True),
+            mocker.call(Table("t1", "public", "examples"), database, "examples"),
+            mocker.call(Table("t2", "public", "examples"), database, "examples"),
         ]
     )
 
@@ -285,4 +284,4 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
     db.session.query().filter().one_or_none.return_value = dataset
 
     table = Table("t1", "public", "examples")
-    assert get_predicates_for_table(table, database, True) == ["c1 = 1"]
+    assert get_predicates_for_table(table, database, "examples") == ["c1 = 1"]

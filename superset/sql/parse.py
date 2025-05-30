@@ -462,6 +462,14 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def has_subquery(self) -> bool:
+        """
+        Check if the statement has a subquery.
+
+        :return: True if the statement has a subquery at the top level.
+        """
+        raise NotImplementedError()
+
     def parse_predicate(self, predicate: str) -> InternalRepresentation:
         """
         Parse a predicate string into an AST.
@@ -802,6 +810,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         )
 
         return SQLStatement(ast=create_table, engine=self.engine)
+
+    def has_subquery(self) -> bool:
+        """
+        Check if the statement has a subquery.
+
+        :return: True if the statement has a subquery at the top level.
+        """
+        return bool(self._parsed.find(exp.Subquery))
 
     def parse_predicate(self, predicate: str) -> exp.Expression:
         """
