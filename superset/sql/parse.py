@@ -439,22 +439,35 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
-    def as_cte(self, alias: str = "__cte") -> SQLStatement:
+    def as_cte(self, alias: str = "__cte") -> BaseSQLStatement[InternalRepresentation]:
         """
         Rewrite the statement as a CTE.
 
         :param alias: The alias to use for the CTE.
-        :return: A new SQLStatement with the CTE.
+        :return: A new BaseSQLStatement[InternalRepresentation] with the CTE.
         """
         raise NotImplementedError()
 
-    def as_create_table(self, table: Table, method: CTASMethod) -> SQLStatement:
+    def as_create_table(
+        self,
+        table: Table,
+        method: CTASMethod,
+    ) -> BaseSQLStatement[InternalRepresentation]:
         """
         Rewrite the statement as a `CREATE TABLE AS` statement.
 
         :param table: The table to create.
         :param method: The method to use for creating the table.
-        :return: A new SQLStatement with the CTE.
+        :return: A new BaseSQLStatement[InternalRepresentation] with the CTE.
+        """
+        raise NotImplementedError()
+
+    def parse_predicate(self, predicate: str) -> InternalRepresentation:
+        """
+        Parse a predicate string into an AST.
+
+        :param predicate: The predicate to parse.
+        :return: The parsed predicate.
         """
         raise NotImplementedError()
 
@@ -790,6 +803,15 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return SQLStatement(ast=create_table, engine=self.engine)
 
+    def parse_predicate(self, predicate: str) -> exp.Expression:
+        """
+        Parse a predicate string into an AST.
+
+        :param predicate: The predicate to parse.
+        :return: The parsed predicate.
+        """
+        return sqlglot.parse_one(predicate, dialect=self._dialect)
+
     def apply_rls(
         self,
         catalog: str | None,
@@ -804,6 +826,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param schema: The default schema for non-qualified table names
         :param method: The method to use for applying the rules.
         """
+        if not predicates:
+            return
+
         transformers = {
             RLSMethod.AS_PREDICATE: RLSAsPredicateTransformer,
             RLSMethod.AS_SUBQUERY: RLSAsSubqueryTransformer,
@@ -1127,6 +1152,15 @@ class KustoKQLStatement(BaseSQLStatement[str]):
             )
 
         self._parsed = "".join(val for _, val in tokens)
+
+    def parse_predicate(self, predicate: str) -> str:
+        """
+        Parse a predicate string into an AST.
+
+        :param predicate: The predicate to parse.
+        :return: The parsed predicate.
+        """
+        return predicate
 
 
 class SQLScript:
