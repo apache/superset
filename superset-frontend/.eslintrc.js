@@ -97,9 +97,6 @@ module.exports = {
         // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
         moduleDirectory: ['node_modules', '.'],
       },
-      webpack: {
-        config: './webpack.config.js',
-      },
       typescript: {
         alwaysTryTypes: true,
         project: [

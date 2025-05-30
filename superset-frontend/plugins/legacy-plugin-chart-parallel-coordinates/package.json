@@ -30,8 +30,7 @@
   },
   "dependencies": {
     "d3v3": "npm:d3@3.5.17",
-    "prop-types": "^15.8.1",
-    "@superset-ui/core": "*"
+    "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
