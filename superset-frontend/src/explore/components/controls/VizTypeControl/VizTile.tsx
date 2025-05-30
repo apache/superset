@@ -133,6 +133,7 @@ export const VizTile = ({
           css={css`
             overflow: hidden;
             text-overflow: ellipsis;
+            font-size: ${theme.fontSizeSM}px;
             min-width: 0;
             padding-right: ${theme.sizeUnit}px;
           `}

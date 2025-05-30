@@ -54,7 +54,14 @@ import {
   useTheme,
   SupersetTheme,
 } from '@superset-ui/core';
-import { Dropdown, Menu, Tooltip } from '@superset-ui/chart-controls';
+import {
+  Input,
+  Space,
+  RawAntdSelect as Select,
+  Dropdown,
+  Menu,
+  Tooltip,
+} from '@superset-ui/core/components';
 import {
   CheckOutlined,
   InfoCircleOutlined,
@@ -64,7 +71,6 @@ import {
   TableOutlined,
 } from '@ant-design/icons';
 import { isEmpty, debounce, isEqual } from 'lodash';
-import { Input, Space, Select } from 'antd';
 import {
   ColorSchemeEnum,
   DataColumnMeta,

@@ -25,7 +25,7 @@ import {
   SupersetApiError,
   t,
 } from '@superset-ui/core';
-import { Button } from 'antd';
+import { Button } from '@superset-ui/core/components';
 import ErrorMessage from './ErrorMessage';
 
 export type Props = {

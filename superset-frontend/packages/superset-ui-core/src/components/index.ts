@@ -137,20 +137,6 @@ export {
 } from './ListViewCard';
 export { Loading, type LoadingProps } from './Loading';
 
-export {
-  Select,
-  AsyncSelect,
-  type SelectProps,
-  type SelectValue,
-  type SelectOptionsType,
-  type LabeledValue,
-  type RefSelectProps,
-} from './Select';
-
-export { Steps, type StepsProps } from './Steps';
-
-export { Space, type SpaceProps } from './Space';
-
 export { Skeleton, type SkeletonProps } from './Skeleton';
 
 export { Switch, type SwitchProps } from './Switch';
@@ -167,10 +153,13 @@ export { Image, type ImageProps } from './Image';
 export { Upload, type UploadFile, type UploadChangeParam } from './Upload';
 // Add these to your index.ts
 export { Menu } from './Menu';
-export * from './SafeMarkdown/SafeMarkdown';
-export * from './TableView';
-export * from './Table';
-export * from './Radio';
 export * from './Popover';
+export * from './Radio';
+export * from './SafeMarkdown/SafeMarkdown';
+export * from './Select';
+export * from './Space';
+export * from './Steps';
+export * from './Table';
+export * from './TableView';
 export * from './Tag';
 export * from './constants';

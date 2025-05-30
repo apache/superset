@@ -63,9 +63,9 @@
     "typescript": "^5.7.2"
   },
   "peerDependencies": {
-    "antd": "^5.24.6",
     "@encodable/color": "=1.1.1",
     "@superset-ui/core": "*",
+    "@superset-ui/core/components": "*",
     "@superset-ui/legacy-plugin-chart-calendar": "*",
     "@superset-ui/legacy-plugin-chart-chord": "*",
     "@superset-ui/legacy-plugin-chart-country-map": "*",
