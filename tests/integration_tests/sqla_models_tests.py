@@ -295,8 +295,10 @@ class TestDatabaseModel(SupersetTestCase):
             FilterTestCase("num", FilterOperator.LESS_THAN_OR_EQUALS, 0, "<= 0"),
             FilterTestCase("num", FilterOperator.EQUALS, 0, "= 0"),
             FilterTestCase("num", FilterOperator.NOT_EQUALS, 0, "!= 0"),
-            FilterTestCase("num", FilterOperator.IN, ["1", "2"], "IN (1, 2)"),
-            FilterTestCase("num", FilterOperator.NOT_IN, ["1", "2"], "NOT IN (1, 2)"),
+            FilterTestCase("num", FilterOperator.IN, ["1", "2"], "IN (1.0, 2.0)"),
+            FilterTestCase(
+                "num", FilterOperator.NOT_IN, ["1", "2"], "NOT IN (1.0, 2.0)"
+            ),
             FilterTestCase(
                 "ds", FilterOperator.TEMPORAL_RANGE, "2020 : 2021", "2020-01-01"
             ),
