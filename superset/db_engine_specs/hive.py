@@ -95,6 +95,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     allows_hidden_orderby_agg = False
 
     supports_dynamic_schema = True
+    supports_cross_catalog_queries = False
 
     # When running `SHOW FUNCTIONS`, what is the name of the column with the
     # function names?

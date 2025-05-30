@@ -36,7 +36,7 @@ from sqlalchemy.dialects.mysql import dialect
 
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.test_app import app, login
-from superset.sql_parse import CtasMethod
+from superset.sql.parse import CTASMethod
 from superset import db, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.models import core as models
@@ -387,7 +387,7 @@ class SupersetTestCase(TestCase):
         select_as_cta=False,
         tmp_table_name=None,
         schema=None,
-        ctas_method=CtasMethod.TABLE,
+        ctas_method=CTASMethod.TABLE,
         template_params="{}",
     ):
         if username:
@@ -400,7 +400,7 @@ class SupersetTestCase(TestCase):
             "client_id": client_id,
             "queryLimit": query_limit,
             "sql_editor_id": sql_editor_id,
-            "ctas_method": ctas_method,
+            "ctas_method": ctas_method.name,
             "templateParams": template_params,
         }
         if tmp_table_name:
