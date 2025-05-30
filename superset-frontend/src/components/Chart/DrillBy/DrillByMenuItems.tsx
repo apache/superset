@@ -41,13 +41,12 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
+import { Constants, Input, Loading } from '@superset-ui/core/components';
 import rison from 'rison';
 import { debounce } from 'lodash';
 import { FixedSizeList as List } from 'react-window';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { Input, Loading } from '@superset-ui/core/components';
 import {
   cachedSupersetGet,
   supersetGetCache,
@@ -203,7 +202,7 @@ export const DrillByMenuItems = ({
     () =>
       debounce((value: string) => {
         setDebouncedSearchInput(value);
-      }, FAST_DEBOUNCE),
+      }, Constants.FAST_DEBOUNCE),
     [],
   );
 

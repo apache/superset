@@ -173,3 +173,4 @@ export * from './Table';
 export * from './Radio';
 export * from './Popover';
 export * from './Tag';
+export * from './constants';

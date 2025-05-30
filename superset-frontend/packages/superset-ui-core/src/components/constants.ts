@@ -16,19 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { t } from '..';
 
-/**
- * Faster debounce delay for inputs without expensive operation.
- */
-export const FAST_DEBOUNCE = 250;
-
-/**
- * Slower debounce delay for inputs with expensive API calls.
- */
-export const SLOW_DEBOUNCE = 500;
-
-export const NULL_DISPLAY = t('N/A');
-
-export const BOOL_TRUE_DISPLAY = t('True');
-export const BOOL_FALSE_DISPLAY = t('False');
+export const Constants = {
+  FAST_DEBOUNCE: 250,
+  SLOW_DEBOUNCE: 500,
+  NULL_DISPLAY: t('N/A'),
+  BOOL_TRUE_DISPLAY: t('True'),
+  BOOL_FALSE_DISPLAY: t('False'),
+};

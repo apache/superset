@@ -30,12 +30,7 @@ import {
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
 import {
-  BOOL_FALSE_DISPLAY,
-  BOOL_TRUE_DISPLAY,
-  NULL_DISPLAY,
-  SLOW_DEBOUNCE,
-} from '@superset-ui/core/components/constants';
-import {
+  Constants,
   Button,
   Icons,
   Input,
@@ -107,7 +102,10 @@ export const FilterInput = ({
   }, []);
 
   const theme = useTheme();
-  const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
+  const debouncedChangeHandler = debounce(
+    onChangeHandler,
+    Constants.SLOW_DEBOUNCE,
+  );
   return (
     <Input
       prefix={<Icons.SearchOutlined iconSize="l" />}
@@ -334,13 +332,13 @@ export const useTableColumns = (
                   ),
                 Cell: ({ value }) => {
                   if (value === true) {
-                    return BOOL_TRUE_DISPLAY;
+                    return Constants.BOOL_TRUE_DISPLAY;
                   }
                   if (value === false) {
-                    return BOOL_FALSE_DISPLAY;
+                    return Constants.BOOL_FALSE_DISPLAY;
                   }
                   if (value === null) {
-                    return <CellNull>{NULL_DISPLAY}</CellNull>;
+                    return <CellNull>{Constants.NULL_DISPLAY}</CellNull>;
                   }
                   if (
                     colType === GenericDataType.Temporal &&

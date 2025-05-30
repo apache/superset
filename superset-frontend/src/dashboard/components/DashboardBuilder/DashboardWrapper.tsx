@@ -19,7 +19,7 @@
 import { FC, useEffect, useState } from 'react';
 
 import { css, styled } from '@superset-ui/core';
-import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
+import { Constants } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { useDragDropManager } from 'react-dnd';
@@ -125,7 +125,10 @@ const DashboardWrapper: FC<Props> = ({ children }) => {
 
   useEffect(() => {
     const monitor = dragDropManager.getMonitor();
-    const debouncedSetIsDragged = debounce(setIsDragged, FAST_DEBOUNCE);
+    const debouncedSetIsDragged = debounce(
+      setIsDragged,
+      Constants.FAST_DEBOUNCE,
+    );
     const unsub = monitor.subscribeToStateChange(() => {
       const isDragging = monitor.isDragging();
       if (isDragging) {

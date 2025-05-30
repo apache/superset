@@ -38,8 +38,8 @@ import {
   LabeledValue,
   Select,
   Space,
+  Constants,
 } from '@superset-ui/core/components';
-import { SLOW_DEBOUNCE } from '@superset-ui/core/components/constants';
 import {
   hasOption,
   propertyComparator,
@@ -251,7 +251,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             },
           });
         }
-      }, SLOW_DEBOUNCE),
+      }, Constants.SLOW_DEBOUNCE),
     [dispatchDataMask, initialColtypeMap, searchAllOptions],
   );
 

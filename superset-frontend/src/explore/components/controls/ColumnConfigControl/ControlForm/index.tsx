@@ -23,7 +23,7 @@ import {
   useMemo,
 } from 'react';
 import { JsonObject, JsonValue, useTheme } from '@superset-ui/core';
-import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
+import { Constants } from '@superset-ui/core/components';
 import { debounce } from 'lodash';
 import { ControlFormItemNode } from './ControlFormItem';
 
@@ -73,7 +73,7 @@ export default function ControlForm({
     () =>
       ({
         0: onChange,
-        [FAST_DEBOUNCE]: debounce(onChange, FAST_DEBOUNCE),
+        [Constants.FAST_DEBOUNCE]: debounce(onChange, Constants.FAST_DEBOUNCE),
       }) as Record<number, typeof onChange>,
     [onChange],
   );
@@ -88,7 +88,7 @@ export default function ControlForm({
           const {
             name,
             width,
-            debounceDelay = FAST_DEBOUNCE,
+            debounceDelay = Constants.FAST_DEBOUNCE,
             onChange: onItemValueChange,
           } = item.props;
           return cloneElement(item, {

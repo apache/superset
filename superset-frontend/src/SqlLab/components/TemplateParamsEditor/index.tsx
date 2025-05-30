@@ -25,8 +25,8 @@ import {
   InfoTooltip,
   ModalTrigger,
   Tooltip,
+  Constants,
 } from '@superset-ui/core/components';
-import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 const StyledConfigEditor = styled(ConfigEditor)`
@@ -84,7 +84,7 @@ const TemplateParamsEditor = ({
         mode={language}
         minLines={25}
         maxLines={50}
-        onChange={debounce(onChange, FAST_DEBOUNCE)}
+        onChange={debounce(onChange, Constants.FAST_DEBOUNCE)}
         width="100%"
         editorProps={{ $blockScrolling: true }}
         enableLiveAutocompletion

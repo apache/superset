@@ -42,8 +42,7 @@ import {
   RefSelectProps,
 } from 'antd/es/select';
 import { debounce, isEqual, uniq } from 'lodash';
-import { Icons } from '@superset-ui/core/components';
-import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from '../constants';
+import { Constants, Icons } from '@superset-ui/core/components';
 import { Space } from '../Space';
 import {
   getValue,
@@ -363,7 +362,7 @@ const AsyncSelect = forwardRef(
     );
 
     const debouncedFetchPage = useMemo(
-      () => debounce(fetchPage, SLOW_DEBOUNCE),
+      () => debounce(fetchPage, Constants.SLOW_DEBOUNCE),
       [fetchPage],
     );
 
@@ -395,7 +394,7 @@ const AsyncSelect = forwardRef(
       }
       setInputValue(search);
       onSearch?.(searchValue);
-    }, FAST_DEBOUNCE);
+    }, Constants.FAST_DEBOUNCE);
 
     useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
 

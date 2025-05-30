@@ -120,6 +120,11 @@
       "require": "./lib/components/*/index.js",
       "types": "./lib/components/*/index.d.ts"
     },
+    "./components": {
+      "import": "./esm/components/index.js",
+      "require": "./lib/components/index.js",
+      "types": "./lib/components/index.d.ts"
+    },
     "./utils/*": {
       "import": "./esm/utils/*.js",
       "require": "./lib/utils/*.js",

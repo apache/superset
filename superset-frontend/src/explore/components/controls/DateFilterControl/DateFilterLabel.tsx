@@ -29,6 +29,7 @@ import {
 } from '@superset-ui/core';
 import {
   Button,
+  Constants,
   Divider,
   Modal,
   Tooltip,
@@ -37,7 +38,6 @@ import {
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
-import { SLOW_DEBOUNCE } from '@superset-ui/core/components/constants';
 import { noOp } from 'src/utils/common';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
@@ -232,7 +232,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         });
       }
     },
-    SLOW_DEBOUNCE,
+    Constants.SLOW_DEBOUNCE,
     [timeRangeValue],
   );
 

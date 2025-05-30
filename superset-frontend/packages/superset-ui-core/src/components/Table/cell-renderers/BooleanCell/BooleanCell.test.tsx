@@ -17,23 +17,20 @@
  * under the License.
  */
 import { render, screen } from '@superset-ui/core/spec';
-import {
-  BOOL_FALSE_DISPLAY,
-  BOOL_TRUE_DISPLAY,
-} from '@superset-ui/core/components/constants';
+import { Constants } from '@superset-ui/core/components';
 import BooleanCell from '.';
 
 test('renders true value', async () => {
   render(<BooleanCell value />);
-  expect(screen.getByText(BOOL_TRUE_DISPLAY)).toBeInTheDocument();
+  expect(screen.getByText(Constants.BOOL_TRUE_DISPLAY)).toBeInTheDocument();
 });
 
 test('renders false value', async () => {
   render(<BooleanCell value={false} />);
-  expect(screen.getByText(BOOL_FALSE_DISPLAY)).toBeInTheDocument();
+  expect(screen.getByText(Constants.BOOL_FALSE_DISPLAY)).toBeInTheDocument();
 });
 
 test('renders falsy value', async () => {
   render(<BooleanCell />);
-  expect(screen.getByText(BOOL_FALSE_DISPLAY)).toBeInTheDocument();
+  expect(screen.getByText(Constants.BOOL_FALSE_DISPLAY)).toBeInTheDocument();
 });

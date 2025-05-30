@@ -27,9 +27,13 @@ import {
   css,
   useTheme,
 } from '@superset-ui/core';
-import { SLOW_DEBOUNCE } from '@superset-ui/core/components/constants';
 import { useDispatch } from 'react-redux';
-import { Form, Icons, StyledModal } from '@superset-ui/core/components';
+import {
+  Constants,
+  Form,
+  Icons,
+  StyledModal,
+} from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { testWithId } from 'src/utils/testUtils';
 import { updateCascadeParentIds } from 'src/dashboard/actions/nativeFilters';
@@ -617,7 +621,7 @@ function FiltersConfigModal({
         }
         setSaveAlertVisible(false);
         handleErroredFilters();
-      }, SLOW_DEBOUNCE),
+      }, Constants.SLOW_DEBOUNCE),
     [handleErroredFilters],
   );
 

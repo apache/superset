@@ -38,7 +38,6 @@ import {
   useTheme,
   css,
 } from '@superset-ui/core';
-import { SLOW_DEBOUNCE } from '@superset-ui/core/components/constants';
 import { debounce, isEqual } from 'lodash';
 import {
   forwardRef,
@@ -55,6 +54,7 @@ import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/
 import { useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import {
+  Constants,
   FormItem,
   type FormInstance,
   Collapse,
@@ -343,7 +343,7 @@ const FiltersConfigForm = (
   }, [form, handleModifyFilter]);
 
   const debouncedFormChanged = useCallback(
-    debounce(formChanged, SLOW_DEBOUNCE),
+    debounce(formChanged, Constants.SLOW_DEBOUNCE),
     [],
   );
 

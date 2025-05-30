@@ -30,7 +30,7 @@ import {
 } from 'react';
 
 import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
-import { FAST_DEBOUNCE } from '@superset-ui/core/components/constants';
+import { Constants } from '@superset-ui/core/components';
 import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
@@ -380,7 +380,7 @@ const Select = forwardRef(
       setVisibleOptions(filteredOptions);
       setInputValue(searchValue);
       onSearch?.(searchValue);
-    }, FAST_DEBOUNCE);
+    }, Constants.FAST_DEBOUNCE);
 
     useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
 
