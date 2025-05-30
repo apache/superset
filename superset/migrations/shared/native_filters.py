@@ -20,6 +20,8 @@ from typing import Any
 
 from flask import current_app
 
+from superset import db
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
@@ -165,6 +167,10 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
                         "filterState": {"value": default},
                     }
             elif field == "__group_by" and params.get("group_by_filters"):
+                datasource = db.session.query(SqlaTable).get(filter_box.datasource_id)
+                datasource_columns = [
+                    column.column_name for column in datasource.columns
+                ]
                 fltr.update(
                     {
                         "filterType": "filter_groupby",
@@ -173,7 +179,7 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
                         "targets": [
                             {
                                 "datasetId": filter_box.datasource_id,
-                                "column": {"name": datasource_columns},  # XXX
+                                "column": {"name": datasource_columns},
                             }
                         ],
                         "controlValues": {
