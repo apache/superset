@@ -25,10 +25,18 @@ from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
 from superset.common.db_query_status import QueryStatus
+from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import OAuth2Error, SupersetErrorException
 from superset.models.core import Database
-from superset.sql_lab import execute_query, execute_sql_statements, get_sql_results
+from superset.sql.parse import SQLStatement, Table
+from superset.sql_lab import (
+    apply_rls,
+    execute_query,
+    execute_sql_statements,
+    get_predicates_for_table,
+    get_sql_results,
+)
 from tests.unit_tests.models.core_test import oauth2_client_info
 
 
@@ -214,3 +222,67 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
             }
         ],
     }
+
+
+def test_apply_rls(mocker: MockerFixture) -> None:
+    """
+    Test the ``apply_rls`` helper function.
+    """
+    database = mocker.MagicMock()
+    database.get_default_schema_for_query.return_value = "public"
+    database.get_default_catalog.return_value = "examples"
+    database.db_engine_spec = PostgresEngineSpec
+    query = mocker.MagicMock(database=database, catalog="examples")
+    get_predicates_for_table = mocker.patch(
+        "superset.sql_lab.get_predicates_for_table",
+        side_effect=[["c1 = 1"], ["c2 = 2"]],
+    )
+
+    parsed_statement = SQLStatement("SELECT * FROM t1, t2", "postgresql")
+    parsed_statement.tables = sorted(parsed_statement.tables, key=lambda x: x.table)  # type: ignore
+
+    apply_rls(query, parsed_statement)
+
+    get_predicates_for_table.assert_has_calls(
+        [
+            mocker.call(Table("t1", "public", "examples"), database, True),
+            mocker.call(Table("t2", "public", "examples"), database, True),
+        ]
+    )
+
+    assert (
+        parsed_statement.format()
+        == """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM t1
+  WHERE
+    c1 = 1
+) AS t1, (
+  SELECT
+    *
+  FROM t2
+  WHERE
+    c2 = 2
+) AS t2
+        """.strip()
+    )
+
+
+def test_get_predicates_for_table(mocker: MockerFixture) -> None:
+    """
+    Test the ``get_predicates_for_table`` helper function.
+    """
+    database = mocker.MagicMock()
+    dataset = mocker.MagicMock()
+    predicate = mocker.MagicMock()
+    predicate.compile.return_value = "c1 = 1"
+    dataset.get_sqla_row_level_filters.return_value = [predicate]
+    db = mocker.patch("superset.sql_lab.db")
+    db.session.query().filter().one_or_none.return_value = dataset
+
+    table = Table("t1", "public", "examples")
+    assert get_predicates_for_table(table, database, True) == ["c1 = 1"]

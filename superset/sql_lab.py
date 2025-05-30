@@ -30,7 +30,7 @@ import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 from flask_babel import gettext as __
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 
 from superset import (
     app,
@@ -201,27 +201,35 @@ def apply_rls(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
     """
     Modify statement inplace to ensure RLS rules are applied.
     """
+    database = query.database
+
     # we need the default schema to fully qualify the table names
-    default_schema = query.database.get_default_schema_for_query(query)
+    default_schema = database.get_default_schema_for_query(query)
 
     # There are two ways to insert RLS: either replacing the table with a subquery
     # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
     # safer, but not supported in all databases.
     method = (
         RLSMethod.AS_SUBQUERY
-        if query.database.db_engine_spec.allows_subqueries
-        and query.database.db_engine_spec.allows_alias_in_select
+        if database.db_engine_spec.allows_subqueries
+        and database.db_engine_spec.allows_alias_in_select
         else RLSMethod.AS_PREDICATE
     )
 
-    # collect all RLS predicates
+    # collect all RLS predicates for all tables in the query
     predicates: dict[Table, list[Any]] = defaultdict(list)
     for table in parsed_statement.tables:
+        # fully qualify table
+        table = Table(
+            table.table,
+            table.schema or default_schema,
+            table.catalog or query.catalog,
+        )
+
         if table_predicates := get_predicates_for_table(
             table,
-            query.database,
-            query.catalog,
-            default_schema,
+            database,
+            query.catalog == database.get_default_catalog(),
         ):
             predicates[table].extend(
                 parsed_statement.parse_predicate(predicate)
@@ -234,21 +242,31 @@ def apply_rls(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
 def get_predicates_for_table(
     table: Table,
     database: Database,
-    catalog: str,
-    schema: str,
+    is_default_catalog: bool,
 ) -> list[str]:
     """
     Get the RLS predicates for a table.
 
-    This is used to inject RLS rules into SQL statements run in SQL Lab.
+    This is used to inject RLS rules into SQL statements run in SQL Lab. Note that the
+    table must be fully qualified, with catalog (null if the DB doesn't support) and
+    schema.
     """
+    # if the dataset in the RLS has null catalog, match it when using the default
+    # catalog
+    catalog_predicate = SqlaTable.catalog == table.catalog
+    if table.catalog and is_default_catalog:
+        catalog_predicate = or_(
+            catalog_predicate,
+            SqlaTable.catalog.is_(None),
+        )
+
     dataset = (
         db.session.query(SqlaTable)
         .filter(
             and_(
                 SqlaTable.database_id == database.id,
-                SqlaTable.catalog == table.catalog or catalog,
-                SqlaTable.schema == table.schema or schema,
+                catalog_predicate,
+                SqlaTable.schema == table.schema,
                 SqlaTable.table_name == table.table,
             )
         )
@@ -259,12 +277,12 @@ def get_predicates_for_table(
 
     return [
         str(
-            and_(*filters).compile(
+            predicate.compile(
                 dialect=database.get_dialect(),
                 compile_kwargs={"literal_binds": True},
             )
         )
-        for filters in dataset.get_sqla_row_level_filters()
+        for predicate in dataset.get_sqla_row_level_filters()
     ]
 
 
