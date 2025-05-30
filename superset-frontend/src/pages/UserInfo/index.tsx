@@ -88,7 +88,6 @@ export function UserInfo({ user }: UserInfoProps) {
   }, []);
 
   const getUserDetails = useCallback(() => {
-    console.log('Fetching user info');
     SupersetClient.get({ endpoint: '/api/v1/me/' })
       .then(({ json }) => {
         const transformedUser = {

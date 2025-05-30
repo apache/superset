@@ -164,6 +164,9 @@ class CurrentUserRestApi(BaseSupersetApi):
             return self.response_401()
         try:
             item = self.current_user_put_schema.load(request.json)
+            if not item:
+                return self.response_400(message="At least one field must be provided.")
+
             for key, value in item.items():
                 setattr(g.user, key, value)
 

@@ -93,6 +93,11 @@ class TestCurrentUserApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert "first_name" in data["message"]
 
+    def test_update_me_empty_payload(self):
+        self.login(ADMIN_USERNAME)
+        rv = self.client.put("/api/v1/me/", json={})
+        assert rv.status_code == 400
+
 
 class TestUserApi(SupersetTestCase):
     def test_avatar_with_invalid_user(self):
