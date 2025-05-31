@@ -18,11 +18,6 @@
  */
 import * as sectionsModule from './sections';
 
-export {
-  Tooltip,
-  TooltipPlacement,
-  TooltipProps,
-} from '@superset-ui/core/components';
 export * from './utils';
 export * from './constants';
 export * from './operators';
