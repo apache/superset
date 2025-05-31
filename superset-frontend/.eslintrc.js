@@ -52,7 +52,7 @@ const restrictedImportsRules = {
     message: 'Lodash Memoize is unsafe! Please use memoize-one instead',
   },
   'no-testing-library-react': {
-    name: '@testing-library/react',
+    name: '@superset-ui/core/spec',
     message: 'Please use spec/helpers/testing-library instead',
   },
   'no-testing-library-react-dom-utils': {
@@ -96,6 +96,15 @@ module.exports = {
         extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
         // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
         moduleDirectory: ['node_modules', '.'],
+      },
+      typescript: {
+        alwaysTryTypes: true,
+        project: [
+          './tsconfig.json',
+          './packages/superset-ui-core/tsconfig.json',
+          './packages/superset-ui-chart-controls/',
+          './plugins/*/tsconfig.json',
+        ],
       },
     },
     // only allow import from top level of module
@@ -326,7 +335,9 @@ module.exports = {
       rules: {
         'import/no-extraneous-dependencies': [
           'error',
-          { devDependencies: true },
+          {
+            devDependencies: true,
+          },
         ],
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,

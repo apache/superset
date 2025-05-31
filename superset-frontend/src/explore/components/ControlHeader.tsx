@@ -18,9 +18,8 @@
  */
 import { FC, ReactNode } from 'react';
 import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { FormLabel, Tooltip } from 'src/components';
-import { Icons } from 'src/components/Icons';
+import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 type ValidationError = string;
 
@@ -101,7 +100,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
         )}
         {renderTrigger && (
           <span>
-            <InfoTooltipWithTrigger
+            <InfoTooltip
               label={t('bolt')}
               tooltip={t('Changing this control takes effect instantly')}
               placement="top"

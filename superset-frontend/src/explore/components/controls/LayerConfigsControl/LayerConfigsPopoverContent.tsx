@@ -18,9 +18,9 @@
  */
 import { css, JsonValue, styled, t } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
-import { Button } from 'src/components/Button';
-import { Form } from 'src/components/Form';
-import Tabs from 'src/components/Tabs';
+import { Button } from '@superset-ui/core/components/Button';
+import { Form } from '@superset-ui/core/components/Form';
+import Tabs from '@superset-ui/core/components/Tabs';
 import { mix } from 'polished';
 import { Data as GsData } from 'geostyler-data';
 import { Style as GsStyle } from 'geostyler-style';

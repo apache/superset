@@ -24,10 +24,10 @@ import { QueryParamProvider } from 'use-query-params';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { DynamicPluginProvider, FlashProvider } from 'src/components';
+import { FlashProvider, DynamicPluginProvider } from 'src/components';
+import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { store } from './store';
 import '../preamble';
-import { EmbeddedUiConfigProvider } from '../components/UiConfigContext';
 
 const { common } = getBootstrapData();
 

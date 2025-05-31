@@ -23,11 +23,13 @@ import { t } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';
-import { Icons } from 'src/components/Icons';
-import { Label } from '../Label';
-import { Tooltip } from '../Tooltip';
-import ModalTrigger from '../ModalTrigger';
-import TableView from '../TableView';
+import {
+  Label,
+  Icons,
+  Tooltip,
+  ModalTrigger,
+  TableView,
+} from '@superset-ui/core/components';
 import type {
   AlteredSliceTagProps,
   ControlMap,

@@ -22,17 +22,8 @@ import { Dispatch } from 'redux';
 import rison from 'rison';
 import { connect } from 'react-redux';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
-  css,
-  DatasourceType,
-  isDefined,
-  logging,
-  styled,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
-import {
+  InfoTooltip,
   Alert,
   Button,
   AsyncSelect,
@@ -42,8 +33,17 @@ import {
   Input,
   Loading,
   Divider,
-} from 'src/components';
-import { Radio } from 'src/components/Radio';
+} from '@superset-ui/core/components';
+import {
+  css,
+  DatasourceType,
+  isDefined,
+  logging,
+  styled,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
+import { Radio } from '@superset-ui/core/components/Radio';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
@@ -371,7 +371,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         </FormItem>
         {this.props.datasource?.type === 'query' && (
           <FormItem label={t('Dataset Name')} required>
-            <InfoTooltipWithTrigger
+            <InfoTooltip
               tooltip={t('A reusable dataset will be saved with your chart.')}
               placement="right"
             />

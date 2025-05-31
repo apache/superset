@@ -30,9 +30,13 @@ import {
 } from '@superset-ui/core';
 import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { Tooltip, Select, type SelectOptionsType } from 'src/components';
-import { Icons } from 'src/components/Icons';
-import { handleFilterOptionHelper } from 'src/components/Select/utils';
+import {
+  Tooltip,
+  Select,
+  type SelectOptionsType,
+} from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { handleFilterOptionHelper } from '@superset-ui/core/components/Select/utils';
 import { getColorNamespace } from 'src/utils/colorScheme';
 import ColorSchemeLabel from './ColorSchemeLabel';
 

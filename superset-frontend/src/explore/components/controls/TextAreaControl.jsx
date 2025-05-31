@@ -21,13 +21,11 @@ import PropTypes from 'prop-types';
 import {
   Input,
   Tooltip,
-  TooltipProps,
   Button,
   TextAreaEditor,
-} from 'src/components';
+  ModalTrigger,
+} from '@superset-ui/core/components';
 import { t, withTheme } from '@superset-ui/core';
-
-import ModalTrigger from 'src/components/ModalTrigger';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -59,7 +57,7 @@ const propTypes = {
     'vertical',
   ]),
   textAreaStyles: PropTypes.object,
-  tooltipOptions: PropTypes.oneOf([null, TooltipProps]),
+  tooltipOptions: PropTypes.object,
 };
 
 const defaultProps = {

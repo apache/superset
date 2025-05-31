@@ -25,10 +25,12 @@ import {
 } from 'react';
 
 import { t, styled, useTheme, css } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import { FormLabel } from '../../Form';
-import { Input } from '../../Input';
-import { InfoTooltip } from '../../InfoTooltip';
+import {
+  Input,
+  InfoTooltip,
+  FormLabel,
+  Icons,
+} from '@superset-ui/core/components';
 import { BaseFilter, FilterHandler, FilterContainer } from './Base';
 
 interface SearchHeaderProps extends BaseFilter {
@@ -81,9 +83,7 @@ function SearchFilter(
         `}
       >
         <FormLabel>{Header}</FormLabel>
-        {toolTipDescription && (
-          <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
-        )}
+        {toolTipDescription && <InfoTooltip tooltip={toolTipDescription} />}
       </div>
       <StyledInput
         allowClear

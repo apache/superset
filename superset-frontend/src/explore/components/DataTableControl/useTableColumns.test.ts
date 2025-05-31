@@ -18,7 +18,7 @@
  */
 import { GenericDataType } from '@superset-ui/core';
 import { renderHook } from '@testing-library/react-hooks';
-import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
+import { Constants } from '@superset-ui/core/components';
 import { useTableColumns } from '.';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -65,8 +65,8 @@ const cellValues = {
 const data = [cellValues, cellValues, cellValues, cellValues];
 
 const expectedDisplayValues = {
-  col01: BOOL_TRUE_DISPLAY,
-  col02: BOOL_FALSE_DISPLAY,
+  col01: Constants.BOOL_TRUE_DISPLAY,
+  col02: Constants.BOOL_FALSE_DISPLAY,
   [ASCII_KEY]: ASCII_KEY,
   [UNICODE_KEY]: UNICODE_KEY,
   [NUMTIME_KEY]: NUMTIME_FORMATTED_VALUE,

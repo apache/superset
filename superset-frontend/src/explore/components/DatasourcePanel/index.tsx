@@ -31,10 +31,9 @@ import { ControlConfig } from '@superset-ui/chart-controls';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { matchSorter, rankings } from 'match-sorter';
-import { Alert, Input } from 'src/components';
+import { Alert, Constants, Input } from '@superset-ui/core/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
-import { FAST_DEBOUNCE } from 'src/constants';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
@@ -165,7 +164,7 @@ export default function DataSourcePanel({
 
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const searchKeyword = useDebounceValue(inputValue, FAST_DEBOUNCE);
+  const searchKeyword = useDebounceValue(inputValue, Constants.FAST_DEBOUNCE);
 
   const filteredColumns = useMemo(() => {
     if (!searchKeyword) {

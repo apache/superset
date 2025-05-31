@@ -25,7 +25,7 @@ import {
   Ref,
 } from 'react';
 import { Row, FilterValue } from 'react-table';
-import { Input, type InputRef, Space } from 'antd';
+import { Input, type InputRef, Space } from '@superset-ui/core/components';
 import useAsyncState from '../utils/useAsyncState';
 
 export interface SearchInputProps {

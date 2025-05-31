@@ -21,12 +21,6 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { CollapsibleControl } from './CollapsibleControl';
 
-jest.mock('@superset-ui/chart-controls', () => ({
-  InfoTooltipWithTrigger: ({ tooltip }: { tooltip: string }) => (
-    <span data-test="info-tooltip" data-tooltip={tooltip} />
-  ),
-}));
-
 const defaultProps = {
   title: 'Test Control',
   children: <div data-test="child-content">Child Content</div>,
@@ -47,9 +41,8 @@ describe('CollapsibleControl', () => {
     const tooltipText = 'Test tooltip';
     renderCollapsibleControl({ tooltip: tooltipText });
 
-    const tooltip = screen.getByTestId('info-tooltip');
+    const tooltip = screen.getByRole('button', { name: 'Show info tooltip' });
     expect(tooltip).toBeInTheDocument();
-    expect(tooltip).toHaveAttribute('data-tooltip', tooltipText);
   });
 
   it('starts collapsed when initialValue is false', () => {

@@ -37,29 +37,30 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
   ConfirmStatusChange,
   CertifiedBadge,
-  DatasourceModal,
   DeleteModal,
   Tooltip,
-  ModifiedInfo,
-  FacePile,
-  GenericLink,
-  ImportModal as ImportModelsModal,
   InfoTooltip,
   DatasetTypeLabel,
   Loading,
   List,
+} from '@superset-ui/core/components';
+import { DatasourceModal, GenericLink } from 'src/components';
+import {
+  FacePile,
+  ImportModal as ImportModelsModal,
+  ModifiedInfo,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilters,
 } from 'src/components';
-import { Typography } from 'src/components/Typography';
+import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Icons } from 'src/components/Icons';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import { Icons } from '@superset-ui/core/components/Icons';
+import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 
 import {

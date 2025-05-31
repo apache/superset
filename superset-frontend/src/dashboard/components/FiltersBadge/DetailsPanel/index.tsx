@@ -20,7 +20,7 @@ import { RefObject, useEffect, useRef, KeyboardEvent } from 'react';
 
 import { useSelector } from 'react-redux';
 import { t, useTheme } from '@superset-ui/core';
-import Popover from 'src/components/Popover';
+import { Popover } from '@superset-ui/core/components';
 import {
   FiltersContainer,
   FiltersDetailsContainer,

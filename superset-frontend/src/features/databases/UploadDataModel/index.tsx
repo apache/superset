@@ -45,9 +45,9 @@ import {
   Upload,
   type UploadChangeParam,
   type UploadFile,
-} from 'src/components';
-import { Switch, SwitchProps } from 'src/components/Switch';
-import { Icons } from 'src/components/Icons';
+} from '@superset-ui/core/components';
+import { Switch, SwitchProps } from '@superset-ui/core/components/Switch';
+import { Icons } from '@superset-ui/core/components/Icons';
 import rison from 'rison';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {

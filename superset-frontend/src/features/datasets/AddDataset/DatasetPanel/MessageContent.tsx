@@ -18,7 +18,7 @@
  */
 
 import { t, styled } from '@superset-ui/core';
-import { EmptyState } from 'src/components';
+import { EmptyState } from '@superset-ui/core/components';
 import { Link } from 'react-router-dom';
 
 const StyledContainer = styled.div`

@@ -26,13 +26,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import {
   BaseFormData,
   Behavior,
   Column,
   ContextMenuFilters,
-  FAST_DEBOUNCE,
   JsonResponse,
   css,
   ensureIsArray,
@@ -42,12 +41,12 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
+import { Constants, Input, Loading } from '@superset-ui/core/components';
 import rison from 'rison';
 import { debounce } from 'lodash';
 import { FixedSizeList as List } from 'react-window';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { Input, Loading } from 'src/components';
 import {
   cachedSupersetGet,
   supersetGetCache,
@@ -203,7 +202,7 @@ export const DrillByMenuItems = ({
     () =>
       debounce((value: string) => {
         setDebouncedSearchInput(value);
-      }, FAST_DEBOUNCE),
+      }, Constants.FAST_DEBOUNCE),
     [],
   );
 

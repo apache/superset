@@ -17,11 +17,7 @@
  * under the License.
  */
 /* eslint-disable react-hooks/rules-of-hooks */
-import {
-  ColumnMeta,
-  InfoTooltipWithTrigger,
-  Metric,
-} from '@superset-ui/chart-controls';
+import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
 import {
   AdhocFilter,
   Behavior,
@@ -39,7 +35,6 @@ import {
   t,
   ClientErrorObject,
   getClientErrorObject,
-  SLOW_DEBOUNCE,
   useTheme,
   css,
 } from '@superset-ui/core';
@@ -59,21 +54,22 @@ import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/
 import { useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import {
-  BasicErrorAlert,
-  ErrorMessageWithStackTrace,
+  Constants,
   FormItem,
   type FormInstance,
   Collapse,
+  Icons,
   Select,
   Tooltip,
+  InfoTooltip,
   Flex,
   Input,
   Loading,
-} from 'src/components';
-import { Icons } from 'src/components/Icons';
+} from '@superset-ui/core/components';
+import { BasicErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { Radio } from 'src/components/Radio';
-import Tabs from 'src/components/Tabs';
+import { Radio } from '@superset-ui/core/components/Radio';
+import Tabs from '@superset-ui/core/components/Tabs';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
   Chart,
@@ -347,7 +343,7 @@ const FiltersConfigForm = (
   }, [form, handleModifyFilter]);
 
   const debouncedFormChanged = useCallback(
-    debounce(formChanged, SLOW_DEBOUNCE),
+    debounce(formChanged, Constants.SLOW_DEBOUNCE),
     [],
   );
 
@@ -700,7 +696,7 @@ const FiltersConfigForm = (
       label={
         <>
           <StyledLabel>{t('Time column')}</StyledLabel>&nbsp;
-          <InfoTooltipWithTrigger
+          <InfoTooltip
             placement="top"
             tooltip={
               hasTimeDependency
@@ -1121,7 +1117,7 @@ const FiltersConfigForm = (
                                                 {t('Sort Metric')}
                                               </StyledLabel>
                                               &nbsp;
-                                              <InfoTooltipWithTrigger
+                                              <InfoTooltip
                                                 placement="top"
                                                 tooltip={t(
                                                   'If a metric is specified, sorting will be done based on the metric value',

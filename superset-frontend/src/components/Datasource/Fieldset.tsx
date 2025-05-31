@@ -17,11 +17,9 @@
  * under the License.
  */
 import { ReactNode, useCallback } from 'react';
-import { Divider } from '../Divider';
-import { Typography } from '../Typography';
+import { Divider, Form, Typography } from '@superset-ui/core/components';
 import { recurseReactClone } from './utils';
 import Field from './Field';
-import { Form } from '../Form';
 
 interface FieldsetProps {
   children: ReactNode;

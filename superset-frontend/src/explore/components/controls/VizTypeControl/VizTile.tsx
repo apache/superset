@@ -18,7 +18,8 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
-import { Tooltip, usePluginContext } from 'src/components';
+import { Tooltip } from '@superset-ui/core/components';
+import { usePluginContext } from 'src/components';
 import { VizTileProps } from './types';
 
 export const VizTile = ({
@@ -79,7 +80,7 @@ export const VizTile = ({
   return (
     <Tooltip
       title={tooltipTitle}
-      onOpenChange={visible => setTooltipVisible(visible)}
+      onOpenChange={(visible: boolean) => setTooltipVisible(visible)}
       open={tooltipVisible && !isTransitioning}
       placement="top"
       mouseEnterDelay={0.4}
@@ -132,6 +133,7 @@ export const VizTile = ({
           css={css`
             overflow: hidden;
             text-overflow: ellipsis;
+            font-size: ${theme.fontSizeSM}px;
             min-width: 0;
             padding-right: ${theme.sizeUnit}px;
           `}

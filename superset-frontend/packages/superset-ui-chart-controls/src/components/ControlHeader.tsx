@@ -19,8 +19,7 @@
 import { ReactNode } from 'react';
 import { t, css } from '@superset-ui/core';
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';
-import { Tooltip } from './Tooltip';
+import { InfoTooltip, Tooltip } from '@superset-ui/core/components';
 
 type ValidationError = string;
 
@@ -61,7 +60,7 @@ export function ControlHeader({
         <span>
           {description && (
             <span>
-              <InfoTooltipWithTrigger
+              <InfoTooltip
                 label={t('description')}
                 tooltip={description}
                 placement="top"
@@ -71,7 +70,7 @@ export function ControlHeader({
           )}
           {renderTrigger && (
             <span>
-              <InfoTooltipWithTrigger
+              <InfoTooltip
                 label={t('bolt')}
                 tooltip={t('Changing this control takes effect instantly')}
                 placement="top"

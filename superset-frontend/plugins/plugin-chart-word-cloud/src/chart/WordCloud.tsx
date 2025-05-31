@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import { PureComponent } from 'react';
-import cloudLayout, { Word } from 'd3-cloud';
+import cloudLayout from 'd3-cloud';
 import {
   PlainObject,
   createEncoderFactory,
@@ -34,9 +33,20 @@ import {
 import { isEqual } from 'lodash';
 
 const seedRandom = seed('superset-ui');
+
+// Polyfill Word type since it's not exported from 'd3-cloud'
+export type Word = {
+  text: string;
+  size: number;
+  x?: number;
+  y?: number;
+  rotate?: number;
+  font?: string;
+  weight?: string | number;
+};
+
 export const ROTATION = {
   flat: () => 0,
-  // this calculates a random rotation between -90 and 90 degrees.
   random: () => Math.floor(seedRandom() * 6 - 3) * 30,
   square: () => Math.floor(seedRandom() * 2) * 90,
 };
@@ -53,9 +63,6 @@ type WordCloudEncodingConfig = {
   text: ['Text', string];
 };
 
-/**
- * These props should be stored when saving the chart.
- */
 export interface WordCloudVisualProps {
   encoding?: Partial<WordCloudEncoding>;
   rotation?: RotationType;
@@ -84,15 +91,10 @@ type FullWordCloudProps = WordCloudProps &
 
 const SCALE_FACTOR_STEP = 0.5;
 const MAX_SCALE_FACTOR = 3;
-// Percentage of top results that will always be displayed.
-// Needed to avoid clutter when shrinking a chart with many records.
 const TOP_RESULTS_PERCENTAGE = 0.1;
-
 class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
   static defaultProps = defaultProps;
 
-  // Cannot name it isMounted because of conflict
-  // with React's component function name
   isComponentMounted = false;
 
   wordCloudEncoderFactory = createEncoderFactory<WordCloudEncodingConfig>({
@@ -112,11 +114,15 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
     },
   });
 
-  createEncoder = (encoding?: Partial<WordCloudEncoding>) => {
-    const selector = this.wordCloudEncoderFactory.createSelector();
+  createEncoder = (
+    encoding?: Partial<WordCloudEncoding>,
+  ): Encoder<WordCloudEncodingConfig> => {
+    const selector: (
+      e: Partial<WordCloudEncoding>,
+    ) => Encoder<WordCloudEncodingConfig> =
+      this.wordCloudEncoderFactory.createSelector();
 
-    // @ts-ignore
-    return selector(encoding as any);
+    return selector(encoding ?? {});
   };
 
   constructor(props: FullWordCloudProps) {
@@ -135,7 +141,6 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
 
   componentDidUpdate(prevProps: WordCloudProps) {
     const { data, encoding, width, height, rotation } = this.props;
-
     if (
       !isEqual(prevProps.data, data) ||
       !isEqual(prevProps.encoding, encoding) ||
@@ -160,8 +165,7 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
   update() {
     const { data, encoding } = this.props;
 
-    const encoder: Encoder<WordCloudEncodingConfig> =
-      this.createEncoder(encoding);
+    const encoder = this.createEncoder(encoding);
     encoder.setDomainFromDataset(data);
 
     const sortedData = [...data].sort(
@@ -175,7 +179,6 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
     );
     const topResults = sortedData.slice(0, topResultsCount);
 
-    // Ensure top results are always included in the final word cloud by scaling chart down if needed
     this.generateCloud(encoder, 1, (words: Word[]) =>
       topResults.every((d: PlainObject) =>
         words.find(
@@ -194,7 +197,6 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
 
     cloudLayout()
       .size([width * scaleFactor, height * scaleFactor])
-      // clone the data because cloudLayout mutates input
       .words(data.map((d: Word) => ({ ...d })))
       .padding(5)
       .rotate(ROTATION[rotation] || ROTATION.flat)
@@ -208,9 +210,7 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
       .fontSize((d: PlainObject) => encoder.channels.fontSize.encodeDatum(d, 0))
       .on('end', (words: Word[]) => {
         if (isValid(words) || scaleFactor > MAX_SCALE_FACTOR) {
-          if (this.isComponentMounted) {
-            this.setState({ words, scaleFactor });
-          }
+          this.setWords(words);
         } else {
           this.generateCloud(encoder, scaleFactor + SCALE_FACTOR_STEP, isValid);
         }
@@ -219,17 +219,13 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
   }
 
   render() {
-    const { scaleFactor } = this.state;
+    const { scaleFactor, words } = this.state;
     const { width, height, encoding, sliceId, colorScheme } = this.props;
-    const { words } = this.state;
 
-    // @ts-ignore
     const encoder = this.createEncoder(encoding);
     encoder.channels.color.setDomainFromDataset(words);
 
-    const { getValueFromDatum } = encoder.channels.color;
     const colorFn = CategoricalColorNamespace.getScale(colorScheme);
-
     const viewBoxWidth = width * scaleFactor;
     const viewBoxHeight = height * scaleFactor;
 
@@ -237,9 +233,7 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
       <svg
         width={width}
         height={height}
-        viewBox={`-${viewBoxWidth / 2} -${
-          viewBoxHeight / 2
-        } ${viewBoxWidth} ${viewBoxHeight}`}
+        viewBox={`-${viewBoxWidth / 2} -${viewBoxHeight / 2} ${viewBoxWidth} ${viewBoxHeight}`}
       >
         <g>
           {words.map(w => (
@@ -248,7 +242,10 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
               fontSize={`${w.size}px`}
               fontWeight={w.weight}
               fontFamily={w.font}
-              fill={colorFn(getValueFromDatum(w) as string, sliceId)}
+              fill={colorFn(
+                encoder.channels.color.getValueFromDatum(w) as string,
+                sliceId,
+              )}
               textAnchor="middle"
               transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
             >

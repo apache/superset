@@ -23,7 +23,7 @@ import {
   COLUMN_NAME_ALIASES,
   ControlComponentProps,
 } from '@superset-ui/chart-controls';
-import { Icons } from 'src/components';
+import { Icons } from '@superset-ui/core/components';
 import ColumnConfigItem from './ColumnConfigItem';
 import {
   ColumnConfigInfo,

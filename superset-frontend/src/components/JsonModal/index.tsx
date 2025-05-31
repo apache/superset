@@ -38,9 +38,8 @@
 import { FC, useMemo } from 'react';
 import { JSONTree } from 'react-json-tree';
 import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
-import { Button } from '../Button';
+import { Button, ModalTrigger } from '@superset-ui/core/components';
 import { CopyToClipboard } from '../CopyToClipboard';
-import ModalTrigger from '../ModalTrigger';
 import { convertBigIntStrToNumber } from './utils';
 import type { JsonModalProps } from './types';
 

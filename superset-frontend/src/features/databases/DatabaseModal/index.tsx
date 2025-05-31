@@ -35,15 +35,15 @@ import {
   useCallback,
   ChangeEvent,
 } from 'react';
-import { CheckboxChangeEvent } from 'src/components/Checkbox/types';
+import { CheckboxChangeEvent } from '@superset-ui/core/components/Checkbox/types';
 
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 import {
   Alert,
   Button,
-  ErrorMessageWithStackTrace,
+  Icons,
   LabeledErrorBoundInput as ValidatedInput,
   Modal,
   Select,
@@ -54,10 +54,9 @@ import {
   type UploadChangeParam,
   type UploadFile,
   FormLabel,
-} from 'src/components';
+} from '@superset-ui/core/components';
+import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { ErrorAlert } from 'src/components/ImportModal/ErrorAlert';
-import { Icons } from 'src/components/Icons';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -1525,10 +1524,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     return (
       <StyledAlertMargin>
-        <ErrorAlert
-          errorMessage={importingErrorMessage}
-          showDbInstallInstructions={passwordFields.length > 0}
-        />
+        <ErrorAlert message={importingErrorMessage} />
       </StyledAlertMargin>
     );
   };
@@ -1957,7 +1953,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                           tooltip={t(
                             'Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.',
                           )}
-                          viewBox="0 -6 24 24"
                         />
                       </div>
                     )}
@@ -2163,7 +2158,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                         tooltip={t(
                           'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
                         )}
-                        viewBox="0 -6 24 24"
                       />
                     </>
                   )}

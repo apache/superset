@@ -26,7 +26,7 @@ import {
 } from 'react';
 import { styled, SupersetClient, SupersetError, t } from '@superset-ui/core';
 import rison from 'rison';
-import RefreshLabel from 'src/components/RefreshLabel';
+import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
   useCatalogs,
@@ -34,12 +34,15 @@ import {
   useSchemas,
   SchemaOption,
 } from 'src/hooks/apiResources';
-import { Label } from '../Label';
-import { Select, AsyncSelect } from '../Select';
-import { FormLabel } from '../Form';
-import { ErrorMessageWithStackTrace } from '../ErrorMessage';
+import {
+  Select,
+  AsyncSelect,
+  Label,
+  FormLabel,
+  LabeledValue as AntdLabeledValue,
+} from '@superset-ui/core/components';
 
-import type { LabeledValue as AntdLabeledValue } from '../Select';
+import { ErrorMessageWithStackTrace } from 'src/components';
 import type {
   DatabaseSelectorProps,
   DatabaseValue,

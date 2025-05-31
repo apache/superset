@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { css, styled, t } from '@superset-ui/core';
-import { Button } from 'src/components';
-import Tree, { TreeProps } from 'src/components/Tree';
+import { Button } from '@superset-ui/core/components';
+import Tree, { TreeProps } from '@superset-ui/core/components/Tree';
 import { forwardRef } from 'react';
 import { FlatLayerDataNode, FlatLayerTreeProps, LayerConf } from './types';
 import { handleDrop } from './dragDropUtil';

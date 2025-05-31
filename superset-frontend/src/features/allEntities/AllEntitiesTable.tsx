@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { t, styled } from '@superset-ui/core';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import TagsList from 'src/components/TagsList';
-import Tag from 'src/types/TagType';
-import { EmptyState, FacePile } from 'src/components';
+import {
+  TableView,
+  EmptyWrapperType,
+} from '@superset-ui/core/components/TableView';
+import { EmptyState } from '@superset-ui/core/components';
+import { FacePile, TagsList, type TagType } from 'src/components';
 import { NumberParam, useQueryParam } from 'use-query-params';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
-import { Typography } from 'src/components/Typography';
+import { Typography } from '@superset-ui/core/components/Typography';
 
 const MAX_TAGS_TO_SHOW = 3;
 const PAGE_SIZE = 10;
@@ -96,14 +98,14 @@ export default function AllEntitiesTable({
             }: {
               row: {
                 original: {
-                  tags: Tag[];
+                  tags: TagType[];
                 };
               };
             }) => (
               // Only show custom type tags
               <TagsList
                 tags={tags.filter(
-                  (tag: Tag) =>
+                  (tag: TagType) =>
                     tag.type !== undefined &&
                     ['TagType.custom', 1].includes(tag.type) &&
                     tag.id !== tagId,

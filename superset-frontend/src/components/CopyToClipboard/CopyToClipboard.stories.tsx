@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
-import { Button } from '../Button';
+import { Button } from '@superset-ui/core/components';
 import { CopyToClipboard } from '.';
 
 export default {

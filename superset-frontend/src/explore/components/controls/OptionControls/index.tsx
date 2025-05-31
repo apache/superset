@@ -20,9 +20,7 @@ import { useRef, ReactNode } from 'react';
 
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { styled, t, useTheme, keyframes, css } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { Tooltip } from 'src/components';
-import { Icons } from 'src/components/Icons';
+import { InfoTooltip, Icons, Tooltip } from '@superset-ui/core/components';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import { StyledMetricOption } from '../../optionRenderers';
@@ -91,7 +89,7 @@ export const CloseContainer = styled.div`
   cursor: pointer;
 `;
 
-const StyledInfoTooltipWithTrigger = styled(InfoTooltipWithTrigger)`
+const StyledInfoTooltip = styled(InfoTooltip)`
   margin: 0 ${({ theme }) => theme.sizeUnit}px;
 `;
 
@@ -397,7 +395,7 @@ export const OptionControlLabel = ({
         {getLabelContent()}
       </Label>
       {(!!datasourceWarningMessage || isExtra) && (
-        <StyledInfoTooltipWithTrigger
+        <StyledInfoTooltip
           type="warning"
           placement="top"
           tooltip={

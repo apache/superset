@@ -26,19 +26,19 @@ import {
   useTheme,
 } from '@superset-ui/core';
 
-import { Icons } from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Tooltip } from '@superset-ui/core/components/Tooltip';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { DndItemValue, FlattenedItem, Folder } from './types';
 
 const LabelWrapper = styled.div`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.dark1};
+    color: ${theme.colorText};
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: ${theme.fontSizeSM}px;
-    background-color: ${theme.colors.grayscale.light4};
+    background-color: ${theme.colorBgTextActive};
     margin: ${theme.sizeUnit * 2}px 0;
     border-radius: ${theme.borderRadius}px;
     padding: 0 ${theme.sizeUnit}px;
@@ -51,9 +51,12 @@ const LabelWrapper = styled.div`
     }
 
     padding: 0;
-    cursor: pointer;
+    cursor: grab;
+    &:active {
+      cursor: grabbing;
+    }
     &:hover {
-      background-color: ${theme.colors.grayscale.light3};
+      background-color: ${theme.colorBgTextHover};
     }
 
     & > span {
@@ -108,7 +111,7 @@ const SectionHeader = styled.span`
 const Divider = styled.div`
   ${({ theme }) => css`
     height: 16px;
-    border-bottom: 1px solid ${theme.colors.grayscale.light3};
+    border-bottom: 1px solid ${theme.colorSplit};
   `}
 `;
 

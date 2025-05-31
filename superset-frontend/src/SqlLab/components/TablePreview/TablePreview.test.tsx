@@ -45,7 +45,7 @@ jest.mock(
     ({ children }: { children: (params: { height: number }) => ReactChild }) =>
       children({ height: 500 }),
 );
-jest.mock('src/components/IconTooltip', () => ({
+jest.mock('@superset-ui/core/components/IconTooltip', () => ({
   IconTooltip: ({
     onClick,
     tooltip,

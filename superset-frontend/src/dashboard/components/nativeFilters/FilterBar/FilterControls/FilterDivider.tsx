@@ -23,8 +23,8 @@ import {
   useCSSTextTruncation,
   truncationCSS,
 } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import { Tooltip } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Tooltip } from '@superset-ui/core/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { FilterDividerProps } from './types';
 

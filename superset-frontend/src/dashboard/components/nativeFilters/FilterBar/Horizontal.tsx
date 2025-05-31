@@ -19,7 +19,7 @@
 
 import { FC, memo, useMemo } from 'react';
 import { DataMaskStateWithId, styled, t } from '@superset-ui/core';
-import { Loading } from 'src/components';
+import { Loading } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';

@@ -18,7 +18,10 @@
  */
 import { createRef, PureComponent } from 'react';
 import { styled } from '@superset-ui/core';
-import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
+import {
+  ModalTrigger,
+  ModalTriggerRef,
+} from '@superset-ui/core/components/ModalTrigger';
 import FilterScope from 'src/dashboard/containers/FilterScope';
 
 type FilterScopeModalProps = {

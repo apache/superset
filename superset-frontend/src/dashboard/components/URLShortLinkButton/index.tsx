@@ -18,13 +18,18 @@
  */
 import { useState } from 'react';
 import { getClientErrorObject, t, useTheme } from '@superset-ui/core';
-import Popover, { PopoverProps } from 'src/components/Popover';
-import { CopyToClipboard, Button, Icons } from 'src/components';
+import {
+  Button,
+  Icons,
+  Popover,
+  type PopoverProps,
+} from '@superset-ui/core/components';
+import { CopyToClipboard } from 'src/components';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { shallowEqual, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
-import { Typography } from 'src/components/Typography';
+import { Typography } from '@superset-ui/core/components/Typography';
 
 export type URLShortLinkButtonProps = {
   dashboardId: number;

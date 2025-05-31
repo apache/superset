@@ -17,8 +17,7 @@
  * under the License.
  */
 import { SEPARATOR, t } from '@superset-ui/core';
-import { Input, Icons } from 'src/components';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { Input, Icons, InfoTooltip } from '@superset-ui/core/components';
 import { FrameComponentProps } from 'src/explore/components/controls/DateFilterControl/types';
 import DateFunctionTooltip from './DateFunctionTooltip';
 
@@ -60,7 +59,7 @@ export function AdvancedFrame(props: FrameComponentProps) {
       </div>
       <div className="control-label">
         {t('Start (inclusive)')}{' '}
-        <InfoTooltipWithTrigger
+        <InfoTooltip
           tooltip={t('Start date included in time range')}
           placement="right"
         />
@@ -72,7 +71,7 @@ export function AdvancedFrame(props: FrameComponentProps) {
       />
       <div className="control-label">
         {t('End (exclusive)')}{' '}
-        <InfoTooltipWithTrigger
+        <InfoTooltip
           tooltip={t('End date excluded from time range')}
           placement="right"
         />

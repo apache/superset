@@ -18,11 +18,15 @@
  */
 import { useState, useEffect } from 'react';
 import { t, styled } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
-import { Badge, ConfigEditor, Tooltip } from 'src/components';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { FAST_DEBOUNCE } from 'src/constants';
+import {
+  Badge,
+  ConfigEditor,
+  InfoTooltip,
+  ModalTrigger,
+  Tooltip,
+  Constants,
+} from '@superset-ui/core/components';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 const StyledConfigEditor = styled(ConfigEditor)`
@@ -80,7 +84,7 @@ const TemplateParamsEditor = ({
         mode={language}
         minLines={25}
         maxLines={50}
-        onChange={debounce(onChange, FAST_DEBOUNCE)}
+        onChange={debounce(onChange, Constants.FAST_DEBOUNCE)}
         width="100%"
         editorProps={{ $blockScrolling: true }}
         enableLiveAutocompletion
@@ -105,7 +109,7 @@ const TemplateParamsEditor = ({
             {t('Parameters ')}
             <Badge count={paramCount} />
             {!isValid && (
-              <InfoTooltipWithTrigger
+              <InfoTooltip
                 type="error"
                 tooltip={t('Invalid JSON')}
                 label="invalid-json"

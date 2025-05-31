@@ -26,7 +26,7 @@ import {
   Input,
   Typography,
   Icons,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { useState } from 'react';
 import { capitalize } from 'lodash/fp';
 import getBootstrapData from 'src/utils/getBootstrapData';

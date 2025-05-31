@@ -18,9 +18,16 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Button, Input, Select, Row, Col, Divider } from 'src/components';
+import {
+  Button,
+  Col,
+  Divider,
+  InfoTooltip,
+  Input,
+  Row,
+  Select,
+} from '@superset-ui/core/components';
 import { t, styled } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import BoundsControl from '../BoundsControl';
 import CheckboxControl from '../CheckboxControl';
 import ControlPopover from '../ControlPopover/ControlPopover';
@@ -83,7 +90,7 @@ const StyledCol = styled(Col)`
   align-items: center;
 `;
 
-const StyledTooltip = styled(InfoTooltipWithTrigger)`
+const StyledTooltip = styled(InfoTooltip)`
   margin-left: ${({ theme }) => theme.sizeUnit}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
@@ -362,7 +369,7 @@ export default class TimeSeriesColumnControl extends Component {
           open={this.state.popoverVisible}
           onOpenChange={this.onPopoverVisibleChange}
         >
-          <InfoTooltipWithTrigger
+          <InfoTooltip
             icon="edit"
             className="text-primary"
             label="edit-ts-column"

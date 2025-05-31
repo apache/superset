@@ -39,25 +39,25 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import {
+  AsyncSelect,
+  Checkbox,
+  Collapse,
+  CollapseLabelInModal,
+  InfoTooltip,
   Input,
   InputNumber,
   Modal,
-  Switch,
-  Collapse,
   Select,
-  AsyncSelect,
-  Checkbox,
-  CollapseLabelInModal,
+  Switch,
   TreeSelect,
   type CheckboxChangeEvent,
-} from 'src/components';
-import TimezoneSelector from 'src/components/TimezoneSelector';
-import { propertyComparator } from 'src/components/Select/utils';
+} from '@superset-ui/core/components';
+import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
+import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   NotificationMethodOption,
   NotificationSetting,
@@ -78,8 +78,8 @@ import {
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { Icons } from 'src/components/Icons';
-import { Typography } from 'src/components/Typography';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -327,10 +327,6 @@ export const StyledInputContainer = styled.div`
       margin-left: 10px;
     }
   `}
-`;
-
-const StyledTooltip = styled(InfoTooltipWithTrigger)`
-  margin-left: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 // Notification Method components
@@ -1596,7 +1592,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       <StyledInputContainer>
                         <div className="control-label">
                           {t('SQL Query')}
-                          <StyledTooltip
+                          <InfoTooltip
                             tooltip={t(
                               'The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or "1" (compatible with Python\'s float() function).',
                             )}

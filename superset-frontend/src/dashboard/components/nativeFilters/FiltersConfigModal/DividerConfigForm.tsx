@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC } from 'react';
-import { FormItem, Input } from 'src/components';
+import { FormItem, Input } from '@superset-ui/core/components';
 import { NativeFilterType, styled, t } from '@superset-ui/core';
 
 interface Props {

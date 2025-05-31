@@ -18,18 +18,16 @@
  */
 import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
 
+import { css, styled, Metric, SupersetTheme } from '@superset-ui/core';
 import {
-  css,
-  styled,
-  Metric,
   SafeMarkdown,
-  SupersetTheme,
-} from '@superset-ui/core';
-import { Typography } from 'antd';
-import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';
+  Typography,
+  // TODO: somehow doesn't work with our main Tooltip (?)
+  RawAntdTooltip as Tooltip,
+  InfoTooltip,
+} from '@superset-ui/core/components';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
-import Tooltip from './Tooltip';
 import { getMetricTooltipNode } from './labelUtils';
 import { SQLPopover } from './SQLPopover';
 
@@ -115,7 +113,7 @@ export function MetricOption({
         />
       )}
       {warningMarkdown && (
-        <InfoTooltipWithTrigger
+        <InfoTooltip
           type="warning"
           tooltip={<SafeMarkdown source={warningMarkdown} />}
           label={`warn-${metric.metric_name}`}

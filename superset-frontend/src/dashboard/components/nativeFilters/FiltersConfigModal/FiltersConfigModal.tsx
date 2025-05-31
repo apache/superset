@@ -23,14 +23,18 @@ import {
   NativeFilterType,
   Divider,
   styled,
-  SLOW_DEBOUNCE,
   t,
   css,
   useTheme,
 } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
-import { Icons } from 'src/components/Icons';
-import { ErrorBoundary, Form, StyledModal } from 'src/components';
+import {
+  Constants,
+  Form,
+  Icons,
+  StyledModal,
+} from '@superset-ui/core/components';
+import { ErrorBoundary } from 'src/components';
 import { testWithId } from 'src/utils/testUtils';
 import { updateCascadeParentIds } from 'src/dashboard/actions/nativeFilters';
 import useEffectEvent from 'src/hooks/useEffectEvent';
@@ -617,7 +621,7 @@ function FiltersConfigModal({
         }
         setSaveAlertVisible(false);
         handleErroredFilters();
-      }, SLOW_DEBOUNCE),
+      }, Constants.SLOW_DEBOUNCE),
     [handleErroredFilters],
   );
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components';
 import { useTheme } from '@superset-ui/core';
 
 interface IssueCodeProps {

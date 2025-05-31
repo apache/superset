@@ -32,7 +32,7 @@ import {
   InfoTooltip,
   CollapseLabelInModal,
   type CheckboxChangeEvent,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import {
   StyledInputContainer,
   StyledJsonEditor,

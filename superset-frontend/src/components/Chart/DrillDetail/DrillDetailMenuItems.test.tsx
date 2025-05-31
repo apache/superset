@@ -28,7 +28,7 @@ import setupPlugins from 'src/setup/setupPlugins';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { BinaryQueryObjectFilterClause, VizType } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import DrillDetailMenuItems, {
   DrillDetailMenuItemsProps,
 } from './DrillDetailMenuItems';

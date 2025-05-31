@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 
-import { Icons } from 'src/components';
+import { Icons } from '@superset-ui/core/components';
 import { ROW_TYPE } from '../../../util/componentTypes';
 import { NEW_ROW_ID } from '../../../util/constants';
 import DraggableNewComponent from './DraggableNewComponent';

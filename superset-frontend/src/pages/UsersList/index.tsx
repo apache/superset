@@ -22,16 +22,15 @@ import { t, SupersetClient } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
+import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
 import {
-  DeleteModal,
   ListView,
   ListViewProps,
-  ConfirmStatusChange,
   ListViewFilterOperator,
   ListViewFilters,
 } from 'src/components';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   UserListAddModal,
   UserListEditModal,

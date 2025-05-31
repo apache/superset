@@ -29,12 +29,12 @@ import PropTypes from 'prop-types';
 import cx from 'classnames';
 import {
   css,
-  FAST_DEBOUNCE,
   FeatureFlag,
   isFeatureEnabled,
   styled,
   t,
 } from '@superset-ui/core';
+import { Icons, Constants } from '@superset-ui/core/components';
 
 import {
   Draggable,
@@ -44,7 +44,6 @@ import DragHandle from 'src/dashboard/components/dnd/DragHandle';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
-import { Icons } from 'src/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
@@ -222,7 +221,7 @@ const Row = props => {
         setContainerHeight(updatedHeight);
       }
     },
-    FAST_DEBOUNCE,
+    Constants.FAST_DEBOUNCE,
     [editMode, containerHeight],
   );
 

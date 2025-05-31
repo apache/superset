@@ -23,8 +23,15 @@ import { FixedSizeList as List } from 'react-window';
 // @ts-ignore
 import { createFilter } from 'react-search-input';
 import { t, styled, css } from '@superset-ui/core';
-import { Button, Select, Checkbox, Input, Loading } from 'src/components';
-import { Icons } from 'src/components/Icons';
+import {
+  Button,
+  Checkbox,
+  InfoTooltip,
+  Input,
+  Loading,
+  Select,
+} from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   LocalStorageKeys,
   getItem,
@@ -39,7 +46,6 @@ import {
   NEW_COMPONENTS_SOURCE_ID,
 } from 'src/dashboard/util/constants';
 import { debounce, pickBy } from 'lodash';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Dispatch } from 'redux';
 import { Slice } from 'src/dashboard/types';
 import { withTheme, Theme } from '@emotion/react';
@@ -410,7 +416,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
             checked={this.state.showOnlyMyCharts}
           />
           {t('Show only my charts')}
-          <InfoTooltipWithTrigger
+          <InfoTooltip
             placement="top"
             tooltip={t(
               `You can choose to display all charts that you have access to or only the ones you own.

@@ -30,15 +30,14 @@ import {
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
 import {
-  BOOL_FALSE_DISPLAY,
-  BOOL_TRUE_DISPLAY,
-  NULL_DISPLAY,
-  SLOW_DEBOUNCE,
-} from 'src/constants';
-import { Radio } from 'src/components/Radio';
-import { Icons } from 'src/components/Icons';
-import { Input, Button, CopyToClipboard } from 'src/components';
-import Popover from 'src/components/Popover';
+  Constants,
+  Button,
+  Icons,
+  Input,
+  Popover,
+  Radio,
+} from '@superset-ui/core/components';
+import { CopyToClipboard } from 'src/components';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getTimeColumns, setTimeColumns } from './utils';
 
@@ -103,7 +102,10 @@ export const FilterInput = ({
   }, []);
 
   const theme = useTheme();
-  const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
+  const debouncedChangeHandler = debounce(
+    onChangeHandler,
+    Constants.SLOW_DEBOUNCE,
+  );
   return (
     <Input
       prefix={<Icons.SearchOutlined iconSize="l" />}
@@ -186,7 +188,9 @@ const DataTableTemporalHeaderCell = ({
   const overlayContent = useMemo(
     () =>
       datasourceId ? ( // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-        <FormatPickerContainer onClick={e => e.stopPropagation()}>
+        <FormatPickerContainer
+          onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
+        >
           {/* hack to disable click propagation from popover content to table header, which triggers sorting column */}
           <FormatPickerLabel>{t('Column Formatting')}</FormatPickerLabel>
           <FormatPicker
@@ -214,7 +218,7 @@ const DataTableTemporalHeaderCell = ({
           iconSize="m"
           iconColor={theme.colors.grayscale.light1}
           css={{ marginRight: `${theme.sizeUnit}px` }}
-          onClick={e => e.stopPropagation()}
+          onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
         />
       </Popover>
       {columnName}
@@ -328,13 +332,13 @@ export const useTableColumns = (
                   ),
                 Cell: ({ value }) => {
                   if (value === true) {
-                    return BOOL_TRUE_DISPLAY;
+                    return Constants.BOOL_TRUE_DISPLAY;
                   }
                   if (value === false) {
-                    return BOOL_FALSE_DISPLAY;
+                    return Constants.BOOL_FALSE_DISPLAY;
                   }
                   if (value === null) {
-                    return <CellNull>{NULL_DISPLAY}</CellNull>;
+                    return <CellNull>{Constants.NULL_DISPLAY}</CellNull>;
                   }
                   if (
                     colType === GenericDataType.Temporal &&

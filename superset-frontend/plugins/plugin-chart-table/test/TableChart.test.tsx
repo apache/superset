@@ -17,7 +17,7 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@superset-ui/core/spec';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';

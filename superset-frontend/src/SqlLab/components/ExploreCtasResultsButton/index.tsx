@@ -23,8 +23,8 @@ import {
   addInfoToast,
   addDangerToast,
 } from 'src/SqlLab/actions/sqlLab';
-import { Button, IconTooltip } from 'src/components';
-import { Icons } from 'src/components/Icons';
+import { Button, IconTooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { exploreChart } from 'src/explore/exploreUtils';
 import { SqlLabRootState } from 'src/SqlLab/types';
 

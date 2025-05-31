@@ -25,7 +25,8 @@ import { styledMount as mount } from 'spec/helpers/theming';
 
 import DatabaseList from 'src/pages/DatabaseList';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
-import { DeleteModal, ListView, ListViewUIFilters } from 'src/components';
+import { DeleteModal } from '@superset-ui/core/components';
+import { ListView, ListViewUIFilters } from 'src/components';
 import SubMenu from 'src/features/home/SubMenu';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'spec/helpers/testing-library';

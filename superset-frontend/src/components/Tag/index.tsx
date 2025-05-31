@@ -20,11 +20,10 @@
 import { styled } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
 import TagType from 'src/types/TagType';
-import { Tag as AntdTag } from 'antd';
+import { Tag as AntdTag, Tooltip } from '@superset-ui/core/components';
 import type { TagProps } from 'antd/es';
 import type { CheckableTagProps } from 'antd/es/tag';
 import { useMemo } from 'react';
-import { Tooltip } from '../Tooltip';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
@@ -103,4 +102,4 @@ const SupersetTag = ({
 export const Tag = Object.assign(SupersetTag, {
   CheckableTag: AntdTag.CheckableTag,
 });
-export type { TagProps, CheckableTagProps };
+export type { TagProps, CheckableTagProps, TagType };

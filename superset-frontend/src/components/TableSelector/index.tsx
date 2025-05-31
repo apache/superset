@@ -23,7 +23,7 @@ import {
   useMemo,
   useEffect,
 } from 'react';
-import type { SelectValue } from 'src/components';
+import type { SelectValue } from '@superset-ui/core/components';
 
 import {
   styled,
@@ -34,13 +34,13 @@ import {
 import {
   FormLabel,
   CertifiedBadge,
-  DatabaseSelector,
   Select,
-} from 'src/components';
-import { Icons } from 'src/components/Icons';
+} from '@superset-ui/core/components';
+import { DatabaseSelector } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
-import RefreshLabel from 'src/components/RefreshLabel';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
+import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useTables, Table } from 'src/hooks/apiResources';
 

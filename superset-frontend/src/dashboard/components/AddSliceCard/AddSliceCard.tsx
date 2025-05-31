@@ -30,12 +30,8 @@ import {
 } from 'react';
 
 import { t, isFeatureEnabled, FeatureFlag, css } from '@superset-ui/core';
-import {
-  GenericLink,
-  Tooltip,
-  usePluginContext,
-  ImageLoader,
-} from 'src/components';
+import { Tooltip, ImageLoader } from '@superset-ui/core/components';
+import { GenericLink, usePluginContext } from 'src/components';
 import { assetUrl } from 'src/utils/assetUrl';
 import { Theme } from '@emotion/react';
 

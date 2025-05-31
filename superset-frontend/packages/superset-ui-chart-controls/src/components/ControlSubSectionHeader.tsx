@@ -25,4 +25,3 @@ export const ControlSubSectionHeader = styled.div`
     font-size: ${theme.fontSizeSM}px;
   `}
 `;
-export default ControlSubSectionHeader;

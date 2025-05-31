@@ -20,12 +20,17 @@ import { PureComponent, ReactNode } from 'react';
 
 import { nanoid } from 'nanoid';
 
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { t, styled, css } from '@superset-ui/core';
 
-import { Icons } from 'src/components/Icons';
+import { Icons, Button, InfoTooltip } from '@superset-ui/core/components';
 import { FilterValue } from 'react-table';
-import { Button } from '../Button';
+import Table, {
+  type ColumnsType,
+  type SortOrder,
+  type SorterResult,
+  type TablePaginationConfig,
+  TableSize,
+} from '@superset-ui/core/components/Table';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
 import {
@@ -33,13 +38,6 @@ import {
   type CRUDCollectionState,
   type Sort,
 } from './types';
-import Table, {
-  type ColumnsType,
-  type SortOrder,
-  type SorterResult,
-  type TablePaginationConfig,
-  TableSize,
-} from '../Table';
 
 const CrudButtonWrapper = styled.div`
   text-align: right;
@@ -324,7 +322,7 @@ export default class CRUDCollection extends PureComponent<
             {tooltip && (
               <>
                 {' '}
-                <InfoTooltipWithTrigger
+                <InfoTooltip
                   label={t('description')}
                   tooltip={tooltip}
                   placement="top"

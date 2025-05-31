@@ -118,7 +118,7 @@ test('skips select all options', async () => {
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type to search tables',
   });
-  userEvent.click(tableSelect);
+  await userEvent.click(tableSelect);
   expect(await screen.findByText('table_a')).toBeInTheDocument();
   expect(
     screen.queryByRole('option', { name: /Select All/i }),
@@ -138,7 +138,7 @@ test('renders table options without Select All option', async () => {
   });
 
   await act(async () => {
-    userEvent.click(tableSelect);
+    await userEvent.click(tableSelect);
   });
 
   await waitFor(
@@ -171,7 +171,7 @@ test('table select retain value if not in SQL Lab mode', async () => {
   expect(getSelectItemContainer(tableSelect)).toHaveLength(0);
 
   await act(async () => {
-    userEvent.click(tableSelect);
+    await userEvent.click(tableSelect);
   });
 
   await waitFor(
@@ -182,7 +182,7 @@ test('table select retain value if not in SQL Lab mode', async () => {
   );
 
   await act(async () => {
-    userEvent.click(screen.getByText('table_a'));
+    await userEvent.click(screen.getByText('table_a'));
   });
 
   await waitFor(
@@ -242,16 +242,16 @@ test('table multi select retain all the values selected', async () => {
   expect(screen.queryByText('table_a')).not.toBeInTheDocument();
   expect(getSelectItemContainer(tableSelect)).toHaveLength(0);
 
-  userEvent.click(tableSelect);
+  await userEvent.click(tableSelect);
 
   await waitFor(async () => {
     const item = await screen.findAllByText('table_b');
-    userEvent.click(item[item.length - 1]);
+    await userEvent.click(item[item.length - 1]);
   });
 
   await waitFor(async () => {
     const item = await screen.findAllByText('table_c');
-    userEvent.click(item[item.length - 1]);
+    await userEvent.click(item[item.length - 1]);
   });
 
   const selections = await screen.findAllByRole('option', { selected: true });

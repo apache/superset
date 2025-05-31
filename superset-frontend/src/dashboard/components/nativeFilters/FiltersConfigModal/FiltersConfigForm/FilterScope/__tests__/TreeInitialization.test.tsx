@@ -23,7 +23,7 @@ import {
   waitFor,
   cleanup,
 } from 'spec/helpers/testing-library';
-import type { FormInstance } from 'src/components';
+import type { FormInstance } from '@superset-ui/core/components';
 import { createMockModal } from './utils';
 
 describe('FilterScope TreeInitialization', () => {

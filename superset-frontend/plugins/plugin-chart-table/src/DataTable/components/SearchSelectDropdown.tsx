@@ -18,10 +18,10 @@
  */
 /* eslint-disable import/no-extraneous-dependencies */
 import { styled } from '@superset-ui/core';
-import { Select } from 'antd';
+import { RawAntdSelect } from '@superset-ui/core/components';
 import { SearchOption } from '../../types';
 
-const StyledSelect = styled(Select)`
+const StyledSelect = styled(RawAntdSelect)`
   width: 120px;
   margin-right: 8px;
 `;
