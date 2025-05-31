@@ -18,15 +18,15 @@
  */
 import { useState, ReactNode } from 'react';
 import {
-  RawAntdSelect,
-  type RawAntdSelectProps,
-} from '@superset-ui/core/components';
+  Select as AntdSelect,
+  type SelectProps as AntdSelectProps,
+} from 'antd';
 
-export const { Option }: any = RawAntdSelect;
+export const { Option }: any = AntdSelect;
 
 export type SelectOption<VT = string> = [VT, ReactNode];
 
-export type SelectProps<VT> = Omit<RawAntdSelectProps<VT>, 'options'> & {
+export type SelectProps<VT> = Omit<AntdSelectProps<VT>, 'options'> & {
   creatable?: boolean;
   minWidth?: string | number;
   options?: SelectOption<VT>[];
@@ -75,7 +75,7 @@ export default function Select<VT extends string | number>({
     : onChange;
 
   return (
-    <RawAntdSelect<VT>
+    <AntdSelect<VT>
       popupMatchSelectWidth={popupMatchSelectWidth}
       showSearch={showSearch}
       onSearch={handleSearch}
@@ -101,7 +101,7 @@ export default function Select<VT extends string | number>({
           {searchValue}
         </Option>
       )}
-    </RawAntdSelect>
+    </AntdSelect>
   );
 }
 

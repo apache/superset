@@ -18,7 +18,8 @@
  */
 import { ReactNode } from 'react';
 import { t, css } from '@superset-ui/core';
-import { Icons, InfoTooltip, Tooltip } from '@superset-ui/core/components';
+import { InfoCircleOutlined } from '@ant-design/icons';
+import { InfoTooltip, Tooltip } from '@superset-ui/core/components';
 
 type ValidationError = string;
 
@@ -104,7 +105,7 @@ export function ControlHeader({
           {warning && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={warning}>
-                <Icons.InfoCircleOutlined
+                <InfoCircleOutlined
                   css={theme => css`
                     font-size: ${theme.sizeUnit * 3}px;
                     color: ${theme.colorError};
@@ -116,7 +117,7 @@ export function ControlHeader({
           {danger && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={danger}>
-                <Icons.InfoCircleOutlined
+                <InfoCircleOutlined
                   css={theme => css`
                     font-size: ${theme.sizeUnit * 3}px;
                     color: ${theme.colorError};
@@ -132,7 +133,7 @@ export function ControlHeader({
                 placement="top"
                 title={validationErrors.join(' ')}
               >
-                <Icons.InfoCircleOutlined
+                <InfoCircleOutlined
                   css={theme => css`
                     font-size: ${theme.sizeUnit * 3}px;
                     color: ${theme.colorError};

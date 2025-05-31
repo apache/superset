@@ -16,24 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as sectionsModule from './sections';
 
-export * from './utils';
-export * from './constants';
-export * from './operators';
-
-// can't do `export * as sections from './sections'`, babel-transformer will fail
-export const sections = sectionsModule;
-
-export * from './components/ColumnOption';
-export * from './components/ColumnTypeLabel/ColumnTypeLabel';
-export * from './components/ControlSubSectionHeader';
-export * from './components/Dropdown';
-export * from './components/Menu';
-export * from './components/MetricOption';
-export * from './components/Tooltip';
-export * from './components/ControlHeader';
-
-export * from './shared-controls';
-export * from './types';
-export * from './fixtures';
+export { Dropdown, type DropDownProps } from 'antd';
