@@ -58,7 +58,7 @@ export default function UserRegistrations() {
     refreshData,
     fetchData,
   } = useListViewResource<UserRegistration>(
-    'user_registrations',
+    'security/user_registrations',
     t('User Registrations'),
     addDangerToast,
   );
@@ -69,7 +69,7 @@ export default function UserRegistrations() {
   }: UserRegistration) => {
     try {
       await SupersetClient.delete({
-        endpoint: `/api/v1/user_registrations/${id}`,
+        endpoint: `/api/v1/security/user_registrations/${id}`,
       });
       refreshData();
       setUserRegistrationCurrentlyDeleting(null);

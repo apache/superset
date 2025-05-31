@@ -348,7 +348,7 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
     APIs for listing user registrations (Admin only)
     """
 
-    resource_name = "user_registrations"
+    resource_name = "security/user_registrations"
     datamodel = SQLAInterface(RegisterUser)
     allow_browser_login = True
     list_columns = [
