@@ -18,8 +18,11 @@
  */
 import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
 import { css, styled, SupersetTheme } from '@superset-ui/core';
-import { SafeMarkdown, InfoTooltip } from '@superset-ui/core/components';
-import { Tooltip } from './Tooltip';
+import {
+  SafeMarkdown,
+  Tooltip,
+  InfoTooltip,
+} from '@superset-ui/core/components';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import { ColumnMeta } from '../types';

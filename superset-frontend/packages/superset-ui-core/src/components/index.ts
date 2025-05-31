@@ -56,7 +56,6 @@ export {
   type AvatarGroupProps,
 } from './Avatar';
 export { Badge, type BadgeProps } from './Badge';
-export * from './Tooltip';
 export { Button, type ButtonProps, type OnClickHandler } from './Button';
 export { ButtonGroup, type ButtonGroupProps } from './ButtonGroup';
 export { Breadcrumb, type BreadcrumbProps } from './Breadcrumb';
@@ -119,6 +118,8 @@ export {
 } from './Form';
 export { Grid, Row, Col, type RowProps, type ColProps } from './Grid';
 export { IconButton, type IconButtonProps } from './IconButton';
+export * from './Tooltip';
+export { Tooltip as RawAntdTooltip } from 'antd';
 export { IconTooltip, type IconTooltipProps } from './IconTooltip';
 export { InfoTooltip, type InfoTooltipProps } from './InfoTooltip';
 export {

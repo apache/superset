@@ -18,6 +18,11 @@
  */
 import * as sectionsModule from './sections';
 
+export {
+  Tooltip,
+  TooltipPlacement,
+  TooltipProps,
+} from '@superset-ui/core/components';
 export * from './utils';
 export * from './constants';
 export * from './operators';
@@ -31,7 +36,6 @@ export * from './components/ControlSubSectionHeader';
 export * from './components/Dropdown';
 export * from './components/Menu';
 export * from './components/MetricOption';
-export * from './components/Tooltip';
 export * from './components/ControlHeader';
 
 export * from './shared-controls';

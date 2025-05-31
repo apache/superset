@@ -18,7 +18,7 @@
  */
 import { kebabCase } from 'lodash';
 import { t, useTheme, styled } from '@superset-ui/core';
-import Tooltip from './Tooltip';
+import { Tooltip } from '@superset-ui/core/components';
 
 interface CertifiedIconWithTooltipProps {
   certifiedBy?: string | null;

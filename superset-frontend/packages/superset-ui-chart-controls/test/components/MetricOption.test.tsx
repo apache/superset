@@ -19,7 +19,10 @@
 import '@testing-library/jest-dom';
 import { render } from '@superset-ui/core/spec';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
-import { MetricOption, MetricOptionProps } from '../../src';
+import {
+  MetricOption,
+  MetricOptionProps,
+} from '../../src/components/MetricOption';
 
 jest.mock('@superset-ui/core/components/InfoTooltip', () => ({
   InfoTooltip: () => <div data-test="mock-tooltip" />,

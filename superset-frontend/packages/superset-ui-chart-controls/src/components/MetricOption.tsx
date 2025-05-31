@@ -22,11 +22,12 @@ import { css, styled, Metric, SupersetTheme } from '@superset-ui/core';
 import {
   SafeMarkdown,
   Typography,
+  // TODO: somehow doesn't work with our main Tooltip (?)
+  RawAntdTooltip as Tooltip,
   InfoTooltip,
 } from '@superset-ui/core/components';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
-import Tooltip from './Tooltip';
 import { getMetricTooltipNode } from './labelUtils';
 import { SQLPopover } from './SQLPopover';
 
