@@ -17,4 +17,4 @@
  * under the License.
  */
 
-export { Dropdown, type DropDownProps } from 'antd';
+export { Dropdown, type DropdownProps } from '@superset-ui/core/components';

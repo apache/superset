@@ -18,9 +18,9 @@
  */
 import { useState, ReactNode } from 'react';
 import {
-  Select as AntdSelect,
-  type SelectProps as AntdSelectProps,
-} from 'antd';
+  RawAntdSelect as AntdSelect,
+  type RawAntdSelectProps as AntdSelectProps,
+} from '@superset-ui/core/components';
 
 export const { Option }: any = AntdSelect;
 

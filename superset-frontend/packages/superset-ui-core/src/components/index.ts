@@ -152,7 +152,7 @@ export {
 export { Image, type ImageProps } from './Image';
 export { Upload, type UploadFile, type UploadChangeParam } from './Upload';
 // Add these to your index.ts
-export { Menu } from './Menu';
+export * from './Menu';
 export * from './Popover';
 export * from './Radio';
 export * from './SafeMarkdown/SafeMarkdown';
