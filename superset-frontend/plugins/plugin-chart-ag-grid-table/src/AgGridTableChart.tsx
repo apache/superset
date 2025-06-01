@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord } from '@superset-ui/core';
-import { useCallback } from 'react';
-import { AgGridTableChartTransformedProps } from './types';
+import { DataRecord, GenericDataType } from '@superset-ui/core';
+import { useCallback, useEffect, useState } from 'react';
+import { isEqual } from 'lodash';
+import { AgGridTableChartTransformedProps, SearchOption } from './types';
 import AgGridDataTable from './AgGridTable';
 import { InputColumn, transformData } from './AgGridTable/transformData';
 import { updateTableOwnState } from './utils/externalAPIs';
@@ -47,6 +48,21 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     serverPaginationData,
   } = props;
 
+  const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
+
+  useEffect(() => {
+    const options = columns
+      .filter(col => col?.dataType === GenericDataType.String)
+      .map(column => ({
+        value: column.key,
+        label: column.label,
+      }));
+
+    if (!isEqual(options, searchOptions)) {
+      setSearchOptions(options || []);
+    }
+  }, [columns]);
+
   const transformedData = transformData(columns as InputColumn[], data);
   const gridHeight = getGridHeight(height, serverPagination);
 
@@ -73,6 +89,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     },
     [setDataMask],
   );
+
+  const handleChangeSearchCol = (searchCol: string) => {
+    if (!isEqual(searchCol, serverPaginationData?.searchColumn)) {
+      const modifiedOwnState = {
+        ...(serverPaginationData || {}),
+        searchColumn: searchCol,
+        searchText: '',
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    }
+  };
+
   return (
     <div>
       <AgGridDataTable
@@ -88,6 +116,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onServerPaginationChange={handleServerPaginationChange}
         onServerPageSizeChange={handlePageSizeChange}
         serverPaginationData={serverPaginationData}
+        searchOptions={searchOptions}
+        onSearchColChange={handleChangeSearchCol}
       />
     </div>
   );

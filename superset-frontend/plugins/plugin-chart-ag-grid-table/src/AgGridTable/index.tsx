@@ -42,6 +42,8 @@ import { type FunctionComponent } from 'react';
 import { styled, css, JsonObject } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import Pagination from './components/Pagination';
+import SearchSelectDropdown from './components/SearchSelectDropdown';
+import { SearchOption } from '../types';
 
 export interface Props {
   gridTheme?: string;
@@ -60,6 +62,8 @@ export interface Props {
   onServerPaginationChange: (pageNumber: number, pageSize: number) => void;
   serverPaginationData: JsonObject;
   onServerPageSizeChange: (pageSize: number) => void;
+  searchOptions: SearchOption[];
+  onSearchColChange: (searchCol: string) => void;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -121,6 +125,8 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     onServerPaginationChange,
     serverPaginationData,
     onServerPageSizeChange,
+    searchOptions,
+    onSearchColChange,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
@@ -182,17 +188,29 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
       <StyledContainer>
         <div className={gridClassName} style={containerStyle}>
           {includeSearch && (
-            <div className="input-wrapper">
-              <div className="input-container">
-                <SearchOutlined />
-                <input
-                  type="text"
-                  id="filter-text-box"
-                  placeholder="Search"
-                  onInput={onFilterTextBoxChanged}
-                />
+            <>
+              {serverPagination && (
+                <div>
+                  Search by :
+                  <SearchSelectDropdown
+                    onChange={onSearchColChange}
+                    searchOptions={searchOptions}
+                    value={serverPaginationData?.searchColumn || ''}
+                  />
+                </div>
+              )}
+              <div className="input-wrapper">
+                <div className="input-container">
+                  <SearchOutlined />
+                  <input
+                    type="text"
+                    id="filter-text-box"
+                    placeholder="Search"
+                    onInput={onFilterTextBoxChanged}
+                  />
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           <AgGridReact
