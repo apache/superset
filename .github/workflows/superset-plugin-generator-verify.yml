@@ -1,0 +1,59 @@
+name: "Plugin: sanity check for Superset plugin scaffolder"
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+    paths:
+      - "superset-frontend/packages/generator-superset/**"
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '.nvmrc'
+
+      - name: Instal expect
+        run:
+          sudo apt-get install -y expect
+
+      - name: Link current Superset Yeoman Generator
+        run: |
+          npm install --global yo
+          npm i
+          npm link
+        working-directory: "superset-frontend/packages/generator-superset"
+
+      - name: Create sample viz plugin
+        run: |
+          mkdir ${{ runner.temp }}/superset-plugin-chart-hello-world
+          cd ${{ runner.temp }}/superset-plugin-chart-hello-world
+          expect <<EOF
+            spawn yo @superset-ui/superset
+            expect "? Package name: "
+            send "superset-plugin-chart-hello-world\r"
+            expect "? Plugin name: "
+            send "superset-plugin-chart-hello-world\r"
+            expect "? Description: "
+            send "Hello World\r"
+            expect "? What type of chart would you like? "
+            send "\r"
+            expect eof
+          EOF
+          npm install --force
+          # TODO: run `npm run build` here to ensure the plugin is built, after @superset-ui/chart-controls has fixed the import issue.
+          # npm run build
