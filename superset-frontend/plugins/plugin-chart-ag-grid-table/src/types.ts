@@ -148,6 +148,8 @@ export interface AgGridTableChartTransformedProps<
   allowRearrangeColumns?: boolean;
   allowRenderHtml?: boolean;
   slice_id: number;
+  serverPagination: boolean;
+  rowCount: number;
 }
 
 export enum ColorSchemeEnum {

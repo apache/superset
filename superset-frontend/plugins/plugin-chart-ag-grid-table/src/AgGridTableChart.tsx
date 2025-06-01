@@ -31,6 +31,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     includeSearch,
     allowRearrangeColumns,
     pageSize,
+    serverPagination,
+    rowCount,
   } = props;
 
   const transformedData = transformData(columns as InputColumn[], data);
@@ -45,6 +47,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         allowRearrangeColumns={!!allowRearrangeColumns}
         pagination={!!pageSize}
         pageSize={pageSize || 0}
+        serverPagination={serverPagination}
+        rowCount={rowCount}
       />
     </div>
   );

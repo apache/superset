@@ -41,6 +41,7 @@ import { type FunctionComponent } from 'react';
 
 import { styled, css } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
+import Pagination from './components/Pagination';
 
 export interface Props {
   gridTheme?: string;
@@ -54,6 +55,8 @@ export interface Props {
   allowRearrangeColumns: boolean;
   pagination: boolean;
   pageSize: number;
+  serverPagination?: boolean;
+  rowCount?: number;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -110,6 +113,8 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     allowRearrangeColumns,
     pagination,
     pageSize,
+    serverPagination,
+    rowCount,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
@@ -174,7 +179,6 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
             <div className="input-wrapper">
               <div className="input-container">
                 <SearchOutlined />
-
                 <input
                   type="text"
                   id="filter-text-box"
@@ -203,6 +207,14 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
             paginationPageSize={pageSize}
             paginationPageSizeSelector={[10, 20, 50, 100, 200]}
           />
+          {serverPagination && (
+            <Pagination
+              currentPage={0} // This will need to be managed state
+              pageSize={10}
+              totalRows={rowCount || 0}
+              pageSizeOptions={[10, 20, 50, 100, 200]}
+            />
+          )}
         </div>
       </StyledContainer>
     );

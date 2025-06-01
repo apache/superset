@@ -219,11 +219,21 @@ const transformProps = (
     order_desc: sortDesc = false,
     allow_rearrange_columns: allowRearrangeColumns,
     slice_id,
+    server_pagination: serverPagination = false,
   } = formData;
 
   const [, , columns] = processColumns(chartProps);
 
-  const [baseQuery] = queriesData;
+  let baseQuery;
+  let countQuery;
+  let rowCount;
+  if (serverPagination) {
+    [baseQuery, countQuery] = queriesData;
+    rowCount = (countQuery?.data?.[0]?.rowcount as number) ?? 0;
+  } else {
+    [baseQuery] = queriesData;
+    rowCount = baseQuery?.rowcount ?? 0;
+  }
 
   const data = processDataRecords(baseQuery?.data, columns);
 
@@ -243,6 +253,8 @@ const transformProps = (
     emitCrossFilters,
     allowRearrangeColumns,
     slice_id,
+    serverPagination,
+    rowCount,
   };
 };
 
