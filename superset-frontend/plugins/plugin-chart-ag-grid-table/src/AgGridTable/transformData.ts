@@ -17,6 +17,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { ValueFormatterParams } from 'ag-grid-community';
+
 export interface InputColumn {
   key: string;
   label: string;
@@ -25,6 +28,7 @@ export interface InputColumn {
   isMetric: boolean;
   isPercentMetric: boolean;
   config: Record<string, any>;
+  formatter?: Function;
 }
 
 interface InputData {
@@ -32,12 +36,18 @@ interface InputData {
 }
 
 export const transformData = (columns: InputColumn[], data: InputData[]) => {
-  // Transform columns to AG Grid format
   const colDefs = columns.map(col => ({
     field: col.key,
     headerName: col.label,
     sortable: true,
     filter: true,
+    ...(col.isPercentMetric && {
+      valueFormatter: (params: ValueFormatterParams) => {
+        if (!col?.formatter) return params?.value;
+        const formattedVal = col?.formatter(params?.value);
+        return formattedVal;
+      },
+    }),
     // Add number specific properties for numeric columns
     ...(col.isNumeric && {
       type: 'rightAligned',

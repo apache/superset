@@ -223,7 +223,7 @@ const transformProps = (
     server_pagination: serverPagination = false,
   } = formData;
 
-  const [, , columns] = processColumns(chartProps);
+  const [, percentMetrics, columns] = processColumns(chartProps);
 
   let baseQuery;
   let countQuery;
@@ -246,6 +246,7 @@ const transformProps = (
     width,
     data: passedData,
     columns: passedColumns,
+    percentMetrics,
     setDataMask,
     sortDesc,
     includeSearch,

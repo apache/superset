@@ -116,6 +116,33 @@ const allColumnsControl: typeof sharedControls.groupby = {
   resetOnHide: false,
 };
 
+const percentMetricsControl: typeof sharedControls.metrics = {
+  ...sharedControls.metrics,
+  label: t('Percentage metrics'),
+  description: t(
+    'Select one or many metrics to display, that will be displayed in the percentages of total. ' +
+      'Percentage metrics will be calculated only from data within the row limit. ' +
+      'You can use an aggregation function on a column or write custom SQL to create a percentage metric.',
+  ),
+  visibility: isAggMode,
+  resetOnHide: false,
+  mapStateToProps: ({ datasource, controls }, controlState) => ({
+    columns: datasource?.columns || [],
+    savedMetrics: defineSavedMetrics(datasource),
+    datasource,
+    datasourceType: datasource?.type,
+    queryMode: getQueryMode(controls),
+    externalValidationErrors: validateAggControlValues(controls, [
+      controls.groupby?.value,
+      controls.metrics?.value,
+      controlState?.value,
+    ]),
+  }),
+  rerender: ['groupby', 'metrics'],
+  default: [],
+  validators: [],
+};
+
 /*
 Options for row limit control
 */
@@ -225,6 +252,12 @@ const config: ControlPanelConfig = {
           {
             name: 'all_columns',
             config: allColumnsControl,
+          },
+        ],
+        [
+          {
+            name: 'percent_metrics',
+            config: percentMetricsControl,
           },
         ],
         ['adhoc_filters'],
