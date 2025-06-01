@@ -24,6 +24,7 @@ import {
   memo,
   useState,
   ChangeEvent,
+  useEffect,
 } from 'react';
 
 import {
@@ -41,6 +42,7 @@ import { type FunctionComponent } from 'react';
 
 import { styled, css, JsonObject } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
+import { debounce } from 'lodash';
 import Pagination from './components/Pagination';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption } from '../types';
@@ -64,6 +66,7 @@ export interface Props {
   onServerPageSizeChange: (pageSize: number) => void;
   searchOptions: SearchOption[];
   onSearchColChange: (searchCol: string) => void;
+  onSearchChange: (searchText: string) => void;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -135,6 +138,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     onServerPageSizeChange,
     searchOptions,
     onSearchColChange,
+    onSearchChange,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
@@ -186,10 +190,35 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     );
 
     const [quickFilterText, setQuickFilterText] = useState<string>();
+    const [searchValue, setSearchValue] = useState(
+      serverPaginationData?.searchText || '',
+    );
+
+    const debouncedSearch = useMemo(
+      () =>
+        debounce((value: string) => {
+          onSearchChange(value);
+        }, 500),
+      [onSearchChange],
+    );
+
+    useEffect(
+      () => () => {
+        debouncedSearch.cancel();
+      },
+      [debouncedSearch],
+    );
+
     const onFilterTextBoxChanged = useCallback(
-      ({ target: { value } }: ChangeEvent<HTMLInputElement>) =>
-        setQuickFilterText(value),
-      [],
+      ({ target: { value } }: ChangeEvent<HTMLInputElement>) => {
+        if (serverPagination) {
+          setSearchValue(value); // Update local state immediately for input value
+          debouncedSearch(value);
+        } else {
+          setQuickFilterText(value);
+        }
+      },
+      [serverPagination, debouncedSearch],
     );
 
     return (
@@ -211,6 +240,9 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
                 <div className="input-container">
                   <SearchOutlined />
                   <input
+                    value={
+                      serverPagination ? searchValue : quickFilterText || ''
+                    }
                     type="text"
                     id="filter-text-box"
                     placeholder="Search"
@@ -233,7 +265,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
             rowGroupPanelShow="always"
             enableCellTextSelection
             onGridReady={handleGridReady}
-            quickFilterText={quickFilterText}
+            quickFilterText={serverPagination ? '' : quickFilterText}
             suppressMovableColumns={!allowRearrangeColumns}
             pagination={pagination}
             paginationPageSize={pageSize}
