@@ -387,8 +387,8 @@ export const SaveDatasetModal = ({
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <Checkbox
                 checked={includeTemplateParameters}
-                onChange={checked =>
-                  setIncludeTemplateParameters(checked ?? false)
+                onChange={e =>
+                  setIncludeTemplateParameters(e.target.checked ?? false)
                 }
               />
               <span style={{ marginLeft: '5px' }}>
