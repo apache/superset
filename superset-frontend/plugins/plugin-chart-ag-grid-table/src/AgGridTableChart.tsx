@@ -24,9 +24,16 @@ import AgGridDataTable from './AgGridTable';
 import { InputColumn, transformData } from './AgGridTable/transformData';
 import { updateTableOwnState } from './utils/externalAPIs';
 
-const getGridHeight = (height: number, serverPagination: boolean) => {
+const getGridHeight = (
+  height: number,
+  serverPagination: boolean,
+  includeSearch: boolean,
+) => {
   let calculatedGridHeight = height;
   if (serverPagination) {
+    calculatedGridHeight -= 80;
+  }
+  if (includeSearch) {
     calculatedGridHeight -= 80;
   }
   return calculatedGridHeight;
@@ -64,7 +71,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   }, [columns]);
 
   const transformedData = transformData(columns as InputColumn[], data);
-  const gridHeight = getGridHeight(height, serverPagination);
+  const gridHeight = getGridHeight(height, serverPagination, !!includeSearch);
 
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {

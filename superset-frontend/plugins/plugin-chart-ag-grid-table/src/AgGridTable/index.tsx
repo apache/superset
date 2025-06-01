@@ -70,6 +70,14 @@ ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
 
 const StyledContainer = styled.div`
   ${({ theme }) => css`
+    .search-container {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .search-by-text {
+      margin-right: 5px;
+    }
     .input-container {
       margin-left: auto;
     }
@@ -90,7 +98,7 @@ const StyledContainer = styled.div`
     .input-wrapper input {
       font-size: ${theme.typography.sizes.s}px;
       padding: 0.375em 0.75em 0.375em 2.4em;
-      line-height: 1.4;
+      line-height: 1.8;
       border-radius: ${theme.gridUnit}px;
       border: 1px solid ${theme.colors.grayscale.light2};
       background-color: transparent;
@@ -188,10 +196,10 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
       <StyledContainer>
         <div className={gridClassName} style={containerStyle}>
           {includeSearch && (
-            <>
+            <div className="search-container">
               {serverPagination && (
                 <div>
-                  Search by :
+                  <span className="search-by-text"> Search by :</span>
                   <SearchSelectDropdown
                     onChange={onSearchColChange}
                     searchOptions={searchOptions}
@@ -210,7 +218,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
                   />
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           <AgGridReact
