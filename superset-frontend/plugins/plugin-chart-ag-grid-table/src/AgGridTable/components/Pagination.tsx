@@ -97,15 +97,10 @@ const PageButton = styled.div<PageButtonProps>`
   justify-content: center;
 
   svg {
-    height: 12px !important;
-    width: 12px !important;
+    height: 12px;
+    width: 12px;
     fill: ${({ theme, disabled }) =>
       disabled ? theme.colors.grayscale.light1 : theme.colors.grayscale.dark2};
-
-    &:hover {
-      fill: ${({ theme, disabled }) =>
-        disabled ? theme.colors.grayscale.light1 : theme.colors.primary.base};
-    }
   }
 `;
 
@@ -114,6 +109,7 @@ interface PaginationProps {
   pageSize: number;
   totalRows: number;
   pageSizeOptions: number[];
+  onServerPaginationChange: (pageNumber: number, pageSize: number) => void;
 }
 
 const Pagination: React.FC<PaginationProps> = ({
@@ -121,10 +117,31 @@ const Pagination: React.FC<PaginationProps> = ({
   pageSize = 10,
   totalRows = 0,
   pageSizeOptions = [10, 20, 50, 100, 200],
+  onServerPaginationChange = () => {},
 }) => {
   const totalPages = Math.ceil(totalRows / pageSize);
   const startRow = currentPage * pageSize + 1;
   const endRow = Math.min((currentPage + 1) * pageSize, totalRows);
+
+  const handleNextPage = (disabled: boolean) => () => {
+    if (disabled) return;
+    onServerPaginationChange(currentPage + 1, pageSize);
+  };
+
+  const handlePrevPage = (disabled: boolean) => () => {
+    if (disabled) return;
+    onServerPaginationChange(currentPage - 1, pageSize);
+  };
+
+  const handleNavigateToFirstPage = (disabled: boolean) => () => {
+    if (disabled) return;
+    onServerPaginationChange(0, pageSize);
+  };
+
+  const handleNavigateToLastPage = (disabled: boolean) => () => {
+    if (disabled) return;
+    onServerPaginationChange(totalPages - 1, pageSize);
+  };
 
   return (
     <PaginationContainer>
@@ -148,20 +165,32 @@ const Pagination: React.FC<PaginationProps> = ({
       </PageInfo>
 
       <ButtonGroup>
-        <PageButton disabled={currentPage === 0}>
+        <PageButton
+          onClick={handleNavigateToFirstPage(currentPage === 0)}
+          disabled={currentPage === 0}
+        >
           <VerticalRightOutlined />
         </PageButton>
-        <PageButton disabled={currentPage === 0}>
+        <PageButton
+          onClick={handlePrevPage(currentPage === 0)}
+          disabled={currentPage === 0}
+        >
           <LeftOutlined />
         </PageButton>
         <PageCount>
           Page <span>{currentPage + 1}</span> of <span>{totalPages}</span>
         </PageCount>
-        <PageButton disabled={currentPage >= totalPages - 1}>
+        <PageButton
+          onClick={handleNextPage(!!(currentPage >= totalPages - 1))}
+          disabled={currentPage >= totalPages - 1}
+        >
           <RightOutlined />
         </PageButton>
-        <PageButton disabled={currentPage >= totalPages - 1}>
-          <VerticalLeftOutlined height={12} width={12} />
+        <PageButton
+          onClick={handleNavigateToLastPage(!!(currentPage >= totalPages - 1))}
+          disabled={currentPage >= totalPages - 1}
+        >
+          <VerticalLeftOutlined />
         </PageButton>
       </ButtonGroup>
     </PaginationContainer>

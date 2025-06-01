@@ -32,6 +32,7 @@ import {
   SetDataMaskHook,
   CurrencyFormatter,
   Currency,
+  JsonObject,
 } from '@superset-ui/core';
 
 export type CustomFormatter = (value: DataRecordValue) => string;
@@ -150,6 +151,7 @@ export interface AgGridTableChartTransformedProps<
   slice_id: number;
   serverPagination: boolean;
   rowCount: number;
+  serverPaginationData: JsonObject;
 }
 
 export enum ColorSchemeEnum {

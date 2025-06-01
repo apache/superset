@@ -39,7 +39,7 @@ import './styles/ag-grid.css';
 
 import { type FunctionComponent } from 'react';
 
-import { styled, css } from '@superset-ui/core';
+import { styled, css, JsonObject } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import Pagination from './components/Pagination';
 
@@ -57,6 +57,8 @@ export interface Props {
   pageSize: number;
   serverPagination?: boolean;
   rowCount?: number;
+  onServerPaginationChange: (pageNumber: number, pageSize: number) => void;
+  serverPaginationData: JsonObject;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -115,6 +117,8 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     pageSize,
     serverPagination,
     rowCount,
+    onServerPaginationChange,
+    serverPaginationData,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
@@ -209,10 +213,11 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
           />
           {serverPagination && (
             <Pagination
-              currentPage={0}
-              pageSize={10}
+              currentPage={serverPaginationData?.currentPage || 0}
+              pageSize={serverPaginationData?.pageSize || 10}
               totalRows={rowCount || 0}
               pageSizeOptions={[10, 20, 50, 100, 200]}
+              onServerPaginationChange={onServerPaginationChange}
             />
           )}
         </div>

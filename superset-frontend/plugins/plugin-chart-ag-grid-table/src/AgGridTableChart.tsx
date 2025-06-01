@@ -17,9 +17,11 @@
  * under the License.
  */
 import { DataRecord } from '@superset-ui/core';
+import { useCallback } from 'react';
 import { AgGridTableChartTransformedProps } from './types';
 import AgGridDataTable from './AgGridTable';
 import { InputColumn, transformData } from './AgGridTable/transformData';
+import { updateTableOwnState } from './utils/externalAPIs';
 
 const getGridHeight = (height: number, serverPagination: boolean) => {
   let calculatedGridHeight = height;
@@ -41,11 +43,24 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     pageSize,
     serverPagination,
     rowCount,
+    setDataMask,
+    serverPaginationData,
   } = props;
 
   const transformedData = transformData(columns as InputColumn[], data);
   const gridHeight = getGridHeight(height, serverPagination);
 
+  const handleServerPaginationChange = useCallback(
+    (pageNumber: number, pageSize: number) => {
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        currentPage: pageNumber,
+        pageSize,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    },
+    [setDataMask],
+  );
   return (
     <div>
       <AgGridDataTable
@@ -58,6 +73,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         pageSize={pageSize || 0}
         serverPagination={serverPagination}
         rowCount={rowCount}
+        onServerPaginationChange={handleServerPaginationChange}
+        serverPaginationData={serverPaginationData}
       />
     </div>
   );

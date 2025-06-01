@@ -208,6 +208,7 @@ const transformProps = (
     width,
     rawFormData: formData,
     queriesData = [],
+    ownState: serverPaginationData,
     filterState,
     hooks: { setDataMask = () => {} },
     emitCrossFilters,
@@ -255,6 +256,7 @@ const transformProps = (
     slice_id,
     serverPagination,
     rowCount,
+    serverPaginationData,
   };
 };
 
