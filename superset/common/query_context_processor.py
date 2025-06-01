@@ -741,24 +741,73 @@ class QueryContextProcessor:
 
         return df.to_dict(orient="records")
 
-    def get_payload(
+    def get_payload(  # noqa: C901
         self,
         cache_query_context: bool | None = False,
         force_cached: bool = False,
     ) -> dict[str, Any]:
         """Returns the query results with both metadata and data"""
+        totals_data = None
+        main_query = self._query_context.queries[0]
+        totals_query_index = None
+        totals_result = None
+        for i, query_obj in enumerate(self._query_context.queries):
+            if (
+                query_obj.columns == []
+                and not query_obj.post_processing
+                and query_obj.metrics == main_query.metrics
+            ):
+                totals_query_index = i
+                totals_result = get_query_results(
+                    query_obj.result_type or self._query_context.result_type,
+                    self._query_context,
+                    query_obj,
+                    force_cached,
+                )
 
-        # Get all the payloads from the QueryObjects
-        query_results = [
-            get_query_results(
-                query_obj.result_type or self._query_context.result_type,
-                self._query_context,
-                query_obj,
-                force_cached,
-            )
-            for query_obj in self._query_context.queries
-        ]
-        return_value = {"queries": query_results}
+                if (
+                    totals_result
+                    and isinstance(totals_result, dict)
+                    and "data" in totals_result
+                    and isinstance(totals_result["data"], list)
+                    and totals_result["data"]
+                ):
+                    totals_data = totals_result["data"][0]
+                    logger.info("Found totals data: %s", totals_data)
+                    break
+
+        if totals_data and main_query.post_processing:
+            for post_proc in main_query.post_processing:
+                if post_proc.get("operation") == "contribution_with_totals":
+                    if "options" not in post_proc:
+                        post_proc["options"] = {}
+                    post_proc["options"]["totals"] = totals_data
+
+        query_results = []
+        for i, query_obj in enumerate(self._query_context.queries):
+            if i == totals_query_index and totals_data and totals_result:
+                totals_result["query_type"] = "contribution_totals"
+                query_results.append(totals_result)
+            else:
+                result = get_query_results(
+                    query_obj.result_type or self._query_context.result_type,
+                    self._query_context,
+                    query_obj,
+                    force_cached,
+                )
+                query_results.append(result)
+
+        if (
+            totals_query_index is not None
+            and query_results
+            and len(query_results) > totals_query_index
+        ):
+            if isinstance(query_results[totals_query_index], dict):
+                query_results[totals_query_index]["query_type"] = "contribution_totals"
+
+        return_value = {
+            "queries": query_results,
+        }
 
         if cache_query_context:
             cache_key = self.cache_key()

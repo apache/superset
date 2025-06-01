@@ -84,7 +84,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
   return buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
-    let postProcessing: PostProcessingRule[] = [];
+    const postProcessing: PostProcessingRule[] = [];
     const nonCustomNorInheritShifts = ensureIsArray(
       formData.time_compare,
     ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
@@ -128,7 +128,9 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
         orderby = [[metrics[0], false]];
       }
-      // add postprocessing for percent metrics only when in aggregation mode
+      const calculationMode =
+        formData.percent_metric_calculation || 'row_limit';
+
       if (percentMetrics && percentMetrics.length > 0) {
         const percentMetricsLabelsWithTimeComparison = isTimeComparison(
           formData,
@@ -139,22 +141,35 @@ const buildQuery: BuildQuery<TableChartFormData> = (
               timeOffsets,
             )
           : percentMetrics.map(getMetricLabel);
+
         const percentMetricLabels = removeDuplicates(
           percentMetricsLabelsWithTimeComparison,
         );
+
         metrics = removeDuplicates(
           metrics.concat(percentMetrics),
           getMetricLabel,
         );
-        postProcessing = [
-          {
+
+        if (calculationMode === 'all_records') {
+          postProcessing.push({
+            operation: 'contribution_with_totals',
+            options: {
+              columns: percentMetricLabels,
+              rename_columns: percentMetricLabels.map(m => `%${m}`),
+              totals: (formData.extra_form_data as Record<string, any>)
+                ?.contribution_totals?.totals,
+            },
+          } as unknown as PostProcessingRule);
+        } else {
+          postProcessing.push({
             operation: 'contribution',
             options: {
               columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(x => `%${x}`),
+              rename_columns: percentMetricLabels.map(m => `%${m}`),
             },
-          },
-        ];
+          });
+        }
       }
       // Add the operator for the time comparison if some is selected
       if (!isEmpty(timeOffsets)) {
@@ -252,6 +267,27 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     });
 
     const extraQueries: QueryObject[] = [];
+
+    const calculationMode = formData.percent_metric_calculation || 'row_limit';
+
+    if (
+      calculationMode === 'all_records' &&
+      percentMetrics &&
+      percentMetrics.length > 0
+    ) {
+      extraQueries.push({
+        ...queryObject,
+        columns: [],
+        metrics: percentMetrics,
+        post_processing: [],
+        row_limit: 0,
+        row_offset: 0,
+        orderby: [],
+        is_timeseries: false,
+        query_type: 'contribution_totals',
+      });
+    }
+
     if (
       metrics?.length &&
       formData.show_totals &&
@@ -263,8 +299,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
-        order_desc: undefined, // we don't need orderby stuff here,
-        orderby: undefined, // because this query will be used for get total aggregation.
+        order_desc: undefined,
+        orderby: undefined,
       });
     }
 
