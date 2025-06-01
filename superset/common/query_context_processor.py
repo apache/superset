@@ -747,6 +747,10 @@ class QueryContextProcessor:
         force_cached: bool = False,
     ) -> dict[str, Any]:
         """Returns the query results with both metadata and data"""
+        # Handle empty queries case
+        if not self._query_context.queries:
+            return {"queries": []}
+
         totals_data = None
         main_query = self._query_context.queries[0]
         totals_query_index = None
