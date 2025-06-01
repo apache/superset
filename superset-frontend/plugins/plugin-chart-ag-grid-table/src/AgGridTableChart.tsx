@@ -21,6 +21,14 @@ import { AgGridTableChartTransformedProps } from './types';
 import AgGridDataTable from './AgGridTable';
 import { InputColumn, transformData } from './AgGridTable/transformData';
 
+const getGridHeight = (height: number, serverPagination: boolean) => {
+  let calculatedGridHeight = height;
+  if (serverPagination) {
+    calculatedGridHeight -= 80;
+  }
+  return calculatedGridHeight;
+};
+
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: AgGridTableChartTransformedProps<D> & {},
 ) {
@@ -36,16 +44,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   } = props;
 
   const transformedData = transformData(columns as InputColumn[], data);
+  const gridHeight = getGridHeight(height, serverPagination);
 
   return (
     <div>
       <AgGridDataTable
-        gridHeight={height}
+        gridHeight={gridHeight}
         data={transformedData?.rowData || []}
         colDefsFromProps={transformedData?.colDefs}
         includeSearch={!!includeSearch}
         allowRearrangeColumns={!!allowRearrangeColumns}
-        pagination={!!pageSize}
+        pagination={!!pageSize && !serverPagination}
         pageSize={pageSize || 0}
         serverPagination={serverPagination}
         rowCount={rowCount}

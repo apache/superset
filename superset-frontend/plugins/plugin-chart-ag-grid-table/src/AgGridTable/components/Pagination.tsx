@@ -23,6 +23,7 @@ import {
   VerticalRightOutlined,
   LeftOutlined,
   RightOutlined,
+  CaretDownOutlined,
 } from '@ant-design/icons';
 
 const PaginationContainer = styled.div`
@@ -40,12 +41,32 @@ const PaginationContainer = styled.div`
   background: white;
 `;
 
-const PageSizeSelector = styled.select`
+const SelectWrapper = styled.div`
+  position: relative;
+  display: inline-block;
+
+  .ant-select-arrow {
+    position: absolute;
+    pointer-events: none;
+    right: 35%;
+    top: 12px;
+  }
+`;
+
+const StyledSelect = styled.select`
   margin: 0 8px;
-  padding: 2px 4px;
+  padding: 2px 24px 2px 8px;
   border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-radius: 4px;
   background: white;
+  appearance: none;
+  cursor: pointer;
+`;
+
+const StyledCaretDown = styled(CaretDownOutlined)`
+  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  height: 14px;
+  width: 14px;
 `;
 
 const PageInfo = styled.span`
@@ -105,22 +126,21 @@ const Pagination: React.FC<PaginationProps> = ({
   const startRow = currentPage * pageSize + 1;
   const endRow = Math.min((currentPage + 1) * pageSize, totalRows);
 
-  console.log({
-    startRow,
-    endRow,
-    totalPages,
-  });
-
   return (
     <PaginationContainer>
       <span>Page Size:</span>
-      <PageSizeSelector value={pageSize}>
-        {pageSizeOptions.map(size => (
-          <option key={size} value={size}>
-            {size}
-          </option>
-        ))}
-      </PageSizeSelector>
+      <SelectWrapper>
+        <StyledSelect value={pageSize}>
+          {pageSizeOptions.map(size => (
+            <option key={size} value={size}>
+              {size}
+            </option>
+          ))}
+        </StyledSelect>
+        <span className="ant-select-arrow">
+          <StyledCaretDown />
+        </span>
+      </SelectWrapper>
 
       <PageInfo>
         <span>{startRow}</span> to <span>{endRow}</span> of{' '}
@@ -128,19 +148,19 @@ const Pagination: React.FC<PaginationProps> = ({
       </PageInfo>
 
       <ButtonGroup>
-        <PageButton disabled={currentPage === 0} title="First Page">
+        <PageButton disabled={currentPage === 0}>
           <VerticalRightOutlined />
         </PageButton>
-        <PageButton disabled={currentPage === 0} title="Previous Page">
+        <PageButton disabled={currentPage === 0}>
           <LeftOutlined />
         </PageButton>
         <PageCount>
           Page <span>{currentPage + 1}</span> of <span>{totalPages}</span>
         </PageCount>
-        <PageButton disabled={currentPage >= totalPages - 1} title="Next Page">
+        <PageButton disabled={currentPage >= totalPages - 1}>
           <RightOutlined />
         </PageButton>
-        <PageButton disabled={currentPage >= totalPages - 1} title="Last Page">
+        <PageButton disabled={currentPage >= totalPages - 1}>
           <VerticalLeftOutlined height={12} width={12} />
         </PageButton>
       </ButtonGroup>

@@ -209,7 +209,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
           />
           {serverPagination && (
             <Pagination
-              currentPage={0} // This will need to be managed state
+              currentPage={0}
               pageSize={10}
               totalRows={rowCount || 0}
               pageSizeOptions={[10, 20, 50, 100, 200]}
