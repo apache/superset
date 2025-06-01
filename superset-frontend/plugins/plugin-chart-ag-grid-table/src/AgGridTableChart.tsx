@@ -18,7 +18,7 @@
  */
 import { DataRecord, GenericDataType } from '@superset-ui/core';
 import { useCallback, useEffect, useState } from 'react';
-import { debounce, isEqual } from 'lodash';
+import { isEqual } from 'lodash';
 import { AgGridTableChartTransformedProps, SearchOption } from './types';
 import AgGridDataTable from './AgGridTable';
 import { InputColumn, transformData } from './AgGridTable/transformData';
@@ -46,6 +46,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     rowCount,
     setDataMask,
     serverPaginationData,
+    slice_id,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -137,6 +138,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         searchOptions={searchOptions}
         onSearchColChange={handleChangeSearchCol}
         onSearchChange={handleSearch}
+        id={slice_id}
       />
     </div>
   );

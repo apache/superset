@@ -67,6 +67,7 @@ export interface Props {
   searchOptions: SearchOption[];
   onSearchColChange: (searchCol: string) => void;
   onSearchChange: (searchText: string) => void;
+  id: number;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -118,7 +119,8 @@ const StyledContainer = styled.div`
   `}
 `;
 
-// Memoize the entire component
+const isSearchFocused = new Map<string, boolean>();
+
 const AgGridDataTable: FunctionComponent<Props> = memo(
   ({
     gridTheme = 'ag-theme-quartz',
@@ -139,9 +141,12 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     searchOptions,
     onSearchColChange,
     onSearchChange,
+    id,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const searchId = `search-${id}`;
 
     const defaultColDef = useMemo<ColDef>(
       () => ({
@@ -209,16 +214,35 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
       [debouncedSearch],
     );
 
+    useEffect(() => {
+      if (
+        serverPagination &&
+        isSearchFocused.get(searchId) &&
+        document.activeElement !== inputRef.current
+      ) {
+        inputRef.current?.focus();
+      }
+    }, [searchValue, serverPagination, searchId]);
+
+    const handleSearchFocus = useCallback(() => {
+      isSearchFocused.set(searchId, true);
+    }, [searchId]);
+
+    const handleSearchBlur = useCallback(() => {
+      isSearchFocused.set(searchId, false);
+    }, [searchId]);
+
     const onFilterTextBoxChanged = useCallback(
       ({ target: { value } }: ChangeEvent<HTMLInputElement>) => {
         if (serverPagination) {
-          setSearchValue(value); // Update local state immediately for input value
+          setSearchValue(value);
           debouncedSearch(value);
+          isSearchFocused.set(searchId, true);
         } else {
           setQuickFilterText(value);
         }
       },
-      [serverPagination, debouncedSearch],
+      [serverPagination, debouncedSearch, searchId],
     );
 
     return (
@@ -240,6 +264,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
                 <div className="input-container">
                   <SearchOutlined />
                   <input
+                    ref={inputRef}
                     value={
                       serverPagination ? searchValue : quickFilterText || ''
                     }
@@ -247,6 +272,8 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
                     id="filter-text-box"
                     placeholder="Search"
                     onInput={onFilterTextBoxChanged}
+                    onFocus={handleSearchFocus}
+                    onBlur={handleSearchBlur}
                   />
                 </div>
               </div>
