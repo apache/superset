@@ -118,7 +118,9 @@ const chartPropsConfig = {
 
 it('should transform chart props for viz', () => {
   const chartProps = new ChartProps(chartPropsConfig);
-  expect(transformProps(chartProps as EchartsMixedTimeseriesProps)).toEqual(
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  expect(transformed).toEqual(
     expect.objectContaining({
       echartOptions: expect.objectContaining({
         series: expect.arrayContaining([
@@ -127,7 +129,7 @@ it('should transform chart props for viz', () => {
               [599616000000, 1],
               [599916000000, 3],
             ],
-            id: 'boy',
+            id: 'sum__num (Query A), boy',
             stack: 'obs\na',
           }),
           expect.objectContaining({
@@ -135,15 +137,16 @@ it('should transform chart props for viz', () => {
               [599616000000, 2],
               [599916000000, 4],
             ],
-            id: 'girl',
+            id: 'sum__num (Query A), girl',
             stack: 'obs\na',
           }),
+          // Query B — Bar series
           expect.objectContaining({
             data: [
               [599616000000, 1],
               [599916000000, 3],
             ],
-            id: 'boy (1)',
+            id: 'sum__num (Query B), boy',
             stack: 'obs\nb',
           }),
           expect.objectContaining({
@@ -151,7 +154,7 @@ it('should transform chart props for viz', () => {
               [599616000000, 2],
               [599916000000, 4],
             ],
-            id: 'girl (1)',
+            id: 'sum__num (Query B), girl',
             stack: 'obs\nb',
           }),
         ]),

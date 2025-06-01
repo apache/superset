@@ -24,7 +24,6 @@ import {
 } from '@superset-ui/core/components/TableView';
 import { EmptyState } from '@superset-ui/core/components';
 import { FacePile, TagsList, type TagType } from 'src/components';
-import { NumberParam, useQueryParam } from 'use-query-params';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
 import { Typography } from '@superset-ui/core/components/Typography';
 
@@ -55,20 +54,21 @@ interface AllEntitiesTableProps {
   search?: string;
   setShowTagModal: (show: boolean) => void;
   objects: TaggedObjects;
+  canEditTag: boolean;
 }
 
 export default function AllEntitiesTable({
   search = '',
   setShowTagModal,
   objects,
+  canEditTag,
 }: AllEntitiesTableProps) {
   type objectType = 'dashboard' | 'chart' | 'query';
 
-  const [tagId] = useQueryParam('id', NumberParam);
-  const showListViewObjs =
-    objects.dashboard.length > 0 ||
-    objects.chart.length > 0 ||
-    objects.query.length > 0;
+  const showDashboardList = objects.dashboard.length > 0;
+  const showChartList = objects.chart.length > 0;
+  const showQueryList = objects.query.length > 0;
+  const showListViewObjs = showDashboardList || showChartList || showQueryList;
 
   const renderTable = (type: objectType) => {
     const data = objects[type].map((o: TaggedObject) => ({
@@ -107,8 +107,7 @@ export default function AllEntitiesTable({
                 tags={tags.filter(
                   (tag: TagType) =>
                     tag.type !== undefined &&
-                    ['TagType.custom', 1].includes(tag.type) &&
-                    tag.id !== tagId,
+                    ['TagType.custom', 1].includes(tag.type),
                 )}
                 maxTags={MAX_TAGS_TO_SHOW}
               />
@@ -139,20 +138,34 @@ export default function AllEntitiesTable({
     <AllEntitiesTableContainer>
       {showListViewObjs ? (
         <>
-          <div className="entity-title">{t('Dashboards')}</div>
-          {renderTable('dashboard')}
-          <div className="entity-title">{t('Charts')}</div>
-          {renderTable('chart')}
-          <div className="entity-title">{t('Queries')}</div>
-          {renderTable('query')}
+          {showDashboardList && (
+            <>
+              <div className="entity-title">{t('Dashboards')}</div>
+              {renderTable('dashboard')}
+            </>
+          )}
+          {showChartList && (
+            <>
+              <div className="entity-title">{t('Charts')}</div>
+              {renderTable('chart')}
+            </>
+          )}
+          {showQueryList && (
+            <>
+              <div className="entity-title">{t('Queries')}</div>
+              {renderTable('query')}
+            </>
+          )}
         </>
       ) : (
         <EmptyState
           image="dashboard.svg"
           size="large"
           title={t('No entities have this tag currently assigned')}
-          buttonAction={() => setShowTagModal(true)}
-          buttonText={t('Add tag to entities')}
+          {...(canEditTag && {
+            buttonAction: () => setShowTagModal(true),
+            buttonText: t('Add tag to entities'),
+          })}
         />
       )}
     </AllEntitiesTableContainer>

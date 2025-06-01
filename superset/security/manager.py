@@ -263,7 +263,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     ADMIN_ONLY_VIEW_MENUS = {
         "Access Requests",
-        "Action Log",
+        "Action Logs",
         "Log",
         "List Users",
         "UsersListView",
