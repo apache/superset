@@ -59,6 +59,7 @@ export interface Props {
   rowCount?: number;
   onServerPaginationChange: (pageNumber: number, pageSize: number) => void;
   serverPaginationData: JsonObject;
+  onServerPageSizeChange: (pageSize: number) => void;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -119,6 +120,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     rowCount,
     onServerPaginationChange,
     serverPaginationData,
+    onServerPageSizeChange,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
@@ -218,6 +220,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
               totalRows={rowCount || 0}
               pageSizeOptions={[10, 20, 50, 100, 200]}
               onServerPaginationChange={onServerPaginationChange}
+              onServerPageSizeChange={onServerPageSizeChange}
             />
           )}
         </div>

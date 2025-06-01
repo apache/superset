@@ -110,6 +110,7 @@ interface PaginationProps {
   totalRows: number;
   pageSizeOptions: number[];
   onServerPaginationChange: (pageNumber: number, pageSize: number) => void;
+  onServerPageSizeChange: (pageSize: number) => void;
 }
 
 const Pagination: React.FC<PaginationProps> = ({
@@ -118,6 +119,7 @@ const Pagination: React.FC<PaginationProps> = ({
   totalRows = 0,
   pageSizeOptions = [10, 20, 50, 100, 200],
   onServerPaginationChange = () => {},
+  onServerPageSizeChange = () => {},
 }) => {
   const totalPages = Math.ceil(totalRows / pageSize);
   const startRow = currentPage * pageSize + 1;
@@ -147,7 +149,12 @@ const Pagination: React.FC<PaginationProps> = ({
     <PaginationContainer>
       <span>Page Size:</span>
       <SelectWrapper>
-        <StyledSelect value={pageSize}>
+        <StyledSelect
+          onChange={e => {
+            onServerPageSizeChange(Number(e.target.value));
+          }}
+          value={pageSize}
+        >
           {pageSizeOptions.map(size => (
             <option key={size} value={size}>
               {size}

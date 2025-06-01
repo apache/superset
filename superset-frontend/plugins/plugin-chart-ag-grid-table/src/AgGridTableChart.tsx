@@ -61,6 +61,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     },
     [setDataMask],
   );
+
+  const handlePageSizeChange = useCallback(
+    (pageSize: number) => {
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        currentPage: 0,
+        pageSize,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    },
+    [setDataMask],
+  );
   return (
     <div>
       <AgGridDataTable
@@ -74,6 +86,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         serverPagination={serverPagination}
         rowCount={rowCount}
         onServerPaginationChange={handleServerPaginationChange}
+        onServerPageSizeChange={handlePageSizeChange}
         serverPaginationData={serverPaginationData}
       />
     </div>
