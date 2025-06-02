@@ -92,7 +92,7 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
     [QueryMode.Raw, QueryModeLabel[QueryMode.Raw]],
   ],
   mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
-  rerender: ['all_columns', 'groupby', 'metrics'],
+  rerender: ['all_columns', 'groupby', 'metrics', 'percent_metrics'],
 };
 
 const allColumnsControl: typeof sharedControls.groupby = {
@@ -188,7 +188,7 @@ const config: ControlPanelConfig = {
 
                 return newState;
               },
-              rerender: ['metrics'],
+              rerender: ['metrics', 'percent_metrics'],
             },
           },
         ],
