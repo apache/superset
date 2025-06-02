@@ -326,6 +326,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     useEffect(() => {
       if (
         hasServerPageLengthChanged &&
+        serverPaginationData?.pageSize &&
         !isEqual(serverPaginationData?.pageSize, serverPageLength)
       ) {
         // Explore editor handling
