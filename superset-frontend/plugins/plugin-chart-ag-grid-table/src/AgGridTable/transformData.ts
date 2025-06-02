@@ -43,7 +43,7 @@ export const transformData = (
   const colDefs = columns.map(col => ({
     field: col.key,
     headerName: col.label,
-    sortable: true,
+    sortable: !serverPagination || !col?.isPercentMetric,
     filter: true,
     ...(serverPagination && {
       comparator: () => 0,

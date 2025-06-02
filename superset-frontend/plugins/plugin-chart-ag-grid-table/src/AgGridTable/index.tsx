@@ -71,6 +71,7 @@ export interface Props {
   onSearchChange: (searchText: string) => void;
   onSortChange: (sortBy: SortByItem[]) => void;
   id: number;
+  percentMetrics: string[];
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -146,6 +147,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     onSearchChange,
     onSortChange,
     id,
+    percentMetrics,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
@@ -259,7 +261,10 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     const handleColumnHeaderClick = useCallback(
       params => {
         if (!serverPagination) return;
+
         const colId = params?.column?.colId;
+
+        if (percentMetrics.includes(colId)) return;
         const sortDir = params?.column?.sort;
 
         if (isNull(sortDir)) {
