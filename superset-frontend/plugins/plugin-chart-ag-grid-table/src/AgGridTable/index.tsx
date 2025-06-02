@@ -48,7 +48,7 @@ import Pagination from './components/Pagination';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
 import getInitialSortState from '../utils/getInitialSortState';
-import useClickedFilterTracker from '../utils/useClickedFilter';
+import useClickedHeaderLabel from '../utils/useClickedHeaderLabel';
 
 export interface Props {
   gridTheme?: string;
@@ -158,7 +158,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     const gridApiRef = useRef<GridApi | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const searchId = `search-${id}`;
-    const clickedFilterIconRef = useClickedFilterTracker();
+    const clickedHeaderLabelRef = useClickedHeaderLabel();
     const gridInitialState: GridState = {
       ...(serverPagination && {
         sort: {
@@ -267,20 +267,20 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     const shouldSort = ({
       colId,
       sortDir,
-      clickedFilterIconRef,
+      clickedHeaderLabelRef,
       percentMetrics,
       serverPagination,
       gridInitialState,
     }: {
       colId: string;
       sortDir: string;
-      clickedFilterIconRef: MutableRefObject<boolean>;
+      clickedHeaderLabelRef: MutableRefObject<boolean>;
       percentMetrics: string[];
       serverPagination: boolean;
       gridInitialState: GridState;
     }) => {
       if (percentMetrics.includes(colId)) return false;
-      if (clickedFilterIconRef.current) return false;
+      if (!clickedHeaderLabelRef.current) return false;
       if (!serverPagination) return false;
 
       const initialSort: Partial<SortModelItem> =
@@ -300,7 +300,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
         const isSortable = shouldSort({
           colId,
           sortDir,
-          clickedFilterIconRef,
+          clickedHeaderLabelRef,
           percentMetrics,
           serverPagination: !!serverPagination,
           gridInitialState,
