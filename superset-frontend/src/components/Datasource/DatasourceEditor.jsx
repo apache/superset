@@ -716,24 +716,20 @@ class DatasourceEditor extends PureComponent {
     });
   }
 
-  getSQLLabRouteProps() {
-    return {
-      pathname: `/sqllab/`,
-      state: {
-        requestedQuery: {
-          dbid: this.state.datasource.database.id,
-          sql: this.state.datasource.sql,
-          name: this.state.datasource.datasource_name,
-          schema: this.state.datasource.schema,
-          autorun: true,
-        },
-        isDataset: true,
-      },
-    };
+  getSQLLabUrl() {
+    const queryParams = new URLSearchParams({
+      dbid: this.state.datasource.database.id,
+      sql: this.state.datasource.sql,
+      name: this.state.datasource.datasource_name,
+      schema: this.state.datasource.schema,
+      autorun: true,
+      isDataset: true,
+    });
+    return `/sqllab/?${queryParams.toString()}`;
   }
 
   openOnSqlLab() {
-    this.props.history.push(this.getSQLLabRouteProps());
+    window.open(this.getSQLLabUrl(), '_blank', 'noopener,noreferrer');
   }
 
   tableChangeAndSyncMetadata() {
@@ -1038,18 +1034,9 @@ class DatasourceEditor extends PureComponent {
   );
 
   renderOpenInSqlLabLink(isError = false) {
-    const sqlRouteProps = this.getSQLLabRouteProps();
-    const queryParams = new URLSearchParams({
-      dbid: sqlRouteProps.state.requestedQuery.dbid,
-      sql: sqlRouteProps.state.requestedQuery.sql,
-      name: sqlRouteProps.state.requestedQuery.name,
-      schema: sqlRouteProps.state.requestedQuery.schema,
-      autorun: true,
-      isDataset: true,
-    });
     return (
       <a
-        href={`/sqllab/?${queryParams.toString()}`}
+        href={this.getSQLLabUrl()}
         target="_blank"
         rel="noopener noreferrer"
         css={theme => css`
