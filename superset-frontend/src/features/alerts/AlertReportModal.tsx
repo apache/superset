@@ -78,6 +78,7 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { Icons } from 'src/components/Icons';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import { _isColumnsSortingCoupledToGroup } from 'ag-grid-community';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -687,8 +688,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ownState: {},
     };
 
-    const data = await getChartDataRequest(filterValues).then(response =>
-      response.json.result[0].data.map((item: any) => {
+    const data = await getChartDataRequest(filterValues).then(response => {
+      const rawData = response.json.result[0].data;
+      let filteredData = rawData;
+
+      if (vizType === 'filter_timecolumn') {
+        // filter for time columns types
+        filteredData = rawData.filter((item: any) => item.dtype === 2);
+      }
+
+      return filteredData.map((item: any) => {
         if (vizType === 'filter_timegrain') {
           return {
             value: item.duration,
@@ -707,8 +716,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           value: item[columnName],
           label: item[columnName],
         };
-      }),
-    );
+      });
+    });
 
     // eslint-disable-next-line consistent-return
     return data;
