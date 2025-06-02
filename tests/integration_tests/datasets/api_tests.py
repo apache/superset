@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import time
 import unittest
 from io import BytesIO
 from unittest.mock import ANY, patch
@@ -1189,6 +1190,10 @@ class TestDatasetApi(SupersetTestCase):
             metric.pop("type_generic", None)
 
         data["result"]["metrics"].append(new_metric_data)
+
+        # Sleep to ensure that the changed_on is updated
+        time.sleep(3)
+
         rv = self.client.put(
             uri,
             json={
