@@ -106,6 +106,7 @@ Join our growing community!
 - [Gavagai](https://gavagai.io) [@gavagai-corp]
 - [GfK Data Lab](https://www.gfk.com/home) [@mherr]
 - [Hydrolix](https://www.hydrolix.io/)
+- [HPE](https://www.hpe.com/in/en/home.html) [@anmol-hpe]
 - [Intercom](https://www.intercom.com/) [@kate-gallo]
 - [jampp](https://jampp.com/)
 - [Konfío](https://konfio.mx) [@uis-rodriguez]
