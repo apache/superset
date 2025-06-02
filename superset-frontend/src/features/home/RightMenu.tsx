@@ -61,6 +61,7 @@ import {
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
+import { useThemeContext } from 'src/theme/ThemeProvider';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -184,6 +185,7 @@ const RightMenu = ({
     useState<boolean>(false);
   const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
+  const { theme: themeEditorTheme, setTheme } = useThemeContext();
   const dropdownItems: MenuObjectProps[] = [
     {
       label: t('Data'),
@@ -490,7 +492,7 @@ const RightMenu = ({
         )}
         {(isFeatureEnabled(FeatureFlag.DarkThemeSwitch) || true) && (
           <span>
-            <ThemeEditor />
+            <ThemeEditor theme={themeEditorTheme} setTheme={setTheme} />
           </span>
         )}
         <StyledSubMenu

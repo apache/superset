@@ -18,16 +18,8 @@
  */
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { Theme } from './Theme';
-import { AnyThemeConfig } from './types';
+import { Theme, AnyThemeConfig, ThemeContextType } from '@superset-ui/core';
 import { ThemeController } from './ThemeController';
-
-interface ThemeContextType {
-  theme: Theme;
-  setTheme: (config: AnyThemeConfig) => void;
-  toggleDarkMode: (isDark: boolean) => void;
-  resetTheme: () => void;
-}
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
 

@@ -17,14 +17,12 @@
  * under the License.
  */
 import { theme as antdThemeImport } from 'antd';
-import { Theme } from './Theme';
-import { AnyThemeConfig } from './types';
-
-export interface ThemeStorage {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-  removeItem(key: string): void;
-}
+import {
+  Theme,
+  AnyThemeConfig,
+  ThemeStorage,
+  ThemeControllerOptions,
+} from '@superset-ui/core';
 
 export class LocalStorageAdapter implements ThemeStorage {
   getItem(key: string): string | null {
@@ -40,18 +38,7 @@ export class LocalStorageAdapter implements ThemeStorage {
   }
 }
 
-export interface ThemeControllerOptions {
-  storage?: ThemeStorage;
-  storageKey?: string;
-  defaultTheme?: AnyThemeConfig;
-  onChange?: (theme: Theme) => void;
-  canUpdateTheme?: () => boolean;
-  canChangeDarkMode?: () => boolean;
-}
-
 export class ThemeController {
-  private static instance: ThemeController | null = null;
-
   private theme: Theme;
 
   private storage: ThemeStorage;
@@ -93,29 +80,6 @@ export class ThemeController {
     }
     this.canUpdateThemeFn = options.canUpdateTheme || (() => true);
     this.canChangeDarkModeFn = options.canChangeDarkMode || (() => true);
-  }
-
-  /**
-   * Get the singleton instance of ThemeController
-   */
-  public static getInstance(options?: ThemeControllerOptions): ThemeController {
-    if (!ThemeController.instance) {
-      ThemeController.instance = new ThemeController(options);
-    } else if (options) {
-      if (options.storage) {
-        ThemeController.instance.storage = options.storage;
-      }
-      if (options.storageKey) {
-        ThemeController.instance.storageKey = options.storageKey;
-      }
-      if (options.defaultTheme) {
-        ThemeController.instance.defaultTheme = options.defaultTheme;
-      }
-      if (options.onChange) {
-        ThemeController.instance.onChangeCallbacks.add(options.onChange);
-      }
-    }
-    return ThemeController.instance;
   }
 
   public canUpdateTheme(): boolean {

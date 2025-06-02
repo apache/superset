@@ -18,11 +18,7 @@
  */
 
 import { Route } from 'react-router-dom';
-import {
-  SupersetThemeProvider,
-  getExtensionsRegistry,
-  themeController,
-} from '@superset-ui/core';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
 import { DndProvider } from 'react-dnd';
@@ -30,10 +26,13 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { FlashProvider, DynamicPluginProvider } from 'src/components';
 import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
+import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
+import { ThemeController } from 'src/theme/ThemeController';
 import { store } from './store';
 import '../preamble';
 
 const { common } = getBootstrapData();
+const themeController = new ThemeController({});
 
 const extensionsRegistry = getExtensionsRegistry();
 export const RootContextProviders: React.FC = ({ children }) => {

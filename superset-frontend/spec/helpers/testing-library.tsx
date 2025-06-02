@@ -27,12 +27,12 @@ import {
   within,
 } from '@testing-library/react';
 import {
-  SupersetThemeProvider,
   ThemeProvider,
   // eslint-disable-next-line no-restricted-imports
   supersetTheme,
-  themeController,
 } from '@superset-ui/core';
+import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
+import { ThemeController } from 'src/theme/ThemeController';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { DndProvider } from 'react-dnd';
@@ -53,6 +53,8 @@ type Options = Omit<RenderOptions, 'queries'> & {
   reducers?: {};
   store?: Store;
 };
+
+const themeController = new ThemeController({});
 
 export const createStore = (initialState: object = {}, reducers: object = {}) =>
   configureStore({
