@@ -25,6 +25,7 @@ import {
   useState,
   ChangeEvent,
   useEffect,
+  MutableRefObject,
 } from 'react';
 
 import {
@@ -47,6 +48,7 @@ import Pagination from './components/Pagination';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
 import getInitialSortState from '../utils/getInitialSortState';
+import useClickedFilterTracker from '../utils/useClickedFilter';
 
 export interface Props {
   gridTheme?: string;
@@ -156,6 +158,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     const gridApiRef = useRef<GridApi | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const searchId = `search-${id}`;
+    const clickedFilterIconRef = useClickedFilterTracker();
     const gridInitialState: GridState = {
       ...(serverPagination && {
         sort: {
@@ -261,31 +264,54 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
       [serverPagination, debouncedSearch, searchId],
     );
 
+    const shouldSort = ({
+      colId,
+      sortDir,
+      clickedFilterIconRef,
+      percentMetrics,
+      serverPagination,
+      gridInitialState,
+    }: {
+      colId: string;
+      sortDir: string;
+      clickedFilterIconRef: MutableRefObject<boolean>;
+      percentMetrics: string[];
+      serverPagination: boolean;
+      gridInitialState: GridState;
+    }) => {
+      if (percentMetrics.includes(colId)) return false;
+      if (clickedFilterIconRef.current) return false;
+      if (!serverPagination) return false;
+
+      const initialSort: Partial<SortModelItem> =
+        gridInitialState?.sort?.sortModel?.[0] || {};
+      const { colId: initialColId = '', sort: initialSortDir = '' } =
+        initialSort;
+
+      if (initialColId === colId && initialSortDir === sortDir) return false;
+
+      return true;
+    };
+
     const handleColumnHeaderClick = useCallback(
       params => {
-        if (!serverPagination) return;
-
         const colId = params?.column?.colId;
         const sortDir = params?.column?.sort;
+        const isSortable = shouldSort({
+          colId,
+          sortDir,
+          clickedFilterIconRef,
+          percentMetrics,
+          serverPagination: !!serverPagination,
+          gridInitialState,
+        });
+        if (!isSortable) return;
 
-        // Skip sorting for percent metrics
-        if (percentMetrics.includes(colId)) return;
-
-        const initialSort: Partial<SortModelItem> =
-          gridInitialState?.sort?.sortModel?.[0] || {};
-        const { colId: initialColId = '', sort: initialSortDir = '' } =
-          initialSort;
-
-        // Avoid triggering sort if column and direction haven't changed
-        if (initialColId === colId && initialSortDir === sortDir) return;
-
-        // If sort direction is null, reset sort
         if (sortDir == null) {
           onSortChange([]);
           return;
         }
 
-        // Apply new sort
         onSortChange([
           {
             id: colId,
