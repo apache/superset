@@ -19,16 +19,16 @@
 import { SupersetClient, logging } from '@superset-ui/core';
 import {
   CommandContribution,
-  Extension,
   MenuContribution,
-  Module,
   ViewContribution,
-} from './types';
+  core,
+} from '@apache-superset/core';
+import { Module } from './types';
 
 class ExtensionsManager {
   private static instance: ExtensionsManager;
-  private extensionIndex: Map<string, Extension> = new Map();
-  private extensionsByModule: Map<Module, Extension[]> = new Map();
+  private extensionIndex: Map<string, core.Extension> = new Map();
+  private extensionsByModule: Map<Module, core.Extension[]> = new Map();
   private menuIndex: Map<string, MenuContribution> = new Map();
   private viewIndex: Map<string, ViewContribution[]> = new Map();
   private commandIndex: Map<string, CommandContribution> = new Map();
@@ -51,7 +51,7 @@ class ExtensionsManager {
     const response = await SupersetClient.get({
       endpoint: `/api/v1/extensions/?module=${module}`,
     });
-    const extensions: Extension[] = response.json.result;
+    const extensions: core.Extension[] = response.json.result;
 
     const loadedExtensions = await Promise.all(
       extensions.map(extension => this.loadModule(extension)),
@@ -73,7 +73,7 @@ class ExtensionsManager {
    * @param extension The extension to load.
    * @returns The loaded extension with activate and deactivate methods.
    */
-  private async loadModule(extension: Extension): Promise<Extension> {
+  private async loadModule(extension: core.Extension): Promise<core.Extension> {
     const { remoteEntry, name, exposedModules } = extension;
 
     // Load the remote entry script
@@ -109,7 +109,7 @@ class ExtensionsManager {
    * Activates an extension if it has an activate method.
    * @param extension The extension to activate.
    */
-  private activateExtension(extension: Extension): void {
+  private activateExtension(extension: core.Extension): void {
     if (extension.activate) {
       try {
         extension.activate();
@@ -152,7 +152,7 @@ class ExtensionsManager {
    * Indexes contributions from an extension for quick retrieval.
    * @param extension The extension to index.
    */
-  private indexContributions(extension: Extension): void {
+  private indexContributions(extension: core.Extension): void {
     const { contributions } = extension;
 
     if (contributions.menus) {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Event } from './core';
+import { Event, Extension } from './core';
 
 /**
  * Namespace for dealing with installed extensions. Extensions are represented
@@ -52,54 +52,17 @@ import { Event } from './core';
  */
 export declare namespace extensions {
   /**
-   * Represents an extension.
-   *
-   * To get an instance of an `Extension` use {@link extensions.getExtension getExtension}.
-   */
-  export interface Extension<T> {
-    /**
-     * The canonical extension identifier in the form of: `publisher.name`.
-     */
-    readonly id: string;
-
-    /**
-     * `true` if the extension has been activated.
-     */
-    readonly isActive: boolean;
-
-    /**
-     * The parsed contents of the extension's package.json.
-     */
-    readonly packageJSON: any;
-
-    /**
-     * The public API exported by this extension (return value of `activate`).
-     * It is an invalid action to access this field before this extension has been activated.
-     */
-    readonly exports: T;
-
-    /**
-     * Activates this extension and returns its public API.
-     *
-     * @returns A promise that will resolve when this extension has been activated.
-     */
-    activate(): Promise<T>;
-  }
-
-  /**
    * Get an extension by its full identifier in the form of: `publisher.name`.
    *
    * @param extensionId An extension identifier.
    * @returns An extension or `undefined`.
    */
-  export function getExtension<T = any>(
-    extensionId: string,
-  ): Extension<T> | undefined;
+  export function getExtension(extensionId: string): Extension | undefined;
 
   /**
    * All extensions currently known to the system.
    */
-  export const all: readonly Extension<any>[];
+  export const all: readonly Extension[];
 
   /**
    * An event which fires when `extensions.all` changes. This can happen when extensions are

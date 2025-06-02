@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ReactElement } from 'react';
+import { Contributions } from './contributions';
 
 export declare interface Column {
   name: string;
@@ -98,6 +99,18 @@ export declare interface Event<T> {
    * @returns A disposable which unsubscribes the event listener.
    */
   (listener: (e: T) => any, thisArgs?: any): Disposable;
+}
+
+export interface Extension {
+  name: string;
+  description: string;
+  contributions: Contributions;
+  exposedModules: string[];
+  files: string[];
+  remoteEntry: string;
+  activate: Function;
+  deactivate: Function;
+  extensionDependencies: string[];
 }
 
 export declare const registerView: (id: string, view: ReactElement) => void;

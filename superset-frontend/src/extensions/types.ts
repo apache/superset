@@ -16,53 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export interface CommandContribution {
-  command: string;
-  icon: string;
-  title: string;
-  description: string;
-}
-
-export interface MenuItem {
-  view: string;
-  command: string;
-}
-
-export interface MenuContribution {
-  primary?: MenuItem[];
-  secondary?: MenuItem[];
-  context?: MenuItem[];
-}
-
-export interface ViewContribution {
-  id: string;
-  name: string;
-}
-
-export interface Contributions {
-  commands: CommandContribution[];
-  menus: {
-    [key: string]: MenuContribution;
-  };
-  views: {
-    [key: string]: ViewContribution[];
-  };
-}
-
-export interface Extension {
-  name: string;
-  description: string;
-  contributions: Contributions;
-  exposedModules: string[];
-  files: string[];
-  remoteEntry: string;
-  activate: Function;
-  deactivate: Function;
-  extensionDependencies: string[];
-}
+import { core } from '@apache-superset/core';
 
 export interface ExtensionsState {
-  extensions: Extension[];
+  extensions: core.Extension[];
   loading: boolean;
   error: string | null;
 }

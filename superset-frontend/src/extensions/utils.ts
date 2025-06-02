@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Disposable } from '@apache-superset/core';
+import { Disposable } from './core';
 import { AnyAction } from 'redux';
 import { listenerMiddleware, RootState, store } from 'src/views/store';
 

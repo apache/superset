@@ -18,5 +18,3 @@
  */
 export * from './api';
 export * from './components/Avatar';
-export * from './extensions/contributions/types';
-export * from './extensions/core';

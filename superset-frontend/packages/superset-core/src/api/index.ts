@@ -18,6 +18,7 @@
  */
 export * from './authentication';
 export * from './commands';
+export * from './contributions';
 export * as core from './core';
 export * from './environment';
 export * from './extensions';

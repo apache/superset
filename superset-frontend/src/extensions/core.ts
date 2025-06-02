@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { core as coreType } from '@apache-superset/core';
+import { core as coreType, sqlLab as sqlLabType } from '@apache-superset/core';
 import { getExtensionsContextValue } from './ExtensionsContextUtils';
 
 export class Column implements coreType.Column {
@@ -93,24 +93,71 @@ export class Database implements coreType.Database {
 }
 
 export class Disposable implements coreType.Disposable {
-  private callOnDispose: () => any;
-
-  constructor(callOnDispose: () => any) {
-    this.callOnDispose = callOnDispose;
-  }
-
-  static from(...disposableLikes: { dispose: () => any }[]): Disposable {
+  static from(
+    ...disposableLikes: {
+      dispose: () => any;
+    }[]
+  ): Disposable {
     return new Disposable(() => {
-      for (const disposable of disposableLikes) {
+      disposableLikes.forEach(disposable => {
         disposable.dispose();
-      }
+      });
     });
   }
 
+  constructor(callOnDispose: () => any) {
+    this.dispose = callOnDispose;
+  }
+
   dispose(): any {
-    if (this.callOnDispose) {
-      this.callOnDispose();
-    }
+    this.dispose();
+  }
+}
+
+export class Panel implements sqlLabType.Panel {
+  activate(): void {
+    // Implementation for activating the panel
+  }
+
+  dispose(): void {
+    // Implementation for disposing the panel
+  }
+}
+
+export class Editor implements sqlLabType.Editor {
+  content: string;
+  database: Database;
+  // TODO: Check later if we'll use objects instead of strings.
+  catalog: string | null;
+  schema: string;
+  table: string;
+
+  constructor(
+    content: string,
+    database: Database,
+    catalog: string | null = null,
+    schema: string = '',
+    table: string = '',
+  ) {
+    this.content = content;
+    this.database = database;
+    this.catalog = catalog;
+    this.schema = schema;
+    this.table = table;
+  }
+}
+
+export class Tab implements sqlLabType.Tab {
+  id: string;
+  title: string;
+  editor: Editor;
+  panels: Panel[];
+
+  constructor(id: string, title: string, editor: Editor, panels: Panel[] = []) {
+    this.id = id;
+    this.title = title;
+    this.editor = editor;
+    this.panels = panels;
   }
 }
 
