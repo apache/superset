@@ -19,9 +19,9 @@
 import { memo, useCallback, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { css, t, useTheme, useTruncation } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
-import { List } from 'src/components/List';
+import { List } from '@superset-ui/core/components/List';
 import {
   DependencyItem,
   Row,

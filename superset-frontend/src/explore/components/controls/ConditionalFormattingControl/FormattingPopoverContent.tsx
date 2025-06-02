@@ -18,7 +18,6 @@
  */
 import { useState } from 'react';
 import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
-import { ColorSchemeEnum } from '@superset-ui/plugin-chart-table';
 import {
   Comparator,
   MultipleValueComparators,
@@ -32,8 +31,15 @@ import {
   Col,
   Row,
   type FormProps,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { ConditionalFormattingConfig } from './types';
+
+// TODO: tangled redefinition that aligns with @superset-ui/plugin-chart-table
+// used to be imported but main app shouldn't depend on plugins...
+export enum ColorSchemeEnum {
+  'Green' = 'Green',
+  'Red' = 'Red',
+}
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;

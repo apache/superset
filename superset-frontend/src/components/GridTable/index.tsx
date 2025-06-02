@@ -27,7 +27,6 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 import copyTextToClipboard from 'src/utils/copy';
-import { ErrorBoundary } from '../ErrorBoundary';
 
 import { PIVOT_COL_ID, GridSize } from './constants';
 import { Header } from './Header';
@@ -143,7 +142,7 @@ export function GridTable<RecordType extends object>({
   );
 
   return (
-    <ErrorBoundary>
+    <>
       <Global
         styles={() => css`
           #grid-table.ag-theme-quartz {
@@ -216,7 +215,7 @@ export function GridTable<RecordType extends object>({
           onCellKeyDown={onKeyDown}
         />
       </div>
-    </ErrorBoundary>
+    </>
   );
 }
 

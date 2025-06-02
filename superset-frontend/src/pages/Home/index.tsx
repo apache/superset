@@ -26,7 +26,7 @@ import {
   t,
 } from '@superset-ui/core';
 import rison from 'rison';
-import { Collapse, ListViewCard } from 'src/components';
+import { Collapse, ListViewCard } from '@superset-ui/core/components';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
 import {
@@ -45,7 +45,7 @@ import {
   loadingCardCount,
   mq,
 } from 'src/views/CRUD/utils';
-import { Switch } from 'src/components/Switch';
+import { Switch } from '@superset-ui/core/components/Switch';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { TableTab } from 'src/views/CRUD/types';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';

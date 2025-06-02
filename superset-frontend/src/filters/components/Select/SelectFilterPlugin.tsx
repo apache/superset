@@ -33,9 +33,17 @@ import {
 } from '@superset-ui/core';
 import { debounce, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
-import { FormItem, LabeledValue, Select, Space } from 'src/components';
-import { SLOW_DEBOUNCE } from 'src/constants';
-import { hasOption, propertyComparator } from 'src/components/Select/utils';
+import {
+  FormItem,
+  LabeledValue,
+  Select,
+  Space,
+  Constants,
+} from '@superset-ui/core/components';
+import {
+  hasOption,
+  propertyComparator,
+} from '@superset-ui/core/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 import { FilterPluginStyle, StatusMessage } from '../common';
@@ -243,7 +251,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             },
           });
         }
-      }, SLOW_DEBOUNCE),
+      }, Constants.SLOW_DEBOUNCE),
     [dispatchDataMask, initialColtypeMap, searchAllOptions],
   );
 

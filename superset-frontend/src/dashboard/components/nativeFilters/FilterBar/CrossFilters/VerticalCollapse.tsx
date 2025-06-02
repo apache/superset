@@ -18,7 +18,7 @@
  */
 
 import { useMemo } from 'react';
-import { Collapse, Divider } from 'src/components';
+import { Collapse, Divider } from '@superset-ui/core/components';
 import { t } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import CrossFilter from './CrossFilter';

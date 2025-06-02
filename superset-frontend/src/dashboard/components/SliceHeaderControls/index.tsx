@@ -26,7 +26,7 @@ import {
 } from 'react';
 
 import { RouteComponentProps, useHistory } from 'react-router-dom';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   Behavior,
   css,
@@ -41,13 +41,17 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import { Menu } from 'src/components/Menu';
-import { NoAnimationDropdown, Tooltip, Button } from 'src/components';
+import { Menu } from '@superset-ui/core/components/Menu';
+import {
+  NoAnimationDropdown,
+  Tooltip,
+  Button,
+  ModalTrigger,
+} from '@superset-ui/core/components';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
-import { Icons } from 'src/components/Icons';
-import ModalTrigger from 'src/components/ModalTrigger';
+import { Icons } from '@superset-ui/core/components/Icons';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';

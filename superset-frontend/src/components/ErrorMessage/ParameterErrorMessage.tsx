@@ -20,10 +20,10 @@ import { ReactNode } from 'react';
 import { t, tn } from '@superset-ui/core';
 import levenshtein from 'js-levenshtein';
 
+import { List } from '@superset-ui/core/components';
 import { ErrorMessageComponentProps } from './types';
 import { IssueCode } from './IssueCode';
 import { ErrorAlert } from './ErrorAlert';
-import { List } from '../List';
 
 interface ParameterErrorExtra {
   undefined_parameters?: string[];

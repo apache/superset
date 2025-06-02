@@ -17,13 +17,15 @@
  * under the License.
  */
 import { useState } from 'react';
-import { Icons } from 'src/components/Icons';
 import { t, useTheme } from '@superset-ui/core';
-import { Tooltip } from '../Tooltip';
-import { Alert } from '../Alert';
-import { Modal } from '../Modal';
+import {
+  Alert,
+  Icons,
+  Modal,
+  Tooltip,
+  Typography,
+} from '@superset-ui/core/components';
 import type { ErrorAlertProps } from './types';
-import { Typography } from '../Typography';
 
 export const ErrorAlert: React.FC<ErrorAlertProps> = ({
   errorType = t('Error'),

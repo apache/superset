@@ -40,7 +40,7 @@ import {
   Loading,
   Breadcrumb,
   Flex,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';

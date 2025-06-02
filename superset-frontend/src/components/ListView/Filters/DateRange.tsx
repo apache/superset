@@ -25,13 +25,15 @@ import {
 } from 'react';
 
 import { styled, t } from '@superset-ui/core';
-import { extendedDayjs } from 'src/utils/dates';
 import { Dayjs } from 'dayjs';
 import { useLocale } from 'src/hooks/useLocale';
-import { Loading } from '../../Loading';
-import { AntdThemeProvider } from '../../AntdThemeProvider';
-import { FormLabel } from '../../Form';
-import { RangePicker } from '../../DatePicker';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import {
+  AntdThemeProvider,
+  Loading,
+  FormLabel,
+  RangePicker,
+} from '@superset-ui/core/components';
 import { BaseFilter, FilterHandler } from './Base';
 
 interface DateRangeFilterProps extends BaseFilter {

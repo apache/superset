@@ -24,7 +24,7 @@ import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import PopoverDropdown, {
   OptionProps,
   OnChangeHandler,
-} from 'src/components/PopoverDropdown';
+} from '@superset-ui/core/components/PopoverDropdown';
 
 interface BackgroundStyleDropdownProps {
   id: string;

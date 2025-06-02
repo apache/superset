@@ -18,7 +18,7 @@
  */
 import getOwnerName from 'src/utils/getOwnerName';
 import { t } from '@superset-ui/core';
-import { Tooltip } from '../Tooltip';
+import { Tooltip } from '@superset-ui/core/components';
 import type { ModifiedInfoProps } from './types';
 
 export const ModifiedInfo = ({ user, date }: ModifiedInfoProps) => {

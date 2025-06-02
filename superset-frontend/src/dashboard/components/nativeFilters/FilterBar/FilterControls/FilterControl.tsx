@@ -28,7 +28,7 @@ import {
   Form,
   Icons,
   Tooltip,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';

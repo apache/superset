@@ -31,24 +31,30 @@ import {
   styled,
   getClientErrorObject,
 } from '@superset-ui/core';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import { ServerPagination, SortByType } from 'src/components/TableView/types';
+import {
+  Alert,
+  Button,
+  Constants,
+  EmptyWrapperType,
+  Input,
+  Loading,
+  Modal,
+  TableView,
+} from '@superset-ui/core/components';
+import {
+  ServerPagination,
+  SortByType,
+} from '@superset-ui/core/components/TableView/types';
+import { FacePile } from 'src/components';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
-import { SLOW_DEBOUNCE } from 'src/constants';
 import {
   PAGE_SIZE as DATASET_PAGE_SIZE,
   SORT_BY as DATASET_SORT_BY,
 } from 'src/features/datasets/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { InputRef } from 'antd';
-import { Loading } from '../Loading';
-import { Input } from '../Input';
-import { FacePile } from '../FacePile';
-import { Button } from '../Button';
-import { Alert } from '../Alert';
-import { Modal } from '../Modal';
 import type { Datasource, ChangeDatasourceModalProps } from './types';
 
 const CONFIRM_WARNING_MESSAGE = t(
@@ -135,7 +141,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         }),
       });
     },
-    SLOW_DEBOUNCE,
+    Constants.SLOW_DEBOUNCE,
     [filter, pageIndex, sortBy],
   );
 

@@ -17,9 +17,8 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { Popover } from 'antd';
+import { Popover, type PopoverProps } from '@superset-ui/core/components';
 import type ReactAce from 'react-ace';
-import type { PopoverProps } from 'antd/es/popover';
 import { CalculatorOutlined } from '@ant-design/icons';
 import { css, styled, useTheme, t } from '@superset-ui/core';
 

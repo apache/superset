@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/core';
 import { invert, mapKeys } from 'lodash';
 
-import { now } from 'src/utils/dates';
+import { now } from '@superset-ui/core/utils/dates';
 import {
   addDangerToast as addDangerToastAction,
   addInfoToast as addInfoToastAction,
@@ -1294,7 +1294,8 @@ export function createDatasourceFailed(err) {
 export function createDatasource(vizOptions) {
   return dispatch => {
     dispatch(createDatasourceStarted());
-    const { dbId, catalog, schema, datasourceName, sql } = vizOptions;
+    const { dbId, catalog, schema, datasourceName, sql, templateParams } =
+      vizOptions;
     return SupersetClient.post({
       endpoint: '/api/v1/dataset/',
       headers: { 'Content-Type': 'application/json' },
@@ -1306,6 +1307,7 @@ export function createDatasource(vizOptions) {
         table_name: datasourceName,
         is_managed_externally: false,
         external_url: null,
+        template_params: templateParams,
       }),
     })
       .then(({ json }) => {

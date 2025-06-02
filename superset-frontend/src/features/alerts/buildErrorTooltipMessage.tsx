@@ -17,7 +17,7 @@
  * under the License.
  */
 import { css } from '@superset-ui/core';
-import { List } from 'src/components';
+import { List } from '@superset-ui/core/components';
 import { ValidationObject } from './types';
 import { TRANSLATIONS } from './AlertReportModal';
 

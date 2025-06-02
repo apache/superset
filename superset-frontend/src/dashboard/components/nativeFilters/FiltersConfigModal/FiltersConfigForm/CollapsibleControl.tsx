@@ -18,8 +18,7 @@
  */
 import { ReactNode, useEffect, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import { Checkbox } from 'src/components';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { Checkbox, InfoTooltip } from '@superset-ui/core/components';
 
 interface CollapsibleControlProps {
   initialValue?: boolean;
@@ -79,9 +78,7 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
       >
         <>
           {title}&nbsp;
-          {tooltip && (
-            <InfoTooltipWithTrigger placement="top" tooltip={tooltip} />
-          )}
+          {tooltip && <InfoTooltip placement="top" tooltip={tooltip} />}
         </>
       </Checkbox>
       {isChecked && <ChildrenContainer>{children}</ChildrenContainer>}

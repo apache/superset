@@ -27,9 +27,9 @@ import {
 } from '@superset-ui/core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import Metadata from 'src/components/Metadata';
+import Metadata from '@superset-ui/core/components/Metadata';
 import { isNumber } from 'lodash';
-import { FormItem, InputNumber } from 'src/components';
+import { FormItem, InputNumber } from '@superset-ui/core/components';
 import { PluginFilterRangeProps } from './types';
 import { StatusMessage, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';

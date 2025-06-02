@@ -17,11 +17,11 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { styled, t } from '@superset-ui/core';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
-import { ListViewCard } from 'src/components';
+import { ListViewCard } from '@superset-ui/core/components';
 import { Dashboard, SavedQueryObject, TableTab } from 'src/views/CRUD/types';
 import { ActivityData, LoadingCards } from 'src/pages/Home';
 import {
@@ -30,7 +30,7 @@ import {
   getEditedObjects,
 } from 'src/views/CRUD/utils';
 import { Chart } from 'src/types/Chart';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable, RecentActivity } from './types';

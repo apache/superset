@@ -21,7 +21,7 @@ import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import atomOneDark from 'react-syntax-highlighter/dist/cjs/styles/hljs/atom-one-dark';
 import { t, themeObject } from '@superset-ui/core';
-import ModalTrigger from 'src/components/ModalTrigger';
+import { ModalTrigger } from '@superset-ui/core/components';
 
 SyntaxHighlighterBase.registerLanguage('sql', sql);
 

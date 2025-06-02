@@ -29,7 +29,7 @@ import {
   DatasourcePanelDndItem,
   DndItemValue,
 } from 'src/explore/components/DatasourcePanel/types';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { DndItemType } from '../../DndItemType';
 import { DraggingContext, DropzoneContext } from '../../ExploreContainer';
 

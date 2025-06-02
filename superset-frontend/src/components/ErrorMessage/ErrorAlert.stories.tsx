@@ -17,9 +17,7 @@
  * under the License.
  */
 import { Meta, StoryFn } from '@storybook/react';
-import { Layout } from '../Layout';
-import { Card } from '../Card';
-import { Row, Col } from '../Grid';
+import { Card, Col, Layout, Row } from '@superset-ui/core/components';
 import { ErrorAlert } from './ErrorAlert';
 
 const { Content } = Layout;

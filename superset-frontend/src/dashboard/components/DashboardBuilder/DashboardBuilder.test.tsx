@@ -53,13 +53,13 @@ jest.mock('src/dashboard/actions/dashboardState', () => ({
 jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 
 // mock following dependent components to fix the prop warnings
-jest.mock('src/components/Select/Select', () => () => (
+jest.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-select" />
 ));
-jest.mock('src/components/Select/AsyncSelect', () => () => (
+jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-async-select" />
 ));
-jest.mock('src/components/PageHeaderWithActions', () => ({
+jest.mock('@superset-ui/core/components/PageHeaderWithActions', () => ({
   PageHeaderWithActions: () => (
     <div data-test="mock-page-header-with-actions" />
   ),

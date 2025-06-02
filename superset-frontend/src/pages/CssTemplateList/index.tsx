@@ -25,9 +25,8 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
+import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
 import {
-  DeleteModal,
-  ConfirmStatusChange,
   ModifiedInfo,
   ListView,
   ListViewActionsBar,
@@ -40,7 +39,7 @@ import {
 import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 const PAGE_SIZE = 25;
 

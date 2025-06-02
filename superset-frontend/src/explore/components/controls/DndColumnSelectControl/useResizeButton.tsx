@@ -29,7 +29,7 @@ import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
-import { Icons } from 'src/components';
+import { Icons } from '@superset-ui/core/components';
 
 const RESIZE_THROTTLE_MS = 50;
 

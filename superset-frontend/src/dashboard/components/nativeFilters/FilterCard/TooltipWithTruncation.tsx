@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip } from 'src/components';
-import { TooltipProps } from 'src/components/Tooltip/types';
+import { Tooltip, type TooltipProps } from '@superset-ui/core/components';
 import { TooltipTrigger } from './Styles';
 
 export const TooltipWithTruncation = ({

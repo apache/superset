@@ -20,9 +20,9 @@ import {
   ControlSetItem,
   CustomControlConfig,
   sharedControls,
-  InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
 import { t, useTheme } from '@superset-ui/core';
+import { InfoTooltip } from '@superset-ui/core/components';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
 import { debounceFunc } from '../../consts';
@@ -47,7 +47,7 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
       <ControlHeader>
         <div>
           {props.label}
-          <InfoTooltipWithTrigger
+          <InfoTooltip
             iconStyle={{ marginLeft: theme.sizeUnit }}
             tooltip={t('You need to configure HTML sanitization to use CSS')}
           />

@@ -42,7 +42,7 @@ import {
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
 import { isEqual } from 'lodash';
-import { Space } from 'antd';
+import { Space } from '@superset-ui/core/components';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, {
   SelectPageSizeProps,

@@ -41,7 +41,7 @@ const TagsDiv = styled.div`
   flex-wrap: wrap;
 `;
 
-const TagsList = ({
+export const TagsList = ({
   tags,
   editable = false,
   onDelete,
@@ -112,5 +112,3 @@ const TagsList = ({
     </TagsDiv>
   );
 };
-
-export default TagsList;

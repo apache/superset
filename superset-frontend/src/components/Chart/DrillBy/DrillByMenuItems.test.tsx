@@ -30,7 +30,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
 import { DrillByMenuItems, DrillByMenuItemsProps } from './DrillByMenuItems';
 

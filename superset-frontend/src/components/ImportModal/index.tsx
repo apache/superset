@@ -19,10 +19,12 @@
 import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
 import { styled, t, css } from '@superset-ui/core';
 import { useImportResource } from 'src/views/CRUD/hooks';
-import { Upload, type UploadChangeParam, type UploadFile } from '../Upload';
-import { Button } from '../Button';
-import { Input } from '../Input';
-import { Modal } from '../Modal';
+import {
+  Upload,
+  type UploadChangeParam,
+  type UploadFile,
+} from '@superset-ui/core/components/Upload';
+import { Button, Input, Modal } from '@superset-ui/core/components';
 import { ImportErrorAlert } from './ImportErrorAlert';
 import type { ImportModelsModalProps } from './types';
 

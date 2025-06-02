@@ -18,9 +18,8 @@
  */
 import { t, SupersetClient } from '@superset-ui/core';
 import { useMemo, useState } from 'react';
+import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
 import {
-  ConfirmStatusChange,
-  Tooltip,
   ModifiedInfo,
   ListView,
   ListViewFilterOperator as FilterOperator,
@@ -28,7 +27,7 @@ import {
   type ListViewFilters,
   type ListViewFetchDataConfig as FetchDataConfig,
 } from 'src/components';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import rison from 'rison';

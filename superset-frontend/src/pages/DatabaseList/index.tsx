@@ -38,17 +38,19 @@ import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import {
   DeleteModal,
   Tooltip,
-  ModifiedInfo,
   List,
+  Loading,
+} from '@superset-ui/core/components';
+import {
+  ModifiedInfo,
   ListView,
   ListViewFilterOperator as FilterOperator,
   ListViewFilters,
-  Loading,
 } from 'src/components';
-import { Typography } from 'src/components/Typography';
+import { Typography } from '@superset-ui/core/components/Typography';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import handleResourceExport from 'src/utils/export';
 import { ExtensionConfigs } from 'src/features/home/types';

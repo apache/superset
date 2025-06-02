@@ -21,7 +21,7 @@ import { PureComponent, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { executeQuery, resetDatabaseState } from 'src/database/actions';
 import { connect } from 'react-redux';
-import { Radio } from 'src/components/Radio';
+import { Radio } from '@superset-ui/core/components/Radio';
 import {
   css,
   isFeatureEnabled,
@@ -36,8 +36,8 @@ import {
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import Tabs from 'src/components/Tabs';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import Tabs from '@superset-ui/core/components/Tabs';
+import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
@@ -45,26 +45,30 @@ import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
-import { Loading } from '../Loading';
-import { Alert } from '../Alert';
-import { Badge } from '../Badge';
-import { Card } from '../Card';
-import { Select, AsyncSelect } from '../Select';
-import { Button } from '../Button';
-import { CertifiedBadge } from '../CertifiedBadge';
+import {
+  Alert,
+  AsyncSelect,
+  Badge,
+  Button,
+  Card,
+  CertifiedBadge,
+  Col,
+  Divider,
+  EditableTitle,
+  FormLabel,
+  Icons,
+  Loading,
+  Row,
+  Select,
+  Typography,
+  Label,
+} from '@superset-ui/core/components';
+import { FilterableTable } from 'src/components';
 import { DatabaseSelector } from '../DatabaseSelector';
-import { EditableTitle } from '../EditableTitle';
-import { FormLabel } from '../Form';
-import { Row, Col } from '../Grid';
-import { Label } from '../Label';
-import { Icons } from '../Icons';
-import { Divider } from '../Divider';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
 import { fetchSyncedColumns, updateColumns } from './utils';
-import { Typography } from '../Typography';
-import { FilterableTable } from '../FilterableTable';
 
 const extensionsRegistry = getExtensionsRegistry();
 

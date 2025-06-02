@@ -18,7 +18,7 @@
  */
 import { useCallback } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons, InfoTooltip } from '@superset-ui/core/components';
 import {
   CaretContainer,
   CloseContainer,
@@ -26,9 +26,8 @@ import {
   Label,
 } from 'src/explore/components/controls/OptionControls';
 import { OptionProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
-const StyledInfoTooltipWithTrigger = styled(InfoTooltipWithTrigger)`
+const StyledInfoTooltip = styled(InfoTooltip)`
   margin: 0 ${({ theme }) => theme.sizeUnit}px;
 `;
 
@@ -71,7 +70,7 @@ export default function Option({
       )}
       <Label data-test="control-label">{children}</Label>
       {(!!datasourceWarningMessage || isExtra) && (
-        <StyledInfoTooltipWithTrigger
+        <StyledInfoTooltip
           type="warning"
           placement="top"
           tooltip={

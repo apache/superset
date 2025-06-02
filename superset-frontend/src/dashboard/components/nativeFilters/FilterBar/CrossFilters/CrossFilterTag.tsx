@@ -26,7 +26,7 @@ import {
 } from '@superset-ui/core';
 import { CrossFilterIndicator } from 'src/dashboard/components/nativeFilters/selectors';
 import { Tag } from 'src/components/Tag';
-import { Tooltip } from 'src/components';
+import { Tooltip } from '@superset-ui/core/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { ellipsisCss } from './styles';
 

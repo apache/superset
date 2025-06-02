@@ -53,19 +53,19 @@ import type { DatabaseObject } from 'src/features/databases/types';
 import { debounce, throttle, isEmpty } from 'lodash';
 import Mousetrap from 'mousetrap';
 import {
-  Input,
-  Button,
   Alert,
+  Button,
   Dropdown,
   EmptyState,
+  Input,
   Modal,
-} from 'src/components';
-import Timer from 'src/components/Timer';
+  Timer,
+} from '@superset-ui/core/components';
 import ResizableSidebar from 'src/components/ResizableSidebar';
-import { Skeleton } from 'src/components/Skeleton';
-import { Switch } from 'src/components/Switch';
-import { Menu } from 'src/components/Menu';
-import { Icons } from 'src/components/Icons';
+import { Skeleton } from '@superset-ui/core/components/Skeleton';
+import { Switch } from '@superset-ui/core/components/Switch';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { detectOS } from 'src/utils/common';
 import {
   addNewQueryEditor,

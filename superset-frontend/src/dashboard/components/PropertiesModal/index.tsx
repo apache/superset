@@ -30,8 +30,9 @@ import {
   JsonEditor,
   Modal,
   Row,
-} from 'src/components';
-import { Typography } from 'src/components/Typography';
+  Typography,
+} from '@superset-ui/core/components';
+import { type TagType } from 'src/components';
 import rison from 'rison';
 import {
   ensureIsArray,
@@ -48,7 +49,6 @@ import {
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import TagType from 'src/types/TagType';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import { loadTags } from 'src/components/Tag/utils';
 import {

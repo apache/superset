@@ -27,8 +27,9 @@ import {
   Row,
   Col,
   FormItem,
+  Typography,
   type SelectValue,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import rison from 'rison';
 import {
   t,
@@ -41,13 +42,12 @@ import {
   useTheme,
   css,
 } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { type TagType } from 'src/components';
 import { loadTags } from 'src/components/Tag/utils';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
-import TagType from 'src/types/TagType';
-import { Typography } from 'src/components/Typography';
 
 export type PropertiesModalProps = {
   slice: Slice;

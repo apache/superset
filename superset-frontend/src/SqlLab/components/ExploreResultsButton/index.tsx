@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { Button, type OnClickHandler, Icons } from 'src/components';
+import {
+  Button,
+  type OnClickHandler,
+  Icons,
+} from '@superset-ui/core/components';
 
 export interface ExploreResultsButtonProps {
   database?: {

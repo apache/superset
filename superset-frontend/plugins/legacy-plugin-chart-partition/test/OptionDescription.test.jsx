@@ -46,7 +46,7 @@ describe('OptionDescription', () => {
     );
   });
 
-  it('renders an InfoTooltipWithTrigger', () => {
+  it('renders an InfoTooltip', () => {
     const tooltipTrigger = screen.getByLabelText('Show info tooltip');
     expect(tooltipTrigger).toBeInTheDocument();
 

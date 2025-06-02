@@ -18,7 +18,7 @@
  */
 import { memo, useMemo } from 'react';
 import { t, useTruncation, css } from '@superset-ui/core';
-import { List } from 'src/components/List';
+import { List } from '@superset-ui/core/components/List';
 import { useFilterScope } from './useFilterScope';
 import { Row, RowLabel, RowTruncationCount, RowValue } from './Styles';
 import { FilterCardRowProps } from './types';

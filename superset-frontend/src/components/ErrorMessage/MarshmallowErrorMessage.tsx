@@ -19,10 +19,8 @@
 import { JSONTree } from 'react-json-tree';
 import { t } from '@superset-ui/core';
 import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
-import { Collapse } from '../Collapse';
+import { Collapse, List, Typography } from '@superset-ui/core/components';
 import type { ErrorMessageComponentProps } from './types';
-import { List } from '../List';
-import { Typography } from '../Typography';
 
 interface MarshmallowErrorExtra {
   messages: object;

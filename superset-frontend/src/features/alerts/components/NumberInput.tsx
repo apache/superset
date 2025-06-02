@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Input } from 'src/components';
+import { Input } from '@superset-ui/core/components';
 import { useState, ChangeEvent } from 'react';
 
 interface NumberInputProps {

@@ -20,8 +20,8 @@ import { useMemo, FC } from 'react';
 
 import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import { MenuDotsDropdown } from 'src/components';
-import { Menu } from 'src/components/Menu';
+import { MenuDotsDropdown } from '@superset-ui/core/components';
+import { Menu } from '@superset-ui/core/components/Menu';
 import {
   styled,
   css,
@@ -38,8 +38,8 @@ import {
   toggleLeftBar,
 } from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import { Icons } from 'src/components/Icons';
-import type { IconType } from 'src/components/Icons/types';
+import { Icons } from '@superset-ui/core/components/Icons';
+import type { IconType } from '@superset-ui/core/components/Icons/types';
 
 const TabTitleWrapper = styled.div`
   display: flex;

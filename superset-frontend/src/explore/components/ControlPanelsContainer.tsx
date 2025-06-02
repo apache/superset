@@ -61,14 +61,14 @@ import {
   Modal,
   Loading,
   Tooltip,
-  PluginContext,
-} from 'src/components';
-import Tabs from 'src/components/Tabs';
+} from '@superset-ui/core/components';
+import Tabs from '@superset-ui/core/components/Tabs';
+import { PluginContext } from 'src/components';
 
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';

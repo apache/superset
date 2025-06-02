@@ -24,7 +24,11 @@ import {
   tn,
 } from '@superset-ui/core';
 import { useEffect, useMemo, useState } from 'react';
-import { FormItem, type FormItemProps, Select } from 'src/components';
+import {
+  FormItem,
+  type FormItemProps,
+  Select,
+} from '@superset-ui/core/components';
 import { FilterPluginStyle, StatusMessage } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
 

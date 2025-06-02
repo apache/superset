@@ -19,7 +19,7 @@
 import { forwardRef, ReactNode } from 'react';
 
 import { styled, t } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { FilterRemoval } from './types';
 import DraggableFilter from './DraggableFilter';
 
@@ -139,7 +139,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
             {isRemoved ? null : (
               <Icons.DeleteOutlined
                 iconSize="l"
-                onClick={event => {
+                onClick={(event: React.MouseEvent<HTMLElement>) => {
                   event.stopPropagation();
                   onRemove(id);
                 }}

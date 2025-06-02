@@ -38,7 +38,7 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { Alert } from 'src/components';
+import { Alert } from '@superset-ui/core/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
@@ -291,6 +291,7 @@ const ExploreChartPanel = ({
         css={css`
           display: flex;
           flex-direction: column;
+          padding-top: ${theme.sizeUnit * 2}px;
         `}
         ref={resizeObserverRef}
       >

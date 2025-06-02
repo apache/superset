@@ -34,7 +34,7 @@ import {
   XYChart,
   buildChartTheme,
 } from '@visx/xychart';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 interface Props {
   ariaLabel: string;

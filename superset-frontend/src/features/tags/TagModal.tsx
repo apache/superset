@@ -26,7 +26,7 @@ import {
   FormLabel,
   Input,
   Modal,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import { t, styled, SupersetClient } from '@superset-ui/core';
 import { Tag } from 'src/views/CRUD/types';
 import { fetchObjectsByTagIds } from 'src/features/tags/tags';

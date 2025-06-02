@@ -35,11 +35,9 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import Popover from 'src/components/Popover';
+import { Popover, Label, Tooltip } from '@superset-ui/core/components';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import {
-  Label,
-  Tooltip,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
@@ -51,11 +49,11 @@ import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import getOwnerName from 'src/utils/getOwnerName';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;

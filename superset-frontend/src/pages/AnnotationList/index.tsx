@@ -29,9 +29,8 @@ import {
 import dayjs from 'dayjs';
 import rison from 'rison';
 
+import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
 import {
-  ConfirmStatusChange,
-  DeleteModal,
   ListView,
   ListViewActionsBar,
   type ListViewProps,
@@ -44,8 +43,8 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 
 import { AnnotationObject } from 'src/features/annotations/types';
 import AnnotationModal from 'src/features/annotations/AnnotationModal';
-import { Icons } from 'src/components/Icons';
-import { Typography } from 'src/components/Typography';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
 
 const PAGE_SIZE = 25;
 

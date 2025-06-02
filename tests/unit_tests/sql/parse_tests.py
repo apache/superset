@@ -18,12 +18,15 @@
 
 
 import pytest
-from sqlglot import Dialects
+from sqlglot import Dialects, parse_one
 
 from superset.exceptions import SupersetParseError
 from superset.sql.parse import (
+    CTASMethod,
     extract_tables_from_statement,
     KustoKQLStatement,
+    LimitMethod,
+    RLSMethod,
     split_kql,
     SQLGLOT_DIALECTS,
     SQLScript,
@@ -302,7 +305,13 @@ def test_format_no_dialect() -> None:
     """
     assert (
         SQLScript("SELECT col FROM t WHERE col NOT IN (1, 2)", "dremio").format()
-        == "SELECT col\nFROM t\nWHERE col NOT IN (1,\n                  2)"
+        == """
+SELECT
+  col
+FROM t
+WHERE
+  NOT col IN (1, 2)
+        """.strip()
     )
 
 
@@ -313,9 +322,9 @@ def test_split_no_dialect() -> None:
     sql = "SELECT col FROM t WHERE col NOT IN (1, 2); SELECT * FROM t; SELECT foo"
     statements = SQLScript(sql, "dremio").statements
     assert len(statements) == 3
-    assert statements[0]._sql == "SELECT col FROM t WHERE col NOT IN (1, 2)"
-    assert statements[1]._sql == "SELECT * FROM t"
-    assert statements[2]._sql == "SELECT foo"
+    assert statements[0].format() == "SELECT\n  col\nFROM t\nWHERE\n  NOT col IN (1, 2)"
+    assert statements[1].format() == "SELECT\n  *\nFROM t"
+    assert statements[2].format() == "SELECT\n  foo"
 
 
 def test_extract_tables_show_columns_from() -> None:
@@ -742,6 +751,39 @@ Events | take 100""",
     assert query.get_settings() == {"querytrace": True}
 
 
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        (
+            " SELECT foo FROM tbl ; ",
+            "postgresql",
+            ["SELECT\n  foo\nFROM tbl"],
+        ),
+        (
+            "SELECT foo FROM tbl1; SELECT bar FROM tbl2;",
+            "postgresql",
+            ["SELECT\n  foo\nFROM tbl1", "SELECT\n  bar\nFROM tbl2"],
+        ),
+        (
+            "let foo = 1; tbl | where bar == foo",
+            "kustokql",
+            ["let foo = 1", "tbl | where bar == foo"],
+        ),
+        (
+            "SELECT 1; -- extraneous comment",
+            "postgresql",
+            ["SELECT\n  1 /* extraneous comment */"],
+        ),
+    ],
+)
+def test_sqlscript_split(sql: str, engine: str, expected: list[str]) -> None:
+    """
+    Test the `SQLScript` class with a script that has a single statement.
+    """
+    script = SQLScript(sql, engine)
+    assert [statement.format() for statement in script.statements] == expected
+
+
 def test_sqlstatement() -> None:
     """
     Test the `SQLStatement` class.
@@ -1085,7 +1127,8 @@ FROM some_table) AS anon_1
 WHERE anon_1.a > 1 AND anon_1.b = 2
     """
 
-    optimized = """SELECT
+    optimized = """
+SELECT
   anon_1.a,
   anon_1.b
 FROM (
@@ -1098,18 +1141,23 @@ FROM (
     some_table.a > 1 AND some_table.b = 2
 ) AS anon_1
 WHERE
-  TRUE AND TRUE"""
+  TRUE AND TRUE
+    """.strip()
 
     not_optimized = """
-SELECT anon_1.a,
-       anon_1.b
-FROM
-  (SELECT some_table.a AS a,
-          some_table.b AS b,
-          some_table.c AS c
-   FROM some_table) AS anon_1
-WHERE anon_1.a > 1
-  AND anon_1.b = 2"""
+SELECT
+  anon_1.a,
+  anon_1.b
+FROM (
+  SELECT
+    some_table.a AS a,
+    some_table.b AS b,
+    some_table.c AS c
+  FROM some_table
+) AS anon_1
+WHERE
+  anon_1.a > 1 AND anon_1.b = 2
+    """.strip()
 
     assert SQLStatement(sql, "sqlite").optimize().format() == optimized
     assert SQLStatement(sql, "dremio").optimize().format() == not_optimized
@@ -1160,9 +1208,11 @@ def test_firebolt_old() -> None:
     sql = "SELECT * FROM t1 UNNEST(col1 AS foo)"
     assert (
         SQLStatement(sql, "firebolt").format()
-        == """SELECT
+        == """
+SELECT
   *
-FROM t1 UNNEST(col1 AS foo)"""
+FROM t1 UNNEST(col1 AS foo)
+        """.strip()
     )
 
 
@@ -1181,7 +1231,1157 @@ def test_firebolt_old_escape_string() -> None:
     # but they normalize to ''
     assert (
         SQLStatement(sql, "firebolt").format()
-        == """SELECT
+        == """
+SELECT
   'foo''bar',
-  'foo''bar'"""
+  'foo''bar'
+        """.strip()
     )
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM users LIMIT 10", "postgresql", 10),
+        (
+            """
+WITH cte_example AS (
+  SELECT * FROM my_table
+  LIMIT 100
+)
+SELECT * FROM cte_example
+LIMIT 10;
+        """,
+            "postgresql",
+            10,
+        ),
+        ("SELECT * FROM users ORDER BY id DESC LIMIT 25", "postgresql", 25),
+        ("SELECT * FROM users", "postgresql", None),
+        ("SELECT TOP 5 name FROM employees", "teradatasql", 5),
+        ("SELECT TOP (42) * FROM table_name", "teradatasql", 42),
+        ("select * from table", "postgresql", None),
+        ("select * from mytable limit 10", "postgresql", 10),
+        (
+            "select * from (select * from my_subquery limit 10) where col=1 limit 20",
+            "postgresql",
+            20,
+        ),
+        ("select * from (select * from my_subquery limit 10);", "postgresql", None),
+        (
+            "select * from (select * from my_subquery limit 10) where col=1 limit 20;",
+            "postgresql",
+            20,
+        ),
+        ("select * from mytable limit 20, 10", "postgresql", 10),
+        ("select * from mytable limit 10 offset 20", "postgresql", 10),
+        (
+            """
+SELECT id, value, i
+FROM (SELECT * FROM my_table LIMIT 10),
+LATERAL generate_series(1, value) AS i;
+        """,
+            "postgresql",
+            None,
+        ),
+    ],
+)
+def test_get_limit_value(sql: str, engine: str, expected: str) -> None:
+    assert SQLStatement(sql, engine).get_limit_value() == expected
+
+
+@pytest.mark.parametrize(
+    "kql, expected",
+    [
+        ("StormEvents | take 10", 10),
+        ("StormEvents | limit 20", 20),
+        ("StormEvents | where State == 'FL' | summarize count()", None),
+        ("StormEvents | where name has 'limit 10'", None),
+        ("AnotherTable | take 5", 5),
+        ("datatable(x:int) [1, 2, 3] | take 100", 100),
+        (
+            """
+    Table1 | where msg contains 'abc;xyz'
+           | limit 5
+    """,
+            5,
+        ),
+    ],
+)
+def test_get_kql_limit_value(kql: str, expected: str) -> None:
+    assert KustoKQLStatement(kql, "kustokql").get_limit_value() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, limit, method, expected",
+    [
+        (
+            "SELECT * FROM t",
+            "postgresql",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nLIMIT 10",
+        ),
+        (
+            "SELECT * FROM t LIMIT 1000",
+            "postgresql",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nLIMIT 10",
+        ),
+        (
+            "SELECT * FROM t",
+            "mssql",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 10\n  *\nFROM t",
+        ),
+        (
+            "SELECT * FROM t",
+            "teradatasql",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 10\n  *\nFROM t",
+        ),
+        (
+            "SELECT * FROM t",
+            "oracle",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nFETCH FIRST 10 ROWS ONLY",
+        ),
+        (
+            "SELECT * FROM t",
+            "db2",
+            10,
+            LimitMethod.WRAP_SQL,
+            "SELECT\n  *\nFROM (\n  SELECT\n    *\n  FROM t\n)\nLIMIT 10",
+        ),
+        (
+            "SEL TOP 1000 * FROM My_table",
+            "teradatasql",
+            100,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 100\n  *\nFROM My_table",
+        ),
+        (
+            "SEL TOP 1000 * FROM My_table;",
+            "teradatasql",
+            100,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 100\n  *\nFROM My_table",
+        ),
+        (
+            "SEL TOP 1000 * FROM My_table;",
+            "teradatasql",
+            1000,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 1000\n  *\nFROM My_table",
+        ),
+        (
+            "SELECT TOP 1000 * FROM My_table;",
+            "teradatasql",
+            100,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 100\n  *\nFROM My_table",
+        ),
+        (
+            "SELECT TOP 1000 * FROM My_table;",
+            "teradatasql",
+            10000,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 10000\n  *\nFROM My_table",
+        ),
+        (
+            "SELECT TOP 1000 * FROM My_table",
+            "mssql",
+            100,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 100\n  *\nFROM My_table",
+        ),
+        (
+            "SELECT TOP 1000 * FROM My_table;",
+            "mssql",
+            100,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 100\n  *\nFROM My_table",
+        ),
+        (
+            "SELECT TOP 1000 * FROM My_table;",
+            "mssql",
+            10000,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 10000\n  *\nFROM My_table",
+        ),
+        (
+            "SELECT TOP 1000 * FROM My_table;",
+            "mssql",
+            1000,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 1000\n  *\nFROM My_table",
+        ),
+        (
+            """
+with abc as (select * from test union select * from test1)
+select TOP 100 * from currency
+            """,
+            "mssql",
+            1000,
+            LimitMethod.FORCE_LIMIT,
+            """
+WITH abc AS (
+  SELECT
+    *
+  FROM test
+  UNION
+  SELECT
+    *
+  FROM test1
+)
+SELECT
+TOP 1000
+  *
+FROM currency
+            """.strip(),
+        ),
+        (
+            "SELECT DISTINCT x from tbl",
+            "mssql",
+            100,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT DISTINCT\nTOP 100\n  x\nFROM tbl",
+        ),
+        (
+            "SELECT 1 as cnt",
+            "mssql",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 10\n  1 AS cnt",
+        ),
+        (
+            "select TOP 1000 * from abc where id=1",
+            "mssql",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 10\n  *\nFROM abc\nWHERE\n  id = 1",
+        ),
+        (
+            "SELECT * FROM birth_names -- SOME COMMENT",
+            "postgresql",
+            1000,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM birth_names /* SOME COMMENT */\nLIMIT 1000",
+        ),
+        (
+            "SELECT * FROM birth_names -- SOME COMMENT WITH LIMIT 555",
+            "postgresql",
+            1000,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM birth_names /* SOME COMMENT WITH LIMIT 555 */
+LIMIT 1000
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM birth_names LIMIT 555",
+            "postgresql",
+            1000,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM birth_names\nLIMIT 1000",
+        ),
+    ],
+)
+def test_set_limit_value(
+    sql: str,
+    engine: str,
+    limit: int,
+    method: LimitMethod,
+    expected: str,
+) -> None:
+    statement = SQLStatement(sql, engine)
+    statement.set_limit_value(limit, method)
+    assert statement.format() == expected
+
+
+@pytest.mark.parametrize(
+    "kql, limit, expected",
+    [
+        ("StormEvents | take 10", 100, "StormEvents | take 100"),
+        ("StormEvents | limit 20", 10, "StormEvents | limit 10"),
+        (
+            "StormEvents | where State == 'FL' | summarize count()",
+            10,
+            "StormEvents | where State == 'FL' | summarize count() | take 10",
+        ),
+        (
+            "StormEvents | where name has 'limit 10'",
+            10,
+            "StormEvents | where name has 'limit 10' | take 10",
+        ),
+        ("AnotherTable | take 5", 50, "AnotherTable | take 50"),
+        (
+            "datatable(x:int) [1, 2, 3] | take 100",
+            10,
+            "datatable(x:int) [1, 2, 3] | take 10",
+        ),
+        (
+            """
+    Table1 | where msg contains 'abc;xyz'
+           | limit 5
+    """,
+            10,
+            """Table1 | where msg contains 'abc;xyz'
+           | limit 10""",
+        ),
+    ],
+)
+def test_set_kql_limit_value(kql: str, limit: int, expected: str) -> None:
+    statement = KustoKQLStatement(kql, "kustokql")
+    statement.set_limit_value(limit)
+    assert statement.format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT 1", "postgresql", False),
+        ("SELECT 1 AS cnt", "postgresql", False),
+        (
+            """
+SELECT 'INR' AS cur
+UNION
+SELECT 'USD' AS cur
+UNION
+SELECT 'EUR' AS cur
+            """,
+            "postgresql",
+            False,
+        ),
+        ("WITH cte AS (SELECT 1) SELECT * FROM cte", "postgresql", True),
+        (
+            """
+WITH
+    x AS (SELECT a FROM t1),
+    y AS (SELECT a AS b FROM t2),
+    z AS (SELECT b AS c FROM t3)
+SELECT c FROM z
+            """,
+            "postgresql",
+            True,
+        ),
+        (
+            """
+WITH
+    x AS (SELECT a FROM t1),
+    y AS (SELECT a AS b FROM x),
+    z AS (SELECT b AS c FROM y)
+SELECT c FROM z
+            """,
+            "postgresql",
+            True,
+        ),
+        (
+            """
+WITH CTE__test (SalesPersonID, SalesOrderID, SalesYear)
+AS (
+    SELECT SalesPersonID, SalesOrderID, YEAR(OrderDate) AS SalesYear
+    FROM SalesOrderHeader
+    WHERE SalesPersonID IS NOT NULL
+)
+SELECT SalesPersonID, COUNT(SalesOrderID) AS TotalSales, SalesYear
+FROM CTE__test
+GROUP BY SalesYear, SalesPersonID
+ORDER BY SalesPersonID, SalesYear;
+            """,
+            "postgresql",
+            True,
+        ),
+    ],
+)
+def test_has_cte(sql: str, engine: str, expected: bool) -> None:
+    """
+    Test that the parser detects CTEs correctly.
+    """
+    assert SQLStatement(sql, engine).has_cte() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        (
+            "SELECT 1",
+            "postgresql",
+            "WITH __cte AS (\n  SELECT\n    1\n)",
+        ),
+        (
+            """
+WITH currency AS (SELECT 'INR' AS cur),
+     currency_2 AS (SELECT 'USD' AS cur)
+SELECT * FROM currency
+UNION ALL
+SELECT * FROM currency_2
+            """,
+            "postgresql",
+            """
+WITH currency AS (
+  SELECT
+    'INR' AS cur
+), currency_2 AS (
+  SELECT
+    'USD' AS cur
+), __cte AS (
+  SELECT
+    *
+  FROM currency
+  UNION ALL
+  SELECT
+    *
+  FROM currency_2
+)
+            """.strip(),
+        ),
+    ],
+)
+def test_as_cte(sql: str, engine: str, expected: str) -> None:
+    """
+    Test that we can covert select to CTE.
+    """
+    assert SQLStatement(sql, engine).as_cte().format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, rules, expected",
+    [
+        (
+            "SELECT t.foo FROM some_table AS t",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM (
+  SELECT
+    *
+  FROM some_table
+  WHERE
+    id = 42
+) AS t
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM some_table AS t WHERE bar = 'baz'",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM (
+  SELECT
+    *
+  FROM some_table
+  WHERE
+    id = 42
+) AS t
+WHERE
+  bar = 'baz'
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM schema1.some_table AS t",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM (
+  SELECT
+    *
+  FROM schema1.some_table
+  WHERE
+    id = 42
+) AS t
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM schema1.some_table AS t",
+            {Table("some_table", "schema2"): "id = 42"},
+            "SELECT\n  t.foo\nFROM schema1.some_table AS t",
+        ),
+        (
+            "SELECT t.foo FROM catalog1.schema1.some_table AS t",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM (
+  SELECT
+    *
+  FROM catalog1.schema1.some_table
+  WHERE
+    id = 42
+) AS t
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM catalog1.schema1.some_table AS t",
+            {Table("some_table", "schema1", "catalog2"): "id = 42"},
+            "SELECT\n  t.foo\nFROM catalog1.schema1.some_table AS t",
+        ),
+        (
+            "SELECT * FROM some_table WHERE 1=1",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM some_table
+  WHERE
+    id = 42
+) AS some_table
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table WHERE 1=1",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM table
+  WHERE
+    id = 42
+) AS table
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            'SELECT * FROM "table" WHERE 1=1',
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM "table"
+  WHERE
+    id = 42
+) AS "table"
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table WHERE 1=1",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM other_table WHERE 1=1",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM other_table
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table JOIN other_table ON table.id = other_table.id",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+JOIN (
+  SELECT
+    *
+  FROM other_table
+  WHERE
+    id = 42
+) AS other_table
+  ON table.id = other_table.id
+            """.strip(),
+        ),
+        (
+            'SELECT * FROM "table" JOIN other_table ON "table".id = other_table.id',
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM "table"
+  WHERE
+    id = 42
+) AS "table"
+JOIN other_table
+  ON "table".id = other_table.id
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM (SELECT * FROM some_table)",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM (
+    SELECT
+      *
+    FROM some_table
+    WHERE
+      id = 42
+  ) AS some_table
+)
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table UNION ALL SELECT * FROM other_table",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM table
+  WHERE
+    id = 42
+) AS table
+UNION ALL
+SELECT
+  *
+FROM other_table
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table UNION ALL SELECT * FROM other_table",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+UNION ALL
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM other_table
+  WHERE
+    id = 42
+) AS other_table
+            """.strip(),
+        ),
+        (
+            "SELECT a.*, b.* FROM tbl_a AS a INNER JOIN tbl_b AS b ON a.col = b.col",
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  a.*,
+  b.*
+FROM (
+  SELECT
+    *
+  FROM tbl_a
+  WHERE
+    id = 42
+) AS a
+INNER JOIN tbl_b AS b
+  ON a.col = b.col
+            """.strip(),
+        ),
+        (
+            "SELECT a.*, b.* FROM tbl_a a INNER JOIN tbl_b b ON a.col = b.col",
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  a.*,
+  b.*
+FROM (
+  SELECT
+    *
+  FROM tbl_a
+  WHERE
+    id = 42
+) AS a
+INNER JOIN tbl_b AS b
+  ON a.col = b.col
+            """.strip(),
+        ),
+    ],
+)
+def test_rls_subquery_transformer(
+    sql: str,
+    rules: dict[Table, str],
+    expected: str,
+) -> None:
+    """
+    Test `RLSAsSubqueryTransformer`.
+    """
+    statement = SQLStatement(sql)
+    statement.apply_rls(
+        "catalog1",
+        "schema1",
+        {k: [parse_one(v)] for k, v in rules.items()},
+        RLSMethod.AS_SUBQUERY,
+    )
+    assert statement.format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, rules, expected",
+    [
+        (
+            "SELECT t.foo FROM some_table AS t",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM some_table AS t
+WHERE
+  t.id = 42
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM schema2.some_table AS t",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM schema2.some_table AS t
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM catalog2.schema1.some_table AS t",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM catalog2.schema1.some_table AS t
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM some_table AS t WHERE bar = 'baz'",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM some_table AS t
+WHERE
+  t.id = 42 AND (
+    bar = 'baz'
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM some_table AS t WHERE bar = 'baz' OR foo = 'qux'",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM some_table AS t
+WHERE
+  t.id = 42 AND (
+    bar = 'baz' OR foo = 'qux'
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM some_table WHERE 1=1",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM some_table
+WHERE
+  some_table.id = 42 AND (
+    1 = 1
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM some_table WHERE TRUE OR FALSE",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM some_table
+WHERE
+  some_table.id = 42 AND (
+    TRUE OR FALSE
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table WHERE 1=1",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  table.id = 42 AND (
+    1 = 1
+  )
+            """.strip(),
+        ),
+        (
+            'SELECT * FROM "table" WHERE 1=1',
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM "table"
+WHERE
+  "table".id = 42 AND (
+    1 = 1
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table WHERE 1=1",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM other_table WHERE 1=1",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM other_table
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  table.id = 42
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM some_table",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM some_table
+WHERE
+  some_table.id = 42
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table ORDER BY id",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  table.id = 42
+ORDER BY
+  id
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table WHERE 1=1 AND table.id=42",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  table.id = 42 AND (
+    1 = 1 AND table.id = 42
+  )
+            """.strip(),
+        ),
+        (
+            """
+SELECT * FROM table
+JOIN other_table
+ON table.id = other_table.id
+AND other_table.id=42
+            """,
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+JOIN other_table
+  ON other_table.id = 42 AND (
+    table.id = other_table.id AND other_table.id = 42
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table WHERE 1=1 AND id=42",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  table.id = 42 AND (
+    1 = 1 AND id = 42
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table JOIN other_table ON table.id = other_table.id",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+JOIN other_table
+  ON other_table.id = 42 AND (
+    table.id = other_table.id
+  )
+            """.strip(),
+        ),
+        (
+            """
+SELECT *
+FROM table
+JOIN other_table
+ON table.id = other_table.id
+WHERE 1=1
+            """,
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+JOIN other_table
+  ON other_table.id = 42 AND (
+    table.id = other_table.id
+  )
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM (SELECT * FROM other_table)",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM other_table
+  WHERE
+    other_table.id = 42
+)
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table UNION ALL SELECT * FROM other_table",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  table.id = 42
+UNION ALL
+SELECT
+  *
+FROM other_table
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table UNION ALL SELECT * FROM other_table",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+UNION ALL
+SELECT
+  *
+FROM other_table
+WHERE
+  other_table.id = 42
+            """.strip(),
+        ),
+    ],
+)
+def test_rls_predicate_transformer(
+    sql: str,
+    rules: dict[Table, str],
+    expected: str,
+) -> None:
+    """
+    Test `RLSPredicateTransformer`.
+    """
+    statement = SQLStatement(sql)
+    statement.apply_rls(
+        "catalog1",
+        "schema1",
+        {k: [parse_one(v)] for k, v in rules.items()},
+        RLSMethod.AS_PREDICATE,
+    )
+    assert statement.format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, table, expected",
+    [
+        (
+            "SELECT * FROM some_table",
+            Table("some_table"),
+            """
+CREATE TABLE some_table AS
+SELECT
+  *
+FROM some_table
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM some_table",
+            Table("some_table", "schema1", "catalog1"),
+            """
+CREATE TABLE catalog1.schema1.some_table AS
+SELECT
+  *
+FROM some_table
+            """.strip(),
+        ),
+    ],
+)
+def test_as_create_table(sql: str, table: Table, expected: str) -> None:
+    """
+    Test the `as_create_table` method.
+    """
+    statement = SQLStatement(sql)
+    create_table = statement.as_create_table(table, CTASMethod.TABLE)
+    assert create_table.format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM table", "postgresql", True),
+        (
+            """
+-- comment
+SELECT * FROM table
+-- comment 2
+            """,
+            "mysql",
+            True,
+        ),
+        (
+            """
+-- comment
+SET @value = 42;
+SELECT @value as foo;
+-- comment 2
+            """,
+            "mysql",
+            True,
+        ),
+        (
+            """
+-- comment
+EXPLAIN SELECT * FROM table
+-- comment 2
+            """,
+            "mysql",
+            False,
+        ),
+        (
+            """
+SELECT * FROM table;
+INSERT INTO TABLE (foo) VALUES (42);
+            """,
+            "mysql",
+            False,
+        ),
+    ],
+)
+def test_is_valid_ctas(sql: str, engine: str, expected: bool) -> None:
+    """
+    Test the `is_valid_ctas` method.
+    """
+    assert SQLScript(sql, engine).is_valid_ctas() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM table", "postgresql", True),
+        (
+            """
+-- comment
+SELECT * FROM table
+-- comment 2
+            """,
+            "mysql",
+            True,
+        ),
+        (
+            """
+-- comment
+SET @value = 42;
+SELECT @value as foo;
+-- comment 2
+            """,
+            "mysql",
+            False,
+        ),
+        (
+            """
+-- comment
+SELECT value as foo;
+-- comment 2
+            """,
+            "mysql",
+            True,
+        ),
+        (
+            """
+SELECT * FROM table;
+INSERT INTO TABLE (foo) VALUES (42);
+            """,
+            "mysql",
+            False,
+        ),
+    ],
+)
+def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
+    """
+    Test the `is_valid_cvas` method.
+    """
+    assert SQLScript(sql, engine).is_valid_cvas() == expected

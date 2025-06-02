@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TreeProps, TreeDataNode } from 'src/components/Tree';
+import { TreeProps, TreeDataNode } from '@superset-ui/core/components/Tree';
 import { ControlComponentProps } from '@superset-ui/chart-controls';
 import { Style } from 'geostyler-style';
 import { Data } from 'geostyler-data';

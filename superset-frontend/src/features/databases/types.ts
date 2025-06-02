@@ -1,5 +1,5 @@
 import { JsonObject } from '@superset-ui/core';
-import { InputProps } from 'src/components';
+import { InputProps } from '@superset-ui/core/components';
 import { ChangeEvent, EventHandler, FormEvent } from 'react';
 
 /**

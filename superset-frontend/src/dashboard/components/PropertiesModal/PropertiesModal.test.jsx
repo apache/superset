@@ -26,7 +26,7 @@ import {
   ThemeProvider,
 } from '@superset-ui/core';
 
-import { Modal } from 'src/components';
+import { Modal } from '@superset-ui/core/components';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { mockStore } from 'spec/fixtures/mockStore';
 

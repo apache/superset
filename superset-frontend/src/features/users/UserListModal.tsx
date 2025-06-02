@@ -25,7 +25,7 @@ import {
   Input,
   FormItem,
   FormInstance,
-} from 'src/components/';
+} from '@superset-ui/core/components';
 import { Role, UserObject } from 'src/pages/UsersList';
 import { BaseUserListModalProps, FormValues } from './types';
 import { createUser, updateUser } from './utils';

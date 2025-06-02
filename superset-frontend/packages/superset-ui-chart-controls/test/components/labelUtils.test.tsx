@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactElement } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@superset-ui/core/spec';
 import '@testing-library/jest-dom';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import {

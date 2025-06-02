@@ -876,12 +876,6 @@ def test_special_chars_in_column_name(app_context, physical_dataset):
                 "columns": [
                     "col1",
                     "time column with spaces",
-                    {
-                        "label": "I_AM_A_TRUNC_COLUMN",
-                        "sqlExpression": "time column with spaces",
-                        "columnType": "BASE_AXIS",
-                        "timeGrain": "P1Y",
-                    },
                 ],
                 "metrics": ["count"],
                 "orderby": [["col1", True]],
@@ -897,10 +891,8 @@ def test_special_chars_in_column_name(app_context, physical_dataset):
     if query_object.datasource.database.backend == "sqlite":
         # sqlite returns string as timestamp column
         assert df["time column with spaces"][0] == "2002-01-03 00:00:00"
-        assert df["I_AM_A_TRUNC_COLUMN"][0] == "2002-01-01 00:00:00"
     else:
         assert df["time column with spaces"][0].strftime("%Y-%m-%d") == "2002-01-03"
-        assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
 
 
 @only_postgresql

@@ -18,9 +18,9 @@
  */
 import { useMemo, useRef, useCallback } from 'react';
 import { styled } from '@superset-ui/core';
-import type { ColDef } from '../GridTable/types';
-import { GridSize } from '../GridTable/constants';
-import { GridTable } from '../GridTable';
+import { GridSize } from 'src/components/GridTable/constants';
+import { GridTable } from 'src/components/GridTable';
+import { type ColDef } from 'src/components/GridTable/types';
 import { useCellContentParser } from './useCellContentParser';
 import { renderResultCell } from './utils';
 

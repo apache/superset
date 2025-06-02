@@ -17,8 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { screen, userEvent, waitFor } from 'spec/helpers/testing-library';
 import {
   props,
   asyncRender,
@@ -39,10 +38,10 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
     await asyncRender(props);
 
     const metricButton = screen.getByTestId('collection-tab-Metrics');
-    userEvent.click(metricButton);
+    await userEvent.click(metricButton);
 
     const expandToggle = await screen.findAllByLabelText(/expand row/i);
-    userEvent.click(expandToggle[0]);
+    await userEvent.click(expandToggle[0]);
 
     const certificationDetails = await screen.findByPlaceholderText(
       /certification details/i,
@@ -57,15 +56,15 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
     await asyncRender(props);
 
     const metricButton = screen.getByTestId('collection-tab-Metrics');
-    userEvent.click(metricButton);
+    await userEvent.click(metricButton);
 
     const expandToggle = await screen.findAllByLabelText(/expand row/i);
-    userEvent.click(expandToggle[1]);
+    await userEvent.click(expandToggle[1]);
 
     const certifiedBy = await screen.findByPlaceholderText(/certified by/i);
     // Use userEvent.clear and userEvent.type instead of directly setting value
-    userEvent.clear(certifiedBy);
-    userEvent.type(certifiedBy, 'I am typing a new name');
+    await userEvent.clear(certifiedBy);
+    await userEvent.type(certifiedBy, 'I am typing a new name');
 
     const certificationDetails = await screen.findByPlaceholderText(
       /certification details/i,
@@ -74,8 +73,8 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
       expect(certifiedBy.value).toEqual('I am typing a new name');
     });
 
-    userEvent.clear(certificationDetails);
-    userEvent.type(certificationDetails, 'I am typing something new');
+    await userEvent.clear(certificationDetails);
+    await userEvent.type(certificationDetails, 'I am typing something new');
 
     await waitFor(() => {
       expect(certificationDetails.value).toEqual('I am typing something new');
@@ -97,7 +96,7 @@ describe('DatasourceEditor RTL Columns Tests', () => {
     await asyncRender(props);
 
     const columnsButton = screen.getByTestId('collection-tab-Columns');
-    userEvent.click(columnsButton);
+    await userEvent.click(columnsButton);
 
     const dsDefaultDatetimeRadio = screen.getByTestId('radio-default-dttm-ds');
     expect(dsDefaultDatetimeRadio).toBeChecked();
@@ -112,7 +111,7 @@ describe('DatasourceEditor RTL Columns Tests', () => {
     await asyncRender(props);
 
     const columnsButton = screen.getByTestId('collection-tab-Columns');
-    userEvent.click(columnsButton);
+    await userEvent.click(columnsButton);
 
     const dsDefaultDatetimeRadio = screen.getByTestId('radio-default-dttm-ds');
     expect(dsDefaultDatetimeRadio).toBeEnabled();

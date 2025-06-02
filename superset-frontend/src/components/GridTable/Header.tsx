@@ -20,7 +20,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { styled, useTheme, t } from '@superset-ui/core';
 import type { Column, GridApi } from 'ag-grid-community';
 
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { PIVOT_COL_ID } from './constants';
 import { HeaderMenu } from './HeaderMenu';
 

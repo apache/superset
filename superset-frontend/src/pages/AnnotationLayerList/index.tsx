@@ -25,11 +25,10 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { Typography } from 'src/components/Typography';
+import { Typography } from '@superset-ui/core/components/Typography';
 
+import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
 import {
-  DeleteModal,
-  ConfirmStatusChange,
   ModifiedInfo,
   ListView,
   ListViewFilterOperator as FilterOperator,
@@ -41,7 +40,7 @@ import {
 import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerModal';
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 

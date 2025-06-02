@@ -17,9 +17,12 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import { Alert, Image } from 'src/components';
-import Table, { ColumnsType, TableSize } from 'src/components/Table';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Alert, Image } from '@superset-ui/core/components';
+import Table, {
+  ColumnsType,
+  TableSize,
+} from '@superset-ui/core/components/Table';
 // @ts-ignore
 import LOADING_GIF from 'src/assets/images/loading.gif';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';

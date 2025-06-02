@@ -19,14 +19,15 @@
 
 import { useCallback, useState, FormEvent } from 'react';
 
-import { Radio, RadioChangeEvent } from 'src/components/Radio';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import {
   AsyncSelect,
   Button,
+  Checkbox,
   Modal,
   Input,
   type SelectValue,
-} from 'src/components';
+} from '@superset-ui/core/components';
 import {
   styled,
   t,
@@ -36,6 +37,8 @@ import {
   QueryResponse,
   QueryFormData,
   VizType,
+  FeatureFlag,
+  isFeatureEnabled,
 } from '@superset-ui/core';
 import { useSelector, useDispatch } from 'react-redux';
 import dayjs from 'dayjs';
@@ -186,6 +189,8 @@ export const SaveDatasetModal = ({
 
   const user = useSelector<SqlLabRootState, User>(state => state.user);
   const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
+  const [includeTemplateParameters, setIncludeTemplateParameters] =
+    useState(false);
 
   const createWindow = (url: string) => {
     if (openWindow) {
@@ -286,14 +291,21 @@ export const SaveDatasetModal = ({
     // Remove the special filters entry from the templateParams
     // before saving the dataset.
     let templateParams;
-    if (typeof datasource?.templateParams === 'string') {
-      const p = JSON.parse(datasource.templateParams);
-      /* eslint-disable-next-line no-underscore-dangle */
-      if (p._filters) {
+    if (
+      typeof datasource?.templateParams === 'string' &&
+      includeTemplateParameters
+    ) {
+      try {
+        const p = JSON.parse(datasource.templateParams);
         /* eslint-disable-next-line no-underscore-dangle */
-        delete p._filters;
-        // eslint-disable-next-line no-param-reassign
+        if (p._filters) {
+          /* eslint-disable-next-line no-underscore-dangle */
+          delete p._filters;
+        }
         templateParams = JSON.stringify(p);
+      } catch (e) {
+        // malformed templateParams, do not include it
+        templateParams = undefined;
       }
     }
 
@@ -363,7 +375,27 @@ export const SaveDatasetModal = ({
       title={t('Save or Overwrite Dataset')}
       onHide={onHide}
       footer={
-        <>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '8px',
+          }}
+        >
+          {isFeatureEnabled(FeatureFlag.EnableTemplateProcessing) && (
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <Checkbox
+                checked={includeTemplateParameters}
+                onChange={e =>
+                  setIncludeTemplateParameters(e.target.checked ?? false)
+                }
+              />
+              <span style={{ marginLeft: '5px' }}>
+                {t('Include Template Parameters')}
+              </span>
+            </div>
+          )}
           {newOrOverwrite === DatasetRadioState.SaveNew && (
             <Button
               disabled={disableSaveAndExploreBtn}
@@ -390,7 +422,7 @@ export const SaveDatasetModal = ({
               </Button>
             </>
           )}
-        </>
+        </div>
       }
     >
       <Styles>

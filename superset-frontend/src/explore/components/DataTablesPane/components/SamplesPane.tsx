@@ -18,8 +18,13 @@
  */
 import { useState, useEffect, useMemo } from 'react';
 import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
-import { EmptyState, Loading } from 'src/components';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import {
+  TableView,
+  TableSize,
+  EmptyState,
+  Loading,
+  EmptyWrapperType,
+} from '@superset-ui/core/components';
 import {
   useFilteredTableData,
   useTableColumns,
@@ -147,6 +152,7 @@ export const SamplesPane = ({
         className="table-condensed"
         isPaginationSticky
         showRowCount={false}
+        size={TableSize.Small}
         small
       />
     </>

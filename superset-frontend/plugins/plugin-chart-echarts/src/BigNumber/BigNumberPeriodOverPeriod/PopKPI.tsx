@@ -26,7 +26,8 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { DEFAULT_DATE_PATTERN, Tooltip } from '@superset-ui/chart-controls';
+import { Tooltip } from '@superset-ui/core/components';
+import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import {
   ColorSchemeEnum,

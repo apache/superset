@@ -37,13 +37,16 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
-import BooleanCell from 'src/components/Table/cell-renderers/BooleanCell';
-import NullCell from 'src/components/Table/cell-renderers/NullCell';
-import TimeCell from 'src/components/Table/cell-renderers/TimeCell';
-import { EmptyState, Loading } from 'src/components';
+import BooleanCell from '@superset-ui/core/components/Table/cell-renderers/BooleanCell';
+import NullCell from '@superset-ui/core/components/Table/cell-renderers/NullCell';
+import TimeCell from '@superset-ui/core/components/Table/cell-renderers/TimeCell';
+import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
-import Table, { ColumnsType, TableSize } from 'src/components/Table';
-import HeaderWithRadioGroup from 'src/components/Table/header-renderers/HeaderWithRadioGroup';
+import Table, {
+  ColumnsType,
+  TableSize,
+} from '@superset-ui/core/components/Table';
+import HeaderWithRadioGroup from '@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
 import TableControls from './DrillDetailTableControls';

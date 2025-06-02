@@ -39,15 +39,10 @@ import {
   chartLabelWeight,
   chartLabelExplanations,
 } from '@superset-ui/core';
-import {
-  Input,
-  Collapse,
-  Tooltip,
-  usePluginContext,
-  Label,
-} from 'src/components';
-import { Icons } from 'src/components/Icons';
+import { Input, Collapse, Tooltip, Label } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
+import { usePluginContext } from 'src/components';
 import scrollIntoView from 'scroll-into-view-if-needed';
 
 interface VizTypeGalleryProps {

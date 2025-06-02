@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 
-import { Icons } from 'src/components';
+import { Icons } from '@superset-ui/core/components';
 import { MARKDOWN_TYPE } from '../../../util/componentTypes';
 import { NEW_MARKDOWN_ID } from '../../../util/constants';
 import DraggableNewComponent from './DraggableNewComponent';

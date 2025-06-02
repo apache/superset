@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   AddIconButton,
   AddControlLabel,

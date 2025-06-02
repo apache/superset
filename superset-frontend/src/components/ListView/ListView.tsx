@@ -19,15 +19,17 @@
 import { t, styled } from '@superset-ui/core';
 import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
 import cx from 'classnames';
-import { Icons } from 'src/components/Icons';
-import Pagination from 'src/components/Pagination';
-import TableCollection from 'src/components/TableCollection';
+import Pagination from '@superset-ui/core/components/Pagination';
+import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
-import type { EmptyStateProps } from '../EmptyState/types';
-import { EmptyState } from '../EmptyState';
-import { Checkbox } from '../Checkbox';
-import { Button } from '../Button';
-import { Alert } from '../Alert';
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Icons,
+  EmptyState,
+  type EmptyStateProps,
+} from '@superset-ui/core/components';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';

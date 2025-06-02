@@ -19,7 +19,7 @@
 import { memo } from 'react';
 import { css, t } from '@superset-ui/core';
 import { formatSelectOptions } from '@superset-ui/chart-controls';
-import { Select } from 'antd';
+import { RawAntdSelect } from '@superset-ui/core/components';
 
 export type SizeOption = [number, string];
 
@@ -34,12 +34,12 @@ function DefaultSelectRenderer({
   options,
   onChange,
 }: SelectPageSizeRendererProps) {
-  const { Option } = Select;
+  const { Option } = RawAntdSelect;
 
   return (
     <span className="dt-select-page-size form-inline">
       {t('Show')}{' '}
-      <Select<number>
+      <RawAntdSelect<number>
         value={current}
         onChange={value => onChange(value)}
         size="small"
@@ -62,7 +62,7 @@ function DefaultSelectRenderer({
             </Option>
           );
         })}
-      </Select>{' '}
+      </RawAntdSelect>{' '}
       {t('entries')}
     </span>
   );

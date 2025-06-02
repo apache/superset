@@ -27,8 +27,8 @@ import {
 } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import { Icons } from 'src/components/Icons';
-import { Button } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Button } from '@superset-ui/core/components';
 import { FilterTitle } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitleContainer';
 import { NEW_CHART_SCOPING_ID } from './constants';
 
@@ -73,7 +73,7 @@ const ScopingTitle = ({
       <Icons.DeleteOutlined
         iconColor={theme.colors.grayscale.light3}
         iconSize="xl"
-        onClick={event => {
+        onClick={(event: React.MouseEvent<HTMLElement>) => {
           event.stopPropagation();
           onRemove(id);
         }}
