@@ -1,2 +1,6 @@
-type $TSFixMe = any;
-type $TSFixMeFunction = (...args: any[]) => any;
+declare global {
+  type $TSFixMe = any;
+  type $TSFixMeFunction = (...args: any[]) => any;
+}
+
+export {};
