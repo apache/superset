@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO: Remove fa-icon
-/* eslint-disable icons/no-fa-icons-usage */
 import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
 
 import rison from 'rison';
@@ -55,13 +53,13 @@ import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import TelemetryPixel from '@superset-ui/core/components/TelemetryPixel';
+import { useThemeContext } from 'src/theme/ThemeProvider';
 import LanguagePicker from './LanguagePicker';
 import {
   ExtensionConfigs,
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
-import { useThemeContext } from 'src/theme/ThemeProvider';
 
 const extensionsRegistry = getExtensionsRegistry();
 
