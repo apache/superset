@@ -16,7 +16,7 @@
 # under the License.
 
 import copy
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -99,7 +99,7 @@ def test_validate_update_uniqueness(session: Session) -> None:
                 "columns": [{"id": 1, "name": "col1"}],
                 "metrics": [{"id": 1, "name": "metric1"}],
             },
-            {"changed_on": datetime(2025, 1, 1, 0, 0, 0)},
+            {"changed_on": datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc)},
         ),
         (
             {
@@ -109,14 +109,14 @@ def test_validate_update_uniqueness(session: Session) -> None:
             },
             {
                 "description": "test description",
-                "changed_on": datetime(2025, 1, 1, 0, 0, 0),
+                "changed_on": datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
             },
         ),
         (
             {
                 "columns": [{"id": 1, "name": "col1"}],
             },
-            {"changed_on": datetime(2025, 1, 1, 0, 0, 0)},
+            {"changed_on": datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc)},
         ),
         (
             {
@@ -125,14 +125,14 @@ def test_validate_update_uniqueness(session: Session) -> None:
             },
             {
                 "description": "test description",
-                "changed_on": datetime(2025, 1, 1, 0, 0, 0),
+                "changed_on": datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
             },
         ),
         (
             {
                 "metrics": [{"id": 1, "name": "metric1"}],
             },
-            {"changed_on": datetime(2025, 1, 1, 0, 0, 0)},
+            {"changed_on": datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc)},
         ),
         (
             {
@@ -141,7 +141,7 @@ def test_validate_update_uniqueness(session: Session) -> None:
             },
             {
                 "description": "test description",
-                "changed_on": datetime(2025, 1, 1, 0, 0, 0),
+                "changed_on": datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
             },
         ),
         (
