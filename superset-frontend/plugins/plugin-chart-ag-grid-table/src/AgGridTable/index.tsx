@@ -35,7 +35,6 @@ import {
   GridReadyEvent,
   GridApi,
   GridState,
-  SortModelItem,
 } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
 import './styles/ag-grid.css';
@@ -48,6 +47,7 @@ import { debounce, isNull } from 'lodash';
 import Pagination from './components/Pagination';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
+import getInitialSortState from '../utils/getInitialSortState';
 
 export interface Props {
   gridTheme?: string;
@@ -123,19 +123,6 @@ const StyledContainer = styled.div`
 `;
 
 const isSearchFocused = new Map<string, boolean>();
-
-const getInitialSortState = (sortBy: SortByItem[]) => {
-  if (Array.isArray(sortBy) && sortBy.length > 0) {
-    const sortModel: SortModelItem[] = [
-      {
-        colId: sortBy[0]?.id,
-        sort: sortBy[0]?.desc ? 'desc' : 'asc',
-      },
-    ];
-    return sortModel;
-  }
-  return [];
-};
 
 const AgGridDataTable: FunctionComponent<Props> = memo(
   ({
