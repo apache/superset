@@ -32,6 +32,7 @@ authors = [
 classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
     "backoff>=1.8.0",
@@ -66,7 +67,7 @@ dependencies = [
     "markdown>=3.0",
     "msgpack>=1.0.0, <1.1",
     "nh3>=0.2.11, <0.3",
-    "numpy>1.23.5, <2",
+    "numpy>1.23.5, <2.3",
     "packaging",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
@@ -94,7 +95,8 @@ dependencies = [
     "sqlalchemy-utils>=0.38.3, <0.39",
     "sqlglot>=26.1.3, <27",
     "sqlparse>=0.5.0",
-    "tabulate>=0.8.9, <0.9",
+    # newer pandas needs 0.9+
+    "tabulate>=0.9.0, <1.0",
     "typing-extensions>=4, <5",
     "waitress; sys_platform == 'win32'",
     "wtforms>=2.3.3, <4",
