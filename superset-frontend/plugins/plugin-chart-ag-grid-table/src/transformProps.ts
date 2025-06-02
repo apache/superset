@@ -50,6 +50,17 @@ function isNumeric(key: string, data: DataRecord[] = []) {
   );
 }
 
+function isPositiveNumber(value: string | number | null | undefined) {
+  const num = Number(value);
+  return (
+    value !== null &&
+    value !== undefined &&
+    value !== '' &&
+    !Number.isNaN(num) &&
+    num > 0
+  );
+}
+
 const serverPageLengthMap = new Map();
 
 const processDataRecords = memoizeOne(function processDataRecords(
@@ -253,6 +264,8 @@ const transformProps = (
   const passedData = data;
   const passedColumns = columns;
 
+  const hasPageLength = isPositiveNumber(pageLength);
+
   return {
     height,
     width,
@@ -272,6 +285,7 @@ const transformProps = (
     serverPaginationData,
     hasServerPageLengthChanged,
     serverPageLength,
+    hasPageLength,
   };
 };
 

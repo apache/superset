@@ -28,9 +28,13 @@ import AgGridDataTable from './AgGridTable';
 import { InputColumn, transformData } from './AgGridTable/transformData';
 import { updateTableOwnState } from './utils/externalAPIs';
 
-const getGridHeight = (height: number, serverPagination: boolean) => {
+const getGridHeight = (
+  height: number,
+  serverPagination: boolean,
+  hasPageLength: boolean,
+) => {
   let calculatedGridHeight = height;
-  if (serverPagination) {
+  if (serverPagination || hasPageLength) {
     calculatedGridHeight -= 80;
   }
   return calculatedGridHeight;
@@ -58,6 +62,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     percentMetrics,
     hasServerPageLengthChanged,
     serverPageLength,
+    hasPageLength,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -80,7 +85,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     data,
     serverPagination,
   );
-  const gridHeight = getGridHeight(height, serverPagination);
+  const gridHeight = getGridHeight(height, serverPagination, hasPageLength);
 
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
