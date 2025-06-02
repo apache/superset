@@ -10,7 +10,7 @@
     "moduleResolution": "node",
 
     "types": ["jest", "node", "@testing-library/jest-dom"],
-    "typeRoots": ["node_modules/@types"],
+    "typeRoots": ["node_modules/@types", "src/types"],
 
     /* Emit */
     "declaration": true,
