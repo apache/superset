@@ -35,12 +35,19 @@ interface InputData {
   [key: string]: any;
 }
 
-export const transformData = (columns: InputColumn[], data: InputData[]) => {
+export const transformData = (
+  columns: InputColumn[],
+  data: InputData[],
+  serverPagination: boolean,
+) => {
   const colDefs = columns.map(col => ({
     field: col.key,
     headerName: col.label,
     sortable: true,
     filter: true,
+    ...(serverPagination && {
+      comparator: () => 0,
+    }),
     ...(col.isPercentMetric && {
       valueFormatter: (params: ValueFormatterParams) => {
         if (!col?.formatter) return params?.value;

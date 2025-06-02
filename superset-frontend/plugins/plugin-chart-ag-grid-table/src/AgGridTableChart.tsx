@@ -19,7 +19,11 @@
 import { DataRecord, GenericDataType } from '@superset-ui/core';
 import { useCallback, useEffect, useState } from 'react';
 import { isEqual } from 'lodash';
-import { AgGridTableChartTransformedProps, SearchOption } from './types';
+import {
+  AgGridTableChartTransformedProps,
+  SearchOption,
+  SortByItem,
+} from './types';
 import AgGridDataTable from './AgGridTable';
 import { InputColumn, transformData } from './AgGridTable/transformData';
 import { updateTableOwnState } from './utils/externalAPIs';
@@ -64,7 +68,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
   }, [columns]);
 
-  const transformedData = transformData(columns as InputColumn[], data);
+  const transformedData = transformData(
+    columns as InputColumn[],
+    data,
+    serverPagination,
+  );
   const gridHeight = getGridHeight(height, serverPagination);
 
   const handleServerPaginationChange = useCallback(
@@ -116,6 +124,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [setDataMask, searchOptions],
   );
 
+  const handleSortByChange = useCallback(
+    (sortBy: SortByItem[]) => {
+      if (!serverPagination) return;
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        sortBy,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    },
+    [setDataMask, serverPagination],
+  );
+
   return (
     <div
       style={{
@@ -138,6 +158,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         searchOptions={searchOptions}
         onSearchColChange={handleChangeSearchCol}
         onSearchChange={handleSearch}
+        onSortChange={handleSortByChange}
         id={slice_id}
       />
     </div>

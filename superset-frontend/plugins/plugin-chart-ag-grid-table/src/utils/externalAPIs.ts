@@ -18,6 +18,7 @@
  * under the License.
  */
 import { SetDataMaskHook } from '@superset-ui/core';
+import { SortByItem } from '../types';
 
 interface TableOwnState {
   currentPage?: number;
@@ -25,6 +26,7 @@ interface TableOwnState {
   sortColumn?: string;
   sortOrder?: 'asc' | 'desc';
   searchText?: string;
+  sortBy?: SortByItem[];
 }
 
 export const updateTableOwnState = (

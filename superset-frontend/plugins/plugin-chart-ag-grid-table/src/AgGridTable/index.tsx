@@ -34,6 +34,8 @@ import {
   ModuleRegistry,
   GridReadyEvent,
   GridApi,
+  GridState,
+  SortModelItem,
 } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
 import './styles/ag-grid.css';
@@ -42,10 +44,10 @@ import { type FunctionComponent } from 'react';
 
 import { styled, css, JsonObject } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
-import { debounce } from 'lodash';
+import { debounce, isNull } from 'lodash';
 import Pagination from './components/Pagination';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
-import { SearchOption } from '../types';
+import { SearchOption, SortByItem } from '../types';
 
 export interface Props {
   gridTheme?: string;
@@ -67,6 +69,7 @@ export interface Props {
   searchOptions: SearchOption[];
   onSearchColChange: (searchCol: string) => void;
   onSearchChange: (searchText: string) => void;
+  onSortChange: (sortBy: SortByItem[]) => void;
   id: number;
 }
 
@@ -121,6 +124,19 @@ const StyledContainer = styled.div`
 
 const isSearchFocused = new Map<string, boolean>();
 
+const getInitialSortState = (sortBy: SortByItem[]) => {
+  if (Array.isArray(sortBy) && sortBy.length > 0) {
+    const sortModel: SortModelItem[] = [
+      {
+        colId: sortBy[0]?.id,
+        sort: sortBy[0]?.desc ? 'desc' : 'asc',
+      },
+    ];
+    return sortModel;
+  }
+  return [];
+};
+
 const AgGridDataTable: FunctionComponent<Props> = memo(
   ({
     gridTheme = 'ag-theme-quartz',
@@ -141,12 +157,20 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     searchOptions,
     onSearchColChange,
     onSearchChange,
+    onSortChange,
     id,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const searchId = `search-${id}`;
+    const gridInitialState: GridState = {
+      ...(serverPagination && {
+        sort: {
+          sortModel: getInitialSortState(serverPaginationData?.sortBy || []),
+        },
+      }),
+    };
 
     const defaultColDef = useMemo<ColDef>(
       () => ({
@@ -245,6 +269,28 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
       [serverPagination, debouncedSearch, searchId],
     );
 
+    const handleColumnHeaderClick = useCallback(
+      params => {
+        if (!serverPagination) return;
+        const colId = params?.column?.colId;
+        const sortDir = params?.column?.sort;
+
+        if (isNull(sortDir)) {
+          onSortChange([]);
+          return;
+        }
+
+        onSortChange([
+          {
+            id: colId,
+            key: colId,
+            desc: sortDir === 'desc',
+          },
+        ]);
+      },
+      [onSortChange],
+    );
+
     return (
       <StyledContainer>
         <div className={gridClassName} style={containerStyle}>
@@ -287,6 +333,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
             defaultColDef={defaultColDef}
             rowSelection="multiple"
             animateRows
+            initialState={gridInitialState}
             suppressAggFuncInHeader
             groupDefaultExpanded={-1}
             rowGroupPanelShow="always"
@@ -297,6 +344,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
             pagination={pagination}
             paginationPageSize={pageSize}
             paginationPageSizeSelector={[10, 20, 50, 100, 200]}
+            onColumnHeaderClicked={handleColumnHeaderClick}
           />
           {serverPagination && (
             <Pagination
