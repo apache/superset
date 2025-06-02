@@ -10,9 +10,6 @@
     "baseUrl": ".",
     "module": "esnext",
     "moduleResolution": "node",
-    "paths": {
-      "@apache-superset/types": ["../../packages/superset-types/src"]
-    },
     "skipLibCheck": true
   },
   "include": ["src/**/*.ts*"],

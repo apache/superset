@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import * as supersetCore from '@apache-superset/core';
 import {
   authentication,
   core,
@@ -40,6 +41,7 @@ declare global {
 
 export default function setupExtensionsAPI() {
   window.superset = {
+    ...supersetCore,
     authentication,
     core,
     commands,

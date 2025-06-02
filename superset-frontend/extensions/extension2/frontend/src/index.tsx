@@ -19,7 +19,7 @@
 
 // eslint-disable-next-line no-restricted-syntax
 import React from 'react';
-import { core } from '@apache-superset/types';
+import { core } from '@apache-superset/core';
 import ExtensionExample from './Example';
 
 export const activate = () => {

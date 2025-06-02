@@ -17,8 +17,7 @@
  * under the License.
  */
 import { logging } from '@superset-ui/core';
-import { commands as commandsType } from '@apache-superset/types';
-import { Disposable } from '@apache-superset/core';
+import { commands as commandsType, Disposable } from '@apache-superset/core';
 
 const commandRegistry: Map<string, (...args: any[]) => any> = new Map();
 

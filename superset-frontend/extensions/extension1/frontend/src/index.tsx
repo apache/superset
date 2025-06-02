@@ -19,7 +19,7 @@
 
 // eslint-disable-next-line no-restricted-syntax
 import React from 'react';
-import { commands, core } from '@apache-superset/types';
+import { commands, core } from '@apache-superset/core';
 import Component from './Component';
 import { formatDatabase } from './formatter';
 import { Extension1API } from './publicAPI';

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { core } from '@apache-superset/types';
+import { core } from '../api';
 
 /**
  * Represents a type which can release resources, such

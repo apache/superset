@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect } from 'react';
-import { authentication, sqlLab } from '@apache-superset/types';
+import { authentication, sqlLab } from '@apache-superset/core';
 import Table from './Table';
 import { MetadataRow } from './types';
 

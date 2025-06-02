@@ -46,7 +46,7 @@ module.exports = (env, argv) => {
     },
     externalsType: 'window',
     externals: {
-      '@apache-superset/types': 'superset',
+      '@apache-superset/core': 'superset',
     },
     module: {
       rules: [

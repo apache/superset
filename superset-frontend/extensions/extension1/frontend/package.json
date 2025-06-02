@@ -15,7 +15,6 @@
   "description": "",
   "peerDependencies": {
     "@apache-superset/core": "file:../../../packages/superset-core",
-    "@apache-superset/types": "file:../../../packages/superset-types",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },

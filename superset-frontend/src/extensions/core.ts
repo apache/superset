@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { core as coreType } from '@apache-superset/types';
+import { core as coreType } from '@apache-superset/core';
 import { getExtensionsContextValue } from './ExtensionsContextUtils';
 
 export class Column implements coreType.Column {

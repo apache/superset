@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { core } from '@apache-superset/types';
+import { core } from '@apache-superset/core';
 
 export interface Extension1API {
   formatDatabase: (database: core.Database) => string;

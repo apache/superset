@@ -19,7 +19,7 @@
 
 // eslint-disable-next-line no-restricted-syntax
 import React, { useEffect } from 'react';
-import { core, sqlLab, extensions } from '@apache-superset/types';
+import { core, sqlLab, extensions } from '@apache-superset/core';
 import { Extension1API } from 'extension1';
 
 const Example: React.FC = () => {

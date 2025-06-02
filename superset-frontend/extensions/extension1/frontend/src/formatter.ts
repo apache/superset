@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { core } from '@apache-superset/types';
+import { core } from '@apache-superset/core';
 
 export const formatDatabase = (database: core.Database): string =>
   `Database: ${database.id} - ${database.name}`;
