@@ -198,7 +198,7 @@ class TestDatabaseModel(SupersetTestCase):
         # assert dataset saved metric
         assert "count('bar_P1D')" in query
         # assert adhoc metric
-        assert "SUM(case when user = 'user_abc' then 1 else 0 end)" in query
+        assert "SUM(CASE WHEN user = 'user_abc' THEN 1 ELSE 0 END)" in query
         # Cleanup
         db.session.delete(table)
         db.session.commit()
