@@ -65,6 +65,7 @@ from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2Redire
 from superset.sql.parse import (
     BaseSQLStatement,
     LimitMethod,
+    RLSMethod,
     SQLScript,
     SQLStatement,
     Table,
@@ -437,6 +438,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # is determined only after the specific query is executed and it will update
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
+
+    @classmethod
+    def get_rls_method(cls) -> RLSMethod:
+        """
+        Returns the RLS method to be used for this engine.
+
+        There are two ways to insert RLS: either replacing the table with a subquery
+        that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
+        safer, but not supported in all databases.
+        """
+        return (
+            RLSMethod.AS_SUBQUERY
+            if cls.allows_subqueries and cls.allows_alias_in_select
+            else RLSMethod.AS_PREDICATE
+        )
 
     @classmethod
     def is_oauth2_enabled(cls) -> bool:
