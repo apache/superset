@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord, GenericDataType } from '@superset-ui/core';
+import { DataRecord, GenericDataType, styled } from '@superset-ui/core';
 import { useCallback, useEffect, useState } from 'react';
 import { isEqual } from 'lodash';
 import {
@@ -35,6 +35,10 @@ const getGridHeight = (height: number, serverPagination: boolean) => {
   }
   return calculatedGridHeight;
 };
+
+const StyledChartContainer = styled.div`
+  height: ${({ height }: { height: number }) => height}px;
+`;
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: AgGridTableChartTransformedProps<D> & {},
@@ -137,11 +141,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   return (
-    <div
-      style={{
-        height,
-      }}
-    >
+    <StyledChartContainer height={height}>
       <AgGridDataTable
         gridHeight={gridHeight}
         data={transformedData?.rowData || []}
@@ -161,6 +161,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onSortChange={handleSortByChange}
         id={slice_id}
       />
-    </div>
+    </StyledChartContainer>
   );
 }
