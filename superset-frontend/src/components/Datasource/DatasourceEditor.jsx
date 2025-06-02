@@ -56,7 +56,7 @@ import { Icons } from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import { executeQuery, resetDatabaseState } from 'src/database/actions';
 import { connect } from 'react-redux';
-import { Link, withRouter } from 'react-router-dom';
+import { withRouter } from 'react-router-dom';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
@@ -1037,6 +1037,54 @@ class DatasourceEditor extends PureComponent {
     </div>
   );
 
+  renderOpenInSqlLabLink(isError = false) {
+    const sqlRouteProps = this.getSQLLabRouteProps();
+    const queryParams = new URLSearchParams({
+      dbid: sqlRouteProps.state.requestedQuery.dbid,
+      sql: sqlRouteProps.state.requestedQuery.sql,
+      name: sqlRouteProps.state.requestedQuery.name,
+      schema: sqlRouteProps.state.requestedQuery.schema,
+      autorun: true,
+      isDataset: true,
+    });
+    return (
+      <a
+        href={`/sqllab/?${queryParams.toString()}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        css={theme => css`
+          color: ${isError
+            ? theme.colors.error.base
+            : theme.colors.grayscale.base};
+          font-size: ${theme.typography.sizes.s}px;
+          text-decoration: underline;
+        `}
+      >
+        {t('Open in SQL lab')}
+      </a>
+    );
+  }
+
+  renderSqlErrorMessage = () => (
+    <>
+      <span
+        css={theme => css`
+          font-size: ${theme.typography.sizes.s}px;
+        `}
+      >
+        {this.props.database?.error && t('Error executing query.')}
+      </span>
+      {this.renderOpenInSqlLabLink(true)}
+      <span
+        css={theme => css`
+          font-size: ${theme.typography.sizes.s}px;
+        `}
+      >
+        {t('to check for details.')}
+      </span>
+    </>
+  );
+
   renderSourceFieldset() {
     const { datasource } = this.state;
     const floatingButtonCss = css`
@@ -1217,7 +1265,7 @@ class DatasourceEditor extends PureComponent {
                       </div>
                     }
                     errorMessage={
-                      this.props.database?.error && t('Error executing query.')
+                      this.props.database?.error && this.renderSqlErrorMessage()
                     }
                   />
                   {this.props.database?.queryResult && (
@@ -1235,17 +1283,7 @@ class DatasourceEditor extends PureComponent {
                         >
                           {t('In this view you can preview the first 25 rows.')}
                         </span>
-                        <Link
-                          css={theme => css`
-                            color: ${theme.colors.grayscale.base};
-                            font-size: ${theme.typography.sizes.s}px;
-                            text-decoration: underline;
-                          `}
-                          to={this.getSQLLabRouteProps()}
-                          type="link"
-                        >
-                          {t('Open in SQL lab')}{' '}
-                        </Link>
+                        {this.renderOpenInSqlLabLink()}
                         <span
                           css={theme => css`
                             color: ${theme.colors.grayscale.base};

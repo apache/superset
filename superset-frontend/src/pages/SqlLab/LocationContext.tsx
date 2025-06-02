@@ -33,7 +33,24 @@ const EMPTY_STATE: LocationState = {};
 
 export const LocationProvider: FC = ({ children }: { children: ReactNode }) => {
   const location = useLocation<LocationState>();
-  return <Provider value={location.state || EMPTY_STATE}>{children}</Provider>;
-};
+  if (location.state) {
+    return <Provider value={location.state}>{children}</Provider>;
+  }
+  const queryParams = new URLSearchParams(location.search);
+  if (queryParams.size > 0) {
+    const dbid = queryParams.get('dbid');
+    const sql = queryParams.get('sql');
+    const name = queryParams.get('name');
+    const schema = queryParams.get('schema');
+    const autorun = queryParams.get('autorun') === 'true';
 
+    const queryParamsState = {
+      requestedQuery: { dbid, sql, name, schema, autorun },
+      isDataset: true,
+    } as LocationState;
+    return <Provider value={queryParamsState}>{children}</Provider>;
+  }
+
+  return <Provider value={EMPTY_STATE}>{children}</Provider>;
+};
 export const useLocationState = () => useContext(locationContext);
