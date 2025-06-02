@@ -349,6 +349,8 @@
     "thread-loader": "^4.0.4",
     "ts-jest": "^29.2.5",
     "ts-loader": "^9.5.1",
+    "ts-migrate": "^0.1.35",
+    "ts-migrate-plugins": "^0.1.35",
     "tscw-config": "^1.1.2",
     "tsx": "^4.19.2",
     "typescript": "5.1.6",
