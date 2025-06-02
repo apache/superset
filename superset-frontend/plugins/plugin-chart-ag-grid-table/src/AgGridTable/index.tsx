@@ -35,12 +35,11 @@ import {
   GridReadyEvent,
   GridApi,
   GridState,
+  SortModelItem,
 } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
 import './styles/ag-grid.css';
-
 import { type FunctionComponent } from 'react';
-
 import { styled, css, JsonObject } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual, isNull } from 'lodash';
@@ -267,15 +266,26 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
         if (!serverPagination) return;
 
         const colId = params?.column?.colId;
-
-        if (percentMetrics.includes(colId)) return;
         const sortDir = params?.column?.sort;
 
-        if (isNull(sortDir)) {
+        // Skip sorting for percent metrics
+        if (percentMetrics.includes(colId)) return;
+
+        const initialSort: Partial<SortModelItem> =
+          gridInitialState?.sort?.sortModel?.[0] || {};
+        const { colId: initialColId = '', sort: initialSortDir = '' } =
+          initialSort;
+
+        // Avoid triggering sort if column and direction haven't changed
+        if (initialColId === colId && initialSortDir === sortDir) return;
+
+        // If sort direction is null, reset sort
+        if (sortDir == null) {
           onSortChange([]);
           return;
         }
 
+        // Apply new sort
         onSortChange([
           {
             id: colId,
@@ -284,7 +294,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
           },
         ]);
       },
-      [onSortChange],
+      [serverPagination, gridInitialState, percentMetrics, onSortChange],
     );
 
     useEffect(() => {
