@@ -56,6 +56,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     serverPaginationData,
     slice_id,
     percentMetrics,
+    hasServerPageLengthChanged,
+    serverPageLength,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -162,6 +164,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onSortChange={handleSortByChange}
         id={slice_id}
         percentMetrics={percentMetrics}
+        serverPageLength={serverPageLength}
+        hasServerPageLengthChanged={hasServerPageLengthChanged}
       />
     </StyledChartContainer>
   );

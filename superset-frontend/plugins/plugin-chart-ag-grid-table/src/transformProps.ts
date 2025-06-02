@@ -32,6 +32,7 @@ import {
   TimeFormatter,
 } from '@superset-ui/core';
 
+import { isEqual } from 'lodash';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {
@@ -48,6 +49,8 @@ function isNumeric(key: string, data: DataRecord[] = []) {
     x => x[key] === null || x[key] === undefined || typeof x[key] === 'number',
   );
 }
+
+const serverPageLengthMap = new Map();
 
 const processDataRecords = memoizeOne(function processDataRecords(
   data: DataRecord[] | undefined,
@@ -221,7 +224,16 @@ const transformProps = (
     allow_rearrange_columns: allowRearrangeColumns,
     slice_id,
     server_pagination: serverPagination = false,
+    server_page_length: serverPageLength = 10,
   } = formData;
+
+  let hasServerPageLengthChanged = false;
+
+  const pageLengthFromMap = serverPageLengthMap.get(slice_id);
+  if (!isEqual(pageLengthFromMap, serverPageLength)) {
+    serverPageLengthMap.set(slice_id, serverPageLength);
+    hasServerPageLengthChanged = true;
+  }
 
   const [, percentMetrics, columns] = processColumns(chartProps);
 
@@ -258,6 +270,8 @@ const transformProps = (
     serverPagination,
     rowCount,
     serverPaginationData,
+    hasServerPageLengthChanged,
+    serverPageLength,
   };
 };
 

@@ -153,6 +153,8 @@ export interface AgGridTableChartTransformedProps<
   rowCount: number;
   serverPaginationData: JsonObject;
   percentMetrics: string[];
+  hasServerPageLengthChanged: boolean;
+  serverPageLength: number;
 }
 
 export enum ColorSchemeEnum {

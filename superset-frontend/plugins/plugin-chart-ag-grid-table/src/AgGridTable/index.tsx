@@ -43,7 +43,7 @@ import { type FunctionComponent } from 'react';
 
 import { styled, css, JsonObject } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
-import { debounce, isNull } from 'lodash';
+import { debounce, isEqual, isNull } from 'lodash';
 import Pagination from './components/Pagination';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
@@ -72,6 +72,8 @@ export interface Props {
   onSortChange: (sortBy: SortByItem[]) => void;
   id: number;
   percentMetrics: string[];
+  serverPageLength: number;
+  hasServerPageLengthChanged: boolean;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -148,6 +150,8 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     onSortChange,
     id,
     percentMetrics,
+    serverPageLength,
+    hasServerPageLengthChanged,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
@@ -283,6 +287,19 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
       [onSortChange],
     );
 
+    useEffect(() => {
+      if (
+        hasServerPageLengthChanged &&
+        !isEqual(serverPaginationData?.pageSize, serverPageLength)
+      ) {
+        // Explore editor handling
+        // if user updates server page length from control panel &
+        // if server page length & ownState pageSize are not equal
+        // they must be resynced
+        onServerPageSizeChange(serverPageLength);
+      }
+    }, [hasServerPageLengthChanged]);
+
     return (
       <StyledContainer>
         <div className={gridClassName} style={containerStyle}>
@@ -341,7 +358,11 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
           {serverPagination && (
             <Pagination
               currentPage={serverPaginationData?.currentPage || 0}
-              pageSize={serverPaginationData?.pageSize || 10}
+              pageSize={
+                hasServerPageLengthChanged
+                  ? serverPageLength
+                  : serverPaginationData?.pageSize || 10
+              }
               totalRows={rowCount || 0}
               pageSizeOptions={[10, 20, 50, 100, 200]}
               onServerPaginationChange={onServerPaginationChange}
