@@ -28,6 +28,7 @@ import {
   ControlStateMapping,
   Dataset,
   DEFAULT_MAX_ROW,
+  DEFAULT_MAX_ROW_TABLE_SERVER,
   defineSavedMetrics,
   formatSelectOptions,
   getStandardizedControls,
@@ -43,6 +44,7 @@ import {
   QueryMode,
   t,
   validateMaxValue,
+  validateServerPagination,
 } from '@superset-ui/core';
 
 import { isEmpty } from 'lodash';
@@ -344,13 +346,28 @@ const config: ControlPanelConfig = {
               label: t('Row limit'),
               clearable: false,
               mapStateToProps: state => ({
-                maxValue: state?.common?.conf?.SQL_MAX_ROW,
+                maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
+                server_pagination: state?.form_data?.server_pagination,
+                maxValueWithoutServerPagination:
+                  state?.common?.conf?.SQL_MAX_ROW,
               }),
               validators: [
                 legacyValidateInteger,
                 (v, state) =>
-                  validateMaxValue(v, state?.maxValue || DEFAULT_MAX_ROW),
+                  validateMaxValue(
+                    v,
+                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
+                  ),
+                (v, state) =>
+                  validateServerPagination(
+                    v,
+                    state?.server_pagination,
+                    state?.maxValueWithoutServerPagination || DEFAULT_MAX_ROW,
+                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
+                  ),
               ],
+              // Re run the validations when this control value
+              validationDependancies: ['server_pagination'],
               default: 10000,
               choices: formatSelectOptions(ROW_LIMIT_OPTIONS_TABLE),
               description: t(
