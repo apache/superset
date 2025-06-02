@@ -24,7 +24,7 @@ import re
 import urllib.parse
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, List, Optional, TypeVar
 
 import sqlglot
 from sqlglot import exp
@@ -279,6 +279,37 @@ class Table:
             urllib.parse.quote(part, safe="").replace(".", "%2E")
             for part in [self.catalog, self.schema, self.table]
             if part
+        )
+
+    def __eq__(self, other: Any) -> bool:
+        return str(self) == str(other)
+
+
+@dataclass(eq=True, frozen=True)
+class Partition:
+    """
+    Partition object, with two attribute keys:
+    ispartitioned_table and partition_comlumn,
+    used to provide partition information
+    Here is an example of an object:
+    {"ispartitioned_table":true,"partition_column":["month","day"]}
+    """
+
+    is_partitioned_table: bool
+    partition_column: Optional[List[str]] = None
+
+    def __str__(self) -> str:
+        """
+        Return the partition columns of table name.
+        """
+        partition_column_str = (
+            ", ".join(map(str, self.partition_column))
+            if self.partition_column
+            else "None"
+        )
+        return (
+            f"Partition(is_partitioned_table={self.is_partitioned_table}, "
+            f"partition_column=[{partition_column_str}])"
         )
 
     def __eq__(self, other: Any) -> bool:

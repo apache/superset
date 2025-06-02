@@ -17,7 +17,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+import re
+from typing import Any, List, Tuple
+from urllib.parse import unquote
+
+from odps import ODPS
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO
@@ -165,6 +169,44 @@ class DatabaseDAO(BaseDAO[Database]):
         )
 
         return ssh_tunnel
+
+    @classmethod
+    def is_odps_partitioned_table(
+        cls, database: Database, table_name: str
+    ) -> Tuple[bool, List[str]]:
+        """
+        This function is used to determine and retrieve
+        partition information of the odsp table.
+        The return values are whether the partition
+        table is partitioned and the names of all partition fields.
+        """
+        if not database:
+            raise ValueError("Database not found")
+        uri = database.sqlalchemy_uri
+        access_key = database.password
+        pattern = re.compile(
+            r"odps://(?P<username>[^:]+):(?P<password>[^@]+)@(?P<project>[^/]+)/(?:\?"
+            r"endpoint=(?P<endpoint>[^&]+))"
+        )
+        if not uri or not isinstance(uri, str):
+            logger.warning(
+                "Invalid or missing sqlalchemy URI, Please provide a "
+                "correct sqlalchemy URI"
+            )
+        else:
+            if match := pattern.match(unquote(uri)):
+                access_id = match.group("username")
+                project = match.group("project")
+                endpoint = match.group("endpoint")
+                odps_client = ODPS(access_id, access_key, project, endpoint=endpoint)
+                table = odps_client.get_table(table_name)
+                if table.exist_partition:
+                    partition_spec = table.table_schema.partitions
+                    partition_fields = [partition.name for partition in partition_spec]
+                    return True, partition_fields
+                else:
+                    return False, []
+        return False, []
 
 
 class SSHTunnelDAO(BaseDAO[SSHTunnel]):

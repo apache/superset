@@ -23,7 +23,7 @@ numexpr>=2.9.0
 # 5.0.0 has a sensitive deprecation used in other libs
 # -> https://github.com/aio-libs/async-timeout/blob/master/CHANGES.rst#500-2024-10-31
 async_timeout>=4.0.0,<5.0.0
-
+pyodps>=0.12.2
 # Known issue with 6.7.0 breaking a unit test, probably easy to fix, but will require
 # a bit of attention to bump.
 apispec>=6.0.0,<6.7.0
