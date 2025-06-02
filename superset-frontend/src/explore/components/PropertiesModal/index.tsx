@@ -78,6 +78,7 @@ function PropertiesModal({
   const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
     null,
   );
+  const [selectedRoles, setSelectedRoles] = useState<SelectValue | null>(null);
 
   const [tags, setTags] = useState<TagType[]>([]);
 
@@ -101,7 +102,7 @@ function PropertiesModal({
     });
   }
 
-  const fetchChartOwners = useCallback(
+  const fetchChartOwnersAndRoles = useCallback(
     async function fetchChartOwners() {
       try {
         const response = await SupersetClient.get({
@@ -112,6 +113,12 @@ function PropertiesModal({
           chart?.owners?.map((owner: any) => ({
             value: owner.id,
             label: `${owner.first_name} ${owner.last_name}`,
+          })),
+        );
+        setSelectedRoles(
+          chart?.roles?.map((role: any) => ({
+            value: role.id,
+            label: role.label,
           })),
         );
       } catch (response) {
@@ -139,6 +146,35 @@ function PropertiesModal({
               value: item.value,
               label: item.text,
             })),
+          totalCount: response.json.count,
+        }));
+      },
+    [],
+  );
+
+  const chartRolesOptions = useMemo(
+    () =>
+      (input = '', page: number, pageSize: number) => {
+        const query = rison.encode({
+          filters: [
+            {
+              col: 'name',
+              opr: 'sw',
+              value: input,
+            },
+          ],
+          page,
+          page_size: pageSize,
+        });
+        return SupersetClient.get({
+          endpoint: `/api/v1/security/roles?q=${query}`,
+        }).then(response => ({
+          data: response.json.result.map(
+            (item: { id: number; name: string }) => ({
+              value: item.id,
+              label: item.name,
+            }),
+          ),
           totalCount: response.json.count,
         }));
       },
@@ -203,11 +239,12 @@ function PropertiesModal({
   };
 
   const ownersLabel = t('Owners');
+  const rolesLabel = t('Roles');
 
-  // get the owners of this slice
+  // get the owners and roles of this slice
   useEffect(() => {
-    fetchChartOwners();
-  }, [fetchChartOwners]);
+    fetchChartOwnersAndRoles();
+  }, [fetchChartOwnersAndRoles]);
 
   // update name after it's changed in another modal
   useEffect(() => {
@@ -385,6 +422,20 @@ function PropertiesModal({
                 {t(
                   'A list of users who can alter the chart. Searchable by name or username.',
                 )}
+              </StyledHelpBlock>
+            </FormItem>
+            <FormItem label={rolesLabel}>
+              <AsyncSelect
+                ariaLabel={rolesLabel}
+                mode="multiple"
+                name="roles"
+                value={selectedRoles || []}
+                onChange={setSelectedRoles}
+                options={chartRolesOptions}
+                allowClear
+              />
+              <StyledHelpBlock className="help-block">
+                {t('Roles.')}
               </StyledHelpBlock>
             </FormItem>
             {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
