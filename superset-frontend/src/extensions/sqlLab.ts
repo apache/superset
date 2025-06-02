@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Disposable } from '@apache-superset/primitives';
+import { Disposable } from '@apache-superset/core';
 import { sqlLab as sqlLabType } from '@apache-superset/types';
 import {
   QUERY_FAILED,
@@ -24,10 +24,7 @@ import {
   querySuccess,
 } from 'src/SqlLab/actions/sqlLab';
 import { createActionListener } from './utils';
-import {
-  Editor,
-  Tab,
-} from 'packages/superset-primitives/src/extensions/sqllab';
+import { Editor, Tab } from 'packages/superset-core/src/extensions/sqllab';
 import { RootState } from 'src/views/store';
 
 // TODO: Refactor to return all needed parameters. Add them to the interface.

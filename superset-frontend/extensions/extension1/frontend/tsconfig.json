@@ -8,9 +8,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@apache-superset/primitives": [
-        "../../../packages/superset-primitives/src"
-      ],
+      "@apache-superset/core": ["../../../packages/superset-core/src"],
       "@apache-superset/types": ["../../../packages/superset-types/src"]
     }
   },

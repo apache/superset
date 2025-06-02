@@ -25,7 +25,7 @@
       "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
       "@superset-ui/preset-chart-*": ["./plugins/preset-chart-*/src"],
       "@superset-ui/switchboard": ["./packages/superset-ui-switchboard/src"],
-      "@apache-superset/primitives": ["./packages/superset-primitives/src"],
+      "@apache-superset/core": ["./packages/superset-core/src"],
       "@apache-superset/types": ["./packages/superset-types/src"]
     },
     "types": [

@@ -19,7 +19,7 @@
 
 // eslint-disable-next-line no-restricted-syntax
 import React, { useEffect } from 'react';
-import { Avatar } from '@apache-superset/primitives';
+import { Avatar } from '@apache-superset/core';
 import { authentication } from '@apache-superset/types';
 import binaryImage from './assets/binary.jpg';
 

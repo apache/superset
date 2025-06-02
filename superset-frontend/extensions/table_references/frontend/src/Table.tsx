@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { Avatar } from '@apache-superset/primitives';
+import { Avatar } from '@apache-superset/core';
 import { MetadataRow } from './types';
 
 const BORDER_COLOR = '#e0e0e0';
