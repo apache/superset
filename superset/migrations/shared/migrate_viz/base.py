@@ -26,6 +26,7 @@ from superset import conf
 from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
 from superset.utils import json
+from superset.utils.date_parser import get_since_until
 
 logger = logging.getLogger("alembic")
 
@@ -43,6 +44,7 @@ class Slice(Base):  # type: ignore
 
 
 FORM_DATA_BAK_FIELD_NAME = "form_data_bak"
+QUERIES_BAK_FIELD_NAME = "queries_bak"
 
 
 class MigrateViz:
@@ -113,14 +115,33 @@ class MigrateViz:
         }
 
         if isinstance(granularity_sqla, dict):
-            temporal_filter["comparator"] = None
-            temporal_filter["expressionType"] = "SQL"
-            temporal_filter["subject"] = granularity_sqla["label"]
-            temporal_filter["sqlExpression"] = granularity_sqla["sqlExpression"]
+            since, until = get_since_until(time_range=time_range)
+            if not since and not until:
+                temporal_filter = {}
+            else:
+                temporal_filter["comparator"] = None
+                temporal_filter["expressionType"] = "SQL"
+                temporal_filter["subject"] = granularity_sqla["label"]
 
-        rv_data["adhoc_filters"] = (rv_data.get("adhoc_filters") or []) + [
-            temporal_filter
-        ]
+                start_date = since.isoformat() if since else None
+                end_date = until.isoformat() if until else None
+                if start_date and end_date:
+                    temporal_filter["sqlExpression"] = (
+                        f"{granularity_sqla['sqlExpression']} >= '{start_date}' AND "
+                        f"{granularity_sqla['sqlExpression']} < '{end_date}'"
+                    )
+                elif start_date:
+                    temporal_filter["sqlExpression"] = (
+                        f"{granularity_sqla['sqlExpression']} >= '{start_date}'"
+                    )
+                elif end_date:
+                    temporal_filter["sqlExpression"] = (
+                        f"{granularity_sqla['sqlExpression']} < '{end_date}'"
+                    )
+
+        rv_data["adhoc_filters"] = rv_data.get("adhoc_filters") or []
+        if temporal_filter:
+            rv_data["adhoc_filters"].append(temporal_filter)
 
     @classmethod
     def upgrade_slice(cls, slc: Slice) -> None:
@@ -136,14 +157,24 @@ class MigrateViz:
             # because a source viz can be mapped to different target viz types
             slc.viz_type = clz.target_viz_type
 
-            # only backup params
-            slc.params = json.dumps(
-                {**clz.data, FORM_DATA_BAK_FIELD_NAME: form_data_bak}
-            )
+            backup = {FORM_DATA_BAK_FIELD_NAME: form_data_bak}
 
-            if "form_data" in (query_context := try_load_json(slc.query_context)):
-                query_context["form_data"] = clz.data
+            query_context = try_load_json(slc.query_context)
+
+            if query_context:
+                if "form_data" in query_context:
+                    query_context["form_data"] = clz.data
+
+                queries_bak = copy.deepcopy(query_context["queries"])
+
+                queries = clz._build_query()["queries"]
+                query_context["queries"] = queries
+
                 slc.query_context = json.dumps(query_context)
+                backup[QUERIES_BAK_FIELD_NAME] = queries_bak
+
+            slc.params = json.dumps({**clz.data, **backup})
+
         except Exception as e:
             logger.warning(f"Failed to migrate slice {slc.id}: {e}")
 
@@ -157,9 +188,12 @@ class MigrateViz:
                 slc.params = json.dumps(form_data_bak)
                 slc.viz_type = form_data_bak.get("viz_type")
                 query_context = try_load_json(slc.query_context)
+                queries_bak = form_data.get(QUERIES_BAK_FIELD_NAME, {})
+                query_context["queries"] = queries_bak
                 if "form_data" in query_context:
                     query_context["form_data"] = form_data_bak
-                    slc.query_context = json.dumps(query_context)
+
+                slc.query_context = json.dumps(query_context)
         except Exception as e:
             logger.warning(f"Failed to downgrade slice {slc.id}: {e}")
 
@@ -185,3 +219,6 @@ class MigrateViz:
             lambda current, total: logger.info(f"Downgraded {current}/{total} charts"),
         ):
             cls.downgrade_slice(slc)
+
+    def _build_query(self) -> Any | dict[str, Any]:
+        """Builds a query based on the form data."""

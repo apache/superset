@@ -14,24 +14,33 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import patch
+"""metric currency should be JSON
 
-from superset.views.log.views import LogModelView
-from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME
+Revision ID: f1edd4a4d4f2
+Revises: 378cecfdba9f
+Create Date: 2025-04-30 11:04:39.105229
+
+"""
+
+from superset.migrations.shared.utils import (
+    cast_json_column_to_text,
+    cast_text_column_to_json,
+)
+
+# revision identifiers, used by Alembic.
+revision = "f1edd4a4d4f2"
+down_revision = "378cecfdba9f"
 
 
-class TestLogModelView(SupersetTestCase):
-    def test_disabled(self):
-        with patch.object(LogModelView, "is_enabled", return_value=False):
-            self.login(ADMIN_USERNAME)
-            uri = "/logmodelview/list/"
-            rv = self.client.get(uri)
-            self.assert404(rv)
+def upgrade():
+    """
+    Convert the currency column to JSON.
+    """
+    cast_text_column_to_json("sql_metrics", "currency")
 
-    def test_enabled(self):
-        with patch.object(LogModelView, "is_enabled", return_value=True):
-            self.login(ADMIN_USERNAME)
-            uri = "/logmodelview/list/"
-            rv = self.client.get(uri)
-            self.assert200(rv)
+
+def downgrade():
+    """
+    Convert the currency column back to text.
+    """
+    cast_json_column_to_text("sql_metrics", "currency")

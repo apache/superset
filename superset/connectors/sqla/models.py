@@ -313,10 +313,6 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
     def column_formats(self) -> dict[str, str | None]:
         return {m.metric_name: m.d3format for m in self.metrics if m.d3format}
 
-    @property
-    def currency_formats(self) -> dict[str, dict[str, str | None] | None]:
-        return {m.metric_name: m.currency_json for m in self.metrics if m.currency_json}
-
     def add_missing_metrics(self, metrics: list[SqlMetric]) -> None:
         existing_metrics = {m.metric_name for m in self.metrics}
         for metric in metrics:
@@ -379,7 +375,6 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "id": self.id,
             "uid": self.uid,
             "column_formats": self.column_formats,
-            "currency_formats": self.currency_formats,
             "description": self.description,
             "database": self.database.data,  # pylint: disable=no-member
             "default_endpoint": self.default_endpoint,
@@ -799,7 +794,8 @@ class AnnotationDatasource(BaseDatasource):
             qry = qry.filter(Annotation.end_dttm <= query_obj["to_dttm"])
         status = QueryStatus.SUCCESS
         try:
-            df = pd.read_sql_query(qry.statement, db.engine)
+            with db.engine.connect() as con:
+                df = pd.read_sql_query(qry.statement, con)
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
             status = QueryStatus.FAILED
@@ -1046,7 +1042,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     metric_type = Column(String(32))
     description = Column(utils.MediumText())
     d3format = Column(String(128))
-    currency = Column(String(128))
+    currency = Column(JSON, nullable=True)
     warning_text = Column(Text)
     table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
     expression = Column(utils.MediumText(), nullable=False)
@@ -1100,16 +1096,6 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
 
     def get_perm(self) -> str | None:
         return self.perm
-
-    @property
-    def currency_json(self) -> dict[str, str | None] | None:
-        try:
-            return json.loads(self.currency or "{}") or None
-        except (TypeError, json.JSONDecodeError) as exc:
-            logger.error(
-                "Unable to load currency json: %r. Leaving empty.", exc, exc_info=True
-            )
-            return None
 
     @property
     def data(self) -> dict[str, Any]:

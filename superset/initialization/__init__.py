@@ -88,8 +88,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         wtforms_json.init()
 
-        if not os.path.exists(self.config["DATA_DIR"]):
-            os.makedirs(self.config["DATA_DIR"])
+        os.makedirs(self.config["DATA_DIR"], exist_ok=True)
 
     def post_init(self) -> None:
         """
@@ -176,7 +175,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
         from superset.views.log.api import LogRestApi
-        from superset.views.log.views import LogModelView
+        from superset.views.logs import ActionLogView
         from superset.views.roles import RolesListView
         from superset.views.sql_lab.views import (
             SavedQueryView,
@@ -225,6 +224,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
+        appbuilder.add_api(LogRestApi)
         #
         # Setup regular views
         #
@@ -286,6 +286,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             UsersListView,
             "List Users",
             label=__("List Users"),
+            category="Security",
+            category_label=__("Security"),
+        )
+
+        appbuilder.add_view(
+            ActionLogView,
+            "Action Logs",
+            label=__("Action Logs"),
             category="Security",
             category_label=__("Security"),
         )
@@ -369,19 +377,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="",
             category="Manage",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
-        )
-        appbuilder.add_api(LogRestApi)
-        appbuilder.add_view(
-            LogModelView,
-            "Action Log",
-            label=__("Action Log"),
-            category="Security",
-            category_label=__("Security"),
-            icon="fa-list-ol",
-            menu_cond=lambda: (
-                self.config["FAB_ADD_SECURITY_VIEWS"]
-                and self.config["SUPERSET_LOG_VIEW"]
-            ),
         )
         appbuilder.add_api(SecurityRestApi)
         #

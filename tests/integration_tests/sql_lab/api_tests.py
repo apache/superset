@@ -33,7 +33,9 @@ from tests.integration_tests.test_app import app
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database  # noqa: F401
-from superset.utils.database import get_example_database, get_main_database  # noqa: F401
+from superset.utils.database import (
+    get_example_database,
+)  # noqa: F401
 from superset.utils import core as utils, json
 from superset.models.sql_lab import Query
 
@@ -281,7 +283,7 @@ class TestSqlLabApi(SupersetTestCase):
             "/api/v1/sqllab/format_sql/",
             json=data,
         )
-        success_resp = {"result": "SELECT 1\nFROM my_table"}
+        success_resp = {"result": "SELECT\n  1\nFROM my_table"}
         resp_data = json.loads(rv.data.decode("utf-8"))
         self.assertDictEqual(resp_data, success_resp)  # noqa: PT009
         assert rv.status_code == 200

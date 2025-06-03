@@ -14,23 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
+from flask_appbuilder import permission_name
+from flask_appbuilder.api import expose
+from flask_appbuilder.security.decorators import has_access
 
-from tests.integration_tests.test_app import app  # noqa: F401
-from tests.integration_tests.base_tests import SupersetTestCase
-from superset.db_engine_specs.base import BaseEngineSpec
-from superset.models.core import Database
+from superset.superset_typing import FlaskResponse
+
+from .base import BaseSupersetView
 
 
-class TestDbEngineSpec(SupersetTestCase):
-    def sql_limit_regex(
-        self,
-        sql,
-        expected_sql,
-        engine_spec_class=BaseEngineSpec,
-        limit=1000,
-        force=False,
-    ):
-        main = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
-        limited = engine_spec_class.apply_limit_to_sql(sql, limit, main, force)
-        assert expected_sql == limited
+class ActionLogView(BaseSupersetView):
+    route_base = "/"
+    class_permission_name = "security"
+
+    @expose("/actionlog/list")
+    @has_access
+    @permission_name("read")
+    def list(self) -> FlaskResponse:
+        return super().render_app_template()
