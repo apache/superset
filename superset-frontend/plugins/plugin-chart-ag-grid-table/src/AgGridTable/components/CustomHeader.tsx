@@ -17,9 +17,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable theme-colors/no-literal-colors */
+import { useRef, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import { IHeaderParams, Column } from 'ag-grid-community';
+import CustomPopover from './CustomPopover';
 
 const FilterIcon = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -48,7 +51,6 @@ const SortIconWrapper = styled.div`
   margin-left: 0.5rem;
 `;
 
-// Type Definitions
 interface SortState {
   colId: string;
   sort: 'asc' | 'desc' | null;
@@ -64,7 +66,6 @@ interface CustomHeaderParams extends IHeaderParams {
   column: Column;
 }
 
-// Sort Icon Logic
 const getSortIcon = (
   sortState: SortState[],
   colId: string | null,
@@ -78,7 +79,6 @@ const getSortIcon = (
   return null;
 };
 
-// Component
 const CustomHeader: React.FC<CustomHeaderParams> = ({
   displayName,
   enableSorting,
@@ -89,6 +89,9 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
 }) => {
   const { initialSortState, onColumnHeaderClicked } = context;
   const colId = column?.getColId();
+
+  const [isPopoverVisible, setPopoverVisible] = useState(false);
+  const filterContainerRef = useRef<HTMLDivElement>(null);
 
   const handleSort = () => {
     if (!enableSorting) return;
@@ -108,7 +111,17 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   };
 
   const handleFilterClick = async (event: React.MouseEvent) => {
-    api.showColumnFilter(colId);
+    event.stopPropagation();
+    setPopoverVisible(true);
+
+    const filterInstance = await api.getColumnFilterInstance<any>(column);
+    const filterEl = filterInstance?.eGui;
+
+    if (!filterEl || !filterContainerRef.current) return;
+
+    // Clean previous content
+    filterContainerRef.current.innerHTML = '';
+    filterContainerRef.current.appendChild(filterEl);
   };
 
   return (
@@ -119,13 +132,24 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
           {getSortIcon(initialSortState, column?.getColId())}
         </SortIconWrapper>
       </HeaderContainer>
-      <div
-        className="header-filter"
-        onClick={handleFilterClick}
-        style={{ alignSelf: 'flex-end', marginLeft: 'auto', cursor: 'pointer' }}
+
+      <CustomPopover
+        content={<div ref={filterContainerRef} />}
+        isOpen={isPopoverVisible}
+        onClose={() => setPopoverVisible(false)}
       >
-        {FilterIcon}
-      </div>
+        <div
+          className="header-filter"
+          onClick={handleFilterClick}
+          style={{
+            alignSelf: 'flex-end',
+            marginLeft: 'auto',
+            cursor: 'pointer',
+          }}
+        >
+          {FilterIcon}
+        </div>
+      </CustomPopover>
     </div>
   );
 };
