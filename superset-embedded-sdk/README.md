@@ -139,6 +139,14 @@ with the secret set in configuration variable `GUEST_TOKEN_JWT_SECRET` (see conf
 }
 ```
 
+In this example, the configuration file includes the following setting:
+
+```python
+GUEST_TOKEN_JWT_AUDIENCE="superset"
+```
+
+If you're using a different audience value, be sure to update the GUEST_TOKEN_JWT_AUDIENCE variable accordingly.
+
 ### Sandbox iframe
 
 The Embedded SDK creates an iframe with [sandbox](https://developer.mozilla.org/es/docs/Web/HTML/Element/iframe#sandbox) mode by default
