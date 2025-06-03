@@ -42,6 +42,10 @@ const getGridHeight = (
 
 const StyledChartContainer = styled.div`
   height: ${({ height }: { height: number }) => height}px;
+
+  .dt-is-filter {
+    cursor: pointer;
+  }
 `;
 
 export default function TableChart<D extends DataRecord = DataRecord>(
@@ -63,6 +67,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     hasServerPageLengthChanged,
     serverPageLength,
     hasPageLength,
+    emitCrossFilters,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -84,6 +89,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     columns as InputColumn[],
     data,
     serverPagination,
+    emitCrossFilters,
   );
   const gridHeight = getGridHeight(height, serverPagination, hasPageLength);
 

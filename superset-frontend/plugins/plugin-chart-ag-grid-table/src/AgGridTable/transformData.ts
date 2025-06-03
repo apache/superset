@@ -40,10 +40,18 @@ export const transformData = (
   columns: InputColumn[],
   data: InputData[],
   serverPagination: boolean,
+  emitCrossFilters?: boolean,
 ) => {
   const colDefs = columns.map(col => ({
     field: col.key,
     headerName: col.label,
+    cellClass: () => {
+      let className = '';
+      if (emitCrossFilters && !col?.isMetric) {
+        className += ' dt-is-filter';
+      }
+      return className;
+    },
     sortable: !serverPagination || !col?.isPercentMetric,
     ...(serverPagination && {
       headerComponent: CustomHeader,

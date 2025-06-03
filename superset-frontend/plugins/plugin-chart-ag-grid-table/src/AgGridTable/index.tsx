@@ -295,7 +295,6 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
 
     const handleColumnHeaderClick = useCallback(
       params => {
-        console.log('received');
         const colId = params?.column?.colId;
         const sortDir = params?.column?.sort;
 
