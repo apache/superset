@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable theme-colors/no-literal-colors */
+
 import { useRef, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
@@ -33,6 +33,11 @@ const FilterIcon = (
 );
 
 // Styled Components
+const Container = styled.div`
+  display: flex;
+  width: 100%;
+`;
+
 const HeaderContainer = styled.div`
   width: 100%;
   display: flex;
@@ -49,6 +54,12 @@ const SortIconWrapper = styled.div`
   display: flex;
   align-items: center;
   margin-left: 0.5rem;
+`;
+
+const FilterIconWrapper = styled.div`
+  align-self: flex-end;
+  margin-left: auto;
+  cursor: pointer;
 `;
 
 interface SortState {
@@ -112,24 +123,23 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
 
   const handleFilterClick = async (event: React.MouseEvent) => {
     event.stopPropagation();
-    setPopoverVisible(true);
+    setPopoverVisible(!isPopoverVisible);
 
     const filterInstance = await api.getColumnFilterInstance<any>(column);
     const filterEl = filterInstance?.eGui;
 
     if (!filterEl || !filterContainerRef.current) return;
 
-    // Clean previous content
     filterContainerRef.current.innerHTML = '';
     filterContainerRef.current.appendChild(filterEl);
   };
 
   return (
-    <div style={{ display: 'flex', width: '100%' }}>
+    <Container>
       <HeaderContainer onClick={handleSort} className="custom-header">
         <HeaderLabel>{displayName}</HeaderLabel>
         <SortIconWrapper>
-          {getSortIcon(initialSortState, column?.getColId())}
+          {getSortIcon(initialSortState, colId)}
         </SortIconWrapper>
       </HeaderContainer>
 
@@ -138,19 +148,14 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
         isOpen={isPopoverVisible}
         onClose={() => setPopoverVisible(false)}
       >
-        <div
+        <FilterIconWrapper
           className="header-filter"
           onClick={handleFilterClick}
-          style={{
-            alignSelf: 'flex-end',
-            marginLeft: 'auto',
-            cursor: 'pointer',
-          }}
         >
           {FilterIcon}
-        </div>
+        </FilterIconWrapper>
       </CustomPopover>
-    </div>
+    </Container>
   );
 };
 

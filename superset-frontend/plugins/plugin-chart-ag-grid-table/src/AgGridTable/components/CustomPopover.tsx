@@ -27,7 +27,7 @@ const PopoverWrapper = styled.div`
 
 const PopoverContainer = styled.div`
   position: fixed;
-  background: white;
+  background: #f8f8f8;
   border: 1px solid #ccc;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
