@@ -129,6 +129,7 @@ class DatasetPostSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    template_params = fields.String(allow_none=True)
 
 
 class DatasetPutSchema(Schema):
