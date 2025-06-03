@@ -51,6 +51,12 @@ import { SearchOption, SortByItem } from '../types';
 import getInitialSortState from '../utils/getInitialSortState';
 import useClickedHeaderLabel from '../utils/useClickedHeaderLabel';
 
+interface CustomColDef extends ColDef {
+  customMeta?: {
+    isMetric?: boolean;
+  };
+}
+
 export interface Props {
   gridTheme?: string;
   isDarkMode?: boolean;
@@ -345,6 +351,9 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     }, [hasServerPageLengthChanged]);
 
     const handleCellClick = (params: CellClickedEvent<any, any>) => {
+      const isMetric = (params?.column?.getColDef() as CustomColDef)?.customMeta
+        ?.isMetric;
+      if (isMetric) return;
       const colId = params?.column?.getColId();
       const value = params?.value;
       handleCrossFilter(colId, value);

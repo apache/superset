@@ -45,6 +45,9 @@ export const transformData = (
   const colDefs: ColDef[] = columns.map(col => ({
     field: col.key,
     headerName: col.label,
+    customMeta: {
+      isMetric: col?.isMetric,
+    },
     cellClass: params => {
       const isActiveFilterValue = params?.context?.isActiveFilterValue;
       let className = '';
