@@ -207,12 +207,6 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     (currentSort?.colId === colId && currentSort?.sort === 'asc') ||
     currentSort?.colId !== colId;
 
-  console.log({
-    shouldShowAsc,
-    shouldShowDesc,
-    currentSort,
-  });
-
   const menuContent = (
     <MenuContainer>
       {shouldShowAsc && (
