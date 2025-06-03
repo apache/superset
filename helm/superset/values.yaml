@@ -54,7 +54,7 @@ serviceAccount:
 bootstrapScript: |
   #!/bin/bash
   pip install sqlalchemy-drill psycopg2-binary plotly
-  pip install lunarcalendar tqdm "pystan<3.0" && pip install "prophet>=1.0.1, <1.1"
+  pip install lunarcalendar tqdm && pip install "prophet>=1.0.1, <1.1"
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 
 # -- The name of the secret which we will use to generate a superset_config.py file
