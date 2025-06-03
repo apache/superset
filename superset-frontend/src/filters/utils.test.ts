@@ -195,7 +195,7 @@ describe('Filter utils', () => {
       expect(formatter(1234567.89, GenericDataType.String)).toEqual(
         '1234567.89',
       );
-      expect(formatter(1234567.89, GenericDataType.Numeric)).toEqual('1.23M');
+      expect(formatter(1234567.89, GenericDataType.Numeric)).toEqual('1.23Mio');
       expect(formatter(1234567.89, GenericDataType.Temporal)).toEqual(
         '1970-01-01 00:20:34',
       );
