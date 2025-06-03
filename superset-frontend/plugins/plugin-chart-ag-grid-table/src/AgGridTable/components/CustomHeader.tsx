@@ -107,17 +107,18 @@ const MenuContainer = styled.div`
   }
 `;
 
-interface SortState {
+// Export the interfaces
+export interface SortState {
   colId: string;
   sort: 'asc' | 'desc' | null;
 }
 
-interface CustomContext {
+export interface CustomContext {
   initialSortState: SortState[];
   onColumnHeaderClicked: (args: { column: SortState }) => void;
 }
 
-interface CustomHeaderParams extends IHeaderParams {
+export interface CustomHeaderParams extends IHeaderParams {
   context: CustomContext;
   column: Column;
 }
