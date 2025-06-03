@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any
+from typing import Any, cast, Optional
 
 from flask import Response
 from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
+from superset import is_feature_enabled
 from superset.commands.css.delete import DeleteCssTemplateCommand
 from superset.commands.css.exceptions import (
     CssTemplateDeleteFailedError,
@@ -102,6 +104,13 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     base_related_field_filters = {
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
+
+    @before_request()
+    def ensure_css_templates_enabled(self) -> Optional[Response]:
+        css_templates_enabled = is_feature_enabled("ENABLE_CSS_TEMPLATES")
+        if not css_templates_enabled:
+            return self.response_404("CSS templates are not enabled.")
+        return None
 
     @expose("/", methods=("DELETE",))
     @protect()
