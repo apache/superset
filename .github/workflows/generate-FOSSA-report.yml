@@ -3,7 +3,7 @@ name: Generate FOSSA report
 on:
   push:
     branches:
-      - "master"
+      - "eurodata-master"
       - "[0-9].[0-9]*"
 
 jobs:

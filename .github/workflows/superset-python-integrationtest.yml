@@ -4,7 +4,7 @@ name: Python-Integration
 on:
   push:
     branches:
-      - "master"
+      - "eurodata-master"
       - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]

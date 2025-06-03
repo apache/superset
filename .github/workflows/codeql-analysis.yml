@@ -2,10 +2,10 @@ name: "CodeQL"
 
 on:
   push:
-    branches: ["master", "[0-9].[0-9]*"]
+    branches: ["eurodata-master", "[0-9].[0-9]*"]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: ["master"]
+    branches: ["eurodata-master"]
   schedule:
     - cron: "0 4 * * *"
 
