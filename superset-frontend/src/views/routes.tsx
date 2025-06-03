@@ -137,10 +137,17 @@ const RolesList = lazy(
 const UsersList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "UsersList" */ 'src/pages/UsersList'),
 );
+
+const UserInfo = lazy(
+  () => import(/* webpackChunkName: "UserInfo" */ 'src/pages/UserInfo'),
+);
 const ActionLogList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "ActionLogList" */ 'src/pages/ActionLog'),
 );
 
+const GroupsList: LazyExoticComponent<any> = lazy(
+  () => import(/* webpackChunkName: "GroupsList" */ 'src/pages/GroupsList'),
+);
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -243,6 +250,7 @@ export const routes: Routes = [
     path: '/sqllab/',
     Component: SqlLab,
   },
+  { path: '/user_info/', Component: UserInfo },
   {
     path: '/actionlog/list',
     Component: ActionLogList,
@@ -272,6 +280,10 @@ if (isAdmin) {
     {
       path: '/users/',
       Component: UsersList,
+    },
+    {
+      path: '/list_groups/',
+      Component: GroupsList,
     },
   );
 }
