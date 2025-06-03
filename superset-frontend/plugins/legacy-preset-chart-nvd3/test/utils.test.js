@@ -133,8 +133,8 @@ describe('nvd3/utils', () => {
       expect(getTimeOrNumberFormatter('smart_date')(time)).toBe('10:11');
     });
     it('returns a number formatter otherwise', () => {
-      expect(getTimeOrNumberFormatter('.3s')(3000000)).toBe('3.00M');
-      expect(getTimeOrNumberFormatter()(3000100)).toBe('3M');
+      expect(getTimeOrNumberFormatter('.3s')(3000000)).toBe('3.00Mio');
+      expect(getTimeOrNumberFormatter()(3000100)).toBe('3Mio');
     });
   });
 

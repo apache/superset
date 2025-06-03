@@ -91,28 +91,28 @@ describe('formatFunnelLabel', () => {
         numberFormatter,
         percentCalculationType: PercentCalcType.Total,
       }),
-    ).toEqual(['My Label', '1.23k', '12.34%']);
+    ).toEqual(['My Label', '1.23Tsd', '12.34%']);
     expect(
       parseParams({
         params,
         numberFormatter,
         percentCalculationType: PercentCalcType.FirstStep,
       }),
-    ).toEqual(['My Label', '1.23k', '50.00%']);
+    ).toEqual(['My Label', '1.23Tsd', '50.00%']);
     expect(
       parseParams({
         params,
         numberFormatter,
         percentCalculationType: PercentCalcType.PreviousStep,
       }),
-    ).toEqual(['My Label', '1.23k', '85.00%']);
+    ).toEqual(['My Label', '1.23Tsd', '85.00%']);
     expect(
       parseParams({
         params: { ...params, name: '<NULL>' },
         numberFormatter,
         percentCalculationType: PercentCalcType.Total,
       }),
-    ).toEqual(['<NULL>', '1.23k', '12.34%']);
+    ).toEqual(['<NULL>', '1.23Tsd', '12.34%']);
     expect(
       parseParams({
         params: { ...params, name: '<NULL>' },
@@ -120,6 +120,6 @@ describe('formatFunnelLabel', () => {
         percentCalculationType: PercentCalcType.Total,
         sanitizeName: true,
       }),
-    ).toEqual(['&lt;NULL&gt;', '1.23k', '12.34%']);
+    ).toEqual(['&lt;NULL&gt;', '1.23Tsd', '12.34%']);
   });
 });
