@@ -204,3 +204,8 @@ export enum FilterPlugins {
   TimeColumn = 'filter_timecolumn',
   TimeGrain = 'filter_timegrain',
 }
+
+export enum Actions {
+  CREATE = 'create',
+  UPDATE = 'update',
+}

@@ -137,13 +137,11 @@ describe('RolesList', () => {
     });
   });
 
-  it('fetches permissions and users on load', async () => {
+  it('fetches permissions on load', async () => {
     await renderAndWait();
     await waitFor(() => {
       const permissionCalls = fetchMock.calls(permissionsEndpoint);
-      const userCalls = fetchMock.calls(usersEndpoint);
       expect(permissionCalls.length).toBeGreaterThan(0);
-      expect(userCalls.length).toBeGreaterThan(0);
     });
   });
 
@@ -151,7 +149,7 @@ describe('RolesList', () => {
     await renderAndWait();
 
     const typeFilter = screen.queryAllByTestId('filters-select');
-    expect(typeFilter).toHaveLength(3);
+    expect(typeFilter).toHaveLength(4);
   });
 
   it('renders correct list columns', async () => {

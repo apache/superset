@@ -43,9 +43,11 @@ function RoleListAddModal({
         await updateRolePermissions(roleResponse.id, values.rolePermissions);
       }
 
-      addSuccessToast(t('Role was successfully created!'));
+      addSuccessToast(t('The role has been created successfully.'));
     } catch (err) {
-      addDangerToast(t('Error while adding role!'));
+      addDangerToast(
+        t('There was an error creating the role. Please, try again.'),
+      );
       throw err;
     }
   };

@@ -308,6 +308,9 @@ class RoleRestAPI(BaseSupersetApi):
                     Role.permissions.any(id=filter_dict["permission_ids"])
                 )
 
+            if "group_ids" in filter_dict:
+                query = query.filter(Role.groups.any(id=filter_dict["group_ids"]))
+
             if "name" in filter_dict:
                 query = query.filter(Role.name.ilike(f"%{filter_dict['name']}%"))
 
@@ -323,6 +326,7 @@ class RoleRestAPI(BaseSupersetApi):
                         "name": role.name,
                         "user_ids": [user.id for user in role.user],
                         "permission_ids": [perm.id for perm in role.permissions],
+                        "group_ids": [group.id for group in role.groups],
                     }
                     for role in roles
                 ],
