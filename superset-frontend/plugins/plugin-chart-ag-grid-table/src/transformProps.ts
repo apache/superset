@@ -248,6 +248,8 @@ const transformProps = (
 
   const [, percentMetrics, columns] = processColumns(chartProps);
 
+  const timeGrain = extractTimegrain(formData);
+
   let baseQuery;
   let countQuery;
   let rowCount;
@@ -286,6 +288,7 @@ const transformProps = (
     hasServerPageLengthChanged,
     serverPageLength,
     hasPageLength,
+    timeGrain,
   };
 };
 

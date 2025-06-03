@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord, GenericDataType, styled } from '@superset-ui/core';
+import {
+  DataRecord,
+  DataRecordValue,
+  DTTM_ALIAS,
+  ensureIsArray,
+  GenericDataType,
+  getTimeFormatterForGranularity,
+  styled,
+} from '@superset-ui/core';
 import { useCallback, useEffect, useState } from 'react';
 import { isEqual } from 'lodash';
 import {
@@ -68,6 +76,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     serverPageLength,
     hasPageLength,
     emitCrossFilters,
+    filters,
+    timeGrain,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -92,6 +102,94 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     emitCrossFilters,
   );
   const gridHeight = getGridHeight(height, serverPagination, hasPageLength);
+
+  const isActiveFilterValue = useCallback(
+    function isActiveFilterValue(key: string, val: DataRecordValue) {
+      return !!filters && filters[key]?.includes(val);
+    },
+    [filters],
+  );
+
+  const timestampFormatter = useCallback(
+    value => getTimeFormatterForGranularity(timeGrain)(value),
+    [timeGrain],
+  );
+
+  const getCrossFilterDataMask = (key: string, value: DataRecordValue) => {
+    let updatedFilters = { ...(filters || {}) };
+    if (filters && isActiveFilterValue(key, value)) {
+      updatedFilters = {};
+    } else {
+      updatedFilters = {
+        [key]: [value],
+      };
+    }
+    if (
+      Array.isArray(updatedFilters[key]) &&
+      updatedFilters[key].length === 0
+    ) {
+      delete updatedFilters[key];
+    }
+
+    const groupBy = Object.keys(updatedFilters);
+    const groupByValues = Object.values(updatedFilters);
+    const labelElements: string[] = [];
+    groupBy.forEach(col => {
+      const isTimestamp = col === DTTM_ALIAS;
+      const filterValues = ensureIsArray(updatedFilters?.[col]);
+      if (filterValues.length) {
+        const valueLabels = filterValues.map(value =>
+          isTimestamp ? timestampFormatter(value) : value,
+        );
+        labelElements.push(`${valueLabels.join(', ')}`);
+      }
+    });
+
+    return {
+      dataMask: {
+        extraFormData: {
+          filters:
+            groupBy.length === 0
+              ? []
+              : groupBy.map(col => {
+                  const val = ensureIsArray(updatedFilters?.[col]);
+                  if (!val.length)
+                    return {
+                      col,
+                      op: 'IS NULL' as const,
+                    };
+                  return {
+                    col,
+                    op: 'IN' as const,
+                    val: val.map(el =>
+                      el instanceof Date ? el.getTime() : el!,
+                    ),
+                    grain: col === DTTM_ALIAS ? timeGrain : undefined,
+                  };
+                }),
+        },
+        filterState: {
+          label: labelElements.join(', '),
+          value: groupByValues.length ? groupByValues : null,
+          filters:
+            updatedFilters && Object.keys(updatedFilters).length
+              ? updatedFilters
+              : null,
+        },
+      },
+      isCurrentValueSelected: isActiveFilterValue(key, value),
+    };
+  };
+
+  const toggleFilter = useCallback(
+    function toggleFilter(key: string, val: DataRecordValue) {
+      if (!emitCrossFilters) {
+        return;
+      }
+      setDataMask(getCrossFilterDataMask(key, val).dataMask);
+    },
+    [emitCrossFilters, getCrossFilterDataMask, setDataMask],
+  );
 
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
@@ -174,6 +272,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onSearchChange={handleSearch}
         onSortChange={handleSortByChange}
         id={slice_id}
+        handleCrossFilter={toggleFilter}
         percentMetrics={percentMetrics}
         serverPageLength={serverPageLength}
         hasServerPageLengthChanged={hasServerPageLengthChanged}

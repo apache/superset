@@ -37,11 +37,12 @@ import {
   GridApi,
   GridState,
   SortModelItem,
+  CellClickedEvent,
 } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
 import './styles/ag-grid.css';
 import { type FunctionComponent } from 'react';
-import { styled, css, JsonObject } from '@superset-ui/core';
+import { styled, css, JsonObject, DataRecordValue } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual } from 'lodash';
 import Pagination from './components/Pagination';
@@ -75,6 +76,7 @@ export interface Props {
   percentMetrics: string[];
   serverPageLength: number;
   hasServerPageLengthChanged: boolean;
+  handleCrossFilter: (key: string, val: DataRecordValue) => void;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -153,6 +155,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     percentMetrics,
     serverPageLength,
     hasServerPageLengthChanged,
+    handleCrossFilter,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
@@ -339,6 +342,12 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
       }
     }, [hasServerPageLengthChanged]);
 
+    const handleCellClick = (params: CellClickedEvent<any, any>) => {
+      const colId = params?.column?.getColId();
+      const value = params?.value;
+      handleCrossFilter(colId, value);
+    };
+
     return (
       <StyledContainer>
         <div className={gridClassName} style={containerStyle}>
@@ -381,6 +390,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
             defaultColDef={defaultColDef}
             rowSelection="multiple"
             animateRows
+            onCellClicked={handleCellClick}
             initialState={gridInitialState}
             suppressAggFuncInHeader
             groupDefaultExpanded={-1}
