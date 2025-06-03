@@ -45,7 +45,9 @@ export const transformData = (
     field: col.key,
     headerName: col.label,
     sortable: !serverPagination || !col?.isPercentMetric,
-    headerComponent: CustomHeader,
+    ...(serverPagination && {
+      headerComponent: CustomHeader,
+    }),
     filter: true,
     ...(serverPagination && {
       comparator: () => 0,

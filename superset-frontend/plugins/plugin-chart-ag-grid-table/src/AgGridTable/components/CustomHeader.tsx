@@ -1,4 +1,5 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable theme-colors/no-literal-colors */
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -24,6 +25,19 @@ import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import { IHeaderParams, Column } from 'ag-grid-community';
 import CustomPopover from './CustomPopover';
 
+const ThreeDots = ({ size = 16, color = 'black' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 16 16"
+    fill={color}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle cx="8" cy="3" r="1.2" />
+    <circle cx="8" cy="8" r="1.2" />
+    <circle cx="8" cy="13" r="1.2" />
+  </svg>
+);
 const FilterIcon = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
     <rect x="3" y="6" width="18" height="2" rx="1" />
@@ -36,6 +50,14 @@ const FilterIcon = (
 const Container = styled.div`
   display: flex;
   width: 100%;
+
+  .three-dots-menu {
+    align-self: center;
+    margin-left: 5px;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+  }
 `;
 
 const HeaderContainer = styled.div`
@@ -60,6 +82,29 @@ const FilterIconWrapper = styled.div`
   align-self: flex-end;
   margin-left: auto;
   cursor: pointer;
+`;
+
+const MenuContainer = styled.div`
+  min-width: 180px;
+  padding: 4px 0;
+
+  .menu-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &:hover {
+      background-color: rgba(32, 167, 201, 0.2);
+    }
+  }
+
+  .menu-divider {
+    height: 1px;
+    background-color: #e8e8e8;
+    margin: 4px 0;
+  }
 `;
 
 interface SortState {
@@ -103,6 +148,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
 
   const [isPopoverVisible, setPopoverVisible] = useState(false);
   const filterContainerRef = useRef<HTMLDivElement>(null);
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
 
   const handleSort = () => {
     if (!enableSorting) return;
@@ -134,6 +180,31 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     filterContainerRef.current.appendChild(filterEl);
   };
 
+  const handleMenuClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    setIsMenuVisible(!isMenuVisible);
+  };
+
+  const menuContent = (
+    <MenuContainer>
+      <div className="menu-item">
+        <ArrowDownOutlined /> Sort Descending
+      </div>
+      <div className="menu-item">
+        <span style={{ fontSize: 16 }}>↻</span> Clear Sort
+      </div>
+      <div className="menu-divider" />
+      <div className="menu-item">
+        <span>📌</span> Pin Column
+      </div>
+      <div className="menu-item">Autosize This Column</div>
+      <div className="menu-item">Autosize All Columns</div>
+      <div className="menu-divider" />
+      <div className="menu-item">Choose Columns</div>
+      <div className="menu-item">Reset Columns</div>
+    </MenuContainer>
+  );
+
   return (
     <Container>
       <HeaderContainer onClick={handleSort} className="custom-header">
@@ -154,6 +225,16 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
         >
           {FilterIcon}
         </FilterIconWrapper>
+      </CustomPopover>
+
+      <CustomPopover
+        content={menuContent}
+        isOpen={isMenuVisible}
+        onClose={() => setIsMenuVisible(false)}
+      >
+        <div className="three-dots-menu" onClick={handleMenuClick}>
+          <ThreeDots />
+        </div>
       </CustomPopover>
     </Container>
   );
