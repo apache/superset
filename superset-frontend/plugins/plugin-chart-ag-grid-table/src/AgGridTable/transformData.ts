@@ -19,6 +19,7 @@
  */
 
 import { ValueFormatterParams } from 'ag-grid-community';
+import CustomHeader from './components/CustomHeader';
 
 export interface InputColumn {
   key: string;
@@ -44,6 +45,7 @@ export const transformData = (
     field: col.key,
     headerName: col.label,
     sortable: !serverPagination || !col?.isPercentMetric,
+    headerComponent: CustomHeader,
     filter: true,
     ...(serverPagination && {
       comparator: () => 0,

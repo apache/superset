@@ -280,7 +280,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
       gridInitialState: GridState;
     }) => {
       if (percentMetrics.includes(colId)) return false;
-      if (!clickedHeaderLabelRef.current) return false;
+      // if (!clickedHeaderLabelRef.current) return false;
       if (!serverPagination) return false;
 
       const initialSort: Partial<SortModelItem> =
@@ -295,8 +295,10 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
 
     const handleColumnHeaderClick = useCallback(
       params => {
+        console.log('received');
         const colId = params?.column?.colId;
         const sortDir = params?.column?.sort;
+
         const isSortable = shouldSort({
           colId,
           sortDir,
@@ -305,6 +307,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
           serverPagination: !!serverPagination,
           gridInitialState,
         });
+
         if (!isSortable) return;
 
         if (sortDir == null) {
@@ -390,7 +393,12 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
             pagination={pagination}
             paginationPageSize={pageSize}
             paginationPageSizeSelector={[10, 20, 50, 100, 200]}
-            onColumnHeaderClicked={handleColumnHeaderClick}
+            context={{
+              onColumnHeaderClicked: handleColumnHeaderClick,
+              initialSortState: getInitialSortState(
+                serverPaginationData?.sortBy || [],
+              ),
+            }}
           />
           {serverPagination && (
             <Pagination
