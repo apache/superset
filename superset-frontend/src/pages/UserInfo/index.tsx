@@ -22,7 +22,6 @@ import { css, t, SupersetClient, useTheme, styled } from '@superset-ui/core';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { Icons } from 'src/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { Divider } from 'src/components/Divider';
 import { Descriptions } from 'src/components/Descriptions';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
@@ -35,30 +34,46 @@ interface UserInfoProps {
   user: UserWithPermissionsAndRoles;
 }
 
-const StyledLayout = styled.div`
-  background: ${({ theme }) => theme.colors.grayscale.light5};
-
-  .nav-right {
-    left: 0 !important;
-    margin-left: ${({ theme }) => theme.gridUnit * 7}px;
-    padding: 0 !important;
-  }
-`;
-
 const StyledHeader = styled.div`
   ${({ theme }) => css`
     font-weight: ${theme.typography.weights.bold};
     text-align: left;
     font-size: 18px;
     padding: ${theme.gridUnit * 3}px;
+    padding-left: ${theme.gridUnit * 7}px;
     display: inline-block;
     line-height: ${theme.gridUnit * 9}px;
-    margin-left: ${theme.gridUnit * 4}px;
+    width: 100%;
+    background-color: ${theme.colors.grayscale.light5};
+    margin-bottom: ${theme.gridUnit * 6}px;
   `}
 `;
 
 const DescriptionsContainer = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * 3}px;
+  ${({ theme }) => css`
+    margin: 0px ${theme.gridUnit * 3}px ${theme.gridUnit * 6}px
+      ${theme.gridUnit * 3}px;
+    background-color: ${theme.colors.grayscale.light5};
+  `}
+`;
+
+const StyledLayout = styled.div`
+  ${({ theme }) => css`
+    .antd5-row {
+      margin: 0px ${theme.gridUnit * 3}px ${theme.gridUnit * 6}px
+        ${theme.gridUnit * 3}px;
+    }
+    && .menu > .antd5-menu {
+      padding: 0px;
+    }
+    && .nav-right {
+      left: 0;
+      padding-left: ${theme.gridUnit * 4}px;
+      position: relative;
+      height: ${theme.gridUnit * 15}px;
+      background-color: ${theme.colors.grayscale.light5};
+    }
+  `}
 `;
 
 const DescriptionTitle = styled.span`
@@ -107,7 +122,7 @@ export function UserInfo({ user }: UserInfoProps) {
       name: (
         <>
           <Icons.LockOutlined
-            iconColor={theme.colors.primary.light5}
+            iconColor={theme.colors.primary.base}
             iconSize="m"
             css={css`
               margin: auto ${theme.gridUnit * 2}px auto 0;
@@ -148,7 +163,6 @@ export function UserInfo({ user }: UserInfoProps) {
   return (
     <StyledLayout>
       <StyledHeader>Your user information</StyledHeader>
-      <Divider />
       <DescriptionsContainer>
         <Collapse defaultActiveKey={['userInfo', 'personalInfo']} ghost>
           <Collapse.Panel
@@ -196,7 +210,6 @@ export function UserInfo({ user }: UserInfoProps) {
           </Collapse.Panel>
         </Collapse>
       </DescriptionsContainer>
-      <Divider />
       {modalState.resetPassword && (
         <UserInfoResetPasswordModal
           onHide={() => closeModal(ModalType.ResetPassword)}
