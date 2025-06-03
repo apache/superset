@@ -88,6 +88,7 @@ const config: ControlPanelConfig = {
                 [EchartsTimeseriesSeriesType.End, t('Step - end')],
               ],
               description: t('Series chart type (line, bar etc)'),
+              visibility: () => false,
             },
           },
         ],
