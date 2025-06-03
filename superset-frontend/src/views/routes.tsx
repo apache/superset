@@ -141,6 +141,9 @@ const ActionLogList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "ActionLogList" */ 'src/pages/ActionLog'),
 );
 
+const GroupsList: LazyExoticComponent<any> = lazy(
+  () => import(/* webpackChunkName: "GroupsList" */ 'src/pages/GroupsList'),
+);
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -272,6 +275,10 @@ if (isAdmin) {
     {
       path: '/users/',
       Component: UsersList,
+    },
+    {
+      path: '/list_groups/',
+      Component: GroupsList,
     },
   );
 }
