@@ -16,7 +16,7 @@
 # under the License.
 
 [project]
-name = "apache-superset-sdk"
+name = "apache-superset-cli"
 version = "0.0.1"
 description = "SDK to build Apache Superset extensions"
 authors = [
@@ -29,7 +29,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-    "apache-superset-primitives>=0.0.1, <0.2",
+    "apache-superset-core>=0.0.1, <0.2",
     "click>=8.0.3",
     "tomli>=2.2.1; python_version < '3.11'",
     "watchdog>=6.0.0",
@@ -40,8 +40,8 @@ requires = ["setuptools>=76.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["superset_sdk"]
+packages = ["superset_cli"]
 package-dir = { "" = "src" }
 
 [project.scripts]
-superset-sdk = "superset_sdk.cli:app"
+superset-extensions = "superset_cli.cli:app"

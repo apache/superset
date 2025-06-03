@@ -2,12 +2,12 @@
 #    uv pip compile requirements/development.in -c requirements/base-constraint.txt -o requirements/development.txt
 -e .
     # via -r requirements/development.in
--e ./superset-primitives
+-e ./superset-cli
+    # via apache-superset
+-e ./superset-core
     # via
     #   apache-superset
-    #   apache-superset-sdk
--e ./superset-sdk
-    # via apache-superset
+    #   apache-superset-cli
 alembic==1.15.1
     # via
     #   -c requirements/base-constraint.txt
@@ -102,7 +102,7 @@ click==8.1.8
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-    #   apache-superset-sdk
+    #   apache-superset-cli
     #   celery
     #   click-didyoumean
     #   click-option-group
@@ -213,7 +213,7 @@ flask-appbuilder==4.6.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-    #   apache-superset-primitives
+    #   apache-superset-core
 flask-babel==2.0.0
     # via
     #   -c requirements/base-constraint.txt
@@ -828,7 +828,7 @@ tabulate==0.8.10
     #   apache-superset
 tomli==2.2.1
     # via
-    #   apache-superset-sdk
+    #   apache-superset-cli
     #   coverage
     #   pytest
 tqdm==4.67.1
@@ -885,7 +885,7 @@ vine==5.1.0
 virtualenv==20.29.2
     # via pre-commit
 watchdog==6.0.0
-    # via apache-superset-sdk
+    # via apache-superset-cli
 wcwidth==0.2.13
     # via
     #   -c requirements/base-constraint.txt

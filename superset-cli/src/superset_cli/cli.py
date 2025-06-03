@@ -26,11 +26,11 @@ from pathlib import Path
 from typing import Any, Callable, cast
 
 import click
-from superset_primitives.extensions.types import Manifest, Metadata
+from superset_core.extensions.types import Manifest, Metadata
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from superset_sdk.utils import read_json, read_toml
+from superset_cli.utils import read_json, read_toml
 
 REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
 FRONTEND_DIST_REGEX = re.compile(r"/frontend/dist")

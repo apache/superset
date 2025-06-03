@@ -25,7 +25,7 @@ from flask_caching.backends.base import BaseCache
 from flask_migrate import Migrate
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
-from superset_primitives import appbuilder
+from superset_core import appbuilder
 from werkzeug.local import LocalProxy
 
 from superset.async_events.async_query_manager import AsyncQueryManager

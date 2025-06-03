@@ -17,7 +17,7 @@
 
 from dataclasses import dataclass
 
-from superset_primitives.extensions.types import Manifest
+from superset_core.extensions.types import Manifest
 
 
 @dataclass

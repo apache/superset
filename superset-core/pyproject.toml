@@ -17,7 +17,7 @@
 # under the License.
 
 [project]
-name = "apache-superset-primitives"
+name = "apache-superset-core"
 version = "0.0.1"
 description = "Common components for Apache Superset"
 authors = [
@@ -38,4 +38,5 @@ requires = ["setuptools>=76.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["superset_primitives"]
+packages = ["superset_core"]
+package-dir = { "" = "src" }

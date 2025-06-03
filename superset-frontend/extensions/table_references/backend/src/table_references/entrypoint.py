@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from superset_primitives.api import add_api
+from superset_core.api import add_api
 
 from .api import TableReferencesAPI
 

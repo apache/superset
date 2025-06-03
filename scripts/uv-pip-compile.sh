@@ -25,7 +25,7 @@ ADDITIONAL_ARGS="$@"
 uv pip compile pyproject.toml requirements/base.in -o requirements/base.txt $ADDITIONAL_ARGS
 
 # Hack to remove "Unnamed requirements are not allowed as constraints" error from base requirements
-grep --invert-match "./superset-primitives" requirements/base.txt > requirements/base-constraint.txt
+grep --invert-match "./superset-core" requirements/base.txt > requirements/base-constraint.txt
 
 # Generate the requirements/development.txt file, making sure the base requirements are used as a constraint to keep the versions in sync
 uv pip compile requirements/development.in -c requirements/base-constraint.txt -o requirements/development.txt $ADDITIONAL_ARGS

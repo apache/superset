@@ -1,10 +1,11 @@
 import random
 from datetime import datetime, timedelta
-from flask import Response, request
-from flask_appbuilder.api import expose, permission_name, protect, safe
-from superset_primitives.api import RestApi
 
+from flask import request, Response
+from flask_appbuilder.api import expose, permission_name, protect, safe
 from sqlglot.dialects.dialect import Dialects
+from superset_core.api import RestApi
+
 from superset import db
 from superset.daos.database import DatabaseDAO
 from superset.sql.parse import (
