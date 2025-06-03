@@ -77,6 +77,7 @@ export interface Props {
   serverPageLength: number;
   hasServerPageLengthChanged: boolean;
   handleCrossFilter: (key: string, val: DataRecordValue) => void;
+  isActiveFilterValue: (key: string, val: DataRecordValue) => boolean;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -156,6 +157,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     serverPageLength,
     hasServerPageLengthChanged,
     handleCrossFilter,
+    isActiveFilterValue,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
@@ -407,6 +409,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
               initialSortState: getInitialSortState(
                 serverPaginationData?.sortBy || [],
               ),
+              isActiveFilterValue,
             }}
           />
           {serverPagination && (

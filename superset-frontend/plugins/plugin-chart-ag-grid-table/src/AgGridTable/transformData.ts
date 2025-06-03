@@ -18,7 +18,7 @@
  * under the License.
  */
 
-import { ValueFormatterParams } from 'ag-grid-community';
+import { ColDef, ValueFormatterParams } from 'ag-grid-community';
 import CustomHeader from './components/CustomHeader';
 
 export interface InputColumn {
@@ -42,13 +42,19 @@ export const transformData = (
   serverPagination: boolean,
   emitCrossFilters?: boolean,
 ) => {
-  const colDefs = columns.map(col => ({
+  const colDefs: ColDef[] = columns.map(col => ({
     field: col.key,
     headerName: col.label,
-    cellClass: () => {
+    cellClass: params => {
+      const isActiveFilterValue = params?.context?.isActiveFilterValue;
       let className = '';
-      if (emitCrossFilters && !col?.isMetric) {
-        className += ' dt-is-filter';
+      if (emitCrossFilters) {
+        if (!col?.isMetric) {
+          className += ' dt-is-filter';
+        }
+        if (isActiveFilterValue?.(col?.key, params?.value)) {
+          className += ' dt-is-active-filter';
+        }
       }
       return className;
     },

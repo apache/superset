@@ -54,6 +54,10 @@ const StyledChartContainer = styled.div`
   .dt-is-filter {
     cursor: pointer;
   }
+
+  .dt-is-active-filter {
+    background: ${({ theme }) => theme.colors.secondary.light3};
+  }
 `;
 
 export default function TableChart<D extends DataRecord = DataRecord>(
@@ -276,6 +280,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         percentMetrics={percentMetrics}
         serverPageLength={serverPageLength}
         hasServerPageLengthChanged={hasServerPageLengthChanged}
+        isActiveFilterValue={isActiveFilterValue}
       />
     </StyledChartContainer>
   );
