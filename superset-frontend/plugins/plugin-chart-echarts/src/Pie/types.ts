@@ -66,7 +66,7 @@ export interface EchartsPieChartProps
   formData: EchartsPieFormData;
 }
 
-// @ts-ignore
+// @ts-expect-error TS(2322): Type '{ donut: false; groupby: never[]; innerRadiu... Remove this comment to see the full error message
 export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   donut: false,

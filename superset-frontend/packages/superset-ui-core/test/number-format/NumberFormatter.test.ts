@@ -24,7 +24,7 @@ describe('NumberFormatter', () => {
     it('requires config.id', () => {
       expect(
         () =>
-          // @ts-ignore
+          // @ts-expect-error TS(2345): Argument of type '{ formatFunc: () => string; }' i... Remove this comment to see the full error message
           new NumberFormatter({
             formatFunc: () => '',
           }),
@@ -33,7 +33,7 @@ describe('NumberFormatter', () => {
     it('requires config.formatFunc', () => {
       expect(
         () =>
-          // @ts-ignore
+          // @ts-expect-error TS(2345): Argument of type '{ id: string; }' is not assignab... Remove this comment to see the full error message
           new NumberFormatter({
             id: 'my_format',
           }),

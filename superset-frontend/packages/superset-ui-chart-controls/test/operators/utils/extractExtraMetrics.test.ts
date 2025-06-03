@@ -129,7 +129,7 @@ test('returns empty array if timeseries_limit_metric is an empty array', () => {
   expect(
     extractExtraMetrics({
       ...baseFormData,
-      // @ts-ignore
+      // @ts-expect-error TS(2322): Type 'never[]' is not assignable to type 'QueryFor... Remove this comment to see the full error message
       timeseries_limit_metric: [],
     }),
   ).toEqual([]);

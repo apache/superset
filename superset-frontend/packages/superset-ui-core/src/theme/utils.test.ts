@@ -80,7 +80,7 @@ describe('Theme utilities', () => {
     it('returns false when algorithm is an array containing a function', () => {
       const config: AnyThemeConfig = {
         token: { colorPrimary: '#ff0000' },
-        // @ts-ignore
+        // @ts-expect-error TS(2322): Type 'DerivativeFunc<SeedToken, MapToken>' is not ... Remove this comment to see the full error message
         algorithm: [antdThemeImport.darkAlgorithm, 'compact'],
       };
       expect(isSerializableConfig(config)).toBe(false);
@@ -193,7 +193,7 @@ describe('Theme utilities', () => {
       const unknownAlgorithm = () => ({});
       const config: AntdThemeConfig = {
         token: { colorPrimary: '#ff0000' },
-        // @ts-ignore
+        // @ts-expect-error TS(2322): Type '() => {}' is not assignable to type 'Mapping... Remove this comment to see the full error message
         algorithm: unknownAlgorithm,
       };
       const result = serializeThemeConfig(config);
@@ -222,7 +222,7 @@ describe('Theme utilities', () => {
       const unknownAlgorithm = () => ({});
       const config: AntdThemeConfig = {
         token: { colorPrimary: '#ff0000' },
-        // @ts-ignore
+        // @ts-expect-error TS(2322): Type '() => {}' is not assignable to type 'Mapping... Remove this comment to see the full error message
         algorithm: [antdThemeImport.darkAlgorithm, unknownAlgorithm],
       };
       const result = serializeThemeConfig(config);
@@ -237,10 +237,10 @@ describe('Theme utilities', () => {
         token: { colorPrimary: '#ff0000' },
         algorithm: [
           antdThemeImport.darkAlgorithm,
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type '() => {}' is not assignable to type 'Mapping... Remove this comment to see the full error message
           unknownAlgorithm1,
           antdThemeImport.compactAlgorithm,
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type '() => {}' is not assignable to type 'Mapping... Remove this comment to see the full error message
           unknownAlgorithm2,
         ],
       };

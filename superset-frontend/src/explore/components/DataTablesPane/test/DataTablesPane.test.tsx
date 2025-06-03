@@ -180,7 +180,7 @@ describe('DataTablesPane', () => {
   });
 
   test('Displaying the data pane is under featureflag', () => {
-    // @ts-ignore
+    // @ts-expect-error TS(7017): Element implicitly has an 'any' type because type ... Remove this comment to see the full error message
     global.featureFlags = {
       [FeatureFlag.DatapanelClosedByDefault]: true,
     };

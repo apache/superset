@@ -145,7 +145,7 @@ describe('makeApi()', () => {
       makeApi({
         method: 'POST',
         endpoint: '/test-formdata',
-        // @ts-ignore
+        // @ts-expect-error TS(2322): Type '"text"' is not assignable to type '"search" ... Remove this comment to see the full error message
         requestType: 'text',
       });
     }).toThrow('Invalid request payload type');

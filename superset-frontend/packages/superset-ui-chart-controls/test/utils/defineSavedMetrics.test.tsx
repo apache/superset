@@ -51,7 +51,7 @@ describe('defineSavedMetrics', () => {
         uuid: '1',
       },
     ]);
-    // @ts-ignore
+    // @ts-expect-error TS(2322): Type 'undefined' is not assignable to type 'Metric... Remove this comment to see the full error message
     expect(defineSavedMetrics({ ...dataset, metrics: undefined })).toEqual([]);
   });
 

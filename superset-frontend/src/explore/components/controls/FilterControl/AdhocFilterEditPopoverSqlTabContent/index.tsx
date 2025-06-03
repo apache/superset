@@ -48,7 +48,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
   const theme = useTheme();
 
   useEffect(() => {
-    // @ts-ignore
+    // @ts-expect-error TS(2339): Property 'editor' does not exist on type 'never'.
     aceEditorRef?.current?.editor.resize();
   }, [adhocFilter]);
 

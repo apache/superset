@@ -698,7 +698,7 @@ const Select = forwardRef(
           onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
           onDropdownVisibleChange={handleOnDropdownVisibleChange}
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type '{ showSearch: boolean; ref: Ref<BaseSelectRe... Remove this comment to see the full error message
           onPaste={onPaste}
           onPopupScroll={undefined}
           onSearch={shouldShowSearch ? handleOnSearch : undefined}

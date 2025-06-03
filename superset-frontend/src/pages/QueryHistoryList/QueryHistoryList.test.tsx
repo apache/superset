@@ -140,7 +140,6 @@ describe('QueryList', () => {
     const filtersWrapper = wrapper.find(ListViewUIFilters);
     act(() => {
       const props = filtersWrapper.find('[name="sql"]').first().props();
-      // @ts-ignore
       if (props.onSubmit) props.onSubmit('fooo');
     });
     await waitForComponentToPaint(wrapper);

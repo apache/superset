@@ -541,6 +541,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     <Styles height={height} width={width} margin={theme.sizeUnit * 4}>
       <PivotTableWrapper>
         <PivotTable
+          // @ts-expect-error TS(2769): No overload matches this call.
           data={unpivotedData}
           rows={rows}
           cols={cols}

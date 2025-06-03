@@ -258,7 +258,7 @@ describe('SaveDatasetModal', () => {
   });
 
   it('renders a checkbox button when template processing is enabled', () => {
-    // @ts-ignore
+    // @ts-expect-error TS(7017): Element implicitly has an 'any' type because type ... Remove this comment to see the full error message
     global.featureFlags = {
       [FeatureFlag.EnableTemplateProcessing]: true,
     };
@@ -267,7 +267,7 @@ describe('SaveDatasetModal', () => {
   });
 
   it('correctly includes template parameters when template processing is enabled', () => {
-    // @ts-ignore
+    // @ts-expect-error TS(7017): Element implicitly has an 'any' type because type ... Remove this comment to see the full error message
     global.featureFlags = {
       [FeatureFlag.EnableTemplateProcessing]: true,
     };
@@ -302,7 +302,7 @@ describe('SaveDatasetModal', () => {
   });
 
   it('correctly excludes template parameters when template processing is enabled', () => {
-    // @ts-ignore
+    // @ts-expect-error TS(7017): Element implicitly has an 'any' type because type ... Remove this comment to see the full error message
     global.featureFlags = {
       [FeatureFlag.EnableTemplateProcessing]: true,
     };

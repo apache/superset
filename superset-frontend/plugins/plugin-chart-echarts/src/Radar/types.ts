@@ -66,7 +66,7 @@ export interface EchartsRadarChartProps
   formData: EchartsRadarFormData;
 }
 
-// @ts-ignore
+// @ts-expect-error TS(2322): Type '{ groupby: never[]; labelType: EchartsRadarL... Remove this comment to see the full error message
 export const DEFAULT_FORM_DATA: EchartsRadarFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   groupby: [],

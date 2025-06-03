@@ -42,7 +42,7 @@ if (defaultView != null) {
   Object.keys(defaultView).forEach(property => {
     if (typeof global[property as keyof typeof global] === 'undefined') {
       exposedProperties.push(property);
-      // @ts-ignore due to string-type index signature doesn't apply for `typeof globalThis`.
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       global[property] = defaultView[property as keyof typeof defaultView];
     }
   });

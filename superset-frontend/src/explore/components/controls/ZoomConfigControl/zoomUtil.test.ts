@@ -179,7 +179,7 @@ describe('zoomUtil', () => {
       zoom: 5,
       exponent: 1.5,
     };
-    // @ts-ignore
+    // @ts-expect-error TS(2345): Argument of type '{ zoom: number; width: number; h... Remove this comment to see the full error message
     const result = toExpConfig(configs);
     it('has correct type', () => {
       expect(result.type).toEqual('EXP');

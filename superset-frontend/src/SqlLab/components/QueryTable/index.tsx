@@ -128,6 +128,7 @@ const QueryTable = ({
     };
 
     const openAsyncResults = (query: QueryResponse, displayLimit: number) => {
+      // @ts-expect-error TS(2554): Expected 3 arguments, but got 2.
       dispatch(fetchQueryResults(query, displayLimit));
     };
 

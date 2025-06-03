@@ -297,7 +297,7 @@ const FiltersConfigForm = (
 
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
-    // @ts-ignore
+    // @ts-expect-error TS(2339): Property 'value' does not exist on type 'ItemWithV... Remove this comment to see the full error message
     .filter(([, { value }]) => value.behaviors?.includes(Behavior.NativeFilter))
     .map(([key]) => key as keyof typeof FILTER_SUPPORTED_TYPES);
 
@@ -324,7 +324,7 @@ const FiltersConfigForm = (
   }, [formFilter?.dataset?.value, loadedDatasets]);
 
   const hasDataset =
-    // @ts-ignore
+    // @ts-expect-error TS(2339): Property 'value' does not exist on type 'ItemWithV... Remove this comment to see the full error message
     !!nativeFilterItems[formFilter?.filterType]?.value?.datasourceCount;
 
   const datasetId =
@@ -365,7 +365,7 @@ const FiltersConfigForm = (
   const hasColumn = !!mainControlItems.groupby;
 
   const nativeFilterItem = nativeFilterItems[formFilter?.filterType] ?? {};
-  // @ts-ignore
+  // @ts-expect-error TS(2339): Property 'value' does not exist on type 'ItemWithV... Remove this comment to see the full error message
   const enableNoResults = !!nativeFilterItem.value?.enableNoResults;
 
   const hasMetrics = hasColumn && !!metrics.length;
@@ -774,7 +774,7 @@ const FiltersConfigForm = (
                     <Select
                       ariaLabel={t('Filter type')}
                       options={nativeFilterVizTypes.map(filterType => {
-                        // @ts-ignore
+                        // @ts-expect-error TS(2339): Property 'value' does not exist on type 'ItemWithV... Remove this comment to see the full error message
                         const name = nativeFilterItems[filterType]?.value.name;
                         const mappedName = name
                           ? FILTER_TYPE_NAME_MAPPING[name]

@@ -152,7 +152,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     filterBarOrientation = FilterBarOrientation.Vertical,
   } = props;
   const [row] = data;
-  // @ts-ignore
+  // @ts-expect-error TS(2739): Type 'DataRecord' is missing the following propert... Remove this comment to see the full error message
   const { min, max }: { min: number; max: number } = row;
   const { groupby, enableSingleValue, enableEmptyFilter, defaultValue } =
     formData;

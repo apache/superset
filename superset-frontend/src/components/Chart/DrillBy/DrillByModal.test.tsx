@@ -143,7 +143,6 @@ test('should render loading indicator', async () => {
     CHART_DATA_ENDPOINT,
     { body: {} },
     // delay is missing in fetch-mock types
-    // @ts-ignore
     { overwriteRoutes: true, delay: 1000 },
   );
   await renderModal();

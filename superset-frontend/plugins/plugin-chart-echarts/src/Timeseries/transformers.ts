@@ -295,11 +295,11 @@ export function transformSeries(
     yAxisIndex,
     name: forecastSeries.name,
     itemStyle,
-    // @ts-ignore
+    // @ts-expect-error TS(2322): Type 'string' is not assignable to type '"line"'.
     type: plotType,
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
-    // @ts-ignore
+    // @ts-expect-error TS(2322): Type 'EchartsTimeseriesSeriesType | undefined' is ... Remove this comment to see the full error message
     step: ['start', 'middle', 'end'].includes(seriesType as string)
       ? seriesType
       : undefined,
@@ -426,7 +426,7 @@ export function transformIntervalAnnotation(
           position: 'insideTop',
           verticalAlign: 'top',
           fontWeight: 'bold',
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type '{ show: true; color: string; position: "insi... Remove this comment to see the full error message
           emphasis: {
             position: 'insideTop',
             verticalAlign: 'top',
@@ -436,7 +436,6 @@ export function transformIntervalAnnotation(
       : {
           show: false,
           color: theme.colors.grayscale.dark2,
-          // @ts-ignore
           emphasis: {
             fontWeight: 'bold',
             show: true,
@@ -507,7 +506,7 @@ export function transformEventAnnotation(
           position: 'insideEndTop',
           fontWeight: 'bold',
           formatter: (params: CallbackDataParams) => params.name,
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type '{ show: true; color: string; position: "insi... Remove this comment to see the full error message
           emphasis: {
             backgroundColor: theme.colors.grayscale.light5,
           },
@@ -516,7 +515,6 @@ export function transformEventAnnotation(
           show: false,
           color: theme.colors.grayscale.dark2,
           position: 'insideEndTop',
-          // @ts-ignore
           emphasis: {
             formatter: (params: CallbackDataParams) => params.name,
             fontWeight: 'bold',

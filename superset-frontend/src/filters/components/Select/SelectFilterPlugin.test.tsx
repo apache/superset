@@ -73,9 +73,9 @@ describe('SelectFilterPlugin', () => {
   const setDataMask = jest.fn();
   const getWrapper = (props = {}) =>
     render(
-      // @ts-ignore
+      // @ts-expect-error TS(2322): Type '{ setDataMask: Mock<any, any, any>; showOver... Remove this comment to see the full error message
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error TS(2345): Argument of type '{ formData: { sortAscending: boo... Remove this comment to see the full error message
         {...transformProps({
           ...selectMultipleProps,
           formData: { ...selectMultipleProps.formData, ...props },
@@ -291,9 +291,9 @@ describe('SelectFilterPlugin', () => {
   test('Select big int value', async () => {
     const bigValue = 1100924931345932234n;
     render(
-      // @ts-ignore
+      // @ts-expect-error TS(2322): Type '{ coltypeMap: { bval: 1; }; data: { bval: bi... Remove this comment to see the full error message
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error TS(2345): Argument of type '{ formData: { groupby: string; s... Remove this comment to see the full error message
         {...transformProps({
           ...selectMultipleProps,
           formData: { ...selectMultipleProps.formData, groupby: 'bval' },

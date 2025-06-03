@@ -25,7 +25,7 @@ interface FormattedNumberProps {
 
 function FormattedNumber({ num = 0, format }: FormattedNumberProps) {
   if (format) {
-    // @ts-expect-error formatNumber can actually accept strings, even though it's not typed as such
+    // @ts-expect-error TS(2345): Argument of type 'string | number' is not assignab... Remove this comment to see the full error message
     return <span title={`${num}`}>{formatNumber(format, num)}</span>;
   }
   return <span>{num}</span>;

@@ -207,7 +207,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps, BigNumberVisState> {
   renderHeader(maxHeight: number) {
     const { bigNumber, headerFormatter, width, colorThresholdFormatters } =
       this.props;
-    // @ts-ignore
+    // @ts-expect-error TS(2345): Argument of type 'string | number | bigint | boole... Remove this comment to see the full error message
     const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
 
     const hasThresholdColorFormatter =

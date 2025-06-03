@@ -172,7 +172,7 @@ export default function transformProps(
 
   if (data.length > 0) {
     const reversedData = [...sortedData].reverse();
-    // @ts-ignore
+    // @ts-expect-error TS(2322): Type '[number | null, number | null][] | undefined... Remove this comment to see the full error message
     trendLineData = showTrendLine ? reversedData : undefined;
   }
 
@@ -301,7 +301,7 @@ export default function transformProps(
     width,
     height,
     bigNumber,
-    // @ts-ignore
+    // @ts-expect-error TS(2322): Type '[number | null, number | null] | null | unde... Remove this comment to see the full error message
     bigNumberFallback,
     className,
     headerFormatter,

@@ -26,7 +26,7 @@ import { LOGIN_GLOB } from '../fixtures/constants';
 // missing the toString function causing method to error out when casting to String
 class BadObject {}
 const corruptObject = new BadObject();
-/* @ts-expect-error */
+// @ts-expect-error TS(2322): Type 'undefined' is not assignable to type '() => ... Remove this comment to see the full error message
 BadObject.prototype.toString = undefined;
 
 const mockGetUrl = '/mock/get/url';

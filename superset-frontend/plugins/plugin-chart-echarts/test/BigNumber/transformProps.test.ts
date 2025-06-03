@@ -133,7 +133,7 @@ describe('BigNumberWithTrendline', () => {
       expect(transformed.bigNumberFallback).not.toBeNull();
 
       // should successfully formatTime by granularity
-      // @ts-ignore
+      // @ts-expect-error TS(2722): Cannot invoke an object which is possibly 'undefin... Remove this comment to see the full error message
       expect(transformed.formatTime(new Date('2020-01-01'))).toStrictEqual(
         '2020-01-01 00:00:00',
       );
@@ -155,7 +155,7 @@ describe('BigNumberWithTrendline', () => {
         },
       };
       const transformed = transformProps(propsWithDatasource);
-      // @ts-ignore
+      // @ts-expect-error TS(2345): Argument of type 'DataRecordValue | undefined' is ... Remove this comment to see the full error message
       expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual(
         '1.23',
       );
@@ -181,7 +181,7 @@ describe('BigNumberWithTrendline', () => {
         },
       };
       const transformed = transformProps(propsWithDatasource);
-      // @ts-ignore
+      // @ts-expect-error TS(2345): Argument of type 'DataRecordValue | undefined' is ... Remove this comment to see the full error message
       expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual(
         '$ 1.23',
       );

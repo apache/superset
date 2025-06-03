@@ -284,7 +284,7 @@ describe('getColorFunction()', () => {
   it('getColorFunction unsupported operator', () => {
     const colorFunction = getColorFunction(
       {
-        // @ts-ignore
+        // @ts-expect-error TS(2322): Type '"unsupported operator"' is not assignable to... Remove this comment to see the full error message
         operator: 'unsupported operator',
         targetValue: 50,
         colorScheme: '#FF0000',

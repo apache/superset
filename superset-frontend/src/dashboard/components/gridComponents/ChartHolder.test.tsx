@@ -46,6 +46,7 @@ describe('ChartHolder', () => {
 
   const defaultProps = {
     component: {
+      // @ts-expect-error TS(2554): Expected 2-3 arguments, but got 1.
       ...newComponentFactory(CHART_TYPE),
       id: 'CHART-ID',
       parents: ['ROOT_ID', 'TABS_ID', 'TAB_ID', 'ROW_ID'],
@@ -58,6 +59,7 @@ describe('ChartHolder', () => {
       },
     },
     parentComponent: {
+      // @ts-expect-error TS(2554): Expected 2-3 arguments, but got 1.
       ...newComponentFactory(ROW_TYPE),
       id: 'ROW_ID',
       children: ['COLUMN_ID'],
@@ -231,6 +233,7 @@ describe('ChartHolder', () => {
     renderWrapper(createMockStore(), {
       editMode: true,
       parentComponent: {
+        // @ts-expect-error TS(2554): Expected 2-3 arguments, but got 1.
         ...newComponentFactory(COLUMN_TYPE),
         id: 'ROW_ID',
         children: ['COLUMN_ID'],

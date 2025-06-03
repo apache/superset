@@ -349,7 +349,7 @@ export const SaveDatasetModal = ({
   };
 
   const handleDatasetNameChange = (e: FormEvent<HTMLInputElement>) => {
-    // @ts-expect-error
+    // @ts-expect-error TS(2339): Property 'value' does not exist on type 'EventTarg... Remove this comment to see the full error message
     setDatasetName(e.target.value);
   };
 

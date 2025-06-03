@@ -80,7 +80,7 @@ const testData = [
 describe('sortAlphanumericCaseInsensitive', () => {
   it('Sort rows', () => {
     const sorted = [...testData].sort((a, b) =>
-      // @ts-ignore
+      // @ts-expect-error TS(2345): Argument of type '{ values: { col: string; }; } | ... Remove this comment to see the full error message
       sortAlphanumericCaseInsensitive(a, b, 'col'),
     );
 

@@ -120,7 +120,7 @@ test('Handles Response that contains raw html be parsed as text', async () => {
 test('Handles TypeError Response', async () => {
   const error = new TypeError('Failed to fetch');
 
-  // @ts-ignore
+  // @ts-expect-error TS(2345): Argument of type 'TypeError' is not assignable to ... Remove this comment to see the full error message
   const errorObj = await getClientErrorObject(error);
   expect(errorObj).toMatchObject({ error: 'Network error' });
 });
@@ -184,15 +184,15 @@ test('Handles error with status text and message', async () => {
   const statusText = 'status';
   const message = 'message';
 
-  // @ts-ignore
+  // @ts-expect-error TS(2322): Type '"status"' is not assignable to type '"timeou... Remove this comment to see the full error message
   expect(await getClientErrorObject({ statusText, message })).toMatchObject({
     error: statusText,
   });
-  // @ts-ignore
+  // @ts-expect-error TS(2345): Argument of type '{ message: string; }' is not ass... Remove this comment to see the full error message
   expect(await getClientErrorObject({ message })).toMatchObject({
     error: message,
   });
-  // @ts-ignore
+  // @ts-expect-error TS(2345): Argument of type '{}' is not assignable to paramet... Remove this comment to see the full error message
   expect(await getClientErrorObject({})).toMatchObject({
     error: 'An error occurred',
   });

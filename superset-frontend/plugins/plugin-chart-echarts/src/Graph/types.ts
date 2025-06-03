@@ -59,7 +59,7 @@ export type EChartGraphNode = Omit<GraphNodeItemOption, 'value'> & {
   tooltip?: Pick<SeriesTooltipOption, 'formatter'>;
 };
 
-// @ts-ignore
+// @ts-expect-error TS(2322): Type '{ source: string; target: string; layout: "f... Remove this comment to see the full error message
 export const DEFAULT_FORM_DATA: EchartsGraphFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   source: '',

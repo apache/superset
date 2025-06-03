@@ -138,6 +138,7 @@ export default {
   typeof Skeleton & typeof Avatar & typeof Button & typeof Input & typeof Image
 >;
 
+// @ts-expect-error TS(4081): Exported type alias 'Story' has or is using privat... Remove this comment to see the full error message
 type Story = StoryObj<typeof Skeleton & typeof Button & typeof Avatar>;
 
 export const SkeletonStory: Story = {

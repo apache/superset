@@ -23,7 +23,7 @@ import { getParsedExploreURLParams } from './getParsedExploreURLParams';
 const EXPLORE_BASE_URL = 'http://localhost:9000/explore/';
 const setupLocation = (newUrl: string) => {
   delete (window as any).location;
-  // @ts-ignore
+  // @ts-expect-error TS(2322): Type 'URL' is not assignable to type '(string | Lo... Remove this comment to see the full error message
   window.location = new URL(newUrl);
 };
 

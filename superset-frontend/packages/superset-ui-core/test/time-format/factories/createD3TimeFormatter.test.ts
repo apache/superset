@@ -71,9 +71,9 @@ const thLocale: TimeLocaleDefinition = {
 
 describe('createD3TimeFormatter(config)', () => {
   it('requires config.formatString', () => {
-    // @ts-ignore
+    // @ts-expect-error TS(2554): Expected 1 arguments, but got 0.
     expect(() => createD3TimeFormatter()).toThrow();
-    // @ts-ignore
+    // @ts-expect-error TS(2345): Argument of type '{}' is not assignable to paramet... Remove this comment to see the full error message
     expect(() => createD3TimeFormatter({})).toThrow();
   });
   describe('config.useLocalTime', () => {

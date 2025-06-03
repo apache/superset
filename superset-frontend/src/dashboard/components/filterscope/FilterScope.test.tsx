@@ -183,6 +183,7 @@ async function clickCheckbox(name: string) {
 }
 
 test('renders with empty filters', () => {
+  // @ts-expect-error TS(2322): Type '{ dashboardFilters: {}; layout: { ROOT_ID: {... Remove this comment to see the full error message
   render(<FilterScopeSelector {...createProps()} dashboardFilters={{}} />, {
     useRedux: true,
   });
@@ -333,6 +334,7 @@ test('selects all charts', async () => {
 test('triggers onClose', () => {
   const onCloseModal = jest.fn();
   render(
+    // @ts-expect-error TS(2322): Type '{ onCloseModal: Mock<any, any, any>; dashboa... Remove this comment to see the full error message
     <FilterScopeSelector {...createProps()} onCloseModal={onCloseModal} />,
     {
       useRedux: true,
@@ -350,6 +352,7 @@ test('triggers onSave', () => {
   render(
     <FilterScopeSelector
       {...createProps()}
+      // @ts-expect-error TS(2322): Type '{ updateDashboardFiltersScope: Mock<any, any... Remove this comment to see the full error message
       updateDashboardFiltersScope={updateDashboardFiltersScope}
       setUnsavedChanges={setUnsavedChanges}
       onCloseModal={onCloseModal}

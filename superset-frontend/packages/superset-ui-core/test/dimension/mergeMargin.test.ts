@@ -187,7 +187,7 @@ describe('mergeMargin(margin1, margin2, mode?)', () => {
       mergeMargin(
         {
           top: 10,
-          // @ts-ignore to let us pass `null` for testing
+          // @ts-expect-error TS(2322): Type 'null' is not assignable to type 'number | un... Remove this comment to see the full error message
           left: null,
           bottom: 20,
           right: NaN,

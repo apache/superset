@@ -523,9 +523,9 @@ describe('SupersetClientClass', () => {
 
     beforeEach(() => {
       originalLocation = window.location;
-      // @ts-ignore
+      // @ts-expect-error TS(2790): The operand of a 'delete' operator must be optiona... Remove this comment to see the full error message
       delete window.location;
-      // @ts-ignore
+      // @ts-expect-error TS(2322): Type '{ pathname: string; search: string; href: st... Remove this comment to see the full error message
       window.location = {
         pathname: mockRequestPath,
         search: mockRequestSearch,
@@ -563,7 +563,7 @@ describe('SupersetClientClass', () => {
     it('should not redirect again if already on login page', async () => {
       const client = new SupersetClientClass({});
 
-      // @ts-expect-error
+      // @ts-expect-error TS(2322): Type '{ href: string; pathname: string; search: st... Remove this comment to see the full error message
       window.location = {
         href: '/login?next=something',
         pathname: '/login',

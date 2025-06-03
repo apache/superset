@@ -69,6 +69,7 @@ const ExploreCtasResultsButton = ({
           addInfoToast(t('Creating a data source and creating a new tab')),
         );
         // open new window for data visualization
+        // @ts-expect-error TS(2554): Expected 2 arguments, but got 1.
         exploreChart(formData);
       })
       .catch(() => {

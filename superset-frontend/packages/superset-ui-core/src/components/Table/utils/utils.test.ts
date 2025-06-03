@@ -46,12 +46,12 @@ test('withinRange unsupported negative numbers', async () => {
 test('withinRange invalid inputs', async () => {
   // Invalid inputs should return falsy and not throw an error
   // We need ts-ignore here to be able to pass invalid values and pass linting
-  // @ts-ignore
+  // @ts-expect-error TS(2345): Argument of type 'null' is not assignable to param... Remove this comment to see the full error message
   expect(withinRange(null, 60, undefined)).toBeFalsy();
-  // @ts-ignore
+  // @ts-expect-error TS(2345): Argument of type 'never[]' is not assignable to pa... Remove this comment to see the full error message
   expect(withinRange([], 'hello', {})).toBeFalsy();
-  // @ts-ignore
+  // @ts-expect-error TS(2345): Argument of type 'never[]' is not assignable to pa... Remove this comment to see the full error message
   expect(withinRange([], undefined, {})).toBeFalsy();
-  // @ts-ignore
+  // @ts-expect-error TS(2345): Argument of type 'never[]' is not assignable to pa... Remove this comment to see the full error message
   expect(withinRange([], 'hello', {})).toBeFalsy();
 });

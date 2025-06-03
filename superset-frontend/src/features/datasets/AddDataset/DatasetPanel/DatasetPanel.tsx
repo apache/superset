@@ -23,7 +23,6 @@ import Table, {
   ColumnsType,
   TableSize,
 } from '@superset-ui/core/components/Table';
-// @ts-ignore
 import LOADING_GIF from 'src/assets/images/loading.gif';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
 import { ITableColumn } from './types';

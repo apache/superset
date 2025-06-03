@@ -63,7 +63,7 @@ export default function normalizeOrderBy(
   ) {
     return {
       ...cloneQueryObject,
-      // @ts-ignore
+      // @ts-expect-error TS(2322): Type 'unknown' is not assignable to type 'string |... Remove this comment to see the full error message
       orderby: [[queryObject.legacy_order_by, isAsc]],
     };
   }

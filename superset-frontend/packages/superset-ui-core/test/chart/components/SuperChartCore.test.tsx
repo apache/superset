@@ -89,7 +89,7 @@ describe('SuperChartCore', () => {
     });
 
     it('does not render if chartType is not set', async () => {
-      // @ts-ignore chartType is required
+      // @ts-expect-error TS(2769): No overload matches this call.
       const { container } = renderWithTheme(<SuperChartCore />);
 
       await waitFor(() => {

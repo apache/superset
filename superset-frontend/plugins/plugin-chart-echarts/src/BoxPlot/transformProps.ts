@@ -201,7 +201,7 @@ export default function transformProps(
       tooltip: {
         ...getDefaultTooltip(refs),
         formatter: (param: CallbackDataParams) => {
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type 'CallbackDataParams' is not assignable to typ... Remove this comment to see the full error message
           const {
             value,
             name,
@@ -238,7 +238,7 @@ export default function transformProps(
         },
       },
     },
-    // @ts-ignore
+    // @ts-expect-error TS(2322): Type '{ name: string; type: string; data: (string ... Remove this comment to see the full error message
     ...outlierData,
   ];
   const addYAxisTitleOffset = !!yAxisTitle;

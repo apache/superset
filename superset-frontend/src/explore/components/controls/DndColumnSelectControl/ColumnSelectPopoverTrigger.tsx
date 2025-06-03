@@ -53,7 +53,7 @@ const ColumnSelectPopoverTrigger = ({
   disabledTabs,
   ...props
 }: ColumnSelectPopoverTriggerProps) => {
-  // @ts-ignore
+  // @ts-expect-error TS(2339): Property 'explore' does not exist on type 'Default... Remove this comment to see the full error message
   const datasource = useSelector(state => state.explore.datasource);
   const [popoverLabel, setPopoverLabel] = useState(defaultPopoverLabel);
   const [popoverVisible, setPopoverVisible] = useState(false);

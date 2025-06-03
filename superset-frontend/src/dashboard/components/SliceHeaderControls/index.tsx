@@ -250,7 +250,6 @@ const SliceHeaderControls = (
           getScreenshotNodeSelector(props.slice.slice_id),
           props.slice.slice_name,
           true,
-          // @ts-ignore
         )(domEvent).then(() => {
           if (menu) {
             menu.style.visibility = 'visible';

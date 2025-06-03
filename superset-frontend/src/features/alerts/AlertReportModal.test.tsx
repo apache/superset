@@ -126,7 +126,7 @@ fetchMock.get(tabsEndpoint, {
 
 // Create a valid alert with all required fields entered for validation check
 
-// @ts-ignore will add id in factory function
+// @ts-expect-error TS(2741): Property 'id' is missing in type '{ active: false;... Remove this comment to see the full error message
 const validAlert: AlertObject = {
   active: false,
   changed_on_delta_humanized: 'now',

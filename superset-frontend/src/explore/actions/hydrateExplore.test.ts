@@ -31,7 +31,7 @@ test('creates hydrate action from initial data', () => {
     explore: {},
   }));
   // ignore type check - we dont need exact explore state for this test
-  // @ts-ignore
+  // @ts-expect-error TS(2345): Argument of type 'Mock<{ user: {}; charts: {}; dat... Remove this comment to see the full error message
   hydrateExplore(exploreInitialData)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -104,7 +104,7 @@ test('creates hydrate action with existing state', () => {
     explore: { controlsTransferred: ['all_columns'] },
   }));
   // ignore type check - we dont need exact explore state for this test
-  // @ts-ignore
+  // @ts-expect-error TS(2345): Argument of type 'Mock<{ user: {}; charts: {}; dat... Remove this comment to see the full error message
   hydrateExplore(exploreInitialData)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -181,7 +181,7 @@ test('uses configured default time range if not set', () => {
     },
     explore: {},
   }));
-  // @ts-ignore
+  // @ts-expect-error TS(2739): Type '{}' is missing the following properties from... Remove this comment to see the full error message
   hydrateExplore({ form_data: {}, slice: {}, dataset: {} })(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -199,7 +199,7 @@ test('uses configured default time range if not set', () => {
     slice: {},
     dataset: {},
   };
-  // @ts-ignore
+  // @ts-expect-error TS(2345): Argument of type '{ form_data: { time_range: strin... Remove this comment to see the full error message
   hydrateExplore(withTimeRangeSet)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({

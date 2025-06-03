@@ -90,7 +90,7 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
 } & LegendFormData &
   TitleFormData;
 
-// @ts-ignore
+// @ts-expect-error TS(2322): Type '{ xAxisTitle: string; xAxisTitleMargin: numb... Remove this comment to see the full error message
 export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   annotationLayers: [],

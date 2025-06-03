@@ -62,7 +62,7 @@ const HANDLE_CLASSES = {
   right: 'resizable-container-handle--right',
   bottom: 'resizable-container-handle--bottom',
 };
-// @ts-ignore
+// @ts-expect-error TS(2769): No overload matches this call.
 const StyledResizable = styled(Resizable)`
   ${({ theme }) => css`
     &.resizable-container {
@@ -205,7 +205,7 @@ export default function ResizableContainer({
             width: adjustableWidth ? nextWidthMultiple : 0,
             height: adjustableHeight ? nextHeightMultiple : 0,
           },
-          // @ts-ignore
+          // @ts-expect-error TS(2554): Expected 4 arguments, but got 5.
           id,
         );
       }

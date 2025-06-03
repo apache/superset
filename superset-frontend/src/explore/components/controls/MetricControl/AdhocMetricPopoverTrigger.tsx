@@ -213,6 +213,7 @@ class AdhocMetricPopoverTrigger extends PureComponent<
     const overlayContent = (
       <ExplorePopoverContent>
         <AdhocMetricEditPopover
+          // @ts-expect-error TS(2322): Type '{ adhocMetric: AdhocMetric; columns: { colum... Remove this comment to see the full error message
           adhocMetric={adhocMetric}
           columns={columns}
           savedMetricsOptions={savedMetricsOptions}

@@ -194,7 +194,6 @@ const baseFilter: Filter = {
 };
 
 jest.mock('@superset-ui/core', () => ({
-  // @ts-ignore
   ...jest.requireActual('@superset-ui/core'),
   getChartMetadataRegistry: () => ({
     get: (type: string) => {

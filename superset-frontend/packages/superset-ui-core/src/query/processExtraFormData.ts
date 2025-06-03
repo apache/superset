@@ -38,7 +38,7 @@ export function overrideExtraFormData(
   );
   EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS.forEach(key => {
     if (key in overrideFormData) {
-      // @ts-ignore
+      // @ts-expect-error TS(2322): Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
       overriddenExtras[key] = overrideFormData[key];
     }
   });

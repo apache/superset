@@ -240,7 +240,7 @@ export default function EchartsTimeseries({
       if (echartInstance?.containPixel('grid', pointInPixel)) {
         // do not trigger if click unstacked chart's blank area
         if (!stack && params.target?.type === 'ec-polygon') return;
-        // @ts-ignore
+        // @ts-expect-error TS(2341): Property 'getModel' is private and only accessible... Remove this comment to see the full error message
         const globalModel = echartInstance.getModel();
         const model = getModelInfo(params.target, globalModel);
         if (model) {

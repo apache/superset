@@ -39,7 +39,7 @@ import {
 export default function buildQuery(formData: QueryFormData) {
   const { groupby } = formData;
   const [column = ''] = groupby || [];
-  // @ts-ignore (need update interface Column )
+  // @ts-expect-error TS(2345): Argument of type '(baseQueryObject: QueryObject) =... Remove this comment to see the full error message
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,

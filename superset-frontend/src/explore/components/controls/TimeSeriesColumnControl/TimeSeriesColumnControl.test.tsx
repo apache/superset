@@ -41,6 +41,7 @@ test('renders popover on edit', () => {
 });
 
 test('renders time comparison', () => {
+  // @ts-expect-error TS(2322): Type '{ colType: string; }' is not assignable to t... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="time" />);
   userEvent.click(screen.getByRole('button'));
   expect(screen.getByText('Time lag')).toBeInTheDocument();
@@ -50,6 +51,7 @@ test('renders time comparison', () => {
 });
 
 test('renders contribution', () => {
+  // @ts-expect-error TS(2322): Type '{ colType: string; }' is not assignable to t... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="contrib" />);
   userEvent.click(screen.getByRole('button'));
   expect(screen.getByText('Color bounds')).toBeInTheDocument();
@@ -57,6 +59,7 @@ test('renders contribution', () => {
 });
 
 test('renders sparkline', () => {
+  // @ts-expect-error TS(2322): Type '{ colType: string; }' is not assignable to t... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="spark" />);
   userEvent.click(screen.getByRole('button'));
   expect(screen.getByText('Width')).toBeInTheDocument();
@@ -69,6 +72,7 @@ test('renders sparkline', () => {
 });
 
 test('renders period average', () => {
+  // @ts-expect-error TS(2322): Type '{ colType: string; }' is not assignable to t... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="avg" />);
   userEvent.click(screen.getByRole('button'));
   expect(screen.getByText('Time lag')).toBeInTheDocument();
@@ -78,6 +82,7 @@ test('renders period average', () => {
 
 test('triggers onChange when type changes', () => {
   const onChange = jest.fn();
+  // @ts-expect-error TS(2322): Type '{ onChange: Mock<any, any, any>; }' is not a... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
   userEvent.click(screen.getByText('Select ...'));
@@ -92,6 +97,7 @@ test('triggers onChange when type changes', () => {
 test('triggers onChange when time lag changes', () => {
   const timeLag = '1';
   const onChange = jest.fn();
+  // @ts-expect-error TS(2322): Type '{ colType: string; onChange: Mock<any, any, ... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
   const timeLagInput = screen.getByPlaceholderText('Time Lag');
@@ -105,6 +111,7 @@ test('triggers onChange when time lag changes', () => {
 test('time lag allows negative values', () => {
   const timeLag = '-1';
   const onChange = jest.fn();
+  // @ts-expect-error TS(2322): Type '{ colType: string; onChange: Mock<any, any, ... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
   const timeLagInput = screen.getByPlaceholderText('Time Lag');
@@ -119,6 +126,7 @@ test('triggers onChange when color bounds changes', () => {
   const min = 1;
   const max = 5;
   const onChange = jest.fn();
+  // @ts-expect-error TS(2322): Type '{ colType: string; onChange: Mock<any, any, ... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
   const minInput = screen.getByPlaceholderText('Min');
@@ -134,6 +142,7 @@ test('triggers onChange when color bounds changes', () => {
 
 test('triggers onChange when time type changes', () => {
   const onChange = jest.fn();
+  // @ts-expect-error TS(2322): Type '{ colType: string; onChange: Mock<any, any, ... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
   userEvent.click(screen.getByText('Select ...'));
@@ -148,6 +157,7 @@ test('triggers onChange when time type changes', () => {
 test('triggers onChange when number format changes', () => {
   const numberFormatString = 'Test format';
   const onChange = jest.fn();
+  // @ts-expect-error TS(2322): Type '{ colType: string; onChange: Mock<any, any, ... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
   userEvent.type(
@@ -164,6 +174,7 @@ test('triggers onChange when number format changes', () => {
 test('triggers onChange when width changes', () => {
   const width = '10';
   const onChange = jest.fn();
+  // @ts-expect-error TS(2322): Type '{ colType: string; onChange: Mock<any, any, ... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
   userEvent.type(screen.getByPlaceholderText('Width'), width);
@@ -175,6 +186,7 @@ test('triggers onChange when width changes', () => {
 test('triggers onChange when height changes', () => {
   const height = '10';
   const onChange = jest.fn();
+  // @ts-expect-error TS(2322): Type '{ colType: string; onChange: Mock<any, any, ... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
   userEvent.type(screen.getByPlaceholderText('Height'), height);
@@ -186,6 +198,7 @@ test('triggers onChange when height changes', () => {
 test('triggers onChange when time ratio changes', () => {
   const timeRatio = '10';
   const onChange = jest.fn();
+  // @ts-expect-error TS(2322): Type '{ colType: string; onChange: Mock<any, any, ... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
   userEvent.type(screen.getByPlaceholderText('Time Ratio'), timeRatio);
@@ -196,6 +209,7 @@ test('triggers onChange when time ratio changes', () => {
 
 test('triggers onChange when show Y-axis changes', () => {
   const onChange = jest.fn();
+  // @ts-expect-error TS(2322): Type '{ colType: string; onChange: Mock<any, any, ... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
   userEvent.click(screen.getByRole('checkbox'));
@@ -210,6 +224,7 @@ test('triggers onChange when Y-axis bounds changes', () => {
   const min = 1;
   const max = 5;
   const onChange = jest.fn();
+  // @ts-expect-error TS(2322): Type '{ colType: string; onChange: Mock<any, any, ... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
   const minInput = screen.getByPlaceholderText('Min');
@@ -227,6 +242,7 @@ test('triggers onChange when Y-axis bounds changes', () => {
 test('triggers onChange when date format changes', () => {
   const dateFormat = 'yy/MM/dd';
   const onChange = jest.fn();
+  // @ts-expect-error TS(2322): Type '{ colType: string; onChange: Mock<any, any, ... Remove this comment to see the full error message
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
   userEvent.type(screen.getByPlaceholderText('Date format string'), dateFormat);

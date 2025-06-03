@@ -32,5 +32,6 @@ export default function XAxisSortControl(props: {
     }
   }, [props.shouldReset, props.value]);
 
+  // @ts-expect-error TS(2322): Type '{ value: string | null; onChange: (val: stri... Remove this comment to see the full error message
   return <SelectControl {...props} value={value} />;
 }

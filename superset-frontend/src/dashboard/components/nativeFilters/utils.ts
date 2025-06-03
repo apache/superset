@@ -114,6 +114,7 @@ export function mergeExtraFormData(
       ...(isIterable(newExtraData) ? newExtraData : []),
     ];
     if (mergedValues.length) {
+      // @ts-expect-error TS(2322): Type '(string | AdhocFilter | QueryObjectFilterCla... Remove this comment to see the full error message
       mergedExtra[key as OnlyKeyWithType<ExtraFormData, any[]>] = mergedValues;
     }
   });
@@ -133,7 +134,7 @@ export function mergeExtraFormData(
 }
 
 export function isCrossFilter(vizType: string) {
-  // @ts-ignore need export from superset-ui `ItemWithValue`
+  // @ts-expect-error TS(2339): Property 'value' does not exist on type 'ItemWithV... Remove this comment to see the full error message
   return getChartMetadataRegistry().items[vizType]?.value.behaviors?.includes(
     Behavior.InteractiveChart,
   );

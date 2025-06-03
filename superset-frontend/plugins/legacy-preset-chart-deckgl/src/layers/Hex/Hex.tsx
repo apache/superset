@@ -76,9 +76,9 @@ export function getLayer(
     extruded: fd.extruded,
     colorRange,
     outline: false,
-    // @ts-ignore
+    // @ts-expect-error TS(2322): Type '(arr: number[]) => number | number[] | undef... Remove this comment to see the full error message
     getElevationValue: aggFunc,
-    // @ts-ignore
+    // @ts-expect-error TS(2322): Type '(arr: number[]) => number | number[] | undef... Remove this comment to see the full error message
     getColorValue: aggFunc,
     ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
