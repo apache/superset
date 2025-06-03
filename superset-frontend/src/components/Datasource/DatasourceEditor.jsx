@@ -56,7 +56,6 @@ import { Icons } from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import { executeQuery, resetDatabaseState } from 'src/database/actions';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router-dom';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
@@ -1693,5 +1692,5 @@ const mapStateToProps = state => ({
   database: state?.database,
 });
 export default withToasts(
-  withRouter(connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent)),
+  connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent),
 );
