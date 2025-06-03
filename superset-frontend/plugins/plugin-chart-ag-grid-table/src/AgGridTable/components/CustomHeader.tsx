@@ -149,6 +149,22 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const [isPopoverVisible, setPopoverVisible] = useState(false);
   const filterContainerRef = useRef<HTMLDivElement>(null);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const currentSort = initialSortState?.[0];
+
+  const ClearSort = () => {
+    onColumnHeaderClicked({ column: { colId, sort: null } });
+    setSort(null, false);
+  };
+
+  const handleSortAsc = () => {
+    onColumnHeaderClicked({ column: { colId, sort: 'asc' } });
+    setSort('asc', false);
+  };
+
+  const handleSortDesc = () => {
+    onColumnHeaderClicked({ column: { colId, sort: 'desc' } });
+    setSort('desc', false);
+  };
 
   const handleSort = () => {
     if (!enableSorting) return;
@@ -156,14 +172,11 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     const current = initialSortState?.[0];
 
     if (!current || current.colId !== colId) {
-      onColumnHeaderClicked({ column: { colId, sort: 'asc' } });
-      setSort('asc', false);
+      handleSortAsc();
     } else if (current.sort === 'asc') {
-      onColumnHeaderClicked({ column: { colId, sort: 'desc' } });
-      setSort('desc', false);
+      handleSortDesc();
     } else {
-      onColumnHeaderClicked({ column: { colId, sort: null } });
-      setSort(null, false);
+      ClearSort();
     }
   };
 
@@ -184,15 +197,39 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     event.stopPropagation();
     setIsMenuVisible(!isMenuVisible);
   };
+  // if there is no current sort or if the current sort is our sort & the direction is descending
+  const shouldShowAsc =
+    !currentSort ||
+    (currentSort?.colId === colId && currentSort?.sort === 'desc') ||
+    currentSort?.colId !== colId;
+  const shouldShowDesc =
+    !currentSort ||
+    (currentSort?.colId === colId && currentSort?.sort === 'asc') ||
+    currentSort?.colId !== colId;
+
+  console.log({
+    shouldShowAsc,
+    shouldShowDesc,
+    currentSort,
+  });
 
   const menuContent = (
     <MenuContainer>
-      <div className="menu-item">
-        <ArrowDownOutlined /> Sort Descending
-      </div>
-      <div className="menu-item">
-        <span style={{ fontSize: 16 }}>↻</span> Clear Sort
-      </div>
+      {shouldShowAsc && (
+        <div onClick={handleSortAsc} className="menu-item">
+          <ArrowUpOutlined /> Sort Ascending
+        </div>
+      )}
+      {shouldShowDesc && (
+        <div onClick={handleSortDesc} className="menu-item">
+          <ArrowDownOutlined /> Sort Descending
+        </div>
+      )}
+      {currentSort && currentSort?.colId === colId && (
+        <div onClick={ClearSort} className="menu-item">
+          <span style={{ fontSize: 16 }}>↻</span> Clear Sort
+        </div>
+      )}
       <div className="menu-divider" />
       <div className="menu-item">
         <span>📌</span> Pin Column
