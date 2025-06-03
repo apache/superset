@@ -224,7 +224,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
           <span style={{ fontSize: 16 }}>↻</span> Clear Sort
         </div>
       )}
-      <div className="menu-divider" />
+      {/* <div className="menu-divider" />
       <div className="menu-item">
         <span>📌</span> Pin Column
       </div>
@@ -232,7 +232,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
       <div className="menu-item">Autosize All Columns</div>
       <div className="menu-divider" />
       <div className="menu-item">Choose Columns</div>
-      <div className="menu-item">Reset Columns</div>
+      <div className="menu-item">Reset Columns</div> */}
     </MenuContainer>
   );
 
