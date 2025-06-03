@@ -34,6 +34,7 @@ import { Space } from 'src/components/Space';
 import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
+import { useChartCustomizationModal } from '../../ChartCustomization/useChartCustomizationModal';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import FilterConfigurationLink from '../FilterConfigurationLink';
 
@@ -63,6 +64,7 @@ const StyledCheckbox = styled(Checkbox)`
 const CROSS_FILTERS_MENU_KEY = 'cross-filters-menu-key';
 const CROSS_FILTERS_SCOPING_MENU_KEY = 'cross-filters-scoping-menu-key';
 const ADD_EDIT_FILTERS_MENU_KEY = 'add-edit-filters-menu-key';
+const CHART_CUSTOMIZATION_MENU_KEY = 'chart-customization-menu-key';
 
 const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
   o === FilterBarOrientation.Vertical || o === FilterBarOrientation.Horizontal;
@@ -90,6 +92,9 @@ const FilterBarSettings = () => {
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
+
+  const { openChartCustomizationModal, ChartCustomizationModalComponent } =
+    useChartCustomizationModal();
 
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal();
 
@@ -147,6 +152,8 @@ const FilterBarSettings = () => {
         openScopingModal();
       } else if (selectedKey === ADD_EDIT_FILTERS_MENU_KEY) {
         openFilterConfigModal();
+      } else if (selectedKey === CHART_CUSTOMIZATION_MENU_KEY) {
+        openChartCustomizationModal();
       }
     },
     [
@@ -200,6 +207,10 @@ const FilterBarSettings = () => {
       });
       items.push({ type: 'divider' });
     }
+    items.push({
+      key: CHART_CUSTOMIZATION_MENU_KEY,
+      label: t('Chart customization'),
+    });
     if (canEdit) {
       items.push({
         key: 'placement',
@@ -282,6 +293,7 @@ const FilterBarSettings = () => {
       </Dropdown>
       {scopingModal}
       {FilterConfigModalComponent}
+      {ChartCustomizationModalComponent}
     </>
   );
 };
