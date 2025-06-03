@@ -111,48 +111,44 @@ function GroupListModal({
       requiredFields={requiredFields}
       initialValues={initialValues}
     >
-      <>
-        <FormItem
-          name="name"
-          label={t('Name')}
-          rules={[{ required: true, message: t('Name is required') }]}
-        >
-          <Input name="name" placeholder={t("Enter the group's name")} />
-        </FormItem>
-        <FormItem name="label" label={t('Label')}>
-          <Input name="label" placeholder={t("Enter the group's label")} />
-        </FormItem>
-        <FormItem name="description" label={t('Description')}>
-          <Input
-            name="description"
-            placeholder={t("Enter the group's description")}
-          />
-        </FormItem>
-        <FormItem name="roles" label={t('Roles')}>
-          <Select
-            name="roles"
-            mode="multiple"
-            placeholder={t('Select roles')}
-            options={roles.map(role => ({
-              value: role.id,
-              label: role.name,
-            }))}
-            getPopupContainer={trigger =>
-              trigger.closest('.antd5-modal-content')
-            }
-          />
-        </FormItem>
-        <FormItem name="users" label={t('Users')}>
-          <AsyncSelect
-            name="users"
-            mode="multiple"
-            placeholder={t('Select users')}
-            options={(filterValue, page, pageSize) =>
-              fetchUserOptions(filterValue, page, pageSize, addDangerToast)
-            }
-          />
-        </FormItem>
-      </>
+      <FormItem
+        name="name"
+        label={t('Name')}
+        rules={[{ required: true, message: t('Name is required') }]}
+      >
+        <Input name="name" placeholder={t("Enter the group's name")} />
+      </FormItem>
+      <FormItem name="label" label={t('Label')}>
+        <Input name="label" placeholder={t("Enter the group's label")} />
+      </FormItem>
+      <FormItem name="description" label={t('Description')}>
+        <Input
+          name="description"
+          placeholder={t("Enter the group's description")}
+        />
+      </FormItem>
+      <FormItem name="roles" label={t('Roles')}>
+        <Select
+          name="roles"
+          mode="multiple"
+          placeholder={t('Select roles')}
+          options={roles.map(role => ({
+            value: role.id,
+            label: role.name,
+          }))}
+          getPopupContainer={trigger => trigger.closest('.antd5-modal-content')}
+        />
+      </FormItem>
+      <FormItem name="users" label={t('Users')}>
+        <AsyncSelect
+          name="users"
+          mode="multiple"
+          placeholder={t('Select users')}
+          options={(filterValue, page, pageSize) =>
+            fetchUserOptions(filterValue, page, pageSize, addDangerToast)
+          }
+        />
+      </FormItem>
     </FormModal>
   );
 }

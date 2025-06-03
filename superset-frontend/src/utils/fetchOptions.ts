@@ -19,12 +19,13 @@
 
 import { SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
+import { Dispatch, SetStateAction } from 'react';
 
 interface FetchPaginatedOptions {
   endpoint: string;
   pageSize?: number;
   setData: (data: any[]) => void;
-  setLoadingState: React.Dispatch<React.SetStateAction<any>>;
+  setLoadingState: Dispatch<SetStateAction<any>>;
   filters?: SupersetFilter[];
   loadingKey: string;
   addDangerToast: (message: string) => void;
