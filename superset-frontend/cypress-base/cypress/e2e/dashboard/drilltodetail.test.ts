@@ -171,7 +171,7 @@ describe('Drill to detail modal', () => {
       it('paginates', () => {
         openModalFromMenu('big_number_total');
         // checking the data
-        cy.getBySel('row-count-label').should('contain', '75.7k rows');
+        cy.getBySel('row-count-label').should('contain', '75.7Tsd rows');
         cy.get('.virtual-table-cell').should($rows => {
           expect($rows).to.contain('Amy');
         });
@@ -469,7 +469,7 @@ describe('Drill to detail modal', () => {
 
           // checking the filter
           cy.getBySel('filter-val').should('contain', 'boy');
-          cy.getBySel('row-count-label').should('contain', '39.2k rows');
+          cy.getBySel('row-count-label').should('contain', '39.2Tsd rows');
           cy.get('.ant-pagination-item')
             .should('have.length', 6)
             .then($pages => {
@@ -480,7 +480,7 @@ describe('Drill to detail modal', () => {
           // close the filter and test that data was reloaded
           cy.getBySel('filter-col').find("[aria-label='close']").click();
           cy.wait('@samples');
-          cy.getBySel('row-count-label').should('contain', '75.7k rows');
+          cy.getBySel('row-count-label').should('contain', '75.7Tsd rows');
           cy.get('.ant-pagination-item-active').should('contain', '1');
           cy.get('.ant-pagination-item')
             .should('have.length', 6)
