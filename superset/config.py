@@ -1730,7 +1730,7 @@ STATIC_ASSETS_PREFIX = ""
 
 # Some sqlalchemy connection strings can open Superset to security risks.
 # Typically these should not be allowed.
-PREVENT_UNSAFE_DB_CONNECTIONS = True
+PREVENT_UNSAFE_DB_CONNECTIONS = False
 
 # If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
