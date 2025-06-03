@@ -60,6 +60,25 @@ slice_user = Table(
     Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
     Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
 )
+
+slice_role = Table(
+    "slice_roles",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
+        "slice_id",
+        Integer,
+        ForeignKey("slices.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "role_id",
+        Integer,
+        ForeignKey("ab_role.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -100,6 +119,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         secondary=slice_user,
         passive_deletes=True,
     )
+    roles = relationship(security_manager.role_model, secondary=slice_role)
     tags = relationship(
         "Tag",
         secondary="tagged_object",
@@ -238,6 +258,7 @@ class Slice(  # pylint: disable=too-many-public-methods
             "query_context": self.query_context,
             "modified": self.modified(),
             "owners": [owner.id for owner in self.owners],
+            "roles": [role.id for role in self.roles],
             "slice_id": self.id,
             "slice_name": self.slice_name,
             "slice_url": self.slice_url,

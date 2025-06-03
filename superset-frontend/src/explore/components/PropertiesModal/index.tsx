@@ -118,7 +118,7 @@ function PropertiesModal({
         setSelectedRoles(
           chart?.roles?.map((role: any) => ({
             value: role.id,
-            label: role.label,
+            label: role.name,
           })),
         );
       } catch (response) {
@@ -210,6 +210,14 @@ function PropertiesModal({
         }[]
       ).map(o => o.value);
     }
+    if (selectedRoles) {
+      payload.roles = (
+        selectedRoles as {
+          value: number;
+          label: string;
+        }[]
+      ).map(o => +o.value);
+    }
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       payload.tags = tags.map(tag => tag.id);
     }
@@ -227,6 +235,7 @@ function PropertiesModal({
         tags,
         id: slice.slice_id,
         owners: selectedOwners,
+        roles: selectedRoles,
       };
       onSave(updatedChart);
       addSuccessToast(t('Chart properties updated'));

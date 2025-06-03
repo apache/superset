@@ -78,6 +78,9 @@ owners_description = (
     "Owner are users ids allowed to delete or change this chart. "
     "If left empty you will be one of the owners of the chart."
 )
+roles_description = (
+    "Roles are roles ids allowed to list this chart. "
+)
 params_description = (
     "Parameters are generated dynamically when clicking the save "
     "or overwrite button in the explore view. "
@@ -247,6 +250,7 @@ class ChartPutSchema(Schema):
         validate=Length(0, 250),
     )
     owners = fields.List(fields.Integer(metadata={"description": owners_description}))
+    roles = fields.List(fields.Integer(metadata={"description": roles_description}))
     params = fields.String(
         metadata={"description": params_description}, allow_none=True
     )

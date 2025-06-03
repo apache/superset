@@ -33,13 +33,14 @@ from superset.commands.chart.exceptions import (
     DashboardsNotFoundValidationError,
     DatasourceTypeUpdateRequiredValidationError,
 )
-from superset.commands.utils import get_datasource_by_id, update_tags, validate_tags
+from superset.commands.utils import populate_roles, get_datasource_by_id, update_tags, validate_tags
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.slice import Slice
 from superset.tags.models import ObjectType
 from superset.utils.decorators import on_error, transaction
+
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         exceptions: list[ValidationError] = []
         dashboard_ids = self._properties.get("dashboards")
         owner_ids: Optional[list[int]] = self._properties.get("owners")
+        roles_ids: Optional[list[int]] = self._properties.get("roles")
         tag_ids: Optional[list[int]] = self._properties.get("tags")
 
         # Validate if datasource_id is provided datasource_type is required
@@ -127,6 +129,15 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             if len(dashboards) != len(dashboard_ids):
                 exceptions.append(DashboardsNotFoundValidationError())
             self._properties["dashboards"] = dashboards
+        
+        # Validate/Populate role
+        if roles_ids is None:
+            roles_ids = [role.id for role in self._model.roles]
+        try:
+            roles = populate_roles(roles_ids)
+            self._properties["roles"] = roles
+        except ValidationError as ex:
+            exceptions.append(ex)
 
         if exceptions:
             raise ChartInvalidError(exceptions=exceptions)
