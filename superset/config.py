@@ -350,18 +350,18 @@ OAUTH_PROVIDERS = [
         'token_key': 'access_token',
         'icon': 'fa-windows',
         'remote_app': {
-            'client_id': '9457f4a9-b8f7-45f6-a3db-50e94019c600',
-            'client_secret': 'e3da967e-6ab0-4b6c-85d6-150fabd09e7d',
+            'client_id': '09beb220-4f0a-4045-ab35-c04e2440a2f8',
+            'client_secret': '7ffd19f9-c389-4968-9b1e-2080f5b50251',
             # Replace with your actual client secret
-            'server_metadata_url': 'https://cybqa.pesapal.com/pesapalsso/.well-known/openid-configuration',
+            'server_metadata_url': 'https://myaccount.pesapal.com/pesapalsso/.well-known/openid-configuration',
             'client_kwargs': {
                 'scope': 'openid profile roles',  # Scopes from your configuration
                 'code_challenge_method': 'S256'
             },
-            'access_token_url': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/token',
-            'authorize_url': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/authorize',
-            'jwks_uri': 'https://cybqa.pesapal.com/pesapalsso/.well-known/jwks',
-            'userinfo_endpoint': 'https://cybqa.pesapal.com/pesapalsso/v2/connect/userinfo',
+            'access_token_url': 'https://myaccount.pesapal.com/pesapalsso/v2/connect/token',
+            'authorize_url': 'https://myaccount.pesapal.com/pesapalsso/v2/connect/authorize',
+            'jwks_uri': 'https://myaccount.pesapal.com/pesapalsso/.well-known/jwks',
+            'userinfo_endpoint': 'https://myaccount.pesapal.com/pesapalsso/v2/connect/userinfo',
             'access_token_method': 'POST',
             'token_endpoint_auth_method': 'client_secret_post'
 
@@ -536,8 +536,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "GLOBAL_ASYNC_QUERIES": False,
     "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
-    "ALERT_REPORTS": False,
-    "ALERT_REPORT_TABS": False,
+    "ALERT_REPORTS": True,
+    "ALERT_REPORT_TABS": True,
     "ALERT_REPORT_SLACK_V2": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_ADVANCED_DATA_TYPES": False,
