@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import unittest
+from datetime import timedelta
 from io import BytesIO
 from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
@@ -24,6 +25,7 @@ from zipfile import is_zipfile, ZipFile
 import prison
 import pytest
 import yaml
+from freezegun import freeze_time
 from sqlalchemy import inspect
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
@@ -1144,9 +1146,9 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test update dataset create column
         """
-
         # create example dataset by Command
         dataset = self.insert_default_dataset()
+        current_changed_on = dataset.changed_on
 
         new_column_data = {
             "column_name": "new_col",
@@ -1188,13 +1190,16 @@ class TestDatasetApi(SupersetTestCase):
             metric.pop("type_generic", None)
 
         data["result"]["metrics"].append(new_metric_data)
-        rv = self.client.put(
-            uri,
-            json={
-                "columns": data["result"]["columns"],
-                "metrics": data["result"]["metrics"],
-            },
-        )
+
+        with freeze_time() as frozen:
+            frozen.tick(delta=timedelta(seconds=3))
+            rv = self.client.put(
+                uri,
+                json={
+                    "columns": data["result"]["columns"],
+                    "metrics": data["result"]["metrics"],
+                },
+            )
 
         assert rv.status_code == 200
 
@@ -1232,6 +1237,10 @@ class TestDatasetApi(SupersetTestCase):
         assert metrics[1].verbose_name == new_metric_data["verbose_name"]
         assert metrics[1].warning_text == new_metric_data["warning_text"]
         assert str(metrics[1].uuid) == new_metric_data["uuid"]
+
+        # Validate that the changed_on is updated
+        updated_dataset = db.session.query(SqlaTable).filter_by(id=dataset.id).first()
+        assert updated_dataset.changed_on > current_changed_on
 
         self.items_to_delete = [dataset]
 
