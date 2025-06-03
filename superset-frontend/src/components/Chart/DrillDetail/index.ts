@@ -17,4 +17,4 @@
  * under the License.
  */
 
-export { default as DrillDetailMenuItems } from './DrillDetailMenuItems';
+export { useDrillDetailMenuItems } from './useDrillDetailMenuItems';

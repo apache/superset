@@ -111,16 +111,18 @@ const SaveQuery = ({
     database?.allows_virtual_table_explore !== undefined;
 
   const overlayMenu = (
-    <Menu>
-      <Menu.Item
-        onClick={() => {
-          logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
-          setShowSaveDatasetModal(true);
-        }}
-      >
-        {t('Save dataset')}
-      </Menu.Item>
-    </Menu>
+    <Menu
+      items={[
+        {
+          label: t('Save dataset'),
+          key: 'save-dataset',
+          onClick: () => {
+            logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
+            setShowSaveDatasetModal(true);
+          },
+        },
+      ]}
+    />
   );
 
   const queryPayload = () => ({
