@@ -160,8 +160,12 @@ const buildQuery: BuildQuery<TableChartFormData> = (
             options: {
               columns: percentMetricLabels,
               rename_columns: percentMetricLabels.map(m => `%${m}`),
-              totals: (formData.extra_form_data as Record<string, any>)
-                ?.contribution_totals?.totals,
+              totals:
+                (
+                  formData.extra_form_data as {
+                    contribution_totals?: { totals: Record<string, number> };
+                  }
+                )?.contribution_totals?.totals ?? {},
             },
           });
         } else {
