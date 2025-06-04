@@ -46,6 +46,7 @@ describe('RoleListDuplicateModal', () => {
     name: 'Admin',
     permission_ids: [10, 20],
     user_ids: [1],
+    group_ids: [],
   };
 
   const mockProps = {
