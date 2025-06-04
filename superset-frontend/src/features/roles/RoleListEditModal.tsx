@@ -34,7 +34,7 @@ import {
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { GroupObject } from 'src/pages/GroupsList';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
-import { UserObject } from 'src/pages/UsersList';
+import { type UserObject } from 'src/pages/UsersList/types';
 import {
   GroupsField,
   PermissionsField,

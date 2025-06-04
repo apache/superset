@@ -26,7 +26,7 @@ import {
   FormItem,
   FormInstance,
 } from '@superset-ui/core/components';
-import { Group, Role, UserObject } from 'src/pages/UsersList';
+import { Group, Role, UserObject } from 'src/pages/UsersList/types';
 import { Actions } from 'src/constants';
 import { BaseUserListModalProps, FormValues } from './types';
 import { createUser, updateUser, atLeastOneRoleOrGroup } from './utils';

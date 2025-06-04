@@ -16,11 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FormItem, Input, Select } from '@superset-ui/core/components';
+import {
+  FormItem,
+  Input,
+  Select,
+  AsyncSelect,
+} from '@superset-ui/core/components';
 import { t } from '@superset-ui/core';
 import { FC } from 'react';
 import { GroupObject } from 'src/pages/GroupsList';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
 import { FormattedPermission } from './types';
 import { fetchUserOptions } from '../groups/utils';
 

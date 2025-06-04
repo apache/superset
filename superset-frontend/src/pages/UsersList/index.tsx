@@ -18,11 +18,16 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { css, t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
-import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
+import {
+  Tooltip,
+  Icons,
+  DeleteModal,
+  ConfirmStatusChange,
+} from '@superset-ui/core/components';
 import {
   ListView,
   ListViewProps,
@@ -30,7 +35,6 @@ import {
   ListViewFilters,
 } from 'src/components';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { Icons } from '@superset-ui/core/components/Icons';
 import {
   UserListAddModal,
   UserListEditModal,
@@ -38,46 +42,9 @@ import {
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { deleteUser } from 'src/features/users/utils';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
-import { Tooltip } from 'src/components/Tooltip';
+import type { UsersListProps, Group, Role, UserObject } from './types';
 
 const PAGE_SIZE = 25;
-
-interface UsersListProps {
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-    roles: object;
-  };
-}
-
-export type Role = {
-  id: number;
-  name: string;
-};
-
-export type Group = {
-  id: number;
-  name: string;
-};
-
-export type UserObject = {
-  active: boolean;
-  changed_by: string | null;
-  changed_on: string;
-  created_by: string | null;
-  created_on: string;
-  email: string;
-  fail_login_count: number;
-  first_name: string;
-  id: number;
-  last_login: string;
-  last_name: string;
-  login_count: number;
-  roles: Role[];
-  username: string;
-  groups: Group[];
-};
 
 enum ModalType {
   ADD = 'add',
@@ -479,7 +446,7 @@ function UsersList({ user }: UsersListProps) {
         key: 'groups',
         id: 'groups',
         input: 'select',
-        operator: FilterOperator.RelationManyMany,
+        operator: ListViewFilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         selects: groups?.map(group => ({
           label: group.name,
