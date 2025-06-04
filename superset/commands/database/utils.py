@@ -57,10 +57,21 @@ def add_permissions(database: Database, ssh_tunnel: SSHTunnel | None) -> None:
     """
     # TODO: Migrate this to use the non-commiting add_pvm helper instead
     if database.db_engine_spec.supports_catalog:
-        catalogs = database.get_all_catalog_names(
-            cache=False,
-            ssh_tunnel=ssh_tunnel,
-        )
+        # Adding permissions to all catalogs (and all their schemas) can take a long
+        # time (minutes, while importing a chart, eg). If the database does not
+        # support cross-catalog queries (like Postgres), and the multi-catalog
+        # feature is not enabled, then we only need to add permissions to the
+        # default catalog.
+        if (
+            database.db_engine_spec.supports_cross_catalog_queries
+            or database.allow_multi_catalog
+        ):
+            catalogs = database.get_all_catalog_names(
+                cache=False,
+                ssh_tunnel=ssh_tunnel,
+            )
+        else:
+            catalogs = {database.get_default_catalog()}
 
         for catalog in catalogs:
             security_manager.add_permission_view_menu(
