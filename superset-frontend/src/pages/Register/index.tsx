@@ -18,7 +18,14 @@
  */
 
 import { SupersetClient, styled, t, css } from '@superset-ui/core';
-import { Button, Card, Flex, Form, Input } from '@superset-ui/core/components';
+import {
+  Button,
+  Card,
+  Flex,
+  Form,
+  Input,
+  Result,
+} from '@superset-ui/core/components';
 import { useState } from 'react';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import ReactCAPTCHA from 'react-google-recaptcha';
@@ -68,17 +75,24 @@ export default function Login() {
 
   if (activationHash) {
     return (
-      <Result
-        status="success"
-        title="Successfully Purchased Cloud Server ECS!"
-        subTitle="Order number: 2017182818828182881 Cloud server configuration takes 1-5 minutes, please wait."
-        extra={[
-          <Button type="primary" key="console">
-            Go Console
-          </Button>,
-          <Button key="buy">Buy Again</Button>,
-        ]}
-      />
+      <Flex
+        justify="center"
+        css={css`
+          width: 100%;
+        `}
+        data-test="register-form"
+      >
+        <Result
+          status="success"
+          title="Registration successful"
+          subTitle="Your account is activated. You can log in with your credentials."
+          extra={[
+            <Button type="default" href="/login/" data-test="login-button">
+              {t('Login')}
+            </Button>,
+          ]}
+        />
+      </Flex>
     );
   }
 

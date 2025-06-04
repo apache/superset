@@ -176,11 +176,11 @@ export const routes: Routes = [
     Component: Login,
   },
   {
-    path: '/register/',
+    path: '/register/activation/:activationHash',
     Component: Register,
   },
   {
-    path: '/register/activation/:activationHash',
+    path: '/register/',
     Component: Register,
   },
   {
@@ -306,7 +306,6 @@ if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
 const user = getBootstrapData()?.user;
 const authRegistrationEnabled =
   getBootstrapData()?.common.conf.AUTH_USER_REGISTRATION;
-console.log({ authRegistrationEnabled });
 const isAdmin = isUserAdmin(user);
 
 if (isAdmin) {
