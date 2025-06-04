@@ -17,6 +17,7 @@
 from typing import Any
 
 from flask_babel import lazy_gettext as _
+from flask_appbuilder.security.sqla.models import Role
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.query import Query
@@ -24,7 +25,7 @@ from sqlalchemy.orm.query import Query
 from superset import db, security_manager
 from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
-from superset.models.core import FavStar
+from superset.models.core import FavStar, Database
 from superset.models.slice import Slice
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
@@ -101,15 +102,50 @@ class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-method
 
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
-        if security_manager.can_access_all_datasources():
+        if security_manager.is_admin():
             return query
+
+        # is_rbac_disabled_filter = []
+        # is_rbac_disabled_filter.append(~(Slice.roles.any()))
+
+        datasource_perm_query = (
+            db.session.query(Slice.id)
+            .join(SqlaTable, Slice.datasource_id == SqlaTable.id)
+            .join(Database, SqlaTable.database_id == Database.id)
+            .filter(
+                and_(
+                    ~(Slice.roles.any()),
+                    get_dataset_access_filters(
+                        Slice,
+                        security_manager.can_access_all_datasources(),
+                    ),
+                )
+            )
+        )
+
+        roles_based_query = (
+            db.session.query(Slice.id)
+            .join(Slice.roles)
+            .filter(
+                and_(
+                    Slice.roles.any(),
+                    Role.id.in_([x.id for x in security_manager.get_user_roles()]),
+                ),
+            )
+        )
 
         table_alias = aliased(SqlaTable)
         query = query.join(table_alias, self.model.datasource_id == table_alias.id)
         query = query.join(
             models.Database, table_alias.database_id == models.Database.id
         )
-        return query.filter(get_dataset_access_filters(self.model))
+
+        return query.filter(
+            or_(
+                Slice.id.in_(datasource_perm_query),
+                Slice.id.in_(roles_based_query)
+            )
+        )
 
 
 class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods
