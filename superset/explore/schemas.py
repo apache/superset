@@ -25,6 +25,7 @@ class DatasetSchema(Schema):
         }
     )
     column_formats = fields.Dict(metadata={"description": "Column formats."})
+    currency_formats = fields.Dict(metadata={"description": "Currency formats."})
     columns = fields.List(fields.Dict(), metadata={"description": "Columns metadata."})
     database = fields.Dict(
         metadata={"description": "Database associated with the dataset."}

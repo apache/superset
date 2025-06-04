@@ -21,6 +21,7 @@ import { Dataset } from './types';
 
 export const TestDataset: Dataset = {
   column_formats: {},
+  currency_formats: {},
   columns: [
     {
       advanced_data_type: undefined,

@@ -312,6 +312,10 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
     def column_formats(self) -> dict[str, str | None]:
         return {m.metric_name: m.d3format for m in self.metrics if m.d3format}
 
+    @property
+    def currency_formats(self) -> dict[str, dict[str, str | None] | None]:
+        return {m.metric_name: m.currency for m in self.metrics if m.currency}
+
     def add_missing_metrics(self, metrics: list[SqlMetric]) -> None:
         existing_metrics = {m.metric_name for m in self.metrics}
         for metric in metrics:
@@ -374,6 +378,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "id": self.id,
             "uid": self.uid,
             "column_formats": self.column_formats,
+            "currency_formats": self.currency_formats,
             "description": self.description,
             "database": self.database.data,  # pylint: disable=no-member
             "default_endpoint": self.default_endpoint,
