@@ -413,6 +413,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
             pagination={pagination}
             paginationPageSize={pageSize}
             paginationPageSizeSelector={[10, 20, 50, 100, 200]}
+            suppressDragLeaveHidesColumns
             context={{
               onColumnHeaderClicked: handleColumnHeaderClick,
               initialSortState: getInitialSortState(
