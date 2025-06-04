@@ -64,7 +64,7 @@ const Table: React.FC<{ metadata: MetadataRow[] }> = ({ metadata }) => (
       {metadata?.length > 0 ? (
         metadata.map((row, index) => (
           <tr key={index}>
-            <td style={CELL_STYLE}>{row.table_name}</td>
+            <td style={CELL_STYLE}>{row.dataset_name}</td>
             <td style={CELL_STYLE}>
               {row.owners.map((owner: string, idx: number) => {
                 const color = `#${Math.floor(Math.random() * 10777215).toString(

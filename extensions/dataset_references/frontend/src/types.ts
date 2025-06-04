@@ -17,7 +17,7 @@
  * under the License.
  */
 export interface MetadataRow {
-  table_name: string;
+  dataset_name: string;
   owners: string[];
   latest_partition: string;
   estimated_row_count?: number;

@@ -89,7 +89,7 @@ class DatasetReferencesAPI(RestApi):
             estimated_row_count = row_counts.get(table_name)
             result.append(
                 {
-                    "table_name": table_name,
+                    "dataset_name": table_name,
                     "owners": owners_map.get(table_name, []),
                     "latest_partition": latest_partition,
                     "estimated_row_count": estimated_row_count,
