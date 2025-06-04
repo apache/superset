@@ -3,7 +3,7 @@ name: Prefer TypeScript
 on:
   push:
     branches:
-      - "master"
+      - "eurodata-master"
       - "[0-9].[0-9]*"
     paths:
       - "superset-frontend/src/**"

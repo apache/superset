@@ -39,7 +39,7 @@ test('RowCountLabel renders plural result', () => {
 
 test('RowCountLabel renders formatted result', () => {
   render(<RowCountLabel rowcount={1000} limit={10000} />);
-  const expectedText = '1k rows';
+  const expectedText = '1Tsd rows';
   expect(screen.getByText(expectedText)).toBeInTheDocument();
   userEvent.hover(screen.getByText(expectedText));
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();

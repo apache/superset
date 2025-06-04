@@ -90,20 +90,20 @@ describe('formatPieLabel', () => {
         params,
         numberFormatter,
       }),
-    ).toEqual(['My Label', '1.23k', '12.34%']);
+    ).toEqual(['My Label', '1.23Tsd', '12.34%']);
     expect(
       parseParams({
         params: { ...params, name: '<NULL>' },
         numberFormatter,
       }),
-    ).toEqual(['<NULL>', '1.23k', '12.34%']);
+    ).toEqual(['<NULL>', '1.23Tsd', '12.34%']);
     expect(
       parseParams({
         params: { ...params, name: '<NULL>' },
         numberFormatter,
         sanitizeName: true,
       }),
-    ).toEqual(['&lt;NULL&gt;', '1.23k', '12.34%']);
+    ).toEqual(['&lt;NULL&gt;', '1.23Tsd', '12.34%']);
   });
 });
 
@@ -192,7 +192,7 @@ describe('Pie label string template', () => {
         label_type: 'template',
         label_template: '{name}:{value}\n{percent}',
       }),
-    ).toEqual('Tablet:123k\n55.50%');
+    ).toEqual('Tablet:123Tsd\n55.50%');
   });
 
   it('should be formatted using the number formatter', () => {

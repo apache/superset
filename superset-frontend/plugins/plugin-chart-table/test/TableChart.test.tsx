@@ -100,7 +100,7 @@ describe('plugin-chart-table', () => {
       expect(tree.find('th').eq(1).text()).toEqual('Sum of Num');
       expect(cells.eq(0).text()).toEqual('Michael');
       expect(cells.eq(2).text()).toEqual('12.346%');
-      expect(cells.eq(4).text()).toEqual('2.47k');
+      expect(cells.eq(4).text()).toEqual('2.47Tsd');
     });
 
     it('render advanced data with currencies', () => {
@@ -120,7 +120,7 @@ describe('plugin-chart-table', () => {
       );
       expect(cells[0]).toHaveTextContent('Michael');
       expect(cells[2]).toHaveTextContent('12.346%');
-      expect(cells[4]).toHaveTextContent('$ 2.47k');
+      expect(cells[4]).toHaveTextContent('$ 2.47Tsd');
     });
 
     it('render raw data', () => {
@@ -160,8 +160,8 @@ describe('plugin-chart-table', () => {
       const cells = document.querySelectorAll('td');
 
       expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
-      expect(cells[0]).toHaveTextContent('$ 1.23k');
-      expect(cells[1]).toHaveTextContent('$ 10k');
+      expect(cells[0]).toHaveTextContent('$ 1.23Tsd');
+      expect(cells[1]).toHaveTextContent('$ 10Tsd');
       expect(cells[2]).toHaveTextContent('$ 0');
     });
 
@@ -202,7 +202,7 @@ describe('plugin-chart-table', () => {
       const cells = document.querySelectorAll('td');
 
       expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
-      expect(cells[0]).toHaveTextContent('$ 1.23k');
+      expect(cells[0]).toHaveTextContent('$ 1.23Tsd');
       expect(cells[1]).toHaveTextContent('$ 0.50');
       expect(cells[2]).toHaveTextContent('$ 0.61');
     });

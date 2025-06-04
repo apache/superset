@@ -158,7 +158,7 @@ describe('Test datatable', () => {
       .then(() => {
         cy.wait('@Samples');
         cy.get('.ant-tabs-tab-active').contains('Samples');
-        cy.get('[data-test="row-count-label"]').contains('1k rows');
+        cy.get('[data-test="row-count-label"]').contains('1Tsd rows');
         cy.get('.ant-empty-description').should('not.exist');
       });
   });

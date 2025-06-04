@@ -36,11 +36,11 @@ describe('NumberFormatterRegistrySingleton', () => {
   describe('getNumberFormatter(format)', () => {
     it('returns a format function', () => {
       const format = getNumberFormatter('.3s');
-      expect(format(12345)).toEqual('12.3k');
+      expect(format(12345)).toEqual('12.3Tsd');
     });
     it('returns a format function even given invalid format', () => {
-      const format = getNumberFormatter('xkcd');
-      expect(format(12345)).toEqual('12345 (Invalid format: xkcd)');
+      const format = getNumberFormatter('xTsdcd');
+      expect(format(12345)).toEqual('12345 (Invalid format: xTsdcd)');
     });
     it('falls back to default format if format is not specified', () => {
       const formatter = getNumberFormatter();
@@ -50,10 +50,10 @@ describe('NumberFormatterRegistrySingleton', () => {
   describe('formatNumber(format, value)', () => {
     it('format the given number using the specified format', () => {
       const output = formatNumber('.3s', 12345);
-      expect(output).toEqual('12.3k');
+      expect(output).toEqual('12.3Tsd');
     });
     it('falls back to the default formatter if the format is undefined', () => {
-      expect(formatNumber(undefined, 1000)).toEqual('1k');
+      expect(formatNumber(undefined, 1000)).toEqual('1Tsd');
     });
   });
   describe('setD3Format()', () => {
