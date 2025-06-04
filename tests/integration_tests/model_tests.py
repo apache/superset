@@ -40,7 +40,7 @@ from superset.db_engine_specs.postgres import PostgresEngineSpec  # noqa: F401
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase

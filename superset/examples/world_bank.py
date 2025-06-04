@@ -35,7 +35,7 @@ from superset.examples.helpers import (
 )
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import core as utils, json
 from superset.utils.core import DatasourceType
 

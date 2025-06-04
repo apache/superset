@@ -68,10 +68,7 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql.parse import SQLScript, SQLStatement
-from superset.sql_parse import (
-    sanitize_clause,
-)
+from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocMetric,
     Column as ColumnTyping,
@@ -92,6 +89,7 @@ from superset.utils.core import (
     remove_duplicates,
 )
 from superset.utils.dates import datetime_to_epoch
+from superset.utils.rls import apply_rls
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlMetric, TableColumn
@@ -124,8 +122,6 @@ def validate_adhoc_subquery(
     :raise SupersetSecurityException if sql contains sub-queries or
     nested sub-queries with table
     """
-    from superset.sql_lab import apply_rls
-
     parsed_statement = SQLStatement(sql, engine)
     if parsed_statement.has_subquery():
         if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
@@ -839,7 +835,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 engine,
             )
             try:
-                expression = sanitize_clause(expression)
+                expression = sanitize_clause(expression, engine)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
         return expression
@@ -1933,15 +1929,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if extras:
             where = extras.get("where")
             if where:
-                try:
-                    where = template_processor.process_template(f"({where})")
-                except TemplateError as ex:
-                    raise QueryObjectValidationError(
-                        _(
-                            "Error in jinja expression in WHERE clause: %(msg)s",
-                            msg=ex.message,
-                        )
-                    ) from ex
                 where = self._process_sql_expression(
                     expression=where,
                     database_id=self.database_id,
@@ -1952,15 +1939,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 where_clause_and += [self.text(where)]
             having = extras.get("having")
             if having:
-                try:
-                    having = template_processor.process_template(f"({having})")
-                except TemplateError as ex:
-                    raise QueryObjectValidationError(
-                        _(
-                            "Error in jinja expression in HAVING clause: %(msg)s",
-                            msg=ex.message,
-                        )
-                    ) from ex
                 having = self._process_sql_expression(
                     expression=having,
                     database_id=self.database_id,

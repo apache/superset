@@ -24,7 +24,7 @@ from pyhive.sqlalchemy_presto import PrestoDialect
 from sqlalchemy import column, sql, text, types
 from sqlalchemy.engine.url import make_url
 
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,

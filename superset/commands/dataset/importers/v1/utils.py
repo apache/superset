@@ -31,7 +31,7 @@ from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user
 

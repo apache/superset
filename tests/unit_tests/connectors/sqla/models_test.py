@@ -26,7 +26,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
 
 

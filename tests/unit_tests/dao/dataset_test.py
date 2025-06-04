@@ -26,7 +26,7 @@ from sqlalchemy.orm.session import Session
 
 from superset.daos.base import BaseDAO
 from superset.daos.dataset import DatasetDAO
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 
 
 def test_validate_update_uniqueness(session: Session) -> None:

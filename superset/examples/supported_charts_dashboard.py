@@ -24,7 +24,7 @@ from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import DatasourceType
 
