@@ -35,7 +35,7 @@ from superset.commands.database.exceptions import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.database import DatabaseDAO
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.backports import StrEnum
 from superset.utils.core import get_user
 from superset.utils.decorators import on_error, transaction

@@ -26,7 +26,7 @@ from superset.commands.exceptions import (
     ImportFailedError,
     UpdateFailedError,
 )
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 
 
 def get_dataset_exist_error_msg(table: Table) -> str:
