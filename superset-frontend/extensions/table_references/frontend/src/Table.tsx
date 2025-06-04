@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// eslint-disable-next-line no-restricted-syntax
 import React from 'react';
 import { Avatar } from '@apache-superset/core';
 import { MetadataRow } from './types';
@@ -29,16 +30,14 @@ const CELL_STYLE = {
   borderStyle: 'solid',
 };
 
-const getInitials = (fullName: string): string => {
-  return fullName
+const getInitials = (fullName: string): string =>
+  fullName
     .split(' ')
     .map(name => name[0].toUpperCase())
     .join('');
-};
 
 const Table: React.FC<{ metadata: MetadataRow[] }> = ({ metadata }) => (
   <table
-    border={1}
     style={{
       width: '100%',
       borderWidth: 1,
@@ -60,7 +59,7 @@ const Table: React.FC<{ metadata: MetadataRow[] }> = ({ metadata }) => (
       </tr>
     </thead>
     <tbody>
-      {metadata.length > 0 ? (
+      {metadata?.length > 0 ? (
         metadata.map((row, index) => (
           <tr key={index}>
             <td style={CELL_STYLE}>{row.table_name}</td>
