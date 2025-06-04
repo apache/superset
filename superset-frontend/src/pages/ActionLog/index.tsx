@@ -21,8 +21,11 @@ import { t, css } from '@superset-ui/core';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { ListView, ListViewFilterOperator } from 'src/components/ListView';
-import type { ListViewFilter } from 'src/components/ListView';
+import {
+  ListView,
+  ListViewFilterOperator,
+  type ListViewFilter,
+} from 'src/components/ListView';
 import { Typography } from '@superset-ui/core/components';
 import { fetchUserOptions } from 'src/features/groups/utils';
 
