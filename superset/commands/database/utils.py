@@ -67,9 +67,9 @@ def add_permissions(database: Database, ssh_tunnel: SSHTunnel | None) -> None:
             or database.allow_multi_catalog
         ):
             catalogs = database.get_all_catalog_names(
-                        cache=False,
-                        ssh_tunnel=ssh_tunnel,
-                    )
+                cache=False,
+                ssh_tunnel=ssh_tunnel,
+            )
         else:
             catalogs = {database.get_default_catalog()}
 
