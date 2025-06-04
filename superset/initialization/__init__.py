@@ -295,7 +295,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=__("User Registrations"),
             category="Security",
             category_label=__("Security"),
-            icon="fa-user-plus",
+            menu_cond=lambda: bool(appbuilder.app.config["AUTH_USER_REGISTRATION"]),
         )
 
         appbuilder.add_view(

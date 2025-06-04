@@ -180,6 +180,10 @@ export const routes: Routes = [
     Component: Register,
   },
   {
+    path: '/register/activation/:activationHash',
+    Component: Register,
+  },
+  {
     path: '/logout/',
     Component: Login,
   },
@@ -300,6 +304,9 @@ if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
 }
 
 const user = getBootstrapData()?.user;
+const authRegistrationEnabled =
+  getBootstrapData()?.common.conf.AUTH_USER_REGISTRATION;
+console.log({ authRegistrationEnabled });
 const isAdmin = isUserAdmin(user);
 
 if (isAdmin) {
@@ -317,6 +324,13 @@ if (isAdmin) {
       Component: GroupsList,
     },
   );
+}
+
+if (authRegistrationEnabled) {
+  routes.push({
+    path: '/registrations/',
+    Component: UserRegistrations,
+  });
 }
 
 const frontEndRoutes: Record<string, boolean> = routes

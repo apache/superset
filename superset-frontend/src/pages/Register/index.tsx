@@ -22,6 +22,7 @@ import { Button, Card, Flex, Form, Input } from '@superset-ui/core/components';
 import { useState } from 'react';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import ReactCAPTCHA from 'react-google-recaptcha';
+import { useParams } from 'react-router-dom';
 
 interface RegisterForm {
   username: string;
@@ -58,11 +59,28 @@ export default function Login() {
   const [form] = Form.useForm<RegisterForm>();
   const [loading, setLoading] = useState(false);
   const [captchaResponse, setCaptchaResponse] = useState<string | null>(null);
+  const { activationHash } = useParams<{ activationHash?: string }>();
 
   const bootstrapData = getBootstrapData();
 
   const authRecaptchaPublicKey: string =
     bootstrapData.common.conf.RECAPTCHA_PUBLIC_KEY || '';
+
+  if (activationHash) {
+    return (
+      <Result
+        status="success"
+        title="Successfully Purchased Cloud Server ECS!"
+        subTitle="Order number: 2017182818828182881 Cloud server configuration takes 1-5 minutes, please wait."
+        extra={[
+          <Button type="primary" key="console">
+            Go Console
+          </Button>,
+          <Button key="buy">Buy Again</Button>,
+        ]}
+      />
+    );
+  }
 
   const onFinish = (values: RegisterForm) => {
     setLoading(true);
