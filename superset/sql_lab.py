@@ -53,7 +53,7 @@ from superset.extensions import celery_app, event_logger
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql.parse import SQLStatement, Table
+from superset.sql.parse import SQLScript, SQLStatement, Table
 from superset.sql_parse import (
     CtasMethod,
     insert_rls_as_subquery,
@@ -242,7 +242,10 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
     if not database.allow_dml:
         errors = []
         try:
-            parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
+            parsed_statement = SQLStatement(
+                statement=sql_statement,
+                engine=db_engine_spec.engine,
+            )
             disallowed = parsed_statement.is_mutating()
         except SupersetParseError as ex:
             # if we fail to parse the query, disallow by default
@@ -263,6 +266,7 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
             )
             raise SupersetErrorsException(errors)
 
+    original_sql = sql
     if apply_ctas:
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)
@@ -277,7 +281,7 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
         query.select_as_cta_used = True
 
     # Do not apply limit to the CTA queries when SQLLAB_CTAS_NO_LIMIT is set to true
-    if db_engine_spec.is_select_query(parsed_query) and not (
+    if not SQLScript(original_sql, db_engine_spec.engine).has_mutation() and not (
         query.select_as_cta_used and SQLLAB_CTAS_NO_LIMIT
     ):
         if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
@@ -553,7 +557,7 @@ def execute_sql_statements(  # noqa: C901
 
         # Commit the connection so CTA queries will create the table and any DML.
         should_commit = (
-            not db_engine_spec.is_select_query(parsed_query)  # check if query is DML
+            SQLScript(rendered_query, db_engine_spec.engine).has_mutation()
             or apply_ctas
         )
         if should_commit:

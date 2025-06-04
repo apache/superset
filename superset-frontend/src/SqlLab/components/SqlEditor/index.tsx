@@ -115,6 +115,8 @@ import {
   LOG_ACTIONS_SQLLAB_STOP_QUERY,
   Logger,
 } from 'src/logger/LogUtils';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { commands } from 'src/extensions';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';
@@ -129,8 +131,6 @@ import KeyboardShortcutButton, {
   KEY_MAP,
   KeyboardShortcut,
 } from '../KeyboardShortcutButton';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
-import { commands } from 'src/extensions';
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -326,6 +326,8 @@ const SqlEditor: FC<Props> = ({
   const northPaneRef = useRef<HTMLDivElement>(null);
 
   const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
+
+  const isTempId = (value: unknown): boolean => Number.isNaN(Number(value));
 
   const startQuery = useCallback(
     (ctasArg = false, ctas_method = CtasEnum.Table) => {
@@ -962,7 +964,7 @@ const SqlEditor: FC<Props> = ({
           )}
           {isActive && (
             <AceEditorWrapper
-              autocomplete={autocompleteEnabled}
+              autocomplete={autocompleteEnabled && !isTempId(queryEditor.id)}
               onBlur={onSqlChanged}
               onChange={onSqlChanged}
               queryEditorId={queryEditor.id}

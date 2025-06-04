@@ -27,12 +27,9 @@ from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
 
 import sqlglot
-import sqlparse
-from deprecation import deprecated
 from sqlglot import exp
 from sqlglot.dialects.dialect import Dialect, Dialects
 from sqlglot.errors import ParseError
-from sqlglot.expressions import Func
 from sqlglot.optimizer.pushdown_predicates import pushdown_predicates
 from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 
@@ -99,6 +96,18 @@ SQLGLOT_DIALECTS = {
 }
 
 
+class LimitMethod(enum.Enum):
+    """
+    Limit methods.
+
+    This is used to determine how to add a limit to a SQL statement.
+    """
+
+    FORCE_LIMIT = enum.auto()
+    WRAP_SQL = enum.auto()
+    FETCH_MANY = enum.auto()
+
+
 @dataclass(eq=True, frozen=True)
 class Table:
     """
@@ -155,12 +164,17 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
 
     def __init__(
         self,
-        statement: str,
-        engine: str,
+        statement: str | None = None,
+        engine: str = "base",
         ast: InternalRepresentation | None = None,
     ):
-        self._sql = statement
-        self._parsed = ast or self._parse_statement(statement, engine)
+        if ast:
+            self._parsed = ast
+        elif statement:
+            self._parsed = self._parse_statement(statement, engine)
+        else:
+            raise SupersetParseError("Either statement or ast must be provided")
+
         self.engine = engine
         self.tables = self._extract_tables_from_statement(self._parsed, self.engine)
 
@@ -237,6 +251,31 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def check_functions_present(self, functions: set[str]) -> bool:
+        """
+        Check if any of the given functions are present in the script.
+
+        :param functions: List of functions to check for
+        :return: True if any of the functions are present
+        """
+        raise NotImplementedError()
+
+    def get_limit_value(self) -> int | None:
+        """
+        Get the limit value of the statement.
+        """
+        raise NotImplementedError()
+
+    def set_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """
+        Add a limit to the statement.
+        """
+        raise NotImplementedError()
+
     def __str__(self) -> str:
         return self.format()
 
@@ -250,8 +289,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
     def __init__(
         self,
-        statement: str,
-        engine: str,
+        statement: str | None = None,
+        engine: str = "base",
         ast: exp.Expression | None = None,
     ):
         self._dialect = SQLGLOT_DIALECTS.get(engine)
@@ -389,7 +428,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             and self._parsed.expression.name.upper().startswith("ANALYZE ")
         ):
             analyzed_sql = self._parsed.expression.name[len("ANALYZE ") :]
-            return SQLStatement(analyzed_sql, self.engine).is_mutating()
+            return SQLStatement(
+                statement=analyzed_sql,
+                engine=self.engine,
+            ).is_mutating()
 
         return False
 
@@ -397,34 +439,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Pretty-format the SQL statement.
         """
-        if self._dialect:
-            try:
-                write = Dialect.get_or_raise(self._dialect)
-                return write.generate(
-                    self._parsed,
-                    copy=False,
-                    comments=comments,
-                    pretty=True,
-                )
-            except ValueError:
-                pass
-
-        return self._fallback_formatting()
-
-    @deprecated(deprecated_in="4.0")
-    def _fallback_formatting(self) -> str:
-        """
-        Format SQL without a specific dialect.
-
-        Reformatting SQL using the generic sqlglot dialect is known to break queries.
-        For example, it will change `foo NOT IN (1, 2)` to `NOT foo IN (1,2)`, which
-        breaks the query for Firebolt. To avoid this, we use sqlparse for formatting
-        when the dialect is not known.
-
-        In 5.0 we should remove `sqlparse`, and the method should return the query
-        unmodified.
-        """
-        return sqlparse.format(self._sql, reindent=True, keyword_case="upper")
+        return Dialect.get_or_raise(self._dialect).generate(
+            self._parsed,
+            copy=True,
+            comments=comments,
+            pretty=True,
+        )
 
     def get_settings(self) -> dict[str, str | bool]:
         """
@@ -447,12 +467,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         # only optimize statements that have a custom dialect
         if not self._dialect:
-            return SQLStatement(self._sql, self.engine, self._parsed.copy())
+            return SQLStatement(ast=self._parsed.copy(), engine=self.engine)
 
         optimized = pushdown_predicates(self._parsed, dialect=self._dialect)
-        sql = optimized.sql(dialect=self._dialect)
 
-        return SQLStatement(sql, self.engine, optimized)
+        return SQLStatement(ast=optimized, engine=self.engine)
 
     def check_functions_present(self, functions: set[str]) -> bool:
         """
@@ -467,9 +486,45 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 if function.sql_name() != "ANONYMOUS"
                 else function.name.upper()
             )
-            for function in self._parsed.find_all(Func)
+            for function in self._parsed.find_all(exp.Func)
         }
         return any(function.upper() in present for function in functions)
+
+    def get_limit_value(self) -> int | None:
+        """
+        Parse a SQL query and return the `LIMIT` or `TOP` value, if present.
+        """
+        if limit_node := self._parsed.args.get("limit"):
+            literal = limit_node.args.get("expression") or getattr(
+                limit_node, "this", None
+            )
+            if isinstance(literal, exp.Literal) and literal.is_int:
+                return int(literal.name)
+
+        return None
+
+    def set_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """
+        Modify the `LIMIT` or `TOP` value of the SQL statement inplace.
+        """
+        if method == LimitMethod.FORCE_LIMIT:
+            self._parsed.args["limit"] = exp.Limit(
+                expression=exp.Literal(this=str(limit), is_string=False)
+            )
+        elif method == LimitMethod.WRAP_SQL:
+            self._parsed = exp.Select(
+                expressions=[exp.Star()],
+                limit=exp.Limit(
+                    expression=exp.Literal(this=str(limit), is_string=False)
+                ),
+                **{"from": exp.From(this=exp.Subquery(this=self._parsed.copy()))},
+            )
+        else:  # method == LimitMethod.FETCH_MANY
+            pass
 
 
 class KQLSplitState(enum.Enum):
@@ -486,48 +541,121 @@ class KQLSplitState(enum.Enum):
     INSIDE_MULTILINE_STRING = enum.auto()
 
 
+class KQLTokenType(enum.Enum):
+    """
+    Token types for KQL.
+    """
+
+    STRING = enum.auto()
+    WORD = enum.auto()
+    NUMBER = enum.auto()
+    SEMICOLON = enum.auto()
+    WHITESPACE = enum.auto()
+    OTHER = enum.auto()
+
+
+def classify_non_string_kql(text: str) -> list[tuple[KQLTokenType, str]]:
+    """
+    Classify non-string KQL.
+    """
+    tokens: list[tuple[KQLTokenType, str]] = []
+    for m in re.finditer(r"[A-Za-z_][A-Za-z_0-9]*|\d+|\s+|.", text):
+        tok = m.group(0)
+        if tok == ";":
+            tokens.append((KQLTokenType.SEMICOLON, tok))
+        elif tok.isdigit():
+            tokens.append((KQLTokenType.NUMBER, tok))
+        elif re.match(r"[A-Za-z_][A-Za-z_0-9]*", tok):
+            tokens.append((KQLTokenType.WORD, tok))
+        elif re.match(r"\s+", tok):
+            tokens.append((KQLTokenType.WHITESPACE, tok))
+        else:
+            tokens.append((KQLTokenType.OTHER, tok))
+
+    return tokens
+
+
+def tokenize_kql(kql: str) -> list[tuple[KQLTokenType, str]]:
+    """
+    Turn a KQL script into a flat list of tokens.
+    """
+
+    state = KQLSplitState.OUTSIDE_STRING
+    tokens: list[tuple[KQLTokenType, str]] = []
+    buffer = ""
+    script = kql
+
+    for i, ch in enumerate(script):
+        if state == KQLSplitState.OUTSIDE_STRING:
+            if ch in {"'", '"'}:
+                if buffer:
+                    tokens.extend(classify_non_string_kql(buffer))
+                    buffer = ""
+                state = (
+                    KQLSplitState.INSIDE_SINGLE_QUOTED_STRING
+                    if ch == "'"
+                    else KQLSplitState.INSIDE_DOUBLE_QUOTED_STRING
+                )
+                buffer = ch
+            elif ch == "`" and script[i - 2 : i] == "``":
+                if buffer:
+                    tokens.extend(classify_non_string_kql(buffer))
+                    buffer = ""
+                state = KQLSplitState.INSIDE_MULTILINE_STRING
+                buffer = "`"
+            else:
+                buffer += ch
+        else:
+            buffer += ch
+            end_str = (
+                (
+                    state == KQLSplitState.INSIDE_SINGLE_QUOTED_STRING
+                    and ch == "'"
+                    and script[i - 1] != "\\"
+                )
+                or (
+                    state == KQLSplitState.INSIDE_DOUBLE_QUOTED_STRING
+                    and ch == '"'
+                    and script[i - 1] != "\\"
+                )
+                or (
+                    state == KQLSplitState.INSIDE_MULTILINE_STRING
+                    and ch == "`"
+                    and script[i - 2 : i] == "``"
+                )
+            )
+            if end_str:
+                tokens.append((KQLTokenType.STRING, buffer))
+                buffer = ""
+                state = KQLSplitState.OUTSIDE_STRING
+
+    if buffer:
+        tokens.extend(classify_non_string_kql(buffer))
+
+    return tokens
+
+
 def split_kql(kql: str) -> list[str]:
     """
-    Custom function for splitting KQL statements.
+    Split a KQL script into statements on semicolons,
+    ignoring those inside strings.
     """
-    statements = []
-    state = KQLSplitState.OUTSIDE_STRING
-    statement_start = 0
-    script = kql if kql.endswith(";") else kql + ";"
-    for i, character in enumerate(script):
-        if state == KQLSplitState.OUTSIDE_STRING:
-            if character == ";":
-                statements.append(script[statement_start:i])
-                statement_start = i + 1
-            elif character == "'":
-                state = KQLSplitState.INSIDE_SINGLE_QUOTED_STRING
-            elif character == '"':
-                state = KQLSplitState.INSIDE_DOUBLE_QUOTED_STRING
-            elif character == "`" and script[i - 2 : i] == "``":
-                state = KQLSplitState.INSIDE_MULTILINE_STRING
+    tokens = tokenize_kql(kql)
+    stmts_tokens: list[list[tuple[KQLTokenType, str]]] = []
+    current: list[tuple[KQLTokenType, str]] = []
 
-        elif (
-            state == KQLSplitState.INSIDE_SINGLE_QUOTED_STRING
-            and character == "'"
-            and script[i - 1] != "\\"
-        ):
-            state = KQLSplitState.OUTSIDE_STRING
+    for ttype, val in tokens:
+        if ttype == KQLTokenType.SEMICOLON:
+            if current:
+                stmts_tokens.append(current)
+                current = []
+        else:
+            current.append((ttype, val))
 
-        elif (
-            state == KQLSplitState.INSIDE_DOUBLE_QUOTED_STRING
-            and character == '"'
-            and script[i - 1] != "\\"
-        ):
-            state = KQLSplitState.OUTSIDE_STRING
+    if current:
+        stmts_tokens.append(current)
 
-        elif (
-            state == KQLSplitState.INSIDE_MULTILINE_STRING
-            and character == "`"
-            and script[i - 2 : i] == "``"
-        ):
-            state = KQLSplitState.OUTSIDE_STRING
-
-    return statements
+    return ["".join(val for _, val in stmt) for stmt in stmts_tokens]
 
 
 class KustoKQLStatement(BaseSQLStatement[str]):
@@ -546,6 +674,14 @@ class KustoKQLStatement(BaseSQLStatement[str]):
     See https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/ for more
     details about it.
     """
+
+    def __init__(
+        self,
+        statement: str | None = None,
+        engine: str = "kustokql",
+        ast: str | None = None,
+    ):
+        super().__init__(statement, engine, ast)
 
     @classmethod
     def split_script(
@@ -604,7 +740,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         Pretty-format the SQL statement.
         """
-        return self._sql.strip()
+        return self._parsed.strip()
 
     def get_settings(self) -> dict[str, str | bool]:
         """
@@ -635,7 +771,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
 
         Kusto KQL doesn't support optimization, so this method is a no-op.
         """
-        return KustoKQLStatement(self._sql, self.engine, self._parsed)
+        return KustoKQLStatement(ast=self._parsed, engine=self.engine)
 
     def check_functions_present(self, functions: set[str]) -> bool:
         """
@@ -646,6 +782,57 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         logger.warning("Kusto KQL doesn't support checking for functions present.")
         return True
+
+    def get_limit_value(self) -> int | None:
+        """
+        Get the limit value of the statement.
+        """
+        tokens = [
+            token
+            for token in tokenize_kql(self._parsed)
+            if token[0] != KQLTokenType.WHITESPACE
+        ]
+        for idx, (ttype, val) in enumerate(tokens):
+            if ttype != KQLTokenType.STRING and val.lower() in {"take", "limit"}:
+                if idx + 1 < len(tokens) and tokens[idx + 1][0] == KQLTokenType.NUMBER:
+                    return int(tokens[idx + 1][1])
+                break
+
+        return None
+
+    def set_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """
+        Add a limit to the statement.
+        """
+        if method != LimitMethod.FORCE_LIMIT:
+            raise SupersetParseError("Kusto KQL only supports the FORCE_LIMIT method.")
+
+        tokens = tokenize_kql(self._parsed)
+        found_limit_token = False
+        for idx, (ttype, val) in enumerate(tokens):
+            if ttype != KQLTokenType.STRING and val.lower() in {"take", "limit"}:
+                found_limit_token = True
+
+            if found_limit_token and ttype == KQLTokenType.NUMBER:
+                tokens[idx] = (KQLTokenType.NUMBER, str(limit))
+                break
+        else:
+            tokens.extend(
+                [
+                    (KQLTokenType.WHITESPACE, " "),
+                    (KQLTokenType.WORD, "|"),
+                    (KQLTokenType.WHITESPACE, " "),
+                    (KQLTokenType.WORD, "take"),
+                    (KQLTokenType.WHITESPACE, " "),
+                    (KQLTokenType.NUMBER, str(limit)),
+                ]
+            )
+
+        self._parsed = "".join(val for _, val in tokens)
 
 
 class SQLScript:
