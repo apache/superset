@@ -18,21 +18,25 @@
 
 
 import pytest
+from pytest_mock import MockerFixture
 from sqlglot import Dialects, parse_one
 
-from superset.exceptions import SupersetParseError
+from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.sql.parse import (
     CTASMethod,
+    extract_tables_from_jinja_sql,
     extract_tables_from_statement,
     KustoKQLStatement,
     LimitMethod,
     RLSMethod,
+    sanitize_clause,
     split_kql,
     SQLGLOT_DIALECTS,
     SQLScript,
     SQLStatement,
     Table,
 )
+from tests.integration_tests.conftest import with_feature_flags
 
 
 def test_table() -> None:
@@ -290,8 +294,6 @@ def test_extract_tables_show_tables_from() -> None:
 def test_format_show_tables() -> None:
     """
     Test format when `ast.sql()` raises an exception.
-
-    In that case sqlparse should be used instead.
     """
     assert (
         SQLScript("SHOW TABLES FROM s1 like '%order%'", "mysql").format()
@@ -2385,3 +2387,98 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
     Test the `is_valid_cvas` method.
     """
     assert SQLScript(sql, engine).is_valid_cvas() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected, engine",
+    [
+        ("col = 1", "col = 1", "base"),
+        ("1=\t\n1", "1 = 1", "base"),
+        ("(col = 1)", "(\n  col = 1\n)", "base"),
+        ("(col1 = 1) AND (col2 = 2)", "(\n  col1 = 1\n) AND (\n  col2 = 2\n)", "base"),
+        ("col = 'abc' -- comment", "col = 'abc' /* comment */", "base"),
+        ("col = 'col1 = 1) AND (col2 = 2'", "col = 'col1 = 1) AND (col2 = 2'", "base"),
+        ("col = 'select 1; select 2'", "col = 'select 1; select 2'", "base"),
+        ("col = 'abc -- comment'", "col = 'abc -- comment'", "base"),
+        ("col1 = 1) AND (col2 = 2)", QueryClauseValidationException, "base"),
+        ("(col1 = 1) AND (col2 = 2", QueryClauseValidationException, "base"),
+        ("col1 = 1) AND (col2 = 2", QueryClauseValidationException, "base"),
+        ("(col1 = 1)) AND ((col2 = 2)", QueryClauseValidationException, "base"),
+        ("TRUE; SELECT 1", QueryClauseValidationException, "base"),
+    ],
+)
+def test_sanitize_clause(sql: str, expected: str | Exception, engine: str) -> None:
+    """
+    Test the `sanitize_clause` function.
+    """
+    if isinstance(expected, str):
+        assert sanitize_clause(sql, engine) == expected
+    else:
+        with pytest.raises(expected):
+            sanitize_clause(sql, engine)
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "hive",
+        "presto",
+        "trino",
+    ],
+)
+@pytest.mark.parametrize(
+    "macro,expected",
+    [
+        (
+            "latest_partition('foo.bar')",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition(' foo.bar ')",  # Non-atypical user error which works
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition('foo.%s'|format('bar'))",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_sub_partition('foo.bar', baz='qux')",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition('foo.%s'|format(str('bar')))",
+            set(),
+        ),
+        (
+            "latest_partition('foo.{}'.format('bar'))",
+            set(),
+        ),
+    ],
+)
+def test_extract_tables_from_jinja_sql(
+    mocker: MockerFixture,
+    engine: str,
+    macro: str,
+    expected: set[Table],
+) -> None:
+    assert (
+        extract_tables_from_jinja_sql(
+            sql=f"'{{{{ {engine}.{macro} }}}}'",
+            database=mocker.Mock(),
+        )
+        == expected
+    )
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=False)
+def test_extract_tables_from_jinja_sql_disabled(mocker: MockerFixture) -> None:
+    """
+    Test the function when the feature flag is disabled.
+    """
+    database = mocker.Mock()
+    database.db_engine_spec.engine = "mssql"
+
+    assert extract_tables_from_jinja_sql(
+        sql="SELECT 1 FROM t",
+        database=database,
+    ) == {Table("t")}

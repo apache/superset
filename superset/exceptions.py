@@ -381,7 +381,7 @@ class OAuth2Error(SupersetErrorException):
         )
 
 
-class DisallowedSQLFunction(SupersetErrorException):
+class SupersetDisallowedSQLFunctionException(SupersetErrorException):
     """
     Disallowed function found on SQL statement
     """

@@ -39,7 +39,7 @@ from superset.common.utils.time_range_utils import get_since_until_from_time_ran
 from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import (
     AdhocFilterClause,
