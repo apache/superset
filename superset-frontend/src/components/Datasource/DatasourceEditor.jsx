@@ -1058,7 +1058,7 @@ class DatasourceEditor extends PureComponent {
           font-size: ${theme.typography.sizes.s}px;
         `}
       >
-        {this.props.database?.error && t('Error executing query.')}
+        {this.props.database?.error && t('Error executing query. ')}
       </span>
       {this.renderOpenInSqlLabLink(true)}
       <span
@@ -1066,7 +1066,7 @@ class DatasourceEditor extends PureComponent {
           font-size: ${theme.typography.sizes.s}px;
         `}
       >
-        {t('to check for details.')}
+        {t(' to check for details.')}
       </span>
     </>
   );
@@ -1267,7 +1267,9 @@ class DatasourceEditor extends PureComponent {
                             font-size: ${theme.typography.sizes.s}px;
                           `}
                         >
-                          {t('In this view you can preview the first 25 rows.')}
+                          {t(
+                            'In this view you can preview the first 25 rows. ',
+                          )}
                         </span>
                         {this.renderOpenInSqlLabLink()}
                         <span
@@ -1276,7 +1278,7 @@ class DatasourceEditor extends PureComponent {
                             font-size: ${theme.typography.sizes.s}px;
                           `}
                         >
-                          {t('to see details.')}
+                          {t(' to see details.')}
                         </span>
                       </div>
                       <ResultTable
