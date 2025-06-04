@@ -1,4 +1,4 @@
-import controlPanel from '../Timeseries/Regular/Line/controlPanel';
+import controlPanel from './Regular/Line/controlPanel';
 // Define the createGenericControlPanel function outside of the class
 const createRemovedSeriesStyleControlPanel = {
   ...controlPanel,
