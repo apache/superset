@@ -36,6 +36,36 @@ REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
 FRONTEND_DIST_REGEX = re.compile(r"/frontend/dist")
 
 
+def ensure_npm_available() -> None:
+    """Abort if `npm` is not on PATH."""
+    if shutil.which("npm") is None:
+        click.secho(
+            "❌ npm is not installed or not on your PATH.",
+            err=True,
+            fg="red",
+        )
+        sys.exit(1)
+
+
+def init_frontend_deps(frontend_dir: Path) -> None:
+    """
+    If node_modules is missing under `frontend_dir`, run `npm ci`.
+    """
+    node_modules = frontend_dir / "node_modules"
+    if not node_modules.exists():
+        click.secho("⚙️  node_modules not found, running `npm ci`…", fg="cyan")
+        ensure_npm_available()
+        res = subprocess.run(  # noqa: S603
+            ["npm", "ci"],  # noqa: S607
+            cwd=frontend_dir,
+            text=True,
+        )
+        if res.returncode != 0:
+            click.secho("❌ `npm ci` failed. Aborting.", err=True, fg="red")
+            sys.exit(1)
+        click.secho("✅ Dependencies installed", fg="green")
+
+
 def clean_dist(cwd: Path) -> None:
     dist_dir = cwd / "dist"
     if dist_dir.exists():
@@ -166,6 +196,8 @@ def app() -> None:
 
 @app.command()
 def validate() -> None:
+    ensure_npm_available()
+
     click.secho("✅ Validation successful", fg="green")
 
 
@@ -175,8 +207,8 @@ def build() -> None:
     frontend_dir = cwd / "frontend"
     backend_dir = cwd / "backend"
 
+    init_frontend_deps(frontend_dir)
     clean_dist(cwd)
-
     remote_entry = rebuild_frontend(cwd, frontend_dir)
 
     pyproject = read_toml(backend_dir / "pyproject.toml")
@@ -241,6 +273,7 @@ def dev() -> None:
     frontend_dir = cwd / "frontend"
     backend_dir = cwd / "backend"
 
+    init_frontend_deps(frontend_dir)
     clean_dist(cwd)
     remote_entry = rebuild_frontend(cwd, frontend_dir)
     rebuild_backend(cwd)
