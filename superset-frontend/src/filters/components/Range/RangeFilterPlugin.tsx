@@ -59,15 +59,6 @@ const Wrapper = styled.div`
   }
 `;
 
-const SliderWrapper = styled.div`
-  ${({ theme }) => `
-    margin: ${theme.gridUnit * 4}px 0;
-    padding: 0 ${theme.gridUnit}px;
-    width: 100%;
-    min-width: 200px;
-  `}
-`;
-
 const HorizontalLayout = styled.div`
   ${({ theme }) => `
     display: flex;
@@ -536,32 +527,28 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const renderSlider = () => {
     if (enableSingleValue !== undefined) {
       return (
-        <SliderWrapper>
-          <Slider
-            min={min}
-            max={max}
-            value={Array.isArray(sliderValue) ? sliderValue[0] : sliderValue}
-            onChange={handleSliderChange}
-            tooltip={{
-              formatter: val => (val !== null ? numberFormatter(val) : ''),
-            }}
-          />
-        </SliderWrapper>
-      );
-    }
-    return (
-      <SliderWrapper>
         <Slider
           min={min}
           max={max}
-          range
-          value={Array.isArray(sliderValue) ? sliderValue : [min, sliderValue]}
+          value={Array.isArray(sliderValue) ? sliderValue[0] : sliderValue}
           onChange={handleSliderChange}
           tooltip={{
             formatter: val => (val !== null ? numberFormatter(val) : ''),
           }}
         />
-      </SliderWrapper>
+      );
+    }
+    return (
+      <Slider
+        min={min}
+        max={max}
+        range
+        value={Array.isArray(sliderValue) ? sliderValue : [min, sliderValue]}
+        onChange={handleSliderChange}
+        tooltip={{
+          formatter: val => (val !== null ? numberFormatter(val) : ''),
+        }}
+      />
     );
   };
 

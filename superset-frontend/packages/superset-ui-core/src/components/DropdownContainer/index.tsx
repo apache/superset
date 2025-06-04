@@ -105,6 +105,37 @@ export const DropdownContainer = forwardRef(
       [items, overflowingIndex],
     );
 
+    // callback to update item widths so that the useLayoutEffect runs whenever
+    // width of any of the child changes
+    const recalculateItemWidths = useCallback(() => {
+      const mainItemsContainerNode = current?.children.item(0);
+      if (mainItemsContainerNode) {
+        const visibleChildrenElements = Array.from(
+          mainItemsContainerNode.children,
+        );
+        setItemsWidth(prevGlobalWidths => {
+          if (prevGlobalWidths.length !== items.length) {
+            return prevGlobalWidths;
+          }
+
+          const newGlobalWidths = [...prevGlobalWidths];
+          let changed = false;
+          visibleChildrenElements.forEach((child, indexInVisible) => {
+            const originalItemIndex = indexInVisible;
+            if (originalItemIndex < newGlobalWidths.length) {
+              const newWidth = child.getBoundingClientRect().width;
+              if (newGlobalWidths[originalItemIndex] !== newWidth) {
+                newGlobalWidths[originalItemIndex] = newWidth;
+                changed = true;
+              }
+            }
+          });
+
+          return changed ? newGlobalWidths : prevGlobalWidths;
+        });
+      }
+    }, [current?.children, items.length]);
+
     useEffect(() => {
       const container = current?.children.item(0);
       if (!container) return;
@@ -116,30 +147,7 @@ export const DropdownContainer = forwardRef(
       });
 
       childrenArray.map(child => resizeObserver.observe(child));
-
-      // eslint-disable-next-line consistent-return
-      return () => {
-        childrenArray.map(child => resizeObserver.unobserve(child));
-        resizeObserver.disconnect();
-      };
-    }, [items.length]);
-
-    // callback to update item widths so that the useLayoutEffect runs whenever
-    // width of any of the child changes
-    const recalculateItemWidths = () => {
-      const container = current?.children.item(0);
-      if (container) {
-        const { children } = container;
-        const childrenArray = Array.from(children);
-
-        const currentWidths = childrenArray.map(
-          child => child.getBoundingClientRect().width,
-        );
-
-        // Update state with new widths
-        setItemsWidth(currentWidths);
-      }
-    };
+    }, [items.length, current, recalculateItemWidths]);
 
     useLayoutEffect(() => {
       if (popoverVisible) {
