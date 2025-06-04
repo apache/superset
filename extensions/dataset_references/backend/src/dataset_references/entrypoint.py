@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
-[project]
-name = "table_references"
-version = "1.0.0"
+from superset_core.api import add_api
+
+from .api import DatasetReferencesAPI
+
+add_api(DatasetReferencesAPI)

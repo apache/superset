@@ -8,7 +8,9 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@apache-superset/core": ["../../../packages/superset-core/src"]
+      "@apache-superset/core": [
+        "../../../superset-frontend/packages/superset-core/src"
+      ]
     }
   },
   "include": ["src"]

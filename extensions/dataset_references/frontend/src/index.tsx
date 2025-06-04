@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { core } from '@apache-superset/core';
-import Main from './Main';
+import React from "react";
+import { core } from "@apache-superset/core";
+import Main from "./Main";
 
 export const activate = () => {
-  core.registerView('table_references.main', <Main />);
+  core.registerView("dataset_references.main", <Main />);
 };
 
 export const deactivate = () => {};

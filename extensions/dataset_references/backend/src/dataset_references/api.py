@@ -14,10 +14,10 @@ from superset.sql.parse import (
 )
 
 
-class TableReferencesAPI(RestApi):
-    resource_name = "table_references"
-    openapi_spec_tag = "Table references"
-    class_permission_name = "table_references"
+class DatasetReferencesAPI(RestApi):
+    resource_name = "dataset_references"
+    openapi_spec_tag = "Dataset references"
+    class_permission_name = "dataset_references"
 
     @expose("/metadata", methods=("POST",))
     @protect()

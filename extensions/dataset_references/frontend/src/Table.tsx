@@ -17,38 +17,40 @@
  * under the License.
  */
 // eslint-disable-next-line no-restricted-syntax
-import React from 'react';
-import { Avatar } from '@apache-superset/core';
-import { MetadataRow } from './types';
+import React from "react";
+import { Avatar } from "@apache-superset/core";
+import { MetadataRow } from "./types";
 
-const BORDER_COLOR = '#e0e0e0';
-const HEADER_COLOR = '#f7f7f7';
+const BORDER_COLOR = "#e0e0e0";
+const HEADER_COLOR = "#f7f7f7";
 const CELL_STYLE = {
-  padding: '4px 8px',
+  padding: "4px 8px",
   borderColor: BORDER_COLOR,
   borderWidth: 1,
-  borderStyle: 'solid',
+  borderStyle: "solid",
 };
 
 const getInitials = (fullName: string): string =>
   fullName
-    .split(' ')
-    .map(name => name[0].toUpperCase())
-    .join('');
+    .split(" ")
+    .map((name) => name[0].toUpperCase())
+    .join("");
 
 const Table: React.FC<{ metadata: MetadataRow[] }> = ({ metadata }) => (
   <table
     style={{
-      width: '100%',
+      width: "100%",
       borderWidth: 1,
-      borderStyle: 'solid',
+      borderStyle: "solid",
       borderColor: BORDER_COLOR,
-      fontSize: '12px',
+      fontSize: "12px",
     }}
   >
     <thead>
       <tr>
-        <th style={{ ...CELL_STYLE, background: HEADER_COLOR }}>Table name</th>
+        <th style={{ ...CELL_STYLE, background: HEADER_COLOR }}>
+          Dataset name
+        </th>
         <th style={{ ...CELL_STYLE, background: HEADER_COLOR }}>Owners</th>
         <th style={{ ...CELL_STYLE, background: HEADER_COLOR }}>
           Latest available partition
@@ -66,7 +68,7 @@ const Table: React.FC<{ metadata: MetadataRow[] }> = ({ metadata }) => (
             <td style={CELL_STYLE}>
               {row.owners.map((owner: string, idx: number) => {
                 const color = `#${Math.floor(Math.random() * 10777215).toString(
-                  16,
+                  16
                 )}`;
                 return (
                   <span title={owner} key={idx}>

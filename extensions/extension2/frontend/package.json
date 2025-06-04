@@ -13,7 +13,6 @@
   "license": "Apache-2.0",
   "description": "",
   "peerDependencies": {
-    "extension1": "file:../../extension1/frontend",
     "react": "^17.0.2"
   },
   "devDependencies": {

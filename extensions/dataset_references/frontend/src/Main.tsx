@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
-import { authentication, sqlLab } from '@apache-superset/core';
-import Table from './Table';
-import { MetadataRow } from './types';
+import React, { useEffect } from "react";
+import { authentication, sqlLab } from "@apache-superset/core";
+import Table from "./Table";
+import { MetadataRow } from "./types";
 
 const Main: React.FC = () => {
   const [metadata, setMetadata] = React.useState<MetadataRow[]>([]);
@@ -27,11 +27,11 @@ const Main: React.FC = () => {
   const onQueryRun = async (sql: string) => {
     try {
       const csrfToken = await authentication.getCSRFToken();
-      const response = await fetch('/api/v1/table_references/metadata', {
-        method: 'POST',
+      const response = await fetch("/api/v1/dataset_references/metadata", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken!,
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken!,
         },
         body: JSON.stringify({
           sql,

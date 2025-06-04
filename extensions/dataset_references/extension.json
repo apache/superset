@@ -1,13 +1,13 @@
 {
-  "name": "table_references",
+  "name": "dataset_references",
   "version": "1.0.0",
   "frontend": {
     "contributions": {
       "views": {
         "sqllab.panels": [
           {
-            "id": "table_references.main",
-            "name": "Table references"
+            "id": "dataset_references.main",
+            "name": "Dataset references"
           }
         ]
       }
@@ -17,8 +17,8 @@
     }
   },
   "backend": {
-    "entryPoints": ["table_references.entrypoint"],
-    "files": ["backend/src/table_references/**/*.py"]
+    "entryPoints": ["dataset_references.entrypoint"],
+    "files": ["backend/src/dataset_references/**/*.py"]
   },
   "dependencies": [],
   "permissions": ["can_read", "can_view"]

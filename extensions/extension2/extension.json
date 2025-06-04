@@ -16,6 +16,5 @@
       "exposes": ["./index"]
     }
   },
-  "dependencies": ["extension1"],
   "permissions": ["can_view"]
 }
