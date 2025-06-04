@@ -49,11 +49,15 @@ const mockedProps = {
 };
 
 let container;
-
+const routeProps = {
+  history: {},
+  location: {},
+  match: {},
+};
 async function renderAndWait(props = mockedProps) {
   const { container: renderedContainer } = render(
-    <DatasourceModal {...props} />,
-    { store },
+    <DatasourceModal {...props} {...routeProps} />,
+    { store, useRouter: true },
   );
 
   container = renderedContainer;
