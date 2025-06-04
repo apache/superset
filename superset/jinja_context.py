@@ -380,9 +380,8 @@ class ExtraCache:
                 and flt.get("subject") == column
                 and (
                     val
-                    or
                     # IS_NULL and IS_NOT_NULL operators do not have a value
-                    op
+                    or op
                     in (
                         FilterOperator.IS_NULL.value,
                         FilterOperator.IS_NOT_NULL.value,
