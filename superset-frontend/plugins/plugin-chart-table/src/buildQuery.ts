@@ -128,8 +128,12 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
         orderby = [[metrics[0], false]];
       }
-      const calculationMode =
-        formData.percent_metric_calculation || 'row_limit';
+      // add postprocessing for percent metrics only when in aggregation mode
+      type PercentMetricCalculationMode = 'row_limit' | 'all_records';
+
+      const calculationMode: PercentMetricCalculationMode =
+        (formData.percent_metric_calculation as PercentMetricCalculationMode) ||
+        'row_limit';
 
       if (percentMetrics && percentMetrics.length > 0) {
         const percentMetricsLabelsWithTimeComparison = isTimeComparison(
@@ -145,7 +149,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         const percentMetricLabels = removeDuplicates(
           percentMetricsLabelsWithTimeComparison,
         );
-
         metrics = removeDuplicates(
           metrics.concat(percentMetrics),
           getMetricLabel,
@@ -160,7 +163,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
               totals: (formData.extra_form_data as Record<string, any>)
                 ?.contribution_totals?.totals,
             },
-          } as unknown as PostProcessingRule);
+          });
         } else {
           postProcessing.push({
             operation: 'contribution',
@@ -171,6 +174,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           });
         }
       }
+
       // Add the operator for the time comparison if some is selected
       if (!isEmpty(timeOffsets)) {
         postProcessing.push(timeCompareOperator(formData, baseQueryObject));
