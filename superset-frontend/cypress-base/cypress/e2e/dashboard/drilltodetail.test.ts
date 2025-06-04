@@ -51,6 +51,7 @@ function openModalFromChartContext(targetMenuItem: string) {
       .not('.ant-dropdown-hidden')
       .should('be.visible')
       .first()
+      .wait(1000)
       .find("[role='menu'] [role='menuitem'] [title='Drill to detail by']")
       .trigger('mouseover');
     cy.get('[data-test="drill-to-detail-by-submenu"]')

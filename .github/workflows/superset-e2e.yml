@@ -138,4 +138,4 @@ jobs:
         if: github.event_name == ('workflow_dispatch' && (steps.check.outputs.python || steps.check.outputs.frontend)) || failure()
         with:
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
-          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}
+          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.parallel_id }}
