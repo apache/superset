@@ -20,6 +20,9 @@ Configuration of the AI Assistant, which allows the user to set the LLM API prov
 
 ## Using the AI Assistant
 
+[![Watch the AI Assistant in action](../../static/img/screenshots/ai_assistant/assistant.png)](../../static/img/screenshots/ai_assistant/superset_ai_assistant_user.m4v)
+<sub>Click the image to watch a demo video (m4v)</sub>
+
 The AI Assistant text bar becomes visible in SQLLab only if the selected database connection has been configured to support the AI Assistant. Users can select a database from the dedicated dropdown menu, and if the AI Assistant is enabled for that connection, the text bar will appear, allowing them to interact with the feature. 
 
 ![assistant](../../static/img/screenshots/ai_assistant/assistant.png)
@@ -103,6 +106,8 @@ Supported providers:
    - OpenAI (WIP)  
    - Anthropic (WIP) 
 
+These settings are stored in a new table of the Superset database called `llm_connection`.
+
 ![llm_config](../../static/img/screenshots/ai_assistant/llm_config.png)  
 
 ### Context Settings
@@ -122,8 +127,9 @@ Contains configuration parameters for managing the periodic creation of the data
 ![table_selection](../../static/img/screenshots/ai_assistant/table_selection.png) 
 ![system_instructions](../../static/img/screenshots/ai_assistant/system_instructions.png) 
 
-These settings ensure flexibility and control over the metadata generation process, optimizing the context for LLM interactions.
-In the database connection summary table, there’s a column showing if the AI Assistant is enabled and correctly configured.
+These settings ensure flexibility and control over the metadata generation process, optimizing the context for LLM interactions. In the database connection summary table, there’s a column showing if the AI Assistant is enabled and correctly configured.
+
+These settings are stored in a new table of the Superset database called `llm_context_options`. 
 
 ![summary_connections](../../static/img/screenshots/ai_assistant/summary_connections.png) 
 
@@ -192,6 +198,8 @@ It constist of:
 
 The context builder is triggered periodically by a scheduled Celery task. This scheduled task checks all the configured database connections for any that have the AI assistant enabled and for the status of that connection's context. If the context doesn't exist or is out of date, the context builder is triggered for that database connection.
 
+Context builder task execution metadata is saved to a new table of the Superset database called `context_builder_task`.
+
 ### Caching Context
 
 If the LLM API supports context caching (such as Gemini), Superset leverages this capability to optimize SQL generation. Context caching allows the database metadata and system instructions to be stored and reused across multiple requests, significantly reducing input token usage, improving response times, and lowering operational costs. When context caching is available, the AI Assistant uploads the metadata and instructions to the LLM provider once, then references this cached context for subsequent queries. If the LLM API does not support explicit context caching, the full metadata and instructions are included in every prompt, which may increase token consumption and latency.
@@ -238,16 +246,17 @@ The Gemini API user is responsible for managing cache validity: checking if the 
 
 ### OpenAI
 
-TODO
+The Python SDK for interacting with the OpenAI API is [`openai`](https://pypi.org/project/openai/). All requests are made through the standard OpenAI endpoints as described in the [API reference](https://platform.openai.com/docs/api-reference/responses/create). 
+
+For estimating prompt and context length, the [tiktoken](https://github.com/openai/tiktoken) package is used. This utility helps calculate token usage, which is important for managing API limits and costs.
 
 #### Cache
 
 OpenAI does not provide an API for explicit cache management. As a result, the complete database metadata context and system instructions must be included with every call to the API. However, OpenAI employs an [automatic prompt cache](https://platform.openai.com/docs/guides/prompt-caching) that matches incoming API requests against previous requests based on text similarity. To maximize cache effectiveness, the context and system prompt should always be placed at the beginning of the input prompt.
 
 ### Anthropic
-
-TODO
+The Python SDK for interacting with the Anthropic API is [`anthropic`](https://pypi.org/project/anthropic/). Integration is straightforward. All requests are made directly to the Anthropic API endpoints as described in their [API guide](https://docs.anthropic.com/en/api/overview).
 
 #### Cache
 
-Caching with the Anthropic API operates similarly to OpenAI, relying on prefix matching for prompt caching. However, Anthropic requires explicit [cache control blocks](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching) to be included within the system prompt to enable caching. The Anthropic module is responsible for managing cache behavior, ensuring that cache control blocks are properly inserted and maintained as part of the prompt construction process.
+Caching with the Anthropic API operates similarly to OpenAI, relying on prefix matching for prompt caching. However, Anthropic requires explicit [cache control blocks](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching) to be included within the system prompt to enable caching. The Anthropic module is responsible for managing cache behavior, ensuring that cache control blocks are properly inserted and maintained as part of the prompt construction process. This functionality was not utilized for this implementation.
