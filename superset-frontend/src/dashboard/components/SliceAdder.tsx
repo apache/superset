@@ -20,7 +20,7 @@
 import { Component } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
-// @ts-ignore
+// @ts-expect-error TS(7016): Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { createFilter } from 'react-search-input';
 import { t, styled, css } from '@superset-ui/core';
 import {
@@ -296,6 +296,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     return (
       <DragDroppable
         key={cellData.slice_id}
+        // @ts-expect-error TS(2322): Type '{ children: ({ dragSourceRef }: any) => Elem... Remove this comment to see the full error message
         component={{ type, id, meta }}
         parentComponent={{
           id: NEW_COMPONENTS_SOURCE_ID,
@@ -312,7 +313,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
         // actual style should be applied to nested AddSliceCard component
         style={{}}
       >
-        {({ dragSourceRef }) => (
+        {({ dragSourceRef }: $TSFixMe) => (
           <AddSliceCard
             innerRef={dragSourceRef}
             style={style}

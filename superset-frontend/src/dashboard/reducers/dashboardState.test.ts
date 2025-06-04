@@ -31,6 +31,7 @@ describe('DashboardState reducer', () => {
         dashboardState: { activeTabs: [] },
         dashboardLayout: { present: { tab1: { parents: [] } } },
       });
+      // @ts-expect-error TS(2554): Expected 2 arguments, but got 1.
       const request = setActiveTab('tab1');
       const thunkAction = request(store.dispatch, store.getState);
 
@@ -73,6 +74,7 @@ describe('DashboardState reducer', () => {
       });
       request = setActiveTab('TAB-2', 'TAB-1');
       thunkAction = request(store.dispatch, () => ({
+        // @ts-expect-error TS(2698): Spread types may only be created from object types... Remove this comment to see the full error message
         ...(store.getState() ?? {}),
         dashboardState: result,
       }));
@@ -83,6 +85,7 @@ describe('DashboardState reducer', () => {
       });
       request = setActiveTab('TAB-1', 'TAB-2');
       thunkAction = request(store.dispatch, () => ({
+        // @ts-expect-error TS(2698): Spread types may only be created from object types... Remove this comment to see the full error message
         ...(store.getState() ?? {}),
         dashboardState: result,
       }));
@@ -93,6 +96,7 @@ describe('DashboardState reducer', () => {
       });
       request = setActiveTab('TAB-A', 'TAB-B');
       thunkAction = request(store.dispatch, () => ({
+        // @ts-expect-error TS(2698): Spread types may only be created from object types... Remove this comment to see the full error message
         ...(store.getState() ?? {}),
         dashboardState: result,
       }));
@@ -103,6 +107,7 @@ describe('DashboardState reducer', () => {
       });
       request = setActiveTab('TAB-2', 'TAB-1');
       thunkAction = request(store.dispatch, () => ({
+        // @ts-expect-error TS(2698): Spread types may only be created from object types... Remove this comment to see the full error message
         ...(store.getState() ?? {}),
         dashboardState: result,
       }));
@@ -113,6 +118,7 @@ describe('DashboardState reducer', () => {
       });
       request = setActiveTab('TAB-1', 'TAB-2');
       thunkAction = request(store.dispatch, () => ({
+        // @ts-expect-error TS(2698): Spread types may only be created from object types... Remove this comment to see the full error message
         ...(store.getState() ?? {}),
         dashboardState: result,
       }));

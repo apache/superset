@@ -71,13 +71,13 @@ describe('QueryAutoRefresh', () => {
   });
 
   it('isQueryRunning returns false for invalid query', () => {
-    // @ts-ignore
+    // @ts-expect-error TS(2345): Argument of type 'null' is not assignable to param... Remove this comment to see the full error message
     expect(isQueryRunning(null)).toBe(false);
-    // @ts-ignore
+    // @ts-expect-error TS(2345): Argument of type 'undefined' is not assignable to ... Remove this comment to see the full error message
     expect(isQueryRunning(undefined)).toBe(false);
-    // @ts-ignore
+    // @ts-expect-error TS(2345): Argument of type 'string' is not assignable to par... Remove this comment to see the full error message
     expect(isQueryRunning('I Should Be An Object')).toBe(false);
-    // @ts-ignore
+    // @ts-expect-error TS(2322): Type '{ badFormat: true; }' is not assignable to t... Remove this comment to see the full error message
     expect(isQueryRunning({ state: { badFormat: true } })).toBe(false);
   });
 
@@ -90,20 +90,19 @@ describe('QueryAutoRefresh', () => {
   });
 
   it('shouldCheckForQueries is false for invalid inputs', () => {
-    // @ts-ignore
+    // @ts-expect-error TS(2345): Argument of type 'null' is not assignable to param... Remove this comment to see the full error message
     expect(shouldCheckForQueries(null)).toBe(false);
-    // @ts-ignore
+    // @ts-expect-error TS(2345): Argument of type 'undefined' is not assignable to ... Remove this comment to see the full error message
     expect(shouldCheckForQueries(undefined)).toBe(false);
     expect(
-      // @ts-ignore
       shouldCheckForQueries({
-        // @ts-ignore
+        // @ts-expect-error TS(2322): Type 'null' is not assignable to type 'QueryRespon... Remove this comment to see the full error message
         '1234': null,
-        // @ts-ignore
+        // @ts-expect-error TS(2322): Type 'string' is not assignable to type 'QueryResp... Remove this comment to see the full error message
         '23425': 'hello world',
-        // @ts-ignore
+        // @ts-expect-error TS(2322): Type 'never[]' is not assignable to type 'QueryRes... Remove this comment to see the full error message
         '345': [],
-        // @ts-ignore
+        // @ts-expect-error TS(2322): Type 'undefined' is not assignable to type 'QueryR... Remove this comment to see the full error message
         '57346': undefined,
       }),
     ).toBe(false);
@@ -173,7 +172,7 @@ describe('QueryAutoRefresh', () => {
 
     render(
       <QueryAutoRefresh
-        // @ts-ignore
+        // @ts-expect-error TS(2322): Type 'null' is not assignable to type 'QueryRespon... Remove this comment to see the full error message
         queries={{ ...runningQueries, g324t: null }}
         queriesLastUpdate={queriesLastUpdate}
       />,

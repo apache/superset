@@ -33,7 +33,7 @@ import {
 // } from '../constants';
 import { defaultXAxis } from '../defaults';
 
-// @ts-ignore
+// @ts-expect-error TS(2322): Type '{ annotationLayers: never[]; area: false; fo... Remove this comment to see the full error message
 export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   // ...DEFAULT_LEGEND_FORM_DATA, // TODO: figure out why these break things for stories (e.g. Bubble Chart)
   // Here are the contents of DEFAULT_LEGEND_FORM_DATA:

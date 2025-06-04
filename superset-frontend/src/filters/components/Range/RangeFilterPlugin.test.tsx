@@ -85,9 +85,8 @@ describe('RangeFilterPlugin', () => {
   const setDataMask = jest.fn();
   const getWrapper = (props: any = {}) =>
     render(
-      // @ts-ignore
+      // @ts-expect-error TS(2322): Type '{ setDataMask: Mock<any, any, any>; data: an... Remove this comment to see the full error message
       <RangeFilterPlugin
-        // @ts-ignore
         {...transformProps({
           ...rangeProps,
           ...props,

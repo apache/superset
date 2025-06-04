@@ -223,7 +223,7 @@ test('Click on Edit dataset', async () => {
 
 test('Edit dataset should be disabled when user is not admin', async () => {
   const props = createProps();
-  // @ts-expect-error
+  // @ts-expect-error TS(2741): Property 'Admin' is missing in type '{}' but requi... Remove this comment to see the full error message
   props.user.roles = {};
   props.datasource.owners = [];
   SupersetClientGet.mockImplementationOnce(
@@ -466,9 +466,9 @@ test('should show missing params state', () => {
 });
 
 test('should show missing dataset state', () => {
-  // @ts-ignore
+  // @ts-expect-error TS(2790): The operand of a 'delete' operator must be optiona... Remove this comment to see the full error message
   delete window.location;
-  // @ts-ignore
+  // @ts-expect-error TS(2322): Type '{ search: string; }' is not assignable to ty... Remove this comment to see the full error message
   window.location = { search: '?slice_id=152' };
   const props = createProps({ datasource: fallbackExploreInitialData.dataset });
   render(<DatasourceControl {...props} />, { useRedux: true, useRouter: true });

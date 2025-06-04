@@ -52,9 +52,9 @@ describe('ExtensibleFunction', () => {
     x: unknown;
 
     constructor(x: unknown) {
-      // @ts-ignore
+      // @ts-expect-error TS(7023): 'customName' implicitly has return type 'any' beca... Remove this comment to see the full error message
       super(function customName() {
-        // @ts-ignore
+        // @ts-expect-error TS(2339): Property 'x' does not exist on type '() => any'.
         return customName.x;
       }); // named function
       this.x = x;

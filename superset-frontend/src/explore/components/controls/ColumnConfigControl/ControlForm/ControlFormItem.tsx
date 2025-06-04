@@ -94,6 +94,7 @@ export function ControlFormItem({
     >
       {controlType === 'Checkbox' ? (
         <ControlFormItemComponents.Checkbox
+          // @ts-expect-error TS(2769): No overload matches this call.
           value={value as boolean}
           onChange={handleChange}
           name={name}
@@ -113,7 +114,7 @@ export function ControlFormItem({
               hovered={hovered}
             />
           )}
-          {/* @ts-ignore */}
+          // @ts-expect-error TS(2769): No overload matches this call.
           <Control {...props} value={value} onChange={handleChange} />
         </>
       )}

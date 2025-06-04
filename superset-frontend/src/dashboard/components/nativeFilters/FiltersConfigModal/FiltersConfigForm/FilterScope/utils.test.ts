@@ -227,16 +227,16 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['MARKDOWN-7K5cBNy7qu', 'CHART-uP9GF0z0rT'],
       id: 'COLUMN-F53B1OSMcz',
       meta: {
-        // @ts-expect-error
+        // @ts-expect-error TS(2322): Type '{ background: string; width: number; }' is n... Remove this comment to see the full error message
         background: 'BACKGROUND_TRANSPARENT',
         width: 4,
       },
       parents: ['ROOT_ID', 'TABS-97PVJa11D_', 'TAB-2_QXp8aNq', 'ROW-yP9SB89PZ'],
       type: 'COLUMN',
     },
-    // @ts-expect-error
+    // @ts-expect-error TS(2322): Type 'string' is not assignable to type 'LayoutIte... Remove this comment to see the full error message
     DASHBOARD_VERSION_KEY: 'v2',
-    // @ts-expect-error
+    // @ts-expect-error TS(2741): Property 'meta' is missing in type '{ children: ne... Remove this comment to see the full error message
     GRID_ID: {
       children: [],
       id: 'GRID_ID',
@@ -246,7 +246,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
     HEADER_ID: {
       id: 'HEADER_ID',
       type: 'HEADER',
-      // @ts-expect-error
+      // @ts-expect-error TS(2739): Type '{ text: string; }' is missing the following ... Remove this comment to see the full error message
       meta: {
         text: 'Video Game Sales',
       },
@@ -255,7 +255,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: [],
       id: 'MARKDOWN-7K5cBNy7qu',
       meta: {
-        // @ts-expect-error
+        // @ts-expect-error TS(2322): Type '{ code: string; height: number; width: numbe... Remove this comment to see the full error message
         code: '# 🤿 Explore Trends\n\nDive into data on popular video games using the following dimensions:\n\n- Year\n- Platform\n- Publisher\n- Genre\n\nTo use the **Filter Games** box below, select values for each dimension you want to zoom in on and then click **Apply**. \n\nThe filter criteria you set in this Filter-box will apply to *all* charts in this tab.',
         height: 33,
         width: 4,
@@ -273,7 +273,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: [],
       id: 'MARKDOWN-JOZKOjVc3a',
       meta: {
-        // @ts-expect-error
+        // @ts-expect-error TS(2322): Type '{ code: string; height: number; width: numbe... Remove this comment to see the full error message
         code: '## 🎮Video Game Sales\n\nThis dashboard visualizes sales & platform data on video games that sold more than 100k copies. The data was last updated in early 2017.\n\n[Original dataset](https://www.kaggle.com/gregorut/videogamesales)',
         height: 18,
         width: 12,
@@ -286,7 +286,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       ],
       type: 'MARKDOWN',
     },
-    // @ts-expect-error
+    // @ts-expect-error TS(2741): Property 'meta' is missing in type '{ children: st... Remove this comment to see the full error message
     ROOT_ID: {
       children: ['TABS-97PVJa11D_'],
       id: 'ROOT_ID',
@@ -296,7 +296,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['MARKDOWN-JOZKOjVc3a'],
       id: 'ROW-0F99WDC-sz',
       meta: {
-        // @ts-expect-error
+        // @ts-expect-error TS(2322): Type '{ background: string; }' is not assignable t... Remove this comment to see the full error message
         background: 'BACKGROUND_TRANSPARENT',
       },
       parents: ['ROOT_ID', 'TABS-97PVJa11D_', 'TAB-lg-5ymUDgm'],
@@ -306,7 +306,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['CHART-W02beJK7ms', 'CHART-XFag0yZdLk', 'CHART-8OG3UJX-Tn'],
       id: 'ROW-7kAf1blYU',
       meta: {
-        // @ts-expect-error
+        // @ts-expect-error TS(2322): Type '{ '0': string; background: string; }' is not... Remove this comment to see the full error message
         '0': 'ROOT_ID',
         background: 'BACKGROUND_TRANSPARENT',
       },
@@ -317,7 +317,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['CHART-_sx22yawJO', 'CHART-XRvRfsMsaQ'],
       id: 'ROW-NuR8GFQTO',
       meta: {
-        // @ts-expect-error
+        // @ts-expect-error TS(2322): Type '{ '0': string; '1': string; background: stri... Remove this comment to see the full error message
         '0': 'ROOT_ID',
         '1': 'TABS-97PVJa11D_',
         background: 'BACKGROUND_TRANSPARENT',
@@ -329,7 +329,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['CHART-wt6ZO8jRXZ'],
       id: 'ROW-XT1DsNA_V',
       meta: {
-        // @ts-expect-error
+        // @ts-expect-error TS(2322): Type '{ background: string; }' is not assignable t... Remove this comment to see the full error message
         background: 'BACKGROUND_TRANSPARENT',
       },
       parents: ['ROOT_ID', 'TABS-97PVJa11D_', 'TAB-lg-5ymUDgm'],
@@ -339,7 +339,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['CHART-1L7NIcXvVN', 'CHART-nYns6xr4Ft'],
       id: 'ROW-fjg6YQBkH',
       meta: {
-        // @ts-expect-error
+        // @ts-expect-error TS(2322): Type '{ background: string; }' is not assignable t... Remove this comment to see the full error message
         background: 'BACKGROUND_TRANSPARENT',
       },
       parents: ['ROOT_ID', 'TABS-97PVJa11D_', 'TAB-2_QXp8aNq'],
@@ -349,7 +349,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['COLUMN-F53B1OSMcz', 'CHART-XVIYTeubZh', 'CHART-7mKdnU7OUJ'],
       id: 'ROW-yP9SB89PZ',
       meta: {
-        // @ts-expect-error
+        // @ts-expect-error TS(2322): Type '{ background: string; }' is not assignable t... Remove this comment to see the full error message
         background: 'BACKGROUND_TRANSPARENT',
       },
       parents: ['ROOT_ID', 'TABS-97PVJa11D_', 'TAB-2_QXp8aNq'],
@@ -358,7 +358,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
     'TAB-2_QXp8aNq': {
       children: ['ROW-yP9SB89PZ', 'ROW-fjg6YQBkH'],
       id: 'TAB-2_QXp8aNq',
-      // @ts-expect-error
+      // @ts-expect-error TS(2739): Type '{ text: string; }' is missing the following ... Remove this comment to see the full error message
       meta: {
         text: '🤿 Explore Trends',
       },
@@ -373,7 +373,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
         'ROW-NuR8GFQTO',
       ],
       id: 'TAB-lg-5ymUDgm',
-      // @ts-expect-error
+      // @ts-expect-error TS(2739): Type '{ text: string; }' is missing the following ... Remove this comment to see the full error message
       meta: {
         text: 'Overview',
       },
@@ -383,7 +383,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
     'TABS-97PVJa11D_': {
       children: ['TAB-lg-5ymUDgm', 'TAB-2_QXp8aNq'],
       id: 'TABS-97PVJa11D_',
-      // @ts-expect-error
+      // @ts-expect-error TS(2739): Type '{}' is missing the following properties from... Remove this comment to see the full error message
       meta: {},
       parents: ['ROOT_ID'],
       type: 'TABS',
@@ -18050,7 +18050,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
   it('Succeeds with valid', () => {
     expect(() => {
       buildTree(
-        // @ts-ignore
+        // @ts-expect-error TS(2345): Argument of type '{ children: string[]; id: string... Remove this comment to see the full error message
         node,
         treeItem,
         layout,
@@ -18065,7 +18065,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
   it('Avoids runtime error with invalid inputs', () => {
     expect(() => {
       buildTree(
-        // @ts-expect-error
+        // @ts-expect-error TS(2345): Argument of type 'undefined' is not assignable to ... Remove this comment to see the full error message
         undefined,
         treeItem,
         layout,
@@ -18078,7 +18078,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
 
     expect(() => {
       buildTree(
-        // @ts-expect-error
+        // @ts-expect-error TS(2345): Argument of type '{ children: string[]; id: string... Remove this comment to see the full error message
         node,
         null,
         layout,
@@ -18091,7 +18091,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
 
     expect(() => {
       buildTree(
-        // @ts-expect-error
+        // @ts-expect-error TS(2345): Argument of type '{ children: string[]; id: string... Remove this comment to see the full error message
         node,
         treeItem,
         null,
@@ -18104,7 +18104,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
 
     expect(() => {
       buildTree(
-        // @ts-expect-error
+        // @ts-expect-error TS(2345): Argument of type '{ children: string[]; id: string... Remove this comment to see the full error message
         node,
         treeItem,
         layout,
@@ -18117,7 +18117,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
 
     expect(() => {
       buildTree(
-        // @ts-expect-error
+        // @ts-expect-error TS(2345): Argument of type '{ children: string[]; id: string... Remove this comment to see the full error message
         node,
         treeItem,
         layout,
@@ -18130,7 +18130,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
 
     expect(() => {
       buildTree(
-        // @ts-expect-error
+        // @ts-expect-error TS(2345): Argument of type '{ children: string[]; id: string... Remove this comment to see the full error message
         node,
         treeItem,
         layout,

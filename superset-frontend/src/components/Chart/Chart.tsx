@@ -295,6 +295,7 @@ class Chart extends PureComponent<ChartProps, {}> {
         isCurrentUserBot() ? (
           <ChartRenderer
             {...this.props}
+            // @ts-expect-error TS(2322): Type '{ source: string; "data-test": string; annot... Remove this comment to see the full error message
             source={this.props.dashboardId ? 'dashboard' : 'explore'}
             data-test={this.props.vizType}
           />

@@ -282,6 +282,7 @@ const DndMetricSelect = (props: any) => {
         datasource={props.datasource}
         onMoveLabel={moveLabel}
         onDropLabel={handleDropLabel}
+        // @ts-expect-error TS(2322): Type '{ key: number; index: number; option: ValueT... Remove this comment to see the full error message
         type={`${DndItemType.AdhocMetricOption}_${props.name}_${props.label}`}
         multi={multi}
         datasourceWarningMessage={

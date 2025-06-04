@@ -288,7 +288,7 @@ describe('buildQueryObject', () => {
         datasource: '5__table',
         granularity_sqla: 'ds',
         viz_type: VizType.Table,
-        // @ts-expect-error
+        // @ts-expect-error TS(2322): Type 'null' is not assignable to type 'Record<stri... Remove this comment to see the full error message
         url_params: null,
       }).url_params,
     ).toBeUndefined();

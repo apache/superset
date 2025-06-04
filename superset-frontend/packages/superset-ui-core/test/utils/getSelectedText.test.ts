@@ -27,7 +27,7 @@ test('Returns null if Selection object is null', () => {
 test('Returns selection text if Selection object is not null', () => {
   jest
     .spyOn(window, 'getSelection')
-    // @ts-ignore
+    // @ts-expect-error TS(2740): Type '{ toString: () => string; }' is missing the ... Remove this comment to see the full error message
     .mockImplementationOnce(() => ({ toString: () => 'test string' }));
   expect(getSelectedText()).toEqual('test string');
   jest.restoreAllMocks();

@@ -345,6 +345,7 @@ const ChartHolder = ({
 
   return (
     <Draggable
+      // @ts-expect-error TS(2322): Type '{ children: ({ dragSourceRef }: any) => Elem... Remove this comment to see the full error message
       component={component}
       parentComponent={parentComponent}
       orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}

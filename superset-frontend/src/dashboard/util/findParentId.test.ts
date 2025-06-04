@@ -43,13 +43,13 @@ describe('findParentId', () => {
   });
 
   it('should not throw error and return null with bad / missing inputs', () => {
-    // @ts-ignore
+    // @ts-expect-error TS(2345): Argument of type 'null' is not assignable to param... Remove this comment to see the full error message
     expect(findParentId(null)).toBeNull();
-    // @ts-ignore
+    // @ts-expect-error TS(2345): Argument of type '{ layout: { a: { id: string; chi... Remove this comment to see the full error message
     expect(findParentId({ layout })).toBeNull();
-    // @ts-ignore
+    // @ts-expect-error TS(2345): Argument of type '{ childId: string; }' is not ass... Remove this comment to see the full error message
     expect(findParentId({ childId: 'a' })).toBeNull();
-    // @ts-ignore
+    // @ts-expect-error TS(2322): Type 'null' is not assignable to type 'ILayoutItem... Remove this comment to see the full error message
     expect(findParentId({ childId: 'a', layout: null })).toBeNull();
   });
 });

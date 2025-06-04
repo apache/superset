@@ -119,7 +119,7 @@ export function AsyncEsmComponent<
     const Component = component || placeholder;
     return Component ? (
       // placeholder does not get the ref
-      // @ts-ignore: Suppress TypeScript error for ref assignment
+      // @ts-expect-error TS(2322): Type '{ ref: RefObject<ComponentType<FullProps>> |... Remove this comment to see the full error message
       <Component ref={Component === component ? ref : null} {...props} />
     ) : null;
   });

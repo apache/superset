@@ -331,7 +331,7 @@ export default function DataSourcePanel({
           formData={formData}
         />
       )}
-      {/* @ts-ignore */}
+      // @ts-expect-error TS(2741): Property 'type' is missing in type '{ name: string... Remove this comment to see the full error message
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}
     </DatasourceContainer>

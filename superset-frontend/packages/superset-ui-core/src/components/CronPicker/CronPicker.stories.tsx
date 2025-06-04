@@ -28,7 +28,7 @@ export default {
 };
 
 export const InteractiveCronPicker = (props: CronProps) => {
-  // @ts-ignore
+  // @ts-expect-error TS(2749): 'Input' refers to a value, but is being used as a ... Remove this comment to see the full error message
   const inputRef = useRef<Input>(null);
   const [value, setValue] = useState(props.value);
   const customSetValue = useCallback(

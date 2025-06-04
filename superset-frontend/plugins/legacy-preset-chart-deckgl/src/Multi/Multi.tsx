@@ -144,7 +144,7 @@ const DeckMulti = (props: DeckMultiProps) => {
               endpoint: url,
             })
               .then(({ json }) => {
-                // @ts-ignore TODO(hainenber): define proper type for `form_data.viz_type` and call signature for functions in layerGenerators.
+                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 const layer = layerGenerators[subsliceCopy.form_data.viz_type](
                   subsliceCopy.form_data,
                   json,

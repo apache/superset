@@ -44,6 +44,7 @@ test('renders with default value', () => {
   render(
     <FixedOrMetricControl
       {...createProps()}
+      // @ts-expect-error TS(2322): Type '{ default: { type: string; value: number; };... Remove this comment to see the full error message
       default={{ type: 'fix', value: 10 }}
     />,
   );
@@ -55,6 +56,7 @@ test('renders with value', () => {
   render(
     <FixedOrMetricControl
       {...createProps()}
+      // @ts-expect-error TS(2322): Type '{ default: { type: string; value: number; };... Remove this comment to see the full error message
       default={{ type: 'fix', value: 10 }}
       value={{ type: 'fix', value: 20 }}
     />,
@@ -67,6 +69,7 @@ test('renders with metric type', () => {
   render(
     <FixedOrMetricControl
       {...createProps()}
+      // @ts-expect-error TS(2322): Type '{ value: { type: string; value: { label: str... Remove this comment to see the full error message
       value={{
         type: 'metric',
         value: {
@@ -86,6 +89,7 @@ test('triggers onChange', () => {
   render(
     <FixedOrMetricControl
       {...createProps()}
+      // @ts-expect-error TS(2322): Type '{ value: { type: string; value: number; }; o... Remove this comment to see the full error message
       value={{ type: 'fix', value: 10 }}
       onChange={onChange}
     />,
@@ -100,6 +104,7 @@ test('switches control type', () => {
   render(
     <FixedOrMetricControl
       {...createProps()}
+      // @ts-expect-error TS(2322): Type '{ value: { type: string; value: number; }; d... Remove this comment to see the full error message
       value={{ type: 'fix', value: 10 }}
     />,
   );

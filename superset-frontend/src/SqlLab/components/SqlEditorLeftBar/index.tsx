@@ -203,6 +203,7 @@ const SqlEditorLeftBar = ({
   );
 
   const handleResetState = useCallback(() => {
+    // @ts-expect-error TS(2554): Expected 1 arguments, but got 0.
     dispatch(resetState());
   }, [dispatch]);
 

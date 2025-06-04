@@ -42,7 +42,6 @@ const emotionCache = createCache({
 });
 
 const app = (
-  // @ts-ignore: emotion types defs are incompatible between core and cache
   <CacheProvider value={emotionCache}>
     <ThemeProvider theme={theme}>
       <Provider store={store}>

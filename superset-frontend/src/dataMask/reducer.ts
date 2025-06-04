@@ -159,10 +159,10 @@ const dataMaskReducer = produce(
         };
         return draft;
       // TODO: update hydrate to .ts
-      // @ts-ignore
+      // @ts-expect-error TS(2678): Type '"HYDRATE_DASHBOARD"' is not comparable to ty... Remove this comment to see the full error message
       case HYDRATE_DASHBOARD:
         Object.keys(
-          // @ts-ignore
+          // @ts-expect-error TS(2339): Property 'data' does not exist on type 'never'.
           action.data.dashboardInfo?.metadata?.chart_configuration,
         ).forEach(id => {
           cleanState[id] = {
@@ -170,12 +170,12 @@ const dataMaskReducer = produce(
           };
         });
         fillNativeFilters(
-          // @ts-ignore
+          // @ts-expect-error TS(2339): Property 'data' does not exist on type 'never'.
           action.data.dashboardInfo?.metadata?.native_filter_configuration ??
             [],
           cleanState,
           draft,
-          // @ts-ignore
+          // @ts-expect-error TS(2339): Property 'data' does not exist on type 'never'.
           action.data.dataMask,
         );
         return cleanState;

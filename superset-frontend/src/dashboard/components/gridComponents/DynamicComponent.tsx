@@ -109,9 +109,8 @@ const DynamicComponent: FC<FilterSummaryType> = ({
 
   return (
     <Draggable
-      // @ts-ignore
+      // @ts-expect-error TS(2322): Type '{ children: ({ dragSourceRef }: any) => Elem... Remove this comment to see the full error message
       component={component}
-      // @ts-ignore
       parentComponent={parentComponent}
       orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
       index={index}
@@ -119,7 +118,7 @@ const DynamicComponent: FC<FilterSummaryType> = ({
       onDrop={handleComponentDrop}
       editMode={editMode}
     >
-      {({ dragSourceRef }) => (
+      {({ dragSourceRef }: $TSFixMe) => (
         <WithPopoverMenu
           menuItems={[
             <BackgroundStyleDropdown

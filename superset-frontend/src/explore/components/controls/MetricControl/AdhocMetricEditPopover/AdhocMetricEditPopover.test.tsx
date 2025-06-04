@@ -154,6 +154,7 @@ test('Clicking on "Save" should not call onChange and onClose', () => {
 
 test('Clicking on "Save" should call onChange and onClose for new metric', () => {
   const props = createProps();
+  // @ts-expect-error TS(2322): Type '{ isNewMetric: true; onChange: Mock<any, any... Remove this comment to see the full error message
   render(<AdhocMetricEditPopover {...props} isNewMetric />);
   expect(props.onChange).toHaveBeenCalledTimes(0);
   expect(props.onClose).toHaveBeenCalledTimes(0);
@@ -164,6 +165,7 @@ test('Clicking on "Save" should call onChange and onClose for new metric', () =>
 
 test('Clicking on "Save" should call onChange and onClose for new title', () => {
   const props = createProps();
+  // @ts-expect-error TS(2322): Type '{ isLabelModified: true; onChange: Mock<any,... Remove this comment to see the full error message
   render(<AdhocMetricEditPopover {...props} isLabelModified />);
   expect(props.onChange).toHaveBeenCalledTimes(0);
   expect(props.onClose).toHaveBeenCalledTimes(0);

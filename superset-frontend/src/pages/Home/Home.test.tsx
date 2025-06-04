@@ -201,20 +201,20 @@ test('Without sql role - renders', async () => {
   /*
   We ignore the ts error here because the type does not recognize the absence of a role entry
   */
-  // @ts-ignore-next-line
+  // @ts-expect-error TS(2345): Argument of type '{ user: { roles: {}; username: s... Remove this comment to see the full error message
   await renderWelcome(mockedPropsWithoutSqlRole);
   expect(await screen.findByText('Dashboards')).toBeInTheDocument();
 });
 
 test('Without sql role - renders all panels on the page on page load', async () => {
-  // @ts-ignore-next-line
+  // @ts-expect-error TS(2345): Argument of type '{ user: { roles: {}; username: s... Remove this comment to see the full error message
   await renderWelcome(mockedPropsWithoutSqlRole);
   const panels = await screen.findAllByText(/Dashboards|Charts|Recents/);
   expect(panels).toHaveLength(3);
 });
 
 test('Without sql role - calls api methods in parallel on page load', async () => {
-  // @ts-ignore-next-line
+  // @ts-expect-error TS(2345): Argument of type '{ user: { roles: {}; username: s... Remove this comment to see the full error message
   await renderWelcome(mockedPropsWithoutSqlRole);
   expect(fetchMock.calls(chartsEndpoint)).toHaveLength(2);
   expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(1);

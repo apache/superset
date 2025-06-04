@@ -115,7 +115,7 @@ export default function PluginFilterTimeColumn(
           allowClear
           value={value}
           placeholder={placeholderText}
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type '(value?: string[] | string | null) => void' ... Remove this comment to see the full error message
           onChange={handleChange}
           onBlur={unsetFocusedFilter}
           onFocus={setFocusedFilter}

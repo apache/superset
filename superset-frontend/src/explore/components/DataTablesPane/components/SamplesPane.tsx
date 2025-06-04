@@ -67,6 +67,7 @@ export const SamplesPane = ({
 
     if (isRequest && !cache.has(datasource)) {
       setIsLoading(true);
+      // @ts-expect-error TS(2554): Expected 6 arguments, but got 4.
       getDatasourceSamples(datasource.type, datasource.id, queryForce, {})
         .then(response => {
           setData(ensureIsArray(response.data));

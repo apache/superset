@@ -72,10 +72,10 @@ describe('layerUtil', () => {
       const wfsLayer = await createWfsLayer(wfsLayerConf);
 
       const style = wfsLayer!.getStyle();
-      // @ts-ignore
+      // @ts-expect-error TS(2339): Property 'length' does not exist on type 'StyleLik... Remove this comment to see the full error message
       expect(style!.length).toEqual(3);
 
-      // @ts-ignore upgrade `ol` package for better type of StyleLike type.
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const colorAtLayer = style![1].getImage().getFill().getColor();
       expect(colorToExpect).toEqual(colorAtLayer);
     });

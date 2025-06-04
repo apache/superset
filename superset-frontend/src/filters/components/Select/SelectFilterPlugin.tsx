@@ -440,7 +440,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             onFocus={setFocusedFilter}
             onMouseEnter={setHoveredFilter}
             onMouseLeave={unsetHoveredFilter}
-            // @ts-ignore
+            // @ts-expect-error TS(2322): Type '(value?: SelectValue | number | string) => v... Remove this comment to see the full error message
             onChange={handleChange}
             ref={inputRef}
             loading={isRefreshing}

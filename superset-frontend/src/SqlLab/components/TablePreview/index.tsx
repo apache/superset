@@ -358,7 +358,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
             `}
           >
             <AutoSizer disableWidth>
-              {({ height }) => {
+              {({ height }: $TSFixMe) => {
                 const tabItems = [];
 
                 tabItems.push({

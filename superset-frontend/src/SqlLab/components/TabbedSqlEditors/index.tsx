@@ -160,6 +160,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       ) {
         // when results are not stored in localStorage they need to be
         // fetched from the results backend (if configured)
+        // @ts-expect-error TS(2554): Expected 3 arguments, but got 2.
         this.props.actions.fetchQueryResults(
           latestQuery,
           this.props.displayLimit,

@@ -675,7 +675,6 @@ export default function transformProps(
         theme,
         zoomable,
       ),
-      // @ts-ignore
       data: rawSeriesA
         .concat(rawSeriesB)
         .filter(

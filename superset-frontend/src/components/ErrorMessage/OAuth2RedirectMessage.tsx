@@ -123,6 +123,7 @@ export function OAuth2RedirectMessage({
         } else if (source === 'explore' && chartId) {
           dispatch(triggerQuery(true, chartId));
         } else if (source === 'dashboard') {
+          // @ts-expect-error TS(2345): Argument of type 'string[]' is not assignable to p... Remove this comment to see the full error message
           dispatch(onRefresh(chartList, true, 0, dashboardId));
         }
       }

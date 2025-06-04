@@ -175,6 +175,7 @@ describe('ExploreChartHeader', () => {
     render(
       <ExploreHeader
         {...props}
+        // @ts-expect-error TS(2322): Type '{ metadata: { dashboards: { id: number; dash... Remove this comment to see the full error message
         metadata={{
           ...props.metadata,
           dashboards: [

@@ -124,23 +124,19 @@ test('Should render', () => {
 test('Should render default props', () => {
   const props = createProps();
 
-  // @ts-ignore
+  // @ts-expect-error TS(2790): The operand of a 'delete' operator must be optiona... Remove this comment to see the full error message
   delete props.forceRefresh;
-  // @ts-ignore
   delete props.toggleExpandSlice;
-  // @ts-ignore
+  // @ts-expect-error TS(2339): Property 'exploreChart' does not exist on type 'Sl... Remove this comment to see the full error message
   delete props.exploreChart;
-  // @ts-ignore
   delete props.exportCSV;
-  // @ts-ignore
   delete props.exportXLSX;
-  // @ts-ignore
+  // @ts-expect-error TS(2790): The operand of a 'delete' operator must be optiona... Remove this comment to see the full error message
   delete props.cachedDttm;
-  // @ts-ignore
+  // @ts-expect-error TS(2790): The operand of a 'delete' operator must be optiona... Remove this comment to see the full error message
   delete props.updatedDttm;
-  // @ts-ignore
+  // @ts-expect-error TS(2790): The operand of a 'delete' operator must be optiona... Remove this comment to see the full error message
   delete props.isCached;
-  // @ts-ignore
   delete props.isExpanded;
 
   renderWrapper(props);

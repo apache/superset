@@ -26,7 +26,7 @@ const props = {
 describe('NoAnimationDropdown', () => {
   it('requires children', () => {
     expect(() => {
-      // @ts-ignore need to test the error case
+      // @ts-expect-error TS(2741): Property 'children' is missing in type '{ overlay:... Remove this comment to see the full error message
       render(<NoAnimationDropdown {...props} />);
     }).toThrow();
   });

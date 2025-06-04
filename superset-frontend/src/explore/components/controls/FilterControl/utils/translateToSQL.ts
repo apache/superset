@@ -65,11 +65,10 @@ export const translateToSql = (
       // 'LATEST PARTITION' supported callback only
       operator ===
         OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.LatestPartition].operation
-        ? // @ts-ignore TODO: fix missing operator type `NOT LIKE` and `TEMPORAL RANGE`
-          // Also to fix type incompability between AdhocFilter and Latest Partition callback args.
+        ? // Also to fix type incompability between AdhocFilter and Latest Partition callback args.
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           OPERATORS_TO_SQL[operator](adhocFilter)
-        : // @ts-ignore
-          // @ts-ignore TODO: fix missing operator type `NOT LIKE` and `TEMPORAL RANGE`.
+        : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           OPERATORS_TO_SQL[operator];
     return getSimpleSQLExpression(subject, op, comparator);
   }

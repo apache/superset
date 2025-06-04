@@ -119,7 +119,6 @@ function renderControlItems(
   controlItemsMap: ReturnType<typeof getControlItemsMap>,
 ) {
   return render(
-    // @ts-ignore
     <>
       {Object.values(controlItemsMap.controlItems).map(value => value.element)}
     </>,
@@ -225,7 +224,7 @@ describe('ColumnSelect filterValues behavior', () => {
       ...createProps(),
       formFilter: { filterType: 'filterType' },
     };
-    // @ts-ignore: bypass incomplete formFilter type for test
+    // @ts-expect-error TS(2345): Argument of type '{ formFilter: { filterType: stri... Remove this comment to see the full error message
     const element = getControlItemsMap(props).mainControlItems.groupby
       .element as React.ReactElement;
     render(element);
@@ -240,7 +239,7 @@ describe('ColumnSelect filterValues behavior', () => {
       ...createProps(),
       formFilter: { filterType: 'filterType' },
     };
-    // @ts-ignore: bypass incomplete formFilter type for test
+    // @ts-expect-error TS(2345): Argument of type '{ formFilter: { filterType: stri... Remove this comment to see the full error message
     const element = getControlItemsMap(props).mainControlItems.groupby
       .element as React.ReactElement;
     render(element);

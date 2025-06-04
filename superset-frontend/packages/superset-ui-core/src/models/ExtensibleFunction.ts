@@ -22,7 +22,7 @@
  */
 
 export default class ExtensibleFunction extends Function {
-  // @ts-ignore
+  // @ts-expect-error TS(2377): Constructors for derived classes must contain a 's... Remove this comment to see the full error message
   constructor(fn: Function) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return, no-constructor-return
     return Object.setPrototypeOf(fn, new.target.prototype);

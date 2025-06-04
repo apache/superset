@@ -189,10 +189,13 @@ const useDatasetChartRecords = (datasetId: string) => {
   );
 
   // Called by table with updated table state to fetch new data
-  // @ts-ignore
+  // @ts-expect-error TS(2314): Generic type 'OnChangeFunction' requires 1 type ar... Remove this comment to see the full error message
   const onChange: OnChangeFunction = useCallback(
-    // @ts-ignore
-    (tablePagination, tableFilters, tableSorter) => {
+    (
+      tablePagination: $TSFixMe,
+      tableFilters: $TSFixMe,
+      tableSorter: $TSFixMe,
+    ) => {
       const pageIndex = (tablePagination.current ?? 1) - 1;
       const pageSize = tablePagination.pageSize ?? 0;
       const sortBy = ensureIsArray(tableSorter)

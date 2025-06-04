@@ -76,7 +76,7 @@ export default function TimezoneSelector({
       };
 
       // TODO: remove this ts-ignore when typescript is upgraded to 5.1
-      // @ts-ignore
+      // @ts-expect-error TS(2339): Property 'supportedValuesOf' does not exist on typ... Remove this comment to see the full error message
       const ALL_ZONES: string[] = Intl.supportedValuesOf('timeZone');
 
       const labels = new Set<string>();

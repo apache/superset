@@ -121,7 +121,7 @@ export const useInitialization = () => {
       }, 1000);
     }
 
-    // @ts-ignore
+    // @ts-expect-error TS(2454): Variable 'filterTimeout' is used before being assi... Remove this comment to see the full error message
     if (numberOfLoadingCharts > 0 && filterTimeout !== undefined) {
       clearTimeout(filterTimeout);
     }

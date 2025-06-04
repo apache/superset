@@ -183,7 +183,7 @@ describe('normalizeOrderBy', () => {
       datasource: '5__table',
       viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
-      // @ts-ignore
+      // @ts-expect-error TS(2322): Type 'string' is not assignable to type 'boolean |... Remove this comment to see the full error message
       orderby: [['count(*)', 'true']],
     };
     expect(normalizeOrderBy(query)).not.toHaveProperty('orderby');

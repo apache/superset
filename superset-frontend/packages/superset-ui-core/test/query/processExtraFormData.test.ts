@@ -70,7 +70,7 @@ describe('overrideExtraFormData', () => {
           time_range: '100 years ago',
         },
         {
-          // @ts-expect-error
+          // @ts-expect-error TS(2345): Argument of type '{ viz_type: string; }' is not as... Remove this comment to see the full error message
           viz_type: 'other custom viz',
         },
       ),

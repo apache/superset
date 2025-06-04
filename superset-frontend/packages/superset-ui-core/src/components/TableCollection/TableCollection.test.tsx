@@ -51,7 +51,7 @@ beforeEach(() => {
       col2: 'Line 03 - Col 02',
     },
   ];
-  // @ts-ignore
+  // @ts-expect-error TS(2322): Type '{ Header: string; accessor: string; id: stri... Remove this comment to see the full error message
   const tableHookResult = renderHook(() => useTable({ columns, data }));
   tableHook = tableHookResult.result.current;
   defaultProps = {

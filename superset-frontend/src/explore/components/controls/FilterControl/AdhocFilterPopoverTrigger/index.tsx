@@ -88,6 +88,7 @@ class AdhocFilterPopoverTrigger extends PureComponent<
     const overlayContent = (
       <ExplorePopoverContent>
         <AdhocFilterEditPopover
+          // @ts-expect-error TS(2322): Type '{ adhocFilter: AdhocFilter; options: OptionS... Remove this comment to see the full error message
           adhocFilter={adhocFilter}
           options={this.props.options}
           datasource={this.props.datasource}

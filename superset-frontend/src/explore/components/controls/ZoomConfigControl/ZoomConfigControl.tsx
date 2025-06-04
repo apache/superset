@@ -194,7 +194,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseWidthDescription}
           value={baseWidth}
           name="baseWidth"
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type '{ controlType: "Slider"; label: string; desc... Remove this comment to see the full error message
           onAfterChange={onBaseWidthChange}
           step={1}
           min={0}
@@ -206,7 +206,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseHeightDescription}
           value={baseHeight}
           name="baseHeight"
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type '{ controlType: "Slider"; label: string; desc... Remove this comment to see the full error message
           onAfterChange={onBaseHeightChange}
           step={1}
           min={0}
@@ -218,7 +218,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseSlopeDescription}
           value={baseSlope}
           name="slope"
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type '{ controlType: "Slider"; label: string; desc... Remove this comment to see the full error message
           onAfterChange={onBaseSlopeChange}
           disabled={!!(value && !isZoomConfigsLinear(value))}
           step={1}
@@ -231,7 +231,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseExponentDescription}
           value={baseExponent}
           name="exponent"
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type '{ controlType: "Slider"; label: string; desc... Remove this comment to see the full error message
           onAfterChange={onBaseExponentChange}
           disabled={!!(value && !isZoomConfigsExp(value))}
           step={0.2}

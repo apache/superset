@@ -42,9 +42,9 @@ test('LRU operations', () => {
   expect(cache.values()).toEqual(['d', 'b', 'e']);
   expect(cache.has('2')).toBeTruthy();
   expect(cache.has('3')).toBeFalsy();
-  // @ts-expect-error
+  // @ts-expect-error TS(2554): Expected 2 arguments, but got 1.
   expect(() => cache.set(0)).toThrow(TypeError);
-  // @ts-expect-error
+  // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
   expect(() => cache.get(0)).toThrow(TypeError);
   expect(cache.size).toBe(3);
   expect(cache.values()).toEqual(['d', 'b', 'e']);

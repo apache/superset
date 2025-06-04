@@ -67,18 +67,18 @@ test('CurrencyFormatter:hasValidCurrency', () => {
   expect(currencyFormatter.hasValidCurrency()).toBe(true);
 
   const currencyFormatterWithoutPosition = new CurrencyFormatter({
-    // @ts-ignore
+    // @ts-expect-error TS(2741): Property 'symbolPosition' is missing in type '{ sy... Remove this comment to see the full error message
     currency: { symbol: 'USD' },
   });
   expect(currencyFormatterWithoutPosition.hasValidCurrency()).toBe(true);
 
   const currencyFormatterWithoutSymbol = new CurrencyFormatter({
-    // @ts-ignore
+    // @ts-expect-error TS(2741): Property 'symbol' is missing in type '{ symbolPosi... Remove this comment to see the full error message
     currency: { symbolPosition: 'prefix' },
   });
   expect(currencyFormatterWithoutSymbol.hasValidCurrency()).toBe(false);
 
-  // @ts-ignore
+  // @ts-expect-error TS(2345): Argument of type '{}' is not assignable to paramet... Remove this comment to see the full error message
   const currencyFormatterWithoutCurrency = new CurrencyFormatter({});
   expect(currencyFormatterWithoutCurrency.hasValidCurrency()).toBe(false);
 });
@@ -129,12 +129,12 @@ test('CurrencyFormatter:format', () => {
   expect(currencyFormatterWithSuffix(VALUE)).toEqual('56.1M $');
 
   const currencyFormatterWithoutPosition = new CurrencyFormatter({
-    // @ts-ignore
+    // @ts-expect-error TS(2741): Property 'symbolPosition' is missing in type '{ sy... Remove this comment to see the full error message
     currency: { symbol: 'USD' },
   });
   expect(currencyFormatterWithoutPosition(VALUE)).toEqual('56.1M $');
 
-  // @ts-ignore
+  // @ts-expect-error TS(2345): Argument of type '{}' is not assignable to paramet... Remove this comment to see the full error message
   const currencyFormatterWithoutCurrency = new CurrencyFormatter({});
   expect(currencyFormatterWithoutCurrency(VALUE)).toEqual('56.1M');
 

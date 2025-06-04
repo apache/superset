@@ -371,7 +371,9 @@ export type CustomControlItem = {
 export const isCustomControlItem = (obj: unknown): obj is CustomControlItem =>
   typeof obj === 'object' &&
   obj !== null &&
+  // @ts-expect-error TS(2339): Property 'name' does not exist on type 'object'.
   typeof ('name' in obj && obj.name) === 'string' &&
+  // @ts-expect-error TS(2339): Property 'config' does not exist on type 'object'.
   typeof ('config' in obj && obj.config) === 'object' &&
   (obj as CustomControlItem).config !== null;
 

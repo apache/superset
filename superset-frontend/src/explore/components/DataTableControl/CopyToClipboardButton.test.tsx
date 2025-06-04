@@ -36,7 +36,7 @@ test('Should copy to clipboard', async () => {
   document.execCommand = callback;
 
   const originalClipboard = { ...global.navigator.clipboard };
-  // @ts-ignore
+  // @ts-expect-error TS(2540): Cannot assign to 'clipboard' because it is a read-... Remove this comment to see the full error message
   global.navigator.clipboard = { write: callback, writeText: callback };
 
   render(<CopyToClipboardButton data={{ copy: 'data', data: 'copy' }} />, {
@@ -51,6 +51,6 @@ test('Should copy to clipboard', async () => {
   });
 
   jest.resetAllMocks();
-  // @ts-ignore
+  // @ts-expect-error TS(2540): Cannot assign to 'clipboard' because it is a read-... Remove this comment to see the full error message
   global.navigator.clipboard = originalClipboard;
 });

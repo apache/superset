@@ -269,14 +269,14 @@ const ColumnSelectPopover = ({
     tab => {
       getCurrentTab(tab);
       setSelectedTab(tab);
-      // @ts-ignore
+      // @ts-expect-error TS(2339): Property 'editor' does not exist on type 'never'.
       sqlEditorRef.current?.editor.focus();
     },
     [getCurrentTab],
   );
 
   const onSqlEditorFocus = useCallback(() => {
-    // @ts-ignore
+    // @ts-expect-error TS(2339): Property 'editor' does not exist on type 'never'.
     sqlEditorRef.current?.editor.resize();
   }, []);
 

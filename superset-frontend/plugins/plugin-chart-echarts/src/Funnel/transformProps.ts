@@ -254,7 +254,6 @@ export default function transformProps(
           fontWeight: 'bold',
         },
       },
-      // @ts-ignore
       data: transformedData,
     },
   ];

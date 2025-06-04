@@ -95,7 +95,7 @@ test('change datasource action', () => {
     },
   }));
   // ignore getState type check - we dont need explore.datasource field for this test
-  // @ts-ignore
+  // @ts-expect-error TS(2345): Argument of type 'Mock<{ explore: { datasource: { ... Remove this comment to see the full error message
   changeDatasource(NEW_DATASOURCE)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledTimes(2);
   expect(dispatch).toHaveBeenNthCalledWith(1, setDatasource(NEW_DATASOURCE));

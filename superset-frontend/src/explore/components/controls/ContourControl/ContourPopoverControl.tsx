@@ -259,6 +259,7 @@ const ContourPopoverControl = ({
                 hovered
               />
               <ColorPickerControl
+                // @ts-expect-error TS(2322): Type '{ value: false | ColorType | undefined; onCh... Remove this comment to see the full error message
                 value={typeof contour === 'object' && contour?.color}
                 onChange={updateColor}
               />
@@ -314,6 +315,7 @@ const ContourPopoverControl = ({
                 hovered
               />
               <ColorPickerControl
+                // @ts-expect-error TS(2322): Type '{ value: ColorType | undefined; onChange: (r... Remove this comment to see the full error message
                 value={contour?.color}
                 onChange={updateColor}
               />

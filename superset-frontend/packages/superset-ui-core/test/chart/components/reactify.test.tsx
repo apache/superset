@@ -129,7 +129,7 @@ describe('reactify(renderFn)', () => {
   it('does not try to render if not mounted', () => {
     const anotherRenderFn = jest.fn();
     const AnotherChart = reactify(anotherRenderFn); // enables valid new AnotherChart() call
-    // @ts-ignore
+    // @ts-expect-error TS(2339): Property 'execute' does not exist on type 'Compone... Remove this comment to see the full error message
     new AnotherChart({ id: 'test' }).execute();
     expect(anotherRenderFn).not.toHaveBeenCalled();
   });

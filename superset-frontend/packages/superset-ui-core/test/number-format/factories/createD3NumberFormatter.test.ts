@@ -21,7 +21,7 @@ import { createD3NumberFormatter } from '@superset-ui/core';
 
 describe('createD3NumberFormatter(config)', () => {
   it('requires config.formatString', () => {
-    // @ts-ignore -- intentionally pass invalid input
+    // @ts-expect-error TS(2345): Argument of type '{}' is not assignable to paramet... Remove this comment to see the full error message
     expect(() => createD3NumberFormatter({})).toThrow();
   });
   describe('config.formatString', () => {

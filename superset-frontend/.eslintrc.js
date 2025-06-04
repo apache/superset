@@ -244,6 +244,14 @@ module.exports = {
               'ImportNamespaceSpecifier[parent.source.value!=/^(\\.|src)/]',
             message: 'Wildcard imports are not allowed',
           },
+          {
+            selector: "TSTypeReference[typeName.name='$TSFixMe']",
+            message: 'Fix this $TSFixMe type',
+          },
+          {
+            selector: "TSTypeReference[typeName.name='$TSFixMeFunction']",
+            message: 'Fix this $TSFixMeFunction type',
+          },
         ],
         'no-restricted-imports': [
           'error',

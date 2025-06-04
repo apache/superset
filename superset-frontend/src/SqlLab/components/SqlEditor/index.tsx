@@ -638,6 +638,7 @@ const SqlEditor: FC<Props> = ({
 
   const setQueryEditorAndSaveSql = useCallback(
     sql => {
+      // @ts-expect-error TS(2554): Expected 3 arguments, but got 2.
       dispatch(queryEditorSetAndSaveSql(queryEditor, sql));
     },
     [dispatch, queryEditor],
@@ -649,6 +650,7 @@ const SqlEditor: FC<Props> = ({
   );
 
   const onSqlChanged = useEffectEvent((sql: string) => {
+    // @ts-expect-error TS(2554): Expected 3 arguments, but got 2.
     dispatch(queryEditorSetSql(queryEditor, sql));
   });
 

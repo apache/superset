@@ -310,7 +310,7 @@ const TagModal: FC<TagModalProps> = ({
           ariaLabel={t('Select dashboards')}
           mode="multiple"
           name="dashboards"
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type 'TaggableResourceOption[]' is not assignable ... Remove this comment to see the full error message
           value={dashboardsToTag}
           options={loadDashboards}
           onChange={value =>
@@ -324,7 +324,7 @@ const TagModal: FC<TagModalProps> = ({
           ariaLabel={t('Select charts')}
           mode="multiple"
           name="charts"
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type 'TaggableResourceOption[]' is not assignable ... Remove this comment to see the full error message
           value={chartsToTag}
           options={loadCharts}
           onChange={value => handleOptionChange(TaggableResources.Chart, value)}
@@ -336,7 +336,7 @@ const TagModal: FC<TagModalProps> = ({
           ariaLabel={t('Select saved queries')}
           mode="multiple"
           name="savedQueries"
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type 'TaggableResourceOption[]' is not assignable ... Remove this comment to see the full error message
           value={savedQueriesToTag}
           options={loadQueries}
           onChange={value =>

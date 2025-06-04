@@ -60,7 +60,7 @@ export interface EchartsFunnelChartProps
   formData: EchartsFunnelFormData;
 }
 
-// @ts-ignore
+// @ts-expect-error TS(2322): Type '{ groupby: never[]; labelLine: false; labelT... Remove this comment to see the full error message
 export const DEFAULT_FORM_DATA: EchartsFunnelFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   groupby: [],

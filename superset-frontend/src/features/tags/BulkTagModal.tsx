@@ -126,11 +126,11 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
         <FormLabel>{t('tags')}</FormLabel>
         <AsyncSelect
           ariaLabel="tags"
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type 'TaggableResourceOption[]' is not assignable ... Remove this comment to see the full error message
           value={tags}
           options={loadTags}
           onHide={onHide}
-          // @ts-ignore
+          // @ts-expect-error TS(2345): Argument of type 'SelectValue' is not assignable t... Remove this comment to see the full error message
           onChange={tags => setTags(tags)}
           placeholder={t('Select Tags')}
           mode="multiple"

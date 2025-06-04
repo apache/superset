@@ -530,7 +530,6 @@ const DashboardBuilder = () => {
             ]}
             editMode={editMode}
           >
-            {/* @ts-ignore */}
             <DashboardComponent
               id={topLevelTabs?.id}
               parentId={DASHBOARD_ROOT_ID}
@@ -619,9 +618,9 @@ const DashboardBuilder = () => {
           </>
         )}
       <StyledHeader ref={headerRef}>
-        {/* @ts-ignore */}
         <Droppable
           data-test="top-level-tabs"
+          // @ts-expect-error TS(2322): Type '{ children: ({ dropIndicatorProps }: { dropI... Remove this comment to see the full error message
           className={cx(!topLevelTabs && editMode && 'empty-droptarget')}
           component={dashboardRoot}
           parentComponent={null}

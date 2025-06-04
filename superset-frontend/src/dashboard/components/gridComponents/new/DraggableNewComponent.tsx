@@ -72,6 +72,7 @@ export default class DraggableNewComponent extends PureComponent<DraggableNewCom
 
     return (
       <DragDroppable
+        // @ts-expect-error TS(2322): Type '{ children: ({ dragSourceRef }: any) => Elem... Remove this comment to see the full error message
         component={{ type, id, meta }}
         parentComponent={{
           id: NEW_COMPONENTS_SOURCE_ID,
@@ -81,7 +82,7 @@ export default class DraggableNewComponent extends PureComponent<DraggableNewCom
         depth={0}
         editMode
       >
-        {({ dragSourceRef }) => (
+        {({ dragSourceRef }: $TSFixMe) => (
           <NewComponent ref={dragSourceRef} data-test="new-component">
             <NewComponentPlaceholder
               className={cx('new-component-placeholder', className)}

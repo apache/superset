@@ -479,10 +479,10 @@ const AsyncSelect = forwardRef(
           fullSelectOptions.filter(opt => set.has(opt.value)),
         );
         if (isSingleMode) {
-          // @ts-ignore
+          // @ts-expect-error TS(2345): Argument of type 'string | number | RawValue[] | L... Remove this comment to see the full error message
           onChange?.(selectValue, options[0]);
         } else {
-          // @ts-ignore
+          // @ts-expect-error TS(2345): Argument of type '(string | number | LabeledValue)... Remove this comment to see the full error message
           onChange?.(array, options);
         }
       }
@@ -612,7 +612,7 @@ const AsyncSelect = forwardRef(
           onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
           onDropdownVisibleChange={handleOnDropdownVisibleChange}
-          // @ts-ignore
+          // @ts-expect-error TS(2322): Type '{ ref: RefObject<AsyncSelectRef>; className?... Remove this comment to see the full error message
           onPaste={onPaste}
           onPopupScroll={handlePagination}
           onSearch={showSearch ? handleOnSearch : undefined}
