@@ -38,6 +38,7 @@ import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { noOp } from 'src/utils/common';
 import ControlPopover from '../ControlPopover/ControlPopover';
+import DateFilter from './NewDateFilterModal/DateFilter';
 
 import { DateFilterControlProps, FrameType } from './types';
 import {
@@ -277,78 +278,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   }
 
   const overlayContent = (
-    <ContentStyleWrapper>
-      <div className="control-label">{t('RANGE TYPE')}</div>
-      <StyledRangeType
-        ariaLabel={t('RANGE TYPE')}
-        options={FRAME_OPTIONS}
-        value={frame}
-        onChange={onChangeFrame}
-      />
-      {frame !== 'No filter' && <Divider />}
-      {frame === 'Common' && (
-        <CommonFrame value={timeRangeValue} onChange={setTimeRangeValue} />
-      )}
-      {frame === 'Calendar' && (
-        <CalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
-      )}
-      {frame === 'Current' && (
-        <CurrentCalendarFrame
-          value={timeRangeValue}
-          onChange={setTimeRangeValue}
-        />
-      )}
-      {frame === 'Advanced' && (
-        <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />
-      )}
-      {frame === 'Custom' && (
-        <CustomFrame
-          value={timeRangeValue}
-          onChange={setTimeRangeValue}
-          isOverflowingFilterBar={isOverflowingFilterBar}
-        />
-      )}
-      {frame === 'No filter' && <div data-test={DateFilterTestKey.NoFilter} />}
-      <Divider />
-      <div>
-        <div className="section-title">{t('Actual time range')}</div>
-        {validTimeRange && (
-          <div>
-            {evalResponse === 'No filter' ? t('No filter') : evalResponse}
-          </div>
-        )}
-        {!validTimeRange && (
-          <IconWrapper className="warning">
-            <Icons.ExclamationCircleOutlined
-              iconColor={theme.colors.error.base}
-            />
-            <span className="text error">{evalResponse}</span>
-          </IconWrapper>
-        )}
-      </div>
-      <Divider />
-      <div className="footer">
-        <Button
-          buttonStyle="secondary"
-          cta
-          key="cancel"
-          onClick={onHide}
-          data-test={DateFilterTestKey.CancelButton}
-        >
-          {t('CANCEL')}
-        </Button>
-        <Button
-          buttonStyle="primary"
-          cta
-          disabled={!validTimeRange}
-          key="apply"
-          onClick={onSave}
-          data-test={DateFilterTestKey.ApplyButton}
-        >
-          {t('APPLY')}
-        </Button>
-      </div>
-    </ContentStyleWrapper>
+    <DateFilter onApply={e => console.log(e)} onCancel={onHide} />
   );
 
   const title = (
@@ -363,11 +293,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       trigger="click"
       placement="right"
       content={overlayContent}
-      title={title}
+      title={null}
       defaultOpen={show}
       open={show}
       onOpenChange={toggleOverlay}
-      overlayStyle={{ width: '600px' }}
       destroyTooltipOnHide
       getPopupContainer={nodeTrigger =>
         isOverflowingFilterBar
