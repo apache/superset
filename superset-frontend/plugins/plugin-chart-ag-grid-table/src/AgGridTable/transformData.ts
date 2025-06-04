@@ -69,13 +69,11 @@ export const transformData = (
     ...(serverPagination && {
       comparator: () => 0,
     }),
-    ...(col.isPercentMetric && {
-      valueFormatter: (params: ValueFormatterParams) => {
-        if (!col?.formatter) return params?.value;
-        const formattedVal = col?.formatter(params?.value);
-        return formattedVal;
-      },
-    }),
+    valueFormatter: (params: ValueFormatterParams) => {
+      if (!col?.formatter) return params?.value;
+      const formattedVal = col?.formatter(params?.value);
+      return formattedVal;
+    },
     // Add number specific properties for numeric columns
     ...(col.isNumeric && {
       type: 'rightAligned',

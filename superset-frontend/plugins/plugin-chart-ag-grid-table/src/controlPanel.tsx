@@ -26,6 +26,7 @@ import {
   ControlPanelState,
   ControlState,
   ControlStateMapping,
+  D3_TIME_FORMAT_OPTIONS,
   Dataset,
   DEFAULT_MAX_ROW,
   DEFAULT_MAX_ROW_TABLE_SERVER,
@@ -42,6 +43,7 @@ import {
   legacyValidateInteger,
   QueryFormColumn,
   QueryMode,
+  SMART_DATE_ID,
   t,
   validateMaxValue,
   validateServerPagination,
@@ -385,6 +387,21 @@ const config: ControlPanelConfig = {
       label: t('Options'),
       expanded: true,
       controlSetRows: [
+        [
+          {
+            name: 'table_timestamp_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Timestamp format'),
+              default: SMART_DATE_ID,
+              renderTrigger: true,
+              clearable: false,
+              choices: D3_TIME_FORMAT_OPTIONS,
+              description: t('D3 time format for datetime columns'),
+            },
+          },
+        ],
         [
           {
             name: 'page_length',
