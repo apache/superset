@@ -52,7 +52,8 @@ export const transformData = (
       isMetric: col?.isMetric,
     },
     cellStyle: {
-      textAlign: col?.config?.horizontalAlign || 'left',
+      textAlign:
+        col?.config?.horizontalAlign || (col?.isNumeric ? 'right' : 'left'),
     },
     cellClass: params => {
       const isActiveFilterValue = params?.context?.isActiveFilterValue;
