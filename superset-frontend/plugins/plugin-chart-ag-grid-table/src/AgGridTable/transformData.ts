@@ -48,6 +48,9 @@ export const transformData = (
     customMeta: {
       isMetric: col?.isMetric,
     },
+    cellStyle: {
+      textAlign: col?.config?.horizontalAlign || 'left',
+    },
     cellClass: params => {
       const isActiveFilterValue = params?.context?.isActiveFilterValue;
       let className = '';
