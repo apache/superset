@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 import dateutil.parser
@@ -198,7 +198,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 force_update = True
 
             if force_update:
-                attributes["changed_on"] = datetime.now(tz=timezone.utc)
+                attributes["changed_on"] = datetime.now()
 
         return super().update(item, attributes)
 
