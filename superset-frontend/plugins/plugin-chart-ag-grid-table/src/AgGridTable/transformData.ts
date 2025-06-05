@@ -45,6 +45,9 @@ export const transformData = (
   const colDefs: ColDef[] = columns.map(col => ({
     field: col.key,
     headerName: col.label,
+    ...(col?.config?.columnWidth && {
+      minWidth: col?.config?.columnWidth,
+    }),
     customMeta: {
       isMetric: col?.isMetric,
     },
