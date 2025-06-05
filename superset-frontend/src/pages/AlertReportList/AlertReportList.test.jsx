@@ -247,7 +247,9 @@ describe('AlertList', () => {
     await screen.findByTestId('alerts-list-view');
 
     expect(screen.getByText('Last run')).toBeInTheDocument();
-    expect(screen.getByText('Name')).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: /name/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Schedule')).toBeInTheDocument();
     expect(screen.getByText('Notification method')).toBeInTheDocument();
     expect(screen.getByText('Owners')).toBeInTheDocument();
@@ -261,7 +263,9 @@ describe('AlertList', () => {
     await screen.findByTestId('alerts-list-view');
 
     expect(screen.getByText('Last run')).toBeInTheDocument();
-    expect(screen.getByText('Name')).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: /name/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Schedule')).toBeInTheDocument();
     expect(screen.getByText('Notification method')).toBeInTheDocument();
     expect(screen.getByText('Owners')).toBeInTheDocument();
