@@ -397,8 +397,7 @@ class ChartDataRestApi(ChartRestApi):
             queries = result["queries"]
             if security_manager.is_guest_user():
                 for query in queries:
-                    with contextlib.suppress(KeyError):
-                        del query["query"]
+                    query.pop("query", None)
             with event_logger.log_context(f"{self.__class__.__name__}.json_dumps"):
                 response_data = json.dumps(
                     {"result": queries},
