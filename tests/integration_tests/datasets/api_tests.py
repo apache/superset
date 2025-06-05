@@ -1200,12 +1200,6 @@ class TestDatasetApi(SupersetTestCase):
                     "metrics": data["result"]["metrics"],
                 },
             )
-            print("--------------------------------")
-            print("--------------------------------")
-            print("--------------------------------")
-            print(rv.status_code)
-            print(rv.data.decode("utf-8"))
-            print(rv.data)
 
         assert rv.status_code == 200
 
@@ -1477,7 +1471,6 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dataset/{dataset.id}"
-        # try to insert a new column ID that already exists
         data = {
             "metrics": [
                 {
@@ -1500,7 +1493,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.insert_default_dataset()
         self.login(ADMIN_USERNAME)
 
-        # Insert metric via the DB directly to create as string
+        # Insert metric via the DB directly to create it as string
         new_metric = SqlMetric(
             table_id=dataset.id,
             metric_name="test",
