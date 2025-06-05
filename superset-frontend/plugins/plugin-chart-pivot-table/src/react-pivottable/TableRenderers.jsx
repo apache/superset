@@ -65,6 +65,13 @@ function displayHeaderCell(
   );
 }
 
+function renderFormattedValue(formattedValue, allowRenderHtml) {
+  if (allowRenderHtml && typeof formattedValue === 'string') {
+    return safeHtmlSpan(formattedValue);
+  }
+  return formattedValue;
+}
+
 export class TableRenderer extends Component {
   constructor(props) {
     super(props);
@@ -742,7 +749,7 @@ export class TableRenderer extends Component {
           onContextMenu={e => this.props.onContextMenu(e, colKey, rowKey)}
           style={style}
         >
-          {agg.format(aggValue)}
+          {renderFormattedValue(agg.format(aggValue), allowRenderHtml)}
         </td>
       );
     });
@@ -759,7 +766,7 @@ export class TableRenderer extends Component {
           onClick={rowTotalCallbacks[flatRowKey]}
           onContextMenu={e => this.props.onContextMenu(e, undefined, rowKey)}
         >
-          {agg.format(aggValue)}
+          {renderFormattedValue(agg.format(aggValue), allowRenderHtml)}
         </td>
       );
     }
@@ -785,6 +792,7 @@ export class TableRenderer extends Component {
       pivotData,
       colTotalCallbacks,
       grandTotalCallback,
+      allowRenderHtml,
     } = pivotSettings;
 
     const totalLabelCell = (
@@ -823,7 +831,7 @@ export class TableRenderer extends Component {
           onContextMenu={e => this.props.onContextMenu(e, colKey, undefined)}
           style={{ padding: '5px' }}
         >
-          {agg.format(aggValue)}
+          {renderFormattedValue(agg.format(aggValue), allowRenderHtml)}
         </td>
       );
     });
@@ -840,7 +848,7 @@ export class TableRenderer extends Component {
           onClick={grandTotalCallback}
           onContextMenu={e => this.props.onContextMenu(e, undefined, undefined)}
         >
-          {agg.format(aggValue)}
+          {renderFormattedValue(agg.format(aggValue), allowRenderHtml)}
         </td>
       );
     }
