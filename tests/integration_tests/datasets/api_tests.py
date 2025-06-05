@@ -1200,6 +1200,12 @@ class TestDatasetApi(SupersetTestCase):
                     "metrics": data["result"]["metrics"],
                 },
             )
+            print("--------------------------------")
+            print("--------------------------------")
+            print("--------------------------------")
+            print(rv.status_code)
+            print(rv.data.decode("utf-8"))
+            print(rv.data)
 
         assert rv.status_code == 200
 
@@ -1460,6 +1466,65 @@ class TestDatasetApi(SupersetTestCase):
             "message": {"metrics": ["One or more metrics are duplicated"]}
         }
         assert data == expected_result
+        self.items_to_delete = [dataset]
+
+    def test_update_dataset_update_metric_invalid_currency(self):
+        """
+        Dataset API: Test update dataset metric with an invalid currency config
+        """
+
+        dataset = self.insert_default_dataset()
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dataset/{dataset.id}"
+        # try to insert a new column ID that already exists
+        data = {
+            "metrics": [
+                {
+                    "metric_name": "test",
+                    "expression": "COUNT(*)",
+                    "currency": '{"symbol": "USD", "symbolPosition": "suffix"}',
+                },
+            ]
+        }
+        rv = self.put_assert_metric(uri, data, "put")
+        assert rv.status_code == 422
+
+        self.items_to_delete = [dataset]
+
+    def test_get_metric_currency_str_conversion(self):
+        """
+        Dataset API: Test retrieve metric with currency config set as string
+        gets automatically converted to dict in the API response
+        """
+        dataset = self.insert_default_dataset()
+        self.login(ADMIN_USERNAME)
+
+        # Insert metric via the DB directly to create as string
+        new_metric = SqlMetric(
+            table_id=dataset.id,
+            metric_name="test",
+            expression="COUNT(*)",
+            currency='{"symbol": "USD", "symbolPosition": "suffix"}',
+        )
+        db.session.add(new_metric)
+        db.session.commit()
+
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.get_assert_metric(uri, "get")
+        data = json.loads(rv.data.decode("utf-8"))
+        metrics = data["result"]["metrics"]
+
+        assert rv.status_code == 200
+        # the default auto-created count + the custom one
+        assert len(metrics) == 2
+        for metric in metrics:
+            if metric["metric_name"] == "test":
+                assert metric["currency"] == {
+                    "symbol": "USD",
+                    "symbolPosition": "suffix",
+                }
+
         self.items_to_delete = [dataset]
 
     def test_update_dataset_item_gamma(self):

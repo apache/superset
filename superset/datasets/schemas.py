@@ -107,16 +107,16 @@ class DatasetDatabaseShowSchema(Schema):
 
 class DatasetMetricCurrencyShowSchema(Schema):
     @pre_dump
-    def load_currency_config_from_string(  # pylint: disable=unused-argument
+    def convert_currency_str_to_dict(  # pylint: disable=unused-argument
         self,
         data: dict[str, Any] | None,
         **kwargs: Any,
     ) -> dict[str, Any] | None:
-        if data and isinstance(data.get("currency"), str):
+        if data and isinstance(data, str):
             try:
-                data["currency"] = json.loads(data["currency"])
+                data = json.loads(data)
             except ValueError:
-                data["currency"] = None
+                data = None
         return data
 
     symbol = fields.String(metadata={"description": "symbol_description"})
@@ -130,9 +130,7 @@ class DatasetMetricsShowSchema(Schema):
         metadata={"description": "changed_on_description"}, allow_none=True
     )
     created_on = fields.DateTime(metadata={"description": "created_on_description"})
-    currency = fields.Dict(
-        metadata={"description": "currency_description"}, allow_none=True
-    )
+    currency = fields.Nested(DatasetMetricCurrencyShowSchema, allow_none=True)
     d3format = fields.String(
         metadata={"description": "d3format_description"}, allow_none=True
     )
@@ -269,7 +267,7 @@ class DatasetMetricsPutSchema(Schema):
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
-    currency = fields.Nested(DatasetMetricCurrencyPutSchema)
+    currency = fields.Nested(DatasetMetricCurrencyPutSchema, allow_none=True)
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
