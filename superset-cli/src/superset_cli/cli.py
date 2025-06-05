@@ -26,21 +26,55 @@ from pathlib import Path
 from typing import Any, Callable, cast
 
 import click
+import semver
 from superset_core.extensions.types import Manifest, Metadata
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
+from superset_cli.constants import MIN_NPM_VERSION
 from superset_cli.utils import read_json, read_toml
 
 REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
 FRONTEND_DIST_REGEX = re.compile(r"/frontend/dist")
 
 
-def ensure_npm_available() -> None:
+def validate_npm() -> None:
     """Abort if `npm` is not on PATH."""
     if shutil.which("npm") is None:
         click.secho(
             "❌ npm is not installed or not on your PATH.",
+            err=True,
+            fg="red",
+        )
+        sys.exit(1)
+
+    try:
+        result = subprocess.run(  # noqa: S603
+            ["npm", "-v"],  # noqa: S607
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if result.returncode != 0:
+            click.secho(
+                f"❌ Failed to run `npm -v`: {result.stderr.strip()}",
+                err=True,
+                fg="red",
+            )
+            sys.exit(1)
+
+        npm_version = result.stdout.strip()
+        if semver.compare(npm_version, MIN_NPM_VERSION) < 0:
+            click.secho(
+                f"❌ npm version {npm_version} is lower than the required {MIN_NPM_VERSION}.",  # noqa: E501
+                err=True,
+                fg="red",
+            )
+            sys.exit(1)
+
+    except FileNotFoundError:
+        click.secho(
+            "❌ npm was not found when checking its version.",
             err=True,
             fg="red",
         )
@@ -54,7 +88,7 @@ def init_frontend_deps(frontend_dir: Path) -> None:
     node_modules = frontend_dir / "node_modules"
     if not node_modules.exists():
         click.secho("⚙️  node_modules not found, running `npm ci`…", fg="cyan")
-        ensure_npm_available()
+        validate_npm()
         res = subprocess.run(  # noqa: S603
             ["npm", "ci"],  # noqa: S607
             cwd=frontend_dir,
@@ -196,13 +230,15 @@ def app() -> None:
 
 @app.command()
 def validate() -> None:
-    ensure_npm_available()
+    validate_npm()
 
     click.secho("✅ Validation successful", fg="green")
 
 
 @app.command()
-def build() -> None:
+@click.pass_context
+def build(ctx: click.Context) -> None:
+    ctx.invoke(validate)
     cwd = Path.cwd()
     frontend_dir = cwd / "frontend"
     backend_dir = cwd / "backend"
@@ -268,7 +304,8 @@ def bundle(ctx: click.Context, output: Path | None) -> None:
 
 
 @app.command()
-def dev() -> None:
+@click.pass_context
+def dev(ctx: click.Context) -> None:
     cwd = Path.cwd()
     frontend_dir = cwd / "frontend"
     backend_dir = cwd / "backend"

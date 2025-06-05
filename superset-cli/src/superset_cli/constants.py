@@ -15,34 +15,5 @@
 # specific language governing permissions and limitations
 # under the License.
 
-[project]
-name = "apache-superset-cli"
-version = "0.0.1"
-description = "SDK to build Apache Superset extensions"
-authors = [
-    { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
-]
-license = { file="LICENSE.txt" }
-requires-python = ">=3.10"
-classifiers = [
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-]
-dependencies = [
-    "apache-superset-core>=0.0.1, <0.2",
-    "click>=8.0.3",
-    "semver>=3.0.4",
-    "tomli>=2.2.1; python_version < '3.11'",
-    "watchdog>=6.0.0",
-]
 
-[build-system]
-requires = ["setuptools>=76.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-packages = ["superset_cli"]
-package-dir = { "" = "src" }
-
-[project.scripts]
-superset-extensions = "superset_cli.cli:app"
+MIN_NPM_VERSION = "10.8.2"
