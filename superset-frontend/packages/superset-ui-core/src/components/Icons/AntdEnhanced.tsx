@@ -136,6 +136,7 @@ import {
   GithubOutlined,
   GoogleOutlined,
   FacebookOutlined,
+  ExportOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
 import { IconType } from './types';
@@ -261,6 +262,7 @@ const AntdIcons = {
   WarningOutlined,
   SortAscendingOutlined,
   KeyOutlined,
+  ExportOutlined,
 } as const;
 
 type AntdIconNames = keyof typeof AntdIcons;
