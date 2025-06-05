@@ -334,6 +334,9 @@ class SupersetParseError(SupersetErrorException):
         )
         super().__init__(error)
 
+    def __str__(self) -> str:
+        return self.error.message
+
 
 class OAuth2RedirectError(SupersetErrorException):
     """
