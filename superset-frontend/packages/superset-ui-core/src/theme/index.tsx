@@ -20,7 +20,14 @@ import emotionStyled from '@emotion/styled';
 import { useTheme as useThemeBasic } from '@emotion/react';
 // import { theme as antdThemeImport } from 'antd';
 import { Theme } from './Theme';
-import type { SupersetTheme, SerializableThemeConfig } from './types';
+import type {
+  SupersetTheme,
+  SerializableThemeConfig,
+  AnyThemeConfig,
+  ThemeStorage,
+  ThemeControllerOptions,
+  ThemeContextType,
+} from './types';
 
 export {
   css,
@@ -58,4 +65,11 @@ const { theme } = themeObject;
 const supersetTheme = theme;
 
 export { Theme, themeObject, styled, theme, supersetTheme };
-export type { SupersetTheme, SerializableThemeConfig };
+export type {
+  SupersetTheme,
+  SerializableThemeConfig,
+  AnyThemeConfig,
+  ThemeStorage,
+  ThemeControllerOptions,
+  ThemeContextType,
+};
