@@ -564,6 +564,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Allow metrics and columns to be grouped into (potentially nested) folders in the
     # chart builder
     "DATASET_FOLDERS": False,
+    # Enable Superset extensions, which allow users to add custom functionality
+    # to Superset without modifying the core codebase.
+    "ENABLE_EXTENSIONS": False,
 }
 
 # ------------------------------

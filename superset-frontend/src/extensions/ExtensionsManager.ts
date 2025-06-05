@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, logging } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  SupersetClient,
+  isFeatureEnabled,
+  logging,
+} from '@superset-ui/core';
 import {
   CommandContribution,
   MenuContribution,
@@ -27,12 +32,18 @@ import { Module } from './types';
 
 class ExtensionsManager {
   private static instance: ExtensionsManager;
+
   private extensionIndex: Map<string, core.Extension> = new Map();
+
   private extensionsByModule: Map<Module, core.Extension[]> = new Map();
+
   private menuIndex: Map<string, MenuContribution> = new Map();
+
   private viewIndex: Map<string, ViewContribution[]> = new Map();
+
   private commandIndex: Map<string, CommandContribution> = new Map();
 
+  // eslint-disable-next-line no-useless-constructor
   private constructor() {}
 
   public static getInstance(): ExtensionsManager {
@@ -48,6 +59,9 @@ class ExtensionsManager {
    * @throws Error if initialization fails.
    */
   public async initialize(module: Module): Promise<void> {
+    if (!isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+      return;
+    }
     const response = await SupersetClient.get({
       endpoint: `/api/v1/extensions/?module=${module}`,
     });
@@ -136,6 +150,7 @@ class ExtensionsManager {
     }
     return false;
   }
+
   /**
    * Deactivates all extensions of a particular module.
    */
