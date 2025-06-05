@@ -117,7 +117,7 @@ import {
   LOG_ACTIONS_SQLLAB_STOP_QUERY,
   Logger,
 } from 'src/logger/LogUtils';
-import CopyToClipboard from 'src/components/CopyToClipboard';
+import { CopyToClipboard } from 'src/components';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';
@@ -908,8 +908,8 @@ const SqlEditor: FC<Props> = ({
   const renderDatasetWarning = () => (
     <Alert
       css={css`
-        margin-bottom: ${theme.gridUnit * 2}px;
-        padding-top: ${theme.gridUnit * 4}px;
+        margin-bottom: ${theme.sizeUnit * 2}px;
+        padding-top: ${theme.sizeUnit * 4}px;
         .antd5-alert-action {
           align-self: center;
         }
@@ -938,8 +938,8 @@ const SqlEditor: FC<Props> = ({
           >
             <p
               css={css`
-                font-size: ${theme.typography.sizes.m}px;
-                font-weight: ${theme.typography.weights.medium};
+                font-size: ${theme.fontSize}px;
+                font-weight: ${theme.fontSize};
                 color: ${theme.colors.primary.dark2};
               `}
             >
@@ -949,8 +949,8 @@ const SqlEditor: FC<Props> = ({
             </p>
             <p
               css={css`
-                font-size: ${theme.typography.sizes.m}px;
-                font-weight: ${theme.typography.weights.normal};
+                font-size: ${theme.fontSize}px;
+                font-weight: ${theme.fontSize};
                 color: ${theme.colors.primary.dark2};
               `}
             >

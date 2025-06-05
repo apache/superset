@@ -1059,7 +1059,7 @@ class DatasourceEditor extends PureComponent {
           color: ${isError
             ? theme.colors.error.base
             : theme.colors.grayscale.base};
-          font-size: ${theme.typography.sizes.s}px;
+          font-size: ${theme.fontSizeSM}px;
           text-decoration: underline;
         `}
       >
@@ -1072,7 +1072,7 @@ class DatasourceEditor extends PureComponent {
     <>
       <span
         css={theme => css`
-          font-size: ${theme.typography.sizes.s}px;
+          font-size: ${theme.fontSizeSM}px;
         `}
       >
         {this.props.database?.error && t('Error executing query. ')}
@@ -1080,7 +1080,7 @@ class DatasourceEditor extends PureComponent {
       {this.renderOpenInSqlLabLink(true)}
       <span
         css={theme => css`
-          font-size: ${theme.typography.sizes.s}px;
+          font-size: ${theme.fontSizeSM}px;
         `}
       >
         {t(' to check for details.')}
@@ -1285,7 +1285,7 @@ class DatasourceEditor extends PureComponent {
                         <span
                           css={theme => css`
                             color: ${theme.colors.grayscale.base};
-                            font-size: ${theme.typography.sizes.s}px;
+                            font-size: ${theme.fontSizeSM}px;
                           `}
                         >
                           {t(
@@ -1296,7 +1296,7 @@ class DatasourceEditor extends PureComponent {
                         <span
                           css={theme => css`
                             color: ${theme.colors.grayscale.base};
-                            font-size: ${theme.typography.sizes.s}px;
+                            font-size: ${theme.fontSizeSM}px;
                           `}
                         >
                           {t(' to see details.')}
