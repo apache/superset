@@ -220,6 +220,36 @@ def test_get_filters_adhoc_filters() -> None:
         assert cache.applied_filters == ["name"]
 
 
+def test_get_filters_is_null_operator() -> None:
+    """
+    Test the ``get_filters`` macro with a IS_NULL operator,
+    which doesn't have a comparator
+    """
+    with app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "expressionType": "SIMPLE",
+                            "operator": "IS NULL",
+                            "subject": "name",
+                            "comparator": None,
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        assert cache.get_filters("name", remove_filter=True) == [
+            {"op": "IS NULL", "col": "name", "val": None}
+        ]
+        assert cache.removed_filters == ["name"]
+        assert cache.applied_filters == ["name"]
+
+
 def test_get_filters_remove_not_present() -> None:
     """
     Test the ``get_filters`` macro without a match and ``remove_filter`` set to True.
