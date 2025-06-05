@@ -147,7 +147,8 @@ export const transformData = (
         isMetric: col?.isMetric,
       },
       cellRenderer: ({ value }: { value: number }) => {
-        if (!valueRange) return value;
+        const formattedValue = col?.formatter ? col?.formatter(value) : value;
+        if (!valueRange) return formattedValue;
         const CellWidth = cellWidth({
           value: value as number,
           valueRange,
@@ -162,8 +163,9 @@ export const transformData = (
           value: value as number,
           colorPositiveNegative: false,
         });
+
         return CellBarRenderer({
-          value,
+          value: formattedValue,
           percentage: CellWidth,
           offset: CellOffset,
           background,
