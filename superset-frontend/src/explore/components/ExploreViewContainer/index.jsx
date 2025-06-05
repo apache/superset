@@ -269,15 +269,14 @@ function ExploreViewContainer(props) {
 
   const theme = useTheme();
 
-  const originalDocumentTitle = document.title;
   useEffect(() => {
     if (props.sliceName) {
       document.title = props.sliceName;
     }
     return () => {
-      document.title = originalDocumentTitle;
+      document.title = 'Superset';
     };
-  }, [props.sliceName])
+  }, [props.sliceName]);
 
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {
