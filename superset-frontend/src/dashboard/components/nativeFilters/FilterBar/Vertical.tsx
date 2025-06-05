@@ -212,6 +212,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           />
           <Icons.FilterOutlined
             {...getFilterBarTestId('filter-icon')}
+            iconColor={theme.colors.grayscale.base}
             iconSize="l"
           />
         </CollapsedBar>
