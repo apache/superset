@@ -56,6 +56,8 @@ import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { usePermissions } from 'src/hooks/usePermissions';
 import Button from 'src/components/Button';
+import { findPermission } from 'src/utils/findPermission';
+import { User } from 'src/dashboard/reducers/types';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 
@@ -144,6 +146,7 @@ export interface SliceHeaderControlsProps {
   supersetCanCSV?: boolean;
 
   crossFiltersEnabled?: boolean;
+  showEmbedModal: () => void;
 }
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
@@ -172,6 +175,8 @@ const SliceHeaderControls = (
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
     [],
   );
+  // @ts-ignore
+  const user: User = useSelector<RootState>(state => state.user);
 
   const canEditCrossFilters =
     useSelector<RootState, boolean>(
@@ -281,6 +286,9 @@ const SliceHeaderControls = (
         }
         break;
       }
+      case MenuKeys.ManageEmbedded:
+        props.showEmbedModal();
+        break;
       default:
         break;
     }
@@ -335,6 +343,9 @@ const SliceHeaderControls = (
     animationDuration: '0s',
   };
 
+  const userCanCurate =
+    isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
+    findPermission('can_set_embedded', 'Dashboard', user.roles);
   const menu = (
     <Menu
       onClick={handleMenuClick}
@@ -449,6 +460,9 @@ const SliceHeaderControls = (
           addDangerToast={addDangerToast}
           title={t('Share')}
         />
+      )}
+      {userCanCurate && (
+        <Menu.Item key={MenuKeys.ManageEmbedded}>{t('Embed  Chart')}</Menu.Item>
       )}
 
       {props.supersetCanCSV && (

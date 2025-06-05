@@ -123,6 +123,10 @@ class ChartDeleteFailedError(DeleteFailedError):
     message = _("Charts could not be deleted.")
 
 
+class ChartDeleteEmbeddedFailedError(DeleteFailedError):
+    message = _("Embedded chart could not be deleted.")
+
+
 class ChartDeleteFailedReportsExistError(ChartDeleteFailedError):
     message = _("There are associated alerts or reports")
 
