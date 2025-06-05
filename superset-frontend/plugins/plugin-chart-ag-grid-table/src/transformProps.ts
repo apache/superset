@@ -27,6 +27,7 @@ import {
   getTimeFormatter,
   getTimeFormatterForGranularity,
   NumberFormats,
+  QueryMode,
   SMART_DATE_ID,
   TimeFormats,
   TimeFormatter,
@@ -236,6 +237,9 @@ const transformProps = (
     slice_id,
     server_pagination: serverPagination = false,
     server_page_length: serverPageLength = 10,
+    query_mode: queryMode,
+    align_pn: alignPositiveNegative = true,
+    show_cell_bars: showCellBars = true,
   } = formData;
 
   let hasServerPageLengthChanged = false;
@@ -289,6 +293,9 @@ const transformProps = (
     serverPageLength,
     hasPageLength,
     timeGrain,
+    isRawRecords: queryMode === QueryMode.Raw,
+    alignPositiveNegative,
+    showCellBars,
   };
 };
 

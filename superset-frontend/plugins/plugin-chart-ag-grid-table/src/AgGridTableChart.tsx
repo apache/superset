@@ -93,6 +93,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     emitCrossFilters,
     filters,
     timeGrain,
+    isRawRecords,
+    alignPositiveNegative,
+    showCellBars,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -114,6 +117,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     columns as InputColumn[],
     data,
     serverPagination,
+    isRawRecords,
+    alignPositiveNegative,
+    showCellBars,
     emitCrossFilters,
   );
   const gridHeight = getGridHeight(height, serverPagination, hasPageLength);

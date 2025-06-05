@@ -157,6 +157,9 @@ export interface AgGridTableChartTransformedProps<
   serverPageLength: number;
   hasPageLength: boolean;
   timeGrain: TimeGranularity | undefined;
+  isRawRecords: boolean;
+  alignPositiveNegative: boolean;
+  showCellBars: boolean;
 }
 
 export enum ColorSchemeEnum {
