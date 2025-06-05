@@ -158,6 +158,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       formData,
       width,
       height,
+      exportPivotExcel = () => ({}),
     },
     ref,
   ) => {
@@ -295,6 +296,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   formData={formData}
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
+                  exportPivotExcel={exportPivotExcel}
                 />
               )}
             </>
