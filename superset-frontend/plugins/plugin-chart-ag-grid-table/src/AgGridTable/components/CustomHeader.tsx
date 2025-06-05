@@ -66,10 +66,16 @@ const HeaderContainer = styled.div`
   align-items: center;
   cursor: pointer;
   padding: 0 8px;
+  overflow: hidden;
 `;
 
 const HeaderLabel = styled.span`
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-width: 100%;
 `;
 
 const SortIconWrapper = styled.div`
