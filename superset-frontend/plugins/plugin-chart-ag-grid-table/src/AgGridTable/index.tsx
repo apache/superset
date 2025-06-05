@@ -264,7 +264,6 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
         if (serverPagination) {
           setSearchValue(value);
           debouncedSearch(value);
-          isSearchFocused.set(searchId, true);
         } else {
           setQuickFilterText(value);
         }
