@@ -65,6 +65,10 @@ class UserSchema(Schema):
 
 
 class OwnerSchema(UserSchema):
+    """
+    Extends the UserSchema to include an id field.
+    """
+
     id = fields.Integer(metadata={"description": "id_description"})
 
 
@@ -173,6 +177,9 @@ class DatasetShowSchema(Schema):
         metadata={"description": "changed_on_delta_humanized_description"}
     )
     column_formats = fields.Dict(metadata={"description": "column_formats_description"})
+    currency_formats = fields.Dict(
+        metadata={"description": "currency_formats_description"}
+    )
     columns = fields.List(fields.Nested(DatasetColumnsShowSchema))
     created_by = fields.Nested(UserSchema, allow_none=True)
     created_on = fields.DateTime(metadata={"description": "created_on_description"})
