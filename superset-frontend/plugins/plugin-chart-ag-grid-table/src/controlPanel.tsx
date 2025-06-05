@@ -38,10 +38,13 @@ import {
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
+  GenericDataType,
+  getMetricLabel,
   isAdhocColumn,
   isPhysicalColumn,
   legacyValidateInteger,
   QueryFormColumn,
+  QueryFormMetric,
   QueryMode,
   SMART_DATE_ID,
   t,
@@ -49,8 +52,24 @@ import {
   validateServerPagination,
 } from '@superset-ui/core';
 
-import { isEmpty } from 'lodash';
+import { isEmpty, last } from 'lodash';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
+
+/**
+ * Generate comparison column names for a given column.
+ */
+const generateComparisonColumns = (colname: string) => [
+  `${t('Main')} ${colname}`,
+  `# ${colname}`,
+  `△ ${colname}`,
+  `% ${colname}`,
+];
+
+/**
+ * Generate column types for the comparison columns.
+ */
+const generateComparisonColumnTypes = (count: number) =>
+  Array(count).fill(GenericDataType.Numeric);
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -444,6 +463,88 @@ const config: ControlPanelConfig = {
               ),
               visibility: ({ controls }) =>
                 isEmpty(controls?.time_compare?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'column_config',
+            config: {
+              type: 'ColumnConfigControl',
+              label: t('Customize columns'),
+              description: t('Further customize how to display each column'),
+              width: 400,
+              height: 320,
+              renderTrigger: true,
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                const timeComparisonValue =
+                  explore?.controls?.time_compare?.value;
+                const { colnames: _colnames, coltypes: _coltypes } =
+                  chart?.queriesResponse?.[0] ?? {};
+                let colnames: string[] = _colnames || [];
+                let coltypes: GenericDataType[] = _coltypes || [];
+                const childColumnMap: Record<string, boolean> = {};
+                const timeComparisonColumnMap: Record<string, boolean> = {};
+
+                if (!isEmpty(timeComparisonValue)) {
+                  /**
+                   * Replace numeric columns with sets of comparison columns.
+                   */
+                  const updatedColnames: string[] = [];
+                  const updatedColtypes: GenericDataType[] = [];
+
+                  colnames
+                    .filter(
+                      colname =>
+                        last(colname.split('__')) !== timeComparisonValue,
+                    )
+                    .forEach((colname, index) => {
+                      if (
+                        explore.form_data.metrics?.some(
+                          metric => getMetricLabel(metric) === colname,
+                        ) ||
+                        explore.form_data.percent_metrics?.some(
+                          (metric: QueryFormMetric) =>
+                            getMetricLabel(metric) === colname,
+                        )
+                      ) {
+                        const comparisonColumns =
+                          generateComparisonColumns(colname);
+                        comparisonColumns.forEach((name, idx) => {
+                          updatedColnames.push(name);
+                          updatedColtypes.push(
+                            ...generateComparisonColumnTypes(4),
+                          );
+                          timeComparisonColumnMap[name] = true;
+                          if (idx === 0 && name.startsWith('Main ')) {
+                            childColumnMap[name] = false;
+                          } else {
+                            childColumnMap[name] = true;
+                          }
+                        });
+                      } else {
+                        updatedColnames.push(colname);
+                        updatedColtypes.push(coltypes[index]);
+                        childColumnMap[colname] = false;
+                        timeComparisonColumnMap[colname] = false;
+                      }
+                    });
+
+                  colnames = updatedColnames;
+                  coltypes = updatedColtypes;
+                }
+                return {
+                  columnsPropsObject: {
+                    colnames,
+                    coltypes,
+                    childColumnMap,
+                    timeComparisonColumnMap,
+                  },
+                };
+              },
             },
           },
         ],
