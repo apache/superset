@@ -61,6 +61,9 @@ export const transformData = (
         if (isActiveFilterValue?.(col?.key, params?.value)) {
           className += ' dt-is-active-filter';
         }
+        if (col?.config?.truncateLongCells) {
+          className += ' dt-truncate-cell';
+        }
       }
       return className;
     },

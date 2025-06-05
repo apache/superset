@@ -58,6 +58,17 @@ const StyledChartContainer = styled.div`
   .dt-is-active-filter {
     background: ${({ theme }) => theme.colors.secondary.light3};
   }
+
+  .dt-truncate-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dt-truncate-cell:hover {
+    overflow: visible;
+    white-space: normal;
+    height: auto;
+  }
 `;
 
 export default function TableChart<D extends DataRecord = DataRecord>(
