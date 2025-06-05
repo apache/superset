@@ -209,7 +209,7 @@ flask==2.3.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
-flask-appbuilder==4.6.4
+flask-appbuilder==4.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -488,7 +488,9 @@ odfpy==1.4.1
     #   -c requirements/base-constraint.txt
     #   pandas
 openapi-schema-validator==0.6.3
-    # via openapi-spec-validator
+    # via
+    #   -c requirements/base-constraint.txt
+    #   openapi-spec-validator
 openapi-spec-validator==0.7.1
     # via apache-superset
 openpyxl==3.1.5
@@ -735,7 +737,9 @@ requests-cache==1.2.1
 requests-oauthlib==2.0.0
     # via google-auth-oauthlib
 rfc3339-validator==0.1.4
-    # via openapi-schema-validator
+    # via
+    #   -c requirements/base-constraint.txt
+    #   openapi-schema-validator
 rich==13.9.4
     # via
     #   -c requirements/base-constraint.txt
@@ -815,17 +819,13 @@ sqlglot==26.17.1
     #   apache-superset
 sqloxide==0.1.51
     # via apache-superset
-sqlparse==0.5.3
-    # via
-    #   -c requirements/base-constraint.txt
-    #   apache-superset
 sshtunnel==0.4.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
 statsd==4.0.1
     # via apache-superset
-tabulate==0.8.10
+tabulate==0.9.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

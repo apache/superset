@@ -24,7 +24,7 @@ from sqlalchemy import DateTime, Float, inspect, String
 import superset.utils.database as database_utils
 from superset import db
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 
 from .helpers import (

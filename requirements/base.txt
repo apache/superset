@@ -120,7 +120,7 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.6.4
+flask-appbuilder==4.7.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
@@ -193,9 +193,13 @@ jinja2==3.1.6
 jsonpath-ng==1.7.0
     # via apache-superset (pyproject.toml)
 jsonschema==4.23.0
-    # via flask-appbuilder
+    # via
+    #   flask-appbuilder
+    #   openapi-schema-validator
 jsonschema-specifications==2025.4.1
-    # via jsonschema
+    # via
+    #   jsonschema
+    #   openapi-schema-validator
 kombu==5.5.3
     # via celery
 korean-lunar-calendar==0.3.1
@@ -242,6 +246,8 @@ numpy==1.26.4
     #   pandas
 odfpy==1.4.1
     # via pandas
+openapi-schema-validator==0.6.3
+    # via -r requirements/base.in
 openpyxl==3.1.5
     # via pandas
 ordered-set==4.1.0
@@ -340,6 +346,8 @@ requests==2.32.3
     #   shillelagh
 requests-cache==1.2.1
     # via shillelagh
+rfc3339-validator==0.1.4
+    # via openapi-schema-validator
 rich==13.9.4
     # via flask-limiter
 rpds-py==0.25.0
@@ -358,6 +366,7 @@ six==1.17.0
     # via
     #   prison
     #   python-dateutil
+    #   rfc3339-validator
     #   wtforms-json
 slack-sdk==3.35.0
     # via apache-superset (pyproject.toml)
@@ -380,11 +389,9 @@ sqlalchemy-utils==0.38.3
     #   flask-appbuilder
 sqlglot==26.17.1
     # via apache-superset (pyproject.toml)
-sqlparse==0.5.3
-    # via apache-superset (pyproject.toml)
 sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
-tabulate==0.8.10
+tabulate==0.9.0
     # via apache-superset (pyproject.toml)
 trio==0.30.0
     # via

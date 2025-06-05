@@ -661,7 +661,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         ]
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
 
-        assert rv.status_code == 400
+        assert rv.status_code == 422
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_invalid_having_parameter_closing_and_comment__400(self):
@@ -709,7 +709,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         result = rv.json["result"][0]["query"]
         if get_example_database().backend != "presto":
-            assert "('boy' = 'boy')" in result
+            assert "(\n  'boy' = 'boy'\n)" in result
 
     @unittest.skip("Extremely flaky test on MySQL")
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
@@ -840,7 +840,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         unique_names = {row["name"] for row in data}
         self.maxDiff = None
         assert len(unique_names) == SERIES_LIMIT
-        assert {column for column in data[0].keys()} == {"state", "name", "sum__num"}  # noqa: C416
+        assert set(data[0]) == {"state", "name", "sum__num"}
 
     @pytest.mark.usefixtures(
         "create_annotation_layers", "load_birth_names_dashboard_with_slices"
@@ -931,7 +931,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.status_code == 200
         result = rv.json["result"][0]
         data = result["data"]
-        assert {col for col in data[0].keys()} == {"foo", "bar", "state", "count"}  # noqa: C416
+        assert set(data[0]) == {"foo", "bar", "state", "count"}
         # make sure results and query parameters are unescaped
         assert {row["foo"] for row in data} == {":foo"}
         assert {row["bar"] for row in data} == {":bar:"}
@@ -1251,7 +1251,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
         data = result["data"]
-        assert {column for column in data[0].keys()} == {"male_or_female", "sum__num"}  # noqa: C416
+        assert set(data[0]) == {"male_or_female", "sum__num"}
         unique_genders = {row["male_or_female"] for row in data}
         assert unique_genders == {"male", "female"}
         assert result["applied_filters"] == [{"column": "male_or_female"}]
@@ -1271,7 +1271,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
         data = result["data"]
-        assert {column for column in data[0].keys()} == {"male_or_female", "sum__num"}  # noqa: C416
+        assert set(data[0]) == {"male_or_female", "sum__num"}
         unique_genders = {row["male_or_female"] for row in data}
         assert unique_genders == {"male", "female"}
         assert result["applied_filters"] == [{"column": "male_or_female"}]

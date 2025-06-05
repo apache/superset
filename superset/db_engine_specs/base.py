@@ -39,7 +39,6 @@ from uuid import uuid4
 
 import pandas as pd
 import requests
-import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from deprecation import deprecated
@@ -57,14 +56,20 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, Select, TextClause
 from sqlalchemy.types import TypeEngine
-from sqlparse.tokens import CTE
 
-from superset import db, sql_parse
+from superset import db
 from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
-from superset.sql.parse import BaseSQLStatement, LimitMethod, SQLScript, Table
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.sql.parse import (
+    BaseSQLStatement,
+    LimitMethod,
+    RLSMethod,
+    SQLScript,
+    SQLStatement,
+    Table,
+)
 from superset.superset_typing import (
     OAuth2ClientConfig,
     OAuth2State,
@@ -433,6 +438,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # is determined only after the specific query is executed and it will update
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
+
+    @classmethod
+    def get_rls_method(cls) -> RLSMethod:
+        """
+        Returns the RLS method to be used for this engine.
+
+        There are two ways to insert RLS: either replacing the table with a subquery
+        that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
+        safer, but not supported in all databases.
+        """
+        return (
+            RLSMethod.AS_SUBQUERY
+            if cls.allows_subqueries and cls.allows_alias_in_select
+            else RLSMethod.AS_PREDICATE
+        )
 
     @classmethod
     def is_oauth2_enabled(cls) -> bool:
@@ -1124,18 +1144,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         """
         if not cls.allows_cte_in_subquery:
-            stmt = sqlparse.parse(sql)[0]
-
-            # The first meaningful token for CTE will be with WITH
-            idx, token = stmt.token_next(-1, skip_ws=True, skip_cm=True)
-            if not (token and token.ttype == CTE):
-                return None
-            idx, token = stmt.token_next(idx)
-            idx = stmt.token_index(token) + 1
-
-            # extract rest of the SQLs after CTE
-            remainder = "".join(str(token) for token in stmt.tokens[idx:]).strip()
-            return f"WITH {token.value},\n{cls.cte_alias} AS (\n{remainder}\n)"
+            statement = SQLStatement(sql, engine=cls.engine)
+            if statement.has_cte():
+                return statement.as_cte(cls.cte_alias).format()
 
         return None
 
@@ -1756,14 +1767,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param kwargs: kwargs to be passed to cursor.execute()
         :return:
         """
-        if not cls.allows_sql_comments:
-            query = sql_parse.strip_comments_from_sql(query, engine=cls.engine)
-        disallowed_functions = current_app.config["DISALLOWED_SQL_FUNCTIONS"].get(
-            cls.engine, set()
-        )
-        if sql_parse.check_sql_functions_exist(query, disallowed_functions, cls.engine):
-            raise DisallowedSQLFunction(disallowed_functions)
-
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         try:

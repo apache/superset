@@ -55,7 +55,7 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.sql_parse import sanitize_clause
+from superset.sql.parse import sanitize_clause
 from superset.superset_typing import (
     Column,
     Metric,
@@ -324,7 +324,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     def process_query_filters(self) -> None:
         utils.convert_legacy_filters_into_adhoc(self.form_data)
         merge_extra_filters(self.form_data)
-        utils.split_adhoc_filters_into_base_filters(self.form_data)
+        engine = self.datasource.database.db_engine_spec.engine
+        utils.split_adhoc_filters_into_base_filters(self.form_data, engine)
 
     @staticmethod
     @deprecated(deprecated_in="3.0")
@@ -392,7 +393,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         for param in ("where", "having"):
             clause = self.form_data.get(param)
             if clause:
-                sanitized_clause = sanitize_clause(clause)
+                engine = self.datasource.database.db_engine_spec.engine
+                sanitized_clause = sanitize_clause(clause, engine)
                 if sanitized_clause != clause:
                     self.form_data[param] = sanitized_clause
 
