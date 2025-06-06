@@ -18,9 +18,6 @@ from superset.utils.pandas_postprocessing.aggregate import aggregate
 from superset.utils.pandas_postprocessing.boxplot import boxplot
 from superset.utils.pandas_postprocessing.compare import compare
 from superset.utils.pandas_postprocessing.contribution import contribution
-from superset.utils.pandas_postprocessing.contribution_with_totals import (
-    contribution_with_totals,
-)
 from superset.utils.pandas_postprocessing.cum import cum
 from superset.utils.pandas_postprocessing.diff import diff
 from superset.utils.pandas_postprocessing.flatten import flatten
@@ -48,7 +45,6 @@ __all__ = [
     "boxplot",
     "compare",
     "contribution",
-    "contribution_with_totals",
     "cum",
     "diff",
     "geohash_encode",

@@ -156,16 +156,10 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
         if (calculationMode === 'all_records') {
           postProcessing.push({
-            operation: 'contribution_with_totals',
+            operation: 'contribution',
             options: {
               columns: percentMetricLabels,
               rename_columns: percentMetricLabels.map(m => `%${m}`),
-              totals:
-                (
-                  formData.extra_form_data as {
-                    contribution_totals?: { totals: Record<string, number> };
-                  }
-                )?.contribution_totals?.totals ?? {},
             },
           });
         } else {
@@ -292,7 +286,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         row_offset: 0,
         orderby: [],
         is_timeseries: false,
-        query_type: 'contribution_totals',
       });
     }
 

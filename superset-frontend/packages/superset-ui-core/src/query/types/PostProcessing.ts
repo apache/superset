@@ -97,6 +97,7 @@ interface _PostProcessingContribution {
     orientation?: 'row' | 'column';
     columns?: string[];
     rename_columns?: string[];
+    contribution_totals?: Record<string, number>;
   };
 }
 export type PostProcessingContribution =
@@ -224,18 +225,6 @@ export type PostProcessingFlatten =
   | _PostProcessingFlatten
   | DefaultPostProcessing;
 
-interface _PostProcessingContributionWithTotals {
-  operation: 'contribution_with_totals';
-  options: {
-    columns: string[];
-    rename_columns: string[];
-    totals: Record<string, number>;
-  };
-}
-export type PostProcessingContributionWithTotals =
-  | _PostProcessingContributionWithTotals
-  | DefaultPostProcessing;
-
 interface _PostProcessingRank {
   operation: 'rank';
   options?: {
@@ -267,7 +256,6 @@ export type PostProcessingRule =
   | PostProcessingAggregation
   | PostProcessingBoxplot
   | PostProcessingContribution
-  | PostProcessingContributionWithTotals
   | PostProcessingPivot
   | PostProcessingProphet
   | PostProcessingDiff

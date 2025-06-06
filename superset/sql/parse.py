@@ -55,7 +55,7 @@ SQLGLOT_DIALECTS = {
     # "db2": ???
     # "dremio": ???
     "drill": Dialects.DRILL,
-    "druid": Dialects.DRUID,
+    # "druid": Dialects.DRUID,
     "duckdb": Dialects.DUCKDB,
     # "dynamodb": ???
     # "elasticsearch": ???
