@@ -53,7 +53,7 @@
     "@emotion/styled": "^11.3.0",
     "@types/d3-format": "^3.0.4",
     "@types/d3-interpolate": "^3.0.4",
-    "@types/d3-scale": "^2.1.1",
+    "@types/d3-scale": "^4.0.9",
     "@types/d3-time": "^3.0.4",
     "@types/d3-time-format": "^4.0.3",
     "@types/fetch-mock": "^7.3.8",
