@@ -46,15 +46,20 @@ export const props = {
     state: 'This is a tooltip for state',
   },
 };
-
-export const DATASOURCE_ENDPOINT =
-  'glob:*/datasource/external_metadata_by_name/*';
-
-export const asyncRender = props =>
-  render(<DatasourceEditor {...props} />, {
-    useRedux: true,
-    initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
-  });
+const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata_by_name/*';
+const routeProps = {
+  history: {},
+  location: {},
+  match: {},
+};
+const asyncRender = props =>
+  waitFor(() =>
+    render(<DatasourceEditor {...props} {...routeProps} />, {
+      useRedux: true,
+      initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
+      useRouter: true,
+    }),
+  );
 
 describe('DatasourceEditor', () => {
   beforeEach(() => {
