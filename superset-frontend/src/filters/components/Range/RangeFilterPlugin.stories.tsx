@@ -30,7 +30,7 @@ new RangeFilterPlugin().configure({ key: 'filter_range' }).register();
 getChartTransformPropsRegistry().registerValue('filter_range', transformProps);
 
 export default {
-  title: 'Filter Plugins',
+  title: 'Components/Filter Plugins',
 };
 
 export const range = ({ width, height }: { width: number; height: number }) => (

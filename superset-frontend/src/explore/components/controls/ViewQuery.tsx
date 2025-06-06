@@ -22,7 +22,8 @@ import { FC } from 'react';
 import { styled } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import CopyToClipboard from 'src/components/CopyToClipboard';
+import { Icons } from '@superset-ui/core/components';
+import { CopyToClipboard } from 'src/components';
 import { CopyButton } from 'src/explore/components/DataTableControl';
 import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
 import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
@@ -30,9 +31,11 @@ import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 
 const CopyButtonViewQuery = styled(CopyButton)`
-  && {
-    margin: 0 0 ${({ theme }) => theme.gridUnit}px;
-  }
+  ${({ theme }) => `
+		&& {
+			margin: 0 0 ${theme.sizeUnit}px;
+		}
+  `}
 `;
 
 SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
@@ -64,7 +67,7 @@ const ViewQuery: FC<ViewQueryProps> = props => {
         shouldShowText={false}
         copyNode={
           <CopyButtonViewQuery buttonSize="xsmall">
-            <i className="fa fa-clipboard" />
+            <Icons.CopyOutlined />
           </CopyButtonViewQuery>
         }
       />

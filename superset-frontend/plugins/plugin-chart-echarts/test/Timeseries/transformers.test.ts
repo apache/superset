@@ -17,7 +17,7 @@
  * under the License.
  */
 import { CategoricalColorScale } from '@superset-ui/core';
-import { EchartsTimeseriesSeriesType } from '@superset-ui/plugin-chart-echarts';
+import { EchartsTimeseriesSeriesType } from '../../src';
 import { transformSeries } from '../../src/Timeseries/transformers';
 
 // Mock the colorScale function

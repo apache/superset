@@ -26,6 +26,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Check for File Changes
         id: check
@@ -39,6 +41,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "git rev-parse --short HEAD"
+          git rev-parse --short HEAD
+          echo "git show -s --format=raw HEAD"
+          git show -s --format=raw HEAD
           docker buildx build \
             -t $TAG \
             --cache-from=type=registry,ref=apache/superset-cache:3.10-slim-bookworm \
@@ -115,24 +121,6 @@ jobs:
           files: merged-output/coverage-summary.json
           slug: apache/superset
 
-  core-cover:
-    needs: frontend-build
-    if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-image
-
-      - name: Load Docker Image
-        run: docker load < docker-image.tar.gz
-
-      - name: superset-ui/core coverage
-        run: |
-          docker run --rm $TAG bash -c \
-          "npm run core:cover"
-
   lint-frontend:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
@@ -144,7 +132,8 @@ jobs:
           name: docker-image
 
       - name: Load Docker Image
-        run: docker load < docker-image.tar.gz
+        run: |
+          docker load < docker-image.tar.gz
 
       - name: eslint
         run: |

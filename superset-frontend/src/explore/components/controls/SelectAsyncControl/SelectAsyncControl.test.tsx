@@ -22,7 +22,7 @@ import SelectAsyncControl from '.';
 
 const datasetsOwnersEndpoint = 'glob:*/api/v1/dataset/related/owners*';
 
-jest.mock('src/components/Select/Select', () => ({
+jest.mock('@superset-ui/core/components/Select/Select', () => ({
   __esModule: true,
   default: (props: any) => (
     <div

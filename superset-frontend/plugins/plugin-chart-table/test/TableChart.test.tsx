@@ -17,7 +17,7 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@superset-ui/core/spec';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
@@ -447,7 +447,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           'rgba(172, 225, 196, 1)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgb(255, 255, 255)',
+        );
       });
 
       it('render cell without color', () => {
@@ -487,11 +489,13 @@ describe('plugin-chart-table', () => {
           'rgba(172, 225, 196, 0.812)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          '',
+          'rgb(255, 255, 255)',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+          'rgb(255, 255, 255)',
+        );
       });
-      it('should display originalLabel in grouped headers', () => {
+      it('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);
 
         render(

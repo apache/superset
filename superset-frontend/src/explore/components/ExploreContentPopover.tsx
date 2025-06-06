@@ -22,11 +22,12 @@ export const ExplorePopoverContent = styled.div`
   .edit-popover-resize {
     transform: scaleX(-1);
     float: right;
-    margin-top: ${({ theme }) => theme.gridUnit * 4}px;
-    margin-right: ${({ theme }) => theme.gridUnit * -2}px;
+    margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
+    margin-right: ${({ theme }) => theme.sizeUnit * -1}px;
+    color: ${({ theme }) => theme.colorIcon};
     cursor: nwse-resize;
   }
   .filter-sql-editor {
-    border: ${({ theme }) => theme.colors.grayscale.light2} solid thin;
+    border: ${({ theme }) => theme.colorBorder} solid thin;
   }
 `;

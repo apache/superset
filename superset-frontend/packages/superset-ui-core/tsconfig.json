@@ -1,18 +1,24 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "declarationDir": "lib",
     "outDir": "lib",
-    "rootDir": "src"
+    "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "src/*": ["./src/*"],
+      "@superset-ui/core": ["src"],
+      "@superset-ui/core/*": ["src/*"]
+    }
   },
   "exclude": [
     "lib",
     "test"
   ],
-  "extends": "../../tsconfig.json",
   "include": [
     "src/**/*",
-    "types/**/*",
-    "../../types/**/*"
+    "spec/**/*",
+    "types/**/*"
   ],
   "references": []
 }

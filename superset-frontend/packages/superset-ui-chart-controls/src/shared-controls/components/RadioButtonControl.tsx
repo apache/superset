@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { JsonValue, useTheme } from '@superset-ui/core';
+import { JsonValue } from '@superset-ui/core';
+import { Radio } from '@superset-ui/core/components';
 import { ControlHeader } from '../../components/ControlHeader';
 
 // [value, label]
@@ -42,51 +43,19 @@ export default function RadioButtonControl({
   ...props
 }: RadioButtonControlProps) {
   const currentValue = initialValue || options[0][0];
-  const theme = useTheme();
   return (
-    <div
-      css={{
-        '.btn svg': {
-          position: 'relative',
-          top: '0.2em',
-        },
-        '.btn:focus': {
-          outline: 'none',
-        },
-        '.control-label': {
-          color: theme.colors.grayscale.base,
-          marginBottom: theme.gridUnit,
-        },
-        '.control-label + .btn-group': {
-          marginTop: '1px',
-        },
-        '.btn-group .btn-default': {
-          color: theme.colors.grayscale.dark1,
-        },
-        '.btn-group .btn.active': {
-          background: theme.colors.grayscale.light4,
-          fontWeight: theme.typography.weights.bold,
-          boxShadow: 'none',
-        },
-      }}
-    >
+    <div>
       <ControlHeader {...props} />
-      <div className="btn-group btn-group-sm">
+      <Radio.Group
+        value={currentValue}
+        onChange={e => onChange(e.target.value)}
+      >
         {options.map(([val, label]) => (
-          <button
-            key={JSON.stringify(val)}
-            type="button"
-            className={`btn btn-default ${
-              val === currentValue ? 'active' : ''
-            }`}
-            onClick={() => {
-              onChange(val);
-            }}
-          >
+          <Radio.Button key={JSON.stringify(val)} value={val}>
             {label}
-          </button>
+          </Radio.Button>
         ))}
-      </div>
+      </Radio.Group>
     </div>
   );
 }

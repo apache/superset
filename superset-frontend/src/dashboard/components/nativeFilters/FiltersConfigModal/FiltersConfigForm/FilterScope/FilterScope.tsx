@@ -19,7 +19,7 @@
 
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { NativeFilterScope, styled } from '@superset-ui/core';
-import { AntdForm } from 'src/components';
+import { FormItem } from '@superset-ui/core/components';
 import ScopingTree from './ScopingTree';
 import { getDefaultScopeValue } from './utils';
 
@@ -37,12 +37,12 @@ const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   & > * {
-    margin-bottom: ${({ theme }) => theme.gridUnit}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   }
-  padding: 0px ${({ theme }) => theme.gridUnit * 4}px;
+  padding: 0px ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
-const CleanFormItem = styled(AntdForm.Item)`
+const CleanFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;
 

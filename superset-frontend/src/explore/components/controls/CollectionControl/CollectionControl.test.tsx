@@ -20,7 +20,7 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import CollectionControl from '.';
 
 jest.mock('@superset-ui/chart-controls', () => ({
-  InfoTooltipWithTrigger: (props: any) => (
+  InfoTooltip: (props: any) => (
     <button
       onClick={props.onClick}
       type="button"
@@ -120,10 +120,10 @@ test('Should have remove button', async () => {
   render(<CollectionControl {...props} />);
 
   expect(
-    await screen.findByRole('button', { name: 'remove-item' }),
+    await screen.findByRole('button', { name: 'Show info tooltip' }),
   ).toBeInTheDocument();
   expect(props.onChange).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'remove-item' }));
+  userEvent.click(screen.getByRole('button', { name: 'Show info tooltip' }));
   expect(props.onChange).toHaveBeenCalledWith([]);
 });
 

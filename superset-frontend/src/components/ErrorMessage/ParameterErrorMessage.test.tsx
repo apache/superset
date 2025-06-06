@@ -19,10 +19,10 @@
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import ParameterErrorMessage from './ParameterErrorMessage';
+import { ParameterErrorMessage } from './ParameterErrorMessage';
 
 jest.mock(
-  'src/components/Icons/AsyncIcon',
+  '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />

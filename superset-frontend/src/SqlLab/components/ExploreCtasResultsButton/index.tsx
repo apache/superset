@@ -23,8 +23,8 @@ import {
   addInfoToast,
   addDangerToast,
 } from 'src/SqlLab/actions/sqlLab';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import Button from 'src/components/Button';
+import { Button, IconTooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { exploreChart } from 'src/explore/exploreUtils';
 import { SqlLabRootState } from 'src/SqlLab/types';
 
@@ -82,11 +82,8 @@ const ExploreCtasResultsButton = ({
       onClick={visualize}
       tooltip={t('Explore the result set in the data exploration view')}
     >
-      <InfoTooltipWithTrigger
-        icon="line-chart"
-        placement="top"
-        label={t('explore')}
-      />{' '}
+      <IconTooltip placement="top" tooltip={t('Explore')} />
+      <Icons.LineChartOutlined iconSize="m" />
       {t('Explore')}
     </Button>
   );

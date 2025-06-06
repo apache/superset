@@ -87,7 +87,7 @@ jest.mock('rehype-raw', () => () => jest.fn());
 
 // Mocks the Icon component due to its async nature
 // Tests should override this when needed
-jest.mock('src/components/Icons/AsyncIcon', () => ({
+jest.mock('@superset-ui/core/components/Icons/AsyncIcon', () => ({
   __esModule: true,
   default: ({
     fileName,

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 
 const overlayMenu = (

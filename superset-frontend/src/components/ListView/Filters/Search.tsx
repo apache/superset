@@ -25,12 +25,13 @@ import {
 } from 'react';
 
 import { t, styled, useTheme, css } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import { Input as AntdInput } from 'src/components/Input';
-import { SELECT_WIDTH } from 'src/components/ListView/utils';
-import { FormLabel } from 'src/components/Form';
-import InfoTooltip from 'src/components/InfoTooltip';
-import { BaseFilter, FilterHandler } from './Base';
+import {
+  Input,
+  InfoTooltip,
+  FormLabel,
+  Icons,
+} from '@superset-ui/core/components';
+import { BaseFilter, FilterHandler, FilterContainer } from './Base';
 
 interface SearchHeaderProps extends BaseFilter {
   Header: string;
@@ -39,12 +40,8 @@ interface SearchHeaderProps extends BaseFilter {
   toolTipDescription: string | undefined;
 }
 
-const Container = styled.div`
-  width: ${SELECT_WIDTH}px;
-`;
-
-const StyledInput = styled(AntdInput)`
-  border-radius: ${({ theme }) => theme.gridUnit}px;
+const StyledInput = styled(Input)`
+  border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
 function SearchFilter(
@@ -79,17 +76,14 @@ function SearchFilter(
   }));
 
   return (
-    <Container>
+    <FilterContainer>
       <div
         css={css`
           display: flex;
-          align-items: start;
         `}
       >
         <FormLabel>{Header}</FormLabel>
-        {toolTipDescription && (
-          <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
-        )}
+        {toolTipDescription && <InfoTooltip tooltip={toolTipDescription} />}
       </div>
       <StyledInput
         allowClear
@@ -107,7 +101,7 @@ function SearchFilter(
           />
         }
       />
-    </Container>
+    </FilterContainer>
   );
 }
 
