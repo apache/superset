@@ -1495,6 +1495,9 @@ class TestRolePermission(SupersetTestCase):
             ("menu_access", "SQL Lab"),
             ("can_read", "SqlLabPermalinkRestApi"),
             ("can_write", "SqlLabPermalinkRestApi"),
+            ("can_post", "TableSchemaView"),
+            ("can_expanded", "TableSchemaView"),
+            ("can_delete", "TableSchemaView"),
         }
 
         self.assert_cannot_alpha(sql_lab_set)
