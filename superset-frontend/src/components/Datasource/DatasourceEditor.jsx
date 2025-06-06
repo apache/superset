@@ -54,13 +54,18 @@ import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
-import { executeQuery, resetDatabaseState } from 'src/database/actions';
+import {
+  executeQuery,
+  formatQuery,
+  resetDatabaseState,
+} from 'src/database/actions';
 import { connect } from 'react-redux';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
 import { fetchSyncedColumns, updateColumns } from './utils';
 import FilterableTable from '../FilterableTable';
+import SqlEditor from 'src/SqlLab/components/SqlEditor';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -97,6 +102,10 @@ const StyledTableTabs = styled(Tabs)`
   .ant-tabs-content-holder {
     overflow: visible;
   }
+`;
+
+const ButtonWrapper = styled.div`
+  margin-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const StyledBadge = styled(Badge)`
@@ -591,6 +600,7 @@ class DatasourceEditor extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
+      isFormattingSql: false,
       datasource: {
         ...props.datasource,
         owners: props.datasource.owners.map(owner => ({
@@ -640,6 +650,7 @@ class DatasourceEditor extends PureComponent {
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
     this.handleTabSelect = this.handleTabSelect.bind(this);
+    this.formatSql = this.formatSql.bind(this);
     this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
       value: currencyCode,
       label: `${getCurrencySymbol({
@@ -715,6 +726,30 @@ class DatasourceEditor extends PureComponent {
     });
   }
 
+  async onQueryFormat() {
+    const { datasource } = this.state;
+    if (!datasource.sql) {
+      return;
+    }
+
+    this.setState({ isFormattingSql: true });
+    try {
+      const response = await this.props.formatQuery(datasource.sql);
+      this.onDatasourcePropChange('sql', response.json.result);
+      this.props.addSuccessToast(t('SQL was formatted'));
+    } catch (error) {
+      const { error: clientError, statusText } =
+        await getClientErrorObject(error);
+      this.props.addDangerToast(
+        clientError ||
+          statusText ||
+          t('An error occurred while formatting SQL'),
+      );
+    } finally {
+      this.setState({ isFormattingSql: false });
+    }
+  }
+
   getSQLLabUrl() {
     const queryParams = new URLSearchParams({
       dbid: this.state.datasource.database.id,
@@ -736,6 +771,34 @@ class DatasourceEditor extends PureComponent {
       this.syncMetadata();
       this.onChange();
     });
+  }
+
+  async formatSql() {
+    const { datasource } = this.state;
+    if (!datasource.sql) {
+      return;
+    }
+
+    this.setState({ isFormattingSql: true });
+    try {
+      const response = await SupersetClient.post({
+        endpoint: '/api/v1/sql/format',
+        body: JSON.stringify({ sql: datasource.sql }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      this.onDatasourcePropChange('sql', response.json.result);
+      this.props.addSuccessToast(t('SQL was formatted'));
+    } catch (error) {
+      const { error: clientError, statusText } =
+        await getClientErrorObject(error);
+      this.props.addDangerToast(
+        clientError ||
+          statusText ||
+          t('An error occurred while formatting SQL'),
+      );
+    } finally {
+      this.setState({ isFormattingSql: false });
+    }
   }
 
   async syncMetadata() {
@@ -1208,46 +1271,68 @@ class DatasourceEditor extends PureComponent {
                     }
                     additionalControl={
                       <div
-                        css={css`
+                        css={theme => css`
                           position: absolute;
                           right: 0;
                           top: 0;
                           z-index: 2;
+                          display: flex;
                         `}
                       >
-                        <Button
-                          disabled={this.props.database?.isLoading}
-                          tooltip={t('Open SQL Lab in a new tab')}
-                          css={floatingButtonCss}
-                          size="small"
-                        >
-                          <Icons.ExportOutlined
-                            iconSize="s"
-                            css={theme => ({
-                              color: theme.colors.primary.dark1,
-                            })}
+                        <ButtonWrapper>
+                          <Button
+                            disabled={
+                              this.props.database?.isLoading ||
+                              !this.state.isEditMode ||
+                              this.state.isFormattingSql
+                            }
+                            tooltip={t('Format SQL')}
+                            css={floatingButtonCss}
+                            size="small"
+                            onClick={() => {
+                              this.onQueryFormat();
+                            }}
+                          >
+                            <Icons.HighlightOutlined iconSize="s" />
+                          </Button>
+                        </ButtonWrapper>
+                        <ButtonWrapper>
+                          <Button
+                            disabled={this.props.database?.isLoading}
+                            tooltip={t('Open SQL Lab in a new tab')}
+                            css={floatingButtonCss}
+                            size="small"
                             onClick={() => {
                               this.openOnSqlLab();
                             }}
-                          />
-                        </Button>
-                        <Button
-                          disabled={this.props.database?.isLoading}
-                          tooltip={t('Run query')}
-                          css={floatingButtonCss}
-                          size="small"
-                          buttonStyle="primary"
-                          onClick={() => {
-                            this.onQueryRun();
-                          }}
-                        >
-                          <Icons.CaretRightFilled
-                            iconSize="s"
-                            css={theme => ({
-                              color: theme.colors.grayscale.light5,
-                            })}
-                          />
-                        </Button>
+                          >
+                            <Icons.ExportOutlined
+                              iconSize="s"
+                              css={theme => ({
+                                color: theme.colors.primary.dark1,
+                              })}
+                            />
+                          </Button>
+                        </ButtonWrapper>
+                        <ButtonWrapper>
+                          <Button
+                            disabled={this.props.database?.isLoading}
+                            tooltip={t('Run query')}
+                            css={floatingButtonCss}
+                            size="small"
+                            buttonStyle="primary"
+                            onClick={() => {
+                              this.onQueryRun();
+                            }}
+                          >
+                            <Icons.CaretRightFilled
+                              iconSize="s"
+                              css={theme => ({
+                                color: theme.colors.grayscale.light5,
+                              })}
+                            />
+                          </Button>
+                        </ButtonWrapper>
                       </div>
                     }
                     errorMessage={
@@ -1689,6 +1774,7 @@ const DataSourceComponent = withTheme(DatasourceEditor);
 const mapDispatchToProps = dispatch => ({
   runQuery: payload => dispatch(executeQuery(payload)),
   resetQuery: () => dispatch(resetDatabaseState()),
+  formatQuery: sql => dispatch(formatQuery(sql)),
 });
 const mapStateToProps = state => ({
   database: state?.database,
