@@ -19,6 +19,7 @@
 import { ensureIsArray, t } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
+  ControlPanelsContainerProps,
   ControlPanelConfig,
   ControlPanelSectionConfig,
   ControlSetRow,
@@ -27,6 +28,8 @@ import {
   getStandardizedControls,
   sections,
   sharedControls,
+  DEFAULT_SORT_SERIES_DATA,
+  SORT_SERIES_CHOICES,
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from './types';
@@ -198,6 +201,23 @@ function createCustomizeSection(
     ],
     [
       {
+        name: `only_total${controlSuffix}`,
+        config: {
+          type: 'CheckboxControl',
+          label: t('Only Total'),
+          default: true,
+          renderTrigger: true,
+          description: t(
+            'Only show the total value on the stacked chart, and not show on the selected category',
+          ),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            Boolean(controls?.show_value?.value) &&
+            Boolean(controls?.stack?.value),
+        },
+      },
+    ],
+    [
+      {
         name: `opacity${controlSuffix}`,
         config: {
           type: 'SliderControl',
@@ -255,6 +275,35 @@ function createCustomizeSection(
           clearable: false,
           renderTrigger: true,
           description: t('Primary or secondary y-axis'),
+        },
+      },
+    ],
+    [<ControlSubSectionHeader>{t('Series Order')}</ControlSubSectionHeader>],
+    [
+      {
+        name: `sort_series_type${controlSuffix}`,
+        config: {
+          type: 'SelectControl',
+          freeForm: false,
+          label: t('Sort Series By'),
+          choices: SORT_SERIES_CHOICES,
+          default: DEFAULT_SORT_SERIES_DATA.sort_series_type,
+          renderTrigger: true,
+          description: t(
+            'Based on what should series be ordered on the chart and legend',
+          ),
+        },
+      },
+    ],
+    [
+      {
+        name: `sort_series_ascending${controlSuffix}`,
+        config: {
+          type: 'CheckboxControl',
+          label: t('Sort Series Ascending'),
+          default: DEFAULT_SORT_SERIES_DATA.sort_series_ascending,
+          renderTrigger: true,
+          description: t('Sort series in ascending order'),
         },
       },
     ],
