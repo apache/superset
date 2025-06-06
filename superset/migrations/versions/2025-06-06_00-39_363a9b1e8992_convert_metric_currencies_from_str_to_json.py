@@ -25,8 +25,10 @@ Create Date: 2025-06-06 00:39:00.107746
 import json
 import logging
 
+from alembic import op  # noqa: E402
 from sqlalchemy import Column, Integer, JSON, String
 from sqlalchemy.ext.declarative import declarative_base
+import sqlalchemy as sa  # noqa: E402
 
 from superset import db
 from superset.migrations.shared.utils import paginated_update
