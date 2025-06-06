@@ -40,7 +40,6 @@ const Container = styled.div<TitleContainerProps>`
     cursor: ${isDragging ? 'grabbing' : 'pointer'};
     width: 100%;
     display: flex;
-    padding:  ${theme.sizeUnit}px;
   `}
 `;
 

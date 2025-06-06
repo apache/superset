@@ -167,13 +167,14 @@ const DefaultValueContainer = styled.div`
 `;
 
 const StyledAsterisk = styled.span`
-  color: ${({ theme }) => theme.colorError};
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-  margin-left: ${({ theme }) => theme.sizeUnit - 1}px;
+  ${({ theme }) => `
+  color: ${theme.colorError};
+  font-size: ${theme.fontSizeSM}px;
+  margin-left: ${theme.sizeUnit - 1}px;
 
   &:before {
     content: '*';
-  }
+  `}
 `;
 
 const FilterTypeInfo = styled.div<{ expanded: boolean }>`
