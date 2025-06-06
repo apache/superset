@@ -52,7 +52,9 @@ class SqlMetric(Base):
 
 
 def upgrade():
-    currency_configs = db.session.query(SqlMetric).filter(
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+    currency_configs = session.query(SqlMetric).filter(
         SqlMetric.currency.isnot(None)
     )
     for metric in paginated_update(
@@ -78,7 +80,9 @@ def downgrade():
     The downgrade just dumps the metric as a str. Might not retrieve the old value,
     but the syntax was a bug and shouldn't be preserved either way.
     """
-    currency_configs = db.session.query(SqlMetric).filter(
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+    currency_configs = session.query(SqlMetric).filter(
         SqlMetric.currency.isnot(None)
     )
     for metric in paginated_update(
