@@ -158,7 +158,7 @@ const StyledButtonWrapper = styled.span`
 `;
 
 const sqlTooltipOptions = {
-  placement: 'topRight',
+  placement: 'top',
   title: t(
     'If changes are made to your SQL query, ' +
       'columns in your dataset will be synced when saving the dataset.',
@@ -1018,7 +1018,14 @@ class DatasourceEditor extends PureComponent {
     return (
       <div>
         <EditLockContainer>
-          <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
+          <span
+            css={theme => css`
+              color: ${theme.colors.grayscale.base};
+            `}
+            role="button"
+            tabIndex={0}
+            onClick={this.onChangeEditMode}
+          >
             {this.state.isEditMode ? (
               <Icons.UnlockOutlined
                 iconSize="xl"
@@ -1122,6 +1129,9 @@ class DatasourceEditor extends PureComponent {
                     )}
                     control={
                       <TextAreaControl
+                        css={theme => css`
+                          margin-top: ${theme.sizeUnit * 2}px;
+                        `}
                         language="sql"
                         offerEditInModal={false}
                         minLines={10}
@@ -1140,6 +1150,16 @@ class DatasourceEditor extends PureComponent {
                           z-index: 2;
                         `}
                       >
+                        {this.props.database?.error && (
+                          <span
+                            css={theme => css`
+                              color: ${theme.colors.error.base};
+                              margin-right: ${theme.sizeUnit}px;
+                            `}
+                          >
+                            {t('Error executing query')}
+                          </span>
+                        )}
                         <Button
                           css={css`
                             align-self: flex-end;
@@ -1161,9 +1181,6 @@ class DatasourceEditor extends PureComponent {
                           />
                         </Button>
                       </div>
-                    }
-                    errorMessage={
-                      this.props.database?.error && t('Error executing query.')
                     }
                   />
                   {this.props.database?.queryResult && (
