@@ -23,12 +23,12 @@ from pylint.lint import PyLinter
 
 
 class JSONLibraryImportChecker(BaseChecker):
-    name = "enable=disallowed-json-import"
+    name = "disallowed-json-import"
     priority = -1
     msgs = {
         "C9001": (
             "Disallowed json import used, use superset.utils.json instead",
-            "enable=disallowed-json-import",
+            "disallowed-json-import",
             "Used when a disallowed import is used in a specific file.",
         ),
     }
@@ -48,13 +48,13 @@ class JSONLibraryImportChecker(BaseChecker):
         if file not in self.exclude_files:
             for module_name, _ in node.names:
                 if module_name in ["json", "simplejson"]:
-                    self.add_message("enable=disallowed-json-import", node=node)
+                    self.add_message("disallowed-json-import", node=node)
 
     def visit_importfrom(self, node: nodes.ImportFrom) -> None:
         file = (node.root().file).replace(self.path_strip_prefix, "", 1)
         if file not in self.exclude_files:
             if node.modname in ["json", "simplejson"]:
-                self.add_message("enable=disallowed-json-import", node=node)
+                self.add_message("disallowed-json-import", node=node)
 
 
 class TransactionChecker(BaseChecker):

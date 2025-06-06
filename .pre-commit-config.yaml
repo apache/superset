@@ -119,4 +119,3 @@ repos:
           else
             echo "No Python files to lint."
           fi
-

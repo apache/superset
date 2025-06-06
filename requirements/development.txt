@@ -18,6 +18,8 @@ apsw==3.49.2.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
+astroid==3.3.10
+    # via pylint
 attrs==25.3.0
     # via
     #   -c requirements/base.txt
@@ -156,6 +158,8 @@ deprecation==2.1.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
+dill==0.4.0
+    # via pylint
 distlib==0.3.8
     # via virtualenv
 dnspython==2.7.0
@@ -356,6 +360,8 @@ isodate==0.7.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
+isort==6.0.1
+    # via pylint
 itsdangerous==2.2.0
     # via
     #   -c requirements/base.txt
@@ -430,6 +436,8 @@ marshmallow-sqlalchemy==1.4.0
     #   flask-appbuilder
 matplotlib==3.9.0
     # via prophet
+mccabe==0.7.0
+    # via pylint
 mdurl==0.1.2
     # via
     #   -c requirements/base.txt
@@ -537,6 +545,7 @@ pillow==10.3.0
 platformdirs==4.3.8
     # via
     #   -c requirements/base.txt
+    #   pylint
     #   requests-cache
     #   virtualenv
 pluggy==1.5.0
@@ -619,6 +628,8 @@ pyjwt==2.10.1
     #   apache-superset
     #   flask-appbuilder
     #   flask-jwt-extended
+pylint==3.3.7
+    # via apache-superset
 pynacl==1.5.0
     # via
     #   -c requirements/base.txt
@@ -808,6 +819,8 @@ tabulate==0.9.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
+tomlkit==0.13.3
+    # via pylint
 tqdm==4.67.1
     # via
     #   cmdstanpy
