@@ -25,8 +25,10 @@ Create Date: 2025-06-06 00:39:00.107746
 import json
 import logging
 
+from sqlalchemy import Column, Integer, JSON, String
+from sqlalchemy.ext.declarative import declarative_base
+
 from superset import db
-from superset.connectors.sqla.models import SqlMetric
 from superset.migrations.shared.utils import paginated_update
 
 logger = logging.getLogger("alembic")
@@ -35,6 +37,16 @@ logger.setLevel(logging.INFO)
 # revision identifiers, used by Alembic.
 revision = "363a9b1e8992"
 down_revision = "f1edd4a4d4f2"
+
+Base = declarative_base()
+
+
+class SqlMetric(Base):
+    __tablename__ = "sql_metrics"
+
+    id = Column(Integer, primary_key=True)
+    metric_name = Column(String(512))
+    currency = Column(JSON)
 
 
 def upgrade():
