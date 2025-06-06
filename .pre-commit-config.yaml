@@ -111,9 +111,12 @@ repos:
       args:
         - -c
         - |
-          files=$(git diff --cached --name-only --diff-filter=ACM | grep '^superset/.*\.py$' || true)
+          TARGET_BRANCH=${GITHUB_BASE_REF:-master}
+          git fetch origin "$TARGET_BRANCH"
+          files=$(git diff --name-only --diff-filter=ACM origin/"$TARGET_BRANCH"..HEAD | grep '^superset/.*\.py$' || true)
           if [ -n "$files" ]; then
             pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint $files
           else
             echo "No Python files to lint."
           fi
+
