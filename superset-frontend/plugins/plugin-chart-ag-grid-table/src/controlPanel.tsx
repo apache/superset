@@ -54,6 +54,7 @@ import {
 
 import { isEmpty, last } from 'lodash';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
+import { ColorSchemeEnum } from './types';
 
 /**
  * Generate comparison column names for a given column.
@@ -82,6 +83,33 @@ function getQueryMode(controls: ControlStateMapping): QueryMode {
   const hasRawColumns = rawColumns && rawColumns.length > 0;
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
+
+const processComparisonColumns = (columns: any[], suffix: string) =>
+  columns
+    .map(col => {
+      if (!col.label.includes(suffix)) {
+        return [
+          {
+            label: `${t('Main')} ${col.label}`,
+            value: `${t('Main')} ${col.value}`,
+          },
+          {
+            label: `# ${col.label}`,
+            value: `# ${col.value}`,
+          },
+          {
+            label: `△ ${col.label}`,
+            value: `△ ${col.value}`,
+          },
+          {
+            label: `% ${col.label}`,
+            value: `% ${col.value}`,
+          },
+        ];
+      }
+      return [];
+    })
+    .flat();
 
 /**
  * Visibility check
@@ -543,6 +571,158 @@ const config: ControlPanelConfig = {
                     childColumnMap,
                     timeComparisonColumnMap,
                   },
+                };
+              },
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Visual formatting'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'show_cell_bars',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Cell bars'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Whether to display a bar chart background in table columns',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'align_pn',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Align +/-'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Whether to align background charts with both positive and negative values at 0',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'color_pn',
+            config: {
+              type: 'CheckboxControl',
+              label: t('add colors to cell bars for +/-'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Whether to colorize numeric values by whether they are positive or negative',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison_color_enabled',
+            config: {
+              type: 'CheckboxControl',
+              label: t('basic conditional formatting'),
+              renderTrigger: true,
+              visibility: ({ controls }) =>
+                !isEmpty(controls?.time_compare?.value),
+              default: false,
+              description: t(
+                'This will be applied to the whole table. Arrows (↑ and ↓) will be added to ' +
+                  'main columns for increase and decrease. Basic conditional formatting can be ' +
+                  'overwritten by conditional formatting below.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison_color_scheme',
+            config: {
+              type: 'SelectControl',
+              label: t('color type'),
+              default: ColorSchemeEnum.Green,
+              renderTrigger: true,
+              choices: [
+                [ColorSchemeEnum.Green, 'Green for increase, red for decrease'],
+                [ColorSchemeEnum.Red, 'Red for increase, green for decrease'],
+              ],
+              visibility: ({ controls }) =>
+                !isEmpty(controls?.time_compare?.value) &&
+                Boolean(controls?.comparison_color_enabled?.value),
+              description: t(
+                'Adds color to the chart symbols based on the positive or ' +
+                  'negative change from the comparison value.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'conditional_formatting',
+            config: {
+              type: 'ConditionalFormattingControl',
+              renderTrigger: true,
+              label: t('Custom Conditional Formatting'),
+              extraColorChoices: [
+                {
+                  value: ColorSchemeEnum.Green,
+                  label: t('Green for increase, red for decrease'),
+                },
+                {
+                  value: ColorSchemeEnum.Red,
+                  label: t('Red for increase, green for decrease'),
+                },
+              ],
+              description: t(
+                'Apply conditional color formatting to numeric columns',
+              ),
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                const verboseMap = explore?.datasource?.hasOwnProperty(
+                  'verbose_map',
+                )
+                  ? (explore?.datasource as Dataset)?.verbose_map
+                  : (explore?.datasource?.columns ?? {});
+                const chartStatus = chart?.chartStatus;
+                const { colnames, coltypes } =
+                  chart?.queriesResponse?.[0] ?? {};
+                const numericColumns =
+                  Array.isArray(colnames) && Array.isArray(coltypes)
+                    ? colnames
+                        .filter(
+                          (colname: string, index: number) =>
+                            coltypes[index] === GenericDataType.Numeric,
+                        )
+                        .map((colname: string) => ({
+                          value: colname,
+                          label: Array.isArray(verboseMap)
+                            ? colname
+                            : (verboseMap[colname] ?? colname),
+                        }))
+                    : [];
+                const columnOptions = explore?.controls?.time_compare?.value
+                  ? processComparisonColumns(
+                      numericColumns || [],
+                      ensureIsArray(
+                        explore?.controls?.time_compare?.value,
+                      )[0]?.toString() || '',
+                    )
+                  : numericColumns;
+
+                return {
+                  removeIrrelevantConditions: chartStatus === 'success',
+                  columnOptions,
+                  verboseMap,
                 };
               },
             },
