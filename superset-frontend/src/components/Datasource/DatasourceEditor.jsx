@@ -1025,7 +1025,7 @@ class DatasourceEditor extends PureComponent {
     <div
       css={theme => css`
         position: absolute;
-        background: ${theme.colors.secondary.light5};
+        background: ${theme.colorBgLayout};
         align-items: center;
         display: flex;
         height: 100%;
@@ -1265,7 +1265,7 @@ class DatasourceEditor extends PureComponent {
                           <Icons.ExportOutlined
                             iconSize="s"
                             css={theme => ({
-                              color: theme.colors.primary.dark1,
+                              color: theme.colors.primary.light5,
                             })}
                             onClick={() => {
                               this.openOnSqlLab();
