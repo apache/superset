@@ -131,9 +131,8 @@ export const transformData = (
         ? defaultAlignPN
         : config.alignPositiveNegative;
     const valueRange =
-      (config.showCellBars === undefined
-        ? showCellBars
-        : config.showCellBars) &&
+      showCellBars &&
+      config.showCellBars &&
       (isMetric || isRawRecords || isPercentMetric) &&
       getValueRange(col.key, alignPositiveNegative, data);
 
