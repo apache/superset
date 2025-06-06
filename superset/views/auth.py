@@ -57,7 +57,7 @@ class SupersetRegisterUserView(BaseSupersetView):
         return super().render_app_template()
 
     @expose("/activation/<string:activation_hash>")
-    def activation(self, activation_hash):
+    def activation(self, activation_hash: str) -> WerkzeugResponse:
         """
         Endpoint to expose an activation url, this url
         is sent to the user by email, when accessed the user is inserted
