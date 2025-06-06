@@ -1485,41 +1485,6 @@ class TestDatasetApi(SupersetTestCase):
 
         self.items_to_delete = [dataset]
 
-    def test_get_metric_currency_str_conversion(self):
-        """
-        Dataset API: Test retrieve metric with currency config set as string
-        gets automatically converted to dict in the API response
-        """
-        dataset = self.insert_default_dataset()
-        self.login(ADMIN_USERNAME)
-
-        # Insert metric via the DB directly to create it as string
-        new_metric = SqlMetric(
-            table_id=dataset.id,
-            metric_name="test",
-            expression="COUNT(*)",
-            currency='{"symbol": "USD", "symbolPosition": "suffix"}',
-        )
-        db.session.add(new_metric)
-        db.session.commit()
-
-        uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.get_assert_metric(uri, "get")
-        data = json.loads(rv.data.decode("utf-8"))
-        metrics = data["result"]["metrics"]
-
-        assert rv.status_code == 200
-        # the default auto-created count + the custom one
-        assert len(metrics) == 2
-        for metric in metrics:
-            if metric["metric_name"] == "test":
-                assert metric["currency"] == {
-                    "symbol": "USD",
-                    "symbolPosition": "suffix",
-                }
-
-        self.items_to_delete = [dataset]
-
     def test_update_dataset_item_gamma(self):
         """
         Dataset API: Test update dataset item gamma

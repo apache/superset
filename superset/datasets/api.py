@@ -68,7 +68,6 @@ from superset.datasets.schemas import (
     DatasetPostSchema,
     DatasetPutSchema,
     DatasetRelatedObjectsResponse,
-    DatasetShowSchema,
     get_delete_ids_schema,
     get_export_ids_schema,
     GetOrCreateDatasetSchema,
@@ -222,7 +221,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "datasource_name",
         "name",
         "column_formats",
-        "currency_formats",
         "granularity_sqla",
         "time_grain_sqla",
         "order_by_choices",
@@ -231,7 +229,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     duplicate_model_schema = DatasetDuplicateSchema()
-    show_model_schema = DatasetShowSchema()
     add_columns = ["database", "catalog", "schema", "table_name", "sql", "owners"]
     edit_columns = [
         "table_name",
