@@ -58,7 +58,7 @@ module.exports = async results => {
     // Ignore thie rule here - the messages in eslintrc_metrics.js are sufficient descriptions, broken down by file type.
     'no-restricted-imports': {
       description:
-        "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+        "This rule catches several things that shouldn't be used anymore. LESS, antD, etc. See individual occurrence messages for details",
     },
     'no-console': {
       description:
