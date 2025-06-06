@@ -4,7 +4,7 @@
 # regarding copyright ownership.  The ASF licenses this file
 # to you under the Apache License, Version 2.0 (the
 # "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
+# with the License. You may obtain a copy of the License at
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
@@ -157,7 +157,7 @@ class MigrateViz:
             # because a source viz can be mapped to different target viz types
             slc.viz_type = clz.target_viz_type
 
-            backup = {FORM_DATA_BAK_FIELD_NAME: form_data_bak}
+            backup: Any | dict[str, Any] = {FORM_DATA_BAK_FIELD_NAME: form_data_bak}
 
             query_context = try_load_json(slc.query_context)
             queries_bak = None
@@ -172,7 +172,7 @@ class MigrateViz:
                 query_context["queries"] = queries
             else:
                 query_context = clz._build_query()
-                
+
             slc.query_context = json.dumps(query_context)
             backup[QUERIES_BAK_FIELD_NAME] = queries_bak
             slc.params = json.dumps({**clz.data, **backup})
