@@ -25,8 +25,8 @@ import {
   ListViewFilters,
   ListViewFilterOperator,
   ListView,
-  DeleteModal,
 } from 'src/components';
+import { DeleteModal } from '@superset-ui/core/components';
 import { ActionProps, ActionsBar } from 'src/components/ListView/ActionsBar';
 import SubMenu from 'src/features/home/SubMenu';
 
