@@ -20,7 +20,7 @@
   "dependencies": {
     "@ant-design/icons": "^5.5.2",
     "@docusaurus/core": "3.7.0",
-    "@docusaurus/plugin-client-redirects": "3.7.0",
+    "@docusaurus/plugin-client-redirects": "3.8.0",
     "@docusaurus/preset-classic": "3.7.0",
     "@docusaurus/theme-mermaid": "3.7.0",
     "@emotion/styled": "^10.0.27",
