@@ -44,6 +44,7 @@ const customIcons = [
   'Layers',
   'Queued',
   'Redo',
+  'Refresh',
   'Running',
   'Slack',
   'Square',
