@@ -22,10 +22,12 @@ import {
   TimeRangePickerProps,
 } from 'antd-v5';
 
+const commonCss = { width: '100%' };
+
 export const TimePicker = (props: TimePickerProps) => (
-  <AntdTimePicker css={{ width: '100%' }} {...props} />
+  <AntdTimePicker css={commonCss} {...props} />
 );
 
 export const TimeRangePicker = (props: TimeRangePickerProps) => (
-  <AntdTimePicker.RangePicker css={{ width: '100%' }} {...props} />
+  <AntdTimePicker.RangePicker css={commonCss} {...props} />
 );

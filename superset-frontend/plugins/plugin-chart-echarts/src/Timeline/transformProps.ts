@@ -338,9 +338,14 @@ export default function transformProps(chartProps: EchartsTimelineChartProps) {
       formatter: (params: CallbackDataParams) =>
         tooltipHtml(
           tooltipLabels.map(label => {
-            const idx = params.dimensionNames!.findIndex(v => v === label)!;
-            const value = (params.value as any[])[idx];
-            const type = coltypes[idx - Object.keys(Dimension).length];
+            const offset = Object.keys(Dimension).length;
+            const dimensionNames = params.dimensionNames!.slice(offset);
+            const data = (params.value as any[]).slice(offset);
+
+            const idx = dimensionNames.findIndex(v => v === label)!;
+            const value = data[idx];
+            const type = coltypes[idx];
+
             return [label, tooltipFormatterMap[type]?.(value) ?? value];
           }),
           dimensionLabel ? params.seriesName : undefined,
