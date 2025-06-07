@@ -66,6 +66,7 @@ import Field from './Field';
 import { fetchSyncedColumns, updateColumns } from './utils';
 import FilterableTable from '../FilterableTable';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
+import Mousetrap from 'mousetrap';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -728,7 +729,7 @@ class DatasourceEditor extends PureComponent {
 
   async onQueryFormat() {
     const { datasource } = this.state;
-    if (!datasource.sql) {
+    if (!datasource.sql || !this.state.isEditMode) {
       return;
     }
 
@@ -1250,6 +1251,16 @@ class DatasourceEditor extends PureComponent {
                         <>
                           {this.renderSqlEditorOverlay()}
                           <TextAreaControl
+                            hotkeys={[
+                              {
+                                name: 'formatQuery',
+                                key: 'ctrl+shift+f',
+                                descr: t('Format SQL query'),
+                                func: () => {
+                                  this.onQueryFormat();
+                                },
+                              },
+                            ]}
                             language="sql"
                             offerEditInModal={false}
                             minLines={10}
@@ -1260,6 +1271,16 @@ class DatasourceEditor extends PureComponent {
                         </>
                       ) : (
                         <TextAreaControl
+                          hotkeys={[
+                            {
+                              name: 'formatQuery',
+                              key: 'ctrl+shift+f',
+                              descr: t('Format SQL query'),
+                              func: () => {
+                                this.onQueryFormat();
+                              },
+                            },
+                          ]}
                           language="sql"
                           offerEditInModal={false}
                           minLines={10}
@@ -1279,60 +1300,39 @@ class DatasourceEditor extends PureComponent {
                           display: flex;
                         `}
                       >
-                        <ButtonWrapper>
-                          <Button
-                            disabled={
-                              this.props.database?.isLoading ||
-                              !this.state.isEditMode ||
-                              this.state.isFormattingSql
-                            }
-                            tooltip={t('Format SQL')}
-                            css={floatingButtonCss}
-                            size="small"
-                            onClick={() => {
-                              this.onQueryFormat();
-                            }}
-                          >
-                            <Icons.HighlightOutlined iconSize="s" />
-                          </Button>
-                        </ButtonWrapper>
-                        <ButtonWrapper>
-                          <Button
-                            disabled={this.props.database?.isLoading}
-                            tooltip={t('Open SQL Lab in a new tab')}
-                            css={floatingButtonCss}
-                            size="small"
-                            onClick={() => {
-                              this.openOnSqlLab();
-                            }}
-                          >
-                            <Icons.ExportOutlined
-                              iconSize="s"
-                              css={theme => ({
-                                color: theme.colors.primary.dark1,
-                              })}
-                            />
-                          </Button>
-                        </ButtonWrapper>
-                        <ButtonWrapper>
-                          <Button
-                            disabled={this.props.database?.isLoading}
-                            tooltip={t('Run query')}
-                            css={floatingButtonCss}
-                            size="small"
-                            buttonStyle="primary"
-                            onClick={() => {
-                              this.onQueryRun();
-                            }}
-                          >
-                            <Icons.CaretRightFilled
-                              iconSize="s"
-                              css={theme => ({
-                                color: theme.colors.grayscale.light5,
-                              })}
-                            />
-                          </Button>
-                        </ButtonWrapper>
+                        <Button
+                          disabled={this.props.database?.isLoading}
+                          tooltip={t('Open SQL Lab in a new tab')}
+                          css={floatingButtonCss}
+                          size="small"
+                          onClick={() => {
+                            this.openOnSqlLab();
+                          }}
+                        >
+                          <Icons.ExportOutlined
+                            iconSize="s"
+                            css={theme => ({
+                              color: theme.colors.primary.dark1,
+                            })}
+                          />
+                        </Button>
+                        <Button
+                          disabled={this.props.database?.isLoading}
+                          tooltip={t('Run query')}
+                          css={floatingButtonCss}
+                          size="small"
+                          buttonStyle="primary"
+                          onClick={() => {
+                            this.onQueryRun();
+                          }}
+                        >
+                          <Icons.CaretRightFilled
+                            iconSize="s"
+                            css={theme => ({
+                              color: theme.colors.grayscale.light5,
+                            })}
+                          />
+                        </Button>
                       </div>
                     }
                     errorMessage={
@@ -1372,10 +1372,10 @@ class DatasourceEditor extends PureComponent {
                         orderedColumnKeys={this.props.database?.queryResult.columns.map(
                           col => col.column_name,
                         )}
-                        height={100}
                         expandedColumns={
                           this.props.database?.queryResult.expandedColumns
                         }
+                        height={300}
                         allowHTML
                       />
                     </>
@@ -1761,7 +1761,18 @@ class DatasourceEditor extends PureComponent {
     );
   }
 
+  componentDidMount() {
+    Mousetrap.bind('ctrl+shift+f', e => {
+      e.preventDefault();
+      if (this.state.isEditMode) {
+        this.onQueryFormat();
+      }
+      return false;
+    });
+  }
+
   componentWillUnmount() {
+    Mousetrap.unbind('ctrl+shift+f');
     this.props.resetQuery();
   }
 }

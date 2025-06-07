@@ -30,7 +30,7 @@ export const executeQueryApi = makeApi<
   endpoint: '/api/v1/sqllab/execute',
 });
 
-export function setQuery(query: QueryExecutePayload) {
+export function setQuery(query: string) {
   return {
     type: 'SET_QUERY',
     payload: query,
@@ -81,7 +81,7 @@ export function formatQuery(sql: string) {
       body: JSON.stringify({ sql }),
       headers: { 'Content-Type': 'application/json' },
     }).then(response => {
-      dispatch(setQuery({ sql: response.json.result }));
+      dispatch(setQuery(response.json.result));
       return response;
     });
   };

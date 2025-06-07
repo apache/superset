@@ -34,7 +34,7 @@ export default function databaseReducer(
     case 'SET_QUERY':
       return {
         ...state,
-        sql: action.payload.sql ?? '',
+        sql: action.payload ?? '',
         queryResult: null,
         error: null,
       };
