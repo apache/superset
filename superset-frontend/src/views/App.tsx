@@ -39,6 +39,7 @@ import { setupAGGridModules } from 'src/setup/setupAGGridModules';
 import { routes, isFrontendRoute } from 'src/views/routes';
 import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupExtensions from 'src/setup/setupExtensions';
+import setupExtensionsAPI from 'src/extensions/setupExtensionsAPI';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
 import { RootContextProviders } from './RootContextProviders';
@@ -47,6 +48,7 @@ import { ScrollToTop } from './ScrollToTop';
 setupApp();
 setupPlugins();
 setupExtensions();
+setupExtensionsAPI();
 setupAGGridModules();
 
 const bootstrapData = getBootstrapData();

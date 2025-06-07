@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
-import { Avatar } from 'src/components/Avatar';
+import { core } from '@apache-superset/core';
 
-test('renders with default props', async () => {
-  const { container } = render(<Avatar />);
+export interface ExtensionsState {
+  extensions: core.Extension[];
+  loading: boolean;
+  error: string | null;
+}
 
-  expect(container).toBeInTheDocument();
-});
+export type Module = 'dashboards' | 'explore' | 'sqllab';
