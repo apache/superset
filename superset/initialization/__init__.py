@@ -327,6 +327,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Manage",
             category_label=__("Manage"),
             category_icon="",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
+                "ENABLE_CSS_TEMPLATES"
+            ),
         )
 
         #
