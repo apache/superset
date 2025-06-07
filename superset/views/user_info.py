@@ -14,24 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import patch
+from flask_appbuilder import permission_name
+from flask_appbuilder.api import expose
+from flask_appbuilder.security.decorators import has_access
 
-from superset.views.log.views import LogModelView
-from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME
+from superset.superset_typing import FlaskResponse
+
+from .base import BaseSupersetView
 
 
-class TestLogModelView(SupersetTestCase):
-    def test_disabled(self):
-        with patch.object(LogModelView, "is_enabled", return_value=False):
-            self.login(ADMIN_USERNAME)
-            uri = "/logmodelview/list/"
-            rv = self.client.get(uri)
-            self.assert404(rv)
+class UserInfoView(BaseSupersetView):
+    route_base = "/"
+    class_permission_name = "user"
 
-    def test_enabled(self):
-        with patch.object(LogModelView, "is_enabled", return_value=True):
-            self.login(ADMIN_USERNAME)
-            uri = "/logmodelview/list/"
-            rv = self.client.get(uri)
-            self.assert200(rv)
+    @expose("/user_info/")
+    @has_access
+    @permission_name("read")
+    def list(self) -> FlaskResponse:
+        return super().render_app_template()

@@ -765,7 +765,7 @@ SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
 SCREENSHOT_PLAYWRIGHT_WAIT_EVENT = "load"
 # Default timeout for Playwright browser context for all operations
 SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT = int(
-    timedelta(seconds=30).total_seconds() * 1000
+    timedelta(seconds=60).total_seconds() * 1000
 )
 
 # ---------------------------------------------------

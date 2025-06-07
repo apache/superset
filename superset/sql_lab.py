@@ -22,7 +22,7 @@ import uuid
 from contextlib import closing
 from datetime import datetime
 from sys import getsizeof
-from typing import Any, cast, Optional, Union
+from typing import Any, cast, Optional, TYPE_CHECKING, TypeVar, Union
 
 import backoff
 import msgpack
@@ -45,21 +45,18 @@ from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
+    SupersetDisallowedSQLFunctionException,
+    SupersetDMLNotAllowedException,
     SupersetErrorException,
     SupersetErrorsException,
-    SupersetParseError,
+    SupersetInvalidCTASException,
+    SupersetInvalidCVASException,
+    SupersetResultsBackendNotConfigureException,
 )
 from superset.extensions import celery_app, event_logger
-from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql.parse import SQLScript, SQLStatement, Table
-from superset.sql_parse import (
-    CtasMethod,
-    insert_rls_as_subquery,
-    insert_rls_in_predicate,
-    ParsedQuery,
-)
+from superset.sql.parse import BaseSQLStatement, CTASMethod, SQLScript, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
 from superset.utils import json
@@ -70,6 +67,10 @@ from superset.utils.core import (
 )
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
+from superset.utils.rls import apply_rls
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 config = app.config
 stats_logger = config["STATS_LOGGER"]
@@ -197,98 +198,60 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 return handle_query_error(ex, query)
 
 
-def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-locals  # noqa: C901
-    sql_statement: str,
+S = TypeVar("S", bound=BaseSQLStatement[Any])
+
+
+def apply_ctas(query: Query, parsed_statement: S) -> S:
+    """
+    Apply CTAS/CVAS.
+    """
+    if not query.tmp_table_name:
+        start_dttm = datetime.fromtimestamp(query.start_time)
+        prefix = f"tmp_{query.user_id}_table"
+        query.tmp_table_name = start_dttm.strftime(f"{prefix}_%Y_%m_%d_%H_%M_%S")
+
+    catalog = (
+        query.catalog
+        if query.database.db_engine_spec.supports_cross_catalog_queries
+        else None
+    )
+    table = Table(query.tmp_table_name, query.tmp_schema_name, catalog)
+    method = CTASMethod[query.ctas_method.upper()]
+
+    return parsed_statement.as_create_table(table, method)  # type: ignore[return-value]
+
+
+def apply_limit(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
+    """
+    Apply limit to the SQL statement.
+    """
+    # Do not apply limit to the CTA queries when SQLLAB_CTAS_NO_LIMIT is set to true
+    if parsed_statement.is_mutating() or (
+        query.select_as_cta_used and SQLLAB_CTAS_NO_LIMIT
+    ):
+        return
+
+    if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
+        query.limit = SQL_MAX_ROW
+
+    if query.limit:
+        parsed_statement.set_limit_value(
+            # fetch an extra row to inform user if there are more rows
+            query.limit + 1,
+            query.database.db_engine_spec.limit_method,
+        )
+
+
+def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # noqa: C901
     query: Query,
     cursor: Any,
-    log_params: Optional[dict[str, Any]],
-    apply_ctas: bool = False,
+    log_params: Optional[dict[str, Any]] = None,
 ) -> SupersetResultSet:
     """Executes a single SQL statement"""
     database: Database = query.database
     db_engine_spec = database.db_engine_spec
 
-    parsed_query = ParsedQuery(sql_statement, engine=db_engine_spec.engine)
-    if is_feature_enabled("RLS_IN_SQLLAB"):
-        # There are two ways to insert RLS: either replacing the table with a subquery
-        # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
-        # safer, but not supported in all databases.
-        insert_rls = (
-            insert_rls_as_subquery
-            if database.db_engine_spec.allows_subqueries
-            and database.db_engine_spec.allows_alias_in_select
-            else insert_rls_in_predicate
-        )
-
-        # Insert any applicable RLS predicates
-        parsed_query = ParsedQuery(
-            str(
-                insert_rls(
-                    parsed_query._parsed[0],  # pylint: disable=protected-access
-                    database.id,
-                    query.schema,
-                )
-            ),
-            engine=db_engine_spec.engine,
-        )
-
-    sql = parsed_query.stripped()
-
-    # This is a test to see if the query is being
-    # limited by either the dropdown or the sql.
-    # We are testing to see if more rows exist than the limit.
-    increased_limit = None if query.limit is None else query.limit + 1
-
-    if not database.allow_dml:
-        errors = []
-        try:
-            parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
-            disallowed = parsed_statement.is_mutating()
-        except SupersetParseError as ex:
-            # if we fail to parse the query, disallow by default
-            disallowed = True
-            errors.append(ex.error)
-
-        if disallowed:
-            errors.append(
-                SupersetError(
-                    message=__(
-                        "This database does not allow for DDL/DML, and the query "
-                        "could not be parsed to confirm it is a read-only query. Please "  # noqa: E501
-                        "contact your administrator for more assistance."
-                    ),
-                    error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
-                    level=ErrorLevel.ERROR,
-                )
-            )
-            raise SupersetErrorsException(errors)
-
-    original_sql = sql
-    if apply_ctas:
-        if not query.tmp_table_name:
-            start_dttm = datetime.fromtimestamp(query.start_time)
-            query.tmp_table_name = (
-                f"tmp_{query.user_id}_table_{start_dttm.strftime('%Y_%m_%d_%H_%M_%S')}"
-            )
-        sql = parsed_query.as_create_table(
-            query.tmp_table_name,
-            schema_name=query.tmp_schema_name,
-            method=query.ctas_method,
-        )
-        query.select_as_cta_used = True
-
-    # Do not apply limit to the CTA queries when SQLLAB_CTAS_NO_LIMIT is set to true
-    if not SQLScript(original_sql, db_engine_spec.engine).has_mutation() and not (
-        query.select_as_cta_used and SQLLAB_CTAS_NO_LIMIT
-    ):
-        if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
-            query.limit = SQL_MAX_ROW
-        sql = apply_limit_if_exists(database, increased_limit, query, sql)
-
-    # Hook to allow environment-specific mutation (usually comments) to the SQL
-    sql = database.mutate_sql_based_on_config(sql)
     try:
-        query.executed_sql = sql
         if log_query:
             log_query(
                 query.database.sqlalchemy_uri,
@@ -305,7 +268,7 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
             object_ref=__name__,
         ):
             with stats_timing("sqllab.query.time_executing_query", stats_logger):
-                db_engine_spec.execute_with_cursor(cursor, sql, query)
+                db_engine_spec.execute_with_cursor(cursor, query.executed_sql, query)
 
             with stats_timing("sqllab.query.time_fetching_results", stats_logger):
                 logger.debug(
@@ -313,6 +276,7 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
                     query.id,
                     str(query.to_dict()),
                 )
+                increased_limit = None if query.limit is None else query.limit + 1
                 data = db_engine_spec.fetch_data(cursor, increased_limit)
                 if query.limit is None or len(data) <= query.limit:
                     query.limiting_factor = LimitingFactor.NOT_LIMITED
@@ -351,19 +315,6 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
     logger.debug("Query %d: Fetching cursor description", query.id)
     cursor_description = cursor.description
     return SupersetResultSet(data, cursor_description, db_engine_spec)
-
-
-def apply_limit_if_exists(
-    database: Database, increased_limit: Optional[int], query: Query, sql: str
-) -> str:
-    if query.limit and increased_limit:
-        # We are fetching one more than the requested limit in order
-        # to test whether there are more rows than the limit. According to the DB
-        # Engine support it will choose top or limit parse
-        # Later, the extra row will be dropped before sending
-        # the results back to the user.
-        sql = database.apply_limit_to_sql(sql, increased_limit, force=True)
-    return sql
 
 
 def _serialize_payload(
@@ -431,67 +382,65 @@ def execute_sql_statements(  # noqa: C901
     db_engine_spec.patch()
 
     if database.allow_run_async and not results_backend:
-        raise SupersetErrorException(
-            SupersetError(
-                message=__("Results backend is not configured."),
-                error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
-                level=ErrorLevel.ERROR,
-            )
-        )
-
-    # Breaking down into multiple statements
-    parsed_query = ParsedQuery(
-        rendered_query,
-        engine=db_engine_spec.engine,
-    )
-    if not db_engine_spec.run_multiple_statements_as_one:
-        statements = parsed_query.get_statements()
-        logger.info(
-            "Query %s: Executing %i statement(s)", str(query_id), len(statements)
-        )
-    else:
-        statements = [rendered_query]
-        logger.info("Query %s: Executing query as a single statement", str(query_id))
+        raise SupersetResultsBackendNotConfigureException()
 
     logger.info("Query %s: Set query to 'running'", str(query_id))
     query.status = QueryStatus.RUNNING
     query.start_running_time = now_as_float()
     db.session.commit()
 
-    # Should we create a table or view from the select?
-    if (
-        query.select_as_cta
-        and query.ctas_method == CtasMethod.TABLE
-        and not parsed_query.is_valid_ctas()
+    parsed_script = SQLScript(rendered_query, engine=db_engine_spec.engine)
+
+    disallowed_functions = current_app.config["DISALLOWED_SQL_FUNCTIONS"].get(
+        db_engine_spec.engine,
+        set(),
+    )
+    if disallowed_functions and parsed_script.check_functions_present(
+        disallowed_functions
     ):
-        raise SupersetErrorException(
-            SupersetError(
-                message=__(
-                    "CTAS (create table as select) can only be run with a query where "
-                    "the last statement is a SELECT. Please make sure your query has "
-                    "a SELECT as its last statement. Then, try running your query "
-                    "again."
-                ),
-                error_type=SupersetErrorType.INVALID_CTAS_QUERY_ERROR,
-                level=ErrorLevel.ERROR,
-            )
+        raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+
+    if parsed_script.has_mutation() and not database.allow_dml:
+        raise SupersetDMLNotAllowedException()
+
+    if is_feature_enabled("RLS_IN_SQLLAB"):
+        default_schema = query.database.get_default_schema_for_query(query)
+        for statement in parsed_script.statements:
+            apply_rls(query.database, query.catalog, default_schema, statement)
+
+    if query.select_as_cta:
+        # CTAS is valid when the last statement is a SELECT, while CVAS is valid when
+        # there is only a single statement which must be a SELECT.
+        if (
+            query.ctas_method == CTASMethod.TABLE.name
+            and not parsed_script.is_valid_ctas()
+        ):
+            raise SupersetInvalidCTASException()
+        if (
+            query.ctas_method == CTASMethod.VIEW.name
+            and not parsed_script.is_valid_cvas()
+        ):
+            raise SupersetInvalidCVASException()
+
+        parsed_script.statements[-1] = apply_ctas(  # type: ignore
+            query,
+            parsed_script.statements[-1],
         )
-    if (
-        query.select_as_cta
-        and query.ctas_method == CtasMethod.VIEW
-        and not parsed_query.is_valid_cvas()
-    ):
-        raise SupersetErrorException(
-            SupersetError(
-                message=__(
-                    "CVAS (create view as select) can only be run with a query with "
-                    "a single SELECT statement. Please make sure your query has only "
-                    "a SELECT statement. Then, try running your query again."
-                ),
-                error_type=SupersetErrorType.INVALID_CVAS_QUERY_ERROR,
-                level=ErrorLevel.ERROR,
-            )
-        )
+        query.select_as_cta_used = True
+
+    for statement in parsed_script.statements:
+        apply_limit(query, statement)
+
+    # some databases (like BigQuery and Kusto) do not persist state across mmultiple
+    # statements if they're run separately (especially when using `NullPool`), so we run
+    # the query as a single block.
+    if db_engine_spec.run_multiple_statements_as_one:
+        blocks = [parsed_script.format(comments=db_engine_spec.allows_sql_comments)]
+    else:
+        blocks = [
+            statement.format(comments=db_engine_spec.allows_sql_comments)
+            for statement in parsed_script.statements
+        ]
 
     with database.get_raw_connection(
         catalog=query.catalog,
@@ -501,40 +450,35 @@ def execute_sql_statements(  # noqa: C901
         # Sharing a single connection and cursor across the
         # execution of all statements (if many)
         cursor = conn.cursor()
+
         cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
         if cancel_query_id is not None:
             query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
             db.session.commit()
-        statement_count = len(statements)
-        for i, statement in enumerate(statements):
+
+        block_count = len(blocks)
+        for i, block in enumerate(blocks):
             # Check if stopped
             db.session.refresh(query)
             if query.status == QueryStatus.STOPPED:
                 payload.update({"status": query.status})
                 return payload
-            # For CTAS we create the table only on the last statement
-            apply_ctas = query.select_as_cta and (
-                query.ctas_method == CtasMethod.VIEW
-                or (query.ctas_method == CtasMethod.TABLE and i == len(statements) - 1)
-            )
+
             # Run statement
             msg = __(
-                "Running statement %(statement_num)s out of %(statement_count)s",
-                statement_num=i + 1,
-                statement_count=statement_count,
+                "Running block %(block_num)s out of %(block_count)s",
+                block_num=i + 1,
+                block_count=block_count,
             )
             logger.info("Query %s: %s", str(query_id), msg)
             query.set_extra_json_key("progress", msg)
             db.session.commit()
-            try:
-                result_set = execute_sql_statement(
-                    statement,
-                    query,
-                    cursor,
-                    log_params,
-                    apply_ctas,
-                )
 
+            # Hook to allow environment-specific mutation (usually comments) to the SQL
+            query.executed_sql = database.mutate_sql_based_on_config(block)
+
+            try:
+                result_set = execute_query(query, cursor, log_params)
             except SqlLabQueryStoppedException:
                 payload.update({"status": QueryStatus.STOPPED})
                 return payload
@@ -542,22 +486,18 @@ def execute_sql_statements(  # noqa: C901
                 msg = str(ex)
                 prefix_message = (
                     __(
-                        "Statement %(statement_num)s out of %(statement_count)s",
-                        statement_num=i + 1,
-                        statement_count=statement_count,
+                        "Block %(block_num)s out of %(block_count)s",
+                        block_num=i + 1,
+                        block_count=block_count,
                     )
-                    if statement_count > 1
+                    if block_count > 1
                     else ""
                 )
                 payload = handle_query_error(ex, query, payload, prefix_message)
                 return payload
 
         # Commit the connection so CTA queries will create the table and any DML.
-        should_commit = (
-            SQLScript(rendered_query, db_engine_spec.engine).has_mutation()
-            or apply_ctas
-        )
-        if should_commit:
+        if parsed_script.has_mutation() or query.select_as_cta:
             conn.commit()
 
     # Success, updating the query entry in database

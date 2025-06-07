@@ -15,10 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import copy
+from datetime import datetime
+from typing import Any
+from unittest.mock import MagicMock, patch
+
+import pytest
+from freezegun import freeze_time
 from sqlalchemy.orm.session import Session
 
+from superset.daos.base import BaseDAO
 from superset.daos.dataset import DatasetDAO
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 
 
 def test_validate_update_uniqueness(session: Session) -> None:
@@ -77,3 +85,94 @@ def test_validate_update_uniqueness(session: Session) -> None:
         )
         is True
     )
+
+
+@freeze_time("2025-01-01 00:00:00")
+@patch.object(DatasetDAO, "update_columns")
+@patch.object(DatasetDAO, "update_metrics")
+@patch.object(BaseDAO, "update")
+@pytest.mark.parametrize(
+    "attributes,expected_attributes",
+    [
+        (
+            {
+                "columns": [{"id": 1, "name": "col1"}],
+                "metrics": [{"id": 1, "name": "metric1"}],
+            },
+            {"changed_on": datetime(2025, 1, 1, 0, 0, 0)},
+        ),
+        (
+            {
+                "columns": [{"id": 1, "name": "col1"}],
+                "metrics": [{"id": 1, "name": "metric1"}],
+                "description": "test description",
+            },
+            {
+                "description": "test description",
+                "changed_on": datetime(2025, 1, 1, 0, 0, 0),
+            },
+        ),
+        (
+            {
+                "columns": [{"id": 1, "name": "col1"}],
+            },
+            {"changed_on": datetime(2025, 1, 1, 0, 0, 0)},
+        ),
+        (
+            {
+                "columns": [{"id": 1, "name": "col1"}],
+                "description": "test description",
+            },
+            {
+                "description": "test description",
+                "changed_on": datetime(2025, 1, 1, 0, 0, 0),
+            },
+        ),
+        (
+            {
+                "metrics": [{"id": 1, "name": "metric1"}],
+            },
+            {"changed_on": datetime(2025, 1, 1, 0, 0, 0)},
+        ),
+        (
+            {
+                "metrics": [{"id": 1, "name": "metric1"}],
+                "description": "test description",
+            },
+            {
+                "description": "test description",
+                "changed_on": datetime(2025, 1, 1, 0, 0, 0),
+            },
+        ),
+        (
+            {"description": "test description"},
+            {"description": "test description"},
+        ),
+    ],
+)
+def test_update_dataset_related_metadata_updates_changed_on(
+    base_update_mock: MagicMock,
+    update_metrics_mock: MagicMock,
+    update_columns_mock: MagicMock,
+    attributes: dict[str, Any],
+    expected_attributes: dict[str, Any],
+) -> None:
+    """
+    Test that the changed_on property is updated when a metric or column is updated.
+    """
+    item = MagicMock()
+    DatasetDAO.update(item, copy.deepcopy(attributes))
+
+    if "columns" in attributes:
+        update_columns_mock.assert_called_once_with(
+            item, attributes["columns"], override_columns=False
+        )
+    else:
+        update_columns_mock.assert_not_called()
+
+    if "metrics" in attributes:
+        update_metrics_mock.assert_called_once_with(item, attributes["metrics"])
+    else:
+        update_metrics_mock.assert_not_called()
+
+    base_update_mock.assert_called_once_with(item, expected_attributes)

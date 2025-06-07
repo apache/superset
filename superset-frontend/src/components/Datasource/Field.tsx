@@ -39,7 +39,7 @@ interface FieldProps<V> {
   onChange: (fieldKey: string, newValue: V) => void;
   compact: boolean;
   inline: boolean;
-  errorMessage?: string;
+  errorMessage?: string | ReactElement;
 }
 
 export default function Field<V>({

@@ -39,7 +39,7 @@ from superset.db_engine_specs.exceptions import (
 )
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import json
 from superset.utils.core import create_ssl_cert_file, get_user_agent, QuerySource
