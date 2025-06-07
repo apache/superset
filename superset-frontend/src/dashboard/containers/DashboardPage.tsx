@@ -71,8 +71,6 @@ const DashboardBuilder = lazy(
     ),
 );
 
-const originalDocumentTitle = document.title;
-
 type PageProps = {
   idOrSlug: string;
 };
@@ -204,7 +202,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       document.title = dashboard_title;
     }
     return () => {
-      document.title = originalDocumentTitle;
+      document.title = 'Superset';
     };
   }, [dashboard_title]);
 
