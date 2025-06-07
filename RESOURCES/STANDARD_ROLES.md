@@ -132,13 +132,6 @@ under the License.
 | can download on DynamicPlugin                    |:heavy_check_mark:|O|O|O|
 | can add on DynamicPlugin                         |:heavy_check_mark:|O|O|O|
 | can delete on DynamicPlugin                      |:heavy_check_mark:|O|O|O|
-| can edit on RowLevelSecurityFiltersModelView     |:heavy_check_mark:|O|O|O|
-| can list on RowLevelSecurityFiltersModelView     |:heavy_check_mark:|O|O|O|
-| can show on RowLevelSecurityFiltersModelView     |:heavy_check_mark:|O|O|O|
-| can download on RowLevelSecurityFiltersModelView |:heavy_check_mark:|O|O|O|
-| can add on RowLevelSecurityFiltersModelView      |:heavy_check_mark:|O|O|O|
-| can delete on RowLevelSecurityFiltersModelView   |:heavy_check_mark:|O|O|O|
-| muldelete on RowLevelSecurityFiltersModelView    |:heavy_check_mark:|O|O|O|
 | can external metadata by name on Datasource      |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can get value on KV                              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can store on KV                                  |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
