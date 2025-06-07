@@ -35,16 +35,15 @@
     "@superset-ui/core": "*",
     "@testing-library/dom": "^8.20.1",
     "@testing-library/jest-dom": "*",
-    "@testing-library/react": "^12.1.5",
-    "@testing-library/react-hooks": "*",
+    "@testing-library/react": "^13.0.0",
     "@testing-library/user-event": "*",
     "ace-builds": "^1.4.14",
     "antd": "4.10.3",
     "brace": "^0.11.1",
     "memoize-one": "^5.1.1",
-    "react": "^17.0.2",
+    "react": "^18.2.0",
     "react-ace": "^10.1.0",
-    "react-dom": "^17.0.2"
+    "react-dom": "^18.2.0"
   },
   "publishConfig": {
     "access": "public"
