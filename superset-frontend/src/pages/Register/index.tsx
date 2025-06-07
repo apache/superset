@@ -18,10 +18,18 @@
  */
 
 import { SupersetClient, styled, t, css } from '@superset-ui/core';
-import { Button, Card, Flex, Form, Input } from '@superset-ui/core/components';
+import {
+  Button,
+  Card,
+  Flex,
+  Form,
+  Input,
+  Result,
+} from '@superset-ui/core/components';
 import { useState } from 'react';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import ReactCAPTCHA from 'react-google-recaptcha';
+import { useParams } from 'react-router-dom';
 
 interface RegisterForm {
   username: string;
@@ -58,11 +66,35 @@ export default function Login() {
   const [form] = Form.useForm<RegisterForm>();
   const [loading, setLoading] = useState(false);
   const [captchaResponse, setCaptchaResponse] = useState<string | null>(null);
+  const { activationHash } = useParams<{ activationHash?: string }>();
 
   const bootstrapData = getBootstrapData();
 
   const authRecaptchaPublicKey: string =
     bootstrapData.common.conf.RECAPTCHA_PUBLIC_KEY || '';
+
+  if (activationHash) {
+    return (
+      <Flex
+        justify="center"
+        css={css`
+          width: 100%;
+        `}
+        data-test="register-form"
+      >
+        <Result
+          status="success"
+          title="Registration successful"
+          subTitle="Your account is activated. You can log in with your credentials."
+          extra={[
+            <Button type="default" href="/login/" data-test="login-button">
+              {t('Login')}
+            </Button>,
+          ]}
+        />
+      </Flex>
+    );
+  }
 
   const onFinish = (values: RegisterForm) => {
     setLoading(true);

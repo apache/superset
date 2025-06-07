@@ -150,7 +150,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.row_level_security.api import RLSRestApi
-        from superset.security.api import RoleRestAPI, SecurityRestApi
+        from superset.security.api import (
+            RoleRestAPI,
+            SecurityRestApi,
+            UserRegistrationsRestAPI,
+        )
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
@@ -186,6 +190,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
         from superset.views.user_info import UserInfoView
+        from superset.views.user_registrations import UserRegistrationsView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
         from superset.views.users_list import UsersListView
 
@@ -282,6 +287,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
+        )
+
+        appbuilder.add_view(
+            UserRegistrationsView,
+            "User Registrations",
+            label=__("User Registrations"),
+            category="Security",
+            category_label=__("Security"),
+            menu_cond=lambda: bool(appbuilder.app.config["AUTH_USER_REGISTRATION"]),
         )
 
         appbuilder.add_view(
@@ -389,6 +403,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Manage",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
         )
+        appbuilder.add_api(UserRegistrationsRestAPI)
         appbuilder.add_api(SecurityRestApi)
         #
         # Conditionally setup email views
