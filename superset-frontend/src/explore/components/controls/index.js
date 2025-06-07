@@ -54,6 +54,7 @@ import LayerConfigsControl from './LayerConfigsControl/LayerConfigsControl';
 import MapViewControl from './MapViewControl/MapViewControl';
 import ZoomConfigControl from './ZoomConfigControl/ZoomConfigControl';
 import NumberControl from './NumberControl';
+import TimeRangeControl from './TimeRangeControl';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -92,6 +93,7 @@ const controlMap = {
   TimeOffsetControl,
   ZoomConfigControl,
   NumberControl,
+  TimeRangeControl,
   ...sharedControlComponents,
 };
 export default controlMap;

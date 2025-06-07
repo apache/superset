@@ -29,6 +29,35 @@ export const TITLE_POSITION_OPTIONS: [string, string][] = [
   ['Left', t('Left')],
   ['Top', t('Top')],
 ];
+
+export const xAxisTitleMarginControl = {
+  name: 'x_axis_title_margin',
+  config: {
+    type: 'SelectControl',
+    freeForm: true,
+    clearable: true,
+    label: t('X Axis Title Margin'),
+    renderTrigger: true,
+    default: TITLE_MARGIN_OPTIONS[0],
+    choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),
+    description: t('Changing this control takes effect instantly'),
+  },
+};
+
+export const yAxisTitleMarginControl = {
+  name: 'y_axis_title_margin',
+  config: {
+    type: 'SelectControl',
+    freeForm: true,
+    clearable: true,
+    label: t('Y Axis Title Margin'),
+    renderTrigger: true,
+    default: TITLE_MARGIN_OPTIONS[1],
+    choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),
+    description: t('Changing this control takes effect instantly'),
+  },
+};
+
 export const titleControls: ControlPanelSectionConfig = {
   label: t('Chart Title'),
   tabOverride: 'customize',
@@ -47,21 +76,7 @@ export const titleControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [
-      {
-        name: 'x_axis_title_margin',
-        config: {
-          type: 'SelectControl',
-          freeForm: true,
-          clearable: true,
-          label: t('X Axis Title Margin'),
-          renderTrigger: true,
-          default: TITLE_MARGIN_OPTIONS[0],
-          choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),
-          description: t('Changing this control takes effect instantly'),
-        },
-      },
-    ],
+    [xAxisTitleMarginControl],
     [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
     [
       {
@@ -75,21 +90,7 @@ export const titleControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [
-      {
-        name: 'y_axis_title_margin',
-        config: {
-          type: 'SelectControl',
-          freeForm: true,
-          clearable: true,
-          label: t('Y Axis Title Margin'),
-          renderTrigger: true,
-          default: TITLE_MARGIN_OPTIONS[1],
-          choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),
-          description: t('Changing this control takes effect instantly'),
-        },
-      },
-    ],
+    [yAxisTitleMarginControl],
     [
       {
         name: 'y_axis_title_position',
