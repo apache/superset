@@ -74,6 +74,11 @@ class DatasetColumnsPutSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
+class DatasetMetricCurrencyPutSchema(Schema):
+    symbol = fields.String(validate=Length(1, 128))
+    symbolPosition = fields.String(validate=Length(1, 128))  # noqa: N815
+
+
 class DatasetMetricsPutSchema(Schema):
     id = fields.Integer()
     expression = fields.String(required=True)
@@ -82,7 +87,7 @@ class DatasetMetricsPutSchema(Schema):
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
-    currency = fields.String(allow_none=True, required=False, validate=Length(1, 128))
+    currency = fields.Nested(DatasetMetricCurrencyPutSchema, allow_none=True)
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)

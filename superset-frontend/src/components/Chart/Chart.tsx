@@ -18,16 +18,18 @@
  */
 import { PureComponent } from 'react';
 import {
+  ChartDataResponse,
+  ClientErrorObject,
+  Currency,
   ensureIsArray,
   FeatureFlag,
   isFeatureEnabled,
   logging,
+  Metric,
   QueryFormData,
+  SqlaFormData,
   styled,
   t,
-  SqlaFormData,
-  ClientErrorObject,
-  ChartDataResponse,
 } from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Loading from 'src/components/Loading';
@@ -54,6 +56,8 @@ export interface ChartProps {
     database?: {
       name: string;
     };
+    metrics: Metric[];
+    currencyFormats?: Record<string, Currency>;
   };
   dashboardId?: number;
   initialValues?: object;
@@ -178,6 +182,17 @@ class Chart extends PureComponent<ChartProps, {}> {
   renderStartTime: any;
 
   constructor(props: ChartProps) {
+    if (props.datasource?.metrics) {
+      // eslint-disable-next-line no-param-reassign
+      props.datasource.currencyFormats = Object.fromEntries(
+        props.datasource.metrics
+          .filter(
+            (metric): metric is Metric & { currency: Currency } =>
+              metric.currency !== undefined,
+          )
+          .map(metric => [metric.metric_name, metric.currency]),
+      ) as Record<string, Currency>;
+    }
     super(props);
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
