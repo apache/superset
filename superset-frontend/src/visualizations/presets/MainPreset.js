@@ -68,6 +68,7 @@ import {
   EchartsWaterfallChartPlugin,
   BigNumberPeriodOverPeriodChartPlugin,
   EchartsHeatmapChartPlugin,
+  EchartsTimelineChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -158,6 +159,7 @@ export default class MainPreset extends Preset {
         }),
         new EchartsHeatmapChartPlugin().configure({ key: VizType.Heatmap }),
         new EchartsHistogramChartPlugin().configure({ key: VizType.Histogram }),
+        new EchartsTimelineChartPlugin().configure({ key: VizType.Timeline }),
         new SelectFilterPlugin().configure({ key: FilterPlugins.Select }),
         new RangeFilterPlugin().configure({ key: FilterPlugins.Range }),
         new TimeFilterPlugin().configure({ key: FilterPlugins.Time }),
