@@ -72,10 +72,20 @@ export default function Field<V>({
   const extra = !compact && description ? description : undefined;
   const infoTooltip =
     compact && description ? (
-      <Tooltip id="field-descr" placement="right" title={description}>
-        <Icons.InfoCircleFilled
+      <Tooltip
+        css={css`
+          color: ${theme.colors.grayscale.base};
+        `}
+        id="field-descr"
+        placement="right"
+        title={description}
+      >
+        <Icons.InfoCircleOutlined
           iconSize="s"
-          style={{ marginLeft: theme.sizeUnit }}
+          css={css`
+            margin-left: ${theme.sizeUnit}px;
+          `}
+          iconColor={theme.colors.grayscale.base}
         />
       </Tooltip>
     ) : undefined;

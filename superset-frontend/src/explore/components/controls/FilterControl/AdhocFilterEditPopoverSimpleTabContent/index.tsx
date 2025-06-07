@@ -27,6 +27,7 @@ import {
   SupersetClient,
   useTheme,
   t,
+  css,
 } from '@superset-ui/core';
 import {
   Operators,
@@ -482,6 +483,9 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           }
         >
           <SelectWithLabel
+            css={css`
+              margin-top: ${theme.sizeUnit * 4}px;
+            `}
             labelText={labelText}
             options={suggestions}
             {...comparatorSelectProps}
@@ -494,7 +498,11 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             advancedDataTypesState.parsedAdvancedDataType
           }
         >
-          <div style={{ marginTop: '16px' }} />
+          <div
+            css={css`
+              margin-top: ${theme.sizeUnit * 4}px;
+            `}
+          />
           <Input
             data-test="adhoc-filter-simple-value"
             name="filter-value"
