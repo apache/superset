@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import dayjs from 'dayjs';
 // eslint-disable-next-line no-restricted-imports
@@ -34,10 +33,6 @@ import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDashboardComponents';
 import { User } from './types/bootstrapTypes';
 import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
-
-if (process.env.WEBPACK_MODE === 'development') {
-  setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
-}
 
 // eslint-disable-next-line import/no-mutable-exports
 const bootstrapData = getBootstrapData();
