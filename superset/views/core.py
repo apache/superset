@@ -820,6 +820,7 @@ class Superset(BaseSupersetView):
             "superset/spa.html",
             entry="spa",
             title=dashboard.dashboard_title,  # dashboard title is always visible
+            dashboard_description=dashboard.description,
             bootstrap_data=json.dumps(
                 {
                     "user": bootstrap_user_data(g.user, include_perms=True),
