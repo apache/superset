@@ -103,7 +103,7 @@ Here are some of the major database solutions that are supported:
 
 <p align="center">
   <img src="https://superset.apache.org/img/databases/redshift.png" alt="redshift" border="0" width="200"/>
-  <img src="https://superset.apache.org/img/databases/google-biquery.png" alt="google-biquery" border="0" width="200"/>
+  <img src="https://superset.apache.org/img/databases/google-biquery.png" alt="google-bigquery" border="0" width="200"/>
   <img src="https://superset.apache.org/img/databases/snowflake.png" alt="snowflake" border="0" width="200"/>
   <img src="https://superset.apache.org/img/databases/trino.png" alt="trino" border="0" width="150" />
   <img src="https://superset.apache.org/img/databases/presto.png" alt="presto" border="0" width="200"/>
@@ -136,7 +136,7 @@ Here are some of the major database solutions that are supported:
   <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/doris.png" alt="doris" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/oceanbase.svg" alt="oceanbase" border="0" width="220" />
-  <img src="https://superset.apache.org/img/databases/sap-hana.png" alt="oceanbase" border="0" width="220" />
+  <img src="https://superset.apache.org/img/databases/sap-hana.png" alt="sap-hana" border="0" width="220" />
   <img src="https://superset.apache.org/img/databases/denodo.png" alt="denodo" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/ydb.svg" alt="ydb" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/tdengine.png" alt="TDengine" border="0" width="200" />
@@ -154,7 +154,7 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 
 - Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset) using the **apache-superset** tag
 - [Join our community's Slack](http://bit.ly/join-superset-slack)
-  and please read our [Slack Community Guidelines](https://github.com/apache/superset/blob/master/CODE_OF_CONDUCT.md#slack-community-guidelines)
+  and Please read our [Slack Community Guidelines](https://github.com/apache/superset/blob/master/CODE_OF_CONDUCT.md#slack-community-guidelines)
 - [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org). To join, simply send an email to [dev-subscribe@superset.apache.org](mailto:dev-subscribe@superset.apache.org)
 - If you want to help troubleshoot GitHub Issues involving the numerous database drivers that Superset supports, please consider adding your name and the databases you have access to on the [Superset Database Familiarity Rolodex](https://docs.google.com/spreadsheets/d/1U1qxiLvOX0kBTUGME1AHHi6Ywel6ECF8xk_Qy-V9R8c/edit#gid=0)
 - Join Superset's Town Hall and [Operational Model](https://preset.io/blog/the-superset-operational-model-wants-you/) recurring meetings. Meeting info is available on the [Superset Community Calendar](https://superset.apache.org/community)
