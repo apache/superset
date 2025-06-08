@@ -23,7 +23,9 @@ repos:
     rev: v1.15.0
     hooks:
       - id: mypy
-        args: [--check-untyped-defs]
+        args:
+          - --check-untyped-defs
+          - --config-file=superset-backend/pyproject.toml
         additional_dependencies: [
             types-simplejson,
             types-python-dateutil,
@@ -38,6 +40,7 @@ repos:
             types-paramiko,
             types-Markdown,
           ]
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -62,31 +65,32 @@ repos:
         files: "superset-frontend"
   - repo: local
     hooks:
-    - id: eslint-frontend
-      name: eslint (frontend)
-      entry: ./scripts/eslint.sh
-      language: system
-      pass_filenames: true
-      files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
-    - id: eslint-docs
-      name: eslint (docs)
-      entry: bash -c 'cd docs && FILES=$(echo "$@" | sed "s|docs/||g") && yarn eslint --fix --ext .js,.jsx,.ts,.tsx --quiet $FILES'
-      language: system
-      pass_filenames: true
-      files: ^docs/.*\.(js|jsx|ts|tsx)$
-    - id: type-checking-frontend
-      name: Type-Checking (Frontend)
-      entry: bash -c './scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base'
-      language: system
-      files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
-      exclude: ^superset-frontend/cypress-base\/
-      require_serial: true
+      - id: eslint-frontend
+        name: eslint (frontend)
+        entry: ./scripts/eslint.sh
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
+      - id: eslint-docs
+        name: eslint (docs)
+        entry: bash -c 'cd docs && FILES=$(echo "$@" | sed "s|docs/||g") && yarn eslint --fix --ext .js,.jsx,.ts,.tsx --quiet $FILES'
+        language: system
+        pass_filenames: true
+        files: ^docs/.*\.(js|jsx|ts|tsx)$
+      - id: type-checking-frontend
+        name: Type-Checking (Frontend)
+        entry: bash -c './scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base'
+        language: system
+        files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
+        exclude: ^superset-frontend/cypress-base\/
+        require_serial: true
   # blacklist unsafe functions like make_url (see #19526)
   - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
     rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
     hooks:
       - id: blacklist
-        args: ["--blacklisted-names=make_url", "--ignore=tests/"]
+        args:
+          ["--blacklisted-names=make_url", "--ignore=superset-backend/tests/"]
   - repo: https://github.com/norwoodj/helm-docs
     rev: v1.14.2
     hooks:

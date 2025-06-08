@@ -57,7 +57,7 @@ jobs:
       - name: superset init
         if: steps.check.outputs.python
         run: |
-          pip install -e .
+          pip install -e superset-backend/.
           superset db upgrade
           superset load_test_users
       - name: superset load_examples
