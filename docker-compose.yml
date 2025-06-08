@@ -104,9 +104,6 @@ services:
       superset-init:
         condition: service_completed_successfully
     volumes: *superset-volumes
-    environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
   superset-websocket:
     container_name: superset_websocket
@@ -158,10 +155,6 @@ services:
         condition: service_started
     user: *superset-user
     volumes: *superset-volumes
-    environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
-      SUPERSET_LOAD_EXAMPLES: "${SUPERSET_LOAD_EXAMPLES:-yes}"
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
     healthcheck:
       disable: true
 
@@ -206,8 +199,6 @@ services:
         required: false
     environment:
       CELERYD_CONCURRENCY: 2
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
     restart: unless-stopped
     depends_on:
       superset-init:
@@ -239,9 +230,6 @@ services:
     volumes: *superset-volumes
     healthcheck:
       disable: true
-    environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
   superset-tests-worker:
     build:
@@ -262,7 +250,6 @@ services:
       REDIS_RESULTS_DB: 3
       REDIS_HOST: localhost
       CELERYD_CONCURRENCY: 8
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
     network_mode: host
     depends_on:
       superset-init:

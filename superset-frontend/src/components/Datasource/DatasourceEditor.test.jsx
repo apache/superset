@@ -46,13 +46,14 @@ export const props = {
     state: 'This is a tooltip for state',
   },
 };
-const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata_by_name/*';
+export const DATASOURCE_ENDPOINT =
+  'glob:*/datasource/external_metadata_by_name/*';
 const routeProps = {
   history: {},
   location: {},
   match: {},
 };
-const asyncRender = props =>
+export const asyncRender = props =>
   waitFor(() =>
     render(<DatasourceEditor {...props} {...routeProps} />, {
       useRedux: true,
