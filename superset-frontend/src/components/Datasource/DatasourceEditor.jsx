@@ -60,13 +60,12 @@ import {
   resetDatabaseState,
 } from 'src/database/actions';
 import { connect } from 'react-redux';
+import Mousetrap from 'mousetrap';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
 import { fetchSyncedColumns, updateColumns } from './utils';
 import FilterableTable from '../FilterableTable';
-import SqlEditor from 'src/SqlLab/components/SqlEditor';
-import Mousetrap from 'mousetrap';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -103,10 +102,6 @@ const StyledTableTabs = styled(Tabs)`
   .ant-tabs-content-holder {
     overflow: visible;
   }
-`;
-
-const ButtonWrapper = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const StyledBadge = styled(Badge)`
@@ -601,7 +596,6 @@ class DatasourceEditor extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      isFormattingSql: false,
       datasource: {
         ...props.datasource,
         owners: props.datasource.owners.map(owner => ({
@@ -733,7 +727,6 @@ class DatasourceEditor extends PureComponent {
       return;
     }
 
-    this.setState({ isFormattingSql: true });
     try {
       const response = await this.props.formatQuery(datasource.sql);
       this.onDatasourcePropChange('sql', response.json.result);
@@ -746,8 +739,6 @@ class DatasourceEditor extends PureComponent {
           statusText ||
           t('An error occurred while formatting SQL'),
       );
-    } finally {
-      this.setState({ isFormattingSql: false });
     }
   }
 
@@ -780,7 +771,6 @@ class DatasourceEditor extends PureComponent {
       return;
     }
 
-    this.setState({ isFormattingSql: true });
     try {
       const response = await SupersetClient.post({
         endpoint: '/api/v1/sql/format',
@@ -797,8 +787,6 @@ class DatasourceEditor extends PureComponent {
           statusText ||
           t('An error occurred while formatting SQL'),
       );
-    } finally {
-      this.setState({ isFormattingSql: false });
     }
   }
 
@@ -1292,7 +1280,7 @@ class DatasourceEditor extends PureComponent {
                     }
                     additionalControl={
                       <div
-                        css={theme => css`
+                        css={css`
                           position: absolute;
                           right: 0;
                           top: 0;
