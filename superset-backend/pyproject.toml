@@ -212,6 +212,11 @@ development = [
 homepage = "https://superset.apache.org/"
 documentation = "https://superset.apache.org/docs/intro"
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.isort]
 combine_as_imports = true
