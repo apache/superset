@@ -358,10 +358,10 @@ OAUTH_PROVIDERS = [
                 'scope': 'openid profile roles',  # Scopes from your configuration
                 'code_challenge_method': 'S256'
             },
-            'access_token_url': 'https://myaccount.pesapal.com/pesapalsso/v2/connect/token',
-            'authorize_url': 'https://myaccount.pesapal.com/pesapalsso/v2/connect/authorize',
-            'jwks_uri': 'https://myaccount.pesapal.com/pesapalsso/.well-known/jwks',
-            'userinfo_endpoint': 'https://myaccount.pesapal.com/pesapalsso/v2/connect/userinfo',
+            'access_token_url': 'https://myaccount.pesapal.com/v2/connect/token',
+            'authorize_url': 'https://myaccount.pesapal.com/v2/connect/authorize',
+            'jwks_uri': 'https://myaccount.pesapal.com/.well-known/jwks',
+            'userinfo_endpoint': 'https://myaccount.pesapal.com/v2/connect/userinfo',
             'access_token_method': 'POST',
             'token_endpoint_auth_method': 'client_secret_post'
 
