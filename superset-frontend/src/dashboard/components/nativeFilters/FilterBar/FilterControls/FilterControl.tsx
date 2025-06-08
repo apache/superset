@@ -26,6 +26,7 @@ import { styled, SupersetTheme, truncationCSS } from '@superset-ui/core';
 import { FormItem as StyledFormItem, Form } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
+// import DateRangePicker from 'src/components/DateRangePicker/DateRangePicker';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterCard } from '../../FilterCard';
@@ -346,6 +347,11 @@ const FilterControl = ({
           overflow={overflow}
           validateStatus={validateStatus}
         />
+        {/* <DateRangePicker
+          startDate={filter.dataMask?.filterState?.value?.startDate || null}
+          endDate={filter.dataMask?.filterState?.value?.endDate || null}
+          onChange={(startDate, endDate) => () => {}}
+        /> */}
       </InPortal>
       <FilterControlContainer
         layout={
