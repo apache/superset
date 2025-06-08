@@ -329,6 +329,7 @@ const config = {
       fs: false,
       vm: require.resolve('vm-browserify'),
       path: false,
+      stream: require.resolve('stream-browserify'),
       ...(isDevMode ? { buffer: require.resolve('buffer/') } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
     },
   },
