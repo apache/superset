@@ -63,9 +63,9 @@ export const asyncRender = props =>
   );
 
 describe('DatasourceEditor', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
-    asyncRender({
+    await asyncRender({
       ...props,
       datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
     });
@@ -196,9 +196,9 @@ describe('DatasourceEditor Source Tab', () => {
     isFeatureEnabled.mockImplementation(() => false);
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
-    asyncRender({
+    await asyncRender({
       ...props,
       datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
     });
