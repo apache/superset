@@ -27,6 +27,7 @@ from typing import Any, Callable, cast
 
 import click
 import semver
+from jinja2 import Environment, FileSystemLoader
 from superset_core.extensions.types import Manifest, Metadata
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -351,6 +352,66 @@ def dev(ctx: click.Context) -> None:
         observer.stop()
 
     observer.join()
+
+
+@app.command()
+def init() -> None:
+    name = click.prompt("Extension name (alphanumeric only)", type=str)
+    if not re.match(r"^[a-zA-Z0-9_]+$", name):
+        click.secho(
+            "❌ Name must be alphanumeric (letters, digits, underscore).", fg="red"
+        )
+        sys.exit(1)
+
+    version = click.prompt("Initial version", default="0.1.0")
+    license = click.prompt("License", default="Apache-2.0")
+    include_frontend = click.confirm("Include frontend?", default=True)
+    include_backend = click.confirm("Include backend?", default=True)
+
+    target_dir = Path.cwd() / name
+    if target_dir.exists():
+        click.secho(f"❌ Directory {target_dir} already exists.", fg="red")
+        sys.exit(1)
+
+    # Set up Jinja environment
+    templates_dir = Path(__file__).parent / "templates"
+    env = Environment(loader=FileSystemLoader(templates_dir))  # noqa: S701
+    ctx = {
+        "name": name,
+        "include_frontend": include_frontend,
+        "include_backend": include_backend,
+        "license": license,
+        "version": version,
+    }
+
+    # Create base directory
+    target_dir.mkdir()
+    extension_json = env.get_template("extension.json.j2").render(ctx)
+    (target_dir / "extension.json").write_text(extension_json)
+    click.secho("✅ Created extension.json", fg="green")
+
+    # Copy frontend template
+    if include_frontend:
+        frontend_dir = target_dir / "frontend"
+        frontend_dir.mkdir()
+
+        # package.json
+        package_json = env.get_template("frontend/package.json.j2").render(ctx)
+        (frontend_dir / "package.json").write_text(package_json)
+        click.secho("✅ Created frontend folder structure", fg="green")
+
+    # Copy backend template
+    if include_backend:
+        backend_dir = target_dir / "backend"
+        backend_dir.mkdir()
+
+        # pyproject.toml
+        pyproject_toml = env.get_template("backend/pyproject.toml.j2").render(ctx)
+        (backend_dir / "pyproject.toml").write_text(pyproject_toml)
+
+        click.secho("✅ Created backend folder structure", fg="green")
+
+    click.secho(f"🎉 Extension {name} initialized at {target_dir}", fg="cyan")
 
 
 if __name__ == "__main__":
