@@ -353,7 +353,7 @@ OAUTH_PROVIDERS = [
             'client_id': '09beb220-4f0a-4045-ab35-c04e2440a2f8',
             'client_secret': '7ffd19f9-c389-4968-9b1e-2080f5b50251',
             # Replace with your actual client secret
-            'server_metadata_url': 'https://myaccount.pesapal.com/pesapalsso/.well-known/openid-configuration',
+            'server_metadata_url': 'https://myaccount.pesapal.com/.well-known/openid-configuration',
             'client_kwargs': {
                 'scope': 'openid profile roles',  # Scopes from your configuration
                 'code_challenge_method': 'S256'
