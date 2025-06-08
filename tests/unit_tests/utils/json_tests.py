@@ -270,3 +270,9 @@ def test_format_timedelta():
         json.format_timedelta(timedelta(0) - timedelta(days=16, hours=4, minutes=3))
         == "-16 days, 4:03:00"
     )
+
+
+def test_unicode_characters():
+    assert json.dumps("Hello, world!") == '"Hello, world!"'
+    assert json.dumps("Привет, мир!") == '"Привет, мир!"'
+    assert json.dumps("你好，世界！") == '"你好，世界！"'
