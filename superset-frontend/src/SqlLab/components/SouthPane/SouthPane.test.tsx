@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor, within } from 'spec/helpers/testing-library';
+import { render, waitFor } from 'spec/helpers/testing-library';
 import SouthPane from 'src/SqlLab/components/SouthPane';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
@@ -138,14 +138,15 @@ test('should render empty result state when latestQuery is empty', () => {
 });
 
 test('should render tabs for table metadata view', () => {
-  const { getAllByRole } = render(<SouthPane {...mockedProps} />, {
+  const { container } = render(<SouthPane {...mockedProps} />, {
     useRedux: true,
     initialState: mockState,
   });
 
-  const tabs = getAllByRole('tab').filter(
+  const tabs = Array.from(container.querySelectorAll('[role="tab"]')).filter(
     tab => !tab.classList.contains('ant-tabs-tab-remove'),
   );
+
   expect(tabs).toHaveLength(mockState.sqlLab.tables.length + 2);
   expect(tabs[0]).toHaveTextContent('Results');
   expect(tabs[1]).toHaveTextContent('Query history');
@@ -153,30 +154,33 @@ test('should render tabs for table metadata view', () => {
     expect(tabs[index + 2]).toHaveTextContent(`${schema}.${name}`);
   });
 });
-
 test('should remove tab', async () => {
-  const { getAllByRole } = await render(<SouthPane {...mockedProps} />, {
+  const { container } = await render(<SouthPane {...mockedProps} />, {
     useRedux: true,
     initialState: mockState,
   });
 
-  const tabs = getAllByRole('tab').filter(
+  let tabs = Array.from(container.querySelectorAll('[role="tab"]')).filter(
     tab => !tab.classList.contains('ant-tabs-tab-remove'),
   );
   const totalTabs = mockState.sqlLab.tables.length + 2;
   expect(tabs).toHaveLength(totalTabs);
-  const removeButton = within(tabs[2].parentElement as HTMLElement).getByRole(
-    'tab',
-    {
-      name: /remove/,
-    },
+
+  console.log(tabs[2].parentElement?.innerHTML); // debug
+
+  const removeButton = tabs[2].parentElement?.querySelector(
+    'button[aria-label="remove"]',
   );
-  userEvent.click(removeButton);
-  await waitFor(() =>
-    expect(
-      getAllByRole('tab').filter(
-        tab => !tab.classList.contains('ant-tabs-tab-remove'),
-      ),
-    ).toHaveLength(totalTabs - 1),
-  );
+  expect(removeButton).toBeTruthy();
+
+  if (removeButton) {
+    userEvent.click(removeButton);
+  }
+
+  await waitFor(() => {
+    tabs = Array.from(container.querySelectorAll('[role="tab"]')).filter(
+      tab => !tab.classList.contains('ant-tabs-tab-remove'),
+    );
+    expect(tabs).toHaveLength(totalTabs - 1);
+  });
 });
