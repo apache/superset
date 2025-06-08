@@ -364,7 +364,6 @@ OAUTH_PROVIDERS = [
             'userinfo_endpoint': 'https://myaccount.pesapal.com/v2/connect/userinfo',
             'access_token_method': 'POST',
             'token_endpoint_auth_method': 'client_secret_post'
-
         }
     }
 ]
@@ -387,7 +386,7 @@ AUTH_ROLES_MAPPING = {
 "superset_admins": ["Admin"]
 }
 # Will allow user self registration
-AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION = False
 
 # The default user self registration role
 #AUTH_USER_REGISTRATION_ROLE = "Public"
