@@ -154,7 +154,10 @@ const ExtraOptions = ({
                     type="text"
                     name="force_ctas_schema"
                     placeholder={t('Create or select schema...')}
-                    onChange={onInputChange}
+                    onChange={(e) => {
+                      // Allow commas in the input
+                      onInputChange(e);
+                    }}
                     value={db?.force_ctas_schema || ''}
                   />
                 </div>
@@ -473,7 +476,10 @@ const ExtraOptions = ({
                   ',',
                 )}
                 placeholder="schema1,schema2"
-                onChange={onExtraInputChange}
+                onChange={(e) => {
+                  // Allow commas in the input
+                  onExtraInputChange(e);
+                }}
               />
             </div>
             <div className="helper">
