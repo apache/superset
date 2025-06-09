@@ -159,7 +159,7 @@ function DashboardCard({
         }
         url={bulkSelectEnabled ? undefined : dashboard.url}
         linkComponent={Link}
-        imgURL={dashboard.thumbnail_url}
+        imgURL={thumbnailUrl}
         imgFallbackURL={assetUrl(
           '/static/assets/images/dashboard-card-fallback.svg',
         )}
