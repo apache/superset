@@ -34,6 +34,7 @@ import {
   NO_TIME_RANGE,
   QueryFormColumn,
   VizType,
+  Currency,
 } from '@superset-ui/core';
 import {
   getFormDataFromControls,
@@ -97,6 +98,14 @@ export const hydrateExplore =
     }
 
     const initialDatasource = dataset;
+    initialDatasource.currency_formats = initialDatasource.metrics
+      ? Object.fromEntries(
+          initialDatasource.metrics.map(
+            metric =>
+              [metric.metric_name, metric.currency] as [string, Currency],
+          ),
+        )
+      : {};
 
     const initialExploreState = {
       form_data: initialFormData,

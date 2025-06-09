@@ -28,7 +28,6 @@ import logging
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, Integer, JSON, String
 from sqlalchemy.ext.declarative import declarative_base
-import sqlalchemy as sa  # noqa: E402
 
 from superset import db
 from superset.migrations.shared.utils import paginated_update
@@ -54,9 +53,7 @@ class SqlMetric(Base):
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
-    currency_configs = session.query(SqlMetric).filter(
-        SqlMetric.currency.isnot(None)
-    )
+    currency_configs = session.query(SqlMetric).filter(SqlMetric.currency.isnot(None))
     for metric in paginated_update(
         currency_configs,
         lambda current, total: logger.info((f"Upgrading {current}/{total} metrics")),
@@ -82,9 +79,7 @@ def downgrade():
     """
     bind = op.get_bind()
     session = db.Session(bind=bind)
-    currency_configs = session.query(SqlMetric).filter(
-        SqlMetric.currency.isnot(None)
-    )
+    currency_configs = session.query(SqlMetric).filter(SqlMetric.currency.isnot(None))
     for metric in paginated_update(
         currency_configs,
         lambda current, total: logger.info((f"Downgrading {current}/{total} metrics")),
