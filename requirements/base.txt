@@ -104,6 +104,7 @@ flask==2.3.3
     #   flask-babel
     #   flask-caching
     #   flask-compress
+    #   flask-cors
     #   flask-jwt-extended
     #   flask-limiter
     #   flask-login
