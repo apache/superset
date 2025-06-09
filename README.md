@@ -103,7 +103,7 @@ Here are some of the major database solutions that are supported:
 
 <p align="center">
   <img src="https://superset.apache.org/img/databases/redshift.png" alt="redshift" border="0" width="200"/>
-  <img src="https://superset.apache.org/img/databases/google-biquery.png" alt="google-biquery" border="0" width="200"/>
+  <img src="https://superset.apache.org/img/databases/google-biquery.png" alt="google-bigquery" border="0" width="200"/>
   <img src="https://superset.apache.org/img/databases/snowflake.png" alt="snowflake" border="0" width="200"/>
   <img src="https://superset.apache.org/img/databases/trino.png" alt="trino" border="0" width="150" />
   <img src="https://superset.apache.org/img/databases/presto.png" alt="presto" border="0" width="200"/>
@@ -136,7 +136,7 @@ Here are some of the major database solutions that are supported:
   <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/doris.png" alt="doris" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/oceanbase.svg" alt="oceanbase" border="0" width="220" />
-  <img src="https://superset.apache.org/img/databases/sap-hana.png" alt="oceanbase" border="0" width="220" />
+  <img src="https://superset.apache.org/img/databases/sap-hana.png" alt="sap-hana" border="0" width="220" />
   <img src="https://superset.apache.org/img/databases/denodo.png" alt="denodo" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/ydb.svg" alt="ydb" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/tdengine.png" alt="TDengine" border="0" width="200" />
