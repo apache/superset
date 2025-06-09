@@ -1808,7 +1808,8 @@ GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
 # Audience for the Superset guest token used in embedded mode.
 # Can be a string or a callable. Defaults to WEBDRIVER_BASEURL.
-# When generating the guest token, ensure the payload's `aud` matches GUEST_TOKEN_JWT_AUDIENCE.
+# When generating the guest token, ensure the 
+# payload's `aud` matches GUEST_TOKEN_JWT_AUDIENCE.
 GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 
 # A callable that can be supplied to do extra validation of guest token configuration
