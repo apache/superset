@@ -65,12 +65,23 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
         result_type = result_type or ChartDataResultType.FULL
         result_format = result_format or ChartDataResultFormat.JSON
+
+        # The server pagination var is extracted from form data as the
+        # row limit for server pagination is more
+        # This particular flag server_pagination only exists for table viz type
+        server_pagination = (
+            bool(form_data.get("server_pagination")) if form_data else False
+        )
+
         queries_ = [
             self._process_query_object(
                 datasource_model_instance,
                 form_data,
                 self._query_object_factory.create(
-                    result_type, datasource=datasource, **query_obj
+                    result_type,
+                    datasource=datasource,
+                    server_pagination=server_pagination,
+                    **query_obj,
                 ),
             )
             for query_obj in queries

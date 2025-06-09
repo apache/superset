@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.db_engine_specs.base import BaseEngineSpec
 
 
 class TeradataEngineSpec(BaseEngineSpec):
@@ -23,11 +23,7 @@ class TeradataEngineSpec(BaseEngineSpec):
 
     engine = "teradatasql"
     engine_name = "Teradata"
-    limit_method = LimitMethod.WRAP_SQL
     max_column_name_length = 30  # since 14.10 this is 128
-    allow_limit_clause = False
-    select_keywords = {"SELECT", "SEL"}
-    top_keywords = {"TOP", "SAMPLE"}
 
     _time_grain_expressions = {
         None: "{col}",

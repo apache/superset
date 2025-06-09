@@ -24,9 +24,11 @@ from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
 from deprecation import deprecated
-from flask import Flask, redirect
+from flask import abort, Flask, redirect, request, session, url_for
 from flask_appbuilder import expose, IndexView
-from flask_babel import gettext as __
+from flask_appbuilder.api import safe
+from flask_appbuilder.utils.base import get_safe_redirect
+from flask_babel import gettext as __, refresh
 from flask_compress import Compress
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -86,8 +88,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         wtforms_json.init()
 
-        if not os.path.exists(self.config["DATA_DIR"]):
-            os.makedirs(self.config["DATA_DIR"])
+        os.makedirs(self.config["DATA_DIR"], exist_ok=True)
 
     def post_init(self) -> None:
         """
@@ -173,8 +174,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
+        from superset.views.groups import GroupsListView
         from superset.views.log.api import LogRestApi
-        from superset.views.log.views import LogModelView
+        from superset.views.logs import ActionLogView
         from superset.views.roles import RolesListView
         from superset.views.sql_lab.views import (
             SavedQueryView,
@@ -183,7 +185,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
+        from superset.views.user_info import UserInfoView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
+        from superset.views.users_list import UsersListView
 
         set_app_error_handlers(self.superset_app)
 
@@ -222,9 +226,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
+        appbuilder.add_api(LogRestApi)
         #
         # Setup regular views
         #
+        app_root = appbuilder.app.config["APPLICATION_ROOT"]
+        if app_root.endswith("/"):
+            app_root = app_root.rstrip("/")
+
         appbuilder.add_link(
             "Home",
             label=__("Home"),
@@ -260,7 +269,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Datasets",
             label=__("Datasets"),
-            href="/tablemodelview/list/",
+            href=f"{app_root}/tablemodelview/list/",
             icon="fa-table",
             category="",
             category_icon="",
@@ -273,6 +282,30 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
+        )
+
+        appbuilder.add_view(
+            UsersListView,
+            "List Users",
+            label=__("List Users"),
+            category="Security",
+            category_label=__("Security"),
+        )
+
+        appbuilder.add_view(
+            ActionLogView,
+            "Action Logs",
+            label=__("Action Logs"),
+            category="Security",
+            category_label=__("Security"),
+        )
+
+        appbuilder.add_view(
+            GroupsListView,
+            "List Groups",
+            label=__("List Groups"),
+            category="Security",
+            category_label=__("Security"),
         )
 
         appbuilder.add_view(
@@ -316,6 +349,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
         appbuilder.add_view_no_menu(RoleRestAPI)
+        appbuilder.add_view_no_menu(UserInfoView)
 
         #
         # Add links
@@ -323,7 +357,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "SQL Editor",
             label=__("SQL Lab"),
-            href="/sqllab/",
+            href=f"{app_root}/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
@@ -332,7 +366,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Saved Queries",
             label=__("Saved Queries"),
-            href="/savedqueryview/list/",
+            href=f"{app_root}/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
             category_label=__("SQL"),
@@ -340,7 +374,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Query Search",
             label=__("Query History"),
-            href="/sqllab/history/",
+            href=f"{app_root}/sqllab/history/",
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
@@ -354,19 +388,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="",
             category="Manage",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
-        )
-        appbuilder.add_api(LogRestApi)
-        appbuilder.add_view(
-            LogModelView,
-            "Action Log",
-            label=__("Action Log"),
-            category="Security",
-            category_label=__("Security"),
-            icon="fa-list-ol",
-            menu_cond=lambda: (
-                self.config["FAB_ADD_SECURITY_VIEWS"]
-                and self.config["SUPERSET_LOG_VIEW"]
-            ),
         )
         appbuilder.add_api(SecurityRestApi)
         #
@@ -387,7 +408,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             AnnotationLayerView,
             "Annotation Layers",
             label=__("Annotation Layers"),
-            href="/annotationlayer/list/",
+            href="AnnotationLayerView.list",
             icon="fa-comment",
             category_icon="",
             category="Manage",
@@ -397,7 +418,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             RowLevelSecurityView,
             "Row Level Security",
-            href="/rowlevelsecurity/list/",
+            href="RowLevelSecurityView.list",
             label=__("Row Level Security"),
             category="Security",
             category_label=__("Security"),
@@ -703,4 +724,25 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 class SupersetIndexView(IndexView):
     @expose("/")
     def index(self) -> FlaskResponse:
-        return redirect("/superset/welcome/")
+        return redirect(url_for("Superset.welcome"))
+
+    @expose("/lang/<string:locale>")
+    @safe
+    def patch_flask_locale(self, locale: str) -> FlaskResponse:
+        """
+        Change user's locale and redirect back to the previous page.
+
+        Overrides FAB's babel.views.LocaleView so we can use the request
+        Referrer as the redirect target, in case our previous page was actually
+        served by the frontend (and thus not added to the session's page_history
+        stack).
+        """
+        if locale not in self.appbuilder.bm.languages:
+            abort(404, description="Locale not supported.")
+        session["locale"] = locale
+        refresh()
+        self.update_redirect()
+
+        if redirect_to := request.headers.get("Referer"):
+            return redirect(get_safe_redirect(redirect_to))
+        return redirect(self.get_redirect())

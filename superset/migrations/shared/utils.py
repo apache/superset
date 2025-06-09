@@ -22,7 +22,17 @@ from typing import Any, Callable, Optional, Union
 from uuid import uuid4
 
 from alembic import op
-from sqlalchemy import Column, inspect
+from sqlalchemy import (
+    Column,
+    inspect,
+    JSON,
+    MetaData,
+    select,
+    String,
+    Table,
+    text,
+    update,
+)
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect  # noqa: E402
@@ -172,11 +182,7 @@ def paginated_update(
 
 
 def try_load_json(data: Optional[str]) -> dict[str, Any]:
-    try:
-        return data and json.loads(data) or {}
-    except json.JSONDecodeError:
-        print(f"Failed to parse: {data}")
-        return {}
+    return data and json.loads(data) or {}
 
 
 def has_table(table_name: str) -> bool:
@@ -226,24 +232,25 @@ def drop_fks_for_table(
             op.drop_constraint(fk_name, table_name, type_="foreignkey")
 
 
-def create_table(table_name: str, *columns: SchemaItem) -> None:
+def create_table(table_name: str, *columns: SchemaItem, **kwargs: Any) -> None:
     """
     Creates a database table with the specified name and columns.
 
     This function checks if a table with the given name already exists in the database.
     If the table already exists, it logs an informational.
-    Otherwise, it proceeds to create a new table using the provided name and schema columns.
+    Otherwise, it proceeds to create a new table using the provided name
+    and schema columns.
 
     :param table_name: The name of the table to be created.
-    :param columns: A variable number of arguments representing the schema just like when calling alembic's method create_table()
-    """  # noqa: E501
-
+    :param columns: A variable number of arguments representing the schema
+    just like when calling alembic's method create_table()
+    """
     if has_table(table_name=table_name):
         logger.info(f"Table {LRED}{table_name}{RESET} already exists. Skipping...")
         return
 
     logger.info(f"Creating table {GREEN}{table_name}{RESET}...")
-    op.create_table(table_name, *columns)
+    op.create_table(table_name, *columns, **kwargs)
     logger.info(f"Table {GREEN}{table_name}{RESET} created.")
 
 
@@ -306,7 +313,7 @@ def add_columns(table_name: str, *columns: Column) -> None:
     """
     Adds new columns to an existing database table.
 
-    If a column already exist, it logs an informational message and skips the adding process.
+    If a column already exist, or the table doesn't exist, it logs an informational message and skips the adding process.
     Otherwise, it proceeds to add the new column to the table.
 
     The operation is performed using Alembic's batch_alter_table.
@@ -336,7 +343,7 @@ def drop_columns(table_name: str, *columns: str) -> None:
     """
     Drops specified columns from an existing database table.
 
-    If a column does not exist, it logs an informational message and skips the dropping process.
+    If a column or table does not exist, it logs an informational message and skips the dropping process.
     Otherwise, it proceeds to remove the column from the table.
 
     The operation is performed using Alembic's batch_alter_table.
@@ -471,3 +478,135 @@ def create_fks_for_table(
             remote_cols,
             ondelete=ondelete,
         )
+
+
+def cast_text_column_to_json(
+    table: str,
+    column: str,
+    pk: str = "id",
+    nullable: bool = True,
+    suffix: str = "_tmp",
+) -> None:
+    """
+    Cast a text column to JSON.
+
+    SQLAlchemy now has a nice abstraction for JSON columns, even if the underlying
+    database doesn't support the type natively. We should always use it when storing
+    JSON payloads.
+
+    :param table: The name of the table.
+    :param column: The name of the column to be cast.
+    :param pk: The name of the primary key column.
+    :param nullable: Whether the new column should be nullable.
+    :param suffix: The suffix to be added to the temporary column name.
+    """
+    conn = op.get_bind()
+
+    if isinstance(conn.dialect, PGDialect):
+        conn.execute(
+            text(
+                f"""
+CREATE OR REPLACE FUNCTION safe_to_jsonb(input text)
+  RETURNS jsonb
+  LANGUAGE plpgsql
+  IMMUTABLE
+AS $$
+BEGIN
+  RETURN input::jsonb;
+EXCEPTION WHEN invalid_text_representation THEN
+  RETURN NULL;
+END;
+$$;
+
+ALTER TABLE {table}
+ALTER COLUMN {column} TYPE jsonb
+USING safe_to_jsonb({column});
+                """
+            )
+        )
+        return
+
+    tmp_column = column + suffix
+    op.add_column(
+        table,
+        Column(tmp_column, JSON(), nullable=nullable),
+    )
+
+    meta = MetaData()
+    t = Table(table, meta, autoload_with=conn)
+    stmt_select = select(t.c[pk], t.c[column]).where(t.c[column].is_not(None))
+
+    for row_pk, value in conn.execute(stmt_select):
+        try:
+            json.loads(value)
+        except json.JSONDecodeError:
+            logger.warning(
+                f"Invalid JSON value in column {column} for {pk}={row_pk}: {value}"
+            )
+            continue
+        stmt_update = update(t).where(t.c[pk] == row_pk).values({tmp_column: value})
+        conn.execute(stmt_update)
+
+    op.drop_column(table, column)
+    op.alter_column(table, tmp_column, existing_type=JSON(), new_column_name=column)
+
+    return
+
+
+def cast_json_column_to_text(
+    table: str,
+    column: str,
+    pk: str = "id",
+    nullable: bool = True,
+    suffix: str = "_tmp",
+    length: int = 128,
+) -> None:
+    """
+    Cast a JSON column back to text.
+
+    :param table: The name of the table.
+    :param column: The name of the column to be cast.
+    :param pk: The name of the primary key column.
+    :param nullable: Whether the new column should be nullable.
+    :param suffix: The suffix to be added to the temporary column name.
+    :param length: The length of the text column.
+    """
+    conn = op.get_bind()
+
+    if isinstance(conn.dialect, PGDialect):
+        conn.execute(
+            text(
+                f"""
+                ALTER TABLE {table}
+                ALTER COLUMN {column} TYPE text
+                USING {column}::text
+                """
+            )
+        )
+        return
+
+    tmp_column = column + suffix
+    op.add_column(
+        table,
+        Column(tmp_column, String(length=length), nullable=nullable),
+    )
+
+    meta = MetaData()
+    t = Table(table, meta, autoload_with=conn)
+    stmt_select = select(t.c[pk], t.c[column]).where(t.c[column].is_not(None))
+
+    for row_pk, value in conn.execute(stmt_select):
+        stmt_update = (
+            update(t).where(t.c[pk] == row_pk).values({tmp_column: json.dumps(value)})
+        )
+        conn.execute(stmt_update)
+
+    op.drop_column(table, column)
+    op.alter_column(
+        table,
+        tmp_column,
+        existing_type=String(length=length),
+        new_column_name=column,
+    )
+
+    return

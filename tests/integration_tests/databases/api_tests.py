@@ -35,6 +35,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import func
 
 from superset import db, security_manager
+from superset.commands.database.exceptions import MissingOAuth2TokenError
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe  # noqa: F401
@@ -1336,7 +1337,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_response_postgres = {
             "errors": [dataclasses.asdict(superset_error_postgres)]
         }
-        assert response.status_code == 500
+        assert response.status_code == 400
         if example_db.backend == "mysql":
             assert response_data == expected_response_mysql
         else:
@@ -1388,6 +1389,32 @@ class TestDatabaseApi(SupersetTestCase):
         }
         assert rv.status_code == 422
         assert response == expected_response
+        # Cleanup
+        model = db.session.query(Database).get(test_database.id)
+        db.session.delete(model)
+        db.session.commit()
+
+    @mock.patch(
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run",
+    )
+    def test_update_database_missing_oauth2_token(self, mock_sync_perms):
+        """
+        Database API: Test update DB connection that does not have
+        an OAuth2 token yet does not raise.
+        """
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-oauth-database", example_db.sqlalchemy_uri_decrypted
+        )
+        mock_sync_perms.side_effect = MissingOAuth2TokenError()
+        self.login(ADMIN_USERNAME)
+        database_data = {
+            "database_name": "test-database-updated",
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
+        }
+        uri = f"api/v1/database/{test_database.id}"
+        rv = self.client.put(uri, json=database_data)
+        assert rv.status_code == 200
         # Cleanup
         model = db.session.query(Database).get(test_database.id)
         db.session.delete(model)
@@ -2423,7 +2450,7 @@ class TestDatabaseApi(SupersetTestCase):
         url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
 
-        assert rv.status_code == 500
+        assert rv.status_code == 400
         assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"errors": [dataclasses.asdict(superset_error)]}

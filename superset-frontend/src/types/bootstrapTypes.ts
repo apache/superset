@@ -39,6 +39,7 @@ export type User = {
   lastName: string;
   userId?: number; // optional because guest user doesn't have a user id
   username: string;
+  loginCount?: number;
 };
 
 export type UserRoles = Record<string, [string, string][]>;
@@ -143,6 +144,8 @@ export interface MenuData {
 }
 
 export interface CommonBootstrapData {
+  application_root: string;
+  static_assets_prefix: string;
   flash_messages: FlashMessage[];
   conf: JsonObject;
   locale: Locale;

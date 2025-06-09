@@ -26,7 +26,14 @@ import {
   getStandardizedControls,
   temporalColumnMixin,
 } from '@superset-ui/chart-controls';
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  subtitleFontSize,
+  subtitleControl,
+  showMetricNameControl,
+  metricNameFontSizeWithVisibility,
+} from '../sharedControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -134,6 +141,10 @@ const config: ControlPanelConfig = {
         ['color_picker', null],
         [headerFontSize],
         [subheaderFontSize],
+        [subtitleControl],
+        [subtitleFontSize],
+        [showMetricNameControl],
+        [metricNameFontSizeWithVisibility],
         ['y_axis_format'],
         ['currency_format'],
         [
