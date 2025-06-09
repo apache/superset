@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import copy
 import re
 import time
 from typing import Any
@@ -30,7 +31,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context import QueryContext
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
-from superset.connectors.sqla.models import SqlMetric
+from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.superset_typing import AdhocColumn
@@ -47,6 +48,7 @@ from tests.integration_tests.conftest import (
     only_sqlite,
     with_feature_flags,
 )
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -171,16 +173,27 @@ class TestQueryContext(SupersetTestCase):
         assert cache_key_original != cache_key_new
 
     def test_query_cache_key_changes_when_metric_is_updated(self):
+        """
+        Test that the query cache key changes when a metric is updated.
+        """
+        self.login(ADMIN_USERNAME)
         payload = get_query_context("birth_names")
 
-        # make temporary change and revert it to refresh the changed_on property
-        datasource = DatasourceDAO.get_datasource(
-            datasource_type=DatasourceType(payload["datasource"]["type"]),
-            datasource_id=payload["datasource"]["id"],
-        )
-
-        datasource.metrics.append(SqlMetric(metric_name="foo", expression="select 1;"))
+        dataset = DatasetDAO.find_by_id(payload["datasource"]["id"])
+        dataset_payload = {
+            "metrics": [
+                {
+                    "metric_name": "foo",
+                    "expression": "select 1;",
+                }
+            ]
+        }
+        DatasetDAO.update(dataset, copy.deepcopy(dataset_payload))
         db.session.commit()
+
+        # Add metric ID to the payload for future update
+        updated_dataset = DatasetDAO.find_by_id(dataset.id)
+        dataset_payload["metrics"][0]["id"] = updated_dataset.metrics[0].id
 
         # construct baseline query_cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -190,7 +203,8 @@ class TestQueryContext(SupersetTestCase):
         # wait a second since mysql records timestamps in second granularity
         time.sleep(1)
 
-        datasource.metrics[0].expression = "select 2;"
+        dataset_payload["metrics"][0]["expression"] = "select 2;"
+        DatasetDAO.update(updated_dataset, copy.deepcopy(dataset_payload))
         db.session.commit()
 
         # create new QueryContext with unchanged attributes, extract new query_cache_key
@@ -198,7 +212,8 @@ class TestQueryContext(SupersetTestCase):
         query_object = query_context.queries[0]
         cache_key_new = query_context.query_cache_key(query_object)
 
-        datasource.metrics = []
+        dataset_payload["metrics"] = []
+        DatasetDAO.update(updated_dataset, dataset_payload)
         db.session.commit()
 
         # the new cache_key should be different due to updated datasource

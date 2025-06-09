@@ -141,6 +141,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
           schema,
           autorun,
           sql,
+          isDataset: this.context.isDataset,
         };
         this.props.actions.addQueryEditor(newQueryEditor);
       }
@@ -229,7 +230,6 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       <EditableTabs.TabPane
         key={qe.id}
         tab={<SqlEditorTabHeader queryEditor={qe} />}
-        // for tests - key prop isn't handled by enzyme well bcs it's a react keyword
         data-key={qe.id}
       >
         <SqlEditor

@@ -49,7 +49,6 @@ from sqlalchemy import (
     String,
     Table as DBTable,
     Text,
-    update,
 )
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.ext.declarative import declared_attr
@@ -105,7 +104,7 @@ from superset.models.helpers import (
     QueryResult,
 )
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -2024,21 +2023,6 @@ class SqlaTable(
         security_manager.dataset_before_update(mapper, connection, target)
 
     @staticmethod
-    def update_column(  # pylint: disable=unused-argument
-        mapper: Mapper, connection: Connection, target: SqlMetric | TableColumn
-    ) -> None:
-        """
-        :param mapper: Unused.
-        :param connection: Unused.
-        :param target: The metric or column that was updated.
-        """
-        session = inspect(target).session  # pylint: disable=disallowed-name
-
-        # Forces an update to the table's changed_on value when a metric or column on the  # noqa: E501
-        # table is updated. This busts the cache key for all charts that use the table.
-        session.execute(update(SqlaTable).where(SqlaTable.id == target.table.id))
-
-    @staticmethod
     def after_insert(
         mapper: Mapper,
         connection: Connection,
@@ -2073,8 +2057,6 @@ class SqlaTable(
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
 sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
 sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
-sa.event.listen(SqlMetric, "after_update", SqlaTable.update_column)
-sa.event.listen(TableColumn, "after_update", SqlaTable.update_column)
 
 RLSFilterRoles = DBTable(
     "rls_filter_roles",

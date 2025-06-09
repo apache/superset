@@ -31,12 +31,11 @@ from superset.exceptions import OAuth2Error, SupersetErrorException
 from superset.models.core import Database
 from superset.sql.parse import SQLStatement, Table
 from superset.sql_lab import (
-    apply_rls,
     execute_query,
     execute_sql_statements,
-    get_predicates_for_table,
     get_sql_results,
 )
+from superset.utils.rls import apply_rls, get_predicates_for_table
 from tests.unit_tests.models.core_test import oauth2_client_info
 
 
@@ -233,7 +232,7 @@ def test_apply_rls(mocker: MockerFixture) -> None:
     database.get_default_catalog.return_value = "examples"
     database.db_engine_spec = PostgresEngineSpec
     get_predicates_for_table = mocker.patch(
-        "superset.sql_lab.get_predicates_for_table",
+        "superset.utils.rls.get_predicates_for_table",
         side_effect=[["c1 = 1"], ["c2 = 2"]],
     )
 
@@ -280,7 +279,7 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
     predicate = mocker.MagicMock()
     predicate.compile.return_value = "c1 = 1"
     dataset.get_sqla_row_level_filters.return_value = [predicate]
-    db = mocker.patch("superset.sql_lab.db")
+    db = mocker.patch("superset.utils.rls.db")
     db.session.query().filter().one_or_none.return_value = dataset
 
     table = Table("t1", "public", "examples")

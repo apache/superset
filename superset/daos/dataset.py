@@ -29,7 +29,7 @@ from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 from superset.views.base import DatasourceFilter
 
@@ -184,15 +184,21 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         """
 
         if item and attributes:
+            force_update: bool = False
             if "columns" in attributes:
                 cls.update_columns(
                     item,
                     attributes.pop("columns"),
                     override_columns=bool(attributes.get("override_columns")),
                 )
+                force_update = True
 
             if "metrics" in attributes:
                 cls.update_metrics(item, attributes.pop("metrics"))
+                force_update = True
+
+            if force_update:
+                attributes["changed_on"] = datetime.now()
 
         return super().update(item, attributes)
 

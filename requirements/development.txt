@@ -798,10 +798,6 @@ sqlglot==26.17.1
     #   apache-superset
 sqloxide==0.1.51
     # via apache-superset
-sqlparse==0.5.3
-    # via
-    #   -c requirements/base.txt
-    #   apache-superset
 sshtunnel==0.4.0
     # via
     #   -c requirements/base.txt

@@ -24,6 +24,7 @@ from typing import Any, NamedTuple, TYPE_CHECKING
 
 from flask import g
 from flask_babel import gettext as _
+from jinja2.exceptions import TemplateError
 from pandas import DataFrame
 
 from superset import feature_flag_manager
@@ -34,7 +35,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
 )
 from superset.extensions import event_logger
-from superset.sql_parse import sanitize_clause
+from superset.sql.parse import sanitize_clause
 from superset.superset_typing import Column, Metric, OrderBy
 from superset.utils import json, pandas_postprocessing
 from superset.utils.core import (
@@ -260,9 +261,11 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         """Return metrics names (labels), coerce adhoc metrics to strings."""
         return get_metric_names(
             self.metrics or [],
-            self.datasource.verbose_map
-            if self.datasource and hasattr(self.datasource, "verbose_map")
-            else None,
+            (
+                self.datasource.verbose_map
+                if self.datasource and hasattr(self.datasource, "verbose_map")
+                else None
+            ),
         )
 
     @property
@@ -298,11 +301,25 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             )
 
     def _sanitize_filters(self) -> None:
+        from superset.jinja_context import get_template_processor
+
         for param in ("where", "having"):
             clause = self.extras.get(param)
-            if clause:
+            if clause and self.datasource:
                 try:
-                    sanitized_clause = sanitize_clause(clause)
+                    database = self.datasource.database
+                    processor = get_template_processor(database=database)
+                    try:
+                        clause = processor.process_template(clause, force=True)
+                    except TemplateError as ex:
+                        raise QueryObjectValidationError(
+                            _(
+                                "Error in jinja expression in WHERE clause: %(msg)s",
+                                msg=ex.message,
+                            )
+                        ) from ex
+                    engine = database.db_engine_spec.engine
+                    sanitized_clause = sanitize_clause(clause, engine)
                     if sanitized_clause != clause:
                         self.extras[param] = sanitized_clause
                 except QueryClauseValidationException as ex:

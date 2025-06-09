@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { css, t, SupersetClient, useTheme } from '@superset-ui/core';
+import { css, t, useTheme } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
@@ -37,6 +37,8 @@ import {
 } from 'src/features/users/UserListModal';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { deleteUser } from 'src/features/users/utils';
+import { fetchPaginatedData } from 'src/utils/fetchOptions';
+import { Tooltip } from 'src/components/Tooltip';
 
 const PAGE_SIZE = 25;
 
@@ -50,6 +52,11 @@ interface UsersListProps {
 }
 
 export type Role = {
+  id: number;
+  name: string;
+};
+
+export type Group = {
   id: number;
   name: string;
 };
@@ -69,6 +76,7 @@ export type UserObject = {
   login_count: number;
   roles: Role[];
   username: string;
+  groups: Group[];
 };
 
 enum ModalType {
@@ -108,7 +116,6 @@ function UsersList({ user }: UsersListProps) {
   const [modalState, setModalState] = useState({
     edit: false,
     add: false,
-    duplicate: false,
   });
   const openModal = (type: ModalType) =>
     setModalState(prev => ({ ...prev, [type]: true }));
@@ -118,8 +125,12 @@ function UsersList({ user }: UsersListProps) {
   const [currentUser, setCurrentUser] = useState<UserObject | null>(null);
   const [userCurrentlyDeleting, setUserCurrentlyDeleting] =
     useState<UserObject | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadingState, setLoadingState] = useState({
+    roles: true,
+    groups: true,
+  });
   const [roles, setRoles] = useState<Role[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const loginCountStats = useMemo(() => {
     if (!users || users.length === 0) return { min: 0, max: 0 };
 
@@ -141,47 +152,35 @@ function UsersList({ user }: UsersListProps) {
 
   const isAdmin = useMemo(() => isUserAdmin(user), [user]);
 
-  const fetchRoles = useCallback(async () => {
-    try {
-      const pageSize = 100;
+  const fetchRoles = useCallback(() => {
+    fetchPaginatedData({
+      endpoint: '/api/v1/security/roles/',
+      setData: setRoles,
+      setLoadingState,
+      loadingKey: 'roles',
+      addDangerToast,
+      errorMessage: t('Error while fetching roles'),
+    });
+  }, [addDangerToast]);
 
-      const fetchPage = async (pageIndex: number) => {
-        const response = await SupersetClient.get({
-          endpoint: `api/v1/security/roles/?q=(page_size:${pageSize},page:${pageIndex})`,
-        });
-        return response.json;
-      };
-
-      const initialResponse = await fetchPage(0);
-      const totalRoles = initialResponse.count;
-      const firstPageResults = initialResponse.result;
-
-      if (pageSize >= totalRoles) {
-        setRoles(firstPageResults);
-        return;
-      }
-
-      const totalPages = Math.ceil(totalRoles / pageSize);
-
-      const roleRequests = Array.from({ length: totalPages - 1 }, (_, i) =>
-        fetchPage(i + 1),
-      );
-      const remainingResults = await Promise.all(roleRequests);
-
-      setRoles([
-        ...firstPageResults,
-        ...remainingResults.flatMap(res => res.result),
-      ]);
-    } catch (err) {
-      addDangerToast(t('Error while fetching roles'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const fetchGroups = useCallback(() => {
+    fetchPaginatedData({
+      endpoint: '/api/v1/security/groups/',
+      setData: setGroups,
+      setLoadingState,
+      loadingKey: 'groups',
+      addDangerToast,
+      errorMessage: t('Error while fetching groups'),
+    });
+  }, [addDangerToast]);
 
   useEffect(() => {
     fetchRoles();
   }, [fetchRoles]);
+
+  useEffect(() => {
+    fetchGroups();
+  }, [fetchGroups]);
 
   const handleUserDelete = async ({ id, username }: UserObject) => {
     try {
@@ -224,6 +223,7 @@ function UsersList({ user }: UsersListProps) {
       {
         accessor: 'first_name',
         Header: t('First name'),
+        id: 'first_name',
         Cell: ({
           row: {
             original: { first_name },
@@ -233,6 +233,7 @@ function UsersList({ user }: UsersListProps) {
       {
         accessor: 'last_name',
         Header: t('Last name'),
+        id: 'last_name',
         Cell: ({
           row: {
             original: { last_name },
@@ -242,6 +243,7 @@ function UsersList({ user }: UsersListProps) {
       {
         accessor: 'username',
         Header: t('Username'),
+        id: 'username',
         Cell: ({
           row: {
             original: { username },
@@ -251,6 +253,7 @@ function UsersList({ user }: UsersListProps) {
       {
         accessor: 'email',
         Header: t('Email'),
+        id: 'email',
         Cell: ({
           row: {
             original: { email },
@@ -260,6 +263,7 @@ function UsersList({ user }: UsersListProps) {
       {
         accessor: 'active',
         Header: t('Is active?'),
+        id: 'active',
         Cell: ({
           row: {
             original: { active },
@@ -269,30 +273,60 @@ function UsersList({ user }: UsersListProps) {
       {
         accessor: 'roles',
         Header: t('Roles'),
+        id: 'roles',
         Cell: ({
           row: {
             original: { roles },
           },
         }: any) => (
-          <span>{roles.map((role: Role) => role.name).join(', ')}</span>
+          <Tooltip
+            title={
+              roles?.map((role: Role) => role.name).join(', ') || t('No roles')
+            }
+          >
+            <span>{roles?.map((role: Role) => role.name).join(', ')}</span>
+          </Tooltip>
+        ),
+        disableSortBy: true,
+      },
+      {
+        accessor: 'groups',
+        Header: t('Groups'),
+        id: 'groups',
+        Cell: ({
+          row: {
+            original: { groups },
+          },
+        }: any) => (
+          <Tooltip
+            title={
+              groups?.map((group: Group) => group.name).join(', ') ||
+              t('No groups')
+            }
+          >
+            <span>{groups?.map((group: Group) => group.name).join(', ')}</span>
+          </Tooltip>
         ),
         disableSortBy: true,
       },
       {
         accessor: 'login_count',
         Header: t('Login count'),
+        id: 'login_count',
         hidden: true,
         Cell: ({ row: { original } }: any) => original.login_count,
       },
       {
         accessor: 'fail_login_count',
         Header: t('Fail login count'),
+        id: 'fail_login_count',
         hidden: true,
         Cell: ({ row: { original } }: any) => original.fail_login_count,
       },
       {
         accessor: 'created_on',
         Header: t('Created on'),
+        id: 'created_on',
         hidden: true,
         Cell: ({
           row: {
@@ -302,6 +336,7 @@ function UsersList({ user }: UsersListProps) {
       },
       {
         accessor: 'changed_on',
+        id: 'changed_on',
         Header: t('Changed on'),
         hidden: true,
         Cell: ({
@@ -313,6 +348,7 @@ function UsersList({ user }: UsersListProps) {
       {
         accessor: 'last_login',
         Header: t('Last login'),
+        id: 'last_login',
         hidden: true,
         Cell: ({
           row: {
@@ -380,7 +416,7 @@ function UsersList({ user }: UsersListProps) {
         onClick: () => {
           openModal(ModalType.ADD);
         },
-        loading: isLoading,
+        loading: loadingState.roles || loadingState.groups,
         'data-test': 'add-user-button',
       },
       {
@@ -432,7 +468,6 @@ function UsersList({ user }: UsersListProps) {
           label: option.label,
           value: option.value,
         })),
-        loading: isLoading,
       },
       {
         Header: t('Roles'),
@@ -445,7 +480,20 @@ function UsersList({ user }: UsersListProps) {
           label: role.name,
           value: role.id,
         })),
-        loading: isLoading,
+        loading: loadingState.roles,
+      },
+      {
+        Header: t('Groups'),
+        key: 'groups',
+        id: 'groups',
+        input: 'select',
+        operator: FilterOperator.RelationManyMany,
+        unfilteredLabel: t('All'),
+        selects: groups?.map(group => ({
+          label: group.name,
+          value: group.id,
+        })),
+        loading: loadingState.groups,
       },
       {
         Header: t('Created on'),
@@ -488,7 +536,14 @@ function UsersList({ user }: UsersListProps) {
         operator: FilterOperator.Between,
       },
     ],
-    [isLoading, roles, loginCountStats, failLoginCountStats],
+    [
+      loadingState.roles,
+      roles,
+      groups,
+      loadingState.groups,
+      loginCountStats,
+      failLoginCountStats,
+    ],
   );
 
   const emptyState = {
@@ -525,6 +580,7 @@ function UsersList({ user }: UsersListProps) {
           closeModal(ModalType.ADD);
         }}
         roles={roles}
+        groups={groups}
       />
       {modalState.edit && currentUser && (
         <UserListEditModal
@@ -536,6 +592,7 @@ function UsersList({ user }: UsersListProps) {
             closeModal(ModalType.EDIT);
           }}
           roles={roles}
+          groups={groups}
         />
       )}
 

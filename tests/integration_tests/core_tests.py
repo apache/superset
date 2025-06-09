@@ -48,7 +48,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import core as utils, json
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
