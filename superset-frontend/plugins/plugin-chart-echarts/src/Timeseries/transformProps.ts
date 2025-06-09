@@ -210,6 +210,7 @@ export default function transformProps(
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
   let xAxisLabel = getXAxisLabel(chartProps.rawFormData) as string;
+
   if (
     isPhysicalColumn(chartProps.rawFormData?.x_axis) &&
     isDefined(verboseMap[xAxisLabel])
@@ -257,7 +258,22 @@ export default function transformProps(
     rawSeries.map(series => series.name as string),
   );
   const isAreaExpand = stack === StackControlsValue.Expand;
-  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+  let xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+
+  // Defensive check for xAxisDataType in case it is not provided by the backend.
+  if (xAxisDataType === undefined && data.length > 0) {
+    const firstValue = data[0][xAxisLabel];
+    if (
+      firstValue !== null &&
+      !Number.isNaN(new Date(firstValue as string | number).getTime())
+    ) {
+      console.warn(
+        `X-axis data type was missing from the backend response. ` +
+          `Successfully inferred a 'temporal' type from the data.`,
+      );
+      xAxisDataType = GenericDataType.Temporal;
+    }
+  }
 
   const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
   const series: SeriesOption[] = [];
