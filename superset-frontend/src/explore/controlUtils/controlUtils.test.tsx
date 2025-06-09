@@ -56,7 +56,6 @@ describe('controlUtils', () => {
         { metric_name: 'second', uuid: '2' },
       ],
       column_formats: {},
-      currency_formats: {},
       verbose_map: {},
       main_dttm_col: '',
       datasource_name: '1__table',

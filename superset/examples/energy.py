@@ -17,7 +17,6 @@
 import logging
 import textwrap
 
-import pandas as pd
 from sqlalchemy import Float, inspect, String
 from sqlalchemy.sql import column
 
@@ -25,15 +24,15 @@ import superset.utils.database as database_utils
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 
 from .helpers import (
-    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
+    read_example_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,8 +50,7 @@ def load_energy(
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            url = get_example_url("energy.json.gz")
-            pdf = pd.read_json(url, compression="gzip")
+            pdf = read_example_data("energy.json.gz", compression="gzip")
             pdf = pdf.head(100) if sample else pdf
             pdf.to_sql(
                 tbl_name,

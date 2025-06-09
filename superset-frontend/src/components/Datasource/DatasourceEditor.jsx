@@ -34,6 +34,7 @@ import {
   t,
   withTheme,
   getClientErrorObject,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import { Select, AsyncSelect, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
@@ -53,10 +54,15 @@ import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
+import { executeQuery, resetDatabaseState } from 'src/database/actions';
+import { connect } from 'react-redux';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
 import { fetchSyncedColumns, updateColumns } from './utils';
+import FilterableTable from '../FilterableTable';
+
+const extensionsRegistry = getExtensionsRegistry();
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -142,14 +148,6 @@ const StyledButtonWrapper = styled.span`
     }
   `}
 `;
-
-const sqlTooltipOptions = {
-  placement: 'topRight',
-  title: t(
-    'If changes are made to your SQL query, ' +
-      'columns in your dataset will be synced when saving the dataset.',
-  ),
-};
 
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
@@ -586,6 +584,8 @@ function OwnersSelector({ datasource, onChange }) {
     />
   );
 }
+const ResultTable =
+  extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
 
 class DatasourceEditor extends PureComponent {
   constructor(props) {
@@ -696,6 +696,39 @@ class DatasourceEditor extends PureComponent {
 
   validateAndChange() {
     this.validate(this.onChange);
+  }
+
+  async onQueryRun() {
+    this.props.runQuery({
+      client_id: this.props.clientId,
+      database_id: this.state.datasource.database.id,
+      json: true,
+      runAsync: false,
+      catalog: this.state.datasource.catalog,
+      schema: this.state.datasource.schema,
+      sql: this.state.datasource.sql,
+      tmp_table_name: '',
+      select_as_cta: false,
+      ctas_method: 'TABLE',
+      queryLimit: 25,
+      expand_data: true,
+    });
+  }
+
+  getSQLLabUrl() {
+    const queryParams = new URLSearchParams({
+      dbid: this.state.datasource.database.id,
+      sql: this.state.datasource.sql,
+      name: this.state.datasource.datasource_name,
+      schema: this.state.datasource.schema,
+      autorun: true,
+      isDataset: true,
+    });
+    return `/sqllab/?${queryParams.toString()}`;
+  }
+
+  openOnSqlLab() {
+    window.open(this.getSQLLabUrl(), '_blank', 'noopener,noreferrer');
   }
 
   tableChangeAndSyncMetadata() {
@@ -971,8 +1004,81 @@ class DatasourceEditor extends PureComponent {
     );
   }
 
+  renderSqlEditorOverlay = () => (
+    <div
+      css={theme => css`
+        position: absolute;
+        background: ${theme.colors.secondary.light5};
+        align-items: center;
+        display: flex;
+        height: 100%;
+        width: 100%;
+        justify-content: center;
+      `}
+    >
+      <div>
+        <Loading position="inline-centered" />
+        <span
+          css={theme => css`
+            display: block;
+            margin: ${theme.gridUnit * 4}px auto;
+            width: fit-content;
+            color: ${theme.colors.grayscale.base};
+          `}
+        >
+          {t('We are working on your query')}
+        </span>
+      </div>
+    </div>
+  );
+
+  renderOpenInSqlLabLink(isError = false) {
+    return (
+      <a
+        href={this.getSQLLabUrl()}
+        target="_blank"
+        rel="noopener noreferrer"
+        css={theme => css`
+          color: ${isError
+            ? theme.colors.error.base
+            : theme.colors.grayscale.base};
+          font-size: ${theme.typography.sizes.s}px;
+          text-decoration: underline;
+        `}
+      >
+        {t('Open in SQL lab')}
+      </a>
+    );
+  }
+
+  renderSqlErrorMessage = () => (
+    <>
+      <span
+        css={theme => css`
+          font-size: ${theme.typography.sizes.s}px;
+        `}
+      >
+        {this.props.database?.error && t('Error executing query. ')}
+      </span>
+      {this.renderOpenInSqlLabLink(true)}
+      <span
+        css={theme => css`
+          font-size: ${theme.typography.sizes.s}px;
+        `}
+      >
+        {t(' to check for details.')}
+      </span>
+    </>
+  );
+
   renderSourceFieldset() {
     const { datasource } = this.state;
+    const floatingButtonCss = css`
+      align-self: flex-end;
+      height: 24px;
+      padding-left: 6px;
+      padding-right: 6px;
+    `;
     return (
       <div>
         <EditLockContainer>
@@ -1072,20 +1178,123 @@ class DatasourceEditor extends PureComponent {
                     description={t(
                       'When specifying SQL, the datasource acts as a view. ' +
                         'Superset will use this statement as a subquery while grouping and filtering ' +
-                        'on the generated parent queries.',
+                        'on the generated parent queries.' +
+                        'If changes are made to your SQL query, ' +
+                        'columns in your dataset will be synced when saving the dataset.',
                     )}
                     control={
-                      <TextAreaControl
-                        language="sql"
-                        offerEditInModal={false}
-                        minLines={20}
-                        maxLines={Infinity}
-                        readOnly={!this.state.isEditMode}
-                        resize="both"
-                        tooltipOptions={sqlTooltipOptions}
-                      />
+                      this.props.database?.isLoading ? (
+                        <>
+                          {this.renderSqlEditorOverlay()}
+                          <TextAreaControl
+                            language="sql"
+                            offerEditInModal={false}
+                            minLines={10}
+                            maxLines={Infinity}
+                            readOnly={!this.state.isEditMode}
+                            resize="both"
+                          />
+                        </>
+                      ) : (
+                        <TextAreaControl
+                          language="sql"
+                          offerEditInModal={false}
+                          minLines={10}
+                          maxLines={Infinity}
+                          readOnly={!this.state.isEditMode}
+                          resize="both"
+                        />
+                      )
+                    }
+                    additionalControl={
+                      <div
+                        css={css`
+                          position: absolute;
+                          right: 0;
+                          top: 0;
+                          z-index: 2;
+                        `}
+                      >
+                        <Button
+                          disabled={this.props.database?.isLoading}
+                          tooltip={t('Open SQL Lab in a new tab')}
+                          css={floatingButtonCss}
+                          size="small"
+                        >
+                          <Icons.ExportOutlined
+                            iconSize="s"
+                            css={theme => ({
+                              color: theme.colors.primary.dark1,
+                            })}
+                            onClick={() => {
+                              this.openOnSqlLab();
+                            }}
+                          />
+                        </Button>
+                        <Button
+                          disabled={this.props.database?.isLoading}
+                          tooltip={t('Run query')}
+                          css={floatingButtonCss}
+                          size="small"
+                          buttonStyle="primary"
+                          onClick={() => {
+                            this.onQueryRun();
+                          }}
+                        >
+                          <Icons.CaretRightFilled
+                            iconSize="s"
+                            css={theme => ({
+                              color: theme.colors.grayscale.light5,
+                            })}
+                          />
+                        </Button>
+                      </div>
+                    }
+                    errorMessage={
+                      this.props.database?.error && this.renderSqlErrorMessage()
                     }
                   />
+                  {this.props.database?.queryResult && (
+                    <>
+                      <div
+                        css={theme => css`
+                          margin-bottom: ${theme.gridUnit * 4}px;
+                        `}
+                      >
+                        <span
+                          css={theme => css`
+                            color: ${theme.colors.grayscale.base};
+                            font-size: ${theme.typography.sizes.s}px;
+                          `}
+                        >
+                          {t(
+                            'In this view you can preview the first 25 rows. ',
+                          )}
+                        </span>
+                        {this.renderOpenInSqlLabLink()}
+                        <span
+                          css={theme => css`
+                            color: ${theme.colors.grayscale.base};
+                            font-size: ${theme.typography.sizes.s}px;
+                          `}
+                        >
+                          {t(' to see details.')}
+                        </span>
+                      </div>
+                      <ResultTable
+                        data={this.props.database?.queryResult.data}
+                        queryId={this.props.database?.queryResult.query.id}
+                        orderedColumnKeys={this.props.database?.queryResult.columns.map(
+                          col => col.column_name,
+                        )}
+                        height={100}
+                        expandedColumns={
+                          this.props.database?.queryResult.expandedColumns
+                        }
+                        allowHTML
+                      />
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -1466,6 +1675,10 @@ class DatasourceEditor extends PureComponent {
       </DatasourceContainer>
     );
   }
+
+  componentWillUnmount() {
+    this.props.resetQuery();
+  }
 }
 
 DatasourceEditor.defaultProps = defaultProps;
@@ -1473,4 +1686,13 @@ DatasourceEditor.propTypes = propTypes;
 
 const DataSourceComponent = withTheme(DatasourceEditor);
 
-export default withToasts(DataSourceComponent);
+const mapDispatchToProps = dispatch => ({
+  runQuery: payload => dispatch(executeQuery(payload)),
+  resetQuery: () => dispatch(resetDatabaseState()),
+});
+const mapStateToProps = state => ({
+  database: state?.database,
+});
+export default withToasts(
+  connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent),
+);

@@ -55,7 +55,7 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.sql_parse import sanitize_clause
+from superset.sql.parse import sanitize_clause
 from superset.superset_typing import (
     Column,
     Metric,
@@ -324,7 +324,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     def process_query_filters(self) -> None:
         utils.convert_legacy_filters_into_adhoc(self.form_data)
         merge_extra_filters(self.form_data)
-        utils.split_adhoc_filters_into_base_filters(self.form_data)
+        engine = self.datasource.database.db_engine_spec.engine
+        utils.split_adhoc_filters_into_base_filters(self.form_data, engine)
 
     @staticmethod
     @deprecated(deprecated_in="3.0")
@@ -392,7 +393,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         for param in ("where", "having"):
             clause = self.form_data.get(param)
             if clause:
-                sanitized_clause = sanitize_clause(clause)
+                engine = self.datasource.database.db_engine_spec.engine
+                sanitized_clause = sanitize_clause(clause, engine)
                 if sanitized_clause != clause:
                     self.form_data[param] = sanitized_clause
 
@@ -1532,7 +1534,31 @@ class DeckGLMultiLayer(BaseViz):
 
         slice_ids = self.form_data.get("deck_slices")
         slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+
+        features: dict[str, list[Any]] = {}
+
+        for slc in slices:
+            form_data = slc.form_data
+
+            form_data["extra_filters"] = self.form_data.get("extra_filters", [])
+            form_data["extra_form_data"] = self.form_data.get("extra_form_data", {})
+            form_data["adhoc_filters"] = self.form_data.get("adhoc_filters")
+
+            viz_type_name = form_data.get("viz_type")
+            viz_class = viz_types.get(viz_type_name)
+            if not viz_class:
+                continue  # skip unknown viz types
+
+            viz_instance = viz_class(datasource=slc.datasource, form_data=form_data)
+            payload = viz_instance.get_payload()
+
+            if payload and "data" in payload and "features" in payload["data"]:
+                if viz_type_name not in features:
+                    features[viz_type_name] = []
+                features[viz_type_name].extend(payload["data"]["features"])
+
         return {
+            "features": features,
             "mapboxApiKey": config["MAPBOX_API_KEY"],
             "slices": [slc.data for slc in slices],
         }

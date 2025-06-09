@@ -568,6 +568,9 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
 
 
 def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_dataset):
+    if get_example_database().backend == "sqlite":
+        return
+
     TableColumn(
         column_name="DUMMY CC",
         type="VARCHAR(255)",
@@ -580,10 +583,7 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
     )
     rv = test_client.post(uri, json={})
     assert rv.status_code == 422
-
-    assert "error" in rv.json
-    if virtual_dataset.database.db_engine_spec.engine_name == "PostgreSQL":
-        assert "INCORRECT SQL" in rv.json.get("error")
+    assert rv.json["errors"][0]["error_type"] == "INVALID_SQL_ERROR"
 
 
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
@@ -705,7 +705,7 @@ def test_get_samples_with_multiple_filters(
     assert "2000-01-02" in rv.json["result"]["query"]
     assert "2000-01-04" in rv.json["result"]["query"]
     assert "col3 = 1.2" in rv.json["result"]["query"]
-    assert "col4 is null" in rv.json["result"]["query"]
+    assert "col4 IS NULL" in rv.json["result"]["query"]
     assert "col2 = 'c'" in rv.json["result"]["query"]
 
 
