@@ -75,7 +75,7 @@ SQLGLOT_DIALECTS = {
     # "impala": ???
     # "kustosql": ???
     # "kylin": ???
-    "mariadb: ": Dialects.MYSQL,
+    "mariadb": Dialects.MYSQL,
     "motherduck": Dialects.DUCKDB,
     "mssql": Dialects.TSQL,
     "mysql": Dialects.MYSQL,
