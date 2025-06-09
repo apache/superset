@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FunctionComponent, useState, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import {
@@ -33,15 +33,6 @@ import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import {
-  startMetaDataLoading,
-  stopMetaDataLoading,
-  syncDatasourceMetadata,
-} from 'src/explore/actions/exploreActions';
-import {
-  fetchSyncedColumns,
-  updateColumns,
-} from 'src/components/Datasource/utils';
 import { DatasetObject } from '../../features/datasets/types';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
@@ -95,13 +86,11 @@ function buildExtraJsonObject(
 
 const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   addSuccessToast,
-  addDangerToast,
   datasource,
   onDatasourceSave,
   onHide,
   show,
 }) => {
-  const dispatch = useDispatch();
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
   const currencies = useSelector<
     {
@@ -184,36 +173,13 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const onConfirmSave = async () => {
     // Pull out extra fields into the extra object
     setIsSaving(true);
+    const overrideColumns = datasource.sql !== currentDatasource.sql;
     try {
       await SupersetClient.put({
-        endpoint: `/api/v1/dataset/${currentDatasource.id}`,
+        endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${overrideColumns}`,
         jsonPayload: buildPayload(currentDatasource),
       });
-      if (datasource.sql !== currentDatasource.sql) {
-        // if sql has changed, save a second time with synced columns
-        dispatch(startMetaDataLoading());
-        try {
-          const columnJson = await fetchSyncedColumns(currentDatasource);
-          const columnChanges = updateColumns(
-            currentDatasource.columns,
-            columnJson,
-            addSuccessToast,
-          );
-          currentDatasource.columns = columnChanges.finalColumns;
-          dispatch(syncDatasourceMetadata(currentDatasource));
-          dispatch(stopMetaDataLoading());
-          addSuccessToast(t('Metadata has been synced'));
-        } catch (error) {
-          dispatch(stopMetaDataLoading());
-          addDangerToast(
-            t('An error has occurred while syncing virtual dataset columns'),
-          );
-        }
-        await SupersetClient.put({
-          endpoint: `/api/v1/dataset/${currentDatasource.id}`,
-          jsonPayload: buildPayload(currentDatasource),
-        });
-      }
+
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
       });
