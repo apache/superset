@@ -25,7 +25,7 @@ Create Date: 2025-06-06 00:39:00.107746
 import json
 import logging
 
-from alembic import op  # noqa: E402
+from alembic import op
 from sqlalchemy import Column, Integer, JSON, String
 from sqlalchemy.ext.declarative import declarative_base
 
