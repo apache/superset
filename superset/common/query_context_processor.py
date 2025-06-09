@@ -765,6 +765,9 @@ class QueryContextProcessor:
 
         totals_idx = totals_queries[0]
         totals_query = self._query_context.queries[totals_idx]
+
+        totals_query.row_limit = None
+
         result = self._query_context.get_query_result(totals_query)
         df = result.df
 
