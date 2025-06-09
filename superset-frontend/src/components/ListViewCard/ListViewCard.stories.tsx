@@ -18,7 +18,6 @@
  */
 import { action } from '@storybook/addon-actions';
 import { Dropdown } from 'src/components/Dropdown';
-import { Menu } from 'src/components/Menu';
 import { Icons } from 'src/components/Icons';
 import FaveStar from 'src/components/FaveStar';
 import ListViewCard from '.';
@@ -71,16 +70,22 @@ export const SupersetListViewCard = ({
           isStarred={isStarred}
         />
         <Dropdown
-          dropdownRender={() => (
-            <Menu>
-              <Menu.Item role="button" tabIndex={0} onClick={action('Delete')}>
-                <Icons.DeleteOutlined /> Delete
-              </Menu.Item>
-              <Menu.Item role="button" tabIndex={0} onClick={action('Edit')}>
-                <Icons.EditOutlined /> Edit
-              </Menu.Item>
-            </Menu>
-          )}
+          menu={{
+            items: [
+              {
+                key: 'delete',
+                label: 'Delete',
+                icon: <Icons.DeleteOutlined />,
+                onClick: action('Delete'),
+              },
+              {
+                key: 'edit',
+                label: 'Edit',
+                icon: <Icons.EditOutlined />,
+                onClick: action('Edit'),
+              },
+            ],
+          }}
         >
           <Icons.EllipsisOutlined />
         </Dropdown>

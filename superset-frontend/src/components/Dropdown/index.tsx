@@ -82,7 +82,7 @@ export enum IconOrientation {
 }
 
 export interface MenuDotsDropdownProps extends AntdDropdownProps {
-  overlay: ReactElement;
+  overlay?: ReactElement;
   iconOrientation?: IconOrientation;
 }
 
