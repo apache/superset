@@ -98,14 +98,14 @@ export const hydrateExplore =
     }
 
     const initialDatasource = dataset;
-    initialDatasource.currency_formats = initialDatasource.metrics
-      ? Object.fromEntries(
-          initialDatasource.metrics.map(
-            metric =>
-              [metric.metric_name, metric.currency] as [string, Currency],
-          ),
-        )
-      : {};
+    initialDatasource.currency_formats = Object.fromEntries(
+      (initialDatasource.metrics ?? [])
+        .filter(metric => metric.currency !== undefined)
+        .map((metric): [string, Currency] => [
+          metric.metric_name,
+          metric.currency!,
+        ]),
+    );
 
     const initialExploreState = {
       form_data: initialFormData,

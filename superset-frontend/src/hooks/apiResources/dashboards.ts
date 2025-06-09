@@ -49,9 +49,9 @@ export const useDashboardDatasets = (idOrSlug: string | number) =>
       datasets.map(dataset => ({
         ...dataset,
         currencyFormats: Object.fromEntries(
-          dataset.metrics
-            ?.filter(metric => metric.currency !== undefined)
-            .map(metric => [metric.metric_name, metric.currency]) || [],
+          (dataset.metrics ?? [])
+            .filter(metric => metric.currency !== undefined)
+            .map(metric => [metric.metric_name, metric.currency]),
         ),
       })),
   );
