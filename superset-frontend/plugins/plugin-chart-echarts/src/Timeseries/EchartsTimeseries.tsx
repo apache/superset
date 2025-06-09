@@ -65,6 +65,8 @@ export default function EchartsTimeseries({
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
+  // Track the current legend page index
+  const [currentLegendPage, setCurrentLegendPage] = useState(0);
   useEffect(() => {
     const updatedHeight = extraControlRef.current?.offsetHeight || 0;
     setExtraControlHeight(updatedHeight);
@@ -139,6 +141,20 @@ export default function EchartsTimeseries({
     [emitCrossFilters, setDataMask, getCrossFilterDataMask],
   );
 
+  // Helper function to restore legend page position
+  const restoreLegendPagePosition = useCallback(() => {
+    // Use requestAnimationFrame instead of setTimeout for better alignment with the browser's rendering cycle
+    requestAnimationFrame(() => {
+      const echartInstance = echartRef.current?.getEchartInstance();
+      if (echartInstance) {
+        echartInstance.dispatchAction({
+          type: 'legendScroll',
+          scrollDataIndex: currentLegendPage,
+        });
+      }
+    });
+  }, [currentLegendPage]);
+
   const eventHandlers: EventHandlers = {
     click: props => {
       if (!hasDimensions) {
@@ -161,12 +177,21 @@ export default function EchartsTimeseries({
     },
     legendselectchanged: payload => {
       onLegendStateChanged?.(payload.selected);
+      restoreLegendPagePosition();
     },
     legendselectall: payload => {
       onLegendStateChanged?.(payload.selected);
+      restoreLegendPagePosition();
     },
     legendinverseselect: payload => {
       onLegendStateChanged?.(payload.selected);
+      restoreLegendPagePosition();
+    },
+    // Add handler for legend scroll event to track current page
+    legendscroll: params => {
+      if (params.scrollDataIndex !== undefined) {
+        setCurrentLegendPage(params.scrollDataIndex);
+      }
     },
     contextmenu: async eventParams => {
       if (onContextMenu) {
