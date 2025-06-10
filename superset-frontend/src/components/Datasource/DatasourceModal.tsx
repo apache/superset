@@ -21,7 +21,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import {
-  isDefined,
   styled,
   SupersetClient,
   getClientErrorObject,
