@@ -18,10 +18,7 @@
  */
 
 import React from 'react';
-import {
-  supersetTheme,
-  ThemeProvider,
-} from '../../../superset-frontend/packages/superset-ui-core/lib';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 // A simple component to display a story example
 export function StoryExample({ component: Component, props = {} }) {
