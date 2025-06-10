@@ -775,8 +775,6 @@ class QueryContextProcessor:
             col: df[col].sum() for col in df.columns if df[col].dtype.kind in "biufc"
         }
 
-        print(f"DEBUG: Calculated totals: {totals}")
-
         for idx in queries_needing_totals:
             query = self._query_context.queries[idx]
             if hasattr(query, "post_processing") and query.post_processing:
