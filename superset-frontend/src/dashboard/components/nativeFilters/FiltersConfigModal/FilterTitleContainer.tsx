@@ -59,7 +59,7 @@ const StyledWarning = styled(Icons.ExclamationCircleOutlined)`
 
 const Container = styled.div`
   height: 100%;
-  overflow-y: unset;
+  overflow-y: auto;
 `;
 
 interface Props {

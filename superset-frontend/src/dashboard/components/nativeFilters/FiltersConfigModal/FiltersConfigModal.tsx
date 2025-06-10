@@ -76,7 +76,7 @@ const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
 
   .ant-modal-body {
     padding: 0px;
-    overflow: unset;
+    overflow: auto;
   }
 
   ${({ expanded }) =>
@@ -656,7 +656,7 @@ function FiltersConfigModal({
             key={id}
             style={{
               height: '100%',
-              overflowY: 'unset',
+              overflowY: 'auto',
               display: isActive ? '' : 'none',
             }}
           >

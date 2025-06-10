@@ -1081,6 +1081,7 @@ class DatasourceEditor extends PureComponent {
       <span
         css={theme => css`
           font-size: ${theme.fontSizeSM}px;
+          margin-right: ${theme.sizeUnit}px;
         `}
       >
         {t(' to check for details.')}
@@ -1246,16 +1247,8 @@ class DatasourceEditor extends PureComponent {
                           z-index: 2;
                         `}
                       >
-                        {this.props.database?.error && (
-                          <span
-                            css={theme => css`
-                              color: ${theme.colors.error.base};
-                              margin-right: ${theme.sizeUnit}px;
-                            `}
-                          >
-                            {t('Error executing query')}
-                          </span>
-                        )}
+                        {this.props.database?.error &&
+                          this.renderSqlErrorMessage()}
                         <Button
                           disabled={this.props.database?.isLoading}
                           tooltip={t('Open SQL Lab in a new tab')}
@@ -1265,7 +1258,7 @@ class DatasourceEditor extends PureComponent {
                           <Icons.ExportOutlined
                             iconSize="s"
                             css={theme => ({
-                              color: theme.colors.primary.light5,
+                              color: theme.colorPrimary.light5,
                             })}
                             onClick={() => {
                               this.openOnSqlLab();

@@ -42,12 +42,11 @@ const Container = styled.div`
 
 const ContentHolder = styled.div`
   flex-grow: 3;
-  overflow-y: auto;
 `;
 
 const TitlesContainer = styled.div`
-  min-width: 300px;
-  max-width: 300px;
+  min-width: 290px;
+  max-width: 290px;
   border-right: 1px solid ${({ theme }) => theme.colorSplit};
 `;
 
