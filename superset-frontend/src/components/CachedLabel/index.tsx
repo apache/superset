@@ -52,7 +52,7 @@ const CacheLabel: FC<CacheLabelProps> = ({
         onMouseOut={() => setHovered(false)}
       >
         {t('Cached')}
-        <Icons.Refresh iconSize="s" />
+        <Icons.SyncOutlined iconSize="m" />
       </Label>
     </Tooltip>
   );
