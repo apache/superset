@@ -376,6 +376,7 @@ AUTH_ROLE_PUBLIC = 'Public'
 
 AUTH_ROLES_MAPPING = {
 "DataEngineer": ["Admin"],
+"DataEngineerTech": ["Admin"],
 "DeputyCTO": ["Admin"],
 "TechExec": ["Admin"],
 "CTO": ["Admin"],
