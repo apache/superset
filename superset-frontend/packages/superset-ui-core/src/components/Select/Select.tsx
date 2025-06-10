@@ -473,6 +473,10 @@ const Select = forwardRef(
             onMouseDown={e => {
               e.preventDefault();
               e.stopPropagation();
+            }}
+            onClick={e => {
+              e.preventDefault();
+              e.stopPropagation();
               handleDeselectAll();
             }}
           >
