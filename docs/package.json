@@ -23,6 +23,7 @@
     "@docusaurus/plugin-client-redirects": "3.8.1",
     "@docusaurus/preset-classic": "3.8.1",
     "@docusaurus/theme-mermaid": "3.8.1",
+    "@emotion/react": "^11.13.3",
     "@emotion/styled": "^10.0.27",
     "@mdx-js/react": "^3.1.0",
     "@saucelabs/theme-github-codeblock": "^0.3.0",
@@ -42,6 +43,7 @@
     "antd": "^5.26.7",
     "caniuse-lite": "^1.0.30001707",
     "docusaurus-plugin-less": "^2.0.2",
+    "json-bigint": "^1.0.0",
     "less": "^4.4.0",
     "less-loader": "^12.3.0",
     "prism-react-renderer": "^2.4.1",
@@ -53,6 +55,7 @@
     "reselect": "^5.1.1",
     "storybook": "^8.6.11",
     "swagger-ui-react": "^5.27.1",
+    "tinycolor2": "^1.4.2",
     "ts-loader": "^9.5.2"
   },
   "devDependencies": {
