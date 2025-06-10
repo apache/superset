@@ -19,6 +19,7 @@
 
 import { Dashboard, Datasource, EmbeddedDashboard } from 'src/dashboard/types';
 import { Chart } from 'src/types/Chart';
+import { Currency } from '@superset-ui/core';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
 
 export const useDashboard = (idOrSlug: string | number) =>
@@ -50,8 +51,11 @@ export const useDashboardDatasets = (idOrSlug: string | number) =>
         ...dataset,
         currencyFormats: Object.fromEntries(
           (dataset.metrics ?? [])
-            .filter(metric => metric.currency !== undefined)
-            .map(metric => [metric.metric_name, metric.currency]),
+            .filter(metric => !!metric.currency)
+            .map((metric): [string, Currency] => [
+              metric.metric_name,
+              metric.currency!,
+            ]),
         ),
       })),
   );
