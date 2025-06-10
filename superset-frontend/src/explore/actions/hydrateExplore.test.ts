@@ -213,3 +213,51 @@ test('uses configured default time range if not set', () => {
     }),
   );
 });
+
+test('extracts currency formats from metrics in dataset', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+
+  const datasetWithMetrics = {
+    ...exploreInitialData.dataset,
+    metrics: [
+      {
+        metric_name: 'count',
+        currency: { symbol: 'GBP', symbolPosition: 'prefix' },
+      },
+      {
+        metric_name: 'revenue',
+        currency: { symbol: 'USD', symbolPosition: 'suffix' },
+      },
+      { metric_name: 'no_currency' },
+    ],
+  };
+
+  // @ts-ignore
+  hydrateExplore({ ...exploreInitialData, dataset: datasetWithMetrics })(
+    dispatch,
+    // @ts-ignore
+    getState,
+  );
+
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        datasources: expect.objectContaining({
+          '8__table': expect.objectContaining({
+            currency_formats: {
+              count: { symbol: 'GBP', symbolPosition: 'prefix' },
+              revenue: { symbol: 'USD', symbolPosition: 'suffix' },
+            },
+          }),
+        }),
+      }),
+    }),
+  );
+});

@@ -21,7 +21,6 @@ import { useSelector } from 'react-redux';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import {
-  isDefined,
   styled,
   SupersetClient,
   getClientErrorObject,
@@ -141,9 +140,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             metric_name: metric.metric_name,
             metric_type: metric.metric_type,
             d3format: metric.d3format || null,
-            currency: !isDefined(metric.currency)
-              ? null
-              : JSON.stringify(metric.currency),
+            currency: metric.currency,
             verbose_name: metric.verbose_name,
             warning_text: metric.warning_text,
             uuid: metric.uuid,
