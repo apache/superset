@@ -34,8 +34,8 @@ import { DatasourceModal } from '.';
 // Define your constants here
 const SAVE_ENDPOINT = 'glob:*/api/v1/dataset/7';
 const SAVE_PAYLOAD = { new: 'data' };
-const SAVE_DATASOURCE_ENDPOINT = 'glob:*/api/v1/dataset/7';
-const GET_DATASOURCE_ENDPOINT = SAVE_DATASOURCE_ENDPOINT;
+const SAVE_DATASOURCE_ENDPOINT = 'glob:*/api/v1/dataset/7?override_columns=*';
+const GET_DATASOURCE_ENDPOINT = 'glob:*/api/v1/dataset/7';
 const GET_DATABASE_ENDPOINT = 'glob:*/api/v1/database/?q=*';
 
 const mockedProps = {

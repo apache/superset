@@ -1462,6 +1462,29 @@ class TestDatasetApi(SupersetTestCase):
         assert data == expected_result
         self.items_to_delete = [dataset]
 
+    def test_update_dataset_update_metric_invalid_currency(self):
+        """
+        Dataset API: Test update dataset metric with an invalid currency config
+        """
+
+        dataset = self.insert_default_dataset()
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dataset/{dataset.id}"
+        data = {
+            "metrics": [
+                {
+                    "metric_name": "test",
+                    "expression": "COUNT(*)",
+                    "currency": '{"symbol": "USD", "symbolPosition": "suffix"}',
+                },
+            ]
+        }
+        rv = self.put_assert_metric(uri, data, "put")
+        assert rv.status_code == 422
+
+        self.items_to_delete = [dataset]
+
     def test_update_dataset_item_gamma(self):
         """
         Dataset API: Test update dataset item gamma
