@@ -18,7 +18,7 @@
  */
 import { useState, MouseEventHandler, FC } from 'react';
 
-import { t } from '@superset-ui/core';
+import { css, t } from '@superset-ui/core';
 import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
 import { TooltipContent } from './TooltipContent';
@@ -45,7 +45,9 @@ const CacheLabel: FC<CacheLabelProps> = ({
     >
       <Label
         className={`${className}`}
-        css={{ gap: '2px' }}
+        css={theme => css`
+          gap: ${theme.gridUnit * 0.5}px;
+        `}
         type={labelType}
         onClick={onClick}
         onMouseOver={() => setHovered(true)}
