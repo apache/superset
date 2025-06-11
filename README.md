@@ -17,6 +17,28 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+This is a fork of Superset to fix some issues that we encounted.
+
+We use a custom version number specified in `superset-frontend/package.json` (`version` key). Confusingly, Superset's `setup.py` parses the `package.json` and uses that version number for the Python wheel.
+
+Make sure to bump the version number before making a new build. To create a new build of this fork:
+
+```
+virtualenv .env
+.env/bin/activate
+pip install -r requirements/development.txt
+pip install -e .
+cd superset-frontend
+npm run build
+cd ..
+pip install build
+python -m build --wheel
+```
+
+You'll find a `*.whl` in `dist/` like `apache_superset-5.0.0rc4+sl.1-py3-none-any.whl`.
+
+---
+
 # Superset
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/license/apache-2-0)
