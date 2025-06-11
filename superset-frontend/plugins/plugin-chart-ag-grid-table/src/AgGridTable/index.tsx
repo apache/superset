@@ -96,6 +96,7 @@ const StyledContainer = styled.div`
     .ag-row,
     .ag-spanned-row {
       font-size: 12px;
+      font-weight: 500;
     }
 
     .ag-root-wrapper {
