@@ -37,6 +37,7 @@ import {
   seriesOrderSection,
   percentageThresholdControl,
   xAxisLabelRotation,
+  xAxisLabelInterval,
   truncateXAxis,
   xAxisBounds,
   minorTicks,
@@ -195,6 +196,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [xAxisLabelRotation],
+        [xAxisLabelInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],

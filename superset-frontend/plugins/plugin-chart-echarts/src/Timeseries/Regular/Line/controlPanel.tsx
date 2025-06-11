@@ -41,6 +41,7 @@ import {
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
+  xAxisLabelInterval,
 } from '../../../controls';
 
 const {
@@ -183,6 +184,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [xAxisLabelRotation],
+        [xAxisLabelInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
