@@ -47,7 +47,7 @@ from flask_appbuilder.widgets import ListWidget
 from flask_babel import lazy_gettext as _
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, inspect, or_
+from sqlalchemy import and_, inspect, or_, select
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
@@ -1957,8 +1957,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return
         # Delete Any Role to PVM association
         connection.execute(
-            assoc_permissionview_role.delete().where(
-                assoc_permissionview_role.c.permission_view_id == pvm.id
+            assoc_permissionview_role.c.permission_view_id.in_(
+                select(permission_view_menu_table.c.id).where(
+                    permission_view_menu_table.c.view_menu_id == pvm.view_menu_id
+                )
             )
         )
         # Delete the database access PVM
