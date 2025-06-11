@@ -21,7 +21,7 @@ import { core } from "@apache-superset/core";
 import Main from "./Main";
 
 export const activate = () => {
-  core.registerView("dataset_references.main", <Main />);
+  core.registerViewProvider("dataset_references.main", () => <Main />);
 };
 
 export const deactivate = () => {};

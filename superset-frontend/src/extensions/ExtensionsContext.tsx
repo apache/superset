@@ -26,8 +26,9 @@ import React, {
 import { setExtensionsContextValue } from './ExtensionsContextUtils';
 
 export interface ExtensionsContextType {
-  views: { [id: string]: ReactElement };
-  registerView: (id: string, view: ReactElement) => void;
+  viewProviders: { [id: string]: () => ReactElement };
+  registerViewProvider: (id: string, viewProvider: () => ReactElement) => void;
+  unregisterViewProvider: (id: string) => void;
 }
 
 const ExtensionsContext = createContext<ExtensionsContextType | undefined>(
@@ -35,14 +36,28 @@ const ExtensionsContext = createContext<ExtensionsContextType | undefined>(
 );
 
 export const ExtensionsProvider: React.FC = ({ children }) => {
-  const [views, setViews] = useState<{ [id: string]: ReactElement }>({});
+  const [viewProviders, setViewProviders] = useState<{
+    [id: string]: () => ReactElement;
+  }>({});
 
-  const registerView = (id: string, view: ReactElement) => {
-    setViews(prevViews => ({ ...prevViews, [id]: view }));
+  const registerViewProvider = (
+    id: string,
+    viewProvider: () => ReactElement,
+  ) => {
+    setViewProviders(prev => ({ ...prev, [id]: viewProvider }));
+  };
+
+  const unregisterViewProvider = (id: string) => {
+    setViewProviders(prev => {
+      const { [id]: _, ...rest } = prev;
+      return rest;
+    });
   };
 
   return (
-    <ExtensionsContext.Provider value={{ views, registerView }}>
+    <ExtensionsContext.Provider
+      value={{ viewProviders, registerViewProvider, unregisterViewProvider }}
+    >
       {children}
     </ExtensionsContext.Provider>
   );

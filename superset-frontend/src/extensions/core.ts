@@ -161,12 +161,17 @@ export class Tab implements sqlLabType.Tab {
   }
 }
 
-const registerView: typeof coreType.registerView = (id, view) => {
-  const { registerView: register } = getExtensionsContextValue();
-  register(id, view);
+const registerViewProvider: typeof coreType.registerViewProvider = (
+  id,
+  viewProvider,
+) => {
+  const { registerViewProvider: register, unregisterViewProvider: unregister } =
+    getExtensionsContextValue();
+  register(id, viewProvider);
+  return new Disposable(() => unregister(id));
 };
 
 export const core: typeof coreType = {
-  registerView,
+  registerViewProvider,
   Disposable,
 };

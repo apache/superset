@@ -18,23 +18,24 @@
  */
 
 // eslint-disable-next-line no-restricted-syntax
-import React from 'react';
-import { commands, core } from '@apache-superset/core';
-import Component from './Component';
-import { formatDatabase } from './formatter';
-import { Extension1API } from './publicAPI';
-import { copy_query, clear, prettify, refresh } from './commands';
+import React from "react";
+import { commands, core } from "@apache-superset/core";
+import Component from "./Component";
+import { formatDatabase } from "./formatter";
+import { Extension1API } from "./publicAPI";
+import { copy_query, clear, prettify, refresh } from "./commands";
 
+// TODO: Move to context
 const disposables: core.Disposable[] = [];
 
 export const activate = () => {
-  core.registerView('extension1.component', <Component />);
+  core.registerViewProvider("extension1.component", () => <Component />);
 
   disposables.push(
-    commands.registerCommand('extension1.copy_query', copy_query),
-    commands.registerCommand('extension1.clear', clear),
-    commands.registerCommand('extension1.prettify', prettify),
-    commands.registerCommand('extension1.refresh', refresh),
+    commands.registerCommand("extension1.copy_query", copy_query),
+    commands.registerCommand("extension1.clear", clear),
+    commands.registerCommand("extension1.prettify", prettify),
+    commands.registerCommand("extension1.refresh", refresh)
   );
 
   return {
@@ -43,6 +44,6 @@ export const activate = () => {
 };
 
 export const deactivate = () => {
-  disposables.forEach(disposable => disposable.dispose());
+  disposables.forEach((disposable) => disposable.dispose());
   disposables.length = 0;
 };

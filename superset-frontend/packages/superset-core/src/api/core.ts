@@ -113,4 +113,7 @@ export interface Extension {
   extensionDependencies: string[];
 }
 
-export declare const registerView: (id: string, view: ReactElement) => void;
+export declare const registerViewProvider: (
+  id: string,
+  viewProvider: () => ReactElement,
+) => Disposable;

@@ -25,6 +25,7 @@ import {
   extensions,
   sqlLab,
 } from 'src/extensions';
+import ExtensionsManager from './ExtensionsManager';
 
 declare global {
   interface Window {
@@ -39,7 +40,7 @@ declare global {
   }
 }
 
-export default function setupExtensionsAPI() {
+export default function setupExtensions() {
   window.superset = {
     ...supersetCore,
     authentication,
@@ -49,4 +50,10 @@ export default function setupExtensionsAPI() {
     extensions,
     sqlLab,
   };
+
+  try {
+    ExtensionsManager.getInstance().initialize();
+  } catch (error) {
+    console.error('Error setting up extensions:', error);
+  }
 }

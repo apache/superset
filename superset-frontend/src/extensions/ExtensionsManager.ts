@@ -28,14 +28,11 @@ import {
   ViewContribution,
   core,
 } from '@apache-superset/core';
-import { Module } from './types';
 
 class ExtensionsManager {
   private static instance: ExtensionsManager;
 
   private extensionIndex: Map<string, core.Extension> = new Map();
-
-  private extensionsByModule: Map<Module, core.Extension[]> = new Map();
 
   private menuIndex: Map<string, MenuContribution> = new Map();
 
@@ -54,16 +51,15 @@ class ExtensionsManager {
   }
 
   /**
-   * Initializes extensions for a given module.
-   * @param module The module to load extensions for.
+   * Initializes extensions.
    * @throws Error if initialization fails.
    */
-  public async initialize(module: Module): Promise<void> {
+  public async initialize(): Promise<void> {
     if (!isFeatureEnabled(FeatureFlag.EnableExtensions)) {
       return;
     }
     const response = await SupersetClient.get({
-      endpoint: `/api/v1/extensions/?module=${module}`,
+      endpoint: `/api/v1/extensions/`,
     });
     const extensions: core.Extension[] = response.json.result;
 
@@ -72,12 +68,9 @@ class ExtensionsManager {
     );
 
     loadedExtensions.forEach(extension => {
+      // TODO: Change activation to be based on activation events
       this.activateExtension(extension);
       this.extensionIndex.set(extension.name, extension);
-      this.extensionsByModule.set(module, [
-        ...(this.extensionsByModule.get(module) || []),
-        extension,
-      ]);
       this.indexContributions(extension);
     });
   }
@@ -149,18 +142,6 @@ class ExtensionsManager {
       }
     }
     return false;
-  }
-
-  /**
-   * Deactivates all extensions of a particular module.
-   */
-  public deactivateExtensionsByModule(module: Module): void {
-    const extensions = this.extensionsByModule.get(module);
-    if (extensions) {
-      extensions.forEach(extension => {
-        this.deactivateExtensionByName(extension.name);
-      });
-    }
   }
 
   /**

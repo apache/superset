@@ -193,14 +193,14 @@ def copy_backend_files(cwd: Path) -> None:
             shutil.copy2(f, tgt)
 
 
-def rebuild_frontend(cwd: Path, frontend_dir: Path) -> str:
+def rebuild_frontend(cwd: Path, frontend_dir: Path) -> str | None:
     """Clean and rebuild frontend, return the remoteEntry filename."""
     clean_dist_frontend(cwd)
 
     res = run_frontend_build(frontend_dir)
     if res.returncode != 0:
         click.secho("❌ Frontend build failed", fg="red")
-        sys.exit(1)
+        return None
 
     remote_entry = copy_frontend_dist(cwd)
     click.secho("✅ Frontend rebuilt", fg="green")
@@ -247,15 +247,15 @@ def build(ctx: click.Context) -> None:
     init_frontend_deps(frontend_dir)
     clean_dist(cwd)
     remote_entry = rebuild_frontend(cwd, frontend_dir)
+    if remote_entry is not None:
+        pyproject = read_toml(backend_dir / "pyproject.toml")
+        if pyproject:
+            rebuild_backend(cwd)
 
-    pyproject = read_toml(backend_dir / "pyproject.toml")
-    if pyproject:
-        rebuild_backend(cwd)
+        manifest = build_manifest(cwd, remote_entry)
+        write_manifest(cwd, manifest)
 
-    manifest = build_manifest(cwd, remote_entry)
-    write_manifest(cwd, manifest)
-
-    click.secho("✅ Full build completed in dist/", fg="green")
+        click.secho("✅ Full build completed in dist/", fg="green")
 
 
 @app.command()
@@ -320,8 +320,9 @@ def dev(ctx: click.Context) -> None:
 
     def frontend_watcher() -> None:
         remote_entry = rebuild_frontend(cwd, frontend_dir)
-        manifest = build_manifest(cwd, remote_entry)
-        write_manifest(cwd, manifest)
+        if remote_entry is not None:
+            manifest = build_manifest(cwd, remote_entry)
+            write_manifest(cwd, manifest)
 
     def backend_watcher() -> None:
         rebuild_backend(cwd)

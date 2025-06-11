@@ -18,15 +18,15 @@
  */
 
 // eslint-disable-next-line no-restricted-syntax
-import React from 'react';
-import { core } from '@apache-superset/core';
-import ExtensionExample from './Example';
+import React from "react";
+import { core } from "@apache-superset/core";
+import ExtensionExample from "./Example";
 
 export const activate = () => {
-  core.registerView('extension2.example', <ExtensionExample />);
-  console.log('Extension 2 activated');
+  core.registerViewProvider("extension2.example", () => <ExtensionExample />);
+  console.log("Extension 2 activated");
 };
 
 export const deactivate = () => {
-  console.log('Extension 2 deactivated');
+  console.log("Extension 2 deactivated");
 };

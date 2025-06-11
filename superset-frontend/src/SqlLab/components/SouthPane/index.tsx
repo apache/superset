@@ -98,7 +98,7 @@ const SouthPane = ({
   const dispatch = useDispatch();
   const contributions =
     ExtensionsManager.getInstance().getViewContributions('sqllab.panels');
-  const { views } = useExtensionsContext();
+  const { viewProviders } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
@@ -190,7 +190,7 @@ const SouthPane = ({
             closable={false}
             forceRender
           >
-            {views[contribution.id] || <ExtensionPlaceholder />}
+            {viewProviders[contribution.id]?.() || <ExtensionPlaceholder />}
           </Tabs.TabPane>
         ))}
         {pinnedTables.map(({ id, dbId, catalog, schema, name }) => (
