@@ -71,6 +71,7 @@ import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { ModifiedInfo } from 'src/components/AuditInfo';
+import BulkUpdateOwnersModal from 'src/features/bulkUpdate/BulkUpdateOwnersModal';
 import { navigateTo } from 'src/utils/navigationUtils';
 
 const PAGE_SIZE = 25;
@@ -195,6 +196,9 @@ function DashboardList(props: DashboardListProps) {
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [showBulkUpdateOwnersModal, setShowBulkUpdateOwnersModal] =
+    useState<boolean>(false);
+  const [bulkSelected, setBulkSelected] = useState<Dashboard[]>([]);
 
   const openDashboardImportModal = () => {
     showImportModal(true);
@@ -210,6 +214,16 @@ function DashboardList(props: DashboardListProps) {
     addSuccessToast(t('Dashboard imported'));
   };
 
+  const openBulkUpdateOwnersModal = () => {
+    setBulkSelected(dashboards);
+    setShowBulkUpdateOwnersModal(true);
+  };
+
+  const closeBulkUpdateOwnersModal = () => {
+    setShowBulkUpdateOwnersModal(false);
+    refreshData();
+    setBulkSelected([]);
+  };
   // TODO: Fix usage of localStorage keying on the user id
   const userKey = dangerouslyGetItemDoNotUse(user?.userId?.toString(), null);
 
@@ -745,6 +759,14 @@ function DashboardList(props: DashboardListProps) {
               onSelect: handleBulkDashboardExport,
             });
           }
+          if (canEdit) {
+            bulkActions.push({
+              key: 'updateOwners',
+              name: t('Update Owners'),
+              type: 'primary',
+              onSelect: openBulkUpdateOwnersModal,
+            });
+          }
           return (
             <>
               {dashboardToEdit && (
@@ -814,7 +836,16 @@ function DashboardList(props: DashboardListProps) {
           );
         }}
       </ConfirmStatusChange>
-
+      <BulkUpdateOwnersModal
+        show={showBulkUpdateOwnersModal}
+        onHide={closeBulkUpdateOwnersModal}
+        selected={bulkSelected}
+        resourceName="dashboard"
+        resourceLabel={t('dashboard')}
+        refreshData={refreshData}
+        addSuccessToast={addSuccessToast}
+        addDangerToast={addDangerToast}
+      />
       <ImportModelsModal
         resourceName="dashboard"
         resourceLabel={t('dashboard')}
