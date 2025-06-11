@@ -63,6 +63,9 @@ export const asyncRender = props =>
   );
 
 describe('DatasourceEditor', () => {
+  beforeAll(() => {
+    jest.clearAllMocks();
+  });
   beforeEach(async () => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
     await asyncRender({
