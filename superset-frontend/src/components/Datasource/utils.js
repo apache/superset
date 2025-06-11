@@ -105,6 +105,7 @@ export function updateColumns(prevCols, newCols, addSuccessToast) {
         'Modified 1 column in the virtual dataset',
         'Modified %s columns in the virtual dataset',
         columnChanges.modified.length,
+        columnChanges.modified.length,
       ),
     );
   }
@@ -114,6 +115,7 @@ export function updateColumns(prevCols, newCols, addSuccessToast) {
         'Removed 1 column from the virtual dataset',
         'Removed %s columns from the virtual dataset',
         columnChanges.removed.length,
+        columnChanges.removed.length,
       ),
     );
   }
@@ -122,6 +124,7 @@ export function updateColumns(prevCols, newCols, addSuccessToast) {
       tn(
         'Added 1 new column to the virtual dataset',
         'Added %s new columns to the virtual dataset',
+        columnChanges.added.length,
         columnChanges.added.length,
       ),
     );
