@@ -39,7 +39,6 @@ import {
   CellClickedEvent,
 } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
-import './styles/ag-grid.css';
 import { type FunctionComponent } from 'react';
 import { styled, css, JsonObject, DataRecordValue } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
@@ -91,6 +90,16 @@ const StyledContainer = styled.div`
     .search-container {
       display: flex;
       justify-content: flex-end;
+    }
+
+    .ag-header,
+    .ag-row,
+    .ag-spanned-row {
+      font-size: 12px;
+    }
+
+    .ag-root-wrapper {
+      border-radius: 2px;
     }
 
     .search-by-text {
@@ -389,6 +398,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
           <AgGridReact
             ref={gridRef}
             rowData={data}
+            rowHeight={30}
             columnDefs={colDefsFromProps}
             defaultColDef={defaultColDef}
             rowSelection="multiple"

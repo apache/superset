@@ -131,6 +131,12 @@ function getValueRange(
   return null;
 }
 
+function calculateMinWidth(headerName: string): number {
+  const charCount = headerName.length === 1 ? 4 : headerName.length;
+  const baseWidth = charCount * 18 + 64;
+  return Math.max(baseWidth, 100);
+}
+
 export const transformData = (
   columns: InputColumn[],
   data: InputData[],
@@ -154,15 +160,17 @@ export const transformData = (
     const colId = col?.key.includes('Main')
       ? col?.key.replace('Main', '').trim()
       : col?.key;
+    const headerLabel =
+      col?.originalLabel && col?.key.includes('Main')
+        ? col?.originalLabel
+        : col.label;
     return {
       field: colId,
-      headerName:
-        col?.originalLabel && col?.key.includes('Main')
-          ? col?.originalLabel
-          : col.label,
-      ...(col?.config?.columnWidth && {
-        minWidth: col?.config?.columnWidth,
-      }),
+      headerName: headerLabel,
+      minWidth: Math.max(
+        calculateMinWidth(headerLabel),
+        col?.config?.columnWidth || 0,
+      ),
       customMeta: {
         isMetric: col?.isMetric,
       },
