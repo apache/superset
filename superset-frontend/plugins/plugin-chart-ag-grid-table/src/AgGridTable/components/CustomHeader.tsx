@@ -21,8 +21,12 @@
 
 import { useRef, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
-import { IHeaderParams, Column } from 'ag-grid-community';
+import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
+import { IHeaderParams, Column, ColDef } from 'ag-grid-community';
 import CustomPopover from './CustomPopover';
 
 const ThreeDots = ({ size = 16, color = 'black' }) => (
@@ -113,6 +117,20 @@ const MenuContainer = styled.div`
   }
 `;
 
+const ToggleButton = styled.div`
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 2px;
+  margin-left: 4px;
+  transition: transform 0.2s;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 4px;
+  }
+`;
+
 // Export the interfaces
 export interface SortState {
   colId: string;
@@ -127,6 +145,11 @@ export interface CustomContext {
 export interface CustomHeaderParams extends IHeaderParams {
   context: CustomContext;
   column: Column;
+}
+
+interface UserProvidedColDef extends ColDef {
+  isMain?: boolean;
+  timeComparisonKey?: string;
 }
 
 const getSortIcon = (
@@ -157,23 +180,33 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const filterContainerRef = useRef<HTMLDivElement>(null);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const currentSort = initialSortState?.[0];
+  const [areComparisonColumnsVisible, setAreComparisonColumnsVisible] =
+    useState(true);
+
+  const userColumn = column.getUserProvidedColDef() as UserProvidedColDef;
+  const isMain = userColumn?.isMain;
+  const timeComparisonKey = userColumn?.timeComparisonKey || '';
+  const sortKey = isMain ? colId.replace('Main', '').trim() : colId;
 
   const ClearSort = () => {
-    onColumnHeaderClicked({ column: { colId, sort: null } });
+    onColumnHeaderClicked({ column: { colId: sortKey, sort: null } });
     setSort(null, false);
   };
 
   const handleSortAsc = () => {
-    onColumnHeaderClicked({ column: { colId, sort: 'asc' } });
+    onColumnHeaderClicked({ column: { colId: sortKey, sort: 'asc' } });
     setSort('asc', false);
   };
 
   const handleSortDesc = () => {
-    onColumnHeaderClicked({ column: { colId, sort: 'desc' } });
+    onColumnHeaderClicked({ column: { colId: sortKey, sort: 'desc' } });
     setSort('desc', false);
   };
 
   const handleSort = () => {
+    const userColumn = column.getUserProvidedColDef() as UserProvidedColDef;
+    if (!userColumn?.isMain && userColumn?.timeComparisonKey) return;
+
     if (!enableSorting) return;
 
     const current = initialSortState?.[0];
@@ -204,7 +237,24 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     event.stopPropagation();
     setIsMenuVisible(!isMenuVisible);
   };
-  // if there is no current sort or if the current sort is our sort & the direction is descending
+
+  const handleToggleComparison = (event: React.MouseEvent) => {
+    event.stopPropagation();
+
+    const allColumns = api.getColumnDefs();
+    const timeComparisonColumns = allColumns?.filter(
+      col => col.timeComparisonKey === timeComparisonKey && !col.isMain,
+    );
+    const timeComparsionColIds = timeComparisonColumns?.map(
+      item => item?.colId || '',
+    ) as string[];
+    api.setColumnsVisible(timeComparsionColIds, !areComparisonColumnsVisible);
+
+    api.sizeColumnsToFit();
+
+    setAreComparisonColumnsVisible(!areComparisonColumnsVisible);
+  };
+
   const shouldShowAsc =
     !currentSort ||
     (currentSort?.colId === colId && currentSort?.sort === 'desc') ||
@@ -231,15 +281,6 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
           <span style={{ fontSize: 16 }}>↻</span> Clear Sort
         </div>
       )}
-      {/* <div className="menu-divider" />
-      <div className="menu-item">
-        <span>📌</span> Pin Column
-      </div>
-      <div className="menu-item">Autosize This Column</div>
-      <div className="menu-item">Autosize All Columns</div>
-      <div className="menu-divider" />
-      <div className="menu-item">Choose Columns</div>
-      <div className="menu-item">Reset Columns</div> */}
     </MenuContainer>
   );
 
@@ -250,6 +291,25 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
         <SortIconWrapper>
           {getSortIcon(initialSortState, colId)}
         </SortIconWrapper>
+        {isMain && timeComparisonKey && (
+          <ToggleButton
+            onClick={handleToggleComparison}
+            title={
+              areComparisonColumnsVisible
+                ? 'Hide comparison columns'
+                : 'Show comparison columns'
+            }
+          >
+            <PlusOutlined
+              style={{
+                transform: areComparisonColumnsVisible
+                  ? 'rotate(45deg)'
+                  : 'rotate(0deg)',
+                transition: 'transform 0.2s',
+              }}
+            />
+          </ToggleButton>
+        )}
       </HeaderContainer>
 
       <CustomPopover

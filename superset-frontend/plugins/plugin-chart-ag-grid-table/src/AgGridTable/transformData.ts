@@ -32,6 +32,7 @@ export interface InputColumn {
   isPercentMetric: boolean;
   config: Record<string, any>;
   formatter?: Function;
+  originalLabel?: string;
 }
 
 interface InputData {
@@ -62,6 +63,21 @@ function cellWidth({
   const tot = posExtent + negExtent;
   const perc2 = Math.round((Math.abs(value) / tot) * 100);
   return perc2;
+}
+
+function renameMainKeys(data: Record<string, any>[]): Record<string, any>[] {
+  return data.map(row => {
+    const newRow: Record<string, any> = {};
+    for (const key in row) {
+      if (key.startsWith('Main ')) {
+        const newKey = key.replace('Main ', '');
+        newRow[newKey] = row[key];
+      } else {
+        newRow[key] = row[key];
+      }
+    }
+    return newRow;
+  });
 }
 
 /**
@@ -132,13 +148,18 @@ export const transformData = (
         : config.alignPositiveNegative;
     const valueRange =
       showCellBars &&
-      config.showCellBars &&
+      (config.showCellBars || config.showCellBars === undefined) &&
       (isMetric || isRawRecords || isPercentMetric) &&
       getValueRange(col.key, alignPositiveNegative, data);
-
+    const colId = col?.key.includes('Main')
+      ? col?.key.replace('Main', '').trim()
+      : col?.key;
     return {
-      field: col.key,
-      headerName: col.label,
+      field: colId,
+      headerName:
+        col?.originalLabel && col?.key.includes('Main')
+          ? col?.originalLabel
+          : col.label,
       ...(col?.config?.columnWidth && {
         minWidth: col?.config?.columnWidth,
       }),
@@ -203,6 +224,13 @@ export const transformData = (
         const formattedVal = col?.formatter(params?.value);
         return formattedVal;
       },
+      ...(col?.originalLabel && {
+        timeComparisonKey: col?.originalLabel,
+        ...(col?.key &&
+          col?.key.includes('Main') && {
+            isMain: true,
+          }),
+      }),
       // Add number specific properties for numeric columns
       ...(col.isNumeric && {
         type: 'rightAligned',
@@ -224,7 +252,7 @@ export const transformData = (
   };
 
   return {
-    rowData: data,
+    rowData: renameMainKeys(data),
     colDefs,
     defaultColDef,
   };

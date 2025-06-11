@@ -34,6 +34,7 @@ import {
   formatSelectOptions,
   getStandardizedControls,
   QueryModeLabel,
+  sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import {
@@ -729,6 +730,14 @@ const config: ControlPanelConfig = {
           },
         ],
       ],
+    },
+    {
+      ...sections.timeComparisonControls({
+        multi: false,
+        showCalculationType: false,
+        showFullChoices: false,
+      }),
+      visibility: isAggMode,
     },
   ],
   formDataOverrides: formData => ({

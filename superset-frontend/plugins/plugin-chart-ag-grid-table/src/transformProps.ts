@@ -18,8 +18,11 @@
  */
 import memoizeOne from 'memoize-one';
 import {
+  ComparisonType,
+  Currency,
   CurrencyFormatter,
   DataRecord,
+  ensureIsArray,
   extractTimegrain,
   GenericDataType,
   getMetricLabel,
@@ -29,17 +32,19 @@ import {
   NumberFormats,
   QueryMode,
   SMART_DATE_ID,
+  t,
   TimeFormats,
   TimeFormatter,
 } from '@superset-ui/core';
 
-import { isEqual } from 'lodash';
+import { isEmpty, isEqual } from 'lodash';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {
   DataColumnMeta,
   TableChartProps,
   AgGridTableChartTransformedProps,
+  TableColumnConfig,
 } from './types';
 
 const { PERCENT_3_POINT } = NumberFormats;
@@ -61,6 +66,201 @@ function isPositiveNumber(value: string | number | null | undefined) {
     num > 0
   );
 }
+
+const getComparisonColConfig = (
+  label: string,
+  parentColKey: string,
+  columnConfig: Record<string, TableColumnConfig>,
+) => {
+  const comparisonKey = `${label} ${parentColKey}`;
+  const comparisonColConfig = columnConfig[comparisonKey] || {};
+  return comparisonColConfig;
+};
+
+const getComparisonColFormatter = (
+  label: string,
+  parentCol: DataColumnMeta,
+  columnConfig: Record<string, TableColumnConfig>,
+  savedFormat: string | undefined,
+  savedCurrency: Currency | undefined,
+) => {
+  const currentColConfig = getComparisonColConfig(
+    label,
+    parentCol.key,
+    columnConfig,
+  );
+  const hasCurrency = currentColConfig.currencyFormat?.symbol;
+  const currentColNumberFormat =
+    // fallback to parent's number format if not set
+    currentColConfig.d3NumberFormat || parentCol.config?.d3NumberFormat;
+  let { formatter } = parentCol;
+  if (label === '%') {
+    formatter = getNumberFormatter(currentColNumberFormat || PERCENT_3_POINT);
+  } else if (currentColNumberFormat || hasCurrency) {
+    const currency = currentColConfig.currencyFormat || savedCurrency;
+    const numberFormat = currentColNumberFormat || savedFormat;
+    formatter = currency
+      ? new CurrencyFormatter({
+          d3Format: numberFormat,
+          currency,
+        })
+      : getNumberFormatter(numberFormat);
+  }
+  return formatter;
+};
+
+const calculateDifferences = (
+  originalValue: number,
+  comparisonValue: number,
+) => {
+  const valueDifference = originalValue - comparisonValue;
+  let percentDifferenceNum;
+  if (!originalValue && !comparisonValue) {
+    percentDifferenceNum = 0;
+  } else if (!originalValue || !comparisonValue) {
+    percentDifferenceNum = originalValue ? 1 : -1;
+  } else {
+    percentDifferenceNum =
+      (originalValue - comparisonValue) / Math.abs(comparisonValue);
+  }
+  return { valueDifference, percentDifferenceNum };
+};
+
+const processComparisonDataRecords = memoizeOne(
+  function processComparisonDataRecords(
+    originalData: DataRecord[] | undefined,
+    originalColumns: DataColumnMeta[],
+    comparisonSuffix: string,
+  ) {
+    // Transform data
+    return originalData?.map(originalItem => {
+      const transformedItem: DataRecord = {};
+      originalColumns.forEach(origCol => {
+        if (
+          (origCol.isMetric || origCol.isPercentMetric) &&
+          !origCol.key.includes(comparisonSuffix) &&
+          origCol.isNumeric
+        ) {
+          const originalValue = originalItem[origCol.key] || 0;
+          const comparisonValue = origCol.isMetric
+            ? originalItem?.[`${origCol.key}__${comparisonSuffix}`] || 0
+            : originalItem[`%${origCol.key.slice(1)}__${comparisonSuffix}`] ||
+              0;
+          const { valueDifference, percentDifferenceNum } =
+            calculateDifferences(
+              originalValue as number,
+              comparisonValue as number,
+            );
+
+          transformedItem[`Main ${origCol.key}`] = originalValue;
+          transformedItem[`# ${origCol.key}`] = comparisonValue;
+          transformedItem[`△ ${origCol.key}`] = valueDifference;
+          transformedItem[`% ${origCol.key}`] = percentDifferenceNum;
+        }
+      });
+
+      Object.keys(originalItem).forEach(key => {
+        const isMetricOrPercentMetric = originalColumns.some(
+          col => col.key === key && (col.isMetric || col.isPercentMetric),
+        );
+        if (!isMetricOrPercentMetric) {
+          transformedItem[key] = originalItem[key];
+        }
+      });
+
+      return transformedItem;
+    });
+  },
+);
+
+const processComparisonColumns = (
+  columns: DataColumnMeta[],
+  props: TableChartProps,
+  comparisonSuffix: string,
+) =>
+  columns
+    .map(col => {
+      const {
+        datasource: { columnFormats, currencyFormats },
+        rawFormData: { column_config: columnConfig = {} },
+      } = props;
+      const savedFormat = columnFormats?.[col.key];
+      const savedCurrency = currencyFormats?.[col.key];
+      const originalLabel = col.label;
+      if (
+        (col.isMetric || col.isPercentMetric) &&
+        !col.key.includes(comparisonSuffix) &&
+        col.isNumeric
+      ) {
+        return [
+          {
+            ...col,
+            originalLabel,
+            label: t('Main'),
+            key: `${t('Main')} ${col.key}`,
+            config: getComparisonColConfig(t('Main'), col.key, columnConfig),
+            formatter: getComparisonColFormatter(
+              t('Main'),
+              col,
+              columnConfig,
+              savedFormat,
+              savedCurrency,
+            ),
+          },
+          {
+            ...col,
+            originalLabel,
+            label: `#`,
+            key: `# ${col.key}`,
+            config: getComparisonColConfig(`#`, col.key, columnConfig),
+            formatter: getComparisonColFormatter(
+              `#`,
+              col,
+              columnConfig,
+              savedFormat,
+              savedCurrency,
+            ),
+          },
+          {
+            ...col,
+            originalLabel,
+            label: `△`,
+            key: `△ ${col.key}`,
+            config: getComparisonColConfig(`△`, col.key, columnConfig),
+            formatter: getComparisonColFormatter(
+              `△`,
+              col,
+              columnConfig,
+              savedFormat,
+              savedCurrency,
+            ),
+          },
+          {
+            ...col,
+            originalLabel,
+            label: `%`,
+            key: `% ${col.key}`,
+            config: getComparisonColConfig(`%`, col.key, columnConfig),
+            formatter: getComparisonColFormatter(
+              `%`,
+              col,
+              columnConfig,
+              savedFormat,
+              savedCurrency,
+            ),
+          },
+        ];
+      }
+      if (
+        !col.isMetric &&
+        !col.isPercentMetric &&
+        !col.key.includes(comparisonSuffix)
+      ) {
+        return [col];
+      }
+      return [];
+    })
+    .flat();
 
 const serverPageLengthMap = new Map();
 
@@ -235,12 +435,19 @@ const transformProps = (
     order_desc: sortDesc = false,
     allow_rearrange_columns: allowRearrangeColumns,
     slice_id,
+    time_compare,
+    comparison_type,
     server_pagination: serverPagination = false,
     server_page_length: serverPageLength = 10,
     query_mode: queryMode,
     align_pn: alignPositiveNegative = true,
     show_cell_bars: showCellBars = true,
   } = formData;
+
+  const isUsingTimeComparison =
+    !isEmpty(time_compare) &&
+    queryMode === QueryMode.Aggregate &&
+    comparison_type === ComparisonType.Values;
 
   let hasServerPageLengthChanged = false;
 
@@ -254,6 +461,42 @@ const transformProps = (
 
   const timeGrain = extractTimegrain(formData);
 
+  const nonCustomNorInheritShifts = ensureIsArray(formData.time_compare).filter(
+    (shift: string) => shift !== 'custom' && shift !== 'inherit',
+  );
+  const customOrInheritShifts = ensureIsArray(formData.time_compare).filter(
+    (shift: string) => shift === 'custom' || shift === 'inherit',
+  );
+
+  let timeOffsets: string[] = [];
+
+  if (isUsingTimeComparison && !isEmpty(nonCustomNorInheritShifts)) {
+    timeOffsets = nonCustomNorInheritShifts;
+  }
+
+  // Shifts for custom or inherit time comparison
+  if (isUsingTimeComparison && !isEmpty(customOrInheritShifts)) {
+    if (customOrInheritShifts.includes('custom')) {
+      timeOffsets = timeOffsets.concat([formData.start_date_offset]);
+    }
+    if (customOrInheritShifts.includes('inherit')) {
+      timeOffsets = timeOffsets.concat(['inherit']);
+    }
+  }
+  const comparisonSuffix = isUsingTimeComparison
+    ? ensureIsArray(timeOffsets)[0]
+    : '';
+
+  let comparisonColumns: DataColumnMeta[] = [];
+
+  if (isUsingTimeComparison) {
+    comparisonColumns = processComparisonColumns(
+      columns,
+      chartProps,
+      comparisonSuffix,
+    );
+  }
+
   let baseQuery;
   let countQuery;
   let rowCount;
@@ -266,9 +509,14 @@ const transformProps = (
   }
 
   const data = processDataRecords(baseQuery?.data, columns);
+  const comparisonData = processComparisonDataRecords(
+    baseQuery?.data,
+    columns,
+    comparisonSuffix,
+  );
 
-  const passedData = data;
-  const passedColumns = columns;
+  const passedData = isUsingTimeComparison ? comparisonData || [] : data;
+  const passedColumns = isUsingTimeComparison ? comparisonColumns : columns;
 
   const hasPageLength = isPositiveNumber(pageLength);
 
