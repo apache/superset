@@ -113,8 +113,13 @@ function cellBackground({
   value: number;
   colorPositiveNegative: boolean;
 }) {
-  const r = colorPositiveNegative && value < 0 ? 150 : 0;
-  return `rgba(${r},0,0,0.2)`;
+  if (!colorPositiveNegative) {
+    return 'rgba(0,0,0,0.2)'; // transparent or neutral
+  }
+
+  const r = value < 0 ? 150 : 0;
+  const g = value >= 0 ? 150 : 0;
+  return `rgba(${r},${g},0,0.2)`;
 }
 
 function getValueRange(
@@ -144,6 +149,7 @@ export const transformData = (
   isRawRecords: boolean,
   defaultAlignPN: boolean,
   showCellBars: boolean,
+  colorPositiveNegative: boolean,
   emitCrossFilters?: boolean,
 ) => {
   const colDefs: ColDef[] = columns.map(col => {
@@ -189,7 +195,7 @@ export const transformData = (
         });
         const background = cellBackground({
           value: value as number,
-          colorPositiveNegative: false,
+          colorPositiveNegative,
         });
 
         return CellBarRenderer({

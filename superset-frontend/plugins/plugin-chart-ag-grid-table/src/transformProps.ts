@@ -442,6 +442,7 @@ const transformProps = (
     query_mode: queryMode,
     align_pn: alignPositiveNegative = true,
     show_cell_bars: showCellBars = true,
+    color_pn: colorPositiveNegative = true,
   } = formData;
 
   const isUsingTimeComparison =
@@ -545,6 +546,7 @@ const transformProps = (
     alignPositiveNegative,
     showCellBars,
     isUsingTimeComparison,
+    colorPositiveNegative,
   };
 };
 
