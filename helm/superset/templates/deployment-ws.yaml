@@ -60,6 +60,9 @@ spec:
           {{- toYaml .Values.supersetWebsockets.podLabels | nindent 8 }}
         {{- end }}
     spec:
+      {{- if .Values.supersetWebsockets.deploymentAdditionalPodSpec }}
+      {{- tpl (toYaml .Values.supersetNode.deploymentAdditionalPodSpec) . | nindent 6 }}
+      {{- end }}
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
       serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
