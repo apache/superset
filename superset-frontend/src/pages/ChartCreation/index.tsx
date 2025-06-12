@@ -301,7 +301,7 @@ export class ChartCreation extends PureComponent<
       <span data-test="dataset-write">
         <Link to="/dataset/add/" data-test="add-chart-new-dataset">
           {t('Add a dataset')}
-        </Link>
+        </Link>{' '}
         {t('or')}{' '}
         <a
           href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
