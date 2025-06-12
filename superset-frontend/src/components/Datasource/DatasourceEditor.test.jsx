@@ -63,6 +63,9 @@ export const asyncRender = props =>
   );
 
 describe('DatasourceEditor', () => {
+  beforeAll(() => {
+    jest.clearAllMocks();
+  });
   beforeEach(async () => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
     await asyncRender({
@@ -132,7 +135,7 @@ describe('DatasourceEditor', () => {
     await userEvent.type(inputDtmFormat, 'test');
     await userEvent.type(inputCertifiedBy, 'test');
     await userEvent.type(inputCertDetails, 'test');
-  }, 60000); // 60 seconds timeout to avoid timeouts
+  }, 4000);
 
   it('can delete columns', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');

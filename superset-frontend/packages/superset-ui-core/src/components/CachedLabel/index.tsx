@@ -44,7 +44,7 @@ export const CachedLabel: FC<CacheLabelProps> = ({
         onClick={onClick}
         onMouseOver={() => setHovered(true)}
         onMouseOut={() => setHovered(false)}
-        icon={<Icons.ReloadOutlined iconSize="m" />}
+        icon={<Icons.SyncOutlined iconSize="m" />}
       >
         {t('Cached')}
       </Label>
