@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { render, waitFor, screen } from 'spec/helpers/testing-library';
 import SouthPane from 'src/SqlLab/components/SouthPane';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
@@ -125,16 +125,13 @@ test('should render offline when the state is offline', async () => {
 });
 
 test('should render empty result state when latestQuery is empty', () => {
-  const { getAllByRole } = render(
-    <SouthPane {...mockedProps} latestQueryId={undefined} />,
-    {
-      useRedux: true,
-      initialState: mockState,
-    },
-  );
+  render(<SouthPane {...mockedProps} latestQueryId={undefined} />, {
+    useRedux: true,
+    initialState: mockState,
+  });
 
-  const resultPanel = getAllByRole('tabpanel')[0];
-  expect(resultPanel).toHaveTextContent('Run a query to display results');
+  const resultPanel = screen.getByText('Run a query to display results');
+  expect(resultPanel).toBeInTheDocument();
 });
 
 test('should render tabs for table metadata view', () => {

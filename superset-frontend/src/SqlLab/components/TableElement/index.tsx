@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO: Remove fa-icon
-/* eslint-disable icons/no-fa-icons-usage */
 import { useState, useRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import type { Table } from 'src/SqlLab/types';

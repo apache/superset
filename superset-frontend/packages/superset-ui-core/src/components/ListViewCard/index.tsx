@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC } from 'react';
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, useTheme, css } from '@superset-ui/core';
 import { Skeleton } from '../Skeleton';
 import { Card } from '../Card';
 import { CertifiedBadge } from '../CertifiedBadge';
@@ -93,12 +93,14 @@ const TitleLink = styled.span`
 `;
 
 const TitleRight = styled.span`
-  position: absolute;
-  right: -1px;
-  font-weight: 400;
-  bottom: ${({ theme }) => theme.sizeUnit}px;
+  ${({ theme }) => css`
+    position: absolute;
+    right: -1px;
+    font-weight: 400;
+    bottom: ${theme.sizeUnit * 3}px;
+    right: ${theme.sizeUnit * 2}px;
+  `}
 `;
-
 const CoverFooter = styled.div`
   display: flex;
   flex-wrap: nowrap;

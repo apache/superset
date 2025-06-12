@@ -17,11 +17,8 @@
  * under the License.
  */
 import { PureComponent, ReactNode } from 'react';
-
 import { nanoid } from 'nanoid';
-
-import { t, styled, css } from '@superset-ui/core';
-
+import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import { Icons, Button, InfoTooltip } from '@superset-ui/core/components';
 import { FilterValue } from 'react-table';
 import Table, {
@@ -356,7 +353,11 @@ export default class CRUDCollection extends PureComponent<
           <span
             data-test="crud-delete-option"
             className="text-primary"
-            css={{ display: 'flex', justifyContent: 'center' }}
+            css={(theme: SupersetTheme) => css`
+              display: flex;
+              justify-content: center;
+              color: ${theme.colorTextTertiary};
+            `}
           >
             <Icons.DeleteOutlined
               aria-label="Delete item"
@@ -366,6 +367,7 @@ export default class CRUDCollection extends PureComponent<
               tabIndex={0}
               onClick={() => this.deleteItem(record.id)}
               iconSize="l"
+              iconColor="inherit"
             />
           </span>
         ),

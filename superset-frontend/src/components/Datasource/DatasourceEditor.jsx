@@ -1077,7 +1077,7 @@ class DatasourceEditor extends PureComponent {
     <div
       css={theme => css`
         position: absolute;
-        background: ${theme.colors.secondary.light5};
+        background: ${theme.colorBgLayout};
         align-items: center;
         display: flex;
         height: 100%;
@@ -1133,6 +1133,7 @@ class DatasourceEditor extends PureComponent {
       <span
         css={theme => css`
           font-size: ${theme.fontSizeSM}px;
+          margin-right: ${theme.sizeUnit}px;
         `}
       >
         {t(' to check for details.')}
@@ -1151,7 +1152,14 @@ class DatasourceEditor extends PureComponent {
     return (
       <div>
         <EditLockContainer>
-          <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
+          <span
+            css={theme => css`
+              color: ${theme.colorTextTertiary};
+            `}
+            role="button"
+            tabIndex={0}
+            onClick={this.onChangeEditMode}
+          >
             {this.state.isEditMode ? (
               <Icons.UnlockOutlined
                 iconSize="xl"
@@ -1280,6 +1288,9 @@ class DatasourceEditor extends PureComponent {
                         </>
                       ) : (
                         <TextAreaControl
+                          css={theme => css`
+                            margin-top: ${theme.sizeUnit * 2}px;
+                          `}
                           hotkeys={[
                             {
                               name: 'formatQuery',
@@ -1309,6 +1320,8 @@ class DatasourceEditor extends PureComponent {
                           display: flex;
                         `}
                       >
+                        {this.props.database?.error &&
+                          this.renderSqlErrorMessage()}
                         <Button
                           disabled={this.props.database?.isLoading}
                           tooltip={t('Open SQL Lab in a new tab')}
@@ -1321,7 +1334,7 @@ class DatasourceEditor extends PureComponent {
                           <Icons.ExportOutlined
                             iconSize="s"
                             css={theme => ({
-                              color: theme.colors.primary.dark1,
+                              color: theme.colorPrimaryBg,
                             })}
                           />
                         </Button>
@@ -1343,9 +1356,6 @@ class DatasourceEditor extends PureComponent {
                           />
                         </Button>
                       </div>
-                    }
-                    errorMessage={
-                      this.props.database?.error && this.renderSqlErrorMessage()
                     }
                   />
                   {this.props.database?.queryResult && (
