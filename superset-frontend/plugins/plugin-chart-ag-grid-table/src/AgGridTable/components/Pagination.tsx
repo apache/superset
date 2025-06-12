@@ -44,16 +44,11 @@ const PaginationContainer = styled.div`
 const SelectWrapper = styled.div`
   position: relative;
   display: inline-block;
-
-  .ant-select-arrow {
-    position: absolute;
-    pointer-events: none;
-    right: 35%;
-    top: 12px;
-  }
+  min-width: 70px;
 `;
 
 const StyledSelect = styled.select`
+  width: auto;
   margin: 0 8px;
   padding: 2px 24px 2px 8px;
   border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -61,12 +56,16 @@ const StyledSelect = styled.select`
   background: white;
   appearance: none;
   cursor: pointer;
-`;
 
-const StyledCaretDown = styled(CaretDownOutlined)`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
-  height: 14px;
-  width: 14px;
+  /* Custom arrow styling */
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000000'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 24px;
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.grayscale.dark1};
+  }
 `;
 
 const PageInfo = styled.span`
@@ -161,9 +160,6 @@ const Pagination: React.FC<PaginationProps> = ({
             </option>
           ))}
         </StyledSelect>
-        <span className="ant-select-arrow">
-          <StyledCaretDown />
-        </span>
       </SelectWrapper>
 
       <PageInfo>
