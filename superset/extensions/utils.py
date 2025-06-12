@@ -147,7 +147,7 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
 
     name = manifest["name"]
     return LoadedExtension(
-        name=name, manifest=manifest, frontend=frontend, backend=backend
+        name=name, manifest=manifest, frontend=frontend, backend=backend, enabled=True
     )
 
 
@@ -163,13 +163,14 @@ def get_extensions() -> dict[str, LoadedExtension]:
 
     # TODO: Do we allow local extensions that are not enabled in the metastore?
 
-    for db_extension in ExtensionDAO.get_enabled_extensions():
+    for db_extension in ExtensionDAO.get_extensions():
         if db_extension.name not in extensions:
             extension = LoadedExtension(
                 name=db_extension.name,
                 manifest=db_extension.manifest_dict,
                 backend=db_extension.backend_dict or {},
                 frontend=db_extension.frontend_dict or {},
+                enabled=db_extension.enabled,
             )
             extensions[extension.name] = extension
             logger.info(f"Loading extension {db_extension.name} from metastore")

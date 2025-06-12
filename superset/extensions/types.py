@@ -32,3 +32,4 @@ class LoadedExtension:
     manifest: Manifest
     frontend: dict[str, bytes]
     backend: dict[str, bytes]
+    enabled: bool

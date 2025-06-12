@@ -82,6 +82,7 @@ class ExtensionsRestApi(BaseSupersetApi):
             extension_data: dict[str, Any] = {
                 "name": extension.name,
                 "dependencies": manifest.get("dependencies", []),
+                "enabled": extension.enabled,
             }
             frontend = manifest.get("frontend")
             if frontend:

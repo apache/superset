@@ -33,7 +33,11 @@ import { ExtensionContext } from './core';
 class ExtensionsManager {
   private static instance: ExtensionsManager;
 
+  // TODO: Review this code to simplify the indexes and their usage.
+
   private extensionIndex: Map<string, core.Extension> = new Map();
+
+  private contextIndex: Map<string, ExtensionContext> = new Map();
 
   private menuIndex: Map<string, MenuContribution> = new Map();
 
@@ -67,13 +71,36 @@ class ExtensionsManager {
       extensions.map(async extension => {
         if (extension.remoteEntry) {
           const loadedExtension = await this.loadModule(extension);
-          // TODO: Change activation to be based on activation events
-          this.activateExtension(loadedExtension);
-          this.indexContributions(loadedExtension);
+          if (extension.enabled) {
+            this.enableExtension(loadedExtension);
+          }
         }
         this.extensionIndex.set(extension.name, extension);
       }),
     );
+  }
+
+  public enableExtension(extension: core.Extension): void {
+    const { name } = extension;
+    if (extension && typeof extension.activate === 'function') {
+      // If already enabled, do nothing
+      if (this.contextIndex.has(name)) {
+        return;
+      }
+      const context = new ExtensionContext();
+      this.contextIndex.set(name, context);
+      this.activateExtension(extension, context);
+      this.indexContributions(extension);
+    }
+  }
+
+  public disableExtension(name: string): void {
+    const extension = this.extensionIndex.get(name);
+    if (extension && typeof extension.deactivate === 'function') {
+      this.deactivateExtension(extension.name);
+      this.contextIndex.delete(name);
+      this.removeContributions(extension);
+    }
   }
 
   /**
@@ -116,11 +143,15 @@ class ExtensionsManager {
   /**
    * Activates an extension if it has an activate method.
    * @param extension The extension to activate.
+   * @param context The context to pass to the activate method.
    */
-  private activateExtension(extension: core.Extension): void {
+  private activateExtension(
+    extension: core.Extension,
+    context: ExtensionContext,
+  ): void {
     if (extension.activate) {
       try {
-        extension.activate(new ExtensionContext()); // TODO: Manage context properly
+        extension.activate(context);
       } catch (err) {
         logging.warn(`Error activating ${extension.name}`, err);
       }
@@ -128,14 +159,20 @@ class ExtensionsManager {
   }
 
   /**
-   * Deactivates an extension by its name.
+   * Deactivates an extension.
    * @param name The name of the extension to deactivate.
    * @returns True if deactivated, false otherwise.
    */
-  public deactivateExtensionByName(name: string): boolean {
+  public deactivateExtension(name: string): boolean {
     const extension = this.extensionIndex.get(name);
-    if (extension && typeof extension.deactivate === 'function') {
+    const context = this.contextIndex.get(name);
+    if (extension && typeof extension.deactivate === 'function' && context) {
       try {
+        // Dispose all disposables in the context
+        if (context.disposables) {
+          context.disposables.forEach(d => d.dispose());
+          context.disposables = [];
+        }
         extension.deactivate();
         return true;
       } catch (err) {
@@ -212,6 +249,54 @@ class ExtensionsManager {
   private indexCommands(commands: CommandContribution[]): void {
     commands.forEach(command => {
       this.commandIndex.set(command.command, command);
+    });
+  }
+
+  /**
+   * Removes all contributions from an extension.
+   * @param extension The extension whose contributions should be removed.
+   */
+  private removeContributions(extension: core.Extension): void {
+    const { contributions } = extension;
+
+    if (contributions.menus) {
+      this.removeMenus(contributions.menus);
+    }
+    if (contributions.views) {
+      this.removeViews(contributions.views);
+    }
+    if (contributions.commands) {
+      this.removeCommands(contributions.commands);
+    }
+  }
+
+  /**
+   * Removes menu contributions.
+   * @param menus The menus to remove.
+   */
+  private removeMenus(menus: Record<string, MenuContribution>): void {
+    Object.keys(menus).forEach(key => {
+      this.menuIndex.delete(key);
+    });
+  }
+
+  /**
+   * Removes view contributions.
+   * @param views The views to remove.
+   */
+  private removeViews(views: Record<string, ViewContribution[]>): void {
+    Object.keys(views).forEach(key => {
+      this.viewIndex.delete(key);
+    });
+  }
+
+  /**
+   * Removes command contributions.
+   * @param commands The commands to remove.
+   */
+  private removeCommands(commands: CommandContribution[]): void {
+    commands.forEach(command => {
+      this.commandIndex.delete(command.command);
     });
   }
 

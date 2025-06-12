@@ -77,5 +77,5 @@ class ExtensionDAO(BaseDAO[Extension]):
         return ExtensionDAO.create(extension)
 
     @staticmethod
-    def get_enabled_extensions() -> list[Extension]:
-        return db.session.query(Extension).filter_by(enabled=True).all()
+    def get_extensions() -> list[Extension]:
+        return db.session.query(Extension).all()
