@@ -23,7 +23,6 @@ import {
   VerticalRightOutlined,
   LeftOutlined,
   RightOutlined,
-  CaretDownOutlined,
 } from '@ant-design/icons';
 
 const PaginationContainer = styled.div`
