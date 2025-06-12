@@ -19,10 +19,7 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { TextArea } from 'src/components/Input';
-import {
-  Tooltip,
-  TooltipProps as TooltipOptions,
-} from 'src/components/Tooltip';
+import { Tooltip, TooltipProps } from 'src/components/Tooltip';
 import { t, withTheme } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
@@ -59,7 +56,8 @@ const propTypes = {
     'vertical',
   ]),
   textAreaStyles: PropTypes.object,
-  tooltipOptions: PropTypes.oneOf([null, TooltipOptions]),
+  tooltipOptions: PropTypes.oneOf([null, TooltipProps]),
+  hotkeys: PropTypes.array,
 };
 
 const defaultProps = {
@@ -73,6 +71,7 @@ const defaultProps = {
   resize: null,
   textAreaStyles: {},
   tooltipOptions: {},
+  hotkeys: [],
 };
 
 class TextAreaControl extends Component {
@@ -100,6 +99,15 @@ class TextAreaControl extends Component {
       if (this.props.readOnly) {
         style.backgroundColor = '#f2f2f2';
       }
+      const onEditorLoad = editor => {
+        this.props.hotkeys.forEach(keyConfig => {
+          editor.commands.addCommand({
+            name: keyConfig.name,
+            bindKey: { win: keyConfig.key, mac: keyConfig.key },
+            exec: keyConfig.func,
+          });
+        });
+      };
       const codeEditor = (
         <div>
           <TextAreaEditor
@@ -108,6 +116,7 @@ class TextAreaControl extends Component {
             minLines={minLines}
             maxLines={inModal ? 1000 : this.props.maxLines}
             editorProps={{ $blockScrolling: true }}
+            onLoad={onEditorLoad}
             defaultValue={this.props.initialValue}
             readOnly={this.props.readOnly}
             key={this.props.name}

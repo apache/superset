@@ -27,9 +27,7 @@ You will need to back up your metadata DB. That could mean backing up the servic
 
 You will also need to extend the Superset docker image. The default `lean` images do not contain drivers needed to access your metadata database (Postgres or MySQL), nor to access your data warehouse, nor the headless browser needed for Alerts & Reports. You could run a `-dev` image while demoing Superset, which has some of this, but you'll still need to install the driver for your data warehouse. The `-dev` images run as root, which is not recommended for production.
 
-Ideally you will build your own image of Superset that extends `lean`, adding what your deployment needs.
-
-See [Docker Build Presets](/docs/installation/docker-builds/#build-presets) for more information about the different image versions you can extend.
+Ideally you will build your own image of Superset that extends `lean`, adding what your deployment needs. See [Building your own production Docker image](/docs/installation/docker-builds/#building-your-own-production-docker-image).
 
 ## [Kubernetes (K8s)](/docs/installation/kubernetes.mdx)
 

@@ -26,10 +26,10 @@
     "@emotion/styled": "^10.0.27",
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@superset-ui/style": "^0.14.23",
-    "antd": "^5.24.9",
+    "antd": "^5.25.1",
     "docusaurus-plugin-less": "^2.0.2",
     "less": "^4.3.0",
-    "less-loader": "^11.0.0",
+    "less-loader": "^12.3.0",
     "prism-react-renderer": "^2.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -39,17 +39,17 @@
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.7.0",
-    "@docusaurus/tsconfig": "^3.7.0",
+    "@docusaurus/tsconfig": "^3.8.0",
     "@types/react": "^18.3.12",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "@typescript-eslint/parser": "^5.0.0",
     "eslint": "^8.0.0",
-    "eslint-config-prettier": "^10.1.2",
+    "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-react": "^7.37.5",
     "prettier": "^2.0.0",
     "typescript": "~5.8.3",
-    "webpack": "^5.99.7"
+    "webpack": "^5.99.9"
   },
   "browserslist": {
     "production": [

@@ -29,7 +29,7 @@ import TooltipRow from '../../TooltipRow';
 import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   const points: Point[] = [];
   data.forEach(d => {
     points.push(d.sourcePosition);

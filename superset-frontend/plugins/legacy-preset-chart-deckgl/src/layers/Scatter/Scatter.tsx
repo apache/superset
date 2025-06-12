@@ -30,7 +30,7 @@ import TooltipRow from '../../TooltipRow';
 import { unitToRadius } from '../../utils/geo';
 import { TooltipProps } from '../../components/Tooltip';
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
 }
 

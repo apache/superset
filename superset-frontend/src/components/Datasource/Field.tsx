@@ -21,6 +21,7 @@ import { useCallback, ReactNode, ReactElement, cloneElement } from 'react';
 import { css, SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormItem, FormLabel } from 'src/components/Form';
+import { Icons } from 'src/components/Icons';
 
 const formItemInlineCss = css`
   .ant-form-item-control-input-content {
@@ -28,16 +29,17 @@ const formItemInlineCss = css`
     flex-direction: row;
   }
 `;
-
 interface FieldProps<V> {
   fieldKey: string;
   value?: V;
   label: string;
   description?: ReactNode;
   control: ReactElement;
+  additionalControl?: ReactElement;
   onChange: (fieldKey: string, newValue: V) => void;
   compact: boolean;
   inline: boolean;
+  errorMessage?: string | ReactElement;
 }
 
 export default function Field<V>({
@@ -46,9 +48,11 @@ export default function Field<V>({
   label,
   description = null,
   control,
+  additionalControl,
   onChange = () => {},
   compact = false,
   inline,
+  errorMessage,
 }: FieldProps<V>) {
   const onControlChange = useCallback(
     newValue => {
@@ -62,32 +66,51 @@ export default function Field<V>({
     onChange: onControlChange,
   });
   return (
-    <FormItem
-      label={
-        <FormLabel className="m-r-5">
-          {label || fieldKey}
-          {compact && description && (
-            <Tooltip id="field-descr" placement="right" title={description}>
-              {/* TODO: Remove fa-icon */}
-              {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-              <i className="fa fa-info-circle m-l-5" />
-            </Tooltip>
-          )}
-        </FormLabel>
+    <div
+      css={
+        additionalControl &&
+        css`
+          position: relative;
+        `
       }
-      css={inline && formItemInlineCss}
     >
-      {hookedControl}
-      {!compact && description && (
+      {additionalControl}
+      <FormItem
+        label={
+          <FormLabel className="m-r-5">
+            {label || fieldKey}
+            {compact && description && (
+              <Tooltip id="field-descr" placement="right" title={description}>
+                <Icons.InfoCircleFilled iconSize="s" className="m-l-5" />
+              </Tooltip>
+            )}
+          </FormLabel>
+        }
+        css={inline && formItemInlineCss}
+      >
+        {hookedControl}
+        {!compact && description && (
+          <div
+            css={(theme: SupersetTheme) => ({
+              color: theme.colors.grayscale.base,
+              [inline ? 'marginLeft' : 'marginTop']: theme.gridUnit,
+            })}
+          >
+            {description}
+          </div>
+        )}
+      </FormItem>
+      {errorMessage && (
         <div
           css={(theme: SupersetTheme) => ({
-            color: theme.colors.grayscale.base,
-            [inline ? 'marginLeft' : 'marginTop']: theme.gridUnit,
+            color: theme.colors.error.base,
+            marginTop: -16,
+            fontSize: theme.typography.sizes.s,
           })}
         >
-          {description}
+          {errorMessage}
         </div>
       )}
-    </FormItem>
+    </div>
   );
 }

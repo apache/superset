@@ -109,6 +109,7 @@ FRONTEND_CONF_KEYS = (
     "JWT_ACCESS_CSRF_COOKIE_NAME",
     "SQLLAB_QUERY_RESULT_TIMEOUT",
     "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
+    "TABLE_VIZ_MAX_ROW_SERVER",
 )
 
 logger = logging.getLogger(__name__)
@@ -281,9 +282,7 @@ def menu_data(user: User) -> dict[str, Any]:
             "show_language_picker": len(languages) > 1,
             "user_is_anonymous": user.is_anonymous,
             "user_info_url": (
-                None
-                if is_feature_enabled("MENU_HIDE_USER_INFO")
-                else appbuilder.get_url_for_userinfo
+                None if is_feature_enabled("MENU_HIDE_USER_INFO") else "/user_info/"
             ),
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,

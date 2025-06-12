@@ -174,4 +174,33 @@ describe('ResultsPaneOnDashboard', () => {
     expect(await findByText('Results')).toBeVisible();
     expect(await findByText('Results 2')).toBeVisible();
   });
+
+  test('dynamic number of results pane', async () => {
+    const FakeChart = () => <span>test</span>;
+    const metadata = new ChartMetadata({
+      name: 'test-chart',
+      thumbnail: '',
+      dynamicQueryObjectCount: true,
+    });
+
+    const plugin = new ChartPlugin({
+      metadata,
+      Chart: FakeChart,
+    });
+    plugin.configure({ key: VizType.MixedTimeseries }).register();
+
+    const props = createResultsPaneOnDashboardProps({
+      sliceId: 196,
+      vizType: VizType.MixedTimeseries,
+    });
+    const { findByText, queryByText } = render(
+      <ResultsPaneOnDashboard {...props} />,
+      {
+        useRedux: true,
+      },
+    );
+    expect(await findByText('Results')).toBeVisible();
+    expect(await findByText('Results 2')).toBeVisible();
+    expect(queryByText('Results 3')).not.toBeInTheDocument();
+  });
 });

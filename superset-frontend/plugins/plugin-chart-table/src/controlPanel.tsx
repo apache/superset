@@ -28,7 +28,10 @@ import {
   ControlStateMapping,
   D3_TIME_FORMAT_OPTIONS,
   Dataset,
+  DEFAULT_MAX_ROW,
+  DEFAULT_MAX_ROW_TABLE_SERVER,
   defineSavedMetrics,
+  formatSelectOptions,
   getStandardizedControls,
   QueryModeLabel,
   sections,
@@ -40,15 +43,18 @@ import {
   getMetricLabel,
   isAdhocColumn,
   isPhysicalColumn,
+  legacyValidateInteger,
   QueryFormColumn,
   QueryFormMetric,
   QueryMode,
   SMART_DATE_ID,
   t,
+  validateMaxValue,
+  validateServerPagination,
 } from '@superset-ui/core';
 
 import { isEmpty, last } from 'lodash';
-import { PAGE_SIZE_OPTIONS } from './consts';
+import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { ColorSchemeEnum } from './types';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
@@ -187,6 +193,15 @@ const processComparisonColumns = (columns: any[], suffix: string) =>
       return [];
     })
     .flat();
+
+/*
+Options for row limit control
+*/
+
+export const ROW_LIMIT_OPTIONS_TABLE = [
+  10, 50, 100, 250, 500, 1000, 5000, 10000, 50000, 100000, 150000, 200000,
+  250000, 300000, 350000, 400000, 450000, 500000,
+];
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -330,6 +345,26 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'order_desc',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort descending'),
+              default: true,
+              description: t(
+                'If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) => {
+                const hasSortMetric = Boolean(
+                  controls?.timeseries_limit_metric?.value,
+                );
+                return hasSortMetric && isAggMode({ controls });
+              },
+              resetOnHide: false,
+            },
+          },
+        ],
+        [
+          {
             name: 'server_pagination',
             config: {
               type: 'CheckboxControl',
@@ -343,21 +378,13 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'row_limit',
-            override: {
-              default: 1000,
-              visibility: ({ controls }: ControlPanelsContainerProps) =>
-                !controls?.server_pagination?.value,
-            },
-          },
-          {
             name: 'server_page_length',
             config: {
               type: 'SelectControl',
               freeForm: true,
               label: t('Server Page Length'),
               default: 10,
-              choices: PAGE_SIZE_OPTIONS,
+              choices: SERVER_PAGE_SIZE_OPTIONS,
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
@@ -366,16 +393,43 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'order_desc',
+            name: 'row_limit',
             config: {
-              type: 'CheckboxControl',
-              label: t('Sort descending'),
-              default: true,
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Row limit'),
+              clearable: false,
+              mapStateToProps: state => ({
+                maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
+                server_pagination: state?.form_data?.server_pagination,
+                maxValueWithoutServerPagination:
+                  state?.common?.conf?.SQL_MAX_ROW,
+              }),
+              validators: [
+                legacyValidateInteger,
+                (v, state) =>
+                  validateMaxValue(
+                    v,
+                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
+                  ),
+                (v, state) =>
+                  validateServerPagination(
+                    v,
+                    state?.server_pagination,
+                    state?.maxValueWithoutServerPagination || DEFAULT_MAX_ROW,
+                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
+                  ),
+              ],
+              // Re run the validations when this control value
+              validationDependancies: ['server_pagination'],
+              default: 10000,
+              choices: formatSelectOptions(ROW_LIMIT_OPTIONS_TABLE),
               description: t(
-                'If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.',
+                'Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
               ),
-              visibility: isAggMode,
-              resetOnHide: false,
+            },
+            override: {
+              default: 1000,
             },
           },
         ],

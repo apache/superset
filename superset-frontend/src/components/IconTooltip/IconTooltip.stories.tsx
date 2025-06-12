@@ -39,19 +39,21 @@ const PLACEMENTS = [
   'topRight',
 ];
 
-const theme = useTheme();
+export const InteractiveIconTooltip = (args: Props) => {
+  const theme = useTheme();
 
-export const InteractiveIconTooltip = (args: Props) => (
-  <div
-    css={css`
-      margin: ${theme.gridUnit * 10}px ${theme.gridUnit * 17.5}px;
-    `}
-  >
-    <IconTooltip {...args}>
-      <Icons.InfoCircleOutlined />
-    </IconTooltip>
-  </div>
-);
+  return (
+    <div
+      css={css`
+        margin: ${theme.gridUnit * 10}px ${theme.gridUnit * 17.5}px;
+      `}
+    >
+      <IconTooltip {...args}>
+        <Icons.InfoCircleOutlined />
+      </IconTooltip>
+    </div>
+  );
+};
 
 InteractiveIconTooltip.args = {
   tooltip: 'Tooltip',

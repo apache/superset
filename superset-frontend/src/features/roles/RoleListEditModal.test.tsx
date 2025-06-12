@@ -23,6 +23,7 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { SupersetClient } from '@superset-ui/core';
 import RoleListEditModal from './RoleListEditModal';
 import {
   updateRoleName,
@@ -44,12 +45,24 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
   useToasts: () => mockToasts,
 }));
 
+jest.mock('@superset-ui/core', () => {
+  const original = jest.requireActual('@superset-ui/core');
+  return {
+    ...original,
+    SupersetClient: {
+      get: jest.fn(),
+    },
+    t: (str: string) => str,
+  };
+});
+
 describe('RoleListEditModal', () => {
   const mockRole = {
     id: 1,
     name: 'Admin',
     permission_ids: [10, 20],
     user_ids: [5, 7],
+    group_ids: [1, 2],
   };
 
   const mockPermissions = [
@@ -74,6 +87,17 @@ describe('RoleListEditModal', () => {
     },
   ];
 
+  const mockGroups = [
+    {
+      id: 1,
+      name: 'Group A',
+      label: 'Group A',
+      description: 'Description A',
+      roles: [],
+      users: [],
+    },
+  ];
+
   const mockProps = {
     role: mockRole,
     show: true,
@@ -81,6 +105,7 @@ describe('RoleListEditModal', () => {
     onSave: jest.fn(),
     permissions: mockPermissions,
     users: mockUsers,
+    groups: mockGroups,
   };
 
   it('renders modal with correct title and fields', () => {
@@ -114,6 +139,36 @@ describe('RoleListEditModal', () => {
   });
 
   it('calls update functions when save button is clicked', async () => {
+    (SupersetClient.get as jest.Mock).mockImplementation(({ endpoint }) => {
+      if (endpoint?.includes('/api/v1/security/users/')) {
+        return Promise.resolve({
+          json: {
+            count: 2,
+            result: [
+              {
+                id: 5,
+                first_name: 'John',
+                last_name: 'Doe',
+                username: 'johndoe',
+                email: 'john@example.com',
+                is_active: true,
+              },
+              {
+                id: 7,
+                first_name: 'Jane',
+                last_name: 'Smith',
+                username: 'janesmith',
+                email: 'jane@example.com',
+                is_active: true,
+              },
+            ],
+          },
+        });
+      }
+
+      return Promise.resolve({ json: { count: 0, result: [] } });
+    });
+
     render(<RoleListEditModal {...mockProps} />);
 
     fireEvent.change(screen.getByTestId('role-name-input'), {
