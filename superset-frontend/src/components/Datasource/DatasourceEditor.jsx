@@ -19,7 +19,6 @@
 import rison from 'rison';
 import { PureComponent, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { executeQuery, resetDatabaseState } from 'src/database/actions';
 import { connect } from 'react-redux';
 import { Radio } from '@superset-ui/core/components/Radio';
 import {
@@ -64,6 +63,12 @@ import {
   Label,
 } from '@superset-ui/core/components';
 import { FilterableTable } from 'src/components';
+import {
+  executeQuery,
+  formatQuery,
+  resetDatabaseState,
+} from 'src/database/actions';
+import Mousetrap from 'mousetrap';
 import { DatabaseSelector } from '../DatabaseSelector';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
@@ -657,6 +662,7 @@ class DatasourceEditor extends PureComponent {
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
     this.handleTabSelect = this.handleTabSelect.bind(this);
+    this.formatSql = this.formatSql.bind(this);
     this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
       value: currencyCode,
       label: `${getCurrencySymbol({
@@ -732,6 +738,27 @@ class DatasourceEditor extends PureComponent {
     });
   }
 
+  async onQueryFormat() {
+    const { datasource } = this.state;
+    if (!datasource.sql || !this.state.isEditMode) {
+      return;
+    }
+
+    try {
+      const response = await this.props.formatQuery(datasource.sql);
+      this.onDatasourcePropChange('sql', response.json.result);
+      this.props.addSuccessToast(t('SQL was formatted'));
+    } catch (error) {
+      const { error: clientError, statusText } =
+        await getClientErrorObject(error);
+      this.props.addDangerToast(
+        clientError ||
+          statusText ||
+          t('An error occurred while formatting SQL'),
+      );
+    }
+  }
+
   getSQLLabUrl() {
     const queryParams = new URLSearchParams({
       dbid: this.state.datasource.database.id,
@@ -753,6 +780,31 @@ class DatasourceEditor extends PureComponent {
       this.syncMetadata();
       this.onChange();
     });
+  }
+
+  async formatSql() {
+    const { datasource } = this.state;
+    if (!datasource.sql) {
+      return;
+    }
+
+    try {
+      const response = await SupersetClient.post({
+        endpoint: '/api/v1/sql/format',
+        body: JSON.stringify({ sql: datasource.sql }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      this.onDatasourcePropChange('sql', response.json.result);
+      this.props.addSuccessToast(t('SQL was formatted'));
+    } catch (error) {
+      const { error: clientError, statusText } =
+        await getClientErrorObject(error);
+      this.props.addDangerToast(
+        clientError ||
+          statusText ||
+          t('An error occurred while formatting SQL'),
+      );
+    }
   }
 
   async syncMetadata() {
@@ -1216,6 +1268,16 @@ class DatasourceEditor extends PureComponent {
                         <>
                           {this.renderSqlEditorOverlay()}
                           <TextAreaControl
+                            hotkeys={[
+                              {
+                                name: 'formatQuery',
+                                key: 'ctrl+shift+f',
+                                descr: t('Format SQL query'),
+                                func: () => {
+                                  this.onQueryFormat();
+                                },
+                              },
+                            ]}
                             language="sql"
                             offerEditInModal={false}
                             minLines={10}
@@ -1229,6 +1291,16 @@ class DatasourceEditor extends PureComponent {
                           css={theme => css`
                             margin-top: ${theme.sizeUnit * 2}px;
                           `}
+                          hotkeys={[
+                            {
+                              name: 'formatQuery',
+                              key: 'ctrl+shift+f',
+                              descr: t('Format SQL query'),
+                              func: () => {
+                                this.onQueryFormat();
+                              },
+                            },
+                          ]}
                           language="sql"
                           offerEditInModal={false}
                           minLines={10}
@@ -1245,6 +1317,7 @@ class DatasourceEditor extends PureComponent {
                           right: 0;
                           top: 0;
                           z-index: 2;
+                          display: flex;
                         `}
                       >
                         {this.props.database?.error &&
@@ -1254,15 +1327,15 @@ class DatasourceEditor extends PureComponent {
                           tooltip={t('Open SQL Lab in a new tab')}
                           css={floatingButtonCss}
                           size="small"
+                          onClick={() => {
+                            this.openOnSqlLab();
+                          }}
                         >
                           <Icons.ExportOutlined
                             iconSize="s"
                             css={theme => ({
                               color: theme.colorPrimaryBg,
                             })}
-                            onClick={() => {
-                              this.openOnSqlLab();
-                            }}
                           />
                         </Button>
                         <Button
@@ -1318,10 +1391,10 @@ class DatasourceEditor extends PureComponent {
                         orderedColumnKeys={this.props.database?.queryResult.columns.map(
                           col => col.column_name,
                         )}
-                        height={100}
                         expandedColumns={
                           this.props.database?.queryResult.expandedColumns
                         }
+                        height={300}
                         allowHTML
                       />
                     </>
@@ -1723,7 +1796,18 @@ class DatasourceEditor extends PureComponent {
     );
   }
 
+  componentDidMount() {
+    Mousetrap.bind('ctrl+shift+f', e => {
+      e.preventDefault();
+      if (this.state.isEditMode) {
+        this.onQueryFormat();
+      }
+      return false;
+    });
+  }
+
   componentWillUnmount() {
+    Mousetrap.unbind('ctrl+shift+f');
     this.props.resetQuery();
   }
 }
@@ -1736,6 +1820,7 @@ const DataSourceComponent = withTheme(DatasourceEditor);
 const mapDispatchToProps = dispatch => ({
   runQuery: payload => dispatch(executeQuery(payload)),
   resetQuery: () => dispatch(resetDatabaseState()),
+  formatQuery: sql => dispatch(formatQuery(sql)),
 });
 const mapStateToProps = state => ({
   database: state?.database,
