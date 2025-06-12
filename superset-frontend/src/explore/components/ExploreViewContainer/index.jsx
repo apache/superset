@@ -269,6 +269,15 @@ function ExploreViewContainer(props) {
 
   const theme = useTheme();
 
+  useEffect(() => {
+    if (props.sliceName) {
+      document.title = props.sliceName;
+    }
+    return () => {
+      document.title = 'Superset';
+    };
+  }, [props.sliceName]);
+
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {
       const formData = props.dashboardId

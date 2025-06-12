@@ -302,6 +302,23 @@ export const xAxisLabelRotation = {
   },
 };
 
+export const xAxisLabelInterval = {
+  name: 'xAxisLabelInterval',
+  config: {
+    type: 'SelectControl',
+    freeForm: false,
+    clearable: false,
+    label: t('X Axis Label Interval'),
+    choices: [
+      ['auto', t('Auto')],
+      ['0', t('All')],
+    ],
+    default: defaultXAxis.xAxisLabelInterval,
+    renderTrigger: true,
+    description: t('Choose how many X-Axis labels to show'),
+  },
+};
+
 export const seriesOrderSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Series Order')}</ControlSubSectionHeader>],
   [sortSeriesType],

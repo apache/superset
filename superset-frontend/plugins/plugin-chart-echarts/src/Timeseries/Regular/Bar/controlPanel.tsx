@@ -38,6 +38,7 @@ import {
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
+  xAxisLabelInterval,
 } from '../../../controls';
 
 import { OrientationType } from '../../types';
@@ -175,6 +176,18 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         name: xAxisLabelRotation.name,
         config: {
           ...xAxisLabelRotation.config,
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isVertical(controls) : isHorizontal(controls),
+          disableStash: true,
+          resetOnHide: false,
+        },
+      },
+    ],
+    [
+      {
+        name: xAxisLabelInterval.name,
+        config: {
+          ...xAxisLabelInterval.config,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
           disableStash: true,
