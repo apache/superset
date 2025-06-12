@@ -24,11 +24,13 @@ import {
   DataRecord,
   ensureIsArray,
   extractTimegrain,
+  FeatureFlag,
   GenericDataType,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
   getTimeFormatterForGranularity,
+  isFeatureEnabled,
   NumberFormats,
   QueryMode,
   SMART_DATE_ID,
@@ -603,7 +605,8 @@ const transformProps = (
   const isUsingTimeComparison =
     !isEmpty(time_compare) &&
     queryMode === QueryMode.Aggregate &&
-    comparison_type === ComparisonType.Values;
+    comparison_type === ComparisonType.Values &&
+    isFeatureEnabled(FeatureFlag.TableV2TimeComparisonEnabled);
 
   let hasServerPageLengthChanged = false;
 

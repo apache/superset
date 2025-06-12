@@ -39,9 +39,11 @@ import {
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
+  FeatureFlag,
   GenericDataType,
   getMetricLabel,
   isAdhocColumn,
+  isFeatureEnabled,
   isPhysicalColumn,
   legacyValidateInteger,
   QueryFormColumn,
@@ -752,7 +754,9 @@ const config: ControlPanelConfig = {
         showCalculationType: false,
         showFullChoices: false,
       }),
-      visibility: isAggMode,
+      visibility: ({ controls }) =>
+        isAggMode({ controls }) &&
+        isFeatureEnabled(FeatureFlag.TableV2TimeComparisonEnabled),
     },
   ],
   formDataOverrides: formData => ({
