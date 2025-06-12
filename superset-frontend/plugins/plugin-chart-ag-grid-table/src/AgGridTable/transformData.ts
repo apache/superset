@@ -174,6 +174,7 @@ export const transformData = (
   colorPositiveNegative: boolean,
   totals: DataRecord | undefined,
   columnColorFormatters: ColorFormatters,
+  allowRearrangeColumns?: boolean,
   emitCrossFilters?: boolean,
 ) => {
   const cleanedTotals = cleanTotals(totals || {});
@@ -287,6 +288,7 @@ export const transformData = (
         textAlign:
           col?.config?.horizontalAlign || (col?.isNumeric ? 'right' : 'left'),
       },
+      lockPinned: !allowRearrangeColumns,
       cellClass: params => {
         const isActiveFilterValue = params?.context?.isActiveFilterValue;
         let className = '';

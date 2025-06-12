@@ -166,6 +166,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     colorPositiveNegative,
     totals,
     columnColorFormatters,
+    allowRearrangeColumns,
     emitCrossFilters,
   );
 
