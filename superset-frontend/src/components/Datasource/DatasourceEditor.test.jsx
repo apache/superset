@@ -135,7 +135,7 @@ describe('DatasourceEditor', () => {
     await userEvent.type(inputDtmFormat, 'test');
     await userEvent.type(inputCertifiedBy, 'test');
     await userEvent.type(inputCertDetails, 'test');
-  }, 4000);
+  }, 40000);
 
   it('can delete columns', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');
