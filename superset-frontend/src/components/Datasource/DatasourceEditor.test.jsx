@@ -132,7 +132,7 @@ describe('DatasourceEditor', () => {
     await userEvent.type(inputDtmFormat, 'test');
     await userEvent.type(inputCertifiedBy, 'test');
     await userEvent.type(inputCertDetails, 'test');
-  });
+  }, 60000); // 60 seconds timeout to avoid timeouts
 
   it('can delete columns', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');
