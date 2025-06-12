@@ -283,6 +283,9 @@ export default function transformProps(chartProps: EchartsTimelineChartProps) {
         ],
       })),
       dimensions: [...Object.values(Dimension), ...colnames],
+      encode: {
+        x: [0, 1],
+      },
     }))
     .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 

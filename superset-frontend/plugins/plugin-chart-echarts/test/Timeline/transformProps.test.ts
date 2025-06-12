@@ -178,6 +178,9 @@ describe('Timeline transformProps', () => {
         'tooltip_column',
         'series',
       ],
+      encode: {
+        x: [0, 1],
+      },
     });
 
     expect(series1).toEqual({
@@ -213,6 +216,9 @@ describe('Timeline transformProps', () => {
         'tooltip_column',
         'series',
       ],
+      encode: {
+        x: [0, 1],
+      },
     });
     expect(series[2]).toEqual({
       // just for markLines
