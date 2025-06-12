@@ -211,6 +211,7 @@ const AntdIcons = {
   FunctionOutlined,
   GithubOutlined,
   GoogleOutlined,
+  HighlightOutlined,
   InfoCircleOutlined,
   InfoCircleFilled,
   InsertRowAboveOutlined,
