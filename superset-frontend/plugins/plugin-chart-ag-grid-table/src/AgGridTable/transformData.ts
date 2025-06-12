@@ -20,8 +20,9 @@
 
 import { ColDef, ValueFormatterParams } from 'ag-grid-community';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
+import { DataRecord } from '@superset-ui/core';
 import CustomHeader from './components/CustomHeader';
-import CellBarRenderer from './components/CellbarRenderer';
+import CellBarRenderer, { TotalsRenderer } from './components/CellbarRenderer';
 
 export interface InputColumn {
   key: string;
@@ -80,6 +81,23 @@ function renameMainKeys(data: Record<string, any>[]): Record<string, any>[] {
   });
 }
 
+function cleanTotals(totals: DataRecord) {
+  const cleaned: DataRecord = {};
+
+  for (const [key, value] of Object.entries(totals)) {
+    if (key.includes('index')) {
+      continue;
+    }
+    if (key.includes('Main')) {
+      const newKey = key.replace('Main ', '');
+      cleaned[newKey] = value;
+    } else {
+      cleaned[key] = value;
+    }
+  }
+
+  return cleaned;
+}
 /**
  * Cell left margin (offset) calculation for horizontal bar chart elements
  * when alignPositiveNegative is not set
@@ -150,8 +168,10 @@ export const transformData = (
   defaultAlignPN: boolean,
   showCellBars: boolean,
   colorPositiveNegative: boolean,
+  totals: DataRecord | undefined,
   emitCrossFilters?: boolean,
 ) => {
+  const cleanedTotals = cleanTotals(totals || {});
   const colDefs: ColDef[] = columns.map(col => {
     const { config, isMetric, isPercentMetric } = col;
     const alignPositiveNegative =
@@ -180,7 +200,32 @@ export const transformData = (
       customMeta: {
         isMetric: col?.isMetric,
       },
-      cellRenderer: ({ value }: { value: number }) => {
+      cellRenderer: (props: {
+        value: number;
+        valueFormatted: string;
+        node: any;
+        colDef: any;
+      }) => {
+        const { value, valueFormatted, node, colDef } = props;
+
+        if (
+          node?.rowPinned === 'bottom' &&
+          value === undefined &&
+          colDef?.field === columns[0].key
+        ) {
+          return TotalsRenderer({
+            value: 'Total',
+          });
+        }
+
+        if (node?.rowPinned === 'bottom') {
+          return TotalsRenderer({
+            value: valueFormatted,
+          });
+        }
+
+        // Regular cell rendering logic
+        if (!value) return null;
         const formattedValue = col?.formatter ? col?.formatter(value) : value;
         if (!valueRange) return formattedValue;
         const CellWidth = cellWidth({
@@ -251,6 +296,10 @@ export const transformData = (
         filter: 'agNumberColumnFilter',
         cellDataType: 'number',
       }),
+      aggFunc: 'sum',
+      cellRendererParams: {
+        isTotalRow: true,
+      },
     };
   });
 
@@ -269,5 +318,6 @@ export const transformData = (
     rowData: renameMainKeys(data),
     colDefs,
     defaultColDef,
+    cleanedTotals,
   };
 };

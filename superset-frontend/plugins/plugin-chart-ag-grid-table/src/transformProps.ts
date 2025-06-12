@@ -67,6 +67,39 @@ function isPositiveNumber(value: string | number | null | undefined) {
   );
 }
 
+const processComparisonTotals = (
+  comparisonSuffix: string,
+  totals?: DataRecord[],
+): DataRecord | undefined => {
+  if (!totals) {
+    return totals;
+  }
+  const transformedTotals: DataRecord = {};
+  totals.map((totalRecord: DataRecord) =>
+    Object.keys(totalRecord).forEach(key => {
+      if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
+        transformedTotals[`Main ${key}`] =
+          parseInt(transformedTotals[`Main ${key}`]?.toString() || '0', 10) +
+          parseInt(totalRecord[key]?.toString() || '0', 10);
+        transformedTotals[`# ${key}`] =
+          parseInt(transformedTotals[`# ${key}`]?.toString() || '0', 10) +
+          parseInt(
+            totalRecord[`${key}__${comparisonSuffix}`]?.toString() || '0',
+            10,
+          );
+        const { valueDifference, percentDifferenceNum } = calculateDifferences(
+          transformedTotals[`Main ${key}`] as number,
+          transformedTotals[`# ${key}`] as number,
+        );
+        transformedTotals[`△ ${key}`] = valueDifference;
+        transformedTotals[`% ${key}`] = percentDifferenceNum;
+      }
+    }),
+  );
+
+  return transformedTotals;
+};
+
 const getComparisonColConfig = (
   label: string,
   parentColKey: string,
@@ -443,6 +476,7 @@ const transformProps = (
     align_pn: alignPositiveNegative = true,
     show_cell_bars: showCellBars = true,
     color_pn: colorPositiveNegative = true,
+    show_totals: showTotals,
   } = formData;
 
   const isUsingTimeComparison =
@@ -501,11 +535,12 @@ const transformProps = (
   let baseQuery;
   let countQuery;
   let rowCount;
+  let totalQuery;
   if (serverPagination) {
-    [baseQuery, countQuery] = queriesData;
+    [baseQuery, countQuery, totalQuery] = queriesData;
     rowCount = (countQuery?.data?.[0]?.rowcount as number) ?? 0;
   } else {
-    [baseQuery] = queriesData;
+    [baseQuery, totalQuery] = queriesData;
     rowCount = baseQuery?.rowcount ?? 0;
   }
 
@@ -520,6 +555,13 @@ const transformProps = (
   const passedColumns = isUsingTimeComparison ? comparisonColumns : columns;
 
   const hasPageLength = isPositiveNumber(pageLength);
+
+  const totals =
+    showTotals && queryMode === QueryMode.Aggregate
+      ? isUsingTimeComparison
+        ? processComparisonTotals(comparisonSuffix, totalQuery?.data)
+        : totalQuery?.data[0]
+      : undefined;
 
   return {
     height,
@@ -547,6 +589,8 @@ const transformProps = (
     showCellBars,
     isUsingTimeComparison,
     colorPositiveNegative,
+    totals,
+    showTotals,
   };
 };
 

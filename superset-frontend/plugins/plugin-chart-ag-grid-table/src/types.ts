@@ -162,6 +162,8 @@ export interface AgGridTableChartTransformedProps<
   showCellBars: boolean;
   isUsingTimeComparison: boolean;
   colorPositiveNegative: boolean;
+  totals: DataRecord | undefined;
+  showTotals: boolean;
 }
 
 export enum ColorSchemeEnum {

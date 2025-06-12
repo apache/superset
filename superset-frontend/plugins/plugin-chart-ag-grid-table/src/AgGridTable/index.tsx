@@ -40,7 +40,13 @@ import {
 } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
 import { type FunctionComponent } from 'react';
-import { styled, css, JsonObject, DataRecordValue } from '@superset-ui/core';
+import {
+  styled,
+  css,
+  JsonObject,
+  DataRecordValue,
+  DataRecord,
+} from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual } from 'lodash';
 import Pagination from './components/Pagination';
@@ -82,6 +88,8 @@ export interface Props {
   handleCrossFilter: (key: string, val: DataRecordValue) => void;
   isActiveFilterValue: (key: string, val: DataRecordValue) => boolean;
   renderTimeComparisonDropdown: () => JSX.Element | null;
+  cleanedTotals: DataRecord;
+  showTotals: boolean;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -185,6 +193,8 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     handleCrossFilter,
     isActiveFilterValue,
     renderTimeComparisonDropdown,
+    cleanedTotals,
+    showTotals,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const gridApiRef = useRef<GridApi | null>(null);
@@ -437,6 +447,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
             paginationPageSize={pageSize}
             paginationPageSizeSelector={[10, 20, 50, 100, 200]}
             suppressDragLeaveHidesColumns
+            pinnedBottomRowData={showTotals ? [cleanedTotals] : undefined}
             context={{
               onColumnHeaderClicked: handleColumnHeaderClick,
               initialSortState: getInitialSortState(

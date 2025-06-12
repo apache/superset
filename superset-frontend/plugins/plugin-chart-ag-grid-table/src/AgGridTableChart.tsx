@@ -103,6 +103,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     showCellBars,
     isUsingTimeComparison,
     colorPositiveNegative,
+    totals,
+    showTotals,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -127,6 +129,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     { key: '△', label: '△' },
     { key: '%', label: '%' },
   ];
+
   const [selectedComparisonColumns, setSelectedComparisonColumns] = useState([
     comparisonColumns[0].key,
   ]);
@@ -160,6 +163,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     alignPositiveNegative,
     showCellBars,
     colorPositiveNegative,
+    totals,
     emitCrossFilters,
   );
 
@@ -427,6 +431,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         renderTimeComparisonDropdown={
           isUsingTimeComparison ? renderTimeComparisonDropdown : () => null
         }
+        cleanedTotals={transformedData?.cleanedTotals}
+        showTotals={showTotals}
       />
     </StyledChartContainer>
   );

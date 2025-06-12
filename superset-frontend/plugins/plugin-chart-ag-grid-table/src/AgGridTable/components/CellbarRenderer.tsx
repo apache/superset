@@ -46,3 +46,13 @@ export default function CellBarRenderer({
     </div>
   );
 }
+
+export const TotalsRenderer = ({ value }: { value: string }) => (
+  <div
+    style={{
+      fontWeight: 'bold',
+    }}
+  >
+    {value}
+  </div>
+);
