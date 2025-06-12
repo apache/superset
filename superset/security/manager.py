@@ -274,7 +274,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "UserGroupModelView",
         "Row Level Security",
         "Row Level Security Filters",
-        "RowLevelSecurityFiltersModelView",
         "Security",
         "SQL Lab",
         "User Registrations",
