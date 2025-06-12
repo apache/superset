@@ -592,6 +592,10 @@ const PropertiesModal = ({
     setTags(parsedTags);
   };
 
+  const handleClearTags = () => {
+    setTags([]);
+  };
+
   return (
     <Modal
       show={show}
@@ -707,6 +711,7 @@ const PropertiesModal = ({
                   value={tagsAsSelectValues}
                   options={loadTags}
                   onChange={handleChangeTags}
+                  onClear={handleClearTags}
                   allowClear
                 />
               </StyledFormItem>
