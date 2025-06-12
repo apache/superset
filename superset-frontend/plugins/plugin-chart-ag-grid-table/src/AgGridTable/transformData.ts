@@ -214,7 +214,7 @@ export const transformData = (
           colDef?.field === columns[0].key
         ) {
           return TotalsRenderer({
-            value: 'Total',
+            isSummaryText: true,
           });
         }
 

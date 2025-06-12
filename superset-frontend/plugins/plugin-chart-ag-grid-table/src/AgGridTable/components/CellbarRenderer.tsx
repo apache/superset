@@ -18,6 +18,28 @@
  * under the License.
  */
 
+import { InfoCircleOutlined } from '@ant-design/icons';
+import { Tooltip } from '@superset-ui/chart-controls';
+import { t, styled } from '@superset-ui/core';
+
+const StyledTotalCell = styled.div`
+  font-weight: bold;
+`;
+
+const SummaryContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const SummaryText = styled.div`
+  font-weight: bold;
+`;
+
+const SUMMARY_TOOLTIP_TEXT = t(
+  'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
+);
+
 export default function CellBarRenderer({
   value,
   percentage,
@@ -47,12 +69,23 @@ export default function CellBarRenderer({
   );
 }
 
-export const TotalsRenderer = ({ value }: { value: string }) => (
-  <div
-    style={{
-      fontWeight: 'bold',
-    }}
-  >
-    {value}
-  </div>
-);
+export const TotalsRenderer = ({
+  value = '',
+  isSummaryText = false,
+}: {
+  value?: string;
+  isSummaryText?: boolean;
+}) => {
+  if (isSummaryText) {
+    return (
+      <SummaryContainer>
+        <SummaryText>{t('Summary')}</SummaryText>
+        <Tooltip overlay={SUMMARY_TOOLTIP_TEXT}>
+          <InfoCircleOutlined />
+        </Tooltip>
+      </SummaryContainer>
+    );
+  }
+
+  return <StyledTotalCell>{value}</StyledTotalCell>;
+};
