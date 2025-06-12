@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO: Remove fa-icon
-/* eslint-disable icons/no-fa-icons-usage */
 import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
 
 import rison from 'rison';

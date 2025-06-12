@@ -1102,7 +1102,7 @@ class DatasourceEditor extends PureComponent {
         <EditLockContainer>
           <span
             css={theme => css`
-              color: ${theme.colors.grayscale.base};
+              color: ${theme.colorTextTertiary};
             `}
             role="button"
             tabIndex={0}
@@ -1258,7 +1258,7 @@ class DatasourceEditor extends PureComponent {
                           <Icons.ExportOutlined
                             iconSize="s"
                             css={theme => ({
-                              color: theme.colorPrimary.light5,
+                              color: theme.colorPrimaryBg,
                             })}
                             onClick={() => {
                               this.openOnSqlLab();

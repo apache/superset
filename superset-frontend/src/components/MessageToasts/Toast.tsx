@@ -139,7 +139,7 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
       <Icons.CloseOutlined
         iconSize="m"
         className="toast__close pointer"
-        iconColor={theme.colors.grayscale.base}
+        iconColor={theme.colorTextTertiary}
         role="button"
         tabIndex={0}
         onClick={handleClosePress}

@@ -356,7 +356,7 @@ export default class CRUDCollection extends PureComponent<
             css={(theme: SupersetTheme) => css`
               display: flex;
               justify-content: center;
-              color: ${theme.colors.grayscale.base};
+              color: ${theme.colorTextTertiary};
             `}
           >
             <Icons.DeleteOutlined

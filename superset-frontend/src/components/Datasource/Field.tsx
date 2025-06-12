@@ -74,7 +74,7 @@ export default function Field<V>({
     compact && description ? (
       <Tooltip
         css={css`
-          color: ${theme.colors.grayscale.base};
+          color: ${theme.colorTextTertiary};
         `}
         id="field-descr"
         placement="right"
@@ -85,7 +85,7 @@ export default function Field<V>({
           css={css`
             margin-left: ${theme.sizeUnit}px;
           `}
-          iconColor={theme.colors.grayscale.base}
+          iconColor={theme.colorTextTertiary}
         />
       </Tooltip>
     ) : undefined;
