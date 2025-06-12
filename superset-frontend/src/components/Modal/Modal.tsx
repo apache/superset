@@ -277,7 +277,7 @@ const CustomModal = ({
   resizableConfig = defaultResizableConfig(hideFooter),
   draggableConfig,
   destroyOnClose,
-  openerRef = null,
+  openerRef,
   ...rest
 }: ModalProps) => {
   const draggableRef = useRef<HTMLDivElement>(null);
@@ -285,7 +285,7 @@ const CustomModal = ({
   const [dragDisabled, setDragDisabled] = useState<boolean>(true);
 
   const handleOnHide = () => {
-    openerRef.current?.focus();
+    openerRef?.current?.focus();
     onHide();
   };
 

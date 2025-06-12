@@ -95,8 +95,7 @@ export function ControlHeader({
           {leftNode && <span>{leftNode}</span>}
           <span
             role={onClick ? 'button' : undefined}
-            {...(onClick ? { onClick } : {})}
-            {...(onClick ? { tabIndex: 0 } : {})}
+            {...(onClick ? { onClick, tabIndex: 0 } : {})}
             className={labelClass}
             style={{ cursor: onClick ? 'pointer' : '' }}
           >

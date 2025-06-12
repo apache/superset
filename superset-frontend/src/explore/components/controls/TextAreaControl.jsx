@@ -140,7 +140,7 @@ class TextAreaControl extends Component {
           defaultValue={this.props.initialValue}
           disabled={this.props.readOnly}
           style={{ height: this.props.height }}
-          aria-required={this.props["aria-required"]}
+          aria-required={this.props['aria-required']}
         />
       </div>
     );

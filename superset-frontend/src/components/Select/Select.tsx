@@ -676,7 +676,9 @@ const Select = forwardRef(
           id={name}
           allowClear={!isLoading && allowClear}
           aria-label={
-            isSingleMode && isLabeledValue(selectValue)
+            isSingleMode &&
+            isLabeledValue(selectValue) &&
+            typeof selectValue.label === 'string'
               ? `${ariaLabel || name}: ${selectValue.label}`
               : ariaLabel || name
           }

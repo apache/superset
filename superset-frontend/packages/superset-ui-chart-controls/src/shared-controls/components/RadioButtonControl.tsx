@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { JsonValue, useTheme } from '@superset-ui/core';
+import { JsonValue, t, useTheme } from '@superset-ui/core';
 import { ControlHeader } from '../../components/ControlHeader';
 
 // [value, label]
@@ -105,7 +105,10 @@ export default function RadioButtonControl({
           overflow: 'hidden',
         }}
       >
-        {options.find(([val]) => val === currentValue)?.[1]} tab selected
+        {t(
+          '%s tab selected',
+          options.find(([val]) => val === currentValue)?.[1],
+        )}
       </div>
       {/* accessibility end */}
     </div>
