@@ -18,6 +18,7 @@
  */
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { Metric } from '@superset-ui/chart-controls';
 import {
   ChartProps,
   getMetricLabel,
@@ -113,6 +114,13 @@ export default function transformProps(chartProps: ChartProps) {
       adhoc_filter.operator === 'TEMPORAL_RANGE',
   )?.[0];
 
+  let metricEntry: Metric | undefined;
+  if (chartProps.datasource?.metrics) {
+    metricEntry = chartProps.datasource.metrics.find(
+      metricItem => metricItem.metric_name === metric,
+    );
+  }
+
   const isCustomOrInherit =
     timeComparison === 'custom' || timeComparison === 'inherit';
   let dataOffset: string[] = [];
@@ -153,7 +161,7 @@ export default function transformProps(chartProps: ChartProps) {
     metric,
     currencyFormats,
     columnFormats,
-    yAxisFormat,
+    metricEntry?.d3format || yAxisFormat,
     currencyFormat,
   );
 
