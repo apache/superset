@@ -57,11 +57,11 @@ from sqlalchemy.sql import literal_column, quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, Select, TextClause
 from sqlalchemy.types import TypeEngine
 
-from superset import db, sql_parse
+from superset import db
 from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.sql.parse import (
     BaseSQLStatement,
     LimitMethod,
@@ -373,9 +373,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_cte_in_subquery = True
     # Define alias for CTE
     cte_alias = "__cte"
-    # This set will give keywords for select statements
-    # to consider for the engines with TOP SQL parsing
-    select_keywords: set[str] = {"SELECT"}
     # A set of disallowed connection query parameters by driver name
     disallow_uri_query_params: dict[str, set[str]] = {}
     # A Dict of query parameters that will always be used on every connection
@@ -1767,14 +1764,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param kwargs: kwargs to be passed to cursor.execute()
         :return:
         """
-        if not cls.allows_sql_comments:
-            query = sql_parse.strip_comments_from_sql(query, engine=cls.engine)
-        disallowed_functions = current_app.config["DISALLOWED_SQL_FUNCTIONS"].get(
-            cls.engine, set()
-        )
-        if sql_parse.check_sql_functions_exist(query, disallowed_functions, cls.engine):
-            raise DisallowedSQLFunction(disallowed_functions)
-
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         try:

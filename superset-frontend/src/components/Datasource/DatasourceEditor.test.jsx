@@ -46,20 +46,29 @@ export const props = {
     state: 'This is a tooltip for state',
   },
 };
-
 export const DATASOURCE_ENDPOINT =
   'glob:*/datasource/external_metadata_by_name/*';
-
+const routeProps = {
+  history: {},
+  location: {},
+  match: {},
+};
 export const asyncRender = props =>
-  render(<DatasourceEditor {...props} />, {
-    useRedux: true,
-    initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
-  });
+  waitFor(() =>
+    render(<DatasourceEditor {...props} {...routeProps} />, {
+      useRedux: true,
+      initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
+      useRouter: true,
+    }),
+  );
 
 describe('DatasourceEditor', () => {
-  beforeEach(() => {
+  beforeAll(() => {
+    jest.clearAllMocks();
+  });
+  beforeEach(async () => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
-    asyncRender({
+    await asyncRender({
       ...props,
       datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
     });
@@ -76,7 +85,7 @@ describe('DatasourceEditor', () => {
 
   it('can sync columns from source', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');
-    await userEvent.click(columnsTab);
+    userEvent.click(columnsTab);
 
     const syncButton = screen.getByText(/sync columns from source/i);
     expect(syncButton).toBeInTheDocument();
@@ -93,7 +102,7 @@ describe('DatasourceEditor', () => {
       );
     });
 
-    await userEvent.click(syncButton);
+    userEvent.click(syncButton);
 
     // Wait for the fetch to be called
     const url = await fetchPromise;
@@ -103,12 +112,12 @@ describe('DatasourceEditor', () => {
   // to add, remove and modify columns accordingly
   it('can modify columns', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');
-    await userEvent.click(columnsTab);
+    userEvent.click(columnsTab);
 
     const getToggles = screen.getAllByRole('button', {
       name: /expand row/i,
     });
-    await userEvent.click(getToggles[0]);
+    userEvent.click(getToggles[0]);
 
     const getTextboxes = await screen.findAllByRole('textbox');
     expect(getTextboxes.length).toBeGreaterThanOrEqual(5);
@@ -121,22 +130,22 @@ describe('DatasourceEditor', () => {
       'Certification details',
     );
 
-    await userEvent.type(inputLabel, 'test_label');
-    await userEvent.type(inputDescription, 'test');
-    await userEvent.type(inputDtmFormat, 'test');
-    await userEvent.type(inputCertifiedBy, 'test');
-    await userEvent.type(inputCertDetails, 'test');
-  });
+    userEvent.type(inputLabel, 'test_label');
+    userEvent.type(inputDescription, 'test');
+    userEvent.type(inputDtmFormat, 'test');
+    userEvent.type(inputCertifiedBy, 'test');
+    userEvent.type(inputCertDetails, 'test');
+  }, 40000);
 
   it('can delete columns', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');
-    await userEvent.click(columnsTab);
+    userEvent.click(columnsTab);
 
     const getToggles = screen.getAllByRole('button', {
       name: /expand row/i,
     });
 
-    await userEvent.click(getToggles[0]);
+    userEvent.click(getToggles[0]);
 
     const deleteButtons = await screen.findAllByRole('button', {
       name: /delete item/i,
@@ -144,7 +153,7 @@ describe('DatasourceEditor', () => {
     const initialCount = deleteButtons.length;
     expect(initialCount).toBeGreaterThan(0);
 
-    await userEvent.click(deleteButtons[0]);
+    userEvent.click(deleteButtons[0]);
 
     await waitFor(() => {
       const countRows = screen.getAllByRole('button', { name: /delete item/i });
@@ -154,14 +163,14 @@ describe('DatasourceEditor', () => {
 
   it('can add new columns', async () => {
     const calcColsTab = screen.getByTestId('collection-tab-Calculated columns');
-    await userEvent.click(calcColsTab);
+    userEvent.click(calcColsTab);
 
     const addBtn = screen.getByRole('button', {
       name: /add item/i,
     });
     expect(addBtn).toBeInTheDocument();
 
-    await userEvent.click(addBtn);
+    userEvent.click(addBtn);
 
     // newColumn (Column name) is the first textbox in the tab
     await waitFor(() => {
@@ -174,7 +183,7 @@ describe('DatasourceEditor', () => {
     const columnsTab = screen.getByRole('tab', {
       name: /settings/i,
     });
-    await userEvent.click(columnsTab);
+    userEvent.click(columnsTab);
 
     const extraField = screen.getAllByText(/extra/i);
     expect(extraField.length).toBeGreaterThan(0);
@@ -190,9 +199,9 @@ describe('DatasourceEditor Source Tab', () => {
     isFeatureEnabled.mockImplementation(() => false);
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
-    asyncRender({
+    await asyncRender({
       ...props,
       datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
     });
@@ -208,7 +217,7 @@ describe('DatasourceEditor Source Tab', () => {
 
   it('Source Tab: edit mode', async () => {
     const getLockBtn = screen.getByRole('img', { name: /lock/i });
-    await userEvent.click(getLockBtn);
+    userEvent.click(getLockBtn);
 
     const physicalRadioBtn = screen.getByRole('radio', {
       name: /physical \(table or view\)/i,

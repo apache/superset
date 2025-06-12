@@ -212,10 +212,13 @@ const Column = props => {
           {editMode && (
             <HoverMenu innerRef={dragSourceRef} position="top">
               <DragHandle position="top" />
-              <DeleteComponentButton onDelete={handleDeleteComponent} />
+              <DeleteComponentButton
+                iconSize="m"
+                onDelete={handleDeleteComponent}
+              />
               <IconButton
                 onClick={handleChangeFocus}
-                icon={<Icons.SettingOutlined iconSize="xl" />}
+                icon={<Icons.SettingOutlined iconSize="m" />}
               />
             </HoverMenu>
           )}

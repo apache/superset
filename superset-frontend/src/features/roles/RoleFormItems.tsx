@@ -16,17 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FormItem, Input, Select } from '@superset-ui/core/components';
+import {
+  FormItem,
+  Input,
+  Select,
+  AsyncSelect,
+} from '@superset-ui/core/components';
 import { t } from '@superset-ui/core';
 import { FC } from 'react';
-import { FormattedPermission, UserObject } from './types';
+import { GroupObject } from 'src/pages/GroupsList';
+import { FormattedPermission } from './types';
+import { fetchUserOptions } from '../groups/utils';
 
 interface PermissionsFieldProps {
   permissions: FormattedPermission[];
 }
 
+interface GroupsFieldProps {
+  groups: GroupObject[];
+}
+
 interface UsersFieldProps {
-  users: UserObject[];
+  addDangerToast: (msg: string) => void;
+  loading: boolean;
 }
 
 export const RoleNameField = () => (
@@ -56,13 +68,28 @@ export const PermissionsField: FC<PermissionsFieldProps> = ({
   </FormItem>
 );
 
-export const UsersField: FC<UsersFieldProps> = ({ users }) => (
+export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => (
   <FormItem name="roleUsers" label={t('Users')}>
+    <AsyncSelect
+      name="roleUsers"
+      mode="multiple"
+      placeholder={t('Select users')}
+      options={(filterValue, page, pageSize) =>
+        fetchUserOptions(filterValue, page, pageSize, addDangerToast)
+      }
+      loading={loading}
+      data-test="roles-select"
+    />
+  </FormItem>
+);
+
+export const GroupsField: FC<GroupsFieldProps> = ({ groups }) => (
+  <FormItem name="roleGroups" label={t('Groups')}>
     <Select
       mode="multiple"
-      name="roleUsers"
-      options={users.map(user => ({ label: user.username, value: user.id }))}
-      data-test="users-select"
+      name="roleGroups"
+      options={groups.map(group => ({ label: group.name, value: group.id }))}
+      data-test="groups-select"
     />
   </FormItem>
 );

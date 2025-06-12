@@ -95,7 +95,7 @@ def test_update_dataset_forbidden(mocker: MockerFixture) -> None:
         ),
     ],
 )
-def test_update_validation_errors(
+def test_update_dataset_validation_errors(
     payload: dict[str, Any],
     exception: Exception,
     error_msg: str,

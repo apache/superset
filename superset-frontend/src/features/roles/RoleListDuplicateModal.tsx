@@ -45,9 +45,11 @@ function RoleListDuplicateModal({
       if (permission_ids.length > 0) {
         await updateRolePermissions(roleResponse.id, permission_ids);
       }
-      addSuccessToast(t('Role was successfully duplicated!'));
+      addSuccessToast(t('The role has been duplicated successfully.'));
     } catch (err) {
-      addDangerToast(t('Error while duplicating role!'));
+      addDangerToast(
+        t('There was an error duplicating the role. Please, try again.'),
+      );
       throw err;
     }
   };

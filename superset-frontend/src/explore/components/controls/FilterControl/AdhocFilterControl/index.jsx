@@ -37,7 +37,6 @@ import {
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import {
   AddControlLabel,
-  AddIconButton,
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
@@ -359,23 +358,21 @@ class AdhocFilterControl extends Component {
       <div className="metrics-select" data-test="adhoc-filter-control">
         <HeaderContainer>
           <ControlHeader {...this.props} />
-          {this.addNewFilterPopoverTrigger(
-            <AddIconButton data-test="add-filter-button">
-              <Icons.PlusOutlined iconSize="m" />
-            </AddIconButton>,
-          )}
         </HeaderContainer>
         <LabelsContainer>
-          {this.state.values.length > 0
-            ? this.state.values.map((value, index) =>
-                this.valueRenderer(value, index),
-              )
-            : this.addNewFilterPopoverTrigger(
-                <AddControlLabel>
-                  <Icons.PlusOutlined iconSize="m" />
-                  {t('Add filter')}
-                </AddControlLabel>,
-              )}
+          {[
+            ...(this.state.values.length > 0
+              ? this.state.values.map((value, index) =>
+                  this.valueRenderer(value, index),
+                )
+              : []),
+            this.addNewFilterPopoverTrigger(
+              <AddControlLabel role="button" data-test="add-filter-button">
+                <Icons.PlusOutlined iconSize="m" />
+                {t('Add filter')}
+              </AddControlLabel>,
+            ),
+          ]}
         </LabelsContainer>
       </div>
     );

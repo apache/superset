@@ -105,6 +105,7 @@ Join our growing community!
 - [Formbricks](https://formbricks.com)
 - [Gavagai](https://gavagai.io) [@gavagai-corp]
 - [GfK Data Lab](https://www.gfk.com/home) [@mherr]
+- [HPE](https://www.hpe.com/in/en/home.html) [@anmol-hpe]
 - [Hydrolix](https://www.hydrolix.io/)
 - [Intercom](https://www.intercom.com/) [@kate-gallo]
 - [jampp](https://jampp.com/)

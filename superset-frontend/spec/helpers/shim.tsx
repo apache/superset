@@ -20,10 +20,7 @@ import { AriaAttributes } from 'react';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
-import 'enzyme-matchers';
 import jQuery from 'jquery';
-import Enzyme from 'enzyme';
-import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
 import { configure as configureTranslation } from '../../packages/superset-ui-core/src/translation';
@@ -32,8 +29,6 @@ import { IntersectionObserver } from './IntersectionObserver';
 import { ResizeObserver } from './ResizeObserver';
 import setupSupersetClient from './setupSupersetClient';
 import CacheStorage from './CacheStorage';
-
-Enzyme.configure({ adapter: new Adapter() });
 
 const exposedProperties = ['window', 'navigator', 'document'];
 

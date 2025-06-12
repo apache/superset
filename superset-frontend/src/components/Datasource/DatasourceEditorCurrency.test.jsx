@@ -90,7 +90,7 @@ describe('DatasourceEditor Currency Tests', () => {
     expect(positionSelector).toBeInTheDocument();
 
     // Open the dropdown
-    await userEvent.click(positionSelector);
+    userEvent.click(positionSelector);
 
     // Wait for dropdown to open and find the suffix option
     const suffixOption = await waitFor(
@@ -111,7 +111,7 @@ describe('DatasourceEditor Currency Tests', () => {
     propsWithCurrency.onChange.mockClear();
 
     // Click the suffix option
-    await userEvent.click(suffixOption);
+    userEvent.click(suffixOption);
 
     // Check if onChange was called with the expected parameters
     await waitFor(
@@ -141,7 +141,7 @@ describe('DatasourceEditor Currency Tests', () => {
     );
 
     // Open the currency dropdown
-    await userEvent.click(currencySymbol);
+    userEvent.click(currencySymbol);
 
     // Wait for dropdown to open and find the GBP option
     const gbpOption = await waitFor(
@@ -162,7 +162,7 @@ describe('DatasourceEditor Currency Tests', () => {
     propsWithCurrency.onChange.mockClear();
 
     // Click the GBP option
-    await userEvent.click(gbpOption);
+    userEvent.click(gbpOption);
 
     // Verify the onChange with GBP was called
     await waitFor(

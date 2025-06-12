@@ -76,6 +76,7 @@ const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
 
   .ant-modal-body {
     padding: 0px;
+    overflow: auto;
   }
 
   ${({ expanded }) =>

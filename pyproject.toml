@@ -32,6 +32,7 @@ authors = [
 classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
     "backoff>=1.8.0",
@@ -66,7 +67,7 @@ dependencies = [
     "markdown>=3.0",
     "msgpack>=1.0.0, <1.1",
     "nh3>=0.2.11, <0.3",
-    "numpy>1.23.5, <2",
+    "numpy>1.23.5, <2.3",
     "packaging",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
@@ -93,8 +94,8 @@ dependencies = [
     "sqlalchemy>=1.4, <2",
     "sqlalchemy-utils>=0.38.3, <0.39",
     "sqlglot>=26.1.3, <27",
-    "sqlparse>=0.5.0",
-    "tabulate>=0.8.9, <0.9",
+    # newer pandas needs 0.9+
+    "tabulate>=0.9.0, <1.0",
     "typing-extensions>=4, <5",
     "waitress; sys_platform == 'win32'",
     "wtforms>=2.3.3, <4",
@@ -166,6 +167,7 @@ prophet = ["prophet>=1.1.5, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 rockset = ["rockset-sqlalchemy>=0.0.1, <1"]
 shillelagh = ["shillelagh[all]>=1.2.18, <2"]
+singlestore = ["sqlalchemy-singlestoredb>=1.1.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.2.4, <2"]
 spark = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
@@ -216,7 +218,7 @@ combine_as_imports = true
 include_trailing_comma = true
 line_length = 88
 known_first_party = "superset"
-known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, pgsanity, polyline, prison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, selenium, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, sqlparse, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
+known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, pgsanity, polyline, prison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, selenium, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
 multi_line_output = 3
 order_by_type = false
 

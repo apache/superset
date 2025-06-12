@@ -34,13 +34,12 @@ import {
   type ListViewActionProps,
   type ListViewFilters,
 } from 'src/components';
-import {
-  FormattedPermission,
-  PermissionResource,
-  UserObject,
-} from 'src/features/roles/types';
+import { FormattedPermission, UserObject } from 'src/features/roles/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { fetchPaginatedData } from 'src/utils/fetchOptions';
+import { fetchUserOptions } from 'src/features/groups/utils';
+import { GroupObject } from '../GroupsList';
 
 const PAGE_SIZE = 25;
 
@@ -61,6 +60,7 @@ export type RoleObject = {
   permission_ids: number[];
   users?: Array<UserObject>;
   user_ids: number[];
+  group_ids: number[];
 };
 
 enum ModalType {
@@ -100,108 +100,48 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
   const [roleCurrentlyDeleting, setRoleCurrentlyDeleting] =
     useState<RoleObject | null>(null);
   const [permissions, setPermissions] = useState<FormattedPermission[]>([]);
-  const [users, setUsers] = useState<UserObject[]>([]);
+  const [groups, setGroups] = useState<GroupObject[]>([]);
   const [loadingState, setLoadingState] = useState({
     permissions: true,
-    users: true,
+    groups: true,
   });
 
   const isAdmin = useMemo(() => isUserAdmin(user), [user]);
 
-  const fetchPermissions = useCallback(async () => {
-    try {
-      const pageSize = 100;
+  const fetchPermissions = useCallback(() => {
+    fetchPaginatedData({
+      endpoint: '/api/v1/security/permissions-resources/',
+      setData: setPermissions,
+      setLoadingState,
+      loadingKey: 'permissions',
+      addDangerToast,
+      errorMessage: 'Error while fetching permissions',
+      mapResult: ({ permission, view_menu, id }) => ({
+        label: `${permission.name.replace(/_/g, ' ')} ${view_menu.name.replace(/_/g, ' ')}`,
+        value: `${permission.name}__${view_menu.name}`,
+        id,
+      }),
+    });
+  }, [addDangerToast]);
 
-      const fetchPage = async (pageIndex: number) => {
-        const response = await SupersetClient.get({
-          endpoint: `api/v1/security/permissions-resources/?q=(page_size:${pageSize},page:${pageIndex})`,
-        });
-
-        return {
-          count: response.json.count,
-          results: response.json.result.map(
-            ({ permission, view_menu, id }: PermissionResource) => ({
-              label: `${permission.name.replace(/_/g, ' ')} ${view_menu.name.replace(/_/g, ' ')}`,
-              value: `${permission.name}__${view_menu.name}`,
-              id,
-            }),
-          ),
-        };
-      };
-
-      const initialResponse = await fetchPage(0);
-      const totalPermissions = initialResponse.count;
-      const firstPageResults = initialResponse.results;
-
-      if (firstPageResults.length >= totalPermissions) {
-        setPermissions(firstPageResults);
-        return;
-      }
-
-      const totalPages = Math.ceil(totalPermissions / pageSize);
-
-      const permissionRequests = Array.from(
-        { length: totalPages - 1 },
-        (_, i) => fetchPage(i + 1),
-      );
-      const remainingResults = await Promise.all(permissionRequests);
-
-      setPermissions([
-        ...firstPageResults,
-        ...remainingResults.flatMap(res => res.results),
-      ]);
-    } catch (err) {
-      addDangerToast(t('Error while fetching permissions'));
-    } finally {
-      setLoadingState(prev => ({ ...prev, permissions: false }));
-    }
-  }, []);
-
-  const fetchUsers = useCallback(async () => {
-    try {
-      const pageSize = 100;
-
-      const fetchPage = async (pageIndex: number) => {
-        const response = await SupersetClient.get({
-          endpoint: `api/v1/security/users/?q=(page_size:${pageSize},page:${pageIndex})`,
-        });
-        return response.json;
-      };
-
-      const initialResponse = await fetchPage(0);
-      const totalUsers = initialResponse.count;
-      const firstPageResults = initialResponse.result;
-
-      if (pageSize >= totalUsers) {
-        setUsers(firstPageResults);
-        return;
-      }
-
-      const totalPages = Math.ceil(totalUsers / pageSize);
-
-      const userRequests = Array.from({ length: totalPages - 1 }, (_, i) =>
-        fetchPage(i + 1),
-      );
-      const remainingResults = await Promise.all(userRequests);
-
-      setUsers([
-        ...firstPageResults,
-        ...remainingResults.flatMap(res => res.result),
-      ]);
-    } catch (err) {
-      addDangerToast(t('Error while fetching users'));
-    } finally {
-      setLoadingState(prev => ({ ...prev, users: false }));
-    }
-  }, []);
+  const fetchGroups = useCallback(() => {
+    fetchPaginatedData({
+      endpoint: '/api/v1/security/groups/',
+      setData: setGroups,
+      setLoadingState,
+      loadingKey: 'groups',
+      addDangerToast,
+      errorMessage: t('Error while fetching groups'),
+    });
+  }, [addDangerToast]);
 
   useEffect(() => {
     fetchPermissions();
   }, [fetchPermissions]);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    fetchGroups();
+  }, [fetchGroups]);
 
   const handleRoleDelete = async ({ id, name }: RoleObject) => {
     try {
@@ -246,28 +186,35 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
     () => [
       {
         accessor: 'name',
+        id: 'name',
         Header: t('Name'),
         Cell: ({
           row: {
             original: { name },
           },
         }: any) => <span>{name}</span>,
-        id: 'name',
       },
       {
         accessor: 'user_ids',
+        id: 'user_ids',
         Header: t('Users'),
         hidden: true,
         Cell: ({ row: { original } }: any) => original.user_ids.join(', '),
-        id: 'user_ids',
+      },
+      {
+        accessor: 'group_ids',
+        id: 'group_ids',
+        Header: t('Groups'),
+        hidden: true,
+        Cell: ({ row: { original } }: any) => original.groups_ids.join(', '),
       },
       {
         accessor: 'permission_ids',
+        id: 'permission_ids',
         Header: t('Permissions'),
         hidden: true,
         Cell: ({ row: { original } }: any) =>
           original.permission_ids.join(', '),
-        id: 'permission_ids',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -363,11 +310,8 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         input: 'select',
         operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
-        selects: users?.map(user => ({
-          label: user.username,
-          value: user.id,
-        })),
-        loading: loadingState.users,
+        fetchSelects: async (filterValue, page, pageSize) =>
+          fetchUserOptions(filterValue, page, pageSize, addDangerToast),
       },
       {
         Header: t('Permissions'),
@@ -382,8 +326,21 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         })),
         loading: loadingState.permissions,
       },
+      {
+        Header: t('Groups'),
+        key: 'group_ids',
+        id: 'group_ids',
+        input: 'select',
+        operator: FilterOperator.RelationOneMany,
+        unfilteredLabel: t('All'),
+        selects: groups?.map(group => ({
+          label: group.name,
+          value: group.id,
+        })),
+        loading: loadingState.groups,
+      },
     ],
-    [permissions, users, loadingState.users, loadingState.permissions],
+    [permissions, groups, loadingState.groups, loadingState.permissions],
   );
 
   const emptyState = {
@@ -422,10 +379,9 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
           onSave={() => {
             refreshData();
             closeModal(ModalType.EDIT);
-            fetchUsers();
           }}
           permissions={permissions}
-          users={users}
+          groups={groups}
         />
       )}
       {modalState.duplicate && currentRole && (

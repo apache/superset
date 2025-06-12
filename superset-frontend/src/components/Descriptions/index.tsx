@@ -16,29 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { mount as enzymeMount } from 'enzyme';
-// eslint-disable-next-line no-restricted-imports
-import { supersetTheme } from '@superset-ui/core';
-import { ReactElement } from 'react';
-import { ProviderWrapper } from './ProviderWrapper';
 
-type optionsType = {
-  wrappingComponentProps?: any;
-  wrappingComponent?: ReactElement;
-  context?: any;
-  newOption?: string;
-};
-
-export function styledMount(
-  component: ReactElement,
-  options: optionsType = {},
-): any {
-  return enzymeMount(component, {
-    ...options,
-    wrappingComponent: ProviderWrapper,
-    wrappingComponentProps: {
-      theme: supersetTheme,
-      ...options?.wrappingComponentProps,
-    },
-  });
-}
+export { Descriptions } from 'antd';
+export type { DescriptionsProps } from 'antd/es/descriptions';

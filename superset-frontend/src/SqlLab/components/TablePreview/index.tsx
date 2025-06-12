@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO: Remove fa-icon
-/* eslint-disable icons/no-fa-icons-usage */
 import { type FC, useCallback, useMemo, useRef, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';

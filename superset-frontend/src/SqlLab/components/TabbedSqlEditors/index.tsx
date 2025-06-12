@@ -140,6 +140,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
           schema,
           autorun,
           sql,
+          isDataset: this.context.isDataset,
         };
         this.props.actions.addQueryEditor(newQueryEditor);
       }

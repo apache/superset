@@ -76,10 +76,12 @@ import {
   FileOutlined,
   FileTextOutlined,
   FireOutlined,
+  FormOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
   FundProjectionScreenOutlined,
   FunctionOutlined,
+  HighlightOutlined,
   InfoCircleOutlined,
   InfoCircleFilled,
   InsertRowAboveOutlined,
@@ -128,6 +130,7 @@ import {
   VerticalRightOutlined,
   NumberOutlined,
   ThunderboltOutlined,
+  FacebookOutlined,
   FilterOutlined,
   FontColorsOutlined,
   UnorderedListOutlined,
@@ -136,9 +139,9 @@ import {
   KeyOutlined,
   GithubOutlined,
   GoogleOutlined,
-  FacebookOutlined,
   DesktopOutlined,
   FormatPainterOutlined,
+  ExportOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
 import { IconType } from './types';
@@ -205,12 +208,14 @@ const AntdIcons = {
   FileOutlined,
   FileTextOutlined,
   FireOutlined,
+  FormOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
   FundProjectionScreenOutlined,
   FunctionOutlined,
   GithubOutlined,
   GoogleOutlined,
+  HighlightOutlined,
   InfoCircleOutlined,
   InfoCircleFilled,
   InsertRowAboveOutlined,
@@ -267,6 +272,7 @@ const AntdIcons = {
   KeyOutlined,
   DesktopOutlined,
   FormatPainterOutlined,
+  ExportOutlined,
 } as const;
 
 type AntdIconNames = keyof typeof AntdIcons;

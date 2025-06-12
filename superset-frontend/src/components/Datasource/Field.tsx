@@ -42,7 +42,7 @@ interface FieldProps<V> {
   onChange: (fieldKey: string, newValue: V) => void;
   compact: boolean;
   inline: boolean;
-  errorMessage?: string;
+  errorMessage?: string | ReactElement;
 }
 
 export default function Field<V>({
@@ -72,10 +72,20 @@ export default function Field<V>({
   const extra = !compact && description ? description : undefined;
   const infoTooltip =
     compact && description ? (
-      <Tooltip id="field-descr" placement="right" title={description}>
-        <Icons.InfoCircleFilled
+      <Tooltip
+        css={css`
+          color: ${theme.colorTextTertiary};
+        `}
+        id="field-descr"
+        placement="right"
+        title={description}
+      >
+        <Icons.InfoCircleOutlined
           iconSize="s"
-          style={{ marginLeft: theme.sizeUnit }}
+          css={css`
+            margin-left: ${theme.sizeUnit}px;
+          `}
+          iconColor={theme.colorTextTertiary}
         />
       </Tooltip>
     ) : undefined;

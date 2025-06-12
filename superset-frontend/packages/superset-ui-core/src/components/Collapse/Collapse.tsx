@@ -19,7 +19,7 @@ import { styled } from '@superset-ui/core';
 import { Collapse as AntdCollapse } from 'antd';
 import type { CollapseProps } from './types';
 
-export const Collapse = styled((props: CollapseProps) => (
+const StyledCollapse = styled((props: CollapseProps) => (
   <AntdCollapse {...props} />
 ))`
   ${({ modalMode }) =>
@@ -81,5 +81,13 @@ export const Collapse = styled((props: CollapseProps) => (
     }
   }
 `;
+
+// Type-safe extension to preserve Collapse.Panel
+type CollapseWithPanel = typeof StyledCollapse & {
+  Panel: typeof AntdCollapse.Panel;
+};
+
+export const Collapse = StyledCollapse as CollapseWithPanel;
+Collapse.Panel = AntdCollapse.Panel;
 
 export type { CollapseProps };
