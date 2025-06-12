@@ -96,7 +96,7 @@ const TitleRight = styled.span`
   position: absolute;
   right: -1px;
   font-weight: 400;
-  bottom: ${({ theme }) => theme.sizeUnit}px;
+  bottom: ${({ theme }) => theme.sizeUnit * 3}px;
 `;
 
 const CoverFooter = styled.div`
