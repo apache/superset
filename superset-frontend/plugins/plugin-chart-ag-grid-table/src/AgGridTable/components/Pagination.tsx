@@ -46,7 +46,7 @@ const SelectWrapper = styled.div`
   min-width: 70px;
 `;
 
-const StyledSelect = styled.select`
+const StyledSelect = styled.select<{ numberLength: number }>`
   width: auto;
   margin: 0 8px;
   padding: 2px 24px 2px 8px;
@@ -59,7 +59,8 @@ const StyledSelect = styled.select`
   /* Custom arrow styling */
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000000'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
-  background-position: right 8px center;
+  background-position: right
+    ${props => (props.numberLength <= 2 ? '8px' : '4px')} center;
   background-size: 24px;
 
   &:hover {
@@ -148,6 +149,7 @@ const Pagination: React.FC<PaginationProps> = ({
       <span>Page Size:</span>
       <SelectWrapper>
         <StyledSelect
+          numberLength={pageSize.toString().length}
           onChange={e => {
             onServerPageSizeChange(Number(e.target.value));
           }}
