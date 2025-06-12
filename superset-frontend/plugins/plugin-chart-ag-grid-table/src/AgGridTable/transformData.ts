@@ -21,8 +21,12 @@
 import { ColDef, ValueFormatterParams } from 'ag-grid-community';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import { DataRecord } from '@superset-ui/core';
+import { ColorFormatters } from '@superset-ui/chart-controls';
 import CustomHeader from './components/CustomHeader';
-import CellBarRenderer, { TotalsRenderer } from './components/CellbarRenderer';
+import CellBarRenderer, {
+  CellRenderer,
+  TotalsRenderer,
+} from './components/CellbarRenderer';
 
 export interface InputColumn {
   key: string;
@@ -169,27 +173,38 @@ export const transformData = (
   showCellBars: boolean,
   colorPositiveNegative: boolean,
   totals: DataRecord | undefined,
+  columnColorFormatters: ColorFormatters,
   emitCrossFilters?: boolean,
 ) => {
   const cleanedTotals = cleanTotals(totals || {});
   const colDefs: ColDef[] = columns.map(col => {
-    const { config, isMetric, isPercentMetric } = col;
+    const { config, isMetric, isPercentMetric, isNumeric } = col;
     const alignPositiveNegative =
       config.alignPositiveNegative === undefined
         ? defaultAlignPN
         : config.alignPositiveNegative;
+
+    const hasColumnColorFormatters =
+      isNumeric &&
+      Array.isArray(columnColorFormatters) &&
+      columnColorFormatters.length > 0;
+
     const valueRange =
+      !hasColumnColorFormatters &&
       showCellBars &&
       (config.showCellBars || config.showCellBars === undefined) &&
       (isMetric || isRawRecords || isPercentMetric) &&
       getValueRange(col.key, alignPositiveNegative, data);
+
     const colId = col?.key.includes('Main')
       ? col?.key.replace('Main', '').trim()
       : col?.key;
+
     const headerLabel =
       col?.originalLabel && col?.key.includes('Main')
         ? col?.originalLabel
         : col.label;
+
     return {
       field: colId,
       headerName: headerLabel,
@@ -226,8 +241,26 @@ export const transformData = (
 
         // Regular cell rendering logic
         if (!value) return null;
+        let backgroundColor;
+        if (hasColumnColorFormatters) {
+          columnColorFormatters!
+            .filter(formatter => formatter.column === colId)
+            .forEach(formatter => {
+              const formatterResult =
+                value || value === 0
+                  ? formatter.getColorFromValue(value as number)
+                  : false;
+              if (formatterResult) {
+                backgroundColor = formatterResult;
+              }
+            });
+        }
         const formattedValue = col?.formatter ? col?.formatter(value) : value;
-        if (!valueRange) return formattedValue;
+        if (!valueRange)
+          return CellRenderer({
+            value: formattedValue,
+            backgroundColor: backgroundColor || '',
+          });
         const CellWidth = cellWidth({
           value: value as number,
           valueRange,

@@ -89,3 +89,19 @@ export const TotalsRenderer = ({
 
   return <StyledTotalCell>{value}</StyledTotalCell>;
 };
+
+export const CellRenderer = ({
+  value,
+  backgroundColor,
+}: {
+  value: number;
+  backgroundColor: string;
+}) => (
+  <div
+    style={{
+      ...(backgroundColor ? { backgroundColor } : {}),
+    }}
+  >
+    {value}
+  </div>
+);

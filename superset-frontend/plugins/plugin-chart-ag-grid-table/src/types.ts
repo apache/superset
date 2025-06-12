@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ColorFormatters } from '@superset-ui/chart-controls';
 import {
   NumberFormatter,
   TimeFormatter,
@@ -164,6 +165,7 @@ export interface AgGridTableChartTransformedProps<
   colorPositiveNegative: boolean;
   totals: DataRecord | undefined;
   showTotals: boolean;
+  columnColorFormatters: ColorFormatters;
 }
 
 export enum ColorSchemeEnum {

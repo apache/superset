@@ -38,6 +38,10 @@ import {
 } from '@superset-ui/core';
 
 import { isEmpty, isEqual } from 'lodash';
+import {
+  ConditionalFormattingConfig,
+  getColorFormatters,
+} from '@superset-ui/chart-controls';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {
@@ -45,6 +49,8 @@ import {
   TableChartProps,
   AgGridTableChartTransformedProps,
   TableColumnConfig,
+  ColorSchemeEnum,
+  BasicColorFormatterType,
 } from './types';
 
 const { PERCENT_3_POINT } = NumberFormats;
@@ -477,7 +483,122 @@ const transformProps = (
     show_cell_bars: showCellBars = true,
     color_pn: colorPositiveNegative = true,
     show_totals: showTotals,
+    conditional_formatting: conditionalFormatting,
+    comparison_color_enabled: comparisonColorEnabled = false,
+    comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
   } = formData;
+
+  const calculateBasicStyle = (
+    percentDifferenceNum: number,
+    colorOption: ColorSchemeEnum,
+  ) => {
+    if (percentDifferenceNum === 0) {
+      return {
+        arrow: '',
+        arrowColor: '',
+        // eslint-disable-next-line theme-colors/no-literal-colors
+        backgroundColor: 'rgba(0,0,0,0.2)',
+      };
+    }
+    const isPositive = percentDifferenceNum > 0;
+    const arrow = isPositive ? '↑' : '↓';
+    const arrowColor =
+      colorOption === ColorSchemeEnum.Green
+        ? isPositive
+          ? ColorSchemeEnum.Green
+          : ColorSchemeEnum.Red
+        : isPositive
+          ? ColorSchemeEnum.Red
+          : ColorSchemeEnum.Green;
+    const backgroundColor =
+      colorOption === ColorSchemeEnum.Green
+        ? `rgba(${isPositive ? '0,150,0' : '150,0,0'},0.2)`
+        : `rgba(${isPositive ? '150,0,0' : '0,150,0'},0.2)`;
+
+    return { arrow, arrowColor, backgroundColor };
+  };
+
+  const getBasicColorFormatter = memoizeOne(function getBasicColorFormatter(
+    originalData: DataRecord[] | undefined,
+    originalColumns: DataColumnMeta[],
+    selectedColumns?: ConditionalFormattingConfig[],
+  ) {
+    // Transform data
+    const relevantColumns = selectedColumns
+      ? originalColumns.filter(col =>
+          selectedColumns.some(scol => scol?.column?.includes(col.key)),
+        )
+      : originalColumns;
+
+    return originalData?.map(originalItem => {
+      const item: { [key: string]: BasicColorFormatterType } = {};
+      relevantColumns.forEach(origCol => {
+        if (
+          (origCol.isMetric || origCol.isPercentMetric) &&
+          !origCol.key.includes(ensureIsArray(timeOffsets)[0]) &&
+          origCol.isNumeric
+        ) {
+          const originalValue = originalItem[origCol.key] || 0;
+          const comparisonValue = origCol.isMetric
+            ? originalItem?.[
+                `${origCol.key}__${ensureIsArray(timeOffsets)[0]}`
+              ] || 0
+            : originalItem[
+                `%${origCol.key.slice(1)}__${ensureIsArray(timeOffsets)[0]}`
+              ] || 0;
+          const { percentDifferenceNum } = calculateDifferences(
+            originalValue as number,
+            comparisonValue as number,
+          );
+
+          if (selectedColumns) {
+            selectedColumns.forEach(col => {
+              if (col?.column?.includes(origCol.key)) {
+                const { arrow, arrowColor, backgroundColor } =
+                  calculateBasicStyle(
+                    percentDifferenceNum,
+                    col.colorScheme || comparisonColorScheme,
+                  );
+                item[col.column] = {
+                  mainArrow: arrow,
+                  arrowColor,
+                  backgroundColor,
+                };
+              }
+            });
+          } else {
+            const { arrow, arrowColor, backgroundColor } = calculateBasicStyle(
+              percentDifferenceNum,
+              comparisonColorScheme,
+            );
+            item[`${origCol.key}`] = {
+              mainArrow: arrow,
+              arrowColor,
+              backgroundColor,
+            };
+          }
+        }
+      });
+      return item;
+    });
+  });
+
+  const getBasicColorFormatterForColumn = (
+    originalData: DataRecord[] | undefined,
+    originalColumns: DataColumnMeta[],
+    conditionalFormatting?: ConditionalFormattingConfig[],
+  ) => {
+    const selectedColumns = conditionalFormatting?.filter(
+      (config: ConditionalFormattingConfig) =>
+        config.column &&
+        (config.colorScheme === ColorSchemeEnum.Green ||
+          config.colorScheme === ColorSchemeEnum.Red),
+    );
+
+    return selectedColumns?.length
+      ? getBasicColorFormatter(originalData, originalColumns, selectedColumns)
+      : undefined;
+  };
 
   const isUsingTimeComparison =
     !isEmpty(time_compare) &&
@@ -554,6 +675,17 @@ const transformProps = (
   const passedData = isUsingTimeComparison ? comparisonData || [] : data;
   const passedColumns = isUsingTimeComparison ? comparisonColumns : columns;
 
+  // const basicColorFormatters =
+  //   comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
+  const columnColorFormatters =
+    getColorFormatters(conditionalFormatting, passedData) ?? [];
+
+  // const basicColorColumnFormatters = getBasicColorFormatterForColumn(
+  //   baseQuery?.data,
+  //   columns,
+  //   conditionalFormatting,
+  // );
+
   const hasPageLength = isPositiveNumber(pageLength);
 
   const totals =
@@ -591,6 +723,7 @@ const transformProps = (
     colorPositiveNegative,
     totals,
     showTotals,
+    columnColorFormatters,
   };
 };
 
