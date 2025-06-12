@@ -28,7 +28,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { isEqual } from 'lodash';
 import { Dropdown, Menu } from '@superset-ui/chart-controls';
 import { CheckOutlined, DownOutlined, TableOutlined } from '@ant-design/icons';
@@ -120,8 +120,39 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
   }, [columns]);
 
+  const comparisonColumns = [
+    { key: 'all', label: t('Display all') },
+    { key: '#', label: '#' },
+    { key: '△', label: '△' },
+    { key: '%', label: '%' },
+  ];
+  const [selectedComparisonColumns, setSelectedComparisonColumns] = useState([
+    comparisonColumns[0].key,
+  ]);
+
+  const filteredColumns = useMemo(() => {
+    if (!isUsingTimeComparison) {
+      return columns;
+    }
+    if (
+      selectedComparisonColumns.length === 0 ||
+      selectedComparisonColumns.includes('all')
+    ) {
+      return columns;
+    }
+
+    return columns.filter(
+      col =>
+        !col.originalLabel ||
+        col.label?.includes('Main') ||
+        selectedComparisonColumns.includes(col.label),
+    );
+  }, [columns, selectedComparisonColumns]);
+
   const transformedData = transformData(
-    columns as InputColumn[],
+    isUsingTimeComparison
+      ? (filteredColumns as InputColumn[])
+      : (columns as InputColumn[]),
     data,
     serverPagination,
     isRawRecords,
@@ -129,6 +160,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     showCellBars,
     emitCrossFilters,
   );
+
   const gridHeight = getGridHeight(height, serverPagination, hasPageLength);
 
   const isActiveFilterValue = useCallback(
@@ -279,17 +311,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     },
     [setDataMask, serverPagination],
   );
-
-  const comparisonColumns = [
-    { key: 'all', label: t('Display all') },
-    { key: '#', label: '#' },
-    { key: '△', label: '△' },
-    { key: '%', label: '%' },
-  ];
-
-  const [selectedComparisonColumns, setSelectedComparisonColumns] = useState([
-    comparisonColumns[0].key,
-  ]);
 
   const [showComparisonDropdown, setShowComparisonDropdown] = useState(false);
 
