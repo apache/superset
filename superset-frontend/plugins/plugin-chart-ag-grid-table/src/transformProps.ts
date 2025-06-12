@@ -675,16 +675,16 @@ const transformProps = (
   const passedData = isUsingTimeComparison ? comparisonData || [] : data;
   const passedColumns = isUsingTimeComparison ? comparisonColumns : columns;
 
-  // const basicColorFormatters =
-  //   comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
+  const basicColorFormatters =
+    comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
   const columnColorFormatters =
     getColorFormatters(conditionalFormatting, passedData) ?? [];
 
-  // const basicColorColumnFormatters = getBasicColorFormatterForColumn(
-  //   baseQuery?.data,
-  //   columns,
-  //   conditionalFormatting,
-  // );
+  const basicColorColumnFormatters = getBasicColorFormatterForColumn(
+    baseQuery?.data,
+    columns,
+    conditionalFormatting,
+  );
 
   const hasPageLength = isPositiveNumber(pageLength);
 
@@ -724,6 +724,8 @@ const transformProps = (
     totals,
     showTotals,
     columnColorFormatters,
+    basicColorColumnFormatters,
+    basicColorFormatters,
   };
 };
 

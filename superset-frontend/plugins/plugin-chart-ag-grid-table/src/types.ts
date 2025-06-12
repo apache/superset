@@ -166,6 +166,8 @@ export interface AgGridTableChartTransformedProps<
   totals: DataRecord | undefined;
   showTotals: boolean;
   columnColorFormatters: ColorFormatters;
+  basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
+  basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
 }
 
 export enum ColorSchemeEnum {
