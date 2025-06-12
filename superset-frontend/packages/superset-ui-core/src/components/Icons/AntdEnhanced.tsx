@@ -81,6 +81,7 @@ import {
   FullscreenOutlined,
   FundProjectionScreenOutlined,
   FunctionOutlined,
+  HighlightOutlined,
   InfoCircleOutlined,
   InfoCircleFilled,
   InsertRowAboveOutlined,
@@ -127,6 +128,7 @@ import {
   VerticalRightOutlined,
   NumberOutlined,
   ThunderboltOutlined,
+  FacebookOutlined,
   FilterOutlined,
   FontColorsOutlined,
   UnorderedListOutlined,
@@ -135,7 +137,6 @@ import {
   KeyOutlined,
   GithubOutlined,
   GoogleOutlined,
-  FacebookOutlined,
   ExportOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
