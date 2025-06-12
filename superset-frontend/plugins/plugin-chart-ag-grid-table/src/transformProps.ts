@@ -544,6 +544,7 @@ const transformProps = (
     isRawRecords: queryMode === QueryMode.Raw,
     alignPositiveNegative,
     showCellBars,
+    isUsingTimeComparison,
   };
 };
 

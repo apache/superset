@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  css,
   DataRecord,
   DataRecordValue,
   DTTM_ALIAS,
@@ -24,9 +25,13 @@ import {
   GenericDataType,
   getTimeFormatterForGranularity,
   styled,
+  t,
+  useTheme,
 } from '@superset-ui/core';
 import { useCallback, useEffect, useState } from 'react';
 import { isEqual } from 'lodash';
+import { Dropdown, Menu } from '@superset-ui/chart-controls';
+import { CheckOutlined, DownOutlined, TableOutlined } from '@ant-design/icons';
 import {
   AgGridTableChartTransformedProps,
   SearchOption,
@@ -96,9 +101,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isRawRecords,
     alignPositiveNegative,
     showCellBars,
+    isUsingTimeComparison,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
+  const theme = useTheme();
 
   useEffect(() => {
     const options = columns
@@ -273,6 +280,102 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [setDataMask, serverPagination],
   );
 
+  const comparisonColumns = [
+    { key: 'all', label: t('Display all') },
+    { key: '#', label: '#' },
+    { key: '△', label: '△' },
+    { key: '%', label: '%' },
+  ];
+
+  const [selectedComparisonColumns, setSelectedComparisonColumns] = useState([
+    comparisonColumns[0].key,
+  ]);
+
+  const [showComparisonDropdown, setShowComparisonDropdown] = useState(false);
+
+  const renderTimeComparisonDropdown = (): JSX.Element => {
+    const allKey = comparisonColumns[0].key;
+    const handleOnClick = (data: any) => {
+      const { key } = data;
+      // Toggle 'All' key selection
+      if (key === allKey) {
+        setSelectedComparisonColumns([allKey]);
+      } else if (selectedComparisonColumns.includes(allKey)) {
+        setSelectedComparisonColumns([key]);
+      } else {
+        // Toggle selection for other keys
+        setSelectedComparisonColumns(
+          selectedComparisonColumns.includes(key)
+            ? selectedComparisonColumns.filter(k => k !== key) // Deselect if already selected
+            : [...selectedComparisonColumns, key],
+        ); // Select if not already selected
+      }
+    };
+
+    const handleOnBlur = () => {
+      if (selectedComparisonColumns.length === 3) {
+        setSelectedComparisonColumns([comparisonColumns[0].key]);
+      }
+    };
+
+    return (
+      <Dropdown
+        placement="bottomRight"
+        visible={showComparisonDropdown}
+        onVisibleChange={(flag: boolean) => {
+          setShowComparisonDropdown(flag);
+        }}
+        overlay={
+          <Menu
+            multiple
+            onClick={handleOnClick}
+            onBlur={handleOnBlur}
+            selectedKeys={selectedComparisonColumns}
+          >
+            <div
+              css={css`
+                max-width: 242px;
+                padding: 0 ${theme.gridUnit * 2}px;
+                color: ${theme.colors.grayscale.base};
+                font-size: ${theme.typography.sizes.s}px;
+              `}
+            >
+              {t(
+                'Select columns that will be displayed in the table. You can multiselect columns.',
+              )}
+            </div>
+            {comparisonColumns.map(column => (
+              <Menu.Item key={column.key}>
+                <span
+                  css={css`
+                    color: ${theme.colors.grayscale.dark2};
+                  `}
+                >
+                  {column.label}
+                </span>
+                <span
+                  css={css`
+                    float: right;
+                    font-size: ${theme.typography.sizes.s}px;
+                  `}
+                >
+                  {selectedComparisonColumns.includes(column.key) && (
+                    <CheckOutlined />
+                  )}
+                </span>
+              </Menu.Item>
+            ))}
+          </Menu>
+        }
+        trigger={['click']}
+      >
+        <span>
+          <TableOutlined /> <DownOutlined />
+        </span>
+      </Dropdown>
+    );
+  };
+
   return (
     <StyledChartContainer height={height}>
       <AgGridDataTable
@@ -298,6 +401,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         serverPageLength={serverPageLength}
         hasServerPageLengthChanged={hasServerPageLengthChanged}
         isActiveFilterValue={isActiveFilterValue}
+        renderTimeComparisonDropdown={
+          isUsingTimeComparison ? renderTimeComparisonDropdown : () => null
+        }
       />
     </StyledChartContainer>
   );
