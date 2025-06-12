@@ -29,7 +29,7 @@ import {
 import { IHeaderParams, Column, ColDef } from 'ag-grid-community';
 import CustomPopover from './CustomPopover';
 
-const ThreeDots = ({ size = 16, color = 'black' }) => (
+const ThreeDots = ({ size = 14, color = 'black' }) => (
   <svg
     width={size}
     height={size}
@@ -43,7 +43,7 @@ const ThreeDots = ({ size = 16, color = 'black' }) => (
   </svg>
 );
 const FilterIcon = (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
     <rect x="3" y="6" width="18" height="2" rx="1" />
     <rect x="6" y="11" width="12" height="2" rx="1" />
     <rect x="9" y="16" width="6" height="2" rx="1" />
