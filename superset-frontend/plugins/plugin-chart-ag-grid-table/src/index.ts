@@ -42,7 +42,7 @@ const metadata = new ChartMetadata({
     'Classic row-by-column spreadsheet like view of a dataset. Use tables to showcase a view into the underlying data or to show aggregated metrics.',
   ),
   exampleGallery: [{ url: example1 }, { url: example2 }, { url: example3 }],
-  name: t('Ag Grid Table'),
+  name: t('Table V2'),
   tags: [
     t('Additive'),
     t('Business'),
