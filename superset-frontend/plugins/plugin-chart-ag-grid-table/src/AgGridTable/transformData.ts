@@ -215,6 +215,7 @@ export const transformData = (
       ),
       customMeta: {
         isMetric: col?.isMetric,
+        isPercentMetric: col?.isPercentMetric,
       },
       cellRenderer: (props: {
         value: number;

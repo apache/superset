@@ -28,6 +28,7 @@ import {
 } from '@ant-design/icons';
 import { IHeaderParams, Column, ColDef } from 'ag-grid-community';
 import CustomPopover from './CustomPopover';
+import { CustomColDef } from '..';
 
 const ThreeDots = ({ size = 14, color = 'black' }) => (
   <svg
@@ -175,7 +176,8 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
 }) => {
   const { initialSortState, onColumnHeaderClicked } = context;
   const colId = column?.getColId();
-
+  const isPercentMetric = (column?.getColDef() as CustomColDef)?.customMeta
+    ?.isPercentMetric;
   const [isPopoverVisible, setPopoverVisible] = useState(false);
   const filterContainerRef = useRef<HTMLDivElement>(null);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -326,16 +328,17 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
           {FilterIcon}
         </FilterIconWrapper>
       </CustomPopover>
-
-      <CustomPopover
-        content={menuContent}
-        isOpen={isMenuVisible}
-        onClose={() => setIsMenuVisible(false)}
-      >
-        <div className="three-dots-menu" onClick={handleMenuClick}>
-          <ThreeDots />
-        </div>
-      </CustomPopover>
+      {!isPercentMetric && (
+        <CustomPopover
+          content={menuContent}
+          isOpen={isMenuVisible}
+          onClose={() => setIsMenuVisible(false)}
+        >
+          <div className="three-dots-menu" onClick={handleMenuClick}>
+            <ThreeDots />
+          </div>
+        </CustomPopover>
+      )}
     </Container>
   );
 };

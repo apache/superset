@@ -56,9 +56,10 @@ import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
 import getInitialSortState from '../utils/getInitialSortState';
 
-interface CustomColDef extends ColDef {
+export interface CustomColDef extends ColDef {
   customMeta?: {
     isMetric?: boolean;
+    isPercentMetric?: boolean;
   };
 }
 
