@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { theme as antdThemeImport } from 'antd';
 import {
   Theme,
@@ -23,6 +24,7 @@ import {
   ThemeStorage,
   ThemeControllerOptions,
 } from '@superset-ui/core';
+import { ThemeMode } from '@superset-ui/core/theme/types';
 
 export class LocalStorageAdapter implements ThemeStorage {
   getItem(key: string): string | null {
@@ -45,7 +47,13 @@ export class ThemeController {
 
   private storageKey: string;
 
+  private modeStorageKey: string;
+
   private defaultTheme: AnyThemeConfig;
+
+  private systemMode: ThemeMode.DARK | ThemeMode.LIGHT;
+
+  private currentMode: ThemeMode;
 
   private customizations: AnyThemeConfig = {};
 
@@ -53,12 +61,18 @@ export class ThemeController {
 
   private canUpdateThemeFn: () => boolean;
 
-  private canChangeDarkModeFn: () => boolean;
+  private canUpdateModeFn: () => boolean;
 
   constructor(options: ThemeControllerOptions = {}) {
     this.storage = options.storage || new LocalStorageAdapter();
     this.storageKey = options.storageKey || 'superset-theme';
+    this.modeStorageKey = options.modeStorageKey || `${this.storageKey}-mode`;
     this.defaultTheme = options.defaultTheme || {};
+    this.systemMode = ThemeController.getSystemMode(); // Determine system mode once
+
+    // Load initial mode from storage, or default to system
+    const savedMode = this.storage.getItem(this.modeStorageKey) as ThemeMode;
+    this.currentMode = savedMode || ThemeMode.SYSTEM;
 
     const savedThemeJson = this.storage.getItem(this.storageKey);
     let initialCustomizations: AnyThemeConfig = {};
@@ -66,28 +80,38 @@ export class ThemeController {
     if (savedThemeJson) {
       try {
         initialCustomizations = JSON.parse(savedThemeJson);
-        this.customizations = initialCustomizations;
       } catch (e) {
         console.error('Failed to parse saved theme:', e);
+        // Fallback to default if parsing fails
         initialCustomizations = {};
+        this.storage.removeItem(this.storageKey); // Clear corrupted data
       }
     }
 
-    this.theme = Theme.fromConfig(initialCustomizations);
+    this.customizations = this.applyModeToCustomizations(
+      initialCustomizations,
+      this.currentMode,
+    );
+    this.theme = Theme.fromConfig(this.customizations);
 
     if (options.onChange) {
       this.onChangeCallbacks.add(options.onChange);
     }
     this.canUpdateThemeFn = options.canUpdateTheme || (() => true);
-    this.canChangeDarkModeFn = options.canChangeDarkMode || (() => true);
+    this.canUpdateModeFn = options.canUpdateMode || (() => true);
+
+    // Ensure the initial theme is persisted and listeners are notified if needed
+    // (though usually, the constructor sets up the initial state, and rendering frameworks
+    // will pick it up without an explicit notifyListeners call immediately)
+    // this.persistTheme(); // Only if you want to immediately write initial state back
   }
 
   public canUpdateTheme(): boolean {
     return this.canUpdateThemeFn();
   }
 
-  public canChangeDarkMode(): boolean {
-    return this.canChangeDarkModeFn();
+  public canUpdateMode(): boolean {
+    return this.canUpdateModeFn();
   }
 
   /**
@@ -98,39 +122,92 @@ export class ThemeController {
   }
 
   /**
+   * Get the current theme mode (light, dark, or system)
+   */
+  public getCurrentMode(): ThemeMode {
+    return this.currentMode;
+  }
+
+  /**
+   * Get the effective theme mode (light or dark) based on currentMode and systemMode
+   */
+  public getEffectiveMode(): ThemeMode.DARK | ThemeMode.LIGHT {
+    if (this.currentMode === ThemeMode.SYSTEM) {
+      return this.systemMode;
+    }
+    return this.currentMode;
+  }
+
+  /**
    * Set a new theme configuration
    */
   public setTheme(config: AnyThemeConfig): void {
     if (!this.canUpdateTheme()) {
       throw new Error('User does not have permission to update the theme');
     }
-    this.customizations = config;
-    this.theme.setConfig(config);
+
+    // Apply the current mode algorithm to the new config
+    const newCustomizations = this.applyModeToCustomizations(
+      config,
+      this.currentMode,
+    );
+    this.customizations = newCustomizations; // Update internal state
+
+    // Set the theme with the *new* configuration object
+    this.theme.setConfig(this.customizations);
+
     this.persistTheme();
     this.notifyListeners();
   }
 
   /**
-   * Toggle dark mode
+   * Get the default theme mode from media query (light/dark)
    */
-  public toggleDarkMode(isDark: boolean): void {
-    if (!this.canChangeDarkMode()) {
-      throw new Error('User does not have permission to update the theme');
-    }
-    this.customizations.algorithm = isDark
-      ? antdThemeImport.darkAlgorithm
-      : antdThemeImport.defaultAlgorithm;
+  static getSystemMode(): ThemeMode.DARK | ThemeMode.LIGHT {
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return isDark ? ThemeMode.DARK : ThemeMode.LIGHT;
+  }
 
-    if (isDark) {
-      this.customizations = {
-        ...this.customizations,
-        algorithm: 'dark',
-      };
+  /**
+   * Internal helper to apply the correct algorithm based on mode
+   */
+  private applyModeToCustomizations(
+    config: AnyThemeConfig,
+    mode: ThemeMode,
+  ): AnyThemeConfig {
+    const effectiveMode = mode === ThemeMode.SYSTEM ? this.systemMode : mode;
+
+    const newConfig = { ...config }; // Create a shallow copy to avoid mutating the original config input
+
+    if (effectiveMode === ThemeMode.DARK) {
+      newConfig.algorithm = antdThemeImport.darkAlgorithm; // Assign the actual algorithm function
     } else {
-      const { algorithm, ...rest } = this.customizations;
-      this.customizations = Object.keys(rest).length > 0 ? { ...rest } : {};
+      newConfig.algorithm = antdThemeImport.defaultAlgorithm; // Assign the actual algorithm function
+    }
+    return newConfig;
+  }
+
+  /**
+   * Change the theme mode (light/dark/system)
+   */
+  public changeThemeMode(newMode: ThemeMode): void {
+    if (!this.canUpdateMode()) {
+      throw new Error('User does not have permission to update the theme mode');
     }
 
+    if (this.currentMode === newMode) {
+      return; // No change needed
+    }
+
+    this.currentMode = newMode; // Update the user-selected mode
+
+    // Reapply mode-specific customizations to the existing base customizations
+    this.customizations = this.applyModeToCustomizations(
+      this.customizations,
+      newMode,
+    );
+
+    // Set the theme with the updated customizations
     this.theme.setConfig(this.customizations);
 
     this.persistTheme();
@@ -141,8 +218,12 @@ export class ThemeController {
    * Reset to default theme
    */
   public resetTheme(): void {
-    this.customizations = {};
-    this.theme.setConfig(this.defaultTheme);
+    // Reset customizations to default, then reapply current mode
+    this.customizations = this.applyModeToCustomizations(
+      this.defaultTheme,
+      this.currentMode,
+    );
+    this.theme.setConfig(this.customizations);
     this.persistTheme();
     this.notifyListeners();
   }
@@ -159,7 +240,15 @@ export class ThemeController {
   }
 
   private persistTheme(): void {
-    this.storage.setItem(this.storageKey, JSON.stringify(this.customizations));
+    // Only persist the chosen mode and the base customizations (without algorithm function)
+    this.storage.setItem(this.modeStorageKey, this.currentMode);
+
+    // Remove the algorithm function before stringifying, as functions cannot be stringified
+    const { algorithm, ...persistedCustomizations } = this.customizations;
+    this.storage.setItem(
+      this.storageKey,
+      JSON.stringify(persistedCustomizations),
+    );
   }
 
   private notifyListeners(): void {

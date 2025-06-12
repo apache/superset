@@ -360,6 +360,12 @@ export type AllowedAntdTokenKeys = Extract<
   keyof AntdTokens
 >;
 
+export enum ThemeMode {
+  LIGHT = 'light',
+  DARK = 'dark',
+  SYSTEM = 'system',
+}
+
 export type SharedAntdTokens = Pick<AntdTokens, AllowedAntdTokenKeys>;
 
 /** The final shape for our custom theme object, combining old theme + shared antd + superset specifics. */
@@ -376,15 +382,16 @@ export interface ThemeStorage {
 export interface ThemeControllerOptions {
   storage?: ThemeStorage;
   storageKey?: string;
+  modeStorageKey?: string;
   defaultTheme?: AnyThemeConfig;
   onChange?: (theme: Theme) => void;
   canUpdateTheme?: () => boolean;
-  canChangeDarkMode?: () => boolean;
+  canUpdateMode?: () => boolean;
 }
 
 export interface ThemeContextType {
   theme: Theme;
   setTheme: (config: AnyThemeConfig) => void;
-  toggleDarkMode: (isDark: boolean) => void;
+  changeThemeMode: (newMode: ThemeMode) => void;
   resetTheme: () => void;
 }

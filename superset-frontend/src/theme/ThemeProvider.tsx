@@ -17,9 +17,17 @@
  * under the License.
  */
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { Theme, AnyThemeConfig, ThemeContextType } from '@superset-ui/core';
 import { ThemeController } from './ThemeController';
+import { ThemeMode } from '@superset-ui/core/theme/types';
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
@@ -44,15 +52,31 @@ export function SupersetThemeProvider({
     return unsubscribe;
   }, [themeController]);
 
+  const setTheme = useCallback(
+    (config: AnyThemeConfig) => themeController.setTheme(config),
+    [themeController],
+  );
+
+  const changeThemeMode = useCallback(
+    (newMode: ThemeMode) => themeController.changeThemeMode(newMode),
+    [themeController],
+  );
+
+  const resetTheme = useCallback(
+    () => themeController.resetTheme(),
+    [themeController],
+  );
+
+  // This context value is now safe. The functions are stable, and the `theme` object
+  // only changes when the controller notifies us.
   const contextValue = useMemo(
     () => ({
       theme: currentTheme,
-      setTheme: (config: AnyThemeConfig) => themeController.setTheme(config),
-      toggleDarkMode: (isDark: boolean) =>
-        themeController.toggleDarkMode(isDark),
-      resetTheme: () => themeController.resetTheme(),
+      setTheme,
+      changeThemeMode,
+      resetTheme,
     }),
-    [currentTheme, themeController],
+    [currentTheme, setTheme, changeThemeMode, resetTheme],
   );
 
   return (

@@ -59,6 +59,7 @@ export enum FeatureFlag {
   EnableDashboardScreenshotEndpoints = 'ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS',
   EnableDashboardDownloadWebDriverScreenshot = 'ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT',
   DarkThemeSwitch = 'DARK_THEME_SWITCH',
+  AllowUserPreferredThemeEditorBeta = 'ALLOW_USER_PREFERED_THEME_EDITOR_BETA',
 }
 
 export type ScheduleQueriesProps = {
