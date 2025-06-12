@@ -114,6 +114,10 @@ export class Disposable implements coreType.Disposable {
   }
 }
 
+export class ExtensionContext implements coreType.ExtensionContext {
+  disposables: coreType.Disposable[] = [];
+}
+
 export class Panel implements sqlLabType.Panel {
   activate(): void {
     // Implementation for activating the panel

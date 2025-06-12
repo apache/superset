@@ -102,15 +102,29 @@ export declare interface Event<T> {
 }
 
 export interface Extension {
-  name: string;
-  description: string;
-  contributions: Contributions;
-  exposedModules: string[];
-  files: string[];
-  remoteEntry: string;
   activate: Function;
+  contributions: Contributions;
   deactivate: Function;
+  description: string;
+  enabled: boolean;
+  exposedModules: string[];
   extensionDependencies: string[];
+  files: string[];
+  name: string;
+  remoteEntry: string;
+}
+
+export interface ExtensionContext {
+  /**
+   * Disposable objects that will be automatically disposed when the extension is deactivated.
+   */
+  disposables: Disposable[];
+
+  /**
+   * We might want to add more properties to this interface in the future like
+   * storage, configuration, etc.
+   * For now, it is just a placeholder to allow for future extensibility.
+   */
 }
 
 export declare const registerViewProvider: (

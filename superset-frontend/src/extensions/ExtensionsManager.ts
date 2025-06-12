@@ -28,6 +28,7 @@ import {
   ViewContribution,
   core,
 } from '@apache-superset/core';
+import { ExtensionContext } from './core';
 
 class ExtensionsManager {
   private static instance: ExtensionsManager;
@@ -62,17 +63,17 @@ class ExtensionsManager {
       endpoint: `/api/v1/extensions/`,
     });
     const extensions: core.Extension[] = response.json.result;
-
-    const loadedExtensions = await Promise.all(
-      extensions.map(extension => this.loadModule(extension)),
+    await Promise.all(
+      extensions.map(async extension => {
+        if (extension.remoteEntry) {
+          const loadedExtension = await this.loadModule(extension);
+          // TODO: Change activation to be based on activation events
+          this.activateExtension(loadedExtension);
+          this.indexContributions(loadedExtension);
+        }
+        this.extensionIndex.set(extension.name, extension);
+      }),
     );
-
-    loadedExtensions.forEach(extension => {
-      // TODO: Change activation to be based on activation events
-      this.activateExtension(extension);
-      this.extensionIndex.set(extension.name, extension);
-      this.indexContributions(extension);
-    });
   }
 
   /**
@@ -119,7 +120,7 @@ class ExtensionsManager {
   private activateExtension(extension: core.Extension): void {
     if (extension.activate) {
       try {
-        extension.activate();
+        extension.activate(new ExtensionContext()); // TODO: Manage context properly
       } catch (err) {
         logging.warn(`Error activating ${extension.name}`, err);
       }

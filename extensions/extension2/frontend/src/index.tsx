@@ -22,8 +22,10 @@ import React from "react";
 import { core } from "@apache-superset/core";
 import ExtensionExample from "./Example";
 
-export const activate = () => {
-  core.registerViewProvider("extension2.example", () => <ExtensionExample />);
+export const activate = (context: core.ExtensionContext) => {
+  context.disposables.push(
+    core.registerViewProvider("extension2.example", () => <ExtensionExample />)
+  );
   console.log("Extension 2 activated");
 };
 

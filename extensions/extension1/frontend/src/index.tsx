@@ -25,13 +25,12 @@ import { formatDatabase } from "./formatter";
 import { Extension1API } from "./publicAPI";
 import { copy_query, clear, prettify, refresh } from "./commands";
 
-// TODO: Move to context
-const disposables: core.Disposable[] = [];
+export const activate = (context: core.ExtensionContext) => {
+  context.disposables.push(
+    core.registerViewProvider("extension1.component", () => <Component />)
+  );
 
-export const activate = () => {
-  core.registerViewProvider("extension1.component", () => <Component />);
-
-  disposables.push(
+  context.disposables.push(
     commands.registerCommand("extension1.copy_query", copy_query),
     commands.registerCommand("extension1.clear", clear),
     commands.registerCommand("extension1.prettify", prettify),
@@ -43,7 +42,4 @@ export const activate = () => {
   } as Extension1API;
 };
 
-export const deactivate = () => {
-  disposables.forEach((disposable) => disposable.dispose());
-  disposables.length = 0;
-};
+export const deactivate = () => {};
