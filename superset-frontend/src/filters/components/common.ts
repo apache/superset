@@ -34,7 +34,13 @@ export const StyledFormItem = styled(FormItem)`
 `;
 
 export const StatusMessage = styled.div<{
-  status?: 'error' | 'warning' | 'info';
+  status?: 'error' | 'warning' | 'info' | 'help';
+  centerText?: boolean;
 }>`
-  color: ${({ theme, status = 'error' }) => theme.colors[status]?.base};
+  color: ${({ theme, status = 'error' }) =>
+    status === 'help'
+      ? theme.colors.grayscale.light1
+      : theme.colors[status]?.base};
+  text-align: ${({ centerText }) => (centerText ? 'center' : 'left')};
+  width: 100%;
 `;
