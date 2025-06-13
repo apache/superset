@@ -493,12 +493,12 @@ const RightMenu = ({
             })}
           </StyledSubMenu>
         )}
-        {isFeatureEnabled(FeatureFlag.AllowUserPreferredThemeEditorBeta) && (
+        {isFeatureEnabled(FeatureFlag.ThemeAllowThemeEditorBeta) && (
           <span>
             <ThemeEditor theme={themeEditorTheme} setTheme={setTheme} />
           </span>
         )}
-        {isFeatureEnabled(FeatureFlag.DarkThemeSwitch) && (
+        {isFeatureEnabled(FeatureFlag.ThemeEnableDarkThemeSwitch) && (
           <span>
             <ThemeSelect changeThemeMode={changeThemeMode} />
           </span>

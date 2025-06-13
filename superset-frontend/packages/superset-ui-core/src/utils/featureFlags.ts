@@ -58,8 +58,8 @@ export enum FeatureFlag {
   SlackEnableAvatars = 'SLACK_ENABLE_AVATARS',
   EnableDashboardScreenshotEndpoints = 'ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS',
   EnableDashboardDownloadWebDriverScreenshot = 'ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT',
-  DarkThemeSwitch = 'DARK_THEME_SWITCH',
-  AllowUserPreferredThemeEditorBeta = 'ALLOW_USER_PREFERED_THEME_EDITOR_BETA',
+  ThemeEnableDarkThemeSwitch = 'THEME_ENABLE_DARK_THEME_SWITCH',
+  ThemeAllowThemeEditorBeta = 'THEME_ALLOW_THEME_EDITOR_BETA',
 }
 
 export type ScheduleQueriesProps = {
