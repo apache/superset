@@ -170,6 +170,18 @@ class DatasourceKind(StrEnum):
     PHYSICAL = "physical"
 
 
+class TableType(StrEnum):
+    """
+    Enum for star schema table types: physical tables,
+    views, fact tables, and dimension tables.
+    """
+
+    PHYSICAL = "physical"
+    VIEW = "view"
+    FACT = "fact"
+    DIMENSION = "dimension"
+
+
 class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
     """A common interface to objects that are queryable
     (tables and datasources)"""
@@ -1126,6 +1138,33 @@ sqlatable_user = DBTable(
 )
 
 
+class FactDimension(Model, AuditMixinNullable, ImportExportMixin):
+    """Mapping between fact tables and dimension tables for star schema joins."""
+
+    __tablename__ = "fact_dimension"
+
+    id = Column(Integer, primary_key=True)
+    fact_table_id = Column(
+        Integer, ForeignKey("tables.id", ondelete="CASCADE"), nullable=False
+    )
+    dimension_table_id = Column(
+        Integer, ForeignKey("tables.id", ondelete="CASCADE"), nullable=False
+    )
+    fact_fk = Column(String(256), nullable=False)
+    dimension_pk = Column(String(256), nullable=False)
+
+    fact_table = relationship(
+        "SqlaTable",
+        foreign_keys=[fact_table_id],
+        back_populates="fact_dimensions",
+    )
+    dimension_table = relationship(
+        "SqlaTable",
+        foreign_keys=[dimension_table_id],
+        back_populates="dimension_facts",
+    )
+
+
 class SqlaTable(
     Model,
     BaseDatasource,
@@ -1153,6 +1192,12 @@ class SqlaTable(
     owner_class = security_manager.user_model
 
     __tablename__ = "tables"
+
+    table_type = Column(
+        Enum(TableType),
+        nullable=False,
+        default=TableType.PHYSICAL,
+    )
 
     # Note this uniqueness constraint is not part of the physical schema, i.e., it does
     # not exist in the migrations, but is required by `import_from_dict` to ensure the
@@ -1185,6 +1230,17 @@ class SqlaTable(
     always_filter_main_dttm = Column(Boolean, default=False)
     folders = Column(JSON, nullable=True)
 
+    fact_dimensions: Mapped[list[FactDimension]] = relationship(
+        "FactDimension",
+        back_populates="fact_table",
+        cascade="all, delete-orphan",
+    )
+    dimension_facts: Mapped[list[FactDimension]] = relationship(
+        "FactDimension",
+        back_populates="dimension_table",
+        cascade="all, delete-orphan",
+    )
+
     baselink = "tablemodelview"
 
     export_fields = [
@@ -1198,6 +1254,7 @@ class SqlaTable(
         "catalog",
         "schema",
         "sql",
+        "table_type",
         "params",
         "template_params",
         "filter_select_enabled",
