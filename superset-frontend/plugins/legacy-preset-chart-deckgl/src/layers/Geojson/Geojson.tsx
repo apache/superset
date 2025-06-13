@@ -159,7 +159,7 @@ export function getLayer(
     getLineWidth: fd.line_width || 1,
     pointRadiusScale: fd.point_radius_scale,
     lineWidthUnits: fd.line_width_unit,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({ formData: fd, setTooltip, setTooltipContent }),
   });
 }
 

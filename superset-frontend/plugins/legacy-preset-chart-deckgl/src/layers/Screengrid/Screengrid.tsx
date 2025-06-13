@@ -84,7 +84,7 @@ export function getLayer(
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
     getWeight: (d: any) => d.weight || 0,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({ formData: fd, setTooltip, setTooltipContent }),
   });
 }
 

@@ -16,21 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Color } from '@deck.gl/core';
+import { Color, PickingInfo } from '@deck.gl/core';
 import { GridLayer } from '@deck.gl/aggregation-layers';
-import {
-  t,
-  CategoricalColorNamespace,
-  JsonObject,
-  QueryFormData,
-} from '@superset-ui/core';
+import { t, CategoricalColorNamespace, JsonObject } from '@superset-ui/core';
 
 import { commonLayerProps, getAggFunc } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { hexToRGB } from '../../utils/colors';
-import { createDeckGLComponent } from '../../factory';
+import { createDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
-import { TooltipProps } from '../../components/Tooltip';
 
 function setTooltipContent(o: JsonObject) {
   return (
@@ -49,12 +43,17 @@ function setTooltipContent(o: JsonObject) {
   );
 }
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: () => void,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<GridLayer> = function ({
+  formData,
+  payload,
+  onAddFilter,
+  setTooltip,
+  setDataMask,
+  onContextMenu,
+  dataset,
+  filterState,
+}) {
+  console.log('filterState', filterState);
   const fd = formData;
   const appliedScheme = fd.color_scheme;
   const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
@@ -71,6 +70,10 @@ export function getLayer(
 
   const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
 
+  const handleContextMenu = (x: number, y: number, data: PickingInfo) => {
+    console.log('filterState dsfsdf', filterState);
+  };
+
   return new GridLayer({
     id: `grid-layer-${fd.slice_id}` as const,
     data,
@@ -82,9 +85,17 @@ export function getLayer(
     getElevationValue: aggFunc,
     // @ts-ignore
     getColorValue: aggFunc,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({
+      formData: fd,
+      setDataMask,
+      setTooltip,
+      setTooltipContent,
+      handleContextMenu,
+      filterState,
+      onContextMenu,
+    }),
   });
-}
+};
 
 export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);

@@ -99,22 +99,22 @@ describe('commonLayerProps', () => {
       ...partialformData,
       js_tooltip: 'tooltip => tooltip.content',
     } as QueryFormData;
-    const props = commonLayerProps(
+    const props = commonLayerProps({
       formData,
-      mockSetTooltip,
-      mockSetTooltipContent,
-    );
+      setTooltip: mockSetTooltip,
+      setTooltipContent: mockSetTooltipContent,
+    });
     expect(props.pickable).toBe(true);
     expect(props.onHover).toBeDefined();
   });
 
   it('calls onHover and sets tooltip', () => {
     const formData = { ...partialformData, js_tooltip: null } as QueryFormData;
-    const props = commonLayerProps(
+    const props = commonLayerProps({
       formData,
-      mockSetTooltip,
-      mockSetTooltipContent,
-    );
+      setTooltip: mockSetTooltip,
+      setTooltipContent: mockSetTooltipContent,
+    });
 
     const mockObject = { picked: true, x: 10, y: 20 };
     props.onHover?.(mockObject);
@@ -131,12 +131,12 @@ describe('commonLayerProps', () => {
       table_filter: true,
       line_column: 'name',
     } as QueryFormData;
-    const props = commonLayerProps(
+    const props = commonLayerProps({
       formData,
-      mockSetTooltip,
-      mockSetTooltipContent,
-      mockOnSelect,
-    );
+      setTooltip: mockSetTooltip,
+      setTooltipContent: mockSetTooltipContent,
+      onSelect: mockOnSelect,
+    });
 
     const mockObject = { object: { name: 'John Doe' } };
     props.onClick?.(mockObject);

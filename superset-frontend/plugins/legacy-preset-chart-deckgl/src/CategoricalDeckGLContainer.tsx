@@ -44,7 +44,7 @@ import {
   DeckGLContainerStyledWrapper,
 } from './DeckGLContainer';
 import { Point } from './types';
-import { getLayerType } from './factory';
+import { GetLayerType } from './factory';
 import { TooltipProps } from './components/Tooltip';
 
 const { getScale } = CategoricalColorNamespace;
@@ -175,6 +175,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
         onAddFilter,
         setTooltip,
         props.datasource,
+        () => {},
       ) as Layer,
     ];
   }, [addColor, categories, props, setTooltip]);
