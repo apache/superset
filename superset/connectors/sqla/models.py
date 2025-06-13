@@ -1524,6 +1524,17 @@ class SqlaTable(
         self,
         template_processor: BaseTemplateProcessor | None = None,
     ) -> tuple[TableClause | Alias, str | None]:
+        if getattr(self, "table_type", None) == TableType.FACT:
+            base = self.get_sqla_table()
+            expr = base
+            for fd in self.fact_dimensions:
+                dim_tbl = fd.dimension_table.get_sqla_table()
+                expr = expr.join(
+                    dim_tbl,
+                    getattr(base.c, fd.fact_fk) == getattr(dim_tbl.c, fd.dimension_pk),
+                )
+            return expr, None
+
         if not self.is_virtual:
             return self.get_sqla_table(), None
 

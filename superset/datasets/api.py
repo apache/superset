@@ -134,6 +134,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "schema",
         "sql",
         "table_name",
+        "table_type",
         "uuid",
     ]
     list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
@@ -150,6 +151,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "database.database_name",
         "database.id",
         "table_name",
+        "table_type",
         "sql",
         "filter_select_enabled",
         "fetch_values_predicate",
@@ -197,6 +199,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics.uuid",
         "metrics.verbose_name",
         "metrics.warning_text",
+        "fact_dimensions.id",
+        "fact_dimensions.fact_fk",
+        "fact_dimensions.dimension_pk",
+        "fact_dimensions.dimension_table_id",
         "folders",
         "datasource_type",
         "url",
@@ -225,13 +231,27 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "time_grain_sqla",
         "order_by_choices",
         "verbose_map",
+        "fact_dimensions.id",
+        "fact_dimensions.fact_fk",
+        "fact_dimensions.dimension_pk",
+        "fact_dimensions.dimension_table_id",
     ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     duplicate_model_schema = DatasetDuplicateSchema()
-    add_columns = ["database", "catalog", "schema", "table_name", "sql", "owners"]
+    add_columns = [
+        "database",
+        "catalog",
+        "schema",
+        "table_name",
+        "table_type",
+        "sql",
+        "owners",
+        "fact_dimensions",
+    ]
     edit_columns = [
         "table_name",
+        "table_type",
         "sql",
         "filter_select_enabled",
         "fetch_values_predicate",
@@ -249,6 +269,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners",
         "columns",
         "metrics",
+        "fact_dimensions",
         "extra",
     ]
     openapi_spec_tag = "Datasets"
