@@ -18,9 +18,9 @@
  */
 
 // eslint-disable-next-line no-restricted-syntax
-import React, { useEffect } from 'react';
-import { authentication, Avatar } from '@apache-superset/core';
-import binaryImage from './assets/binary.jpg';
+import React, { useEffect } from "react";
+import { authentication, Avatar } from "@apache-superset/core";
+import binaryImage from "./assets/binary.jpg";
 
 const Component: React.FC = () => {
   const [apiResponse, setApiResponse] = React.useState<string | null>(null);
@@ -29,10 +29,10 @@ const Component: React.FC = () => {
     const callApi = async () => {
       try {
         const csrfToken = await authentication.getCSRFToken();
-        const response = await fetch('/api/v1/extension1/hello', {
-          method: 'GET',
+        const response = await fetch("/api/v1/extensions/extension1/hello", {
+          method: "GET",
           headers: {
-            'X-CSRFToken': csrfToken!,
+            "X-CSRFToken": csrfToken!,
           },
         });
         const data = await response.json();
@@ -45,13 +45,13 @@ const Component: React.FC = () => {
   }, []);
 
   const containerStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'row',
-    minHeight: '300px',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: '20px',
-    gap: '20px',
+    display: "flex",
+    flexDirection: "row",
+    minHeight: "300px",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: "20px",
+    gap: "20px",
   };
 
   return (

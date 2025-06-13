@@ -27,16 +27,19 @@ const Main: React.FC = () => {
   const onQueryRun = async (sql: string) => {
     try {
       const csrfToken = await authentication.getCSRFToken();
-      const response = await fetch("/api/v1/dataset_references/metadata", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": csrfToken!,
-        },
-        body: JSON.stringify({
-          sql,
-        }),
-      });
+      const response = await fetch(
+        "/api/v1/extensions/dataset_references/metadata",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken!,
+          },
+          body: JSON.stringify({
+            sql,
+          }),
+        }
+      );
       const data = await response.json();
       setMetadata(data.result);
     } catch (err) {

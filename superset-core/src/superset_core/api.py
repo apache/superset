@@ -10,5 +10,6 @@ class RestApi(BaseApi):
 
 
 def add_api(api: Type[RestApi]) -> None:
+    api.resource_name = "extensions/" + api.resource_name
     view = appbuilder.add_api(api)
     appbuilder._add_permission(view, True)
