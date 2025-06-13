@@ -35,6 +35,9 @@ import {
 } from '../../constants';
 import Results from './Results';
 import TablePreview from '../TablePreview';
+import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
+import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
 
 const TAB_HEIGHT = 130;
 
@@ -93,6 +96,9 @@ const SouthPane = ({
 }: SouthPaneProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const contributions =
+    ExtensionsManager.getInstance().getViewContributions('sqllab.panels');
+  const { viewProviders } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
@@ -177,6 +183,16 @@ const SouthPane = ({
             latestQueryId={latestQueryId}
           />
         </Tabs.TabPane>
+        {contributions?.map(contribution => (
+          <Tabs.TabPane
+            key={contribution.id}
+            tab={contribution.name}
+            closable={false}
+            forceRender
+          >
+            {viewProviders[contribution.id]?.() || <ExtensionPlaceholder />}
+          </Tabs.TabPane>
+        ))}
         {pinnedTables.map(({ id, dbId, catalog, schema, name }) => (
           <Tabs.TabPane
             tab={
