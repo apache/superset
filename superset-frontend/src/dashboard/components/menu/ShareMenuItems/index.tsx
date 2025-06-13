@@ -18,9 +18,11 @@
  */
 import { ComponentProps, RefObject } from 'react';
 import copyTextToClipboard from 'src/utils/copy';
-import { t, logging } from '@superset-ui/core';
+import { t, logging, FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
+import EmbedCodeContent from 'src/explore/components/EmbedCodeContent';
+import ModalTrigger from 'src/components/ModalTrigger';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { shallowEqual, useSelector } from 'react-redux';
 
@@ -34,6 +36,8 @@ interface ShareMenuItemProps extends ComponentProps<typeof Menu.SubMenu> {
   addSuccessToast: Function;
   dashboardId: string | number;
   dashboardComponentId?: string;
+  latestQueryFormData?: object;
+  maxWidth?: string;
   copyMenuItemRef?: RefObject<any>;
   shareByEmailMenuItemRef?: RefObject<any>;
   selectedKeys?: string[];
@@ -52,10 +56,16 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     addSuccessToast,
     dashboardId,
     dashboardComponentId,
+    latestQueryFormData,
+    maxWidth,
     title,
     disabled,
     ...rest
   } = props;
+  const sliceExists =
+    latestQueryFormData && Object.keys(latestQueryFormData).length > 0;
+  const isEmbedCodeEnabled = isFeatureEnabled(FeatureFlag.EmbeddableCharts);
+
   const { dataMask, activeTabs } = useSelector(
     (state: RootState) => ({
       dataMask: state.dataMask,
@@ -109,6 +119,27 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
       <Menu.Item key={MenuKeys.ShareByEmail} onClick={() => onShareByEmail()}>
         {emailMenuItemTitle}
       </Menu.Item>
+      {isEmbedCodeEnabled && sliceExists && (
+        <Menu.Item key="embed_code">
+          <div onClick={e => e.stopPropagation()} role="button" tabIndex={0}>
+            <ModalTrigger
+              triggerNode={
+                <span data-test="embed-code-button">{t('Embed code')}</span>
+              }
+              modalTitle={t('Embed code')}
+              modalBody={
+                <EmbedCodeContent
+                  formData={latestQueryFormData}
+                  addDangerToast={addDangerToast}
+                />
+              }
+              maxWidth={maxWidth}
+              destroyOnClose
+              responsive
+            />
+          </div>
+        </Menu.Item>
+      )}
     </Menu.SubMenu>
   );
 };
