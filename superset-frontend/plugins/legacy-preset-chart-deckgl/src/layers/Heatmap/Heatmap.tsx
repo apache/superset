@@ -75,7 +75,7 @@ export const getLayer: getLayerType<unknown> = (
     getPosition: (d: { position: Position; weight: number }) => d.position,
     getWeight: (d: { position: number[]; weight: number }) =>
       d.weight ? d.weight : 1,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({ formData: fd, setTooltip, setTooltipContent }),
   });
 };
 

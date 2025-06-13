@@ -22,22 +22,39 @@ import { ChartProps } from '@superset-ui/core';
 const NOOP = () => {};
 
 export default function transformProps(chartProps: ChartProps) {
-  const { datasource, height, hooks, queriesData, rawFormData, width } =
-    chartProps;
-  const { onAddFilter = NOOP, setControlValue = NOOP } = hooks;
+  const {
+    datasource,
+    height,
+    hooks,
+    queriesData,
+    rawFormData,
+    width,
+    filterState,
+  } = chartProps;
+  const {
+    onAddFilter = NOOP,
+    onContextMenu = NOOP,
+    setControlValue = NOOP,
+    setDataMask = NOOP,
+  } = hooks;
+
+  console.log('filters', filterState);
 
   return {
     datasource,
     formData: rawFormData,
     height,
     onAddFilter,
+    onContextMenu,
     payload: queriesData[0],
     setControlValue,
+    filterState,
     viewport: {
       ...rawFormData.viewport,
       height,
       width,
     },
     width,
+    setDataMask,
   };
 }

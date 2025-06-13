@@ -72,7 +72,7 @@ export function getLayer(
     rounded: true,
     widthScale: 1,
     widthUnits: fd.line_width_unit,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({ formData: fd, setTooltip, setTooltipContent }),
   });
 }
 

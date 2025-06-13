@@ -93,7 +93,7 @@ export const getLayer: getLayerType<unknown> = function (
     getPosition: (d: { position: number[]; weight: number }) =>
       d.position as Position,
     getWeight: (d: { weight: number }) => d.weight || 0,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({ formData: fd, setTooltip, setTooltipContent }),
   });
 };
 
