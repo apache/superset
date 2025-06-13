@@ -607,6 +607,7 @@ const AsyncSelect = forwardRef(
               ? `${ariaLabel || name}: ${selectValue.label}`
               : ariaLabel || name
           }
+          data-test={ariaLabel || name}
           autoClearSearchValue={autoClearSearchValue}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
