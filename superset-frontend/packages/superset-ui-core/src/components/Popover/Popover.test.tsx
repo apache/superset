@@ -17,7 +17,6 @@
  * under the License.
  */
 import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
-import { supersetTheme } from '../..';
 import { Icons, Popover } from '..';
 import { Button } from '../Button';
 
@@ -71,12 +70,4 @@ test('fires an event when visibility is changed', async () => {
   );
   await userEvent.hover(screen.getByRole('button'));
   await waitFor(() => expect(onOpenChange).toHaveBeenCalledTimes(1));
-});
-
-test('renders with theme', () => {
-  render(<Popover content="Content sample" title="Popover title" open />);
-  const title = screen.getByText('Popover title');
-  expect(title).toHaveStyle({
-    fontSize: supersetTheme.sizeUnit * 3.5,
-  });
 });

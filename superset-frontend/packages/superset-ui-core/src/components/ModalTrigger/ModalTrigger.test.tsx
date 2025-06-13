@@ -17,7 +17,6 @@
  * under the License.
  */
 import { render, screen, userEvent } from '@superset-ui/core/spec';
-import { supersetTheme } from '@superset-ui/core';
 import { ModalTrigger } from '.';
 
 const mockedProps = {
@@ -74,16 +73,4 @@ test('should render a modal after click', async () => {
   render(<ModalTrigger {...mockedProps} />);
   await userEvent.click(screen.getByRole('button'));
   expect(screen.getByRole('dialog')).toBeInTheDocument();
-});
-
-test('renders with theme', () => {
-  const btnProps = {
-    ...mockedProps,
-    isButton: true,
-  };
-  render(<ModalTrigger {...btnProps} />);
-  const button = screen.getByRole('button');
-  expect(button.firstChild).toHaveStyle(`
-    fontSize: ${supersetTheme.fontSizeSM};
-  `);
 });

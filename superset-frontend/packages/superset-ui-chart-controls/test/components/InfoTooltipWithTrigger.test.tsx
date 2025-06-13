@@ -18,7 +18,6 @@
  */
 import '@testing-library/jest-dom';
 import { fireEvent, render } from '@superset-ui/core/spec';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { InfoTooltip, InfoTooltipProps } from '@superset-ui/core/components';
 
 jest.mock('@superset-ui/core/components/Tooltip', () => ({
@@ -30,11 +29,7 @@ jest.mock('@superset-ui/core/components/Tooltip', () => ({
 const defaultProps = {};
 
 const setup = (props: Partial<InfoTooltipProps> = {}) =>
-  render(
-    <ThemeProvider theme={supersetTheme}>
-      <InfoTooltip {...defaultProps} {...props} />
-    </ThemeProvider>,
-  );
+  render(<InfoTooltip {...defaultProps} {...props} />);
 
 test('renders a tooltip', () => {
   const { getAllByTestId } = setup({

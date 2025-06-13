@@ -42,5 +42,6 @@ export {
   waitFor,
   cleanup,
   within,
+  act,
 } from '@testing-library/react';
 export { customRender as render, userEvent };

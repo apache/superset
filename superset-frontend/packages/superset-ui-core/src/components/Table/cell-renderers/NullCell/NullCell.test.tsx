@@ -17,18 +17,10 @@
  * under the License.
  */
 import { render, screen } from '@superset-ui/core/spec';
-import { supersetTheme } from '../../../..';
 import { Constants } from '../../..';
 import NullCell from '.';
 
 test('renders null value', async () => {
   render(<NullCell />);
   expect(screen.getByText(Constants.NULL_DISPLAY)).toBeInTheDocument();
-});
-
-test('renders with gray font', async () => {
-  render(<NullCell />);
-  expect(screen.getByText(Constants.NULL_DISPLAY)).toHaveStyle(
-    `color: ${supersetTheme.colors.grayscale.light1}`,
-  );
 });

@@ -18,11 +18,7 @@
  */
 import '@testing-library/jest-dom';
 import { render } from '@superset-ui/core/spec';
-import {
-  ThemeProvider,
-  supersetTheme,
-  GenericDataType,
-} from '@superset-ui/core';
+import { GenericDataType } from '@superset-ui/core';
 
 import { ColumnOption, ColumnOptionProps } from '../../src';
 
@@ -53,11 +49,7 @@ const defaultProps: ColumnOptionProps = {
 };
 
 const setup = (props: Partial<ColumnOptionProps> = {}) =>
-  render(
-    <ThemeProvider theme={supersetTheme}>
-      <ColumnOption {...defaultProps} {...props} />
-    </ThemeProvider>,
-  );
+  render(<ColumnOption {...defaultProps} {...props} />);
 test('shows a label with verbose_name', () => {
   const { container } = setup();
   const lbl = container.getElementsByClassName('option-label');
