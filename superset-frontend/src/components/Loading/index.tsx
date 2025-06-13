@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
+import Loader from 'src/assets/images/loading.gif';
 
 export type PositionOption =
   | 'floating'
@@ -60,38 +61,6 @@ export default function Loading({
   image,
   className,
 }: Props) {
-  const [Loader, setLoader] = useState<string | undefined>(undefined);
-  useEffect(() => {
-    console.log('Fetching loader...');
-    fetch('/superset/loader/', {
-      method: 'GET',
-      credentials: 'include',
-    })
-      .then(response => {
-        console.log('Response status:', response.status);
-        if (!response.ok) {
-          if (response.status === 401) {
-            console.error('User is not authenticated');
-          } else if (response.status === 403) {
-            console.error('User does not have permission to access this endpoint');
-          }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log('Received data:', data);
-        // Vérifie si l'objet a une clé "src" et l'assigne
-        if (data?.src) {
-          setLoader(data.src);
-        } else {
-          console.warn('No "src" found in loader data');
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching loader:', error);
-      });
-  }, []);
   return (
     <LoaderImg
       className={cls('loading', position, className)}

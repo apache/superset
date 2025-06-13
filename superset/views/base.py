@@ -30,9 +30,9 @@ from flask import (
     g,
     get_flashed_messages,
     redirect,
+    request,
     Response,
     session,
-    request
     url_for,
 )
 from flask_appbuilder import BaseView, Model, ModelView
@@ -350,10 +350,10 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 def common_bootstrap_payload() -> dict[str, Any]:
     # get locale from URL, else use default locale
     locale = get_locale()
-    if request.args.get('locale'):
+    if request.args.get("locale"):
         try:
-            locale = Locale.parse(request.args.get('locale'))
-            session['locale'] = str(locale)
+            locale = Locale.parse(request.args.get("locale"))
+            session["locale"] = str(locale)
             refresh()
         except Exception as e:
             # Manage invalid locale : keep default locale

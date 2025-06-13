@@ -21,11 +21,9 @@ import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons';
 import {
   AdhocMetric,
   BinaryQueryObjectFilterClause,
-  CurrencyFormatter,
   DataRecordValue,
   FeatureFlag,
   getColumnLabel,
-  getNumberFormatter,
   getSelectedText,
   isAdhocColumn,
   isFeatureEnabled,
@@ -171,7 +169,15 @@ export default function PivotTableChart(props: PivotTableProps) {
         valueFormat,
         currencyFormat,
       ),
-    [metrics, currencyFormats, columnFormats, valueFormat, currencyFormat, urlLocale, currencySymbol],
+    [
+      metrics,
+      currencyFormats,
+      columnFormats,
+      valueFormat,
+      currencyFormat,
+      urlLocale,
+      currencySymbol,
+    ],
   );
   const customFormatsArray = useMemo(
     () =>
@@ -192,21 +198,29 @@ export default function PivotTableChart(props: PivotTableProps) {
     () =>
       hasCustomMetricFormatters
         ? {
-          [METRIC_KEY]: Object.fromEntries(
-            customFormatsArray.map(([metric, d3Format, currency]) => [
-              metric,
-              getValueFormatter(
-                metrics,
-                currencyFormats,
-                columnFormats,
-                d3Format,
-                currency,
-              ),
-            ]),
-          ),
-        }
+            [METRIC_KEY]: Object.fromEntries(
+              customFormatsArray.map(([metric, d3Format, currency]) => [
+                metric,
+                getValueFormatter(
+                  metrics,
+                  currencyFormats,
+                  columnFormats,
+                  d3Format,
+                  currency,
+                ),
+              ]),
+            ),
+          }
         : undefined,
-    [metrics, customFormatsArray, hasCustomMetricFormatters, currencyFormats, columnFormats, urlLocale, currencySymbol],
+    [
+      metrics,
+      customFormatsArray,
+      hasCustomMetricFormatters,
+      currencyFormats,
+      columnFormats,
+      urlLocale,
+      currencySymbol,
+    ],
   );
 
   const metricNames = useMemo(
