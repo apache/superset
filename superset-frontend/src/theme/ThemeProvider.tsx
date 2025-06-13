@@ -26,8 +26,8 @@ import {
   useState,
 } from 'react';
 import { Theme, AnyThemeConfig, ThemeContextType } from '@superset-ui/core';
-import { ThemeController } from './ThemeController';
 import { ThemeMode } from '@superset-ui/core/theme/types';
+import { ThemeController } from './ThemeController';
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
 

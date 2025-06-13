@@ -54,13 +54,13 @@ import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import TelemetryPixel from '@superset-ui/core/components/TelemetryPixel';
 import { useThemeContext } from 'src/theme/ThemeProvider';
+import ThemeSelect from '@superset-ui/core/components/ThemeSelect';
 import LanguagePicker from './LanguagePicker';
 import {
   ExtensionConfigs,
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
-import ThemeSelect from '@superset-ui/core/components/ThemeSelect';
 
 const extensionsRegistry = getExtensionsRegistry();
 
