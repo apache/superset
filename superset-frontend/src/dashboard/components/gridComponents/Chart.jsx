@@ -428,6 +428,18 @@ const Chart = props => {
     // eslint-disable-next-line camelcase
     queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
 
+  // Traduction of metrics and dimensions libella
+  if (formData?.groupbyColumns && Array.isArray(formData.groupbyColumns)) {
+    formData.groupbyColumns = formData.groupbyColumns.map(group =>
+      t(group, { fallback: group }),
+    );
+  }
+  if (formData?.metrics && Array.isArray(formData.metrics)) {
+    formData.metrics = formData.metrics.map(metric =>
+      t(metric, { fallback: metric }),
+    );
+  }
+
   return (
     <SliceContainer
       className="chart-slice"
@@ -455,8 +467,8 @@ const Chart = props => {
         exportXLSX={exportXLSX}
         exportFullCSV={exportFullCSV}
         exportFullXLSX={exportFullXLSX}
-        updateSliceName={props.updateSliceName}
-        sliceName={props.sliceName}
+        updateSliceName={t(props.updateSliceName)}
+        sliceName={t(props.sliceName)}
         supersetCanExplore={supersetCanExplore}
         supersetCanShare={supersetCanShare}
         supersetCanCSV={supersetCanCSV}
