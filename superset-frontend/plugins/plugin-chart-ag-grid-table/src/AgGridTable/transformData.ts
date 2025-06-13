@@ -209,6 +209,19 @@ export const transformData = (
     return {
       field: colId,
       headerName: headerLabel,
+      ...(isPercentMetric && {
+        filterValueGetter: params => {
+          const raw = params.data['%sum__num'];
+          const formatter = params.colDef.valueFormatter as Function;
+          if (!raw || !formatter) return null;
+          const formatted = formatter({
+            value: raw,
+          });
+
+          const numeric = parseFloat(String(formatted).replace('%', '').trim());
+          return Number.isNaN(numeric) ? null : numeric;
+        },
+      }),
       ...(col?.dataType === GenericDataType.Temporal && {
         filterParams: {
           comparator: (filterDate: Date, cellValue: Date) => {
@@ -234,6 +247,7 @@ export const transformData = (
           },
         },
       }),
+
       minWidth: Math.max(
         calculateMinWidth(headerLabel),
         col?.config?.columnWidth || 0,
