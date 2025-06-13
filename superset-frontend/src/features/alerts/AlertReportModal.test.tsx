@@ -649,3 +649,15 @@ test('removes notification method on clicking trash can', async () => {
     screen.getAllByRole('combobox', { name: /delivery method/i }).length,
   ).toBe(1);
 });
+
+test('renders dashboard filter dropdowns', async () => {
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+  const filterOptionDropdown = screen.getByRole('combobox', {
+    name: /select filter/i,
+  });
+  expect(filterOptionDropdown).toBeInTheDocument();
+});
