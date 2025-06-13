@@ -24,6 +24,7 @@ import {
   forwardRef,
   memo,
   ReactNode,
+  MouseEvent,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -106,7 +107,13 @@ export const DeckGLContainer = memo(
 
     return (
       <>
-        <div style={{ position: 'relative', width, height }}>
+        <div
+          style={{ position: 'relative', width, height }}
+          onContextMenu={(e: MouseEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
           <DeckGL
             controller
             width={width}

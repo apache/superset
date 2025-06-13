@@ -28,16 +28,37 @@ import {
   variance as d3variance,
   deviation as d3deviation,
 } from 'd3-array';
-import { JsonObject, JsonValue, QueryFormData } from '@superset-ui/core';
+import {
+  FilterState,
+  JsonObject,
+  JsonValue,
+  QueryFormData,
+  SetDataMaskHook,
+} from '@superset-ui/core';
+import { PickingInfo } from '@deck.gl/core';
 import sandboxedEval from '../utils/sandbox';
 import { TooltipProps } from '../components/Tooltip';
+import { getCrossFilterDataMask } from '../utils/crossFiltersDataMask';
 
-export function commonLayerProps(
-  formData: QueryFormData,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-  setTooltipContent: (content: JsonObject) => ReactNode,
-  onSelect?: (value: JsonValue) => void,
-) {
+export function commonLayerProps({
+  formData,
+  setDataMask,
+  setTooltip,
+  setTooltipContent,
+  handleContextMenu,
+  onSelect,
+  onContextMenu,
+  filterState,
+}: {
+  formData: QueryFormData;
+  setDataMask?: SetDataMaskHook;
+  setTooltip: (tooltip: TooltipProps['tooltip']) => void;
+  setTooltipContent: (content: JsonObject) => ReactNode;
+  handleContextMenu?: (x: number, y: number, data: PickingInfo) => void;
+  onSelect?: (value: JsonValue) => void;
+  filterState: FilterState;
+  onContextMenu: any;
+}) {
   const fd = formData;
   let onHover;
   let tooltipContentGenerator = setTooltipContent;
@@ -58,6 +79,7 @@ export function commonLayerProps(
       return true;
     };
   }
+
   let onClick;
   if (fd.js_onclick_href) {
     onClick = (o: any) => {
@@ -70,12 +92,35 @@ export function commonLayerProps(
       onSelect(o.object[fd.line_column]);
       return true;
     };
+  } else {
+    onClick = (data: PickingInfo, event: any) => {
+      if (event.leftButton && setDataMask) {
+        setDataMask(
+          getCrossFilterDataMask({
+            data,
+            filterState,
+            formData,
+          })?.dataMask || {},
+        );
+      } else if (event.rightButton && handleContextMenu) {
+        console.log(data);
+        onContextMenu(event.center.x, event.center.y, {
+          drillToDetail: [],
+          crossFilter: getCrossFilterDataMask({
+            data,
+            filterState,
+            formData,
+          }),
+          drillBy: { filters: [], groupbyFieldName: 'entity' },
+        });
+      }
+    };
   }
 
   return {
     onClick,
     onHover,
-    pickable: Boolean(onHover),
+    pickable: true,
   };
 }
 

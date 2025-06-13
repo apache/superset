@@ -153,7 +153,12 @@ export function getLayer(
     getElevation: (d: any) => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,
-    ...commonLayerProps(fd, setTooltip, tooltipContentGenerator, onSelect),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent: tooltipContentGenerator,
+      onSelect,
+    }),
   });
 }
 
