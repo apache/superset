@@ -94,9 +94,8 @@ export function ControlHeader({
         <label className="control-label" htmlFor={name}>
           {leftNode && <span>{leftNode}</span>}
           <span
-            role="button"
-            tabIndex={0}
-            onClick={onClick}
+            role={onClick ? 'button' : undefined}
+            {...(onClick ? { onClick, tabIndex: 0 } : {})}
             className={labelClass}
             style={{ cursor: onClick ? 'pointer' : '' }}
           >

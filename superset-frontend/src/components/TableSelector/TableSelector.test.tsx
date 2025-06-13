@@ -93,7 +93,7 @@ test('renders with default props', async () => {
     name: 'Select database or type to search databases',
   });
   const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
+    name: 'Select schema or type to search schemas: test_schema',
   });
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type to search tables',

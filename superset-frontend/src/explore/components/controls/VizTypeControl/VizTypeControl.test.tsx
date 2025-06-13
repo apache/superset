@@ -222,7 +222,7 @@ describe('VizTypeControl', () => {
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
 
-    userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
+    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
 
     expect(
       await within(visualizations).findByText('Line Chart'),
@@ -247,7 +247,7 @@ describe('VizTypeControl', () => {
 
   it('Submit on viz type double-click', async () => {
     await waitForRenderWrapper();
-    userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
+    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
     const visualizations = screen.getByTestId(getTestId('viz-row'));
     userEvent.click(within(visualizations).getByText('Bar Chart'));
 

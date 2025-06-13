@@ -163,12 +163,31 @@ export const dropDownRenderHelper = (
   if (errorComponent) {
     return errorComponent;
   }
+
+  // remap for accessibility for proper item count
+  const accessibilityNode = {
+    ...originNode,
+    props: {
+      ...originNode.props,
+      flattenOptions: ensureIsArray(originNode.props.flattenOptions).map(
+        (opt: Record<string, any>, idx: number) => ({
+          ...opt,
+          data: {
+            ...opt.data,
+            'aria-setsize': originNode.props.flattenOptions?.length || 0,
+            'aria-posinset': idx + 1,
+          },
+        }),
+      ),
+    },
+  };
+
   return (
     <>
       {helperText && (
         <StyledHelperText role="note">{helperText}</StyledHelperText>
       )}
-      {originNode}
+      {accessibilityNode}
       {bulkSelectComponents}
     </>
   );

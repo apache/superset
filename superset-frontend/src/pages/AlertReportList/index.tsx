@@ -559,6 +559,8 @@ function AlertList({
             url: '/alert/list/',
             usesRouter: true,
             'data-test': 'alert-list',
+            id: 'alert-tab',
+            'aria-controls': 'alert-list',
           },
           {
             name: 'Reports',
@@ -566,6 +568,8 @@ function AlertList({
             url: '/report/list/',
             usesRouter: true,
             'data-test': 'report-list',
+            id: 'report-tab',
+            'aria-controls': 'report-list',
           },
         ]}
         buttons={subMenuButtons}
@@ -623,24 +627,30 @@ function AlertList({
               ]
             : [];
           return (
-            <ListView<AlertObject>
-              className="alerts-list-view"
-              columns={columns}
-              count={alertsCount}
-              data={alerts}
-              emptyState={emptyState}
-              fetchData={fetchData}
-              filters={filters}
-              initialSort={initialSort}
-              loading={loading}
-              bulkActions={bulkActions}
-              bulkSelectEnabled={bulkSelectEnabled}
-              disableBulkSelect={toggleBulkSelect}
-              refreshData={refreshData}
-              addDangerToast={addDangerToast}
-              addSuccessToast={addSuccessToast}
-              pageSize={PAGE_SIZE}
-            />
+            <div
+              id={isReportEnabled ? 'report-list' : 'alert-list'}
+              role="tabpanel"
+              aria-labelledby={isReportEnabled ? 'report-tab' : 'alert-tab'}
+            >
+              <ListView<AlertObject>
+                className="alerts-list-view"
+                columns={columns}
+                count={alertsCount}
+                data={alerts}
+                emptyState={emptyState}
+                fetchData={fetchData}
+                filters={filters}
+                initialSort={initialSort}
+                loading={loading}
+                bulkActions={bulkActions}
+                bulkSelectEnabled={bulkSelectEnabled}
+                disableBulkSelect={toggleBulkSelect}
+                refreshData={refreshData}
+                addDangerToast={addDangerToast}
+                addSuccessToast={addSuccessToast}
+                pageSize={PAGE_SIZE}
+              />
+            </div>
           );
         }}
       </ConfirmStatusChange>
