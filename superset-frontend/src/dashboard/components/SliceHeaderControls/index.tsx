@@ -172,6 +172,7 @@ const SliceHeaderControls = (
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
     [],
   );
+  const theme = useTheme();
 
   const canEditCrossFilters =
     useSelector<RootState, boolean>(
@@ -250,7 +251,7 @@ const SliceHeaderControls = (
           getScreenshotNodeSelector(props.slice.slice_id),
           props.slice.slice_name,
           true,
-          // @ts-ignore
+          theme,
         )(domEvent).then(() => {
           if (menu) {
             menu.style.visibility = 'visible';
@@ -503,7 +504,6 @@ const SliceHeaderControls = (
       )}
     </Menu>
   );
-  const theme = useTheme();
   return (
     <>
       {isFullSize && (
