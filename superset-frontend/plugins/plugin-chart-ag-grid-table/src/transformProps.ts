@@ -474,7 +474,6 @@ const transformProps = (
     include_search: includeSearch = false,
     page_length: pageLength,
     order_desc: sortDesc = false,
-    allow_rearrange_columns: allowRearrangeColumns,
     slice_id,
     time_compare,
     comparison_type,
@@ -489,6 +488,8 @@ const transformProps = (
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
   } = formData;
+
+  const allowRearrangeColumns = true;
 
   const calculateBasicStyle = (
     percentDifferenceNum: number,
