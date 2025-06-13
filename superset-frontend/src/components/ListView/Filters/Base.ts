@@ -18,7 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { styled } from '@superset-ui/core';
-import { SELECT_WIDTH } from 'src/components/ListView/utils';
+import { SELECT_WIDTH } from '../utils';
 
 export interface BaseFilter {
   Header: ReactNode;
@@ -26,10 +26,17 @@ export interface BaseFilter {
 }
 
 export const FilterContainer = styled.div`
-  display: inline-flex;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  align-items: center;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   width: ${SELECT_WIDTH}px;
+  color: ${({ theme }) => theme.colorTextLabel};
+
+  label {
+    display: block;
+    margin-bottom: ${({ theme }) => theme.sizeUnit}px;
+  }
+  .anticon-info-circle {
+    margin-bottom: ${({ theme }) => theme.sizeUnit}px;
+  }
 `;
 
 export type FilterHandler = {

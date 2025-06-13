@@ -16,26 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type Owner from 'src/types/Owner';
+
 import {
   getCategoricalSchemeRegistry,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
 import getOwnerName from 'src/utils/getOwnerName';
-import { Tooltip } from 'src/components/Tooltip';
-import { Avatar, AvatarGroup } from 'src/components/Avatar';
+import { Avatar, AvatarGroup, Tooltip } from '@superset-ui/core/components';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getRandomColor } from './utils';
-
-interface FacePileProps {
-  users: Owner[];
-  maxCount?: number;
-}
+import type { FacePileProps } from './types';
 
 const colorList = getCategoricalSchemeRegistry().get()?.colors ?? [];
 
-export default function FacePile({ users, maxCount = 4 }: FacePileProps) {
+export function FacePile({ users, maxCount = 4 }: FacePileProps) {
   return (
     <AvatarGroup max={{ count: maxCount }}>
       {users.map(user => {
@@ -65,3 +60,5 @@ export default function FacePile({ users, maxCount = 4 }: FacePileProps) {
     </AvatarGroup>
   );
 }
+
+export type { FacePileProps };

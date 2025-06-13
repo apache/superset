@@ -20,19 +20,18 @@ import { useEffect, useState } from 'react';
 import { styled, t, css, SupersetTheme } from '@superset-ui/core';
 import { NumberParam, useQueryParam } from 'use-query-params';
 import AllEntitiesTable from 'src/features/allEntities/AllEntitiesTable';
-import Button from 'src/components/Button';
+import { Button, Loading } from '@superset-ui/core/components';
 import MetadataBar, {
   MetadataType,
   Description,
   Owner,
   LastModified,
-} from 'src/components/MetadataBar';
-import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+} from '@superset-ui/core/components/MetadataBar';
+import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
 import { fetchObjectsByTagIds, fetchSingleTag } from 'src/features/tags/tags';
-import Loading from 'src/components/Loading';
 import getOwnerName from 'src/utils/getOwnerName';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
 import { findPermission } from 'src/utils/findPermission';
@@ -42,9 +41,9 @@ import { RootState } from 'src/dashboard/types';
 const additionalItemsStyles = (theme: SupersetTheme) => css`
   display: flex;
   align-items: center;
-  margin-left: ${theme.gridUnit}px;
+  margin-left: ${theme.sizeUnit}px;
   & > span {
-    margin-right: ${theme.gridUnit * 3}px;
+    margin-right: ${theme.sizeUnit * 3}px;
   }
 `;
 
@@ -52,17 +51,17 @@ const AllEntitiesContainer = styled.div`
   ${({ theme }) => `
   background-color: ${theme.colors.grayscale.light4};
   .select-control {
-    margin-left: ${theme.gridUnit * 4}px;
-    margin-right: ${theme.gridUnit * 4}px;
-    margin-bottom: ${theme.gridUnit * 2}px;
+    margin-left: ${theme.sizeUnit * 4}px;
+    margin-right: ${theme.sizeUnit * 4}px;
+    margin-bottom: ${theme.sizeUnit * 2}px;
   }
   .select-control-label {
-    font-size: ${theme.gridUnit * 3}px;
+    font-size: ${theme.sizeUnit * 3}px;
     color: ${theme.colors.grayscale.base};
-    margin-bottom: ${theme.gridUnit * 1}px;
+    margin-bottom: ${theme.sizeUnit * 1}px;
   }
   .entities {
-    margin: ${theme.gridUnit * 6}px; 0px;
+    margin: ${theme.sizeUnit * 6}px; 0px;
   }
   .pagination-container {
     background-color: transparent;
@@ -72,21 +71,21 @@ const AllEntitiesContainer = styled.div`
 
 const AllEntitiesNav = styled.div`
   ${({ theme }) => `
-  height: ${theme.gridUnit * 12.5}px;
+  height: ${theme.sizeUnit * 12.5}px;
   background-color: ${theme.colors.grayscale.light5};
-  margin-bottom: ${theme.gridUnit * 4}px;
+  margin-bottom: ${theme.sizeUnit * 4}px;
   .navbar-brand {
-    margin-left: ${theme.gridUnit * 2}px;
-    font-weight: ${theme.typography.weights.bold};
+    margin-left: ${theme.sizeUnit * 2}px;
+    font-weight: ${theme.fontWeightStrong};
   }
   .header {
-    font-weight: ${theme.typography.weights.bold};
-    margin-right:  ${theme.gridUnit * 3}px;
+    font-weight: ${theme.fontWeightStrong};
+    margin-right:  ${theme.sizeUnit * 3}px;
     text-align: left;
-    font-size: ${theme.gridUnit * 4.5}px;
-    padding: ${theme.gridUnit * 3}px;
+    font-size: ${theme.sizeUnit * 4.5}px;
+    padding: ${theme.sizeUnit * 3}px;
     display: inline-block;
-    line-height: ${theme.gridUnit * 9}px;
+    line-height: ${theme.sizeUnit * 9}px;
   }
   `};
 `;

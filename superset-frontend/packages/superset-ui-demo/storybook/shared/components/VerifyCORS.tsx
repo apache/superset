@@ -25,6 +25,7 @@ import {
   SupersetApiError,
   t,
 } from '@superset-ui/core';
+import { Button } from '@superset-ui/core/components';
 import ErrorMessage from './ErrorMessage';
 
 export type Props = {
@@ -117,13 +118,9 @@ export default class VerifyCORS extends Component<Props, State> {
           3) click below to verify authentication. You may debug CORS further
           using the `@superset-ui/connection` story. <br />
           <br />
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={this.handleVerify}
-          >
+          <Button type="primary" size="small" onClick={this.handleVerify}>
             {t('Verify')}
-          </button>
+          </Button>
           <br />
           <br />
         </div>

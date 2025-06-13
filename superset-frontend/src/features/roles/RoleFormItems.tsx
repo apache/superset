@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FormItem } from 'src/components/Form';
-import Select from 'src/components/Select/Select';
-import { Input } from 'src/components/Input';
+import {
+  FormItem,
+  Input,
+  Select,
+  AsyncSelect,
+} from '@superset-ui/core/components';
 import { t } from '@superset-ui/core';
 import { FC } from 'react';
 import { GroupObject } from 'src/pages/GroupsList';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
 import { FormattedPermission } from './types';
 import { fetchUserOptions } from '../groups/utils';
 
@@ -60,7 +62,7 @@ export const PermissionsField: FC<PermissionsFieldProps> = ({
         label: permission.label,
         value: permission.id,
       }))}
-      getPopupContainer={trigger => trigger.closest('.antd5-modal-content')}
+      getPopupContainer={trigger => trigger.closest('.ant-modal-content')}
       data-test="permissions-select"
     />
   </FormItem>

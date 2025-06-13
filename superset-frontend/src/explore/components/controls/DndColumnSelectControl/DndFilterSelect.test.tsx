@@ -25,7 +25,6 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import { TimeseriesDefaultFormData } from '@superset-ui/plugin-chart-echarts';
 
 import {
   fireEvent,
@@ -33,7 +32,7 @@ import {
   screen,
   within,
 } from 'spec/helpers/testing-library';
-import type { AsyncAceEditorProps } from 'src/components/AsyncAceEditor';
+import type { AsyncAceEditorProps } from '@superset-ui/core/components';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Operators } from 'src/explore/constants';
@@ -47,8 +46,8 @@ import { Datasource } from '../../../types';
 import { DndItemType } from '../../DndItemType';
 import DatasourcePanelDragOption from '../../DatasourcePanel/DatasourcePanelDragOption';
 
-jest.mock('src/components/AsyncAceEditor', () => ({
-  ...jest.requireActual('src/components/AsyncAceEditor'),
+jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
+  ...jest.requireActual('@superset-ui/core/components/AsyncAceEditor'),
   SQLEditor: (props: AsyncAceEditorProps) => (
     <div data-test="react-ace">{props.value}</div>
   ),
@@ -127,7 +126,6 @@ test('renders options with saved metric', async () => {
     setup({
       formData: {
         ...baseFormData,
-        ...TimeseriesDefaultFormData,
         metrics: ['saved_metric'],
       },
     }),
@@ -172,7 +170,6 @@ test('renders options with adhoc metric', async () => {
     setup({
       formData: {
         ...baseFormData,
-        ...TimeseriesDefaultFormData,
         metrics: [adhocMetric],
       },
     }),
@@ -212,7 +209,6 @@ test('cannot drop a column that is not part of the simple column selection', () 
       {setup({
         formData: {
           ...baseFormData,
-          ...TimeseriesDefaultFormData,
           metrics: [adhocMetric],
         },
         columns: [{ column_name: 'order_date' }],
@@ -342,7 +338,6 @@ describe('when disallow_adhoc_metrics is set', () => {
         {setup({
           formData: {
             ...baseFormData,
-            ...TimeseriesDefaultFormData,
             metrics: [adhocMetric],
           },
           datasource: {
@@ -391,7 +386,6 @@ describe('when disallow_adhoc_metrics is set', () => {
         {setup({
           formData: {
             ...baseFormData,
-            ...TimeseriesDefaultFormData,
             metrics: [adhocMetric],
           },
           datasource: {

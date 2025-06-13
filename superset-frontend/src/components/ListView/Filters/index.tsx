@@ -27,11 +27,11 @@ import {
 import { withTheme } from '@superset-ui/core';
 
 import {
-  FilterValue,
-  Filters,
+  ListViewFilterValue as FilterValue,
+  ListViewFilters as Filters,
   InternalFilter,
   SelectOption,
-} from 'src/components/ListView/types';
+} from '../types';
 import SearchFilter from './Search';
 import SelectFilter from './Select';
 import DateRangeFilter from './DateRange';
@@ -80,6 +80,7 @@ function UIFilters(
             dateFilterValueType,
             min,
             max,
+            dropdownStyle,
           },
           index,
         ) => {
@@ -109,6 +110,7 @@ function UIFilters(
                 paginate={paginate}
                 selects={selects}
                 loading={loading ?? false}
+                dropdownStyle={dropdownStyle}
               />
             );
           }

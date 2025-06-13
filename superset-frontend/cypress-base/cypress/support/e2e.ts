@@ -69,7 +69,21 @@ Cypress.Commands.add('loadDashboardFixtures', () =>
   }),
 );
 
+const PATHS_TO_SKIP_LOGIN = ['login', 'register'];
+
+const skipLogin = () => {
+  for (const path of PATHS_TO_SKIP_LOGIN) {
+    if (Cypress.currentTest.title.toLowerCase().includes(path)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 before(() => {
+  if (skipLogin()) {
+    return;
+  }
   cy.login();
   Cypress.Cookies.defaults({ preserve: 'session' });
   cy.loadChartFixtures();
@@ -77,6 +91,9 @@ before(() => {
 });
 
 beforeEach(() => {
+  if (skipLogin()) {
+    return;
+  }
   cy.cleanDashboards();
   cy.cleanCharts();
 });

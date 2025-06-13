@@ -21,31 +21,34 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   t,
-  css,
-  useTheme,
   SupersetClient,
   makeApi,
   styled,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { extendedDayjs } from 'src/utils/dates';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import FacePile from 'src/components/FacePile';
-import { Tooltip } from 'src/components/Tooltip';
-import ListView, {
-  FilterOperator,
-  Filters,
-  ListViewProps,
-} from 'src/components/ListView';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import {
+  Tooltip,
+  ConfirmStatusChange,
+  DeleteModal,
+  LastUpdated,
+} from '@superset-ui/core/components';
+import {
+  FacePile,
+  ModifiedInfo,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  ListViewActionsBar,
+  type ListViewActionProps,
+  type ListViewProps,
+  type ListViewFilters,
+} from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { Switch } from 'src/components/Switch';
+import { Switch } from '@superset-ui/core/components/Switch';
 import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import AlertStatusIcon from 'src/features/alerts/components/AlertStatusIcon';
 import RecipientIcon from 'src/features/alerts/components/RecipientIcon';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import DeleteModal from 'src/components/DeleteModal';
-import LastUpdated from 'src/components/LastUpdated';
 import {
   useListViewResource,
   useSingleViewResource,
@@ -55,9 +58,9 @@ import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import Owner from 'src/types/Owner';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -89,8 +92,8 @@ const deleteAlerts = makeApi<number[], { message: string }>({
 
 const RefreshContainer = styled.div`
   width: 100%;
-  padding: 0 ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 3}px;
+  padding: 0 ${({ theme }) => theme.sizeUnit * 4}px
+    ${({ theme }) => theme.sizeUnit * 3}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
 
@@ -100,7 +103,7 @@ const StyledHeaderWithIcon = styled.div`
   justify-content: space-between;
   align-items: center;
   > *:first-child {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -112,7 +115,6 @@ function AlertList({
   user,
   addSuccessToast,
 }: AlertListProps) {
-  const theme = useTheme();
   const title = isReportEnabled ? t('Report') : t('Alert');
   const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
@@ -259,6 +261,7 @@ function AlertList({
         accessor: 'last_state',
         size: 'xs',
         disableSortBy: true,
+        id: 'last_state',
       },
       {
         Cell: ({
@@ -275,11 +278,13 @@ function AlertList({
         accessor: 'last_eval_dttm',
         Header: t('Last run'),
         size: 'lg',
+        id: 'last_eval_dttm',
       },
       {
         accessor: 'name',
         Header: t('Name'),
         size: 'xl',
+        id: 'name',
       },
       {
         Header: t('Schedule'),
@@ -297,6 +302,7 @@ function AlertList({
             <span>{`${crontab_humanized} (${timezone})`}</span>
           </Tooltip>
         ),
+        id: 'crontab_humanized',
       },
       {
         Cell: ({
@@ -311,6 +317,7 @@ function AlertList({
         Header: t('Notification method'),
         disableSortBy: true,
         size: 'xl',
+        id: 'recipients',
       },
       {
         Cell: ({
@@ -335,6 +342,7 @@ function AlertList({
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -399,7 +407,9 @@ function AlertList({
               : null,
           ].filter(item => item !== null);
 
-          return <ActionsBar actions={actions as ActionProps[]} />;
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
         },
         Header: t('Actions'),
         id: 'actions',
@@ -410,6 +420,7 @@ function AlertList({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canDelete, canEdit, isReportEnabled, toggleActive],
@@ -421,14 +432,7 @@ function AlertList({
     subMenuButtons.push({
       name: (
         <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
-              vertical-align: text-top;
-            `}
-          />
+          <Icons.PlusOutlined iconSize="m" />
           {title}
         </>
       ),
@@ -454,12 +458,7 @@ function AlertList({
     buttonText: canCreate ? (
       <>
         <Icons.PlusOutlined
-          iconColor={theme.colors.primary.light5}
           iconSize="m"
-          css={css`
-            margin: auto ${theme.gridUnit * 2}px auto 0;
-            vertical-align: text-top;
-          `}
           data-test="add-annotation-layer-button"
         />
         {title}{' '}
@@ -467,7 +466,7 @@ function AlertList({
     ) : null,
   };
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Name'),
@@ -492,6 +491,7 @@ function AlertList({
           user,
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Status'),
@@ -533,6 +533,7 @@ function AlertList({
           user,
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [],

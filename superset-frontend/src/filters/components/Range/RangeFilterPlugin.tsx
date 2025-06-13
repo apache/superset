@@ -26,12 +26,12 @@ import {
   t,
 } from '@superset-ui/core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { InputNumber } from 'src/components/Input';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import Metadata from 'src/components/Metadata';
+import Metadata from '@superset-ui/core/components/Metadata';
 import { isNumber } from 'lodash';
+import { FormItem, InputNumber } from '@superset-ui/core/components';
 import { PluginFilterRangeProps } from './types';
-import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
+import { StatusMessage, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
 
@@ -39,10 +39,10 @@ type InputValue = number | null;
 type RangeValue = [InputValue, InputValue];
 
 const StyledDivider = styled.span`
-  margin: 0 ${({ theme }) => theme.gridUnit * 3}px;
-  color: ${({ theme }) => theme.colors.grayscale.light1};
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  margin: 0 ${({ theme }) => theme.sizeUnit * 3}px;
+  color: ${({ theme }) => theme.colorSplit};
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  font-size: ${({ theme }) => theme.fontSize}px;
   align-content: center;
 `;
 
@@ -50,7 +50,7 @@ const Wrapper = styled.div`
   display: flex;
   justify-content: space-between;
 
-  .antd5-input-number {
+  .ant-input-number {
     width: 100%;
     position: relative;
   }
@@ -340,7 +340,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
-        <StyledFormItem
+        <FormItem
           aria-labelledby={`filter-name-${formData.nativeFilterId}`}
           extra={formItemExtra}
         >
@@ -382,7 +382,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           {(rangeInput ||
             filterBarOrientation === FilterBarOrientation.Vertical) &&
             !filterState.validateStatus && <Metadata value={metadataText} />}
-        </StyledFormItem>
+        </FormItem>
       )}
     </FilterPluginStyle>
   );

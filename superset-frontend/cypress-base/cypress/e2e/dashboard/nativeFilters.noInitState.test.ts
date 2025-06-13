@@ -199,14 +199,16 @@ describe('Native filters', () => {
         .should('be.visible')
         .click();
 
-      cy.get('[data-test="range-filter-from-input"]').type('{selectall}5');
+      cy.get('[data-test="range-filter-from-input"]').type('{selectall}40');
 
       cy.get('[data-test="range-filter-to-input"]')
         .should('be.visible')
         .click();
 
       cy.get('[data-test="range-filter-to-input"]').type('{selectall}50');
-      cy.get(nativeFilters.applyFilter).click();
+      cy.get(nativeFilters.applyFilter).click({
+        force: true,
+      });
 
       // Assert that the URL contains 'native_filters'
       cy.url().then(u => {
@@ -215,7 +217,7 @@ describe('Native filters', () => {
 
         cy.get('[data-test="range-filter-from-input"]')
           .invoke('val')
-          .should('equal', '5');
+          .should('equal', '40');
 
         // Assert that the "To" input has the correct value
         cy.get('[data-test="range-filter-to-input"]')

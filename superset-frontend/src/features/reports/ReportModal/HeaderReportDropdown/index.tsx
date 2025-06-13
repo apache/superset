@@ -29,11 +29,11 @@ import {
   getExtensionsRegistry,
   usePrevious,
 } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import { Switch } from 'src/components/Switch';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Switch } from '@superset-ui/core/components/Switch';
 import { AlertObject } from 'src/features/alerts/types';
-import { Menu } from 'src/components/Menu';
-import Checkbox from 'src/components/Checkbox';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { Checkbox } from '@superset-ui/core/components';
 import { noOp } from 'src/utils/common';
 import { ChartState } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -47,27 +47,27 @@ import { MenuItemWithCheckboxContainer } from 'src/explore/components/useExplore
 const extensionsRegistry = getExtensionsRegistry();
 
 const deleteColor = (theme: SupersetTheme) => css`
-  color: ${theme.colors.error.base};
+  color: ${theme.colorError};
 `;
 
 const onMenuHover = (theme: SupersetTheme) => css`
-  & .antd5-menu-item {
+  & .ant-menu-item {
     padding: 5px 12px;
     margin-top: 0px;
     margin-bottom: 4px;
     :hover {
-      color: ${theme.colors.grayscale.dark1};
+      color: ${theme.colorText};
     }
   }
   :hover {
-    background-color: ${theme.colors.secondary.light5};
+    background-color: ${theme.colorPrimaryBg};
   }
 `;
 
 const onMenuItemHover = (theme: SupersetTheme) => css`
   &:hover {
-    color: ${theme.colors.grayscale.dark1};
-    background-color: ${theme.colors.secondary.light5};
+    color: ${theme.colorText};
+    background-color: ${theme.colorPrimaryBg};
   }
 `;
 
@@ -77,7 +77,7 @@ const StyledDropdownItemWithIcon = styled.div`
   justify-content: space-between;
   align-items: center;
   > *:first-child {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -248,7 +248,7 @@ export default function HeaderReportDropDown({
           onClick={(checked: boolean) => toggleActiveKey(report, checked)}
           size="small"
           css={theme => css`
-            margin-left: ${theme.gridUnit * 2}px;
+            margin-left: ${theme.sizeUnit * 2}px;
           `}
         />
       </Menu.Item>
