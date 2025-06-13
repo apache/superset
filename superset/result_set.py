@@ -139,7 +139,7 @@ class SupersetResultSet:
         if array.size > 0:
             for column in column_names:
                 try:
-                    # Check if array[column][0] is an list of instance of psycopg2.extras.DateTimeTZRange
+                    # Is array[column][0] a list of psycopg2.extras.DateTimeTZRange
                     if isinstance(array[column][0], list) and isinstance(
                         array[column][0][0], DateTimeTZRange
                     ):
