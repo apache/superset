@@ -211,7 +211,7 @@ export const transformData = (
       headerName: headerLabel,
       ...(isPercentMetric && {
         filterValueGetter: params => {
-          const raw = params.data['%sum__num'];
+          const raw = params.data[params.colDef.field as string];
           const formatter = params.colDef.valueFormatter as Function;
           if (!raw || !formatter) return null;
           const formatted = formatter({
