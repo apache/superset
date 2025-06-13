@@ -89,6 +89,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
     },
     exploreUrl: '/explore',
     defaultOpen: true,
+    showEmbedModal: () => {},
   }) as SliceHeaderControlsProps;
 
 const renderWrapper = (

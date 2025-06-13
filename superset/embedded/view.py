@@ -22,6 +22,7 @@ from flask_login import AnonymousUserMixin, login_user
 from flask_wtf.csrf import same_origin
 
 from superset import event_logger, is_feature_enabled
+from superset.daos.chart import EmbeddedChartDAO
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
@@ -41,20 +42,32 @@ class EmbeddedView(BaseSupersetView):
         add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
     ) -> FlaskResponse:
         """
-        Server side rendering for the embedded dashboard page
-        :param uuid: identifier for embedded dashboard
-        :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
-            default value to appease pylint
+        Server side rendering for embedded dashboard/chart page
+        :param uuid: identifier for embedded dashboard or chart
         """
         if not is_feature_enabled("EMBEDDED_SUPERSET"):
             abort(404)
 
+        # Try to find in dashboard first
         embedded = EmbeddedDashboardDAO.find_by_id(uuid)
+        resource_type = "dashboard"
+        resource_id = None
+
+        # If not found in dashboard, try chart
+        if not embedded:
+            embedded = EmbeddedChartDAO.find_by_id(uuid)
+            resource_type = "chart"
 
         if not embedded:
             abort(404)
 
         assert embedded is not None
+
+        # Set resource ID based on type
+        if resource_type == "dashboard":
+            resource_id = embedded.dashboard_id
+        else:
+            resource_id = embedded.slice_id
 
         # validate request referrer in allowed domains
         is_referrer_allowed = not embedded.allowed_domains
@@ -66,14 +79,13 @@ class EmbeddedView(BaseSupersetView):
         if not is_referrer_allowed:
             abort(403)
 
-        # Log in as an anonymous user, just for this view.
-        # This view needs to be visible to all users,
-        # and building the page fails if g.user and/or ctx.user aren't present.
+        # Log in as anonymous user
         login_user(AnonymousUserMixin(), force=True)
 
         add_extra_log_payload(
-            embedded_dashboard_id=uuid,
-            dashboard_version="v2",
+            embedded_id=uuid,
+            resource_type=resource_type,
+            resource_id=resource_id,
         )
 
         bootstrap_data = {
@@ -82,7 +94,9 @@ class EmbeddedView(BaseSupersetView):
             },
             "common": common_bootstrap_payload(),
             "embedded": {
-                "dashboard_id": embedded.dashboard_id,
+                "dashboard_id": resource_id if resource_type == "dashboard" else None,
+                "chart_id": resource_id if resource_type == "chart" else None,
+                "resource_type": resource_type,
             },
         }
 

@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { HYDRATE_EMBEDDED } from 'src/embedded/embeddedChart/hydrateEmbedded';
 import {
   DASHBOARD_INFO_UPDATED,
   SET_FILTER_BAR_ORIENTATION,
@@ -49,6 +50,10 @@ export default function dashboardStateReducer(state = {}, action) {
         ...state,
         ...action.data.dashboardInfo,
         // set async api call data
+      };
+    case HYDRATE_EMBEDDED:
+      return {
+        ...action.data.dashboardInfo,
       };
     case SET_FILTER_BAR_ORIENTATION:
       return {

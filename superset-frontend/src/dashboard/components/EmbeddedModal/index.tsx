@@ -31,17 +31,29 @@ import Button from 'src/components/Button';
 import { Input } from 'src/components/Input';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { FormItem } from 'src/components/Form';
-import { EmbeddedDashboard } from 'src/dashboard/types';
 
 const extensionsRegistry = getExtensionsRegistry();
 
+type ResourceType = 'dashboard' | 'chart';
+
 type Props = {
-  dashboardId: string;
+  resourceId: string;
+  resourceType: ResourceType;
   show: boolean;
   onHide: () => void;
 };
 
 type EmbeddedApiPayload = { allowed_domains: string[] };
+
+type EmbeddedResource = {
+  uuid: string;
+  allowed_domains: string[];
+  changed_on: string;
+  changed_by: {
+    first_name: string;
+    last_name: string;
+  };
+};
 
 const stringToList = (stringyList: string): string[] =>
   stringyList.split(/(?:\s|,)+/).filter(x => x);
@@ -52,22 +64,26 @@ const ButtonRow = styled.div`
   justify-content: flex-end;
 `;
 
-export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
+export const ResourceEmbedControls = ({
+  resourceId,
+  resourceType,
+  onHide,
+}: Props) => {
   const { addInfoToast, addDangerToast } = useToasts();
-  const [ready, setReady] = useState(true); // whether we have initialized yet
-  const [loading, setLoading] = useState(false); // whether we are currently doing an async thing
-  const [embedded, setEmbedded] = useState<EmbeddedDashboard | null>(null); // the embedded dashboard config
+  const [ready, setReady] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [embedded, setEmbedded] = useState<EmbeddedResource | null>(null);
   const [allowedDomains, setAllowedDomains] = useState<string>('');
 
-  const endpoint = `/api/v1/dashboard/${dashboardId}/embedded`;
-  // whether saveable changes have been made to the config
+  const endpoint = `/api/v1/${resourceType}/${resourceId}/embedded`;
+
   const isDirty =
     !embedded ||
     stringToList(allowedDomains).join() !== embedded.allowed_domains.join();
 
   const enableEmbedded = useCallback(() => {
     setLoading(true);
-    makeApi<EmbeddedApiPayload, { result: EmbeddedDashboard }>({
+    makeApi<EmbeddedApiPayload, { result: EmbeddedResource }>({
       method: 'POST',
       endpoint,
     })({
@@ -82,9 +98,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
         err => {
           console.error(err);
           addDangerToast(
-            t(
-              t('Sorry, something went wrong. The changes could not be saved.'),
-            ),
+            t('Sorry, something went wrong. The changes could not be saved.'),
           );
         },
       )
@@ -126,13 +140,12 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
 
   useEffect(() => {
     setReady(false);
-    makeApi<{}, { result: EmbeddedDashboard }>({
+    makeApi<{}, { result: EmbeddedResource }>({
       method: 'GET',
       endpoint,
     })({})
       .catch(err => {
         if ((err as SupersetApiError).status === 404) {
-          // 404 just means the dashboard isn't currently embedded
           return { result: null };
         }
         addDangerToast(t('Sorry, something went wrong. Please try again.'));
@@ -143,7 +156,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
         setEmbedded(result);
         setAllowedDomains(result ? result.allowed_domains.join(', ') : '');
       });
-  }, [dashboardId]);
+  }, [resourceId, resourceType]);
 
   if (!ready) {
     return <Loading />;
@@ -166,18 +179,26 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
           <DocsConfigDetails embeddedId={embedded.uuid} />
         ) : (
           <p>
-            {t(
-              'This dashboard is ready to embed. In your application, pass the following id to the SDK:',
-            )}
+            {resourceType === 'chart'
+              ? t(
+                  `This chart is ready to embed. In your application, pass the following id to the SDK:`,
+                )
+              : t(
+                  `This dashboard is ready to embed. In your application, pass the following id to the SDK:`,
+                )}
             <br />
             <code>{embedded.uuid}</code>
           </p>
         )
       ) : (
         <p>
-          {t(
-            'Configure this dashboard to embed it into an external web application.',
-          )}
+          {resourceType === 'chart'
+            ? t(
+                `Configure this chart to embed it into an external web application.`,
+              )
+            : t(
+                `Configure this dashboard to embed it into an external web application.`,
+              )}
         </p>
       )}
       <p>
@@ -194,7 +215,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
           {t('Allowed Domains (comma separated)')}{' '}
           <InfoTooltipWithTrigger
             tooltip={t(
-              'A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.',
+              'A list of domain names that can embed this content. Leaving this field empty will allow embedding from any domain.',
             )}
           />
         </label>
@@ -239,17 +260,17 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
   );
 };
 
-const DashboardEmbedModal = (props: Props) => {
+const EmbedModal = (props: Props) => {
   const { show, onHide } = props;
-  const DashboardEmbedModalExtension = extensionsRegistry.get('embedded.modal');
+  const EmbedModalExtension = extensionsRegistry.get('embedded.modal');
 
-  return DashboardEmbedModalExtension ? (
-    <DashboardEmbedModalExtension {...props} />
+  return EmbedModalExtension ? (
+    <EmbedModalExtension {...props} />
   ) : (
     <Modal show={show} onHide={onHide} title={t('Embed')} hideFooter>
-      <DashboardEmbedControls {...props} />
+      <ResourceEmbedControls {...props} />
     </Modal>
   );
 };
 
-export default DashboardEmbedModal;
+export default EmbedModal;
