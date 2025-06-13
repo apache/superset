@@ -121,3 +121,32 @@ test('should return a table with the given data and no title', () => {
   );
   expect(html).toMatch(expectedHtml);
 });
+
+test('should sanitize HTML input', () => {
+  const title = 'Title<script>alert("message");</script>';
+  const data = [
+    ['<b onclick="alert(\'message\')">B message</b>', 'message2'],
+    ['<img src="x" onerror="alert(\'message\');" />', '<i>Italic</i>'],
+  ];
+
+  const html = removeWhitespaces(tooltipHtml(data, title));
+
+  const expectedHtml = removeWhitespaces(
+    sanitizeHtml(`
+    <div>
+        <span ${TITLE_STYLE}>Titlealert("message");</span>
+        <table>
+            <tr ${TR_STYLE}>
+                <td ${TD_TEXT_STYLE}><b>B message</b></td>
+                <td ${TD_NUMBER_STYLE}>message2</td>
+            </tr>
+            <tr ${TR_STYLE}>
+                <td ${TD_TEXT_STYLE}><img src="x" /></td>
+                <td ${TD_NUMBER_STYLE}><i>Italic</i></td>
+            </tr>
+        </table>
+    </div>`),
+  );
+
+  expect(html).toMatch(expectedHtml);
+});
