@@ -1546,7 +1546,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """
-        Generate a "SELECT * from [schema.]table_name" query with appropriate limit.
+        Generate a "SELECT * from [catalog.][schema.]table_name" query with limit.
 
         WARNING: expects only unquoted table and schema names.
 
@@ -1560,6 +1560,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cols: Columns to include in query
         :return: SQL query
         """
+        if not cls.supports_cross_catalog_queries:
+            table = Table(table.table, table.schema, None)
+
         # pylint: disable=redefined-outer-name
         fields: str | list[Any] = "*"
         cols = cols or []

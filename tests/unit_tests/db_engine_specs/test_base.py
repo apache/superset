@@ -206,7 +206,7 @@ def test_select_star(mocker: MockerFixture) -> None:
 
     sql = BaseEngineSpec.select_star(
         database=database,
-        table=Table("my_table"),
+        table=Table("my_table", "my_schema", "my_catalog"),
         engine=engine,
         limit=100,
         show_cols=True,
@@ -214,7 +214,7 @@ def test_select_star(mocker: MockerFixture) -> None:
         latest_partition=False,
         cols=cols,
     )
-    assert sql == "SELECT\n  a\nFROM my_table\nLIMIT ?\nOFFSET ?"
+    assert sql == "SELECT\n  a\nFROM my_schema.my_table\nLIMIT ?\nOFFSET ?"
 
 
 def test_extra_table_metadata(mocker: MockerFixture) -> None:

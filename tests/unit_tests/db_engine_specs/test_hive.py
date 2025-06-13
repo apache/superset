@@ -20,8 +20,11 @@ from datetime import datetime
 from typing import Optional
 
 import pytest
+from pytest_mock import MockerFixture
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
+from superset.sql.parse import Table
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -58,4 +61,41 @@ def test_get_schema_from_engine_params() -> None:
             make_url("hive://localhost:10000/default"), {}
         )
         == "default"
+    )
+
+
+def test_select_star(mocker: MockerFixture) -> None:
+    """
+    Test the ``select_star`` method.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    database = mocker.MagicMock()
+    engine = mocker.MagicMock()
+
+    def quote_table(table: Table, dialect: Dialect) -> str:
+        return ".".join(
+            part for part in (table.catalog, table.schema, table.table) if part
+        )
+
+    mocker.patch.object(HiveEngineSpec, "quote_table", quote_table)
+
+    HiveEngineSpec.select_star(
+        database=database,
+        table=Table("my_table", "my_schema", "my_catalog"),
+        engine=engine,
+        limit=100,
+        show_cols=False,
+        indent=True,
+        latest_partition=False,
+        cols=None,
+    )
+
+    query = database.compile_sqla_query.mock_calls[0][1][0]
+    assert (
+        str(query)
+        == """
+SELECT * \nFROM my_schema.my_table
+ LIMIT :param_1
+    """.strip()
     )
