@@ -26,12 +26,21 @@ export enum DatasetActionType {
   ChangeDataset,
 }
 
+export interface FactDimensionObject {
+  id?: number;
+  dimension_table_id: number;
+  fact_fk: string;
+  dimension_pk: string;
+}
+
 export interface DatasetObject {
   db: DatabaseObject & { owners: [number] };
   catalog?: string | null;
   schema?: string | null;
   dataset_name: string;
   table_name?: string | null;
+  table_type?: 'physical' | 'view' | 'fact' | 'dimension';
+  fact_dimensions?: FactDimensionObject[];
   explore_url?: string;
 }
 

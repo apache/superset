@@ -1232,11 +1232,13 @@ class SqlaTable(
 
     fact_dimensions: Mapped[list[FactDimension]] = relationship(
         "FactDimension",
+        foreign_keys=[FactDimension.fact_table_id],
         back_populates="fact_table",
         cascade="all, delete-orphan",
     )
     dimension_facts: Mapped[list[FactDimension]] = relationship(
         "FactDimension",
+        foreign_keys=[FactDimension.dimension_table_id],
         back_populates="dimension_table",
         cascade="all, delete-orphan",
     )
