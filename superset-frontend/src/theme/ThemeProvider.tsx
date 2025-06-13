@@ -44,9 +44,14 @@ export function SupersetThemeProvider({
     themeController.getTheme(),
   );
 
+  const [currentThemeMode, setCurrentThemeMode] = useState<ThemeMode>(
+    themeController.getThemeMode(),
+  );
+
   useEffect(() => {
     const unsubscribe = themeController.onChange(theme => {
       setCurrentTheme(theme);
+      setCurrentThemeMode(themeController.getThemeMode());
     });
 
     return unsubscribe;
@@ -67,16 +72,15 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
-  // This context value is now safe. The functions are stable, and the `theme` object
-  // only changes when the controller notifies us.
   const contextValue = useMemo(
     () => ({
       theme: currentTheme,
+      themeMode: currentThemeMode,
       setTheme,
       changeThemeMode,
       resetTheme,
     }),
-    [currentTheme, setTheme, changeThemeMode, resetTheme],
+    [currentTheme, currentThemeMode, setTheme, changeThemeMode, resetTheme],
   );
 
   return (

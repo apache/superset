@@ -24,14 +24,24 @@ import { ThemeMode } from '../../theme/types';
 export interface ThemeSelectProps {
   changeThemeMode: (newMode: ThemeMode) => void;
   tooltipTitle?: string;
+  themeMode: ThemeMode;
 }
 
 const ThemeSelect: React.FC<ThemeSelectProps> = ({
   changeThemeMode,
   tooltipTitle = 'Select theme',
+  themeMode,
 }) => {
   const handleSelect = (mode: ThemeMode) => {
     changeThemeMode(mode);
+  };
+
+  console.log({ themeMode });
+
+  const themeIconMap: Record<ThemeMode, React.ReactNode> = {
+    [ThemeMode.LIGHT]: <Icons.SunOutlined />,
+    [ThemeMode.DARK]: <Icons.MoonOutlined />,
+    [ThemeMode.SYSTEM]: <Icons.FormatPainterOutlined />,
   };
 
   return (
@@ -55,13 +65,13 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
               key: ThemeMode.SYSTEM,
               label: t('Match system'),
               onClick: () => handleSelect(ThemeMode.SYSTEM),
-              icon: <Icons.DesktopOutlined />,
+              icon: <Icons.FormatPainterOutlined />,
             },
           ],
         }}
         trigger={['click']}
       >
-        <Icons.FormatPainterOutlined />
+        {themeIconMap[themeMode]}
       </Dropdown>
     </Tooltip>
   );

@@ -122,6 +122,13 @@ export class ThemeController {
   }
 
   /**
+   * Get the current theme mode
+   */
+  public getThemeMode(): ThemeMode {
+    return this.currentMode;
+  }
+
+  /**
    * Get the current theme mode (light, dark, or system)
    */
   public getCurrentMode(): ThemeMode {

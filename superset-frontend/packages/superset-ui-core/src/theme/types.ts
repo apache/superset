@@ -391,6 +391,7 @@ export interface ThemeControllerOptions {
 
 export interface ThemeContextType {
   theme: Theme;
+  themeMode: ThemeMode;
   setTheme: (config: AnyThemeConfig) => void;
   changeThemeMode: (newMode: ThemeMode) => void;
   resetTheme: () => void;
