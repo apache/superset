@@ -94,6 +94,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MinusCircleOutlined,
+  MoonOutlined,
   LoadingOutlined,
   LoginOutlined,
   MonitorOutlined,
@@ -113,6 +114,7 @@ import {
   StarOutlined,
   StarFilled,
   StopOutlined,
+  SunOutlined,
   SyncOutlined,
   TagOutlined,
   TagsOutlined,
@@ -137,6 +139,8 @@ import {
   KeyOutlined,
   GithubOutlined,
   GoogleOutlined,
+  DesktopOutlined,
+  FormatPainterOutlined,
   ExportOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
@@ -227,6 +231,7 @@ const AntdIcons = {
   MenuUnfoldOutlined,
   MinusCircleOutlined,
   MonitorOutlined,
+  MoonOutlined,
   MoreOutlined,
   OrderedListOutlined,
   PieChartOutlined,
@@ -240,6 +245,7 @@ const AntdIcons = {
   SearchOutlined,
   SettingOutlined,
   ShareAltOutlined,
+  SunOutlined,
   StarOutlined,
   StarFilled,
   StopOutlined,
@@ -264,6 +270,8 @@ const AntdIcons = {
   WarningOutlined,
   SortAscendingOutlined,
   KeyOutlined,
+  DesktopOutlined,
+  FormatPainterOutlined,
   ExportOutlined,
 } as const;
 
