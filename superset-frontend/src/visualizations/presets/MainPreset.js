@@ -91,6 +91,7 @@ export default class MainPreset extends Preset {
           new BigNumberPeriodOverPeriodChartPlugin().configure({
             key: VizType.BigNumberPeriodOverPeriod,
           }),
+          new AgGridTableChartPlugin().configure({ key: VizType.TableAgGrid }),
         ]
       : [];
 
@@ -162,7 +163,6 @@ export default class MainPreset extends Preset {
         new SelectFilterPlugin().configure({ key: FilterPlugins.Select }),
         new RangeFilterPlugin().configure({ key: FilterPlugins.Range }),
         new TimeFilterPlugin().configure({ key: FilterPlugins.Time }),
-        new AgGridTableChartPlugin().configure({ key: VizType.TableAgGrid }),
         new TimeColumnFilterPlugin().configure({
           key: FilterPlugins.TimeColumn,
         }),
