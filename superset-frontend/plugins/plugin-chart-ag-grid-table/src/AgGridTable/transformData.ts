@@ -20,7 +20,7 @@
 
 import { ColDef, ValueFormatterParams } from 'ag-grid-community';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
-import { DataRecord } from '@superset-ui/core';
+import { DataRecord, GenericDataType } from '@superset-ui/core';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 import CustomHeader from './components/CustomHeader';
 import CellBarRenderer, {
@@ -160,7 +160,7 @@ function getValueRange(
 
 function calculateMinWidth(headerName: string): number {
   const charCount = headerName.length === 1 ? 4 : headerName.length;
-  const baseWidth = charCount * 18 + 64;
+  const baseWidth = charCount * 8 + 32;
   return Math.max(baseWidth, 100);
 }
 
@@ -209,6 +209,31 @@ export const transformData = (
     return {
       field: colId,
       headerName: headerLabel,
+      ...(col?.dataType === GenericDataType.Temporal && {
+        filterParams: {
+          comparator: (filterDate: Date, cellValue: Date) => {
+            const cellDate = new Date(cellValue);
+            if (Number.isNaN(cellDate?.getTime())) return -1;
+
+            const cellDay = cellDate.getDate();
+            const cellMonth = cellDate.getMonth();
+            const cellYear = cellDate.getFullYear();
+
+            const filterDay = filterDate.getDate();
+            const filterMonth = filterDate.getMonth();
+            const filterYear = filterDate.getFullYear();
+
+            if (cellYear < filterYear) return -1;
+            if (cellYear > filterYear) return 1;
+            if (cellMonth < filterMonth) return -1;
+            if (cellMonth > filterMonth) return 1;
+            if (cellDay < filterDay) return -1;
+            if (cellDay > filterDay) return 1;
+
+            return 0;
+          },
+        },
+      }),
       minWidth: Math.max(
         calculateMinWidth(headerLabel),
         col?.config?.columnWidth || 0,
