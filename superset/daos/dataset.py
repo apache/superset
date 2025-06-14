@@ -23,7 +23,13 @@ from typing import Any
 import dateutil.parser
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import (
+    FactDimension,
+    SqlaTable,
+    SqlMetric,
+    TableColumn,
+    TableType,
+)
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import Database
@@ -197,6 +203,14 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 cls.update_metrics(item, attributes.pop("metrics"))
                 force_update = True
 
+            if "table_type" in attributes:
+                item.table_type = TableType(attributes.pop("table_type"))
+                force_update = True
+
+            if "fact_dimensions" in attributes:
+                cls._update_fact_dimensions(item, attributes.pop("fact_dimensions"))
+                force_update = True
+
             if force_update:
                 attributes["changed_on"] = datetime.now()
 
@@ -322,6 +336,39 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 {metric.id for metric in model.metrics} - property_metrics_by_id.keys()
             )
         ).delete(synchronize_session="fetch")
+
+    @classmethod
+    def _update_fact_dimensions(
+        cls,
+        model: SqlaTable,
+        property_facts: list[dict[str, Any]],
+    ) -> None:
+        """
+        Creates/updates and/or deletes FactDimension entries for star schemas.
+
+        - If a dict has an `id`, update that FactDimension.
+        - Else, create a new FactDimension for the model.
+        - Remove any existing entries not present in the payload.
+        """
+        existing = {fd.id: fd for fd in model.fact_dimensions if fd.id is not None}
+        for props in property_facts:
+            fd_id = props.get("id")
+            if fd_id and fd_id in existing:
+                fd = existing.pop(fd_id)
+                fd.dimension_table_id = props["dimension_table_id"]
+                fd.fact_fk = props["fact_fk"]
+                fd.dimension_pk = props["dimension_pk"]
+            else:
+                model.fact_dimensions.append(
+                    FactDimension(
+                        fact_table=model,
+                        dimension_table_id=props["dimension_table_id"],
+                        fact_fk=props["fact_fk"],
+                        dimension_pk=props["dimension_pk"],
+                    )
+                )
+        for fd in existing.values():
+            db.session.delete(fd)
 
     @classmethod
     def find_dataset_column(cls, dataset_id: int, column_id: int) -> TableColumn | None:
