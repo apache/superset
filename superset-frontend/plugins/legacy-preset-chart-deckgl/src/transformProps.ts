@@ -38,8 +38,6 @@ export default function transformProps(chartProps: ChartProps) {
     setDataMask = NOOP,
   } = hooks;
 
-  console.log('filters', filterState);
-
   return {
     datasource,
     formData: rawFormData,

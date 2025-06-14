@@ -49,7 +49,7 @@ type DeckGLComponentProps = {
   setControlValue: () => void;
   viewport: Viewport;
   width: number;
-  filterState: any;
+  filterState: FilterState;
   setDataMask: SetDataMaskHook;
 };
 
@@ -60,7 +60,7 @@ export interface GetLayerTypeParams {
   setTooltip: (tooltip: TooltipProps['tooltip']) => void;
   setDataMask: (dataMask: DataMask) => void;
   onContextMenu: (...props: any) => void;
-  dataset?: Datasource;
+  datasource?: Datasource;
   filterState: FilterState;
 }
 
@@ -177,6 +177,9 @@ export function createCategoricalDeckGLComponent(
       setControlValue,
       viewport,
       width,
+      setDataMask,
+      filterState,
+      onContextMenu,
     } = props;
 
     return (
@@ -191,6 +194,9 @@ export function createCategoricalDeckGLComponent(
         getPoints={getPoints}
         width={width}
         height={height}
+        setDataMask={setDataMask}
+        onContextMenu={onContextMenu}
+        filterState={filterState}
       />
     );
   };
