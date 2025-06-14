@@ -23,7 +23,7 @@ from sqlalchemy.types import NVARCHAR
 
 from superset.db_engine_specs.redshift import RedshiftEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
 
