@@ -38,7 +38,7 @@ export default class EchartsGanttChartPlugin extends EchartsChartPlugin {
           Behavior.DrillBy,
         ],
         credits: ['https://echarts.apache.org'],
-        name: t('Gantt'),
+        name: t('Gantt Chart'),
         description: t(
           'Gantt chart visualizes important events over a time span. ' +
             'Every data point displayed as a separate event along a ' +
