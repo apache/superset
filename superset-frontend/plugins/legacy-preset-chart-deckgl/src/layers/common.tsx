@@ -30,6 +30,7 @@ import {
 } from 'd3-array';
 import {
   FilterState,
+  HandlerFunction,
   JsonObject,
   JsonValue,
   QueryFormData,
@@ -45,19 +46,17 @@ export function commonLayerProps({
   setDataMask,
   setTooltip,
   setTooltipContent,
-  handleContextMenu,
   onSelect,
   onContextMenu,
   filterState,
 }: {
   formData: QueryFormData;
-  setDataMask?: SetDataMaskHook;
+  setDataMask: SetDataMaskHook;
   setTooltip: (tooltip: TooltipProps['tooltip']) => void;
   setTooltipContent: (content: JsonObject) => ReactNode;
-  handleContextMenu?: (x: number, y: number, data: PickingInfo) => void;
   onSelect?: (value: JsonValue) => void;
   filterState: FilterState;
-  onContextMenu: any;
+  onContextMenu: HandlerFunction;
 }) {
   const fd = formData;
   let onHover;
@@ -94,7 +93,7 @@ export function commonLayerProps({
     };
   } else {
     onClick = (data: PickingInfo, event: any) => {
-      if (event.leftButton && setDataMask) {
+      if (event.leftButton && setDataMask !== undefined) {
         setDataMask(
           getCrossFilterDataMask({
             data,
@@ -102,8 +101,8 @@ export function commonLayerProps({
             formData,
           })?.dataMask || {},
         );
-      } else if (event.rightButton && handleContextMenu) {
-        console.log(data);
+      } else if (event.rightButton) {
+        console.log('data', data);
         onContextMenu(event.center.x, event.center.y, {
           drillToDetail: [],
           crossFilter: getCrossFilterDataMask({

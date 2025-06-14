@@ -17,79 +17,88 @@ export const getCrossFilterDataMask = ({
   filterState: any;
   formData: any;
 }) => {
-  if (!formData.spatial?.type || !data.object) return null;
-
-  let values: string[] | number[];
+  let values: string[] | number[] = [];
   let filters: QueryObjectFilterClause[] = [];
 
-  const clickedPointPosition = data.object.points[0].position as [
-    number,
-    number,
-  ];
+  if (formData.spatial?.type) {
+    const position = (data.object?.points?.[0]?.position ||
+      data.object?.position) as [number, number];
 
-  switch (formData.spatial.type) {
-    case spatialTypes.latlong: {
-      const cols = [formData.spatial.lonCol, formData.spatial.latCol];
+    switch (formData.spatial.type) {
+      case spatialTypes.latlong: {
+        const cols = [formData.spatial.lonCol, formData.spatial.latCol];
 
-      values = clickedPointPosition;
+        values = position;
 
-      filters = [
-        ...cols.map(
-          (col, index) =>
-            ({
-              col,
-              op: '==',
-              val: clickedPointPosition[index],
-            }) as QueryObjectFilterClause,
-        ),
-      ];
+        filters = [
+          ...cols.map(
+            (col, index) =>
+              ({
+                col,
+                op: '==',
+                val: position[index],
+              }) as QueryObjectFilterClause,
+          ),
+        ];
 
-      break;
+        break;
+      }
+      case spatialTypes.delimited: {
+        const col = formData.spatial.lonlatCol;
+        const val = (
+          formData.spatial.reverseCheckbox ? position.reverse() : position
+        ).join(formData.spatial.delimiter);
+
+        values = [val];
+
+        filters = [
+          {
+            col,
+            op: '==',
+            val,
+          },
+        ];
+
+        break;
+      }
+      case spatialTypes.geohash: {
+        const col = formData.spatial.geohashCol;
+        const val = ngeohash.encode(
+          ...(formData.spatial.reverseCheckbox
+            ? position
+            : (position.reverse() as [number, number])),
+          12,
+        );
+
+        values = [val];
+
+        filters = [
+          {
+            col,
+            op: '==',
+            val,
+          },
+        ];
+
+        break;
+      }
+      default: {
+        values = [];
+      }
     }
-    case spatialTypes.delimited: {
-      const col = formData.spatial.lonlatCol;
-      const val = (
-        formData.spatial.reverseCheckbox
-          ? clickedPointPosition.reverse()
-          : clickedPointPosition
-      ).join(formData.spatial.delimiter);
+  } else if (formData.line_column) {
+    const path = data?.object?.path as string;
+    const val = [path].toString();
 
-      values = [val];
+    values = [val];
 
-      filters = [
-        {
-          col,
-          op: '==',
-          val,
-        },
-      ];
-
-      break;
-    }
-    case spatialTypes.geohash: {
-      const col = formData.spatial.geohashCol;
-      const val = ngeohash.encode(
-        ...(formData.spatial.reverseCheckbox
-          ? clickedPointPosition
-          : (clickedPointPosition.reverse() as [number, number])),
-        12,
-      );
-
-      values = [val];
-
-      filters = [
-        {
-          col,
-          op: '==',
-          val,
-        },
-      ];
-
-      break;
-    }
-    default: {
-      values = [];
-    }
+    filters = [
+      {
+        col: formData.line_column,
+        op: '==',
+        val,
+      },
+    ];
   }
 
   const isSelected = filterState?.value?.every(

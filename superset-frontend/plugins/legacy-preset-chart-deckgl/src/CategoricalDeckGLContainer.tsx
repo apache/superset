@@ -28,10 +28,12 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   CategoricalColorNamespace,
   Datasource,
+  FilterState,
   HandlerFunction,
   JsonObject,
   JsonValue,
   QueryFormData,
+  SetDataMaskHook,
 } from '@superset-ui/core';
 import type { Layer } from '@deck.gl/core';
 import Legend from './components/Legend';
@@ -78,10 +80,13 @@ export type CategoricalDeckGLContainerProps = {
   height: number;
   width: number;
   viewport: Viewport;
-  getLayer: getLayerType<unknown>;
+  getLayer: GetLayerType<unknown>;
   payload: JsonObject;
   onAddFilter?: HandlerFunction;
   setControlValue: (control: string, value: JsonValue) => void;
+  filterState: FilterState;
+  setDataMask: SetDataMaskHook;
+  onContextMenu: HandlerFunction;
 };
 
 const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
@@ -146,7 +151,15 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
   }, []);
 
   const getLayers = useCallback(() => {
-    const { getLayer, payload, formData: fd, onAddFilter } = props;
+    const {
+      getLayer,
+      payload,
+      formData: fd,
+      onAddFilter,
+      onContextMenu,
+      filterState,
+      setDataMask,
+    } = props;
     let features = payload.data.features ? [...payload.data.features] : [];
 
     // Add colors from categories or fixed color
@@ -169,14 +182,16 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     };
 
     return [
-      getLayer(
-        fd,
-        filteredPayload,
+      getLayer({
+        formData: fd,
+        payload: filteredPayload,
         onAddFilter,
         setTooltip,
-        props.datasource,
-        () => {},
-      ) as Layer,
+        datasource: props.datasource,
+        onContextMenu,
+        filterState,
+        setDataMask,
+      }) as Layer,
     ];
   }, [addColor, categories, props, setTooltip]);
 

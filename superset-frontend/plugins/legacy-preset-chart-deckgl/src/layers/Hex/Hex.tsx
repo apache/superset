@@ -28,7 +28,7 @@ import {
 import { commonLayerProps, getAggFunc } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { hexToRGB } from '../../utils/colors';
-import { createDeckGLComponent } from '../../factory';
+import { GetLayerType, createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { TooltipProps } from '../../components/Tooltip';
 
@@ -48,12 +48,14 @@ function setTooltipContent(o: JsonObject) {
   );
 }
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: () => void,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<HexagonLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  onContextMenu,
+  filterState,
+  setDataMask,
+}) {
   const fd = formData;
   const appliedScheme = fd.color_scheme;
   const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
@@ -80,9 +82,16 @@ export function getLayer(
     getElevationValue: aggFunc,
     // @ts-ignore
     getColorValue: aggFunc,
-    ...commonLayerProps({ formData: fd, setTooltip, setTooltipContent }),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent,
+      setDataMask,
+      filterState,
+      onContextMenu,
+    }),
   });
-}
+};
 
 export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
