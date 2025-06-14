@@ -20,10 +20,9 @@
  */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { ScreenGridLayer } from 'deck.gl/typed';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { ScreenGridLayer } from '@deck.gl/aggregation-layers';
 import { JsonObject, JsonValue, QueryFormData, t } from '@superset-ui/core';
-import { noop } from 'lodash';
 import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
@@ -35,7 +34,7 @@ import {
 } from '../../DeckGLContainer';
 import { TooltipProps } from '../../components/Tooltip';
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
 }
 
@@ -84,7 +83,7 @@ export function getLayer(
     minColor: [c.r, c.g, c.b, 0],
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
-    getWeight: d => d.weight || 0,
+    getWeight: (d: any) => d.weight || 0,
     ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
 }
@@ -135,7 +134,7 @@ const DeckGLScreenGrid = (props: DeckGLScreenGridProps) => {
   }, []);
 
   const getLayers = useCallback(() => {
-    const layer = getLayer(props.formData, props.payload, noop, setTooltip);
+    const layer = getLayer(props.formData, props.payload, () => {}, setTooltip);
 
     return [layer];
   }, [props.formData, props.payload, setTooltip]);

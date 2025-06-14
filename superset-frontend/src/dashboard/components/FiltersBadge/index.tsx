@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  KeyboardEvent,
+  memo,
 } from 'react';
+
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
@@ -34,8 +37,9 @@ import {
   t,
   usePrevious,
 } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import Badge from 'src/components/Badge';
 import DetailsPanelPopover from './DetailsPanel';
 import {
@@ -44,7 +48,7 @@ import {
   selectIndicatorsForChart,
   selectNativeIndicatorsForChart,
 } from '../nativeFilters/selectors';
-import { Chart, DashboardLayout, RootState } from '../../types';
+import { Chart, RootState } from '../../types';
 
 export interface FiltersBadgeProps {
   chartId: number;
@@ -81,9 +85,8 @@ const StyledFilterCount = styled.div`
 
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
-    vertical-align: middle;
     margin-left: ${theme.gridUnit * 2}px;
-    &>sup {
+    &>sup.antd5-badge-count {
       padding: 0 ${theme.gridUnit}px;
       min-width: ${theme.gridUnit * 4}px;
       height: ${theme.gridUnit * 4}px;
@@ -91,6 +94,7 @@ const StyledBadge = styled(Badge)`
       font-weight: ${theme.typography.weights.medium};
       font-size: ${theme.typography.sizes.s - 1}px;
       box-shadow: none;
+      padding: 0 ${theme.gridUnit}px;
     }
   `}
 `;
@@ -123,9 +127,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     state => state.dashboardInfo.metadata?.chart_configuration,
   );
   const chart = useSelector<RootState, Chart>(state => state.charts[chartId]);
-  const present = useSelector<RootState, DashboardLayout>(
-    state => state.dashboardLayout.present,
-  );
+  const chartLayoutItems = useChartLayoutItems();
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
   );
@@ -147,7 +149,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dispatch],
   );
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter') {
       setPopoverVisible(true);
     }
@@ -204,7 +206,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   ]);
 
   const prevNativeFilters = usePrevious(nativeFilters);
-  const prevDashboardLayout = usePrevious(present);
+  const prevChartLayoutItems = usePrevious(chartLayoutItems);
   const prevDataMask = usePrevious(dataMask);
   const prevChartConfig = usePrevious(chartConfiguration);
 
@@ -218,7 +220,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         chart?.queriesResponse?.[0]?.applied_filters !==
           prevChart?.queriesResponse?.[0]?.applied_filters ||
         nativeFilters !== prevNativeFilters ||
-        present !== prevDashboardLayout ||
+        chartLayoutItems !== prevChartLayoutItems ||
         dataMask !== prevDataMask ||
         prevChartConfig !== chartConfiguration
       ) {
@@ -228,7 +230,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
             dataMask,
             chartId,
             chart,
-            present,
+            chartLayoutItems,
             chartConfiguration,
           ),
         );
@@ -241,14 +243,14 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     dataMask,
     nativeFilters,
     nativeIndicators.length,
-    present,
     prevChart?.queriesResponse,
     prevChartConfig,
     prevChartStatus,
-    prevDashboardLayout,
     prevDataMask,
     prevNativeFilters,
     showIndicators,
+    chartLayoutItems,
+    prevChartLayoutItems,
   ]);
 
   const indicators = useMemo(
@@ -307,7 +309,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
-        <Icons.Filter iconSize="m" />
+        <Icons.FilterOutlined iconSize="m" />
         <StyledBadge
           data-test="applied-filter-count"
           className="applied-count"
@@ -319,4 +321,4 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
 };
 
-export default React.memo(FiltersBadge);
+export default memo(FiltersBadge);

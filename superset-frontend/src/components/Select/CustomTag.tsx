@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { Tag as AntdTag } from 'antd';
+import { MouseEvent } from 'react';
+// eslint-disable-next-line no-restricted-imports
+import { Tag as AntdTag } from 'antd'; // TODO: Remove antd
 import { styled, useCSSTextTruncation } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';
 import { CustomCloseIcon } from '../Tags/Tag';
 import { CustomTagProps } from './types';
-import { SELECT_ALL_VALUE } from './utils';
-import { NoElement } from './styles';
 
 const StyledTag = styled(AntdTag)`
   & .ant-tag-close-icon {
@@ -60,9 +59,9 @@ const Tag = (props: any) => {
  * Custom tag renderer
  */
 export const customTagRender = (props: CustomTagProps) => {
-  const { label, value } = props;
+  const { label } = props;
 
-  const onPreventMouseDown = (event: React.MouseEvent<HTMLElement>) => {
+  const onPreventMouseDown = (event: MouseEvent<HTMLElement>) => {
     // if close icon is clicked, stop propagation to avoid opening the dropdown
     const target = event.target as HTMLElement;
     if (
@@ -75,12 +74,9 @@ export const customTagRender = (props: CustomTagProps) => {
     }
   };
 
-  if (value !== SELECT_ALL_VALUE) {
-    return (
-      <Tag onMouseDown={onPreventMouseDown} {...(props as object)}>
-        {label}
-      </Tag>
-    );
-  }
-  return <NoElement />;
+  return (
+    <Tag onMouseDown={onPreventMouseDown} {...(props as object)}>
+      {label}
+    </Tag>
+  );
 };

@@ -190,8 +190,3 @@ export const getDefaultScopeValue = (
     ? [chartId, ...initiallyExcludedCharts]
     : initiallyExcludedCharts,
 });
-
-export const isScopingAll = (scope: NativeFilterScope, chartId?: number) =>
-  !scope ||
-  (scope.rootPath[0] === DASHBOARD_ROOT_ID &&
-    !scope.excluded.filter(item => item !== chartId).length);

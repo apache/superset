@@ -27,12 +27,14 @@ import { getChartKey } from 'src/explore/exploreUtils';
 import { getControlsState } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
+  Currency,
   ensureIsArray,
   getCategoricalSchemeRegistry,
   getColumnLabel,
   getSequentialSchemeRegistry,
   NO_TIME_RANGE,
   QueryFormColumn,
+  VizType,
 } from '@superset-ui/core';
 import {
   getFormDataFromControls,
@@ -67,7 +69,7 @@ export const hydrateExplore =
     const initialSlice = slice ?? fallbackSlice;
     const initialFormData = form_data ?? initialSlice?.form_data;
     if (!initialFormData.viz_type) {
-      const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || 'table';
+      const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || VizType.Table;
       initialFormData.viz_type =
         getUrlParam(URL_PARAMS.vizType) || defaultVizType;
     }
@@ -96,6 +98,14 @@ export const hydrateExplore =
     }
 
     const initialDatasource = dataset;
+    initialDatasource.currency_formats = Object.fromEntries(
+      (initialDatasource.metrics ?? [])
+        .filter(metric => !!metric.currency)
+        .map((metric): [string, Currency] => [
+          metric.metric_name,
+          metric.currency!,
+        ]),
+    );
 
     const initialExploreState = {
       form_data: initialFormData,

@@ -15,17 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
 
 
@@ -188,7 +189,7 @@ def test_query_datasources_by_permissions_with_catalog_schema(
     clause = db.session.query().filter_by().filter.mock_calls[0].args[0]
     assert str(clause.compile(engine, compile_kwargs={"literal_binds": True})) == (
         "tables.perm IN ('[my_db].[table1](id:1)') OR "
-        "tables.schema_perm IN ('[my_db].[db1].[schema1]', '[my_other_db].[schema]') OR "
+        "tables.schema_perm IN ('[my_db].[db1].[schema1]', '[my_other_db].[schema]') OR "  # noqa: E501
         "tables.catalog_perm IN ('[my_db].[db1]')"
     )
 
@@ -255,11 +256,34 @@ def test_dataset_uniqueness(session: Session) -> None:
 
     # but the DAO enforces application logic for uniqueness
     assert not DatasetDAO.validate_uniqueness(
-        database.id,
+        database,
         Table("table", "schema", None),
     )
 
     assert DatasetDAO.validate_uniqueness(
-        database.id,
+        database,
         Table("table", "schema", "some_catalog"),
+    )
+
+
+def test_normalize_prequery_result_type_custom_sql() -> None:
+    """
+    Test that the `_normalize_prequery_result_type` can hanndle custom SQL.
+    """
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=Database(database_name="my_db", sqlalchemy_uri="sqlite://"),
+    )
+    row: pd.Series = {
+        "custom_sql": "Car",
+    }
+    dimension: str = "custom_sql"
+    columns_by_name: dict[str, TableColumn] = {
+        "product_line": TableColumn(column_name="product_line"),
+    }
+    assert (
+        sqla_table._normalize_prequery_result_type(row, dimension, columns_by_name)
+        == "Car"
     )

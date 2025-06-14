@@ -18,7 +18,6 @@
  */
 
 /* eslint-disable no-magic-numbers */
-import React from 'react';
 import { SuperChart } from '@superset-ui/core';
 import PairedTTestChartPlugin from '@superset-ui/legacy-plugin-chart-paired-t-test';
 import data from './data';

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FC } from 'react';
 import { FormItem } from 'src/components/Form';
 import { Input, TextArea } from 'src/components/Input';
 import { NativeFilterType, styled, t } from '@superset-ui/core';
@@ -34,7 +34,7 @@ const Container = styled.div`
   `}
 `;
 
-const DividerConfigForm: React.FC<Props> = ({ componentId, divider }) => (
+const DividerConfigForm: FC<Props> = ({ componentId, divider }) => (
   <Container>
     <FormItem
       initialValue={divider ? divider.title : ''}

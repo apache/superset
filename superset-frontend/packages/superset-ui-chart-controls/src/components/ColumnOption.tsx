@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, ReactNode, useLayoutEffect } from 'react';
-import { css, styled, SupersetTheme } from '@superset-ui/core';
+import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
+import { css, SafeMarkdown, styled, SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from './Tooltip';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
@@ -28,11 +28,12 @@ import {
   getColumnTypeTooltipNode,
 } from './labelUtils';
 import { SQLPopover } from './SQLPopover';
+import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 
 export type ColumnOptionProps = {
   column: ColumnMeta;
   showType?: boolean;
-  labelRef?: React.RefObject<any>;
+  labelRef?: RefObject<any>;
 };
 
 const StyleOverrides = styled.span`
@@ -50,6 +51,8 @@ export function ColumnOption({
 }: ColumnOptionProps) {
   const { expression, column_name, type_generic } = column;
   const hasExpression = expression && expression !== column_name;
+  const warningMarkdown =
+    column.warning_markdown || column.warning_text || column.error_text;
   const type = hasExpression ? 'expression' : type_generic;
   const [tooltipText, setTooltipText] = useState<ReactNode>(column.column_name);
   const [columnTypeTooltipText, setcolumnTypeTooltipText] = useState<ReactNode>(
@@ -92,6 +95,19 @@ export function ColumnOption({
           metricName={column.metric_name}
           certifiedBy={column.certified_by}
           details={column.certification_details}
+        />
+      )}
+      {warningMarkdown && (
+        <InfoTooltipWithTrigger
+          className="text-warning"
+          icon="warning"
+          tooltip={<SafeMarkdown source={warningMarkdown} />}
+          label={`warn-${column.column_name}`}
+          iconsStyle={{ marginLeft: 0 }}
+          {...(column.error_text && {
+            className: 'text-danger',
+            icon: 'exclamation-circle',
+          })}
         />
       )}
     </StyleOverrides>

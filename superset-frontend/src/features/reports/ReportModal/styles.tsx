@@ -24,7 +24,7 @@ import { Radio } from 'src/components/Radio';
 import { CronPicker } from 'src/components/CronPicker';
 
 export const StyledModal = styled(Modal)`
-  .ant-modal-body {
+  .antd5-modal-body {
     padding: 0;
   }
 `;
@@ -108,28 +108,7 @@ export const StyledRadio = styled(Radio)`
   line-height: ${({ theme }) => theme.gridUnit * 8}px;
 `;
 
-export const StyledRadioGroup = styled(Radio.Group)`
-  margin-left: ${({ theme }) => theme.gridUnit * 0.5}px;
-`;
-
 export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
-  border: ${theme.colors.error.base} 1px solid;
-  padding: ${theme.gridUnit * 4}px;
   margin: ${theme.gridUnit * 4}px;
   margin-top: 0;
-  color: ${theme.colors.error.dark2};
-  .ant-alert-message {
-    font-size: ${theme.typography.sizes.m}px;
-    font-weight: bold;
-  }
-  .ant-alert-description {
-    font-size: ${theme.typography.sizes.m}px;
-    line-height: ${theme.gridUnit * 4}px;
-    .ant-alert-icon {
-      margin-right: ${theme.gridUnit * 2.5}px;
-      font-size: ${theme.typography.sizes.l}px;
-      position: relative;
-      top: ${theme.gridUnit / 4}px;
-    }
-  }
 `;

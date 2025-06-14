@@ -17,16 +17,15 @@
 # pylint: disable=too-many-lines
 """a collection of model-related helper classes and functions"""
 
+from __future__ import annotations
+
 import builtins
 import dataclasses
-import json
 import logging
 import re
 import uuid
-from collections import defaultdict
 from collections.abc import Hashable
 from datetime import datetime, timedelta
-from json.decoder import JSONDecodeError
 from typing import Any, cast, NamedTuple, Optional, TYPE_CHECKING, Union
 
 import dateutil.parser
@@ -35,7 +34,6 @@ import numpy as np
 import pandas as pd
 import pytz
 import sqlalchemy as sa
-import sqlparse
 import yaml
 from flask import g
 from flask_appbuilder import Model
@@ -54,7 +52,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
-from superset import app, db, is_feature_enabled, security_manager
+from superset import app, db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
@@ -66,19 +64,11 @@ from superset.exceptions import (
     ColumnNotFoundException,
     QueryClauseValidationException,
     QueryObjectValidationError,
-    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql_parse import (
-    has_table_query,
-    insert_rls_in_predicate,
-    ParsedQuery,
-    sanitize_clause,
-    SQLScript,
-    SQLStatement,
-)
+from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocMetric,
     Column as ColumnTyping,
@@ -88,16 +78,18 @@ from superset.superset_typing import (
     OrderBy,
     QueryObjectDict,
 )
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.core import (
     GenericDataType,
     get_column_name,
+    get_non_base_axis_columns,
     get_user_id,
     is_adhoc_column,
     MediumText,
     remove_duplicates,
 )
 from superset.utils.dates import datetime_to_epoch
+from superset.utils.rls import apply_rls
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlMetric, TableColumn
@@ -115,8 +107,10 @@ ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 
 def validate_adhoc_subquery(
     sql: str,
-    database_id: int,
+    database: Database,
+    catalog: str | None,
     default_schema: str,
+    engine: str,
 ) -> str:
     """
     Check if adhoc SQL contains sub-queries or nested sub-queries with table.
@@ -128,21 +122,21 @@ def validate_adhoc_subquery(
     :raise SupersetSecurityException if sql contains sub-queries or
     nested sub-queries with table
     """
-    statements = []
-    for statement in sqlparse.parse(sql):
-        if has_table_query(statement):
-            if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
-                raise SupersetSecurityException(
-                    SupersetError(
-                        error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                        message=_("Custom SQL fields cannot contain sub-queries."),
-                        level=ErrorLevel.ERROR,
-                    )
+    parsed_statement = SQLStatement(sql, engine)
+    if parsed_statement.has_subquery():
+        if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                    message=_("Custom SQL fields cannot contain sub-queries."),
+                    level=ErrorLevel.ERROR,
                 )
-            statement = insert_rls_in_predicate(statement, database_id, default_schema)
-        statements.append(statement)
+            )
 
-    return ";\n".join(str(statement) for statement in statements)
+        # enforce RLS rules in any relevant tables
+        apply_rls(database, catalog, default_schema, parsed_statement)
+
+    return parsed_statement.format()
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
@@ -170,11 +164,17 @@ def convert_uuids(obj: Any) -> Any:
     return obj
 
 
-class ImportExportMixin:
+class UUIDMixin:  # pylint: disable=too-few-public-methods
     uuid = sa.Column(
         UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
     )
 
+    @property
+    def short_uuid(self) -> str:
+        return str(self.uuid)[:8]
+
+
+class ImportExportMixin(UUIDMixin):
     export_parent: Optional[str] = None
     # The name of the attribute
     # with the SQL Alchemy back reference
@@ -249,7 +249,7 @@ class ImportExportMixin:
         return schema
 
     @classmethod
-    def import_from_dict(
+    def import_from_dict(  # noqa: C901
         # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
         cls,
         dict_rep: dict[Any, Any],
@@ -311,7 +311,7 @@ class ImportExportMixin:
         try:
             obj_query = db.session.query(cls).filter(and_(*filters))
             obj = obj_query.one_or_none()
-        except MultipleResultsFound as ex:
+        except MultipleResultsFound:
             logger.error(
                 "Error importing %s \n %s \n %s",
                 cls.__name__,
@@ -319,19 +319,19 @@ class ImportExportMixin:
                 yaml.safe_dump(dict_rep),
                 exc_info=True,
             )
-            raise ex
+            raise
 
         if not obj:
             is_new_obj = True
             # Create new DB object
             obj = cls(**dict_rep)
-            logger.info("Importing new %s %s", obj.__tablename__, str(obj))
+            logger.debug("Importing new %s %s", obj.__tablename__, str(obj))
             if cls.export_parent and parent:
                 setattr(obj, cls.export_parent, parent)
             db.session.add(obj)
         else:
             is_new_obj = False
-            logger.info("Updating %s %s", obj.__tablename__, str(obj))
+            logger.debug("Updating %s %s", obj.__tablename__, str(obj))
             # Update columns
             for k, v in dict_rep.items():
                 setattr(obj, k, v)
@@ -362,7 +362,7 @@ class ImportExportMixin:
                         db.session.query(child_class).filter(and_(*delete_filters))
                     ).difference(set(added))
                     for o in to_delete:
-                        logger.info("Deleting %s %s", child, str(obj))
+                        logger.debug("Deleting %s %s", child, str(obj))
                         db.session.delete(o)
 
         return obj
@@ -597,7 +597,7 @@ class ExtraJSONMixin:
     def extra(self) -> dict[str, Any]:
         try:
             return json.loads(self.extra_json or "{}") or {}
-        except (TypeError, JSONDecodeError) as exc:
+        except (TypeError, json.JSONDecodeError) as exc:
             logger.error(
                 "Unable to load an extra json: %r. Leaving empty.", exc, exc_info=True
             )
@@ -712,6 +712,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     }
     fetch_values_predicate = None
 
+    normalize_columns = False
+
     @property
     def type(self) -> str:
         raise NotImplementedError()
@@ -772,7 +774,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def database(self) -> "Database":
+    def database(self) -> Database:
         raise NotImplementedError()
 
     @property
@@ -807,50 +809,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_sqla_row_level_filters(
         self,
-        template_processor: BaseTemplateProcessor,
+        template_processor: Optional[BaseTemplateProcessor] = None,  # pylint: disable=unused-argument
     ) -> list[TextClause]:
-        """
-        Return the appropriate row level security filters for this table and the
-        current user. A custom username can be passed when the user is not present in the
-        Flask global namespace.
+        # TODO: We should refactor this mixin and remove this method
+        # as it exists in the BaseDatasource and is not applicable
+        # for datasources of type query
+        return []
 
-        :param template_processor: The template processor to apply to the filters.
-        :returns: A list of SQL clauses to be ANDed together.
-        """
-        all_filters: list[TextClause] = []
-        filter_groups: dict[Union[int, str], list[TextClause]] = defaultdict(list)
-        try:
-            for filter_ in security_manager.get_rls_filters(self):
-                clause = self.text(
-                    f"({template_processor.process_template(filter_.clause)})"
-                )
-                if filter_.group_key:
-                    filter_groups[filter_.group_key].append(clause)
-                else:
-                    all_filters.append(clause)
-
-            if is_feature_enabled("EMBEDDED_SUPERSET"):
-                for rule in security_manager.get_guest_rls_filters(self):
-                    clause = self.text(
-                        f"({template_processor.process_template(rule['clause'])})"
-                    )
-                    all_filters.append(clause)
-
-            grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
-            all_filters.extend(grouped_filters)
-            return all_filters
-        except TemplateError as ex:
-            raise QueryObjectValidationError(
-                _(
-                    "Error in jinja expression in RLS filters: %(msg)s",
-                    msg=ex.message,
-                )
-            ) from ex
-
-    def _process_sql_expression(
+    def _process_sql_expression(  # pylint: disable=too-many-arguments
         self,
         expression: Optional[str],
         database_id: int,
+        engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
     ) -> Optional[str]:
@@ -859,11 +829,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             expression = validate_adhoc_subquery(
                 expression,
-                database_id,
+                self.database,
+                self.catalog,
                 schema,
+                engine,
             )
             try:
-                expression = sanitize_clause(expression)
+                expression = sanitize_clause(expression, engine)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
         return expression
@@ -904,12 +876,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         mutate: bool = True,
     ) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
-        sql = self.database.compile_sqla_query(sqlaq.sqla_query)
+        sql = self.database.compile_sqla_query(
+            sqlaq.sqla_query,
+            catalog=self.catalog,
+            schema=self.schema,
+            is_virtual=bool(self.sql),
+        )
         sql = self._apply_cte(sql, sqlaq.cte)
-        try:
-            sql = SQLStatement(sql, engine=self.db_engine_spec.engine).format()
-        except SupersetParseError:
-            logger.warning("Unable to parse SQL to format it, passing it as-is")
 
         if mutate:
             sql = self.database.mutate_sql_based_on_config(sql)
@@ -1069,8 +1042,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         Render sql with template engine (Jinja).
         """
+        if not self.sql:
+            return ""
 
-        sql = self.sql
+        sql = self.sql.strip("\t\r\n; ")
         if template_processor:
             try:
                 sql = template_processor.process_template(sql)
@@ -1082,13 +1057,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 ) from ex
 
-        script = SQLScript(sql.strip("\t\r\n; "), engine=self.db_engine_spec.engine)
+        script = SQLScript(sql, engine=self.db_engine_spec.engine)
         if len(script.statements) > 1:
             raise QueryObjectValidationError(
                 _("Virtual dataset query cannot consist of multiple statements")
             )
 
-        sql = script.statements[0].format(comments=False)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         return sql
@@ -1104,13 +1078,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         or a virtual table with it's own subquery. If the FROM is referencing a
         CTE, the CTE is returned as the second value in the return tuple.
         """
-
-        from_sql = self.get_rendered_sql(template_processor)
-        parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
-        if not (
-            parsed_query.is_unknown()
-            or self.db_engine_spec.is_readonly_query(parsed_query)
-        ):
+        from_sql = self.get_rendered_sql(template_processor) + "\n"
+        parsed_script = SQLScript(from_sql, engine=self.db_engine_spec.engine)
+        if parsed_script.has_mutation():
             raise QueryObjectValidationError(
                 _("Virtual dataset query must be read-only")
             )
@@ -1151,6 +1121,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             expression = self._process_sql_expression(
                 expression=metric["sqlExpression"],
                 database_id=self.database_id,
+                engine=self.database.backend,
                 schema=self.schema,
                 template_processor=template_processor,
             )
@@ -1165,7 +1136,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return {}
 
     @staticmethod
-    def filter_values_handler(  # pylint: disable=too-many-arguments
+    def filter_values_handler(  # pylint: disable=too-many-arguments  # noqa: C901
         values: Optional[FilterValues],
         operator: str,
         target_generic_type: utils.GenericDataType,
@@ -1352,7 +1323,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return and_(*l)
 
-    def values_for_column(
+    def values_for_column(  # pylint: disable=too-many-locals
         self,
         column_name: str,
         limit: int = 10000,
@@ -1388,6 +1359,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
 
+        rls_filters = self.get_sqla_row_level_filters(template_processor=tp)
+        qry = qry.where(and_(*rls_filters))
+
         with self.database.get_sqla_engine() as engine:
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
             sql = self._apply_cte(sql, cte)
@@ -1397,10 +1371,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if engine.dialect.identifier_preparer._double_percents:
                 sql = sql.replace("%%", "%")
 
-            df = pd.read_sql_query(sql=sql, con=engine)
-            # replace NaN with None to ensure it can be serialized to JSON
-            df = df.replace({np.nan: None})
-            return df["column_values"].to_list()
+            with engine.connect() as con:
+                df = pd.read_sql_query(sql=self.text(sql), con=con)
+                # replace NaN with None to ensure it can be serialized to JSON
+                df = df.replace({np.nan: None})
+                return df["column_values"].to_list()
 
     def get_timestamp_expression(
         self,
@@ -1449,7 +1424,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col = self.make_sqla_column_compatible(col, label)
         return col
 
-    def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
+    def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
         self,
         apply_fetch_values_predicate: bool = False,
         columns: Optional[list[Column]] = None,
@@ -1483,6 +1458,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         extras = extras or {}
         time_grain = extras.get("time_grain_sqla")
+
+        # DB-specifc quoting for identifiers
+        with self.database.get_sqla_engine() as engine:
+            quote = engine.dialect.identifier_preparer.quote
 
         template_kwargs = {
             "columns": columns,
@@ -1532,6 +1511,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         columns_by_name: dict[str, "TableColumn"] = {
             col.column_name: col for col in self.columns
         }
+        quoted_columns_by_name = {quote(k): v for k, v in columns_by_name.items()}
 
         metrics_by_name: dict[str, "SqlMetric"] = {
             m.metric_name: m for m in self.metrics
@@ -1583,7 +1563,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         # Since orderby may use adhoc metrics, too; we need to process them first
         orderby_exprs: list[ColumnElement] = []
-        for orig_col, ascending in orderby:
+        for orig_col, ascending in orderby:  # noqa: B007
             col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
                 col = cast(AdhocMetric, col)
@@ -1591,6 +1571,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     col["sqlExpression"] = self._process_sql_expression(
                         expression=col["sqlExpression"],
                         database_id=self.database_id,
+                        engine=self.database.backend,
                         schema=self.schema,
                         template_processor=template_processor,
                     )
@@ -1601,10 +1582,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # use the existing instance.
                     col = metrics_exprs_by_expr.get(str(col), col)
                     need_groupby = True
-            elif col in columns_by_name:
-                col = self.convert_tbl_column_to_sqla_col(
-                    columns_by_name[col], template_processor=template_processor
-                )
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
                 need_groupby = True
@@ -1613,6 +1590,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     template_processor=template_processor
                 )
                 need_groupby = True
+            elif col in columns_by_name:
+                col = self.convert_tbl_column_to_sqla_col(
+                    columns_by_name[col], template_processor=template_processor
+                )
 
             if isinstance(col, ColumnElement):
                 orderby_exprs.append(col)
@@ -1652,14 +1633,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     else:
                         selected = validate_adhoc_subquery(
                             selected,
-                            self.database_id,
+                            self.database,
+                            self.catalog,
                             self.schema,
+                            self.database.db_engine_spec.engine,
                         )
                         outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
                 else:
                     outer = self.adhoc_column_to_sqla(
-                        col=selected, template_processor=template_processor
+                        col=selected,
+                        template_processor=template_processor,
                     )
                 groupby_all_columns[outer.name] = outer
                 if (
@@ -1673,20 +1657,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     _sql = selected["sqlExpression"]
                     _column_label = selected["label"]
                 elif isinstance(selected, str):
-                    _sql = selected
+                    _sql = quote(selected)
                     _column_label = selected
 
                 selected = validate_adhoc_subquery(
                     _sql,
-                    self.database_id,
+                    self.database,
+                    self.catalog,
                     self.schema,
+                    self.database.db_engine_spec.engine,
                 )
 
                 select_exprs.append(
                     self.convert_tbl_column_to_sqla_col(
-                        columns_by_name[selected], template_processor=template_processor
+                        quoted_columns_by_name[selected],
+                        template_processor=template_processor,
+                        label=_column_label,
                     )
-                    if isinstance(selected, str) and selected in columns_by_name
+                    if selected in quoted_columns_by_name
                     else self.make_sqla_column_compatible(
                         literal_column(selected), _column_label
                     )
@@ -1908,6 +1896,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             where_clause_and.append(sqla_col.like(eq))
                         else:
                             where_clause_and.append(sqla_col.ilike(eq))
+                    elif op in {utils.FilterOperator.NOT_LIKE.value}:
+                        if target_generic_type != GenericDataType.STRING:
+                            sqla_col = sa.cast(sqla_col, sa.String)
+
+                        where_clause_and.append(sqla_col.not_like(eq))
                     elif (
                         op == utils.FilterOperator.TEMPORAL_RANGE.value
                         and isinstance(eq, str)
@@ -1936,36 +1929,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if extras:
             where = extras.get("where")
             if where:
-                try:
-                    where = template_processor.process_template(f"({where})")
-                except TemplateError as ex:
-                    raise QueryObjectValidationError(
-                        _(
-                            "Error in jinja expression in WHERE clause: %(msg)s",
-                            msg=ex.message,
-                        )
-                    ) from ex
                 where = self._process_sql_expression(
                     expression=where,
                     database_id=self.database_id,
+                    engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
                 )
                 where_clause_and += [self.text(where)]
             having = extras.get("having")
             if having:
-                try:
-                    having = template_processor.process_template(f"({having})")
-                except TemplateError as ex:
-                    raise QueryObjectValidationError(
-                        _(
-                            "Error in jinja expression in HAVING clause: %(msg)s",
-                            msg=ex.message,
-                        )
-                    ) from ex
                 having = self._process_sql_expression(
                     expression=having,
                     database_id=self.database_id,
+                    engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
                 )
@@ -1983,7 +1960,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         self.make_orderby_compatible(select_exprs, orderby_exprs)
 
-        for col, (orig_col, ascending) in zip(orderby_exprs, orderby):
+        for col, (_orig_col, ascending) in zip(orderby_exprs, orderby, strict=False):  # noqa: B007
             if not db_engine_spec.allows_alias_in_orderby and isinstance(col, Label):
                 # if engine does not allow using SELECT alias in ORDER BY
                 # revert to the underlying column
@@ -1994,9 +1971,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 and db_engine_spec.allows_hidden_cc_in_orderby
                 and col.name in [select_col.name for select_col in select_exprs]
             ):
-                with self.database.get_sqla_engine() as engine:
-                    quote = engine.dialect.identifier_preparer.quote
-                    col = literal_column(quote(col.name))
+                col = literal_column(quote(col.name))
             direction = sa.asc if ascending else sa.desc
             qry = qry.order_by(direction(col))
 
@@ -2083,7 +2058,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     "filter": filter,
                     "orderby": orderby,
                     "extras": extras,
-                    "columns": columns,
+                    "columns": get_non_base_axis_columns(columns),
                     "order_desc": True,
                 }
 

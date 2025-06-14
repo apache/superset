@@ -16,19 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
+
 import {
   styled,
   ensureIsArray,
   t,
   getClientErrorObject,
+  QueryFormData,
 } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
 interface Props {
-  latestQueryFormData: object;
+  latestQueryFormData: QueryFormData;
 }
 
 type Result = {
@@ -42,7 +44,7 @@ const ViewQueryModalContainer = styled.div`
   flex-direction: column;
 `;
 
-const ViewQueryModal: React.FC<Props> = props => {
+const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +52,7 @@ const ViewQueryModal: React.FC<Props> = props => {
   const loadChartData = (resultType: string) => {
     setIsLoading(true);
     getChartDataRequest({
-      formData: props.latestQueryFormData,
+      formData: latestQueryFormData,
       resultFormat: 'json',
       resultType,
     })
@@ -73,7 +75,7 @@ const ViewQueryModal: React.FC<Props> = props => {
   };
   useEffect(() => {
     loadChartData('query');
-  }, [JSON.stringify(props.latestQueryFormData)]);
+  }, [JSON.stringify(latestQueryFormData)]);
 
   if (isLoading) {
     return <Loading />;
@@ -86,7 +88,11 @@ const ViewQueryModal: React.FC<Props> = props => {
     <ViewQueryModalContainer>
       {result.map(item =>
         item.query ? (
-          <ViewQuery sql={item.query} language={item.language || undefined} />
+          <ViewQuery
+            datasource={latestQueryFormData.datasource}
+            sql={item.query}
+            language={item.language || undefined}
+          />
         ) : null,
       )}
     </ViewQueryModalContainer>

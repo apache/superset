@@ -18,18 +18,19 @@
  */
 import { snakeCase, isEqual, cloneDeep } from 'lodash';
 import PropTypes from 'prop-types';
-import React from 'react';
+import { createRef, Component } from 'react';
 import {
   SuperChart,
   logging,
   Behavior,
   t,
+  getChartMetadataRegistry,
+  VizType,
   isFeatureEnabled,
   FeatureFlag,
-  getChartMetadataRegistry,
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
-import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
@@ -41,8 +42,8 @@ const propTypes = {
   initialValues: PropTypes.object,
   formData: PropTypes.object.isRequired,
   latestQueryFormData: PropTypes.object,
-  labelColors: PropTypes.object,
-  sharedLabelColors: PropTypes.object,
+  labelsColor: PropTypes.object,
+  labelsColorMap: PropTypes.object,
   height: PropTypes.number,
   width: PropTypes.number,
   setControlValue: PropTypes.func,
@@ -81,20 +82,23 @@ const defaultProps = {
   triggerRender: false,
 };
 
-class ChartRenderer extends React.Component {
+class ChartRenderer extends Component {
   constructor(props) {
     super(props);
+    const suppressContextMenu = getChartMetadataRegistry().get(
+      props.formData.viz_type ?? props.vizType,
+    )?.suppressContextMenu;
     this.state = {
       showContextMenu:
         props.source === ChartSource.Dashboard &&
-        (isFeatureEnabled(FeatureFlag.DrillToDetail) ||
-          isFeatureEnabled(FeatureFlag.DashboardCrossFilters)),
+        !suppressContextMenu &&
+        isFeatureEnabled(FeatureFlag.DrillToDetail),
       inContextMenu: false,
       legendState: undefined,
     };
     this.hasQueryResponseChange = false;
 
-    this.contextMenuRef = React.createRef();
+    this.contextMenuRef = createRef();
 
     this.handleAddFilter = this.handleAddFilter.bind(this);
     this.handleRenderSuccess = this.handleRenderSuccess.bind(this);
@@ -153,8 +157,8 @@ class ChartRenderer extends React.Component {
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||
-        nextProps.labelColors !== this.props.labelColors ||
-        nextProps.sharedLabelColors !== this.props.sharedLabelColors ||
+        nextProps.labelsColor !== this.props.labelsColor ||
+        nextProps.labelsColorMap !== this.props.labelsColorMap ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.formData.stack !== this.props.formData.stack ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp ||
@@ -276,7 +280,7 @@ class ChartRenderer extends React.Component {
     // to each one of them.
     const snakeCaseVizType = snakeCase(vizType);
     const chartClassName =
-      vizType === 'table'
+      vizType === VizType.Table
         ? `superset-chart-${snakeCaseVizType}`
         : snakeCaseVizType;
 
@@ -303,7 +307,8 @@ class ChartRenderer extends React.Component {
     const noResultImage = 'chart.svg';
     if (width > BIG_NO_RESULT_MIN_WIDTH && height > BIG_NO_RESULT_MIN_HEIGHT) {
       noResultsComponent = (
-        <EmptyStateBig
+        <EmptyState
+          size="large"
           title={noResultTitle}
           description={noResultDescription}
           image={noResultImage}
@@ -311,7 +316,7 @@ class ChartRenderer extends React.Component {
       );
     } else {
       noResultsComponent = (
-        <EmptyStateSmall title={noResultTitle} image={noResultImage} />
+        <EmptyState size="small" title={noResultTitle} image={noResultImage} />
       );
     }
 
@@ -322,6 +327,10 @@ class ChartRenderer extends React.Component {
       ?.behaviors.find(behavior => behavior === Behavior.DrillToDetail)
       ? { inContextMenu: this.state.inContextMenu }
       : {};
+    // By pass no result component when server pagination is enabled & the table has a backend search query
+    const bypassNoResult = !(
+      formData?.server_pagination && (ownState?.searchText?.length || 0) > 0
+    );
 
     return (
       <>
@@ -362,6 +371,7 @@ class ChartRenderer extends React.Component {
             postTransformProps={postTransformProps}
             emitCrossFilters={emitCrossFilters}
             legendState={this.state.legendState}
+            enableNoResults={bypassNoResult}
             {...drillToDetailProps}
           />
         </div>

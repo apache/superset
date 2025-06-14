@@ -1,14 +1,13 @@
 ---
 title:  Kubernetes
 hide_title: true
-sidebar_position: 1
+sidebar_position: 3
 version: 1
 ---
 
 import useBaseUrl from "@docusaurus/useBaseUrl";
 
 # Installing on Kubernetes
-
 
 <img src={useBaseUrl("/img/k8s.png" )} width="150" />
 <br /><br />
@@ -26,7 +25,6 @@ For simpler, single host environments, we recommend using
 [minikube](https://minikube.sigs.k8s.io/docs/start/) which is easy to setup on many platforms
 and works fantastically well with the Helm chart referenced here.
 :::
-
 
 ## Running
 
@@ -152,18 +150,20 @@ Superset requires a Python DB-API database driver and a SQLAlchemy
 dialect to be installed for each datastore you want to connect to.
 
 See [Install Database Drivers](/docs/configuration/databases) for more information.
+It is recommended that you refer to versions listed in
+[pyproject.toml](https://github.com/apache/superset/blob/master/pyproject.toml)
+instead of hard-coding them in your bootstrap script, as seen below.
 
 :::
 
-The following example installs the Big Query and Elasticsearch database drivers so that you can
-connect to those datasources in your Superset installation:
+The following example installs the drivers for BigQuery and Elasticsearch, allowing you to connect to these data sources within your Superset setup:
 
 ```yaml
 bootstrapScript: |
   #!/bin/bash
-  pip install psycopg2==2.9.6 \
-    sqlalchemy-bigquery==1.6.1 \
-    elasticsearch-dbapi==0.2.5 &&\
+  uv pip install .[postgres] \
+    .[bigquery] \
+    .[elasticsearch] &&\
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 ```
 
@@ -434,9 +434,12 @@ configOverrides:
         "--disable-extensions",
     ]
 ```
+
 ### Load the Examples data and dashboards
+
 If you are trying Superset out and want some data and dashboards to explore, you can load some examples by creating a `my_values.yaml` and deploying it as described above in the **Configure your setting overrides** step of the **Running** section.
 To load the examples, add the following to the `my_values.yaml` file:
+
 ```yaml
 init:
   loadExamples: true

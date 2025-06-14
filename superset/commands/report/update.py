@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -33,10 +33,11 @@ from superset.commands.report.exceptions import (
     ReportScheduleUpdateFailedError,
 )
 from superset.daos.database import DatabaseDAO
-from superset.daos.exceptions import DAOUpdateFailedError
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
+from superset.utils import json
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -47,25 +48,19 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         self._properties = data.copy()
         self._model: Optional[ReportSchedule] = None
 
+    @transaction(on_error=partial(on_error, reraise=ReportScheduleUpdateFailedError))
     def run(self) -> Model:
         self.validate()
-        assert self._model
+        return ReportScheduleDAO.update(self._model, self._properties)
 
-        try:
-            report_schedule = ReportScheduleDAO.update(self._model, self._properties)
-        except DAOUpdateFailedError as ex:
-            logger.exception(ex.exception)
-            raise ReportScheduleUpdateFailedError() from ex
-        return report_schedule
-
-    def validate(self) -> None:
+    def validate(self) -> None:  # noqa: C901
         """
         Validates the properties of a report schedule configuration, including uniqueness
         of name and type, relations based on the report type, frequency, etc. Populates
         a list of `ValidationErrors` to be returned in the API response if any.
 
         Fields were loaded according to the `ReportSchedulePutSchema` schema.
-        """
+        """  # noqa: E501
         # Load existing report schedule config
         self._model = ReportScheduleDAO.find_by_id(self._model_id)
         if not self._model:

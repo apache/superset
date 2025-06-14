@@ -16,21 +16,17 @@
 #
 
 # -----------------------------------------------------------------------
-# We don't support docker-compose for production environments.
+# We don't support docker compose for production environments.
 # If you choose to use this type of deployment make sure to
 # create you own docker environment file (docker/.env) with your own
 # unique random secure passwords and SECRET_KEY.
 # -----------------------------------------------------------------------
-x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:${TAG:-latest}
-x-superset-depends-on: &superset-depends-on
-  - db
-  - redis
+x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:${TAG:-latest-dev}
 x-superset-volumes:
   &superset-volumes # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
   - superset_home:/app/superset_home
 
-version: "3.7"
 services:
   redis:
     image: redis:7
@@ -45,7 +41,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:15
+    image: postgres:16
     container_name: superset_db
     restart: unless-stopped
     volumes:
@@ -65,7 +61,9 @@ services:
     restart: unless-stopped
     ports:
       - 8088:8088
-    depends_on: *superset-depends-on
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
     volumes: *superset-volumes
 
   superset-init:
@@ -77,7 +75,11 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    depends_on: *superset-depends-on
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
     user: "root"
     volumes: *superset-volumes
     healthcheck:
@@ -93,7 +95,9 @@ services:
       - path: docker/.env-local # optional override
         required: false
     restart: unless-stopped
-    depends_on: *superset-depends-on
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
     user: "root"
     volumes: *superset-volumes
     healthcheck:
@@ -113,7 +117,9 @@ services:
       - path: docker/.env-local # optional override
         required: false
     restart: unless-stopped
-    depends_on: *superset-depends-on
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
     user: "root"
     volumes: *superset-volumes
     healthcheck:

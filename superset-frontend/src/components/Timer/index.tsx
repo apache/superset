@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useState } from 'react';
-import { styled } from '@superset-ui/core';
+import { useEffect, useRef, useState } from 'react';
+import { styled, useTheme } from '@superset-ui/core';
 import Label, { Type } from 'src/components/Label';
+import { Icons } from 'src/components/Icons';
 
 import { now, fDuration } from 'src/utils/dates';
 
@@ -40,9 +41,25 @@ export default function Timer({
   startTime,
   status = 'success',
 }: TimerProps) {
+  const theme = useTheme();
   const [clockStr, setClockStr] = useState('00:00:00.00');
   const timer = useRef<ReturnType<typeof setInterval>>();
 
+  const getIconColor = (status: Type) => {
+    const { colors } = theme;
+
+    const colorMap: Record<Type, string> = {
+      success: colors.success.dark2,
+      warning: colors.warning.dark2,
+      danger: colors.error.dark2,
+      info: colors.info.dark2,
+      default: colors.grayscale.dark1,
+      primary: colors.primary.dark2,
+      secondary: colors.secondary.dark2,
+    };
+
+    return colorMap[status] || colors.grayscale.dark1;
+  };
   useEffect(() => {
     const stopTimer = () => {
       if (timer.current) {
@@ -68,7 +85,16 @@ export default function Timer({
   }, [endTime, isRunning, startTime]);
 
   return (
-    <TimerLabel type={status} role="timer">
+    <TimerLabel
+      icon={
+        <Icons.ClockCircleOutlined
+          iconColor={getIconColor(status)}
+          iconSize="m"
+        />
+      }
+      type={status}
+      role="timer"
+    >
       {clockStr}
     </TimerLabel>
   );

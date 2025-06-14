@@ -16,28 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
+import { Menu } from 'src/components/Menu';
 import DownloadMenuItems from '.';
 
 const createProps = () => ({
-  addDangerToast: jest.fn(),
   pdfMenuItemTitle: 'Export to PDF',
   imageMenuItemTitle: 'Download as Image',
   dashboardTitle: 'Test Dashboard',
   logEvent: jest.fn(),
+  dashboardId: 123,
+  title: 'Download',
+  submenuKey: 'download',
 });
 
 const renderComponent = () => {
-  render(<DownloadMenuItems {...createProps()} />);
+  render(
+    <Menu forceSubMenuRender>
+      <DownloadMenuItems {...createProps()} />
+    </Menu>,
+    {
+      useRedux: true,
+    },
+  );
 };
 
 test('Should render menu items', () => {
   renderComponent();
-  expect(
-    screen.getByRole('menuitem', { name: 'Export to PDF' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Download as Image' }),
-  ).toBeInTheDocument();
+  expect(screen.getByText('Export to PDF')).toBeInTheDocument();
+  expect(screen.getByText('Download as Image')).toBeInTheDocument();
 });

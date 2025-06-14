@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';
 import { Tooltip } from './Tooltip';
@@ -39,7 +39,7 @@ export type ControlHeaderProps = {
   tooltipOnClick?: () => void;
 };
 
-export default function ControlHeader({
+export function ControlHeader({
   name,
   description,
   label,
@@ -94,9 +94,8 @@ export default function ControlHeader({
         <label className="control-label" htmlFor={name}>
           {leftNode && <span>{leftNode}</span>}
           <span
-            role="button"
-            tabIndex={0}
-            onClick={onClick}
+            role={onClick ? 'button' : undefined}
+            {...(onClick ? { onClick, tabIndex: 0 } : {})}
             className={labelClass}
             style={{ cursor: onClick ? 'pointer' : '' }}
           >
@@ -105,6 +104,8 @@ export default function ControlHeader({
           {warning && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={warning}>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-exclamation-circle text-warning" />
               </Tooltip>{' '}
             </span>
@@ -112,6 +113,8 @@ export default function ControlHeader({
           {danger && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={danger}>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-exclamation-circle text-danger" />
               </Tooltip>{' '}
             </span>
@@ -123,6 +126,8 @@ export default function ControlHeader({
                 placement="top"
                 title={validationErrors.join(' ')}
               >
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-exclamation-circle text-danger" />
               </Tooltip>{' '}
             </span>

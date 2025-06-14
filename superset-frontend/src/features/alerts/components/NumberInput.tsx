@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, ChangeEvent } from 'react';
+import { useState, ChangeEvent } from 'react';
 
 interface NumberInputProps {
   timeUnit: string;
@@ -34,6 +34,7 @@ export default function NumberInput({
   value,
   placeholder,
   onChange,
+  ...rest
 }: NumberInputProps) {
   const [isFocused, setIsFocused] = useState<boolean>(false);
 
@@ -47,6 +48,7 @@ export default function NumberInput({
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
       onChange={onChange}
+      {...rest}
     />
   );
 }

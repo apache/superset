@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { CrossFilterIndicator, IndicatorStatus } from '../../selectors';
 import CrossFilterTag from './CrossFilterTag';

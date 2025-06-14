@@ -20,8 +20,8 @@ from typing import Any, Optional
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import LimitMethod
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+from superset.sql.parse import LimitMethod
 
 
 class HanaEngineSpec(PostgresBaseEngineSpec):
@@ -53,6 +53,7 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
         if isinstance(sqla_type, types.Date):
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
         if isinstance(sqla_type, types.TIMESTAMP):
-            return f"""TO_TIMESTAMP('{dttm
-                .isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
+            return f"""TO_TIMESTAMP('{
+                dttm.isoformat(timespec="microseconds")
+            }', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         return None

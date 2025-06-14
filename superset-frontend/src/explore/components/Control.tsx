@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useCallback, useState, useEffect } from 'react';
+import { ReactNode, useCallback, useState, useEffect } from 'react';
 import { isEqual } from 'lodash';
 import {
   ControlType,
@@ -102,7 +102,10 @@ export default function Control(props: ControlProps) {
 
   if (!type || isVisible === false) return null;
 
-  const ControlComponent = typeof type === 'string' ? controlMap[type] : type;
+  const ControlComponent =
+    typeof type === 'string'
+      ? controlMap[type as keyof typeof controlMap]
+      : type;
   if (!ControlComponent) {
     // eslint-disable-next-line no-console
     console.warn(`Unknown controlType: ${type}`);

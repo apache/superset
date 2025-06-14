@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { useState, DragEvent } from 'react';
+
+import type { Meta, StoryFn } from '@storybook/react';
 import { action } from '@storybook/addon-actions';
 import {
   ColumnsType,
@@ -43,9 +44,9 @@ export default {
   title: 'Design System/Components/Table/Examples',
   component: Table,
   argTypes: { onClick: { action: 'clicked' } },
-} as ComponentMeta<typeof Table>;
+} as Meta<typeof Table>;
 
-export interface BasicData {
+interface BasicData {
   name: string;
   category: string;
   price: number;
@@ -53,7 +54,7 @@ export interface BasicData {
   key: number;
 }
 
-export interface RendererData {
+interface RendererData {
   key: number;
   buttonCell: string;
   textCell: string;
@@ -61,7 +62,7 @@ export interface RendererData {
   dollarCell: number;
 }
 
-export interface ExampleData {
+interface ExampleData {
   title: string;
   name: string;
   age: number;
@@ -70,8 +71,8 @@ export interface ExampleData {
   key: number;
 }
 
-function generateValues(amount: number, row = 0): object {
-  const cells = {};
+function generateValues(amount: number, row = 0): Record<string, number> {
+  const cells: Record<string, number> = {};
   for (let i = 0; i < amount; i += 1) {
     cells[`col-${i}`] = i * row * 0.75;
   }
@@ -93,7 +94,12 @@ function generateColumns(amount: number): ColumnsType<ExampleData>[] {
           locale={LocaleCode.en_US}
         />
       ),
-      sorter: (a: BasicData, b: BasicData) => numericalSort(`col-${i}`, a, b),
+      sorter: (a: BasicData, b: BasicData) =>
+        numericalSort(
+          `col-${i}`,
+          a as Record<PropertyKey, any>,
+          b as Record<PropertyKey, any>,
+        ),
     });
   }
   return newCols as ColumnsType<ExampleData>[];
@@ -120,14 +126,14 @@ const basicData: BasicData[] = [
   {
     key: 3,
     name: '128 GB SSD',
-    category: 'Hardrive',
+    category: 'Harddrive',
     price: 49.99,
     description: 'Reliable and fast data storage',
   },
   {
     key: 4,
     name: '128 GB SSD',
-    category: 'Hardrive',
+    category: 'Harddrive',
     price: 49.99,
     description: 'Reliable and fast data storage',
   },
@@ -148,14 +154,14 @@ const basicData: BasicData[] = [
   {
     key: 7,
     name: '256 GB SSD',
-    category: 'Hardrive',
+    category: 'Harddrive',
     price: 175,
     description: 'Reliable and fast data storage',
   },
   {
     key: 8,
     name: '1 TB SSD',
-    category: 'Hardrive',
+    category: 'Harddrive',
     price: 349.99,
     description: 'Reliable and fast data storage',
   },
@@ -167,19 +173,34 @@ const basicColumns: ColumnsType<BasicData> = [
     dataIndex: 'name',
     key: 'name',
     width: 100,
-    sorter: (a: BasicData, b: BasicData) => alphabeticalSort('name', a, b),
+    sorter: (a: BasicData, b: BasicData) =>
+      alphabeticalSort(
+        'name',
+        a as Record<PropertyKey, any>,
+        b as Record<PropertyKey, any>,
+      ),
   },
   {
     title: 'Category',
     dataIndex: 'category',
     key: 'category',
-    sorter: (a: BasicData, b: BasicData) => alphabeticalSort('category', a, b),
+    sorter: (a: BasicData, b: BasicData) =>
+      alphabeticalSort(
+        'category',
+        a as Record<PropertyKey, any>,
+        b as Record<PropertyKey, any>,
+      ),
   },
   {
     title: 'Price',
     dataIndex: 'price',
     key: 'price',
-    sorter: (a: BasicData, b: BasicData) => numericalSort('price', a, b),
+    sorter: (a: BasicData, b: BasicData) =>
+      numericalSort(
+        'price',
+        a as Record<PropertyKey, any>,
+        b as Record<PropertyKey, any>,
+      ),
     width: 100,
   },
   {
@@ -200,7 +221,12 @@ const bigColumns: ColumnsType<ExampleData> = [
     title: 'Age',
     dataIndex: 'age',
     key: 'age',
-    sorter: (a: ExampleData, b: ExampleData) => numericalSort('age', a, b),
+    sorter: (a: ExampleData, b: ExampleData) =>
+      numericalSort(
+        'age',
+        a as Record<PropertyKey, any>,
+        b as Record<PropertyKey, any>,
+      ),
     width: 75,
   },
   {
@@ -305,7 +331,7 @@ for (let i = 0; i < recordCount; i += 1) {
   });
 }
 
-export const Basic: ComponentStory<typeof Table> = args => <Table {...args} />;
+export const Basic: StoryFn<typeof Table> = args => <Table {...args} />;
 
 function handlers(record: object, rowIndex: number) {
   return {
@@ -331,9 +357,7 @@ Basic.args = {
   usePagination: false,
 };
 
-export const Pagination: ComponentStory<typeof Table> = args => (
-  <Table {...args} />
-);
+export const Pagination: StoryFn<typeof Table> = args => <Table {...args} />;
 
 Pagination.args = {
   data: basicData,
@@ -382,7 +406,12 @@ const paginationColumns: ColumnsType<BasicData> = [
         locale={LocaleCode.en_US}
       />
     ),
-    sorter: (a: BasicData, b: BasicData) => numericalSort('price', a, b),
+    sorter: (a: BasicData, b: BasicData) =>
+      numericalSort(
+        'price',
+        a as Record<PropertyKey, any>,
+        b as Record<PropertyKey, any>,
+      ),
   },
   {
     title: 'Description',
@@ -400,7 +429,7 @@ const paginationColumns: ColumnsType<BasicData> = [
   },
 ];
 
-export const ServerPagination: ComponentStory<typeof Table> = args => {
+export const ServerPagination: StoryFn<typeof Table> = args => {
   const [data, setData] = useState(generateData(0, 5));
   const [loading, setLoading] = useState(false);
 
@@ -455,7 +484,7 @@ ServerPagination.args = {
   defaultPageSize: 5,
 };
 
-export const VirtualizedPerformance: ComponentStory<typeof Table> = args => (
+export const VirtualizedPerformance: StoryFn<typeof Table> = args => (
   <Table {...args} />
 );
 
@@ -470,9 +499,7 @@ VirtualizedPerformance.args = {
   usePagination: false,
 };
 
-export const Loading: ComponentStory<typeof Table> = args => (
-  <Table {...args} />
-);
+export const Loading: StoryFn<typeof Table> = args => <Table {...args} />;
 
 Loading.args = {
   data: basicData,
@@ -481,7 +508,7 @@ Loading.args = {
   loading: true,
 };
 
-export const ResizableColumns: ComponentStory<typeof Table> = args => (
+export const ResizableColumns: StoryFn<typeof Table> = args => (
   <Table {...args} />
 );
 
@@ -492,9 +519,9 @@ ResizableColumns.args = {
   resizable: true,
 };
 
-export const ReorderableColumns: ComponentStory<typeof Table> = args => {
+export const ReorderableColumns: StoryFn<typeof Table> = args => {
   const [droppedItem, setDroppedItem] = useState<string | undefined>();
-  const dragOver = (ev: React.DragEvent<HTMLDivElement>) => {
+  const dragOver = (ev: DragEvent<HTMLDivElement>) => {
     ev.preventDefault();
     const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
     if (element?.style) {
@@ -502,7 +529,7 @@ export const ReorderableColumns: ComponentStory<typeof Table> = args => {
     }
   };
 
-  const dragOut = (ev: React.DragEvent<HTMLDivElement>) => {
+  const dragOut = (ev: DragEvent<HTMLDivElement>) => {
     ev.preventDefault();
     const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
     if (element?.style) {
@@ -510,7 +537,7 @@ export const ReorderableColumns: ComponentStory<typeof Table> = args => {
     }
   };
 
-  const dragDrop = (ev: React.DragEvent<HTMLDivElement>) => {
+  const dragDrop = (ev: DragEvent<HTMLDivElement>) => {
     const data = ev.dataTransfer?.getData?.(SUPERSET_TABLE_COLUMN);
     const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
     if (element?.style) {
@@ -521,9 +548,9 @@ export const ReorderableColumns: ComponentStory<typeof Table> = args => {
   return (
     <div>
       <div
-        onDragOver={(ev: React.DragEvent<HTMLDivElement>) => dragOver(ev)}
-        onDragLeave={(ev: React.DragEvent<HTMLDivElement>) => dragOut(ev)}
-        onDrop={(ev: React.DragEvent<HTMLDivElement>) => dragDrop(ev)}
+        onDragOver={(ev: DragEvent<HTMLDivElement>) => dragOver(ev)}
+        onDragLeave={(ev: DragEvent<HTMLDivElement>) => dragOut(ev)}
+        onDrop={(ev: DragEvent<HTMLDivElement>) => dragDrop(ev)}
         style={{
           width: '100%',
           height: '40px',
@@ -571,9 +598,7 @@ const rendererData: RendererData[] = [
   },
 ];
 
-export const CellRenderers: ComponentStory<typeof Table> = args => (
-  <Table {...args} />
-);
+export const CellRenderers: StoryFn<typeof Table> = args => <Table {...args} />;
 
 CellRenderers.args = {
   data: rendererData,
@@ -593,24 +618,24 @@ const shoppingData: ShoppingData[] = [
   {
     key: 1,
     item: 'Floppy Disk 10 pack',
-    orderDate: Date.now(),
+    orderDate: new Date('2015-07-02T16:16:00Z').getTime(),
     price: 9.99,
   },
   {
     key: 2,
     item: 'DVD 100 pack',
-    orderDate: Date.now(),
+    orderDate: new Date('2015-07-02T16:16:00Z').getTime(),
     price: 7.99,
   },
   {
     key: 3,
     item: '128 GB SSD',
-    orderDate: Date.now(),
+    orderDate: new Date('2015-07-02T16:16:00Z').getTime(),
     price: 3.99,
   },
 ];
 
-export const HeaderRenderers: ComponentStory<typeof Table> = () => {
+export const HeaderRenderers: StoryFn<typeof Table> = () => {
   const [orderDateFormatting, setOrderDateFormatting] = useState('formatted');
   const [priceLocale, setPriceLocale] = useState(LocaleCode.en_US);
   const shoppingColumns: ColumnsType<ShoppingData> = [

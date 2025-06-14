@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import React from 'react';
+import { ReactNode } from 'react';
 import classNames from 'classnames';
 import { PaginationButtonProps } from './types';
 
 interface PaginationItemButton extends PaginationButtonProps {
   active?: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function Item({ active, children, onClick }: PaginationItemButton) {
@@ -31,7 +31,8 @@ export function Item({ active, children, onClick }: PaginationItemButton) {
     <li className={classNames({ active })}>
       <span
         role="button"
-        tabIndex={active ? -1 : 0}
+        tabIndex={0}
+        aria-current={active ? 'page' : undefined}
         onClick={e => {
           e.preventDefault();
           if (!active) onClick(e);

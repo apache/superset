@@ -10,7 +10,7 @@ version: 1
 
 The latest documentation and tutorial are available at https://superset.apache.org/.
 
-The documentation site is built using [Docusaurus 2](https://docusaurus.io/), a modern
+The documentation site is built using [Docusaurus 3](https://docusaurus.io/), a modern
 static website generator, the source for which resides in `./docs`.
 
 ### Local Development
@@ -88,7 +88,7 @@ yo @superset-ui/superset
 
 After that the generator will ask a few questions (the defaults should be fine):
 
-```
+```bash
 $ yo @superset-ui/superset
      _-----_     ╭──────────────────────────╮
     |       |    │      Welcome to the      │
@@ -125,7 +125,7 @@ $ yo @superset-ui/superset
 
 To build the viz plugin, run the following commands:
 
-```
+```bash
 npm i --force
 npm run build
 ```
@@ -133,7 +133,7 @@ npm run build
 Alternatively, to run the viz plugin in development mode (=rebuilding whenever changes
 are made), start the dev server with the following command:
 
-```
+```bash
 npm run dev
 ```
 
@@ -170,31 +170,10 @@ npm run dev-server
 
 ### Python Testing
 
-All python tests are carried out in [tox](https://tox.readthedocs.io/en/latest/index.html)
-a standardized testing framework.
-All python tests can be run with any of the tox [environments](https://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
+`pytest`, backend by docker-compose is how we recommend running tests locally.
 
-```bash
-tox -e <environment>
-```
-
-For example,
-
-```bash
-tox -e py38
-```
-
-Alternatively, you can run all tests in a single file via,
-
-```bash
-tox -e <environment> -- tests/test_file.py
-```
-
-or for a specific test via,
-
-```bash
-tox -e <environment> -- tests/test_file.py::TestClassName::test_method_name
-```
+For a more complex test matrix (against different database backends, python versions, ...) you
+can rely on our GitHub Actions by simply opening a draft pull request.
 
 Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
@@ -244,42 +223,39 @@ To run a single test file:
 npm run test -- path/to/file.js
 ```
 
-### e2e Integration Testing
+### E2E Integration Testing
 
-We use [Cypress](https://www.cypress.io/) for end-to-end integration
-tests. One easy option to get started quickly is to leverage `tox` to
-run the whole suite in an isolated environment.
+For E2E testing, we recommend that you use a `docker compose` backend
 
 ```bash
-tox -e cypress
+CYPRESS_CONFIG=true docker compose up --build
+```
+`docker compose` will get to work and expose a Cypress-ready Superset app.
+This app uses a different database schema (`superset_cypress`) to keep it isolated from
+your other dev environmen(s)t, a specific set of examples, and a set of configurations that
+aligns with the expectations within the end-to-end tests.  Also note that it's served on a
+different port than the default port for the backend (`8088`).
+
+Now in another terminal, let's get ready to execute some Cypress commands. First, tell cypress
+to connect to the Cypress-ready Superset backend.
+
+```
+CYPRESS_BASE_URL=http://localhost:8081
 ```
 
-Alternatively, you can go lower level and set things up in your
-development environment by following these steps:
-
-First set up a python/flask backend:
-
 ```bash
-export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
-export SUPERSET_TESTENV=true
-export CYPRESS_BASE_URL="http://localhost:8081"
-superset db upgrade
-superset load_test_users
-superset init
-superset load-examples --load-test-data
-superset run --port 8081
-```
-
-In another terminal, prepare the frontend and run Cypress tests:
-
-```bash
-cd superset-frontend
-npm run build-instrumented
-
-cd cypress-base
+# superset-frontend/cypress-base is the base folder for everything Cypress-related
+# It's essentially its own npm app, with its own dependencies, configurations and utilities
+cd superset-frontend/cypress-base
 npm install
 
-# run tests via headless Chrome browser (requires Chrome 64+)
+# use interactive mode to run tests, while keeping memory usage contained
+# this will fire up an interactive Cypress UI
+# as you alter the code, the tests will re-run automatically, and you can visualize each
+# and every step for debugging purposes
+npx cypress open --config numTestsKeptInMemory=5
+
+# to run the test suite on the command line using chrome (same as CI)
 npm run cypress-run-chrome
 
 # run tests from a specific file
@@ -291,9 +267,6 @@ npm run cypress-run-chrome -- --spec cypress/e2e/dashboard/index.test.js --confi
 # to open the cypress ui
 npm run cypress-debug
 
-# to point cypress to a url other than the default (http://localhost:8088) set the environment variable before running the script
-# e.g., CYPRESS_BASE_URL="http://localhost:9000"
-CYPRESS_BASE_URL=<your url> npm run cypress open
 ```
 
 See [`superset-frontend/cypress_build.sh`](https://github.com/apache/superset/blob/master/superset-frontend/cypress_build.sh).
@@ -399,7 +372,7 @@ tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      
 
 You are now ready to attach a debugger to the process. Using VSCode you can configure a launch configuration file .vscode/launch.json like so.
 
-```
+```json
 {
     "version": "0.2.0",
     "configurations": [
@@ -426,23 +399,23 @@ VSCode will not stop on breakpoints right away. We've attached to PID 6 however 
 
 ### Debugging Server App in Kubernetes Environment
 
-To debug Flask running in POD inside kubernetes cluster. You'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
+To debug Flask running in POD inside a kubernetes cluster, you'll need to make sure the pod runs as root and is granted the `SYS_TRACE` capability. These settings should not be used in production environments.
 
-```
+```yaml
   securityContext:
     capabilities:
       add: ["SYS_PTRACE"]
 ```
 
-See (set capabilities for a container)[https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container] for more details.
+See [set capabilities for a container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) for more details.
 
-Once the pod is running as root and has the SYS_PTRACE capability it will be able to debug the Flask app.
+Once the pod is running as root and has the `SYS_PTRACE` capability it will be able to debug the Flask app.
 
-You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
+You can follow the same instructions as in `docker compose`. Enter the pod and install the required library and packages: gdb, netstat and debugpy.
 
 Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 
-```
+```bash
 kubectl port-forward  pod/superset-<some random id> 5678:5678
 ```
 
@@ -459,12 +432,13 @@ npm run storybook
 
 When contributing new React components to Superset, please try to add a Story alongside the component's `jsx/tsx` file.
 
-## Contribute Translations
+## Contributing Translations
 
 We use [Flask-Babel](https://python-babel.github.io/flask-babel/) to translate Superset.
 In Python files, we use the following
 [translation functions](https://python-babel.github.io/flask-babel/#using-translations)
 from `Flask-Babel`:
+
 - `gettext` and `lazy_gettext` (usually aliased to `_`): for translating singular
   strings.
 - `ngettext`: for translating strings that might become plural.
@@ -519,6 +493,7 @@ easier to translate the application to your target language:
 [Flask AppBuilder i18n documentation](https://flask-appbuilder.readthedocs.io/en/latest/i18n.html)
 
 To create a dictionary for a new language, first make sure the necessary dependencies are installed:
+
 ```bash
 pip install -r superset/translations/requirements.txt
 ```
@@ -538,17 +513,16 @@ pybabel init -i superset/translations/messages.pot -d superset/translations -l f
 
 ### Extracting new strings for translation
 
-This step needs to be done every time application strings change. This happens fairly
-frequently, so if you want to ensure that your translation has good coverage, this
-step needs to be run fairly frequently and the updated strings merged to the upstream
-codebase via PRs. To update the template file `superset/translations/messages.pot`
-with current application strings, run the following command:
+Periodically, when working on translations, we need to extract the strings from both the
+backend and the frontend to compile a list of all strings to be translated. It doesn't
+happen automatically and is a required step to gather the strings and get them into the
+`.po` files where they can be translated, so that they can then be compiled.
+
+This script does just that:
 
 ```bash
-pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct .
+./scripts/translations/babel_update.sh
 ```
-
-Do not forget to update this file with the appropriate license information.
 
 ### Updating language files
 
@@ -575,29 +549,21 @@ case of the Finnish translation, this would be `superset/translations/fi/LC_MESS
 ### Applying translations
 
 To make the translations available on the frontend, we need to convert the PO file into
-a JSON file. To do this, we need to globally install the npm package `po2json`.
+a collection of JSON files. To convert all PO files to formatted JSON files you can use
+the `build-translation` script
 
 ```bash
-npm install -g po2json
+# Install dependencies if you haven't already
+cd superset-frontend/ && npm ci
+# Compile translations for the frontend
+npm run build-translation
 ```
-
-To convert all PO files to formatted JSON files you can use the `po2json.sh` script.
-
-```bash
-./scripts/po2json.sh
-```
-
-If you get errors running `po2json`, you might be running the Ubuntu package with the same
-name, rather than the Node.js package (they have a different format for the arguments). If
-there is a conflict, you may need to update your `PATH` environment variable or fully qualify
-the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
-If you get a lot of `[null,***]` in `messages.json`, just delete all the `null,`.
-For example, `"year":["年"]` is correct while `"year":[null,"年"]`is incorrect.
 
 Finally, for the translations to take effect we need to compile translation catalogs into
-binary MO files.
+binary MO files for the backend using `pybabel`.
 
 ```bash
+# inside the project root
 pybabel compile -d superset/translations
 ```
 
@@ -605,17 +571,24 @@ pybabel compile -d superset/translations
 
 ### Python
 
-We use [Pylint](https://pylint.org/) for linting which can be invoked via:
+We use [ruff](https://github.com/astral-sh/ruff) for linting which can be invoked via:
 
-```bash
-# for python
-tox -e pylint
+```
+# auto-reformat using ruff
+ruff format
+
+# lint check with ruff
+ruff check
+
+# lint fix with ruff
+ruff check --fix
 ```
 
-In terms of best practices please avoid blanket disabling of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disabling should occur inline as it prevents masking issues and provides context as to why said message is disabled.
+Ruff configuration is located in our
+(pyproject.toml)[https://github.com/apache/superset/blob/master/pyproject.toml] file
 
-Additionally, the Python code is auto-formatted using [Black](https://github.com/python/black) which
-is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/integrations/editors.html)
+All this is configured to run in pre-commit hooks, which we encourage you to setup
+with `pre-commit install`
 
 ### TypeScript
 
@@ -634,4 +607,28 @@ If using the eslint extension with vscode, put the following in your workspace `
 "eslint.workingDirectories": [
   "superset-frontend"
 ]
+```
+
+## GitHub Ephemeral Environments
+
+On any given pull request on GitHub, it's possible to create a temporary environment/deployment
+by simply adding the label `testenv-up` to the PR.  Once you add the `testenv-up` label, a
+GitHub Action will be triggered that will:
+
+- build a docker image
+- deploy it in EC2 (sponsored by the folks at [Preset](https://preset.io))
+- write a comment on the PR with a link to the ephemeral environment
+
+For more advanced use cases, it's possible to set a feature flag on the PR body, which will
+take effect on the ephemeral environment. For example, if you want to set the `TAGGING_SYSTEM`
+feature flag to `true`, you can add the following line to the PR body/description:
+
+```
+FEATURE_TAGGING_SYSTEM=true
+```
+
+Simarly, it's possible to disable feature flags with:
+
+```
+FEATURE_TAGGING_SYSTEM=false
 ```

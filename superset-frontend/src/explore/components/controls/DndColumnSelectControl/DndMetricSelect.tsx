@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { nanoid } from 'nanoid';
 import {
   ensureIsArray,
   GenericDataType,
@@ -60,11 +61,6 @@ const coerceMetrics = (
   }
   const metricsCompatibleWithDataset = ensureIsArray(addedMetrics).filter(
     metric => {
-      if (isSavedMetric(metric)) {
-        return savedMetrics.some(
-          savedMetric => savedMetric.metric_name === metric,
-        );
-      }
       if (isAdhocMetricSimple(metric)) {
         return columns.some(
           column => column.column_name === metric.column.column_name,
@@ -75,6 +71,16 @@ const coerceMetrics = (
   );
 
   return metricsCompatibleWithDataset.map(metric => {
+    if (
+      isSavedMetric(metric) &&
+      !savedMetrics.some(savedMetric => savedMetric.metric_name === metric)
+    ) {
+      return {
+        metric_name: metric,
+        error_text: t('This metric might be incompatible with current dataset'),
+        uuid: nanoid(),
+      };
+    }
     if (!isDictionaryForAdhocMetric(metric)) {
       return metric;
     }

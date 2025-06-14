@@ -19,7 +19,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { isEqual } from 'lodash';
 import {
   Datasource,
@@ -30,7 +30,7 @@ import {
   SupersetClient,
   usePrevious,
 } from '@superset-ui/core';
-import { Layer } from 'deck.gl/typed';
+import { Layer } from '@deck.gl/core';
 
 import {
   DeckGLContainerHandle,
@@ -38,8 +38,19 @@ import {
 } from '../DeckGLContainer';
 import { getExploreLongUrl } from '../utils/explore';
 import layerGenerators from '../layers';
-import { Viewport } from '../utils/fitViewport';
+import fitViewport, { Viewport } from '../utils/fitViewport';
 import { TooltipProps } from '../components/Tooltip';
+
+import { getPoints as getPointsArc } from '../layers/Arc/Arc';
+import { getPoints as getPointsPath } from '../layers/Path/Path';
+import { getPoints as getPointsPolygon } from '../layers/Polygon/Polygon';
+import { getPoints as getPointsGrid } from '../layers/Grid/Grid';
+import { getPoints as getPointsScatter } from '../layers/Scatter/Scatter';
+import { getPoints as getPointsContour } from '../layers/Contour/Contour';
+import { getPoints as getPointsHeatmap } from '../layers/Heatmap/Heatmap';
+import { getPoints as getPointsHex } from '../layers/Hex/Hex';
+import { getPoints as getPointsGeojson } from '../layers/Geojson/Geojson';
+import { getPoints as getPointsScreengrid } from '../layers/Screengrid/Screengrid';
 
 export type DeckMultiProps = {
   formData: QueryFormData;
@@ -56,7 +67,35 @@ export type DeckMultiProps = {
 const DeckMulti = (props: DeckMultiProps) => {
   const containerRef = useRef<DeckGLContainerHandle>();
 
-  const [viewport, setViewport] = useState<Viewport>();
+  const getAdjustedViewport = useCallback(() => {
+    let viewport = { ...props.viewport };
+    const points = [
+      ...getPointsPolygon(props.payload.data.features.deck_polygon || []),
+      ...getPointsPath(props.payload.data.features.deck_path || []),
+      ...getPointsGrid(props.payload.data.features.deck_grid || []),
+      ...getPointsScatter(props.payload.data.features.deck_scatter || []),
+      ...getPointsContour(props.payload.data.features.deck_contour || []),
+      ...getPointsHeatmap(props.payload.data.features.deck_heatmap || []),
+      ...getPointsHex(props.payload.data.features.deck_hex || []),
+      ...getPointsArc(props.payload.data.features.deck_arc || []),
+      ...getPointsGeojson(props.payload.data.features.deck_geojson || []),
+      ...getPointsScreengrid(props.payload.data.features.deck_screengrid || []),
+    ];
+
+    if (props.formData) {
+      viewport = fitViewport(viewport, {
+        width: props.width,
+        height: props.height,
+        points,
+      });
+    }
+    if (viewport.zoom < 0) {
+      viewport.zoom = 0;
+    }
+    return viewport;
+  }, [props]);
+
+  const [viewport, setViewport] = useState<Viewport>(getAdjustedViewport());
   const [subSlicesLayers, setSubSlicesLayers] = useState<Record<number, Layer>>(
     {},
   );
@@ -70,23 +109,31 @@ const DeckMulti = (props: DeckMultiProps) => {
 
   const loadLayers = useCallback(
     (formData: QueryFormData, payload: JsonObject, viewport?: Viewport) => {
-      setViewport(viewport);
+      setViewport(getAdjustedViewport());
       setSubSlicesLayers({});
       payload.data.slices.forEach(
         (subslice: { slice_id: number } & JsonObject) => {
           // Filters applied to multi_deck are passed down to underlying charts
           // note that dashboard contextual information (filter_immune_slices and such) aren't
           // taken into consideration here
-          const filters = [
-            ...(subslice.form_data.filters || []),
-            ...(formData.filters || []),
+          const extra_filters = [
+            ...(subslice.form_data.extra_filters || []),
             ...(formData.extra_filters || []),
+            ...(formData.extra_form_data?.filters || []),
           ];
+
+          const adhoc_filters = [
+            ...(formData.adhoc_filters || []),
+            ...(subslice.formData?.adhoc_filters || []),
+            ...(formData.extra_form_data?.adhoc_filters || []),
+          ];
+
           const subsliceCopy = {
             ...subslice,
             form_data: {
               ...subslice.form_data,
-              filters,
+              extra_filters,
+              adhoc_filters,
             },
           };
 
@@ -97,6 +144,7 @@ const DeckMulti = (props: DeckMultiProps) => {
               endpoint: url,
             })
               .then(({ json }) => {
+                // @ts-ignore TODO(hainenber): define proper type for `form_data.viz_type` and call signature for functions in layerGenerators.
                 const layer = layerGenerators[subsliceCopy.form_data.viz_type](
                   subsliceCopy.form_data,
                   json,
@@ -116,7 +164,13 @@ const DeckMulti = (props: DeckMultiProps) => {
         },
       );
     },
-    [props.datasource, props.onAddFilter, props.onSelect, setTooltip],
+    [
+      props.datasource,
+      props.onAddFilter,
+      props.onSelect,
+      setTooltip,
+      getAdjustedViewport,
+    ],
   );
 
   const prevDeckSlices = usePrevious(props.formData.deck_slices);
@@ -135,7 +189,7 @@ const DeckMulti = (props: DeckMultiProps) => {
     <DeckGLContainerStyledWrapper
       ref={containerRef}
       mapboxApiAccessToken={payload.data.mapboxApiKey}
-      viewport={viewport || props.viewport}
+      viewport={viewport}
       layers={layers}
       mapStyle={formData.mapbox_style}
       setControlValue={setControlValue}

@@ -21,7 +21,7 @@
  */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   HandlerFunction,
   JsonObject,
@@ -30,7 +30,7 @@ import {
   t,
 } from '@superset-ui/core';
 
-import { PolygonLayer } from 'deck.gl/typed';
+import { PolygonLayer } from '@deck.gl/layers';
 
 import Legend from '../../components/Legend';
 import TooltipRow from '../../TooltipRow';
@@ -150,7 +150,7 @@ export function getLayer(
     getLineWidth: fd.line_width,
     extruded: fd.extruded,
     lineWidthUnits: fd.line_width_unit,
-    getElevation: d => getElevation(d, colorScaler),
+    getElevation: (d: any) => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,
     ...commonLayerProps(fd, setTooltip, tooltipContentGenerator, onSelect),
@@ -173,6 +173,10 @@ export type DeckGLPolygonProps = {
   height: number;
 };
 
+export function getPoints(data: JsonObject[]) {
+  return data.flatMap(getPointsFromPolygon);
+}
+
 const DeckGLPolygon = (props: DeckGLPolygonProps) => {
   const containerRef = useRef<DeckGLContainerHandle>();
 
@@ -183,7 +187,7 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
       viewport = fitViewport(viewport, {
         width: props.width,
         height: props.height,
-        points: features.flatMap(getPointsFromPolygon),
+        points: getPoints(features),
       });
     }
     if (viewport.zoom < 0) {

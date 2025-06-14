@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { CSSProperties } from 'react';
 import { styled } from '@superset-ui/core';
 import { CheckboxChecked, CheckboxUnchecked } from 'src/components/Checkbox';
 
 export interface CheckboxProps {
-  checked: boolean;
+  checked?: boolean;
   onChange: (val?: boolean) => void;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   className?: string;
 }
 
@@ -35,7 +35,7 @@ const Styles = styled.span`
 `;
 
 export default function Checkbox({
-  checked,
+  checked = false,
   onChange,
   style,
   className,

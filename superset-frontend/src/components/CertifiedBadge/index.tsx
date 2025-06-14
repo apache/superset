@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t, useTheme } from '@superset-ui/core';
-import Icons, { IconType } from 'src/components/Icons';
+import { Icons, IconType } from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 
 export interface CertifiedBadgeProps {

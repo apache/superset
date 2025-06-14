@@ -18,7 +18,6 @@
  */
 
 /* eslint-disable no-magic-numbers */
-import React from 'react';
 import { SuperChart, useTheme } from '@superset-ui/core';
 import MapBoxChartPlugin from '@superset-ui/legacy-plugin-chart-map-box';
 import { generateData } from './data';

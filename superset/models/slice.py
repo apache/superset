@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any, TYPE_CHECKING
 from urllib import parse
@@ -45,7 +44,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
@@ -105,9 +104,10 @@ class Slice(  # pylint: disable=too-many-public-methods
         "Tag",
         secondary="tagged_object",
         overlaps="objects,tag,tags",
-        primaryjoin="and_(Slice.id == TaggedObject.object_id)",
-        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+        primaryjoin="and_(Slice.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'chart')",
+        secondaryjoin="TaggedObject.tag_id == Tag.id",
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
     )
     table = relationship(
         "SqlaTable",
@@ -247,16 +247,19 @@ class Slice(  # pylint: disable=too-many-public-methods
         }
 
     @property
-    def digest(self) -> str:
+    def digest(self) -> str | None:
         return get_chart_digest(self)
 
     @property
-    def thumbnail_url(self) -> str:
+    def thumbnail_url(self) -> str | None:
         """
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
         """
-        return f"/api/v1/chart/{self.id}/thumbnail/{self.digest}/"
+        if digest := self.digest:
+            return f"/api/v1/chart/{self.id}/thumbnail/{digest}/"
+
+        return None
 
     @property
     def json_data(self) -> str:
@@ -289,7 +292,7 @@ class Slice(  # pylint: disable=too-many-public-methods
                 return self.get_query_context_factory().create(
                     **json.loads(self.query_context)
                 )
-            except json.decoder.JSONDecodeError as ex:
+            except json.JSONDecodeError as ex:
                 logger.error("Malformed json in slice's query context", exc_info=True)
                 logger.exception(ex)
         return None
@@ -369,6 +372,7 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:
             target.perm = ds.perm
+            target.catalog_perm = ds.catalog_perm
             target.schema_perm = ds.schema_perm
 
 
@@ -376,9 +380,7 @@ def event_after_chart_changed(
     _mapper: Mapper, _connection: Connection, target: Slice
 ) -> None:
     cache_chart_thumbnail.delay(
-        current_user=get_current_user(),
-        chart_id=target.id,
-        force=True,
+        current_user=get_current_user(), chart_id=target.id, force=True
     )
 
 

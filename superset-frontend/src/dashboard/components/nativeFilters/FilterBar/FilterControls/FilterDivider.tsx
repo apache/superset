@@ -23,8 +23,7 @@ import {
   useCSSTextTruncation,
   truncationCSS,
 } from '@superset-ui/core';
-import React from 'react';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { FilterDividerProps } from './types';
@@ -76,7 +75,6 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
           <Icons.BookOutlined
             data-test="divider-description-icon"
             iconSize="l"
-            iconColor={theme.colors.grayscale.base}
             css={css`
               margin: 0 ${theme.gridUnit * 1.5}px;
               vertical-align: unset;

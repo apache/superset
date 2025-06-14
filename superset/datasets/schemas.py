@@ -14,24 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from datetime import datetime
 from typing import Any
 
 from dateutil.parser import isoparse
 from flask_babel import lazy_gettext as _
-from marshmallow import fields, pre_load, Schema, ValidationError
-from marshmallow.validate import Length
-from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
+from marshmallow import fields, pre_load, Schema, validates_schema, ValidationError
+from marshmallow.validate import Length, OneOf
 
-from superset.datasets.models import Dataset
 from superset.exceptions import SupersetMarshmallowValidationError
+from superset.utils import json
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 openapi_spec_methods_override = {
-    "get": {"get": {"summary": "Get a dataset detail information"}},
     "get_list": {
         "get": {
             "summary": "Get a list of datasets",
@@ -77,6 +74,11 @@ class DatasetColumnsPutSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
+class DatasetMetricCurrencyPutSchema(Schema):
+    symbol = fields.String(validate=Length(1, 128))
+    symbolPosition = fields.String(validate=Length(1, 128))  # noqa: N815
+
+
 class DatasetMetricsPutSchema(Schema):
     id = fields.Integer()
     expression = fields.String(required=True)
@@ -85,10 +87,40 @@ class DatasetMetricsPutSchema(Schema):
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
-    currency = fields.String(allow_none=True, required=False, validate=Length(1, 128))
+    currency = fields.Nested(DatasetMetricCurrencyPutSchema, allow_none=True)
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
+
+
+class FolderSchema(Schema):
+    uuid = fields.UUID(required=True)
+    type = fields.String(
+        required=False,
+        validate=OneOf(["metric", "column", "folder"]),
+    )
+    name = fields.String(required=False, validate=Length(1, 250))
+    description = fields.String(
+        required=False,
+        allow_none=True,
+        validate=Length(0, 1000),
+    )
+    # folder can contain metrics, columns, and subfolders:
+    children = fields.List(
+        fields.Nested(lambda: FolderSchema()),
+        required=False,
+        allow_none=True,
+    )
+
+    @validates_schema
+    def validate_folder(self, data: dict[str, Any], **kwargs: Any) -> None:
+        if "uuid" in data and len(data) == 1:
+            # only UUID is present, this is a metric or column
+            return
+
+        # folder; must have children
+        if "name" in data and "children" not in data:
+            raise ValidationError("If 'name' is present, 'children' must be present.")
 
 
 class DatasetPostSchema(Schema):
@@ -102,6 +134,7 @@ class DatasetPostSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    template_params = fields.String(allow_none=True)
 
 
 class DatasetPutSchema(Schema):
@@ -124,6 +157,7 @@ class DatasetPutSchema(Schema):
     owners = fields.List(fields.Integer())
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
+    folders = fields.List(fields.Nested(FolderSchema), required=False)
     extra = fields.String(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
@@ -251,6 +285,7 @@ class ImportV1DatasetSchema(Schema):
     offset = fields.Integer()
     cache_timeout = fields.Integer(allow_none=True)
     schema = fields.String(allow_none=True)
+    catalog = fields.String(allow_none=True)
     sql = fields.String(allow_none=True)
     params = fields.Dict(allow_none=True)
     template_params = fields.Dict(allow_none=True)
@@ -267,6 +302,7 @@ class ImportV1DatasetSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    folders = fields.List(fields.Nested(FolderSchema), required=False, allow_none=True)
 
 
 class GetOrCreateDatasetSchema(Schema):
@@ -291,17 +327,6 @@ class GetOrCreateDatasetSchema(Schema):
     always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
-class DatasetSchema(SQLAlchemyAutoSchema):
-    """
-    Schema for the ``Dataset`` model.
-    """
-
-    class Meta:  # pylint: disable=too-few-public-methods
-        model = Dataset
-        load_instance = True
-        include_relationships = True
-
-
 class DatasetCacheWarmUpRequestSchema(Schema):
     db_name = fields.String(
         required=True,
@@ -313,7 +338,7 @@ class DatasetCacheWarmUpRequestSchema(Schema):
     )
     dashboard_id = fields.Integer(
         metadata={
-            "description": "The ID of the dashboard to get filters for when warming cache"
+            "description": "The ID of the dashboard to get filters for when warming cache"  # noqa: E501
         }
     )
     extra_filters = fields.String(

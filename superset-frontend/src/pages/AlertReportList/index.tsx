@@ -17,16 +17,18 @@
  * under the License.
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   t,
+  css,
+  useTheme,
   SupersetClient,
   makeApi,
   styled,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import moment from 'moment';
+import { extendedDayjs } from 'src/utils/dates';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import FacePile from 'src/components/FacePile';
 import { Tooltip } from 'src/components/Tooltip';
@@ -55,6 +57,7 @@ import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import { Icons } from 'src/components/Icons';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -109,7 +112,8 @@ function AlertList({
   user,
   addSuccessToast,
 }: AlertListProps) {
-  const title = isReportEnabled ? t('report') : t('alert');
+  const theme = useTheme();
+  const title = isReportEnabled ? t('Report') : t('Alert');
   const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
   const initialFilters = useMemo(
@@ -137,7 +141,7 @@ function AlertList({
     toggleBulkSelect,
   } = useListViewResource<AlertObject>(
     'report',
-    t('reports'),
+    t('report'),
     addDangerToast,
     true,
     undefined,
@@ -263,7 +267,10 @@ function AlertList({
           },
         }: any) =>
           lastEvalDttm
-            ? moment.utc(lastEvalDttm).local().format(DATETIME_WITH_TIME_ZONE)
+            ? extendedDayjs
+                .utc(lastEvalDttm)
+                .local()
+                .format(DATETIME_WITH_TIME_ZONE)
             : '',
         accessor: 'last_eval_dttm',
         Header: t('Last run'),
@@ -368,7 +375,7 @@ function AlertList({
                   label: 'execution-log-action',
                   tooltip: t('Execution log'),
                   placement: 'bottom',
-                  icon: 'Note',
+                  icon: 'FileTextOutlined',
                   onClick: handleGotoExecutionLog,
                 }
               : null,
@@ -377,7 +384,7 @@ function AlertList({
                   label: allowEdit ? 'edit-action' : 'preview-action',
                   tooltip: allowEdit ? t('Edit') : t('View'),
                   placement: 'bottom',
-                  icon: allowEdit ? 'Edit' : 'Binoculars',
+                  icon: allowEdit ? 'EditOutlined' : 'Binoculars',
                   onClick: handleEdit,
                 }
               : null,
@@ -386,7 +393,7 @@ function AlertList({
                   label: 'delete-action',
                   tooltip: t('Delete'),
                   placement: 'bottom',
-                  icon: 'Trash',
+                  icon: 'DeleteOutlined',
                   onClick: handleDelete,
                 }
               : null,
@@ -414,7 +421,15 @@ function AlertList({
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {title}
+          <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
+            iconSize="m"
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+              vertical-align: text-top;
+            `}
+          />
+          {title}
         </>
       ),
       buttonStyle: 'primary',
@@ -438,7 +453,16 @@ function AlertList({
     buttonAction: () => handleAlertEdit(null),
     buttonText: canCreate ? (
       <>
-        <i className="fa fa-plus" /> {title}{' '}
+        <Icons.PlusOutlined
+          iconColor={theme.colors.primary.light5}
+          iconSize="m"
+          css={css`
+            margin: auto ${theme.gridUnit * 2}px auto 0;
+            vertical-align: text-top;
+          `}
+          data-test="add-annotation-layer-button"
+        />
+        {title}{' '}
       </>
     ) : null,
   };
@@ -535,6 +559,8 @@ function AlertList({
             url: '/alert/list/',
             usesRouter: true,
             'data-test': 'alert-list',
+            id: 'alert-tab',
+            'aria-controls': 'alert-list',
           },
           {
             name: 'Reports',
@@ -542,6 +568,8 @@ function AlertList({
             url: '/report/list/',
             usesRouter: true,
             'data-test': 'report-list',
+            id: 'report-tab',
+            'aria-controls': 'report-list',
           },
         ]}
         buttons={subMenuButtons}
@@ -599,24 +627,30 @@ function AlertList({
               ]
             : [];
           return (
-            <ListView<AlertObject>
-              className="alerts-list-view"
-              columns={columns}
-              count={alertsCount}
-              data={alerts}
-              emptyState={emptyState}
-              fetchData={fetchData}
-              filters={filters}
-              initialSort={initialSort}
-              loading={loading}
-              bulkActions={bulkActions}
-              bulkSelectEnabled={bulkSelectEnabled}
-              disableBulkSelect={toggleBulkSelect}
-              refreshData={refreshData}
-              addDangerToast={addDangerToast}
-              addSuccessToast={addSuccessToast}
-              pageSize={PAGE_SIZE}
-            />
+            <div
+              id={isReportEnabled ? 'report-list' : 'alert-list'}
+              role="tabpanel"
+              aria-labelledby={isReportEnabled ? 'report-tab' : 'alert-tab'}
+            >
+              <ListView<AlertObject>
+                className="alerts-list-view"
+                columns={columns}
+                count={alertsCount}
+                data={alerts}
+                emptyState={emptyState}
+                fetchData={fetchData}
+                filters={filters}
+                initialSort={initialSort}
+                loading={loading}
+                bulkActions={bulkActions}
+                bulkSelectEnabled={bulkSelectEnabled}
+                disableBulkSelect={toggleBulkSelect}
+                refreshData={refreshData}
+                addDangerToast={addDangerToast}
+                addSuccessToast={addSuccessToast}
+                pageSize={PAGE_SIZE}
+              />
+            </div>
           );
         }}
       </ConfirmStatusChange>

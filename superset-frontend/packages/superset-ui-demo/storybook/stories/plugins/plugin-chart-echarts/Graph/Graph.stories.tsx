@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import {
   EchartsGraphChartPlugin,
@@ -38,7 +37,7 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Graph = ({ width, height }) => (
+export const Graph = ({ width, height }: { width: number; height: number }) => (
   <SuperChart
     chartType="echarts-graph"
     width={width}

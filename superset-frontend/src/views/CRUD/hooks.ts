@@ -39,6 +39,7 @@ import { FetchDataConfig } from 'src/components/ListView';
 import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import SupersetText from 'src/utils/textUtils';
 import { DatabaseObject } from 'src/features/databases/types';
 import { FavoriteStatus, ImportResourceName } from './types';
@@ -77,6 +78,7 @@ export function useListViewResource<D extends object = any>(
   defaultCollectionValue: D[] = [],
   baseFilters?: FilterValue[], // must be memoized
   initialLoadingState = true,
+  selectColumns?: string[],
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
@@ -144,9 +146,11 @@ export function useListViewResource<D extends object = any>(
         },
         loading: true,
       });
-
       const filterExps = (baseFilters || [])
         .concat(filterValues)
+        .filter(
+          ({ value }) => value !== '' && value !== null && value !== undefined,
+        )
         .map(({ id, operator: opr, value }) => ({
           col: id,
           opr,
@@ -162,6 +166,7 @@ export function useListViewResource<D extends object = any>(
         page: pageIndex,
         page_size: pageSize,
         ...(filterExps.length ? { filters: filterExps } : {}),
+        ...(selectColumns?.length ? { select_columns: selectColumns } : {}),
       });
 
       return SupersetClient.get({
@@ -593,10 +598,13 @@ export function useFavoriteStatus(
     }
     favoriteApis[type](ids).then(
       ({ result }) => {
-        const update = result.reduce((acc, element) => {
-          acc[element.id] = element.value;
-          return acc;
-        }, {});
+        const update = result.reduce<Record<string, boolean>>(
+          (acc, element) => {
+            acc[element.id] = element.value;
+            return acc;
+          },
+          {},
+        );
         updateFavoriteStatus(update);
       },
       createErrorHandler(errMsg =>
@@ -680,7 +688,9 @@ export const copyQueryLink = (
   addSuccessToast: (arg0: string) => void,
 ) => {
   copyTextToClipboard(() =>
-    Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
+    Promise.resolve(
+      `${window.location.origin}${ensureAppRoot(`/sqllab?savedQueryId=${id}`)}`,
+    ),
   )
     .then(() => {
       addSuccessToast(t('Link Copied!'));

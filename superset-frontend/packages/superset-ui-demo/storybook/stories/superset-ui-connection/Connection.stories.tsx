@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { bigNumberFormData } from '../../../../superset-ui-core/test/chart/fixtures/formData';
 
 import VerifyCORS, {

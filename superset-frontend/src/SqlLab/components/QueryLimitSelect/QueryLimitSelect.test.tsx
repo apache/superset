@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { Store } from 'redux';
 
-import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  fireEvent,
+  render,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import QueryLimitSelect, {
   QueryLimitSelectProps,
@@ -116,8 +119,8 @@ describe('QueryLimitSelect', () => {
     const expectedLabels = [10, 100, 1000, 10000, 50000].map(i =>
       convertToNumWithSpaces(i),
     );
-    const actualLabels = getAllByRole('menuitem').map(
-      elem => elem.textContent?.trim(),
+    const actualLabels = getAllByRole('menuitem').map(elem =>
+      elem.textContent?.trim(),
     );
 
     expect(actualLabels).toEqual(expectedLabels);
@@ -136,8 +139,8 @@ describe('QueryLimitSelect', () => {
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
 
     const expectedLabels = [5].map(i => convertToNumWithSpaces(i));
-    const actualLabels = getAllByRole('menuitem').map(
-      elem => elem.textContent?.trim(),
+    const actualLabels = getAllByRole('menuitem').map(elem =>
+      elem.textContent?.trim(),
     );
 
     expect(actualLabels).toEqual(expectedLabels);
@@ -158,8 +161,8 @@ describe('QueryLimitSelect', () => {
     const expectedLabels = [10, 100, 1000, 10000].map(i =>
       convertToNumWithSpaces(i),
     );
-    const actualLabels = getAllByRole('menuitem').map(
-      elem => elem.textContent?.trim(),
+    const actualLabels = getAllByRole('menuitem').map(elem =>
+      elem.textContent?.trim(),
     );
 
     expect(actualLabels).toEqual(expectedLabels);

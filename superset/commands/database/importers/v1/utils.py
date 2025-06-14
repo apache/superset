@@ -15,16 +15,21 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
+import logging
 from typing import Any
 
 from superset import app, db, security_manager
+from superset.commands.database.utils import add_permissions
 from superset.commands.exceptions import ImportFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
+from superset.utils import json
+
+logger = logging.getLogger(__name__)
 
 
 def import_database(
@@ -43,7 +48,7 @@ def import_database(
         config["id"] = existing.id
     elif not can_write:
         raise ImportFailedError(
-            "Database doesn't exist and user doesn't have permission to create databases"
+            "Database doesn't exist and user doesn't have permission to create databases"  # noqa: E501
         )
     # Check if this URI is allowed
     if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
@@ -62,14 +67,27 @@ def import_database(
     config["extra"] = json.dumps(config["extra"])
 
     # Before it gets removed in import_from_dict
-    ssh_tunnel = config.pop("ssh_tunnel", None)
+    ssh_tunnel_config = config.pop("ssh_tunnel", None)
 
-    database = Database.import_from_dict(config, recursive=False)
+    # set SQLAlchemy URI via `set_sqlalchemy_uri` so that the password gets masked
+    sqlalchemy_uri = config.pop("sqlalchemy_uri")
+    database: Database = Database.import_from_dict(config, recursive=False)
+    database.set_sqlalchemy_uri(sqlalchemy_uri)
+
     if database.id is None:
         db.session.flush()
 
-    if ssh_tunnel:
-        ssh_tunnel["database_id"] = database.id
-        SSHTunnel.import_from_dict(ssh_tunnel, recursive=False)
+    if ssh_tunnel_config:
+        ssh_tunnel_config["database_id"] = database.id
+        ssh_tunnel = SSHTunnel.import_from_dict(ssh_tunnel_config, recursive=False)
+    else:
+        ssh_tunnel = None
+
+    # TODO (betodealmeida): we should use the `CreateDatabaseCommand` for imports
+
+    try:
+        add_permissions(database, ssh_tunnel)
+    except SupersetDBAPIConnectionError as ex:
+        logger.warning(ex.message)
 
     return database

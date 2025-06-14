@@ -23,7 +23,9 @@ import DatabaseErrorMessage from 'src/components/ErrorMessage/DatabaseErrorMessa
 import MarshmallowErrorMessage from 'src/components/ErrorMessage/MarshmallowErrorMessage';
 import ParameterErrorMessage from 'src/components/ErrorMessage/ParameterErrorMessage';
 import DatasetNotFoundErrorMessage from 'src/components/ErrorMessage/DatasetNotFoundErrorMessage';
+import InvalidSQLErrorMessage from 'src/components/ErrorMessage/InvalidSQLErrorMessage';
 import OAuth2RedirectMessage from 'src/components/ErrorMessage/OAuth2RedirectMessage';
+import FrontendNetworkErrorMessage from 'src/components/ErrorMessage/FrontendNetworkErrorMessage';
 
 import setupErrorMessagesExtra from './setupErrorMessagesExtra';
 
@@ -33,6 +35,10 @@ export default function setupErrorMessages() {
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
     TimeoutErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
+    FrontendNetworkErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.BACKEND_TIMEOUT_ERROR,
@@ -153,6 +159,14 @@ export default function setupErrorMessages() {
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.OAUTH2_REDIRECT,
     OAuth2RedirectMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.INVALID_SQL_ERROR,
+    InvalidSQLErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.RESULT_TOO_LARGE_ERROR,
+    DatabaseErrorMessage,
   );
   setupErrorMessagesExtra();
 }

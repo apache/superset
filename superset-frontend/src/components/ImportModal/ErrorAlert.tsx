@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
 
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';

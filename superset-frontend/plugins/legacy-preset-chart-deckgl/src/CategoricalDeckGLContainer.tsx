@@ -24,7 +24,7 @@
  */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   CategoricalColorNamespace,
   Datasource,
@@ -33,7 +33,7 @@ import {
   JsonValue,
   QueryFormData,
 } from '@superset-ui/core';
-import { Layer } from 'deck.gl/typed';
+import type { Layer } from '@deck.gl/core';
 import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';
 import sandboxedEval from './utils/sandbox';
@@ -52,8 +52,9 @@ const { getScale } = CategoricalColorNamespace;
 function getCategories(fd: QueryFormData, data: JsonObject[]) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
-  const colorFn = getScale(fd.color_scheme);
-  const categories = {};
+  const appliedScheme = fd.color_scheme;
+  const colorFn = getScale(appliedScheme);
+  const categories: Record<any, { color: any; enabled: boolean }> = {};
   data.forEach(d => {
     if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
       let color;
@@ -129,12 +130,13 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
 
   const addColor = useCallback((data: JsonObject[], fd: QueryFormData) => {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-    const colorFn = getScale(fd.color_scheme);
+    const appliedScheme = fd.color_scheme;
+    const colorFn = getScale(appliedScheme);
 
     return data.map(d => {
       let color;
       if (fd.dimension) {
-        color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
+        color = hexToRGB(colorFn(d.cat_color, fd.slice_id), c.a * 255);
 
         return { ...d, color };
       }

@@ -18,7 +18,7 @@
 import pytest  # noqa: F401
 from pytest_mock import MockerFixture
 
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 
 
 def test_epoch_to_dttm() -> None:
@@ -66,13 +66,15 @@ def test_get_table_comment_empty(mocker: MockerFixture):
     )
 
 
-def test_get_prequeries() -> None:
+def test_get_prequeries(mocker: MockerFixture) -> None:
     """
     Test the ``get_prequeries`` method.
     """
     from superset.db_engine_specs.db2 import Db2EngineSpec
 
-    assert Db2EngineSpec.get_prequeries() == []
-    assert Db2EngineSpec.get_prequeries(schema="my_schema") == [
+    database = mocker.MagicMock()
+
+    assert Db2EngineSpec.get_prequeries(database) == []
+    assert Db2EngineSpec.get_prequeries(database, schema="my_schema") == [
         'set current_schema "my_schema"'
     ]

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useHistory } from 'react-router-dom';
 import Button from 'src/components/Button';
 import { t } from '@superset-ui/core';
@@ -65,7 +64,7 @@ function Footer({
   const createLogAction = (dataset: Partial<DatasetObject>) => {
     let totalCount = 0;
     const value = Object.keys(dataset).reduce((total, key) => {
-      if (INPUT_FIELDS.includes(key) && dataset[key]) {
+      if (INPUT_FIELDS.includes(key) && dataset[key as keyof DatasetObject]) {
         totalCount += 1;
       }
       return totalCount;

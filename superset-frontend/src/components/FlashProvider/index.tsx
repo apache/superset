@@ -41,7 +41,7 @@ export default function FlashProvider({ children, messages }: Props) {
     messages.forEach(message => {
       const [type, text] = message;
       const flash = flashObj[type];
-      const toast = toasts[flash];
+      const toast = toasts[flash as keyof typeof toasts];
       if (toast) {
         toast(text);
       }

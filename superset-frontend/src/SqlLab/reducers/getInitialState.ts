@@ -102,6 +102,7 @@ export default function getInitialState({
         id: id.toString(),
         loaded: false,
         name: label,
+        dbId: undefined,
       };
     }
     queryEditors = {
@@ -110,6 +111,7 @@ export default function getInitialState({
     };
   });
   const tabHistory = activeTab ? [activeTab.id.toString()] : [];
+  let lastUpdatedActiveTab = activeTab ? activeTab.id.toString() : '';
   let tables = {} as Record<string, Table>;
   let editorTabLastUpdatedAt = Date.now();
   if (activeTab) {
@@ -120,12 +122,12 @@ export default function getInitialState({
       .forEach(tableSchema => {
         const { dataPreviewQueryId, ...persistData } = tableSchema.description;
         const table = {
-          dbId: tableSchema.database_id,
+          dbId: tableSchema.database_id ?? 0,
           queryEditorId: tableSchema.tab_state_id.toString(),
           catalog: tableSchema.catalog,
           schema: tableSchema.schema,
           name: tableSchema.table,
-          expanded: tableSchema.expanded,
+          expanded: Boolean(tableSchema.expanded),
           id: tableSchema.id,
           dataPreviewQueryId,
           persistData,
@@ -144,6 +146,9 @@ export default function getInitialState({
       [activeTab.latest_query.id]: activeTab.latest_query,
     }),
   };
+
+  const destroyedQueryEditors: SqlLabRootState['sqlLab']['destroyedQueryEditors'] =
+    {};
 
   /**
    * If the `SQLLAB_BACKEND_PERSISTENCE` feature flag is off, or if the user
@@ -217,6 +222,16 @@ export default function getInitialState({
         if (sqlLab.tabHistory) {
           tabHistory.push(...sqlLab.tabHistory);
         }
+        lastUpdatedActiveTab = tabHistory.slice(tabHistory.length - 1)[0] || '';
+
+        if (sqlLab.destroyedQueryEditors) {
+          Object.entries(sqlLab.destroyedQueryEditors).forEach(([id, ts]) => {
+            if (queryEditors[id]) {
+              destroyedQueryEditors[id] = ts;
+              delete queryEditors[id];
+            }
+          });
+        }
       }
     }
   } catch (error) {
@@ -250,6 +265,8 @@ export default function getInitialState({
       editorTabLastUpdatedAt,
       queryCostEstimates: {},
       unsavedQueryEditor,
+      lastUpdatedActiveTab,
+      destroyedQueryEditors,
     },
     localStorageUsageInKilobytes: 0,
     common,

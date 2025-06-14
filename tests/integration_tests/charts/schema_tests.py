@@ -44,10 +44,10 @@ class TestSchema(SupersetTestCase):
         # too low limit and offset
         payload["queries"][0]["row_limit"] = -1
         payload["queries"][0]["row_offset"] = -1
-        with self.assertRaises(ValidationError) as context:
+        with self.assertRaises(ValidationError) as context:  # noqa: PT027
             _ = ChartDataQueryContextSchema().load(payload)
-        self.assertIn("row_limit", context.exception.messages["queries"][0])
-        self.assertIn("row_offset", context.exception.messages["queries"][0])
+        assert "row_limit" in context.exception.messages["queries"][0]
+        assert "row_offset" in context.exception.messages["queries"][0]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_context_null_timegrain(self):

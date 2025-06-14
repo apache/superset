@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  ComponentType,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { ComponentType, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ExtraControlProps,
   sharedControlComponents,
@@ -30,6 +24,7 @@ import {
 import { JsonArray, JsonValue, t } from '@superset-ui/core';
 import { ControlProps } from 'src/explore/components/Control';
 import builtInControlComponents from 'src/explore/components/controls';
+import useEffectEvent from 'src/hooks/useEffectEvent';
 
 /**
  * Full control component map.
@@ -78,7 +73,7 @@ export type AsyncVerify = (
  * Whether the extra props will update the original props.
  */
 function hasUpdates(
-  props: ControlPropsWithExtras,
+  props: Partial<ControlPropsWithExtras>,
   newProps: ExtraControlProps,
 ) {
   return (
@@ -171,17 +166,17 @@ export default function withAsyncVerification({
       [basicOnChange, otherProps, verifiedProps],
     );
 
-    useEffect(() => {
-      if (needAsyncVerification && verify) {
+    const verifyProps = useEffectEvent(
+      (verifyFunc: AsyncVerify, props: typeof otherProps) => {
         if (showLoadingState) {
           setIsLoading(true);
         }
-        verify(otherProps)
+        verifyFunc(props)
           .then(updatedProps => {
             if (showLoadingState) {
               setIsLoading(false);
             }
-            if (updatedProps && hasUpdates(otherProps, updatedProps)) {
+            if (updatedProps && hasUpdates(verifiedProps, updatedProps)) {
               setVerifiedProps({
                 // save isLoading in combination with other props to avoid
                 // rendering twice.
@@ -204,14 +199,14 @@ export default function withAsyncVerification({
               );
             }
           });
+      },
+    );
+
+    useEffect(() => {
+      if (needAsyncVerification && verify) {
+        verifyProps(verify, otherProps);
       }
-    }, [
-      needAsyncVerification,
-      showLoadingState,
-      verify,
-      otherProps,
-      addWarningToast,
-    ]);
+    }, [needAsyncVerification, verify, otherProps, verifyProps]);
 
     return (
       <ControlComponent

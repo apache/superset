@@ -17,8 +17,10 @@
 from collections import defaultdict
 
 from superset import security_manager
+from superset.utils.decorators import transaction
 
 
+@transaction()
 def cleanup_permissions() -> None:
     # 1. Clean up duplicates.
     pvms = security_manager.get_session.query(
@@ -29,7 +31,6 @@ def cleanup_permissions() -> None:
     for pvm in pvms:
         pvms_dict[(pvm.permission, pvm.view_menu)].append(pvm)
     duplicates = [v for v in pvms_dict.values() if len(v) > 1]
-    len(duplicates)
 
     for pvm_list in duplicates:
         first_prm = pvm_list[0]
@@ -38,7 +39,6 @@ def cleanup_permissions() -> None:
             roles = roles.union(pvm.role)
             security_manager.get_session.delete(pvm)
         first_prm.roles = list(roles)
-    security_manager.get_session.commit()
 
     pvms = security_manager.get_session.query(
         security_manager.permissionview_model
@@ -52,7 +52,6 @@ def cleanup_permissions() -> None:
     for pvm in pvms:
         if not (pvm.view_menu and pvm.permission):
             security_manager.get_session.delete(pvm)
-    security_manager.get_session.commit()
 
     pvms = security_manager.get_session.query(
         security_manager.permissionview_model
@@ -63,7 +62,6 @@ def cleanup_permissions() -> None:
     roles = security_manager.get_session.query(security_manager.role_model).all()
     for role in roles:
         role.permissions = [p for p in role.permissions if p]
-    security_manager.get_session.commit()
 
     # 4. Delete empty roles from permission view menus
     pvms = security_manager.get_session.query(
@@ -71,7 +69,6 @@ def cleanup_permissions() -> None:
     ).all()
     for pvm in pvms:
         pvm.role = [r for r in pvm.role if r]
-    security_manager.get_session.commit()
 
 
 cleanup_permissions()

@@ -36,6 +36,7 @@ export type StreamResult = [
 
 // sync with superset-frontend/src/components/ErrorMessage/types
 export type ErrorLevel = 'info' | 'warning' | 'error';
+// eslint-disable-next-line  @typescript-eslint/no-explicit-any
 export type SupersetError<ExtraType = Record<string, any> | null> = {
   error_type: string;
   extra: ExtraType;
@@ -101,7 +102,7 @@ if (startServer && opts.jwtSecret.length < 32) {
 
 if (startServer && opts.jwtSecret.startsWith('CHANGE-ME')) {
   console.warn(
-    'WARNING: it appears you secret in your config.json is insecure',
+    'WARNING: it appears your secret in your config.json is insecure',
   );
   console.warn('DO NOT USE IN PRODUCTION');
 }
@@ -465,6 +466,9 @@ export const cleanChannel = (channel: string) => {
 
 if (startServer) {
   // init server event listeners
+  wss.on('connection', function (ws) {
+    ws.on('error', console.error);
+  });
   wss.on('connection', wsConnection);
   httpServer.on('request', httpRequest);
   httpServer.on('upgrade', httpUpgrade);

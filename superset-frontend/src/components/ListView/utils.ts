@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, ReactNode } from 'react';
 import {
   useFilters,
   usePagination,
@@ -39,6 +39,7 @@ import {
   FetchDataConfig,
   Filter,
   FilterValue,
+  InnerFilterValue,
   InternalFilter,
   SortColumn,
   ViewModeType,
@@ -138,7 +139,7 @@ export function convertFiltersRison(
   list: Filter[],
 ): FilterValue[] {
   const filters: FilterValue[] = [];
-  const refs = {};
+  const refs: Record<string, FilterValue> = {};
 
   Object.keys(filterObj).forEach(id => {
     const filter: FilterValue = {
@@ -187,8 +188,8 @@ interface UseListViewConfig {
   initialFilters?: Filter[];
   bulkSelectColumnConfig?: {
     id: string;
-    Header: (conf: any) => React.ReactNode;
-    Cell: (conf: any) => React.ReactNode;
+    Header: (conf: any) => ReactNode;
+    Cell: (conf: any) => ReactNode;
   };
   renderCard?: boolean;
   defaultViewMode?: ViewModeType;
@@ -238,7 +239,7 @@ export function useListViewState({
   );
 
   const columnsWithSelect = useMemo(() => {
-    // add exact filter type so filters with falsey values are not filtered out
+    // add exact filter type so filters with falsy values are not filtered out
     const columnsWithFilter = columns.map(f => ({ ...f, filter: 'exact' }));
     return bulkSelectMode
       ? [bulkSelectColumnConfig, ...columnsWithFilter]
@@ -300,7 +301,7 @@ export function useListViewState({
 
   useEffect(() => {
     // From internalFilters, produce a simplified obj
-    const filterObj = {};
+    const filterObj: Record<string, InnerFilterValue> = {};
 
     internalFilters.forEach(filter => {
       if (

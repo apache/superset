@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
@@ -51,8 +50,7 @@ const config: ControlPanelConfig = {
               label: t('Sort X Axis'),
               choices: sortAxisChoices,
               renderTrigger: false,
-              clearable: false,
-              default: 'alpha_asc',
+              clearable: true,
             },
           },
         ],
@@ -64,8 +62,7 @@ const config: ControlPanelConfig = {
               label: t('Sort Y Axis'),
               choices: sortAxisChoices,
               renderTrigger: false,
-              clearable: false,
-              default: 'alpha_asc',
+              clearable: true,
             },
           },
         ],
@@ -126,6 +123,31 @@ const config: ControlPanelConfig = {
           },
         ],
         ['linear_color_scheme'],
+        [
+          {
+            name: 'border_color',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Border color'),
+              renderTrigger: true,
+              description: t('The color of the elements border'),
+              default: { r: 0, g: 0, b: 0, a: 1 },
+            },
+          },
+          {
+            name: 'border_width',
+            config: {
+              type: 'SliderControl',
+              label: t('Border width'),
+              renderTrigger: true,
+              min: 0,
+              max: 2,
+              default: 0,
+              step: 0.1,
+              description: t('The width of the elements border'),
+            },
+          },
+        ],
         [
           {
             name: 'xscale_interval',

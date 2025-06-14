@@ -19,17 +19,18 @@
 
 from __future__ import annotations
 
+import json
 from textwrap import dedent
 from typing import Any
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy import types
 from sqlalchemy.dialects import sqlite
-from sqlalchemy.engine.url import URL
+from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
 
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
@@ -48,33 +49,7 @@ def test_get_text_clause_with_colon() -> None:
     assert text_clause.text == "SELECT foo FROM tbl WHERE foo = '123\\:456')"
 
 
-def test_parse_sql_single_statement() -> None:
-    """
-    `parse_sql` should properly strip leading and trailing spaces and semicolons
-    """
-
-    from superset.db_engine_specs.base import BaseEngineSpec
-
-    queries = BaseEngineSpec.parse_sql(" SELECT foo FROM tbl ; ")
-    assert queries == ["SELECT foo FROM tbl"]
-
-
-def test_parse_sql_multi_statement() -> None:
-    """
-    For string with multiple SQL-statements `parse_sql` method should return list
-    where each element represents the single SQL-statement
-    """
-
-    from superset.db_engine_specs.base import BaseEngineSpec
-
-    queries = BaseEngineSpec.parse_sql("SELECT foo FROM tbl1; SELECT bar FROM tbl2;")
-    assert queries == [
-        "SELECT foo FROM tbl1",
-        "SELECT bar FROM tbl2",
-    ]
-
-
-def test_validate_db_uri(mocker: MockFixture) -> None:
+def test_validate_db_uri(mocker: MockerFixture) -> None:
     """
     Ensures that the `validate_database_uri` method invokes the validator correctly
     """
@@ -89,7 +64,7 @@ def test_validate_db_uri(mocker: MockFixture) -> None:
 
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         BaseEngineSpec.validate_database_uri(URL.create("sqlite"))
 
 
@@ -163,7 +138,9 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec as spec
+    from superset.db_engine_specs.databricks import (
+        DatabricksNativeEngineSpec as spec,  # noqa: N813
+    )
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
@@ -197,14 +174,11 @@ def test_convert_inspector_columns(
     assert convert_inspector_columns(cols) == expected_result
 
 
-def test_select_star(mocker: MockFixture) -> None:
+def test_select_star(mocker: MockerFixture) -> None:
     """
     Test the ``select_star`` method.
     """
     from superset.db_engine_specs.base import BaseEngineSpec
-
-    class NoLimitDBEngineSpec(BaseEngineSpec):
-        allow_limit_clause = False
 
     cols: list[ResultSetColumnType] = [
         {
@@ -223,7 +197,7 @@ def test_select_star(mocker: MockFixture) -> None:
 
     # mock the database so we can compile the query
     database = mocker.MagicMock()
-    database.compile_sqla_query = lambda query: str(
+    database.compile_sqla_query = lambda query, catalog, schema: str(
         query.compile(dialect=sqlite.dialect())
     )
 
@@ -232,7 +206,7 @@ def test_select_star(mocker: MockFixture) -> None:
 
     sql = BaseEngineSpec.select_star(
         database=database,
-        table=Table("my_table"),
+        table=Table("my_table", "my_schema", "my_catalog"),
         engine=engine,
         limit=100,
         show_cols=True,
@@ -240,34 +214,10 @@ def test_select_star(mocker: MockFixture) -> None:
         latest_partition=False,
         cols=cols,
     )
-    assert (
-        sql
-        == """SELECT
-  a
-FROM my_table
-LIMIT ?
-OFFSET ?"""
-    )
-
-    sql = NoLimitDBEngineSpec.select_star(
-        database=database,
-        table=Table("my_table"),
-        engine=engine,
-        limit=100,
-        show_cols=True,
-        indent=True,
-        latest_partition=False,
-        cols=cols,
-    )
-    assert (
-        sql
-        == """SELECT
-  a
-FROM my_table"""
-    )
+    assert sql == "SELECT\n  a\nFROM my_schema.my_table\nLIMIT ?\nOFFSET ?"
 
 
-def test_extra_table_metadata(mocker: MockFixture) -> None:
+def test_extra_table_metadata(mocker: MockerFixture) -> None:
     """
     Test the deprecated `extra_table_metadata` method.
     """
@@ -303,7 +253,7 @@ def test_extra_table_metadata(mocker: MockFixture) -> None:
     warnings.warn.assert_called()
 
 
-def test_get_default_catalog(mocker: MockFixture) -> None:
+def test_get_default_catalog(mocker: MockerFixture) -> None:
     """
     Test the `get_default_catalog` method.
     """
@@ -311,3 +261,165 @@ def test_get_default_catalog(mocker: MockFixture) -> None:
 
     database = mocker.MagicMock()
     assert BaseEngineSpec.get_default_catalog(database) is None
+
+
+def test_quote_table() -> None:
+    """
+    Test the `quote_table` function.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    dialect = sqlite.dialect()
+
+    assert BaseEngineSpec.quote_table(Table("table"), dialect) == '"table"'
+    assert (
+        BaseEngineSpec.quote_table(Table("table", "schema"), dialect)
+        == 'schema."table"'
+    )
+    assert (
+        BaseEngineSpec.quote_table(Table("table", "schema", "catalog"), dialect)
+        == 'catalog.schema."table"'
+    )
+    assert (
+        BaseEngineSpec.quote_table(Table("ta ble", "sche.ma", 'cata"log'), dialect)
+        == '"cata""log"."sche.ma"."ta ble"'
+    )
+
+
+def test_mask_encrypted_extra() -> None:
+    """
+    Test that the private key is masked when the database is edited.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    config = json.dumps(
+        {
+            "foo": "bar",
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+
+    assert BaseEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "foo": "XXXXXXXXXX",
+            "service_account_info": "XXXXXXXXXX",
+        }
+    )
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Test that the private key can be reused from the previous `encrypted_extra`.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    old = json.dumps(
+        {
+            "foo": "bar",
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "foo": "XXXXXXXXXX",
+            "service_account_info": "XXXXXXXXXX",
+        }
+    )
+
+    assert BaseEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "foo": "bar",
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+
+
+def test_impersonate_user_backwards_compatible(mocker: MockerFixture) -> None:
+    """
+    Test that the `impersonate_user` method calls the original methods it replaced.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    database = mocker.MagicMock()
+    url = make_url("sqlite://foo.db")
+    new_url = make_url("sqlite://bar.db")
+    engine_kwargs = {"connect_args": {"user": "alice"}}
+
+    get_url_for_impersonation = mocker.patch.object(
+        BaseEngineSpec,
+        "get_url_for_impersonation",
+        return_value=new_url,
+    )
+    update_impersonation_config = mocker.patch.object(
+        BaseEngineSpec,
+        "update_impersonation_config",
+    )
+    signature = mocker.patch("superset.db_engine_specs.base.signature")
+    signature().parameters = [
+        "cls",
+        "database",
+        "connect_args",
+        "uri",
+        "username",
+        "access_token",
+    ]
+
+    BaseEngineSpec.impersonate_user(database, "alice", "SECRET", url, engine_kwargs)
+
+    get_url_for_impersonation.assert_called_once_with(url, True, "alice", "SECRET")
+    update_impersonation_config.assert_called_once_with(
+        database,
+        {"user": "alice"},
+        new_url,
+        "alice",
+        "SECRET",
+    )
+
+
+def test_impersonate_user_no_database(mocker: MockerFixture) -> None:
+    """
+    Test `impersonate_user` when `update_impersonation_config` has an old signature.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    database = mocker.MagicMock()
+    url = make_url("sqlite://foo.db")
+    new_url = make_url("sqlite://bar.db")
+    engine_kwargs = {"connect_args": {"user": "alice"}}
+
+    get_url_for_impersonation = mocker.patch.object(
+        BaseEngineSpec,
+        "get_url_for_impersonation",
+        return_value=new_url,
+    )
+    update_impersonation_config = mocker.patch.object(
+        BaseEngineSpec,
+        "update_impersonation_config",
+    )
+    signature = mocker.patch("superset.db_engine_specs.base.signature")
+    signature().parameters = [
+        "cls",
+        "connect_args",
+        "uri",
+        "username",
+        "access_token",
+    ]
+
+    BaseEngineSpec.impersonate_user(database, "alice", "SECRET", url, engine_kwargs)
+
+    get_url_for_impersonation.assert_called_once_with(url, True, "alice", "SECRET")
+    update_impersonation_config.assert_called_once_with(
+        {"user": "alice"},
+        new_url,
+        "alice",
+        "SECRET",
+    )

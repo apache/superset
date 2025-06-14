@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import { Menu as AntdMenu } from 'antd';
-import { MenuProps as AntdMenuProps } from 'antd/lib/menu';
+import { styled, css } from '@superset-ui/core';
+import { ReactElement } from 'react';
+import { Menu as AntdMenu } from 'antd-v5';
+import { MenuProps as AntdMenuProps } from 'antd-v5/es/menu';
 
 export type MenuProps = AntdMenuProps;
 
@@ -28,44 +29,33 @@ export enum MenuItemKeyEnum {
   SubMenuItem = 'submenu-item',
 }
 
-export type AntdMenuTypeRef = { current: { props: { parentMenu: AntdMenu } } };
+export type AntdMenuTypeRef = {
+  current: { props: { parentMenu: typeof AntdMenu } };
+};
 
-export type AntdMenuItemType = React.ReactElement & {
+export type AntdMenuItemType = ReactElement & {
   ref: AntdMenuTypeRef;
   type: { displayName: string; isSubMenu: number };
 };
 
 export type MenuItemChildType = AntdMenuItemType;
 
-export const isAntdMenuItemRef = (
-  ref: AntdMenuTypeRef,
-): ref is AntdMenuTypeRef =>
-  (ref as AntdMenuTypeRef)?.current?.props?.parentMenu !== undefined;
-
-export const isAntdMenuItem = (child: MenuItemChildType) =>
-  child?.type?.displayName === 'Styled(MenuItem)';
-
-export const isAntdMenuSubmenu = (child: MenuItemChildType) =>
-  child?.type?.isSubMenu === 1;
-
-export const isSubMenuOrItemType = (type: string) =>
-  type === MenuItemKeyEnum.SubMenu || type === MenuItemKeyEnum.SubMenuItem;
-
-const MenuItem = styled(AntdMenu.Item)`
-  > a {
+const StyledMenuItem = styled(AntdMenu.Item)`
+  a {
     text-decoration: none;
   }
-
-  &.ant-menu-item {
-    height: ${({ theme }) => theme.gridUnit * 8}px;
-    line-height: ${({ theme }) => theme.gridUnit * 8}px;
+  &.antd5-menu-item {
+    div {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
     a {
-      border-bottom: none;
       transition: background-color ${({ theme }) => theme.transitionTiming}s;
       &:after {
         content: '';
         position: absolute;
-        bottom: -3px;
+        bottom: -2px;
         left: 50%;
         width: 0;
         height: 3px;
@@ -75,125 +65,91 @@ const MenuItem = styled(AntdMenu.Item)`
         background-color: ${({ theme }) => theme.colors.primary.base};
       }
       &:focus {
-        border-bottom: none;
-        background-color: transparent;
         @media (max-width: 767px) {
           background-color: ${({ theme }) => theme.colors.primary.light5};
         }
       }
     }
   }
+`;
 
-  &.ant-menu-item,
-  &.ant-dropdown-menu-item {
-    span[role='button'] {
-      display: inline-block;
-      width: 100%;
-    }
-    transition-duration: 0s;
+const StyledMenu = styled(AntdMenu)`
+  &.antd5-menu-horizontal {
+    background-color: inherit;
+    border-bottom: 1px solid transparent;
   }
 `;
 
 const StyledNav = styled(AntdMenu)`
-  line-height: 51px;
-  border: none;
-
-  & > .ant-menu-item,
-  & > .ant-menu-submenu {
-    vertical-align: inherit;
-    &:hover {
-      color: ${({ theme }) => theme.colors.grayscale.dark1};
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    height: 100%;
+    gap: 0;
+    &.antd5-menu-horizontal > .antd5-menu-item {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      margin: 0;
+      border-bottom: 2px solid transparent;
+      padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 4}px;
+      &:hover {
+        background-color: ${theme.colors.primary.light5};
+        border-bottom: 2px solid transparent;
+        & a:after {
+          opacity: 1;
+          width: 100%;
+        }
+      }
     }
-  }
-
-  &:not(.ant-menu-dark) > .ant-menu-submenu,
-  &:not(.ant-menu-dark) > .ant-menu-item {
-    &:hover {
-      border-bottom: none;
+    &.antd5-menu-horizontal > .antd5-menu-item-selected {
+      box-sizing: border-box;
+      border-bottom: 2px solid ${theme.colors.primary.base};
     }
-  }
-
-  &:not(.ant-menu-dark) > .ant-menu-submenu,
-  &:not(.ant-menu-dark) > .ant-menu-item {
-    margin: 0px;
-  }
-
-  & > .ant-menu-item > a {
-    padding: ${({ theme }) => theme.gridUnit * 4}px;
-  }
+  `}
 `;
 
 const StyledSubMenu = styled(AntdMenu.SubMenu)`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-  border-bottom: none;
-  .ant-menu-submenu-open,
-  .ant-menu-submenu-active {
-    background-color: ${({ theme }) => theme.colors.primary.light5};
-    .ant-menu-submenu-title {
-      color: ${({ theme }) => theme.colors.grayscale.dark1};
-      background-color: ${({ theme }) => theme.colors.primary.light5};
-      border-bottom: none;
-      margin: 0;
+  ${({ theme }) => css`
+    .antd5-menu-submenu-open,
+    .antd5-menu-submenu-active {
+      .antd5-menu-submenu-title {
+        &:after {
+          opacity: 1;
+          width: calc(100% - 1);
+        }
+      }
+    }
+    .antd5-menu-submenu-title {
+      display: flex;
+      flex-direction: row-reverse;
       &:after {
-        opacity: 1;
-        width: calc(100% - 1);
+        content: '';
+        position: absolute;
+        bottom: -3px;
+        left: 50%;
+        width: 0;
+        height: 3px;
+        opacity: 0;
+        transform: translateX(-50%);
+        transition: all ${theme.transitionTiming}s;
       }
     }
-  }
-  .ant-menu-submenu-title {
-    position: relative;
-    top: ${({ theme }) => -theme.gridUnit - 3}px;
-    &:after {
-      content: '';
-      position: absolute;
-      bottom: -3px;
-      left: 50%;
-      width: 0;
-      height: 3px;
-      opacity: 0;
-      transform: translateX(-50%);
-      transition: all ${({ theme }) => theme.transitionTiming}s;
-      background-color: ${({ theme }) => theme.colors.primary.base};
-    }
-  }
-  .ant-menu-submenu-arrow {
-    top: 67%;
-  }
-  & > .ant-menu-submenu-title {
-    padding: 0 ${({ theme }) => theme.gridUnit * 6}px 0
-      ${({ theme }) => theme.gridUnit * 3}px !important;
-    span[role='img'] {
-      position: absolute;
-      right: ${({ theme }) => -theme.gridUnit + -2}px;
-      top: ${({ theme }) => theme.gridUnit * 5.25}px;
-      svg {
-        font-size: ${({ theme }) => theme.gridUnit * 6}px;
-        color: ${({ theme }) => theme.colors.grayscale.base};
-      }
-    }
-    & > span {
-      position: relative;
-      top: 7px;
-    }
-    &:hover {
-      color: ${({ theme }) => theme.colors.primary.base};
-    }
-  }
+  `}
 `;
 
-export declare type MenuMode =
-  | 'vertical'
-  | 'vertical-left'
-  | 'vertical-right'
-  | 'horizontal'
-  | 'inline';
+export type MenuMode = AntdMenuProps['mode'];
+export type MenuItem = Required<AntdMenuProps>['items'][number];
 
-export const Menu = Object.assign(AntdMenu, {
-  Item: MenuItem,
+export const Menu = Object.assign(StyledMenu, {
+  Item: StyledMenuItem,
+  SubMenu: StyledSubMenu,
+  Divider: AntdMenu.Divider,
+  ItemGroup: AntdMenu.ItemGroup,
 });
 
 export const MainNav = Object.assign(StyledNav, {
-  Item: MenuItem,
+  Item: StyledMenuItem,
   SubMenu: StyledSubMenu,
   Divider: AntdMenu.Divider,
   ItemGroup: AntdMenu.ItemGroup,

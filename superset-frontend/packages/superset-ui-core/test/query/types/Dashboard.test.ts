@@ -24,6 +24,10 @@ import {
   FilterWithDataMask,
   Divider,
   isNativeFilterWithDataMask,
+  isAppliedCrossFilterType,
+  isAppliedNativeFilterType,
+  AppliedCrossFilterType,
+  AppliedNativeFilterType,
 } from '@superset-ui/core';
 
 const filter: Filter = {
@@ -51,6 +55,20 @@ const filterDivider: Divider = {
   description: 'Divider description.',
 };
 
+const appliedCrossFilter: AppliedCrossFilterType = {
+  filterType: undefined,
+  targets: [1, 2],
+  scope: [1, 2],
+  values: null,
+};
+
+const appliedNativeFilter: AppliedNativeFilterType = {
+  filterType: 'filter_select',
+  scope: [1, 2],
+  targets: [{}],
+  values: null,
+};
+
 test('filter type guard', () => {
   expect(isNativeFilter(filter)).toBeTruthy();
   expect(isNativeFilter(filterWithDataMask)).toBeTruthy();
@@ -67,4 +85,14 @@ test('filter divider type guard', () => {
   expect(isFilterDivider(filter)).toBeFalsy();
   expect(isFilterDivider(filterWithDataMask)).toBeFalsy();
   expect(isFilterDivider(filterDivider)).toBeTruthy();
+});
+
+test('applied cross filter type guard', () => {
+  expect(isAppliedCrossFilterType(appliedCrossFilter)).toBeTruthy();
+  expect(isAppliedCrossFilterType(appliedNativeFilter)).toBeFalsy();
+});
+
+test('applied native filter type guard', () => {
+  expect(isAppliedNativeFilterType(appliedNativeFilter)).toBeTruthy();
+  expect(isAppliedNativeFilterType(appliedCrossFilter)).toBeFalsy();
 });

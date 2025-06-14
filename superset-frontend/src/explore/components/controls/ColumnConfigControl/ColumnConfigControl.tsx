@@ -16,13 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState } from 'react';
-import {
-  ChartDataResponseResult,
-  useTheme,
-  t,
-  GenericDataType,
-} from '@superset-ui/core';
+import { useMemo, useState } from 'react';
+import { useTheme, t, GenericDataType } from '@superset-ui/core';
 
 import {
   COLUMN_NAME_ALIASES,
@@ -39,7 +34,12 @@ import ControlHeader from '../../ControlHeader';
 
 export type ColumnConfigControlProps<T extends ColumnConfig> =
   ControlComponentProps<Record<string, T>> & {
-    queryResponse?: ChartDataResponseResult;
+    columnsPropsObject?: {
+      colnames: string[];
+      coltypes: GenericDataType[];
+      childColumnMap?: Record<string, boolean>;
+      timeComparisonColumnMap?: Record<string, boolean>;
+    };
     configFormLayout?: ColumnConfigFormLayout;
     appliedColumnNames?: string[];
     width?: number | string;
@@ -55,7 +55,7 @@ const MAX_NUM_COLS = 10;
  * Add per-column config to queried results.
  */
 export default function ColumnConfigControl<T extends ColumnConfig>({
-  queryResponse,
+  columnsPropsObject,
   appliedColumnNames = [],
   value,
   onChange,
@@ -64,7 +64,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
   height,
   ...props
 }: ColumnConfigControlProps<T>) {
-  const { colnames: _colnames, coltypes: _coltypes } = queryResponse || {};
+  const { colnames: _colnames, coltypes: _coltypes } = columnsPropsObject || {};
   let colnames: string[] = [];
   let coltypes: GenericDataType[] = [];
   if (appliedColumnNames.length === 0) {
@@ -87,10 +87,14 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
         name: COLUMN_NAME_ALIASES[col] || col,
         type: coltypes?.[idx],
         config: value?.[col] || {},
+        isChildColumn: columnsPropsObject?.childColumnMap?.[col] ?? false,
+        isTimeComparisonColumn:
+          columnsPropsObject?.timeComparisonColumnMap?.[col] ?? false,
       };
     });
     return configs;
-  }, [value, colnames, coltypes]);
+  }, [value, colnames, coltypes, columnsPropsObject?.childColumnMap]);
+
   const [showAllColumns, setShowAllColumns] = useState(false);
 
   const getColumnInfo = (col: string) => columnConfigs[col] || {};
@@ -118,6 +122,8 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
       ? colnames.slice(0, MAX_NUM_COLS)
       : colnames;
 
+  const columnsWithChildInfo = cols.map(col => getColumnInfo(col));
+
   return (
     <>
       <ControlHeader {...props} />
@@ -127,12 +133,30 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
           borderRadius: theme.gridUnit,
         }}
       >
-        {cols.map(col => (
+        {columnsWithChildInfo.map(col => (
           <ColumnConfigItem
-            key={col}
-            column={getColumnInfo(col)}
-            onChange={config => setColumnConfig(col, config as T)}
-            configFormLayout={configFormLayout}
+            key={col.name}
+            column={col}
+            onChange={config => setColumnConfig(col.name, config as T)}
+            configFormLayout={
+              col.isTimeComparisonColumn
+                ? ({
+                    [col.type ?? GenericDataType.String]: [
+                      {
+                        tab: 'General',
+                        children: [
+                          ['customColumnName'],
+                          ['displayTypeIcon'],
+                          ['visible'],
+                        ],
+                      },
+                      ...(configFormLayout?.[
+                        col.type ?? GenericDataType.String
+                      ] ?? []),
+                    ],
+                  } as ColumnConfigFormLayout)
+                : configFormLayout
+            }
             width={width}
             height={height}
           />
@@ -145,7 +169,6 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
               padding: theme.gridUnit * 2,
               textAlign: 'center',
               cursor: 'pointer',
-              textTransform: 'uppercase',
               fontSize: theme.typography.sizes.xs,
               color: theme.colors.text.label,
               ':hover': {
@@ -156,10 +179,14 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
           >
             {showAllColumns ? (
               <>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-angle-up" /> &nbsp; {t('Show less columns')}
               </>
             ) : (
               <>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-angle-down" /> &nbsp;
                 {t('Show all columns')}
               </>

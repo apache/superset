@@ -16,10 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import { waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 
 import ControlPopover, { PopoverProps } from './ControlPopover';
 
@@ -29,7 +32,7 @@ const createProps = (): Partial<PopoverProps> => ({
   content: <span data-test="control-popover-content">Information</span>,
 });
 
-const TestComponent: React.FC<PopoverProps> = props => (
+const TestComponent: globalThis.React.FC<PopoverProps> = props => (
   <div id="controlSections">
     <div data-test="outer-container">
       <ControlPopover {...props}>
@@ -42,7 +45,7 @@ const TestComponent: React.FC<PopoverProps> = props => (
 const setupTest = (props: Partial<PopoverProps> = createProps()) => {
   const setStateMock = jest.fn();
   jest
-    .spyOn(React, 'useState')
+    .spyOn(global.React, 'useState')
     .mockImplementation(((state: any) => [
       state,
       state === 'right' ? setStateMock : jest.fn(),
@@ -89,7 +92,7 @@ test('Should lock the vertical scroll when the popover is visible', () => {
 test('Should place popover at the top', async () => {
   const { setStateMock } = setupTest({
     ...createProps(),
-    getVisibilityRatio: () => 0.2,
+    getVisibilityRatio: () => ({ yRatio: 0.2, xRatio: 0.3 }),
   });
 
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
@@ -103,21 +106,21 @@ test('Should place popover at the top', async () => {
 test('Should place popover at the center', async () => {
   const { setStateMock } = setupTest({
     ...createProps(),
-    getVisibilityRatio: () => 0.5,
+    getVisibilityRatio: () => ({ yRatio: 0.5, xRatio: 0.7 }),
   });
 
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
   userEvent.click(screen.getByTestId('control-popover'));
 
   await waitFor(() => {
-    expect(setStateMock).toHaveBeenCalledWith('right');
+    expect(setStateMock).toHaveBeenCalledWith('left');
   });
 });
 
 test('Should place popover at the bottom', async () => {
   const { setStateMock } = setupTest({
     ...createProps(),
-    getVisibilityRatio: () => 0.7,
+    getVisibilityRatio: () => ({ yRatio: 0.9, xRatio: 0.2 }),
   });
 
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
@@ -163,7 +166,7 @@ test('Controlled mode', async () => {
   const baseProps = {
     ...createProps(),
     destroyTooltipOnHide: true,
-    visible: false,
+    open: false,
   };
 
   const { rerender } = setupTest(baseProps);
@@ -171,7 +174,7 @@ test('Controlled mode', async () => {
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
   expect(screen.queryByText('Control Popover Test')).not.toBeInTheDocument();
 
-  rerender(<TestComponent {...baseProps} visible />);
+  rerender(<TestComponent {...baseProps} open />);
   expect(await screen.findByText('Control Popover Test')).toBeInTheDocument();
 
   rerender(<TestComponent {...baseProps} />);

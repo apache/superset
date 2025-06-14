@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from unittest.mock import patch
 
 import pytest
@@ -27,6 +26,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.explore.exceptions import DatasetAccessDeniedError
 from superset.extensions import cache_manager
 from superset.models.slice import Slice
+from superset.utils import json
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
     load_world_bank_data,  # noqa: F401
@@ -214,12 +214,12 @@ def test_get_dataset_access_denied_with_form_data_key(
     assert data["message"] == message
 
 
-@patch("superset.security.SupersetSecurityManager.can_access_datasource")
+@patch("superset.security.SupersetSecurityManager.raise_for_access")
 def test_get_dataset_access_denied(
-    mock_can_access_datasource, test_client, login_as_admin, dataset
+    mock_raise_for_access, test_client, login_as_admin, dataset
 ):
     message = "Dataset access denied"
-    mock_can_access_datasource.side_effect = DatasetAccessDeniedError(
+    mock_raise_for_access.side_effect = DatasetAccessDeniedError(
         message=message, datasource_id=dataset.id, datasource_type=dataset.type
     )
     resp = test_client.get(

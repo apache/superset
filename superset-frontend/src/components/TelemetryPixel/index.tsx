@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { ReactElement } from 'react';
 
 interface TelemetryPixelProps {
   version?: string;
@@ -43,7 +43,7 @@ const TelemetryPixel = ({
   version = 'unknownVersion',
   sha = 'unknownSHA',
   build = 'unknownBuild',
-}: TelemetryPixelProps): React.ReactElement | null => {
+}: TelemetryPixelProps): ReactElement | null => {
   const pixelPath = `https://apachesuperset.gateway.scarf.sh/pixel/${PIXEL_ID}/${version}/${sha}/${build}`;
   return process.env.SCARF_ANALYTICS === 'false' ? null : (
     <img

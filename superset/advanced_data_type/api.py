@@ -39,7 +39,7 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
     -Will return available AdvancedDataTypes when the /types endpoint is accessed
     -Will return a AdvancedDataTypeResponse object when the /convert endpoint is accessed
     and is passed in valid arguments
-    """
+    """  # noqa: E501
 
     allow_browser_login = True
     resource_name = "advanced_data_type"
@@ -92,7 +92,7 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
-        """
+        """  # noqa: E501
         item = kwargs["rison"]
         advanced_data_type = item["type"]
         values = item["values"]

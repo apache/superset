@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Optional
 
 import pandas as pd
@@ -21,17 +22,19 @@ from sqlalchemy import BigInteger, Date, DateTime, inspect, String
 
 from superset import app, db
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
 from .helpers import (
-    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
+    read_example_data,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def load_multiformat_time_series(  # pylint: disable=too-many-locals
@@ -45,8 +48,10 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            url = get_example_url("multiformat_time_series.json.gz")
-            pdf = pd.read_json(url, compression="gzip")
+            pdf = read_example_data(
+                "multiformat_time_series.json.gz", compression="gzip"
+            )
+
             # TODO(bkyryliuk): move load examples data into the pytest fixture
             if database.backend == "presto":
                 pdf.ds = pd.to_datetime(pdf.ds, unit="s")
@@ -75,10 +80,10 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
                 },
                 index=False,
             )
-        print("Done loading table!")
-        print("-" * 80)
+        logger.debug("Done loading table!")
+        logger.debug("-" * 80)
 
-    print(f"Creating table [{tbl_name}] reference")
+    logger.debug(f"Creating table [{tbl_name}] reference")
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
@@ -102,11 +107,10 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
         col.python_date_format = dttm_and_expr[0]
         col.database_expression = dttm_and_expr[1]
         col.is_dttm = True
-    db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 
-    print("Creating Heatmap charts")
+    logger.debug("Creating Heatmap charts")
     for i, col in enumerate(tbl.columns):
         slice_data = {
             "metrics": ["count"],

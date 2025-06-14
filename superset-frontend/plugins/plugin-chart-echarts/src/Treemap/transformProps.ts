@@ -27,8 +27,9 @@ import {
   getValueFormatter,
   tooltipHtml,
 } from '@superset-ui/core';
-import { TreemapSeriesNodeItemOption } from 'echarts/types/src/chart/treemap/TreemapSeries';
-import { EChartsCoreOption, TreemapSeriesOption } from 'echarts';
+import type { TreemapSeriesNodeItemOption } from 'echarts/types/src/chart/treemap/TreemapSeries';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { TreemapSeriesOption } from 'echarts/charts';
 import {
   DEFAULT_FORM_DATA as DEFAULT_TREEMAP_FORM_DATA,
   EchartsTreemapChartProps,
@@ -175,18 +176,18 @@ export default function transformProps(
       let item: TreemapSeriesNodeItemOption = {
         name,
         value,
+        colorSaturation: COLOR_SATURATION,
+        itemStyle: {
+          borderColor: BORDER_COLOR,
+          color: colorFn(name, sliceId),
+          borderWidth: BORDER_WIDTH,
+          gapWidth: GAP_WIDTH,
+        },
       };
       if (treeNode.children?.length) {
         item = {
           ...item,
           children: traverse(treeNode.children, newPath),
-          colorSaturation: COLOR_SATURATION,
-          itemStyle: {
-            borderColor: BORDER_COLOR,
-            color: colorFn(name, sliceId),
-            borderWidth: BORDER_WIDTH,
-            gapWidth: GAP_WIDTH,
-          },
         };
       } else {
         const joinedName = newPath.join(',');

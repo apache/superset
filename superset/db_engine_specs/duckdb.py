@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 from __future__ import annotations
 
 import re
@@ -30,19 +31,19 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
 from superset.config import VERSION_STRING
-from superset.constants import TimeGrain, USER_AGENT
+from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.utils.core import get_user_agent, QuerySource
 
 if TYPE_CHECKING:
-    # prevent circular imports
     from superset.models.core import Database
 
 
 COLUMN_DOES_NOT_EXIST_REGEX = re.compile("no such column: (?P<column_name>.+)")
 DEFAULT_ACCESS_TOKEN_URL = (
-    "https://app.motherduck.com/token-request?appName=Superset&close=y"
+    "https://app.motherduck.com/token-request?appName=Superset&close=y"  # noqa: S105
 )
 
 
@@ -112,7 +113,7 @@ class DuckDBParametersMixin:
         """
         Build SQLAlchemy URI for connecting to a DuckDB database.
         If an access token is specified, return a URI to connect to a MotherDuck database.
-        """
+        """  # noqa: E501
         if parameters is None:
             parameters = {}
         query = parameters.get("query", {})
@@ -162,7 +163,7 @@ class DuckDBParametersMixin:
         if missing := sorted(required - present):
             errors.append(
                 SupersetError(
-                    message=f'One or more parameters are missing: {", ".join(missing)}',
+                    message=f"One or more parameters are missing: {', '.join(missing)}",
                     error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                     level=ErrorLevel.WARNING,
                     extra={"missing": missing},
@@ -237,7 +238,9 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         return set(inspector.get_table_names(schema))
 
     @staticmethod
-    def get_extra_params(database: Database) -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         Add a user agent to be used in the requests.
         """
@@ -247,7 +250,8 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         config: dict[str, Any] = connect_args.setdefault("config", {})
         custom_user_agent = config.pop("custom_user_agent", "")
         delim = " " if custom_user_agent else ""
-        user_agent = USER_AGENT.replace(" ", "-").lower()
+        user_agent = get_user_agent(database, source)
+        user_agent = user_agent.replace(" ", "-").lower()
         user_agent = f"{user_agent}/{VERSION_STRING}{delim}{custom_user_agent}"
         config.setdefault("custom_user_agent", user_agent)
 
@@ -258,6 +262,9 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
     engine = "motherduck"
     engine_name = "MotherDuck"
     engine_aliases: set[str] = {"duckdb"}
+
+    supports_catalog = True
+    supports_dynamic_catalog = True
 
     sqlalchemy_uri_placeholder = (
         "duckdb:///md:{database_name}?motherduck_token={SERVICE_TOKEN}"
@@ -293,3 +300,33 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         return str(
             URL(drivername=DuckDBEngineSpec.engine, database=database, query=query)
         )
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        if catalog:
+            uri = uri.set(database=f"md:{catalog}")
+
+        return uri, connect_args
+
+    @classmethod
+    def get_default_catalog(cls, database: Database) -> str | None:
+        return database.url_object.database.split(":", 1)[1]
+
+    @classmethod
+    def get_catalog_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+    ) -> set[str]:
+        return {
+            catalog
+            for (catalog,) in inspector.bind.execute(
+                "SELECT alias FROM MD_ALL_DATABASES() WHERE is_attached;"
+            )
+        }

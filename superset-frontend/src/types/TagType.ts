@@ -20,7 +20,7 @@
 import { MouseEventHandler } from 'react';
 
 export interface TagType {
-  id?: string | number;
+  id?: number;
   type?: string | number;
   editable?: boolean;
   onDelete?: (index: number) => void;
@@ -28,6 +28,7 @@ export interface TagType {
   name: string;
   index?: number | undefined;
   toolTipTitle?: string;
+  children?: React.ReactNode;
 }
 
 export default TagType;

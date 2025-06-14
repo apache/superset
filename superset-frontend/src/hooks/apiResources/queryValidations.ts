@@ -26,7 +26,7 @@ export type FetchValidationQueryParams = {
   templateParams?: string;
 };
 
-type ValidationResult = {
+export type ValidationResult = {
   end_column: number | null;
   line_number: number | null;
   message: string | null;

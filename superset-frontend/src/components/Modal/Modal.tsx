@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
+  isValidElement,
+  cloneElement,
   CSSProperties,
   ReactNode,
   useMemo,
@@ -24,10 +26,12 @@ import React, {
   useState,
 } from 'react';
 import { isNil } from 'lodash';
-import { ModalFuncProps } from 'antd/lib/modal';
-import { styled, t } from '@superset-ui/core';
-import { css } from '@emotion/react';
-import { AntdModal, AntdModalProps } from 'src/components';
+import { css, styled, t } from '@superset-ui/core';
+import {
+  Modal as AntdModal,
+  ModalProps as AntdModalProps,
+  ModalFuncProps,
+} from 'antd-v5';
 import Button from 'src/components/Button';
 import { Resizable, ResizableProps } from 're-resizable';
 import Draggable, {
@@ -67,6 +71,7 @@ export interface ModalProps {
   maskClosable?: boolean;
   zIndex?: number;
   bodyStyle?: CSSProperties;
+  openerRef?: React.RefObject<HTMLElement>;
 }
 
 interface StyledModalProps {
@@ -78,6 +83,8 @@ interface StyledModalProps {
   resizable?: boolean;
 }
 
+export type { ModalFuncProps };
+
 const MODAL_HEADER_HEIGHT = 55;
 const MODAL_MIN_CONTENT_HEIGHT = 54;
 const MODAL_FOOTER_HEIGHT = 65;
@@ -87,7 +94,7 @@ const RESIZABLE_MIN_WIDTH = '380px';
 const RESIZABLE_MAX_HEIGHT = '100vh';
 const RESIZABLE_MAX_WIDTH = '100vw';
 
-const BaseModal = (props: AntdModalProps) => (
+export const BaseModal = (props: AntdModalProps) => (
   // Removes mask animation. Fixed in 4.6.0.
   // https://github.com/ant-design/ant-design/issues/27192
   <AntdModal {...props} maskTransitionName="" />
@@ -104,30 +111,45 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
       top: 0;
     `}
 
-  .ant-modal-content {
+  .antd5-modal-content {
     display: flex;
     flex-direction: column;
     max-height: ${({ theme }) => `calc(100vh - ${theme.gridUnit * 8}px)`};
     margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
     margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+    padding: 0;
   }
 
-  .ant-modal-header {
+  .antd5-modal-header {
     flex: 0 0 auto;
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
     border-radius: ${({ theme }) => theme.borderRadius}px
       ${({ theme }) => theme.borderRadius}px 0 0;
-    padding-left: ${({ theme }) => theme.gridUnit * 4}px;
-    padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+    padding: ${({ theme }) => theme.gridUnit * 4}px
+      ${({ theme }) => theme.gridUnit * 6}px;
 
-    .ant-modal-title h4 {
+    .antd5-modal-title {
+      font-weight: ${({ theme }) => theme.typography.weights.medium};
+    }
+
+    .antd5-modal-title h4 {
       display: flex;
       margin: 0;
       align-items: center;
     }
   }
 
-  .ant-modal-close-x {
+  .antd5-modal-close {
+    width: ${({ theme }) => theme.gridUnit * 14}px;
+    height: ${({ theme }) => theme.gridUnit * 14}px;
+    top: 0;
+    right: 0;
+  }
+
+  .antd5-modal-close:hover {
+    background: transparent;
+  }
+
+  .antd5-modal-close-x {
     display: flex;
     align-items: center;
 
@@ -140,21 +162,21 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   }
 
-  .ant-modal-body {
+  .antd5-modal-body {
     flex: 0 1 auto;
     padding: ${({ theme }) => theme.gridUnit * 4}px;
     overflow: auto;
     ${({ resizable, height }) => !resizable && height && `height: ${height};`}
   }
-  .ant-modal-footer {
+  .antd5-modal-footer {
     flex: 0 0 1;
     border-top: ${({ theme }) => theme.gridUnit / 4}px solid
       ${({ theme }) => theme.colors.grayscale.light2};
     padding: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-top: 0;
 
     .btn {
       font-size: 12px;
-      text-transform: uppercase;
     }
 
     .btn + .btn {
@@ -169,14 +191,14 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     margin-top: -${({ theme }) => theme.gridUnit * 4}px;
   }
 
-  &.no-content-padding .ant-modal-body {
+  &.no-content-padding .antd5-modal-body {
     padding: 0;
   }
 
   ${({ draggable, theme }) =>
     draggable &&
     `
-    .ant-modal-header {
+    .antd5-modal-header {
       padding: 0;
       .draggable-trigger {
           cursor: move;
@@ -196,10 +218,10 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         height: 100%;
       }
 
-      .ant-modal-content {
+      .antd5-modal-content {
         height: 100%;
 
-        .ant-modal-body {
+        .antd5-modal-body {
           /* 100% - header height - footer height */
           height: ${
             hideFooter
@@ -211,6 +233,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   `}
 `;
+
 const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
   maxHeight: RESIZABLE_MAX_HEIGHT,
   maxWidth: RESIZABLE_MAX_WIDTH,
@@ -254,22 +277,34 @@ const CustomModal = ({
   resizableConfig = defaultResizableConfig(hideFooter),
   draggableConfig,
   destroyOnClose,
+  openerRef,
   ...rest
 }: ModalProps) => {
   const draggableRef = useRef<HTMLDivElement>(null);
   const [bounds, setBounds] = useState<DraggableBounds>();
   const [dragDisabled, setDragDisabled] = useState<boolean>(true);
+
+  const handleOnHide = () => {
+    openerRef?.current?.focus();
+    onHide();
+  };
+
   let FooterComponent;
-  if (React.isValidElement(footer)) {
+  if (isValidElement(footer)) {
     // If a footer component is provided inject a closeModal function
     // so the footer can provide a "close" button if desired
-    FooterComponent = React.cloneElement(footer, {
-      closeModal: onHide,
+    FooterComponent = cloneElement(footer, {
+      closeModal: handleOnHide,
     } as Partial<unknown>);
   }
   const modalFooter = isNil(FooterComponent)
     ? [
-        <Button key="back" onClick={onHide} cta data-test="modal-cancel-button">
+        <Button
+          key="back"
+          onClick={handleOnHide}
+          cta
+          data-test="modal-cancel-button"
+        >
           {t('Cancel')}
         </Button>,
         <Button
@@ -328,11 +363,11 @@ const CustomModal = ({
     <StyledModal
       centered={!!centered}
       onOk={onHandledPrimaryAction}
-      onCancel={onHide}
+      onCancel={handleOnHide}
       width={modalWidth}
       maxWidth={maxWidth}
       responsive={responsive}
-      visible={show}
+      open={show}
       title={<ModalTitle />}
       closeIcon={
         <span className="close" aria-hidden="true">
@@ -376,26 +411,13 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
-// Ant Design 4 does not allow overriding Modal's buttons when
-// using one of the pre-defined functions. Ant Design 5 Modal introduced
-// the footer property that will allow that. Meanwhile, we're replicating
-// Button style using global CSS in src/GlobalStyles.tsx.
-// TODO: Replace this logic when on Ant Design 5.
-const buttonProps = {
-  okButtonProps: { className: 'modal-functions-ok-button' },
-  cancelButtonProps: { className: 'modal-functions-cancel-button' },
-};
-
 // TODO: in another PR, rename this to CompatabilityModal
 // and demote it as the default export.
 // We should start using AntD component interfaces going forward.
 const Modal = Object.assign(CustomModal, {
-  error: (config: ModalFuncProps) =>
-    AntdModal.error({ ...config, ...buttonProps }),
-  warning: (config: ModalFuncProps) =>
-    AntdModal.warning({ ...config, ...buttonProps }),
-  confirm: (config: ModalFuncProps) =>
-    AntdModal.confirm({ ...config, ...buttonProps }),
+  error: AntdModal.error,
+  warning: AntdModal.warning,
+  confirm: AntdModal.confirm,
   useModal: AntdModal.useModal,
 });
 

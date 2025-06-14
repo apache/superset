@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
 import { IAceEditorProps } from 'react-ace';
-import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import CssEditor from '.';
 
@@ -39,7 +42,7 @@ const templates = [
   { template_name: 'Template C', css: 'background-color: yellow;' },
 ];
 
-fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {
+fetchMock.get('glob:*/api/v1/css_template*', {
   result: templates,
 });
 

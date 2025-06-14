@@ -19,6 +19,7 @@ from __future__ import annotations
 import copy
 import logging
 import re
+from datetime import datetime
 from typing import Any, cast, ClassVar, TYPE_CHECKING, TypedDict
 
 import numpy as np
@@ -48,6 +49,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.models.sql_lab import Query
+from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
@@ -56,11 +58,14 @@ from superset.utils.core import (
     DTTM_ALIAS,
     error_msg_from_exception,
     FilterOperator,
+    GenericDataType,
     get_base_axis_labels,
     get_column_names_from_columns,
     get_column_names_from_metrics,
     get_metric_names,
-    get_xaxis_label,
+    get_x_axis_label,
+    is_adhoc_column,
+    is_adhoc_metric,
     normalize_dttm_col,
     TIME_COMPARISON,
 )
@@ -178,6 +183,30 @@ class QueryContextProcessor:
             ]
             for col in cache.df.columns.values
         }
+        label_map.update(
+            {
+                column_name: [
+                    str(query_obj.columns[idx])
+                    if not is_adhoc_column(query_obj.columns[idx])
+                    else cast(AdhocColumn, query_obj.columns[idx])["sqlExpression"],
+                ]
+                for idx, column_name in enumerate(query_obj.column_names)
+            }
+        )
+        label_map.update(
+            {
+                metric_name: [
+                    str(query_obj.metrics[idx])
+                    if not is_adhoc_metric(query_obj.metrics[idx])
+                    else str(cast(AdhocMetric, query_obj.metrics[idx])["sqlExpression"])
+                    if cast(AdhocMetric, query_obj.metrics[idx])["expressionType"]
+                    == "SQL"
+                    else metric_name,
+                ]
+                for idx, metric_name in enumerate(query_obj.metric_names)
+                if query_obj and query_obj.metrics
+            }
+        )
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
 
         return {
@@ -368,7 +397,39 @@ class QueryContextProcessor:
                 axis=1,
             )
 
-    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
+    def is_valid_date(self, date_string: str) -> bool:
+        try:
+            # Attempt to parse the string as a date in the format YYYY-MM-DD
+            datetime.strptime(date_string, "%Y-%m-%d")
+            return True
+        except ValueError:
+            # If parsing fails, it's not a valid date in the format YYYY-MM-DD
+            return False
+
+    def get_offset_custom_or_inherit(
+        self,
+        offset: str,
+        outer_from_dttm: datetime,
+        outer_to_dttm: datetime,
+    ) -> str:
+        """
+        Get the time offset for custom or inherit.
+
+        :param offset: The offset string.
+        :param outer_from_dttm: The outer from datetime.
+        :param outer_to_dttm: The outer to datetime.
+        :returns: The time offset.
+        """
+        if offset == "inherit":
+            # return the difference in days between the from and the to dttm formatted as a string with the " days ago" suffix  # noqa: E501
+            return f"{(outer_to_dttm - outer_from_dttm).days} days ago"
+        if self.is_valid_date(offset):
+            # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix  # noqa: E501
+            offset_date = datetime.strptime(offset, "%Y-%m-%d")
+            return f"{(outer_from_dttm - offset_date).days} days ago"
+        return ""
+
+    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements  # noqa: C901
         self,
         df: pd.DataFrame,
         query_object: QueryObject,
@@ -399,24 +460,31 @@ class QueryContextProcessor:
         for offset in query_object.time_offsets:
             try:
                 # pylint: disable=line-too-long
-                # Since the xaxis is also a column name for the time filter, xaxis_label will be set as granularity
+                # Since the x-axis is also a column name for the time filter, x_axis_label will be set as granularity  # noqa: E501
                 # these query object are equivalent:
-                # 1) { granularity: 'dttm_col', time_range: '2020 : 2021', time_offsets: ['1 year ago']}
+                # 1) { granularity: 'dttm_col', time_range: '2020 : 2021', time_offsets: ['1 year ago']}  # noqa: E501
                 # 2) { columns: [
-                #        {label: 'dttm_col', sqlExpression: 'dttm_col', "columnType": "BASE_AXIS" }
+                #        {label: 'dttm_col', sqlExpression: 'dttm_col', "columnType": "BASE_AXIS" }  # noqa: E501
                 #      ],
                 #      time_offsets: ['1 year ago'],
-                #      filters: [{col: 'dttm_col', op: 'TEMPORAL_RANGE', val: '2020 : 2021'}],
+                #      filters: [{col: 'dttm_col', op: 'TEMPORAL_RANGE', val: '2020 : 2021'}],  # noqa: E501
                 #    }
+                original_offset = offset
+                if self.is_valid_date(offset) or offset == "inherit":
+                    offset = self.get_offset_custom_or_inherit(
+                        offset,
+                        outer_from_dttm,
+                        outer_to_dttm,
+                    )
                 query_object_clone.from_dttm = get_past_or_future(
                     offset,
                     outer_from_dttm,
                 )
                 query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
 
-                xaxis_label = get_xaxis_label(query_object.columns)
+                x_axis_label = get_x_axis_label(query_object.columns)
                 query_object_clone.granularity = (
-                    query_object_clone.granularity or xaxis_label
+                    query_object_clone.granularity or x_axis_label
                 )
             except ValueError as ex:
                 raise QueryObjectValidationError(str(ex)) from ex
@@ -450,12 +518,22 @@ class QueryContextProcessor:
             query_object_clone.filter = [
                 flt
                 for flt in query_object_clone.filter
-                if flt.get("col") != xaxis_label
+                if flt.get("col") != x_axis_label
             ]
+
+            # Inherit or custom start dates might compute the same offset but the response cannot be given  # noqa: E501
+            # using cached data unless you are using the same date of inherited range, that's why we  # noqa: E501
+            # set the cache cache using a custom key that includes the original offset and the computed offset  # noqa: E501
+            # for those two scenarios, the rest of the scenarios will use the original offset as cache key  # noqa: E501
+            cached_time_offset_key = (
+                offset if offset == original_offset else f"{offset}_{original_offset}"
+            )
 
             # `offset` is added to the hash function
             cache_key = self.query_cache_key(
-                query_object_clone, time_offset=offset, time_grain=time_grain
+                query_object_clone,
+                time_offset=cached_time_offset_key,
+                time_grain=time_grain,
             )
             cache = QueryCacheManager.get(
                 cache_key, CacheRegion.DATA, query_context.force
@@ -470,7 +548,7 @@ class QueryContextProcessor:
             query_object_clone_dct = query_object_clone.to_dict()
             # rename metrics: SUM(value) => SUM(value) 1 year ago
             metrics_mapping = {
-                metric: TIME_COMPARISON.join([metric, offset])
+                metric: TIME_COMPARISON.join([metric, original_offset])
                 for metric in metric_names
             }
 
@@ -592,8 +670,9 @@ class QueryContextProcessor:
 
             if time_grain:
                 # move the temporal column to the first column in df
-                col = df.pop(join_keys[0])
-                df.insert(0, col.name, col)
+                if join_keys:
+                    col = df.pop(join_keys[0])
+                    df.insert(0, col.name, col)
 
                 # removes columns created only for join purposes
                 df.drop(
@@ -640,7 +719,9 @@ class QueryContextProcessor:
 
         return str(value)
 
-    def get_data(self, df: pd.DataFrame) -> str | list[dict[str, Any]]:
+    def get_data(
+        self, df: pd.DataFrame, coltypes: list[GenericDataType]
+    ) -> str | list[dict[str, Any]]:
         if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
@@ -654,10 +735,52 @@ class QueryContextProcessor:
                     df, index=include_index, **config["CSV_EXPORT"]
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
+                excel.apply_column_types(df, coltypes)
                 result = excel.df_to_excel(df, **config["EXCEL_EXPORT"])
             return result or ""
 
         return df.to_dict(orient="records")
+
+    def ensure_totals_available(self) -> None:
+        queries_needing_totals = []
+        totals_queries = []
+
+        for i, query in enumerate(self._query_context.queries):
+            needs_totals = any(
+                pp.get("operation") == "contribution"
+                for pp in getattr(query, "post_processing", []) or []
+            )
+
+            if needs_totals:
+                queries_needing_totals.append(i)
+
+            is_totals_query = (
+                not query.columns and query.metrics and not query.post_processing
+            )
+            if is_totals_query:
+                totals_queries.append(i)
+
+        if not queries_needing_totals or not totals_queries:
+            return
+
+        totals_idx = totals_queries[0]
+        totals_query = self._query_context.queries[totals_idx]
+
+        totals_query.row_limit = None
+
+        result = self._query_context.get_query_result(totals_query)
+        df = result.df
+
+        totals = {
+            col: df[col].sum() for col in df.columns if df[col].dtype.kind in "biufc"
+        }
+
+        for idx in queries_needing_totals:
+            query = self._query_context.queries[idx]
+            if hasattr(query, "post_processing") and query.post_processing:
+                for pp in query.post_processing:
+                    if pp.get("operation") == "contribution":
+                        pp["options"]["contribution_totals"] = totals
 
     def get_payload(
         self,
@@ -666,7 +789,8 @@ class QueryContextProcessor:
     ) -> dict[str, Any]:
         """Returns the query results with both metadata and data"""
 
-        # Get all the payloads from the QueryObjects
+        self.ensure_totals_available()
+
         query_results = [
             get_query_results(
                 query_obj.result_type or self._query_context.result_type,
@@ -676,6 +800,7 @@ class QueryContextProcessor:
             )
             for query_obj in self._query_context.queries
         ]
+
         return_value = {"queries": query_results}
 
         if cache_query_context:
@@ -769,7 +894,7 @@ class QueryContextProcessor:
         return annotation_data
 
     @staticmethod
-    def get_viz_annotation_data(
+    def get_viz_annotation_data(  # noqa: C901
         annotation_layer: dict[str, Any], force: bool
     ) -> dict[str, Any]:
         # pylint: disable=import-outside-toplevel

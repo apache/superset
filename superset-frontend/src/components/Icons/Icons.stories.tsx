@@ -16,18 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { useState } from 'react';
 import { styled, supersetTheme } from '@superset-ui/core';
-import Icons from '.';
-import IconType from './IconType';
-import Icon from './Icon';
+import { Input } from 'antd-v5';
+import { Icons, IconNameType } from '.';
+import IconType from './types';
+import { BaseIconComponent } from './BaseIcon';
 
 export default {
   title: 'Icons',
-  component: Icon,
+  component: BaseIconComponent,
 };
 
-const palette = { Default: null };
+const palette: Record<string, string | null> = { Default: null };
 Object.entries(supersetTheme.colors).forEach(([familyName, family]) => {
   Object.entries(family).forEach(([colorName, colorValue]) => {
     palette[`${familyName} / ${colorName}`] = colorValue;
@@ -36,8 +37,9 @@ Object.entries(supersetTheme.colors).forEach(([familyName, family]) => {
 
 const IconSet = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, 200px);
-  grid-auto-rows: 100px;
+  grid-template-columns: repeat(auto-fit, 180px);
+  grid-auto-rows: 90px;
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const IconBlock = styled.div`
@@ -45,24 +47,55 @@ const IconBlock = styled.div`
   flex-direction: column;
   align-items: center;
   padding: ${({ theme }) => theme.gridUnit * 2}px;
+
+  span {
+    margin-top: ${({ theme }) =>
+      2 * theme.gridUnit}px; // Add spacing between icon and name
+    font-size: ${({ theme }) =>
+      theme.typography.sizes.s}; // Optional: adjust font size for elegance
+    color: ${({ theme }) =>
+      theme.colors.grayscale.base}; // Optional: subtle color for the name
+  }
+`;
+
+const SearchBox = styled(Input.Search)`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  width: 100%;
+  max-width: 400px;
 `;
 
 export const InteractiveIcons = ({
-  showNames,
+  showNames = true,
   ...rest
-}: IconType & { showNames: boolean }) => (
-  <IconSet>
-    {Object.keys(Icons).map(k => {
-      const IconComponent = Icons[k];
-      return (
-        <IconBlock key={k}>
-          <IconComponent {...rest} />
-          {showNames && k}
-        </IconBlock>
-      );
-    })}
-  </IconSet>
-);
+}: IconType & { showNames: boolean }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Filter icons based on the search term
+  const filteredIcons = Object.keys(Icons).filter(k =>
+    k.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
+  return (
+    <div>
+      <SearchBox
+        placeholder="Search icons..."
+        onChange={e => setSearchTerm(e.target.value)}
+        allowClear
+      />
+      <IconSet>
+        {filteredIcons.map(k => {
+          const IconComponent = Icons[k as IconNameType];
+          return (
+            <IconBlock key={k}>
+              <IconComponent {...rest} />
+              {showNames && <span>{k}</span>}
+            </IconBlock>
+          );
+        })}
+      </IconSet>
+    </div>
+  );
+};
 
 InteractiveIcons.argTypes = {
   showNames: {
@@ -72,11 +105,13 @@ InteractiveIcons.argTypes = {
   },
   iconSize: {
     defaultValue: 'xl',
-    control: { type: 'inline-radio', options: ['s', 'l', 'm', 'xl', 'xxl'] },
+    control: { type: 'inline-radio' },
+    options: ['s', 'm', 'l', 'xl', 'xxl'],
   },
   iconColor: {
     defaultValue: null,
-    control: { type: 'select', options: palette },
+    control: { type: 'select' },
+    options: palette,
   },
   theme: {
     table: {

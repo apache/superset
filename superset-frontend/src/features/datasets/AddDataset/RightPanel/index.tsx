@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-
 export default function RightPanel() {
   return <div>Right Panel</div>;
 }

@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useRef } from 'react';
-import SchemaForm, { FormProps, FormValidation } from 'react-jsonschema-form';
+import { FunctionComponent, useState, useRef, ChangeEvent } from 'react';
+
+import SchemaForm, { FormProps } from '@rjsf/core';
+import { FormValidation } from '@rjsf/utils';
+import validator from '@rjsf/validator-ajv8';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
-import * as chrono from 'chrono-node';
+import { parseDate } from 'chrono-node';
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
 import { Form, FormItem } from 'src/components/Form';
 import Button from 'src/components/Button';
@@ -44,11 +47,10 @@ const getJSONSchema = () => {
     Object.entries(jsonSchema.properties).forEach(
       ([key, value]: [string, any]) => {
         if (value.default && value.format === 'date-time') {
+          const parsedDate = parseDate(value.default);
           jsonSchema.properties[key] = {
             ...value,
-            default: value.default
-              ? chrono.parseDate(value.default)?.toISOString()
-              : null,
+            default: parsedDate ? parsedDate.toISOString() : null,
           };
         }
       },
@@ -66,11 +68,11 @@ const getValidator = () => {
   const rules: any = getValidationRules();
   return (formData: Record<string, any>, errors: FormValidation) => {
     rules.forEach((rule: any) => {
-      const test = validators[rule.name];
+      const test = validators[rule.name as keyof typeof validators];
       const args = rule.arguments.map((name: string) => formData[name]);
       const container = rule.container || rule.arguments.slice(-1)[0];
-      if (!test(...args)) {
-        errors[container].addError(rule.message);
+      if (!test(args[0], args[1])) {
+        errors[container]?.addError(rule.message);
       }
     });
     return errors;
@@ -150,7 +152,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   const onScheduleSubmit = ({
     formData,
   }: {
-    formData: Omit<FormProps<Record<string, any>>, 'schema'>;
+    formData?: Omit<FormProps<Record<string, any>>, 'schema'>;
   }) => {
     const query = {
       label,
@@ -173,7 +175,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
               type="text"
               placeholder={t('Label for your query')}
               value={label}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(event: ChangeEvent<HTMLInputElement>) =>
                 setLabel(event.target.value)
               }
             />
@@ -187,7 +189,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
               rows={4}
               placeholder={t('Write a description for your query')}
               value={description}
-              onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
+              onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
                 setDescription(event.target.value)
               }
             />
@@ -201,7 +203,8 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
               schema={getJSONSchema()}
               uiSchema={getUISchema()}
               onSubmit={onScheduleSubmit}
-              validate={getValidator()}
+              customValidate={getValidator()}
+              validator={validator}
             >
               <Button
                 buttonStyle="primary"

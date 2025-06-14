@@ -18,13 +18,13 @@
 """Unit tests for Superset"""
 
 from datetime import datetime
-import imp
-import json
+from importlib.util import find_spec
 from contextlib import contextmanager
 from typing import Any, Union, Optional
 from unittest.mock import Mock, patch, MagicMock
 
 import pandas as pd
+import prison
 from flask import Response, g
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
@@ -34,8 +34,9 @@ from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import dialect
 
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.test_app import app, login
-from superset.sql_parse import CtasMethod
+from superset.sql.parse import CTASMethod
 from superset import db, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.models import core as models
@@ -43,11 +44,12 @@ from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.utils.core import get_example_default_schema, shortid
+from superset.utils import json
 from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
 
 FAKE_DB_NAME = "fake_db_100"
-DEFAULT_PASSWORD = "general"
+DEFAULT_PASSWORD = "general"  # noqa: S105
 test_client = app.test_client()
 
 
@@ -203,8 +205,7 @@ class SupersetTestCase(TestCase):
         previous_g_user = g.user if hasattr(g, "user") else None
         try:
             if login:
-                resp = self.login(username=temp_user.username)
-                print(resp)
+                self.login(username=temp_user.username)
             else:
                 g.user = temp_user
             yield temp_user
@@ -255,11 +256,11 @@ class SupersetTestCase(TestCase):
         return db.session.query(SqlaTable).filter_by(id=table_id).one()
 
     @staticmethod
-    def is_module_installed(module_name):
+    def is_module_installed(module_name: str) -> bool:
         try:
-            imp.find_module(module_name)
-            return True
-        except ImportError:
+            spec = find_spec(module_name)
+            return spec is not None
+        except (ModuleNotFoundError, ValueError, TypeError, ImportError):
             return False
 
     def get_or_create(self, cls, criteria, **kwargs):
@@ -386,7 +387,7 @@ class SupersetTestCase(TestCase):
         select_as_cta=False,
         tmp_table_name=None,
         schema=None,
-        ctas_method=CtasMethod.TABLE,
+        ctas_method=CTASMethod.TABLE,
         template_params="{}",
     ):
         if username:
@@ -399,7 +400,7 @@ class SupersetTestCase(TestCase):
             "client_id": client_id,
             "queryLimit": query_limit,
             "sql_editor_id": sql_editor_id,
-            "ctas_method": ctas_method,
+            "ctas_method": ctas_method.name,
             "templateParams": template_params,
         }
         if tmp_table_name:
@@ -442,6 +443,7 @@ class SupersetTestCase(TestCase):
         )
         if database:
             db.session.delete(database)
+            db.session.commit()
 
     def create_fake_db_for_macros(self):
         database_name = "db_for_macros_testing"
@@ -553,7 +555,7 @@ class SupersetTestCase(TestCase):
         dashboard_title: str,
         slug: Optional[str],
         owners: list[int],
-        roles: list[int] = [],
+        roles: list[int] = [],  # noqa: B006
         created_by=None,
         slices: Optional[list[Slice]] = None,
         position_json: str = "",
@@ -563,8 +565,8 @@ class SupersetTestCase(TestCase):
         certified_by: Optional[str] = None,
         certification_details: Optional[str] = None,
     ) -> Dashboard:
-        obj_owners = list()
-        obj_roles = list()
+        obj_owners = list()  # noqa: C408
+        obj_roles = list()  # noqa: C408
         slices = slices or []
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
@@ -589,6 +591,20 @@ class SupersetTestCase(TestCase):
         db.session.add(dashboard)
         db.session.commit()
         return dashboard
+
+    def get_list(
+        self,
+        asset_type: str,
+        filter: dict[str, Any] = {},  # noqa: B006
+        username: str = ADMIN_USERNAME,
+    ) -> Response:
+        """
+        Get list of assets, by default using admin account. Can be filtered.
+        """
+        self.login(username)
+        uri = f"api/v1/{asset_type}/?q={prison.dumps(filter)}"
+        response = self.get_assert_metric(uri, "get_list")
+        return response
 
 
 @contextmanager

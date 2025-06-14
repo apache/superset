@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { useCallback, useState } from 'react';
+import { t, styled, useTheme } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from 'src/components/Icons';
 
 const StyledInput = styled(Input)`
   border-radius: ${({ theme }) => theme.borderRadius};
@@ -33,6 +34,7 @@ export const DndColumnSelectPopoverTitle = ({
   isEditDisabled,
   hasCustomLabel,
 }) => {
+  const theme = useTheme();
   const [isHovered, setIsHovered] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -91,9 +93,11 @@ export const DndColumnSelectPopoverTitle = ({
       >
         {title || defaultLabel}
         &nbsp;
-        <i
-          className="fa fa-pencil"
-          style={{ color: isHovered ? 'black' : 'grey' }}
+        <Icons.EditOutlined
+          iconColor={
+            isHovered ? theme.colors.primary.base : theme.colors.grayscale.base
+          }
+          iconSize="m"
         />
       </span>
     </Tooltip>

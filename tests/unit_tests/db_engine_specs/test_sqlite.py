@@ -40,7 +40,7 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.sqlite import SqliteEngineSpec as spec
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -126,6 +126,6 @@ def test_time_grain_expressions(dttm: str, grain: str, expected: str) -> None:  
 
     # pylint: disable=protected-access
     expression = SqliteEngineSpec._time_grain_expressions[grain].format(col="dttm")
-    sql = f"SELECT {expression} FROM t"
+    sql = f"SELECT {expression} FROM t"  # noqa: S608
     result = connection.execute(sql).scalar()
     assert result == expected

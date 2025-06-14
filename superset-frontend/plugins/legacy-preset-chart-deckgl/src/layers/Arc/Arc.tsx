@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ArcLayer } from 'deck.gl/typed';
-import React from 'react';
+import { ArcLayer } from '@deck.gl/layers';
 import {
   HandlerFunction,
   JsonObject,
@@ -30,7 +29,7 @@ import TooltipRow from '../../TooltipRow';
 import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   const points: Point[] = [];
   data.forEach(d => {
     points.push(d.sourcePosition);
@@ -73,12 +72,12 @@ export function getLayer(
 
   return new ArcLayer({
     data,
-    getSourceColor: d =>
+    getSourceColor: (d: any) =>
       d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a],
-    getTargetColor: d =>
+    getTargetColor: (d: any) =>
       d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
     id: `path-layer-${fd.slice_id}` as const,
-    strokeWidth: fd.stroke_width ? fd.stroke_width : 3,
+    getWidth: fd.stroke_width ? fd.stroke_width : 3,
     ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
   });
 }

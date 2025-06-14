@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen, within } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import * as resizeDetector from 'react-resize-detector';
 import { supersetTheme, hexToRgb } from '@superset-ui/core';
 import MetadataBar, {
@@ -159,7 +162,7 @@ test('renders underlined text and emits event when clickable', () => {
   expect(style.textDecoration).toBe('underline');
 });
 
-test('renders clicable items with blue icons when the bar is collapsed', async () => {
+test('renders clickable items with blue icons when the bar is collapsed', async () => {
   await runWithBarCollapsed(async () => {
     const onClick = jest.fn();
     const items = [{ ...ITEMS[0], onClick }, ITEMS[1]];

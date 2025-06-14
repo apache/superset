@@ -98,6 +98,8 @@ class BaseReportScheduleCommand(BaseCommand):
             else "REPORT_MINIMUM_INTERVAL"
         )
         minimum_interval = current_app.config.get(config_key, 0)
+        if callable(minimum_interval):
+            minimum_interval = minimum_interval()
 
         if not isinstance(minimum_interval, int):
             logger.error(

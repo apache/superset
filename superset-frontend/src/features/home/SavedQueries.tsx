@@ -16,21 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
+import { styled, SupersetClient, t, useTheme, css } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { LoadingCards } from 'src/pages/Home';
 import { TableTab } from 'src/views/CRUD/types';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
 import DeleteModal from 'src/components/DeleteModal';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { User } from 'src/types/bootstrapTypes';
 import {
   CardContainer,
@@ -39,6 +39,10 @@ import {
   PAGE_SIZE,
   shortenSQL,
 } from 'src/views/CRUD/utils';
+import { assetUrl } from 'src/utils/assetUrl';
+import { ensureAppRoot } from 'src/utils/pathUtils';
+import { navigateTo } from 'src/utils/navigationUtils';
+import { Button } from 'src/components';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
@@ -74,7 +78,7 @@ export const CardStyles = styled.div`
   a {
     text-decoration: none;
   }
-  .ant-card-cover {
+  .antd5-card-cover {
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     & > div {
       height: 171px;
@@ -191,33 +195,43 @@ const SavedQueries = ({
       filters: getFilterValues(tab, WelcomeTable.SavedQueries, user),
     });
 
-  const renderMenu = (query: Query) => (
-    <Menu>
-      {canEdit && (
-        <Menu.Item>
-          <Link to={`/sqllab?savedQueryId=${query.id}`}>{t('Edit')}</Link>
-        </Menu.Item>
-      )}
-      <Menu.Item
-        onClick={() => {
-          if (query.id) {
-            copyQueryLink(query.id, addDangerToast, addSuccessToast);
-          }
-        }}
-      >
-        {t('Share')}
-      </Menu.Item>
-      {canDelete && (
+  const renderMenu = useCallback(
+    (query: Query) => (
+      <Menu>
+        {canEdit && (
+          <Menu.Item>
+            <Link to={`/sqllab?savedQueryId=${query.id}`}>{t('Edit')}</Link>
+          </Menu.Item>
+        )}
         <Menu.Item
           onClick={() => {
-            setQueryDeleteModal(true);
-            setCurrentlyEdited(query);
+            if (query.id) {
+              copyQueryLink(query.id, addDangerToast, addSuccessToast);
+            }
           }}
         >
-          {t('Delete')}
+          <Icons.UploadOutlined
+            iconSize="l"
+            css={css`
+              margin-right: ${theme.gridUnit}px;
+              vertical-align: baseline;
+            `}
+          />
+          {t('Share')}
         </Menu.Item>
-      )}
-    </Menu>
+        {canDelete && (
+          <Menu.Item
+            onClick={() => {
+              setQueryDeleteModal(true);
+              setCurrentlyEdited(query);
+            }}
+          >
+            {t('Delete')}
+          </Menu.Item>
+        )}
+      </Menu>
+    ),
+    [],
   );
 
   if (loading) return <LoadingCards cover={showThumbnails} />;
@@ -253,8 +267,23 @@ const SavedQueries = ({
         buttons={[
           {
             name: (
-              <Link to="/sqllab?new=true">
-                <i className="fa fa-plus" />
+              <Link
+                to="/sqllab?new=true"
+                css={css`
+                  &:hover {
+                    color: currentColor;
+                    text-decoration: none;
+                  }
+                `}
+              >
+                <Icons.PlusOutlined
+                  css={css`
+                    margin: auto ${theme.gridUnit * 2}px auto 0;
+                    vertical-align: text-top;
+                  `}
+                  iconSize="m"
+                  iconColor={theme.colors.primary.dark1}
+                />
                 {t('SQL Query')}
               </Link>
             ),
@@ -264,7 +293,7 @@ const SavedQueries = ({
             name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = '/savedqueryview/list';
+              navigateTo('/savedqueryview/list');
             },
           },
         ]}
@@ -275,10 +304,12 @@ const SavedQueries = ({
             <CardStyles key={q.id}>
               <ListViewCard
                 imgURL=""
-                url={`/sqllab?savedQueryId=${q.id}`}
+                url={ensureAppRoot(`/sqllab?savedQueryId=${q.id}`)}
                 title={q.label}
-                imgFallbackURL="/static/assets/images/empty-query.svg"
-                description={t('Ran %s', q.changed_on_delta_humanized)}
+                imgFallbackURL={assetUrl(
+                  '/static/assets/images/empty-query.svg',
+                )}
+                description={t('Modified %s', q.changed_on_delta_humanized)}
                 cover={
                   q?.sql?.length && showThumbnails && featureFlag ? (
                     <QueryContainer>
@@ -315,11 +346,14 @@ const SavedQueries = ({
                         e.preventDefault();
                       }}
                     >
-                      <AntdDropdown overlay={renderMenu(q)}>
-                        <Icons.MoreVert
-                          iconColor={theme.colors.grayscale.base}
-                        />
-                      </AntdDropdown>
+                      <Dropdown
+                        dropdownRender={() => renderMenu(q)}
+                        trigger={['click', 'hover']}
+                      >
+                        <Button buttonSize="xsmall" type="link">
+                          <Icons.MoreOutlined iconSize="xl" />
+                        </Button>
+                      </Dropdown>
                     </ListViewCard.Actions>
                   </QueryData>
                 }

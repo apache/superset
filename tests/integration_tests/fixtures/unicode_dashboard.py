@@ -55,7 +55,7 @@ def load_unicode_data():
             engine.execute("DROP TABLE IF EXISTS unicode_test")
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_unicode_dashboard_with_slice(load_unicode_data):
     slice_name = "Unicode Cloud"
     with app.app_context():
@@ -64,7 +64,7 @@ def load_unicode_dashboard_with_slice(load_unicode_data):
         _cleanup(dash, slice_name)
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_unicode_dashboard_with_position(load_unicode_data):
     slice_name = "Unicode Cloud"
     position = "{}"
@@ -114,7 +114,8 @@ def _create_and_commit_unicode_slice(table: SqlaTable, title: str):
 
 def _cleanup(dash: Dashboard, slice_name: str) -> None:
     db.session.delete(dash)
-    if slice_name:
-        slice = db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+    if slice_name and (
+        slice := db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+    ):
         db.session.delete(slice)
     db.session.commit()

@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { StoryFn, Meta } from '@storybook/react';
 import { CurrencyCode, NumericCell, LocaleCode, Style } from './index';
 
 export default {
   title: 'Design System/Components/Table/Cell Renderers/NumericCell',
   component: NumericCell,
-} as ComponentMeta<typeof NumericCell>;
+} as Meta<typeof NumericCell>;
 
-export const Basic: ComponentStory<typeof NumericCell> = args => (
+export const Basic: StoryFn<typeof NumericCell> = args => (
   <NumericCell {...args} />
 );
 
@@ -33,7 +32,7 @@ Basic.args = {
   value: 5678943,
 };
 
-export const FrenchLocale: ComponentStory<typeof NumericCell> = args => (
+export const FrenchLocale: StoryFn<typeof NumericCell> = args => (
   <NumericCell {...args} />
 );
 

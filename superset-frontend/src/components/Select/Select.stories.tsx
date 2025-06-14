@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { StoryObj } from '@storybook/react';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { SelectOptionsType, SelectProps } from './types';

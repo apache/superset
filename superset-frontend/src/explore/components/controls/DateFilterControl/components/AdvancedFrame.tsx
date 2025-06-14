@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { SEPARATOR, t } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -56,6 +55,8 @@ export function AdvancedFrame(props: FrameComponentProps) {
       <div className="section-title">
         {t('Configure Advanced Time Range ')}
         <DateFunctionTooltip placement="rightBottom">
+          {/* TODO: Remove fa-icon */}
+          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
           <i className="fa fa-info-circle text-muted" />
         </DateFunctionTooltip>
       </div>

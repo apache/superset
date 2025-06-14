@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-echarts",
-  "version": "0.18.25",
+  "version": "0.20.3",
   "description": "Superset Chart - Echarts",
   "keywords": [
     "superset"
@@ -24,16 +24,17 @@
     "lib"
   ],
   "dependencies": {
+    "@types/react-redux": "^7.1.34",
     "d3-array": "^1.2.0",
-    "echarts": "^5.4.1",
-    "lodash": "^4.17.21",
-    "moment": "^2.30.1"
+    "dayjs": "^1.11.13",
+    "lodash": "^4.17.21"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "echarts": "*",
     "memoize-one": "*",
-    "react": "^16.13.1"
+    "react": "^17.0.2"
   },
   "publishConfig": {
     "access": "public"

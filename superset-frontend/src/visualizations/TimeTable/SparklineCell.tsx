@@ -17,8 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import moment from 'moment';
+import { ReactNode } from 'react';
 import {
   formatNumber,
   formatTime,
@@ -35,6 +34,7 @@ import {
   XYChart,
   buildChartTheme,
 } from '@visx/xychart';
+import { extendedDayjs } from 'src/utils/dates';
 
 interface Props {
   ariaLabel: string;
@@ -45,7 +45,7 @@ interface Props {
   height: number;
   numberFormat: string;
   dateFormat: string;
-  renderTooltip: ({ index }: { index: number }) => React.ReactNode;
+  renderTooltip: ({ index }: { index: number }) => ReactNode;
   showYAxis: boolean;
   width: number;
   yAxisBounds: Array<number | undefined>;
@@ -223,7 +223,7 @@ const SparklineCell = ({
                   {idx !== undefined &&
                     formatTime(
                       dateFormat,
-                      moment.utc(entries[idx].time).toDate(),
+                      extendedDayjs.utc(entries[idx].time).toDate(),
                     )}
                 </div>
               </div>

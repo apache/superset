@@ -35,8 +35,8 @@ from superset.daos.query import QueryDAO
 from superset.extensions import event_logger
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
+from superset.sql.parse import SQLScript
 from superset.sql_lab import get_sql_results
-from superset.sql_parse import SQLScript
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
@@ -61,7 +61,7 @@ from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
-from superset.utils import core as utils, json as json_utils
+from superset.utils import core as utils, json
 from superset.views.base import CsvResponse, generate_download_headers, json_success
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
@@ -131,9 +131,9 @@ class SqlLabRestApi(BaseSupersetApi):
         result = bootstrap_sqllab_data(user_id)
 
         return json_success(
-            json_utils.dumps(
+            json.dumps(
                 {"result": result},
-                default=json_utils.json_iso_dttm_ser,
+                default=json.json_iso_dttm_ser,
                 ignore_nan=True,
             ),
             200,
@@ -193,7 +193,7 @@ class SqlLabRestApi(BaseSupersetApi):
     @protect()
     @permission_name("read")
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".format",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.format",
         log_to_statsd=False,
     )
     def format_sql(self) -> FlaskResponse:
@@ -238,8 +238,7 @@ class SqlLabRestApi(BaseSupersetApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".export_csv",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_csv",
         log_to_statsd=False,
     )
     def export_csv(self, client_id: str) -> CsvResponse:
@@ -284,6 +283,7 @@ class SqlLabRestApi(BaseSupersetApi):
             "client_id": client_id,
             "row_count": row_count,
             "database": query.database.name,
+            "catalog": query.catalog,
             "schema": query.schema,
             "sql": query.sql,
             "exported_format": "csv",
@@ -299,8 +299,7 @@ class SqlLabRestApi(BaseSupersetApi):
     @statsd_metrics
     @rison(sql_lab_get_results_schema)
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".get_results",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_results",
         log_to_statsd=False,
     )
     def get_results(self, **kwargs: Any) -> FlaskResponse:
@@ -342,9 +341,9 @@ class SqlLabRestApi(BaseSupersetApi):
 
         # Using pessimistic json serialization since some database drivers can return
         # unserializeable types at times
-        payload = json_utils.dumps(
+        payload = json.dumps(
             result,
-            default=json_utils.pessimistic_json_iso_dttm_ser,
+            default=json.pessimistic_json_iso_dttm_ser,
             ignore_nan=True,
         )
         return json_success(payload, 200)
@@ -354,8 +353,7 @@ class SqlLabRestApi(BaseSupersetApi):
     @statsd_metrics
     @requires_json
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".get_results",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_results",
         log_to_statsd=False,
     )
     def execute_sql_query(self) -> FlaskResponse:

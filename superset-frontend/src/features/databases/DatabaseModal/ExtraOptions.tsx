@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ChangeEvent, EventHandler } from 'react';
+import { ChangeEvent, EventHandler } from 'react';
 import cx from 'classnames';
 import {
   t,
-  SupersetTheme,
   DatabaseConnectionExtension,
+  isFeatureEnabled,
+  SupersetTheme,
+  useTheme,
+  FeatureFlag,
 } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
@@ -68,10 +71,16 @@ const ExtraOptions = ({
     }
     return value;
   });
-
+  const theme = useTheme();
   const ExtraExtensionComponent = extraExtension?.component;
   const ExtraExtensionLogo = extraExtension?.logo;
   const ExtensionDescription = extraExtension?.description;
+  const allowRunAsync = isFeatureEnabled(FeatureFlag.ForceSqlLabRunAsync)
+    ? true
+    : !!db?.allow_run_async;
+  const isAllowRunAsyncDisabled = isFeatureEnabled(
+    FeatureFlag.ForceSqlLabRunAsync,
+  );
 
   return (
     <Collapse
@@ -163,11 +172,11 @@ const ExtraOptions = ({
                   indeterminate={false}
                   checked={!!db?.allow_dml}
                   onChange={onInputChange}
-                  labelText={t('Allow DML')}
+                  labelText={t('Allow DDL and DML')}
                 />
                 <InfoTooltip
                   tooltip={t(
-                    'Allow manipulation of the database using non-SELECT statements such as UPDATE, DELETE, CREATE, etc.',
+                    'Allow the execution of DDL (Data Definition Language: CREATE, DROP, TRUNCATE, etc.) and DML (Data Modification Language: INSERT, UPDATE, DELETE, etc)',
                   )}
                 />
               </div>
@@ -262,6 +271,7 @@ const ExtraOptions = ({
               value={db?.cache_timeout || ''}
               placeholder={t('Enter duration in seconds')}
               onChange={onInputChange}
+              data-test="cache-timeout-test"
             />
           </div>
           <div className="helper">
@@ -319,7 +329,7 @@ const ExtraOptions = ({
             <IndeterminateCheckbox
               id="allow_run_async"
               indeterminate={false}
-              checked={!!db?.allow_run_async}
+              checked={allowRunAsync}
               onChange={onInputChange}
               labelText={t('Asynchronous query execution')}
             />
@@ -331,6 +341,14 @@ const ExtraOptions = ({
                   'backend. Refer to the installation docs for more information.',
               )}
             />
+            {isAllowRunAsyncDisabled && (
+              <InfoTooltip
+                iconStyle={{ color: theme.colors.error.base }}
+                tooltip={t(
+                  'This option has been disabled by the administrator.',
+                )}
+              />
+            )}
           </div>
         </StyledInputContainer>
         <StyledInputContainer css={{ no_margin_bottom }}>
@@ -516,7 +534,9 @@ const ExtraOptions = ({
               value={
                 !Object.keys(extraJson?.metadata_params || {}).length
                   ? ''
-                  : extraJson?.metadata_params
+                  : typeof extraJson?.metadata_params === 'string'
+                    ? extraJson?.metadata_params
+                    : JSON.stringify(extraJson?.metadata_params)
               }
             />
           </div>

@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import React, { FC, useMemo, useState, memo } from 'react';
+import { FC, useMemo, useState, memo } from 'react';
 import { NativeFilterScope } from '@superset-ui/core';
 import { Tree } from 'src/components';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { useFilterScopeTree } from './state';
 import { findFilterScope, getTreeCheckedItems } from './utils';
 
@@ -47,7 +47,7 @@ const buildTreeLeafTitle = (
       <>
         {title}&nbsp;
         <Tooltip title={tooltipTitle}>
-          <Icons.Info iconSize="m" />
+          <Icons.InfoCircleOutlined iconSize="m" />
         </Tooltip>
       </>
     );

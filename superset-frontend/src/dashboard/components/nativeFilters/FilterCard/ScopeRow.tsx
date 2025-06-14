@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { t, useTruncation } from '@superset-ui/core';
 import { useFilterScope } from './useFilterScope';
 import {
@@ -42,7 +42,7 @@ const getTooltipSection = (items: string[] | undefined, label: string) =>
     </>
   ) : null;
 
-export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
+export const ScopeRow = memo(({ filter }: FilterCardRowProps) => {
   const scope = useFilterScope(filter);
 
   const [scopeRef, plusRef, elementsTruncated, hasHiddenElements] =

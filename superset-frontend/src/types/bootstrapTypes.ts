@@ -7,6 +7,7 @@ import {
   SequentialSchemeConfig,
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
+import { TimeLocaleDefinition } from 'd3-time-format';
 import { isPlainObject } from 'lodash';
 import { Languages } from 'src/features/home/LanguagePicker';
 import { FlashMessage } from '../components/FlashProvider';
@@ -38,6 +39,7 @@ export type User = {
   lastName: string;
   userId?: number; // optional because guest user doesn't have a user id
   username: string;
+  loginCount?: number;
 };
 
 export type UserRoles = Record<string, [string, string][]>;
@@ -142,6 +144,8 @@ export interface MenuData {
 }
 
 export interface CommonBootstrapData {
+  application_root: string;
+  static_assets_prefix: string;
   flash_messages: FlashMessage[];
   conf: JsonObject;
   locale: Locale;
@@ -152,6 +156,7 @@ export interface CommonBootstrapData {
   theme_overrides: JsonObject;
   menu_data: MenuData;
   d3_format: Partial<FormatLocaleDefinition>;
+  d3_time_format: Partial<TimeLocaleDefinition>;
 }
 
 export interface BootstrapData {

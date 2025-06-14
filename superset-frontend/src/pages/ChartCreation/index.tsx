@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import { PureComponent, ReactNode } from 'react';
 import rison from 'rison';
 import querystring from 'query-string';
 import {
@@ -26,11 +26,13 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
+import { withTheme, Theme } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
 import Button from 'src/components/Button';
-import { AsyncSelect, Steps } from 'src/components';
+import { AsyncSelect } from 'src/components';
+import { Steps } from 'src/components/Steps';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
@@ -43,10 +45,12 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
+import { Icons } from 'src/components/Icons';
 
 export interface ChartCreationProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;
   addSuccessToast: (arg: string) => void;
+  theme: Theme;
 }
 
 export type ChartCreationState = {
@@ -89,6 +93,7 @@ const StyledContainer = styled.div`
       display: flex;
       flex-direction: row;
       align-items: center;
+      margin-bottom: ${theme.gridUnit * 5}px;
 
       & > div {
         min-width: 200px;
@@ -124,30 +129,31 @@ const StyledContainer = styled.div`
 
     /* The following extra ampersands (&&&&) are used to boost selector specificity */
 
-    &&&& .ant-steps-item-tail {
+    &&&& .antd5-steps-item-tail {
       display: none;
     }
 
-    &&&& .ant-steps-item-icon {
+    &&&& .antd5-steps-item-icon {
       margin-right: ${theme.gridUnit * 2}px;
       width: ${theme.gridUnit * 5}px;
       height: ${theme.gridUnit * 5}px;
       line-height: ${theme.gridUnit * 5}px;
     }
 
-    &&&& .ant-steps-item-title {
+    &&&& .antd5-steps-item-title {
       line-height: ${theme.gridUnit * 5}px;
     }
 
-    &&&& .ant-steps-item-content {
+    &&&& .antd5-steps-item-content {
       overflow: unset;
 
-      .ant-steps-item-description {
+      .antd5-steps-item-description {
         margin-top: ${theme.gridUnit}px;
+        padding-bottom: ${theme.gridUnit}px;
       }
     }
 
-    &&&& .ant-tooltip-open {
+    &&&& .antd5-tooltip-open {
       display: inline;
     }
 
@@ -183,7 +189,7 @@ const StyledStepDescription = styled.div`
   `}
 `;
 
-export class ChartCreation extends React.PureComponent<
+export class ChartCreation extends PureComponent<
   ChartCreationProps,
   ChartCreationState
 > {
@@ -288,13 +294,14 @@ export class ChartCreation extends React.PureComponent<
   }
 
   render() {
+    const { theme } = this.props;
     const isButtonDisabled = this.isBtnDisabled();
     const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
     const datasetHelpText = this.state.canCreateDataset ? (
       <span data-test="dataset-write">
         <Link to="/dataset/add/" data-test="add-chart-new-dataset">
-          {t('Add a dataset')}{' '}
-        </Link>
+          {t('Add a dataset')}
+        </Link>{' '}
         {t('or')}{' '}
         <a
           href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
@@ -303,7 +310,7 @@ export class ChartCreation extends React.PureComponent<
           data-test="add-chart-new-dataset-instructions"
         >
           {`${VIEW_INSTRUCTIONS_TEXT} `}
-          <i className="fa fa-external-link" />
+          <Icons.Full iconSize="m" iconColor={theme.colors.primary.dark1} />
         </a>
         .
       </span>
@@ -315,7 +322,7 @@ export class ChartCreation extends React.PureComponent<
           target="_blank"
         >
           {`${VIEW_INSTRUCTIONS_TEXT} `}
-          <i className="fa fa-external-link" />
+          <Icons.Full iconSize="m" iconColor={theme.colors.primary.dark1} />
         </a>
         .
       </span>
@@ -380,4 +387,4 @@ export class ChartCreation extends React.PureComponent<
   }
 }
 
-export default withRouter(withToasts(ChartCreation));
+export default withRouter(withToasts(withTheme(ChartCreation)));

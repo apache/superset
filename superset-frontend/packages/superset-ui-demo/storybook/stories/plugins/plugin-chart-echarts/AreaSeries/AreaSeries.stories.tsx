@@ -17,8 +17,11 @@
  * under the License.
  */
 
-import React from 'react';
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
+import {
+  SuperChart,
+  getChartTransformPropsRegistry,
+  VizType,
+} from '@superset-ui/core';
 import {
   EchartsAreaChartPlugin,
   TimeseriesTransformProps,
@@ -26,10 +29,10 @@ import {
 import data from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
-new EchartsAreaChartPlugin().configure({ key: 'echarts_area' }).register();
+new EchartsAreaChartPlugin().configure({ key: VizType.Area }).register();
 
 getChartTransformPropsRegistry().registerValue(
-  'echarts_area',
+  VizType.Area,
   TimeseriesTransformProps,
 );
 
@@ -170,7 +173,7 @@ export const AreaSeries = (
     .filter(row => forecastEnabled || !!row.Boston);
   return (
     <SuperChart
-      chartType="echarts_area"
+      chartType={VizType.Area}
       width={width}
       height={height}
       queriesData={[{ data: queryData }]}

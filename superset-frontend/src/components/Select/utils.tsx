@@ -17,19 +17,14 @@
  * under the License.
  */
 import { ensureIsArray, t } from '@superset-ui/core';
-import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import React, { ReactElement, RefObject } from 'react';
-import Icons from 'src/components/Icons';
+// eslint-disable-next-line no-restricted-imports
+import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
+import { ReactElement, RefObject } from 'react';
+import { Icons } from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
 import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
 
 const { Option } = AntdSelect;
-
-export const SELECT_ALL_VALUE: RawValue = 'Select All';
-export const selectAllOption = {
-  value: SELECT_ALL_VALUE,
-  label: String(SELECT_ALL_VALUE),
-};
 
 export function isObject(value: unknown): value is Record<string, unknown> {
   return (
@@ -50,8 +45,8 @@ export function getValue(
 }
 
 export function isEqual(a: V | LabeledValue, b: V | LabeledValue, key: string) {
-  const actualA = isObject(a) && key in a ? a[key] : a;
-  const actualB = isObject(b) && key in b ? b[key] : b;
+  const actualA = isObject(a) && key in a ? a[key as keyof LabeledValue] : a;
+  const actualB = isObject(b) && key in b ? b[key as keyof LabeledValue] : b;
   // When comparing the values we use the equality
   // operator to automatically convert different types
   // eslint-disable-next-line eqeqeq
@@ -84,10 +79,15 @@ export function hasOption(
  * */
 export const propertyComparator =
   (property: string) => (a: AntdLabeledValue, b: AntdLabeledValue) => {
-    if (typeof a[property] === 'string' && typeof b[property] === 'string') {
-      return a[property].localeCompare(b[property]);
+    const propertyA = a[property as keyof LabeledValue];
+    const propertyB = b[property as keyof LabeledValue];
+    if (typeof propertyA === 'string' && typeof propertyB === 'string') {
+      return propertyA.localeCompare(propertyB);
     }
-    return (a[property] as number) - (b[property] as number);
+    if (typeof propertyA === 'number' && typeof propertyB === 'number') {
+      return propertyA - propertyB;
+    }
+    return String(propertyA).localeCompare(String(propertyB)); // fallback to string comparison
   };
 
 export const sortSelectedFirstHelper = (
@@ -152,6 +152,7 @@ export const dropDownRenderHelper = (
   optionsLength: number,
   helperText: string | undefined,
   errorComponent?: JSX.Element,
+  bulkSelectComponents?: JSX.Element,
 ) => {
   if (!isDropdownVisible) {
     originNode.ref?.current?.scrollTo({ top: 0 });
@@ -162,12 +163,32 @@ export const dropDownRenderHelper = (
   if (errorComponent) {
     return errorComponent;
   }
+
+  // remap for accessibility for proper item count
+  const accessibilityNode = {
+    ...originNode,
+    props: {
+      ...originNode.props,
+      flattenOptions: ensureIsArray(originNode.props.flattenOptions).map(
+        (opt: Record<string, any>, idx: number) => ({
+          ...opt,
+          data: {
+            ...opt.data,
+            'aria-setsize': originNode.props.flattenOptions?.length || 0,
+            'aria-posinset': idx + 1,
+          },
+        }),
+      ),
+    },
+  };
+
   return (
     <>
       {helperText && (
         <StyledHelperText role="note">{helperText}</StyledHelperText>
       )}
-      {originNode}
+      {accessibilityNode}
+      {bulkSelectComponents}
     </>
   );
 };
@@ -186,8 +207,10 @@ export const handleFilterOptionHelper = (
     const searchValue = search.trim().toLowerCase();
     if (optionFilterProps?.length) {
       return optionFilterProps.some(prop => {
-        const optionProp = option?.[prop]
-          ? String(option[prop]).trim().toLowerCase()
+        const optionProp = option?.[prop as keyof LabeledValue]
+          ? String(option[prop as keyof LabeledValue])
+              .trim()
+              .toLowerCase()
           : '';
         return optionProp.includes(searchValue);
       });
@@ -200,7 +223,9 @@ export const handleFilterOptionHelper = (
 export const hasCustomLabels = (options: SelectOptionsType) =>
   options?.some(opt => !!opt?.customLabel);
 
-export const renderSelectOptions = (options: SelectOptionsType) =>
+export const renderSelectOptions = (
+  options: SelectOptionsType,
+): JSX.Element[] =>
   options.map(opt => {
     const isOptObject = typeof opt === 'object';
     const label = isOptObject ? opt?.label || opt.value : opt;
@@ -213,7 +238,10 @@ export const renderSelectOptions = (options: SelectOptionsType) =>
     );
   });
 
-export const mapValues = (values: SelectOptionsType, labelInValue: boolean) =>
+export const mapValues = (
+  values: SelectOptionsType,
+  labelInValue: boolean,
+): (Record<string, any> | any)[] =>
   labelInValue
     ? values.map(opt => ({
         key: opt.value,
@@ -222,7 +250,7 @@ export const mapValues = (values: SelectOptionsType, labelInValue: boolean) =>
       }))
     : values.map(opt => opt.value);
 
-export const mapOptions = (values: SelectOptionsType) =>
+export const mapOptions = (values: SelectOptionsType): Record<string, any>[] =>
   values.map(opt => ({
     children: opt.label,
     key: opt.value,

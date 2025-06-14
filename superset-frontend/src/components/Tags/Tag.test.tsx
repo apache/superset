@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render } from 'spec/helpers/testing-library';
-import { screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import TagType from 'src/types/TagType';
 import Tag from './Tag';
 
@@ -30,13 +28,16 @@ const mockedProps: TagType = {
   onClick: undefined,
 };
 
+const setup = (props: TagType = mockedProps) =>
+  render(<Tag {...props} />, { useRouter: true });
+
 test('should render', () => {
-  const { container } = render(<Tag {...mockedProps} />);
+  const { container } = setup();
   expect(container).toBeInTheDocument();
 });
 
 test('should render shortname properly', () => {
-  const { container } = render(<Tag {...mockedProps} />);
+  const { container } = setup();
   expect(container).toBeInTheDocument();
   expect(screen.getByTestId('tag')).toBeInTheDocument();
   expect(screen.getByTestId('tag')).toHaveTextContent(mockedProps.name);
@@ -47,7 +48,7 @@ test('should render longname properly', () => {
     ...mockedProps,
     name: 'very-long-tag-name-that-truncates',
   };
-  const { container } = render(<Tag {...longNameProps} />);
+  const { container } = setup(longNameProps);
   expect(container).toBeInTheDocument();
   expect(screen.getByTestId('tag')).toBeInTheDocument();
   expect(screen.getByTestId('tag')).toHaveTextContent(

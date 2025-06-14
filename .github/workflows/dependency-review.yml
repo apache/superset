@@ -5,19 +5,32 @@
 # Source repository: https://github.com/actions/dependency-review-action
 # Public documentation: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review#dependency-review-enforcement
 name: "Dependency Review"
-on: [pull_request]
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
   dependency-review:
-    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
     steps:
       - name: "Checkout Repository"
         uses: actions/checkout@v4
       - name: "Dependency Review"
         uses: actions/dependency-review-action@v4
+        continue-on-error: true
         with:
           fail-on-severity: critical
           # compatible/incompatible licenses addressed here: https://www.apache.org/legal/resolved.html
@@ -32,4 +45,27 @@ jobs:
           #   license: https://applitools.com/legal/open-source-terms-of-use/
           # pkg:npm/node-forge@1.3.1
           #   selecting BSD-3-Clause licensing terms for node-forge to ensure compatibility with Apache
-          allow-dependencies-licenses: pkg:npm/store2@2.14.2, pkg:npm/applitools/core, pkg:npm/applitools/core-base, pkg:npm/applitools/css-tree, pkg:npm/applitools/ec-client, pkg:npm/applitools/eg-socks5-proxy-server, pkg:npm/applitools/eyes, pkg:npm/applitools/eyes-cypress, pkg:npm/applitools/nml-client, pkg:npm/applitools/tunnel-client, pkg:npm/applitools/utils, pkg:npm/node-forge@1.3.1
+          allow-dependencies-licenses: pkg:npm/store2@2.14.2, pkg:npm/applitools/core, pkg:npm/applitools/core-base, pkg:npm/applitools/css-tree, pkg:npm/applitools/ec-client, pkg:npm/applitools/eg-socks5-proxy-server, pkg:npm/applitools/eyes, pkg:npm/applitools/eyes-cypress, pkg:npm/applitools/nml-client, pkg:npm/applitools/tunnel-client, pkg:npm/applitools/utils, pkg:npm/node-forge@1.3.1, pkg:npm/rgbcolor, pkg:npm/jszip@3.10.1
+
+  python-dependency-liccheck:
+    # NOTE: Configuration for liccheck lives in our pyproject.yml.
+    # You cannot use a liccheck.ini file in this workflow.
+    runs-on: ubuntu-22.04
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+        with:
+          requirements-type: base
+
+      - name: "Set up liccheck"
+        run: |
+          uv pip install --system liccheck
+      - name: "Run liccheck"
+        run: |
+          # run the checks
+          liccheck -R output.txt
+          # Print the report
+          cat output.txt

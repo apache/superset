@@ -22,19 +22,21 @@ Create Date: 2022-03-04 09:59:26.922329
 
 """
 
+from uuid import uuid4
+
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy_utils import UUIDType
+
+from superset.migrations.shared.utils import create_table
+
 # revision identifiers, used by Alembic.
 revision = "6766938c6065"
 down_revision = "7293b0ca7944"
 
-from uuid import uuid4  # noqa: E402
-
-import sqlalchemy as sa  # noqa: E402
-from alembic import op  # noqa: E402
-from sqlalchemy_utils import UUIDType  # noqa: E402
-
 
 def upgrade():
-    op.create_table(
+    create_table(
         "key_value",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("resource", sa.String(32), nullable=False),

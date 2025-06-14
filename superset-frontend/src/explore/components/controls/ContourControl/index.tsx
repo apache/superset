@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import ContourPopoverTrigger from './ContourPopoverTrigger';

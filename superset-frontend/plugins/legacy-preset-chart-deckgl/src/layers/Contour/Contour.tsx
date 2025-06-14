@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ContourLayer } from 'deck.gl';
-import React from 'react';
+import { ContourLayer } from '@deck.gl/aggregation-layers';
+import { Position } from '@deck.gl/core';
 import { t } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
@@ -90,13 +90,14 @@ export const getLayer: getLayerType<unknown> = function (
     contours,
     cellSize: Number(cellSize || '200'),
     aggregation: aggregation.toUpperCase(),
-    getPosition: (d: { position: number[]; weight: number }) => d.position,
+    getPosition: (d: { position: number[]; weight: number }) =>
+      d.position as Position,
     getWeight: (d: { weight: number }) => d.weight || 0,
     ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
 };
 
-function getPoints(data: any[]) {
+export function getPoints(data: any[]) {
   return data.map(d => d.position);
 }
 

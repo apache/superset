@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-preset-chart-deckgl",
-  "version": "0.4.13",
+  "version": "0.20.4",
   "description": "Superset Legacy Chart - deck.gl",
   "keywords": [
     "superset"
@@ -24,34 +24,36 @@
     "lib"
   ],
   "dependencies": {
+    "@deck.gl/aggregation-layers": "^9.0.38",
+    "@deck.gl/core": "^9.0.37",
+    "@deck.gl/layers": "^9.0.38",
+    "@deck.gl/react": "^9.1.4",
     "@mapbox/geojson-extent": "^1.0.1",
-    "@math.gl/web-mercator": "^3.2.2",
+    "@math.gl/web-mercator": "^4.1.0",
     "@types/d3-array": "^2.0.0",
+    "@types/geojson": "^7946.0.15",
     "bootstrap-slider": "^11.0.2",
     "d3-array": "^1.2.4",
     "d3-color": "^1.4.1",
     "d3-scale": "^3.0.0",
-    "deck.gl": "9.0.6",
     "lodash": "^4.17.21",
-    "moment": "^2.30.1",
     "mousetrap": "^1.6.5",
     "prop-types": "^15.8.1",
-    "react-bootstrap-slider": "2.1.5",
-    "underscore": "^1.13.6",
-    "urijs": "^1.19.8",
+    "underscore": "^1.13.7",
+    "urijs": "^1.19.11",
     "xss": "^1.0.15"
   },
   "devDependencies": {
     "@types/mapbox__geojson-extent": "^1.0.3",
-    "@types/underscore": "^1.11.15",
+    "@types/underscore": "^1.13.0",
     "@types/urijs": "^1.19.25"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "mapbox-gl": "*",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
     "react-map-gl": "^6.1.19"
   },
   "publishConfig": {

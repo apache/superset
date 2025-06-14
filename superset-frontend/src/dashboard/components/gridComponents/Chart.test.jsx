@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { fireEvent, render } from 'spec/helpers/testing-library';
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, VizType } from '@superset-ui/core';
+import * as redux from 'redux';
 
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import * as exploreUtils from 'src/explore/exploreUtils';
@@ -33,18 +33,10 @@ const props = {
   width: 100,
   height: 100,
   updateSliceName() {},
-
   // from redux
-  maxRows: 666,
-  chart: chartQueries[queryId],
+  maxRows: 500, // will be overwritten with SQL_MAX_ROW from conf
   formData: chartQueries[queryId].form_data,
   datasource: mockDatasource[sliceEntities.slices[queryId].datasource],
-  slice: {
-    ...sliceEntities.slices[queryId],
-    description_markeddown: 'markdown',
-    owners: [],
-    viz_type: 'table',
-  },
   sliceName: sliceEntities.slices[queryId].slice_name,
   timeout: 60,
   filters: {},
@@ -64,19 +56,60 @@ const props = {
   exportFullXLSX() {},
   componentId: 'test',
   dashboardId: 111,
-  editMode: false,
-  isExpanded: false,
-  supersetCanExplore: false,
-  supersetCanCSV: false,
-  supersetCanShare: false,
 };
 
-function setup(overrideProps) {
-  return render(<Chart.WrappedComponent {...props} {...overrideProps} />, {
+const defaultState = {
+  charts: chartQueries,
+  sliceEntities: {
+    ...sliceEntities,
+    slices: {
+      [queryId]: {
+        ...sliceEntities.slices[queryId],
+        description_markeddown: 'markdown',
+        owners: [],
+        viz_type: VizType.Table,
+      },
+    },
+  },
+  datasources: mockDatasource,
+  dashboardState: { editMode: false, expandedSlices: {} },
+  dashboardInfo: {
+    id: props.dashboardId,
+    superset_can_explore: false,
+    superset_can_share: false,
+    superset_can_csv: false,
+    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
+  },
+};
+
+function setup(overrideProps, overrideState) {
+  return render(<Chart {...props} {...overrideProps} />, {
     useRedux: true,
     useRouter: true,
+    initialState: { ...defaultState, ...overrideState },
   });
 }
+
+const refreshChart = jest.fn();
+const logEvent = jest.fn();
+const changeFilter = jest.fn();
+const addSuccessToast = jest.fn();
+const addDangerToast = jest.fn();
+const toggleExpandSlice = jest.fn();
+const setFocusedFilterField = jest.fn();
+const unsetFocusedFilterField = jest.fn();
+beforeAll(() => {
+  jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
+    refreshChart,
+    logEvent,
+    changeFilter,
+    addSuccessToast,
+    addDangerToast,
+    toggleExpandSlice,
+    setFocusedFilterField,
+    unsetFocusedFilterField,
+  }));
+});
 
 test('should render a SliceHeader', () => {
   const { getByTestId, container } = setup();
@@ -90,23 +123,20 @@ test('should render a ChartContainer', () => {
 });
 
 test('should render a description if it has one and isExpanded=true', () => {
-  const { container } = setup({ isExpanded: true });
-  expect(container.querySelector('.slice_description')).toBeInTheDocument();
-});
-
-test('should calculate the description height if it has one and isExpanded=true', () => {
-  const spy = jest.spyOn(
-    Chart.WrappedComponent.prototype,
-    'getDescriptionHeight',
+  const { container } = setup(
+    {},
+    {
+      dashboardState: {
+        ...defaultState.dashboardState,
+        expandedSlices: { [props.id]: true },
+      },
+    },
   );
-  const { container } = setup({ isExpanded: true });
   expect(container.querySelector('.slice_description')).toBeInTheDocument();
-  expect(spy).toHaveBeenCalled();
 });
 
 test('should call refreshChart when SliceHeader calls forceRefresh', () => {
-  const refreshChart = jest.fn();
-  const { getByText, getByRole } = setup({ refreshChart });
+  const { getByText, getByRole } = setup({});
   fireEvent.click(getByRole('button', { name: 'More Options' }));
   fireEvent.click(getByText('Force refresh'));
   expect(refreshChart).toHaveBeenCalled();
@@ -123,15 +153,22 @@ test('should call exportChart when exportCSV is clicked', async () => {
   const stubbedExportCSV = jest
     .spyOn(exploreUtils, 'exportChart')
     .mockImplementation(() => {});
-  const { findByText, getByRole } = setup({ supersetCanCSV: true });
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+    },
+  );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
-  fireEvent.mouseOver(getByRole('button', { name: 'Download' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
   const exportAction = await findByText('Export to .CSV');
   fireEvent.click(exportAction);
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
   expect(stubbedExportCSV).toHaveBeenCalledWith(
     expect.objectContaining({
-      formData: expect.anything(),
+      formData: expect.objectContaining({
+        dashboardId: 111,
+      }),
       resultType: 'full',
       resultFormat: 'csv',
     }),
@@ -146,9 +183,14 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
   const stubbedExportCSV = jest
     .spyOn(exploreUtils, 'exportChart')
     .mockImplementation(() => {});
-  const { findByText, getByRole } = setup({ supersetCanCSV: true });
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+    },
+  );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
-  fireEvent.mouseOver(getByRole('button', { name: 'Download' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
   const exportAction = await findByText('Export to full .CSV');
   fireEvent.click(exportAction);
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
@@ -156,6 +198,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
     expect.objectContaining({
       formData: expect.objectContaining({
         row_limit: 666,
+        dashboardId: 111,
       }),
       resultType: 'full',
       resultFormat: 'csv',
@@ -168,9 +211,14 @@ test('should call exportChart when exportXLSX is clicked', async () => {
   const stubbedExportXLSX = jest
     .spyOn(exploreUtils, 'exportChart')
     .mockImplementation(() => {});
-  const { findByText, getByRole } = setup({ supersetCanCSV: true });
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+    },
+  );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
-  fireEvent.mouseOver(getByRole('button', { name: 'Download' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
   const exportAction = await findByText('Export to Excel');
   fireEvent.click(exportAction);
   expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
@@ -190,9 +238,14 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
   const stubbedExportXLSX = jest
     .spyOn(exploreUtils, 'exportChart')
     .mockImplementation(() => {});
-  const { findByText, getByRole } = setup({ supersetCanCSV: true });
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+    },
+  );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
-  fireEvent.mouseOver(getByRole('button', { name: 'Download' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
   const exportAction = await findByText('Export to full Excel');
   fireEvent.click(exportAction);
   expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
@@ -200,6 +253,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
     expect.objectContaining({
       formData: expect.objectContaining({
         row_limit: 666,
+        dashboardId: 111,
       }),
       resultType: 'full',
       resultFormat: 'xlsx',

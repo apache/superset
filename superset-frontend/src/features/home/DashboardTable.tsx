@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
-import { filter } from 'lodash';
+import { useEffect, useMemo, useState } from 'react';
+import { SupersetClient, t, useTheme } from '@superset-ui/core';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
@@ -41,6 +40,8 @@ import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
+import { Icons } from 'src/components/Icons';
+import { navigateTo } from 'src/utils/navigationUtils';
 import EmptyState from './EmptyState';
 import SubMenu from './SubMenu';
 import { WelcomeTable } from './types';
@@ -55,16 +56,14 @@ function DashboardTable({
   otherTabFilters,
   otherTabTitle,
 }: DashboardTableProps) {
+  const theme = useTheme();
   const history = useHistory();
   const defaultTab = getItem(
     LocalStorageKeys.HomepageDashboardFilter,
     TableTab.Other,
   );
 
-  const filteredOtherTabData = filter(
-    otherTabData,
-    obj => !('viz_type' in obj),
-  );
+  const filteredOtherTabData = otherTabData.filter(obj => !('viz_type' in obj));
 
   const {
     state: { loading, resourceCollection: dashboards },
@@ -190,13 +189,16 @@ function DashboardTable({
           {
             name: (
               <>
-                <i className="fa fa-plus" />
+                <Icons.PlusOutlined
+                  iconColor={theme.colors.primary.dark1}
+                  iconSize="m"
+                />
                 {t('Dashboard')}
               </>
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.assign('/dashboard/new');
+              navigateTo('/dashboard/new', { assign: true });
             },
           },
           {

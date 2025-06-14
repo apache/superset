@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { MouseEventHandler } from 'react';
+import { MouseEventHandler } from 'react';
 import { styled } from '@superset-ui/core';
 
 interface IconButtonProps {

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, waitFor } from 'spec/helpers/testing-library';
 import TagsList, { TagsListProps } from './TagsList';
 
@@ -54,13 +53,16 @@ const getElementsByClassName = (className: string) =>
 
 const findAllTags = () => waitFor(() => getElementsByClassName('.ant-tag'));
 
+const setup = (props: TagsListProps = mockedProps) =>
+  render(<TagsList {...props} />, { useRouter: true });
+
 test('should render', () => {
-  const { container } = render(<TagsList {...mockedProps} />);
+  const { container } = setup();
   expect(container).toBeInTheDocument();
 });
 
 test('should render 5 elements', async () => {
-  render(<TagsList {...mockedProps} />);
+  setup();
   const tagsListItems = await findAllTags();
   expect(tagsListItems).toHaveLength(5);
   expect(tagsListItems[0]).toHaveTextContent(testTags[0].name);
@@ -71,7 +73,7 @@ test('should render 5 elements', async () => {
 });
 
 test('should render 3 elements when maxTags is set to 3', async () => {
-  render(<TagsList {...mockedProps} maxTags={3} />);
+  setup({ ...mockedProps, maxTags: 3 });
   const tagsListItems = await findAllTags();
   expect(tagsListItems).toHaveLength(3);
   expect(tagsListItems[2]).toHaveTextContent('+3...');

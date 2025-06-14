@@ -16,15 +16,11 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy.exc import SQLAlchemyError
-
 from superset.daos.base import BaseDAO
-from superset.daos.exceptions import DAODeleteFailedError
 from superset.extensions import db
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import (
@@ -34,6 +30,7 @@ from superset.reports.models import (
     ReportScheduleType,
     ReportState,
 )
+from superset.utils import json
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -94,6 +91,14 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         )
 
     @staticmethod
+    def find_by_extra_metadata(slug: str) -> list[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.extra_json.like(f"%{slug}%"))
+            .all()
+        )
+
+    @staticmethod
     def validate_unique_creation_method(
         dashboard_id: int | None = None, chart_id: int | None = None
     ) -> bool:
@@ -137,15 +142,12 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         cls,
         item: ReportSchedule | None = None,
         attributes: dict[str, Any] | None = None,
-        commit: bool = True,
     ) -> ReportSchedule:
         """
         Create a report schedule with nested recipients.
 
         :param item: The object to create
         :param attributes: The attributes associated with the object to create
-        :param commit: Whether to commit the transaction
-        :raises: DAOCreateFailedError: If the creation failed
         """
 
         # TODO(john-bodley): Determine why we need special handling for recipients.
@@ -165,22 +167,19 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
                     for recipient in recipients
                 ]
 
-        return super().create(item, attributes, commit)
+        return super().create(item, attributes)
 
     @classmethod
     def update(
         cls,
         item: ReportSchedule | None = None,
         attributes: dict[str, Any] | None = None,
-        commit: bool = True,
     ) -> ReportSchedule:
         """
         Update a report schedule with nested recipients.
 
         :param item: The object to update
         :param attributes: The attributes associated with the object to update
-        :param commit: Whether to commit the transaction
-        :raises: DAOUpdateFailedError: If the update failed
         """
 
         # TODO(john-bodley): Determine why we need special handling for recipients.
@@ -200,7 +199,7 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
                     for recipient in recipients
                 ]
 
-        return super().update(item, attributes, commit)
+        return super().update(item, attributes)
 
     @staticmethod
     def find_active() -> list[ReportSchedule]:
@@ -283,23 +282,12 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         return last_error_email_log if not report_from_last_email else None
 
     @staticmethod
-    def bulk_delete_logs(
-        model: ReportSchedule,
-        from_date: datetime,
-        commit: bool = True,
-    ) -> int | None:
-        try:
-            row_count = (
-                db.session.query(ReportExecutionLog)
-                .filter(
-                    ReportExecutionLog.report_schedule == model,
-                    ReportExecutionLog.end_dttm < from_date,
-                )
-                .delete(synchronize_session="fetch")
+    def bulk_delete_logs(model: ReportSchedule, from_date: datetime) -> int | None:
+        return (
+            db.session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.report_schedule == model,
+                ReportExecutionLog.end_dttm < from_date,
             )
-            if commit:
-                db.session.commit()
-            return row_count
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise DAODeleteFailedError(str(ex)) from ex
+            .delete(synchronize_session="fetch")
+        )

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { styled, t } from '@superset-ui/core';
 import { SyntaxHighlighterProps } from 'react-syntax-highlighter';
 import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
@@ -25,7 +24,7 @@ import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/mar
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { ToastProps } from 'src/components/MessageToasts/withToasts';
 import copyTextToClipboard from 'src/utils/copy';
 
@@ -79,7 +78,7 @@ export default function SyntaxHighlighterCopy({
   }
   return (
     <SyntaxHighlighterWrapper>
-      <Icons.Copy
+      <Icons.CopyOutlined
         tabIndex={0}
         role="button"
         onClick={e => {

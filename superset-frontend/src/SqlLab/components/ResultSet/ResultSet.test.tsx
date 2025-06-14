@@ -16,16 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
+import { setupAGGridModules } from 'src/setup/setupAGGridModules';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import {
   cachedQuery,
-  failedQueryWithErrorMessage,
   failedQueryWithErrors,
   queries,
   runningQuery,
@@ -33,7 +38,13 @@ import {
   initialState,
   user,
   queryWithNoQueryLimit,
+  failedQueryWithFrontendTimeoutErrors,
 } from 'src/SqlLab/fixtures';
+
+jest.mock(
+  'src/components/ErrorMessage/ErrorMessageWithStackTrace',
+  () => () => <div data-test="error-message">Error</div>,
+);
 
 const mockedProps = {
   cache: true,
@@ -87,21 +98,22 @@ const cachedQueryState = {
     },
   },
 };
-const failedQueryWithErrorMessageState = {
-  ...initialState,
-  sqlLab: {
-    ...initialState.sqlLab,
-    queries: {
-      [failedQueryWithErrorMessage.id]: failedQueryWithErrorMessage,
-    },
-  },
-};
 const failedQueryWithErrorsState = {
   ...initialState,
   sqlLab: {
     ...initialState.sqlLab,
     queries: {
       [failedQueryWithErrors.id]: failedQueryWithErrors,
+    },
+  },
+};
+const failedQueryWithTimeoutState = {
+  ...initialState,
+  sqlLab: {
+    ...initialState.sqlLab,
+    queries: {
+      [failedQueryWithFrontendTimeoutErrors.id]:
+        failedQueryWithFrontendTimeoutErrors,
     },
   },
 };
@@ -132,6 +144,17 @@ const setup = (props?: any, store?: Store) =>
   });
 
 describe('ResultSet', () => {
+  beforeAll(() => {
+    setupAGGridModules();
+  });
+
+  // Add cleanup after each test
+  afterEach(async () => {
+    fetchMock.resetHistory();
+    // Wait for any pending effects to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
   test('renders a Table', async () => {
     const { getByTestId } = setup(
       mockedProps,
@@ -146,8 +169,10 @@ describe('ResultSet', () => {
         },
       }),
     );
-    const table = getByTestId('table-container');
-    expect(table).toBeInTheDocument();
+    await waitFor(() => {
+      const table = getByTestId('table-container');
+      expect(table).toBeInTheDocument();
+    });
   });
 
   test('should render success query', async () => {
@@ -298,26 +323,29 @@ describe('ResultSet', () => {
     expect(getByText('fetching')).toBeInTheDocument();
   });
 
-  test('should render a failed query with an error message', async () => {
-    await waitFor(() => {
-      setup(
-        { ...mockedProps, queryId: failedQueryWithErrorMessage.id },
-        mockStore(failedQueryWithErrorMessageState),
-      );
-    });
-
-    expect(screen.getByText('Database error')).toBeInTheDocument();
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-  });
-
   test('should render a failed query with an errors object', async () => {
+    const { errors } = failedQueryWithErrors;
+
     await waitFor(() => {
       setup(
         { ...mockedProps, queryId: failedQueryWithErrors.id },
         mockStore(failedQueryWithErrorsState),
       );
     });
-    expect(screen.getByText('Database error')).toBeInTheDocument();
+    const errorMessages = screen.getAllByTestId('error-message');
+    expect(errorMessages).toHaveLength(errors.length);
+  });
+
+  test('should render a timeout error with a retrial button', async () => {
+    await waitFor(() => {
+      setup(
+        { ...mockedProps, queryId: failedQueryWithFrontendTimeoutErrors.id },
+        mockStore(failedQueryWithTimeoutState),
+      );
+    });
+    expect(
+      screen.getByRole('button', { name: /Retry fetching results/i }),
+    ).toBeInTheDocument();
   });
 
   test('renders if there is no limit in query.results but has queryLimit', async () => {
@@ -340,7 +368,7 @@ describe('ResultSet', () => {
       );
     });
     const { getByRole } = setup(mockedProps, mockStore(initialState));
-    expect(getByRole('table')).toBeInTheDocument();
+    expect(getByRole('grid')).toBeInTheDocument();
   });
 
   test('renders if there is a limit in query.results but not queryLimit', async () => {
@@ -358,7 +386,7 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(getByRole('table')).toBeInTheDocument();
+    expect(getByRole('grid')).toBeInTheDocument();
   });
 
   test('Async queries - renders "Fetch data preview" button when data preview has no results', () => {
@@ -386,7 +414,7 @@ describe('ResultSet', () => {
         name: /fetch data preview/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('table')).toBe(null);
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
   test('Async queries - renders "Refetch results" button when a query has no results', () => {
@@ -415,7 +443,7 @@ describe('ResultSet', () => {
         name: /refetch results/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('table')).toBe(null);
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
   test('Async queries - renders on the first call', () => {
@@ -435,16 +463,135 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(screen.getByRole('table')).toBeVisible();
+    expect(screen.getByRole('grid')).toBeVisible();
     expect(
       screen.queryByRole('button', {
         name: /fetch data preview/i,
       }),
-    ).toBe(null);
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {
         name: /refetch results/i,
       }),
-    ).toBe(null);
+    ).not.toBeInTheDocument();
+  });
+
+  test('should allow download as CSV when user has permission to export data', async () => {
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_csv', 'SQLLab']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    expect(queryByTestId('export-csv-button')).toBeInTheDocument();
+  });
+
+  test('should display a popup message when the CSV content is limited to the dropdown limit', async () => {
+    const queryLimit = 2;
+    const { getByTestId, findByRole } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_csv', 'SQLLab']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: {
+              ...queries[0],
+              limitingFactor: 'DROPDOWN',
+              queryLimit,
+            },
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      const downloadButton = getByTestId('export-csv-button');
+      expect(downloadButton).toBeInTheDocument();
+    });
+
+    const downloadButton = getByTestId('export-csv-button');
+    await waitFor(() => fireEvent.click(downloadButton));
+
+    const warningModal = await findByRole('dialog');
+    await waitFor(() => {
+      expect(
+        within(warningModal).getByText(`Download is on the way`),
+      ).toBeInTheDocument();
+    });
+  });
+
+  test('should not allow download as CSV when user does not have permission to export data', async () => {
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    expect(queryByTestId('export-csv-button')).not.toBeInTheDocument();
+  });
+
+  test('should allow copy to clipboard when user has permission to export data', async () => {
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_csv', 'SQLLab']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    expect(queryByTestId('copy-to-clipboard-button')).toBeInTheDocument();
+  });
+
+  test('should not allow copy to clipboard when user does not have permission to export data', async () => {
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    expect(queryByTestId('copy-to-clipboard-button')).not.toBeInTheDocument();
   });
 });

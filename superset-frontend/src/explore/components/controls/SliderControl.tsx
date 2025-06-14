@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import Slider from 'src/components/Slider';
 import ControlHeader, {
   ControlHeaderProps,

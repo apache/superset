@@ -43,7 +43,7 @@ const map_object_type_to_id = (objectType: string) => {
     const msg = `objectType ${objectType} is invalid`;
     throw new Error(msg);
   }
-  return OBJECT_TYPE_ID_MAP[objectType];
+  return OBJECT_TYPE_ID_MAP[objectType as keyof typeof OBJECT_TYPE_ID_MAP];
 };
 
 export function fetchAllTags(
@@ -179,25 +179,8 @@ export function addTag(
     .catch(response => error(response));
 }
 
-export function fetchObjects(
-  { tags = '', types }: { tags: string; types: string | null },
-  callback: (json: JsonObject) => void,
-  error: (response: Response) => void,
-) {
-  let url = `/api/v1/tag/get_objects/?tags=${tags}`;
-  if (types) {
-    url += `&types=${types}`;
-  }
-  SupersetClient.get({ endpoint: url })
-    .then(({ json }) => callback(json.result))
-    .catch(response => error(response));
-}
-
 export function fetchObjectsByTagIds(
-  {
-    tagIds = [],
-    types,
-  }: { tagIds: number[] | undefined; types: string | null },
+  { tagIds = [], types }: { tagIds: number[] | string; types: string | null },
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
 ) {

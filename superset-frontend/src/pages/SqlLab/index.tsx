@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { css, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { useSqlLabInitialState } from 'src/hooks/apiResources/sqlLab';

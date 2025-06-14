@@ -20,6 +20,7 @@ from typing import Any, Optional
 from unittest.mock import Mock
 
 import pytest
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import (
     Boolean,
     Date,
@@ -54,7 +55,9 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec as spec
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseEngineSpec as spec,  # noqa: N813
+    )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -86,7 +89,9 @@ def test_connect_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec as spec
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseEngineSpec as spec,  # noqa: N813
+    )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -200,7 +205,9 @@ def test_connect_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec as spec
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseConnectEngineSpec as spec,  # noqa: N813
+    )
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
@@ -213,7 +220,32 @@ def test_connect_get_column_spec(
     ],
 )
 def test_connect_make_label_compatible(column_name: str, expected_result: str) -> None:
-    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec as spec
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseConnectEngineSpec as spec,  # noqa: N813
+    )
 
     label = spec.make_label_compatible(column_name)
     assert label == expected_result
+
+
+@pytest.mark.parametrize(
+    "schema, expected_result",
+    [
+        (None, "clickhousedb+connect://localhost:443/__default__"),
+        (
+            "new_schema",
+            "clickhousedb+connect://localhost:443/new_schema",
+        ),
+    ],
+)
+def test_adjust_engine_params_fully_qualified(
+    schema: str, expected_result: str
+) -> None:
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseConnectEngineSpec as spec,  # noqa: N813
+    )
+
+    url = make_url("clickhousedb+connect://localhost:443/__default__")
+
+    uri = spec.adjust_engine_params(url, {}, None, schema)[0]
+    assert str(uri) == expected_result

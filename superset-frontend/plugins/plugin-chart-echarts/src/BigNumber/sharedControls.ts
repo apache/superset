@@ -21,70 +21,95 @@
 import { t } from '@superset-ui/core';
 import { CustomControlItem } from '@superset-ui/chart-controls';
 
-export const headerFontSize: CustomControlItem = {
-  name: 'header_font_size',
+const FONT_SIZE_OPTIONS_SMALL = [
+  { label: t('Tiny'), value: 0.125 },
+  { label: t('Small'), value: 0.15 },
+  { label: t('Normal'), value: 0.2 },
+  { label: t('Large'), value: 0.3 },
+  { label: t('Huge'), value: 0.4 },
+];
+
+const FONT_SIZE_OPTIONS_LARGE = [
+  { label: t('Tiny'), value: 0.2 },
+  { label: t('Small'), value: 0.3 },
+  { label: t('Normal'), value: 0.4 },
+  { label: t('Large'), value: 0.5 },
+  { label: t('Huge'), value: 0.6 },
+];
+
+function makeFontSizeControl(
+  name: string,
+  label: string,
+  defaultValue: number,
+  options: { label: string; value: number }[],
+): CustomControlItem {
+  return {
+    name,
+    config: {
+      type: 'SelectControl',
+      label: t(label),
+      renderTrigger: true,
+      clearable: false,
+      default: defaultValue,
+      options,
+    },
+  };
+}
+
+export const headerFontSize = makeFontSizeControl(
+  'header_font_size',
+  'Big Number Font Size',
+  0.4,
+  FONT_SIZE_OPTIONS_LARGE,
+);
+
+export const subtitleFontSize = makeFontSizeControl(
+  'subtitle_font_size',
+  'Subtitle Font Size',
+  0.15,
+  FONT_SIZE_OPTIONS_SMALL,
+);
+
+export const subheaderFontSize = makeFontSizeControl(
+  'subheader_font_size',
+  'Subheader Font Size',
+  0.15,
+  FONT_SIZE_OPTIONS_SMALL,
+);
+
+export const metricNameFontSize = makeFontSizeControl(
+  'metric_name_font_size',
+  'Metric Name Font Size',
+  0.15,
+  FONT_SIZE_OPTIONS_SMALL,
+);
+
+export const subtitleControl: CustomControlItem = {
+  name: 'subtitle',
   config: {
-    type: 'SelectControl',
-    label: t('Big Number Font Size'),
+    type: 'TextControl',
+    label: t('Subtitle'),
     renderTrigger: true,
-    clearable: false,
-    default: 0.4,
-    // Values represent the percentage of space a header should take
-    options: [
-      {
-        label: t('Tiny'),
-        value: 0.2,
-      },
-      {
-        label: t('Small'),
-        value: 0.3,
-      },
-      {
-        label: t('Normal'),
-        value: 0.4,
-      },
-      {
-        label: t('Large'),
-        value: 0.5,
-      },
-      {
-        label: t('Huge'),
-        value: 0.6,
-      },
-    ],
+    description: t('Description text that shows up below your Big Number'),
   },
 };
 
-export const subheaderFontSize: CustomControlItem = {
-  name: 'subheader_font_size',
+export const showMetricNameControl: CustomControlItem = {
+  name: 'show_metric_name',
   config: {
-    type: 'SelectControl',
-    label: t('Subheader Font Size'),
+    type: 'CheckboxControl',
+    label: t('Show Metric Name'),
     renderTrigger: true,
-    clearable: false,
-    default: 0.15,
-    // Values represent the percentage of space a subheader should take
-    options: [
-      {
-        label: t('Tiny'),
-        value: 0.125,
-      },
-      {
-        label: t('Small'),
-        value: 0.15,
-      },
-      {
-        label: t('Normal'),
-        value: 0.2,
-      },
-      {
-        label: t('Large'),
-        value: 0.3,
-      },
-      {
-        label: t('Huge'),
-        value: 0.4,
-      },
-    ],
+    default: false,
+    description: t('Whether to display the metric name'),
+  },
+};
+
+export const metricNameFontSizeWithVisibility: CustomControlItem = {
+  ...metricNameFontSize,
+  config: {
+    ...metricNameFontSize.config,
+    visibility: ({ controls }) => controls?.show_metric_name?.value === true,
+    resetOnHide: false,
   },
 };

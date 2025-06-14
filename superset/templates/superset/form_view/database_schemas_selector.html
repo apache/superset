@@ -37,7 +37,7 @@ under the License.
       dataType: 'json',
       contentType: "application/json; charset=utf-8"
     }).done(function (data) {
-      change_schema_field_in_formview(data ? data.schemas : [])
+      change_schema_field_in_formview(data ? data.schemas.sort() : [])
     }).fail(function (error) {
       var errorMsg = error.responseJSON.error;
       alert("ERROR: " + errorMsg);

@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import {
   createEvent,
   fireEvent,
   render,
   screen,
+  userEvent,
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import { AsyncSelect } from 'src/components';
 
 const ARIA_LABEL = 'Test';
@@ -71,8 +70,10 @@ const loadOptions = async (search: string, page: number, pageSize: number) => {
   const optionFilterProps = ['label', 'value', 'gender'];
   const data = OPTIONS.filter(option =>
     optionFilterProps.some(prop => {
-      const optionProp = option?.[prop]
-        ? String(option[prop]).trim().toLowerCase()
+      const optionProp = option?.[prop as keyof typeof option]
+        ? String(option[prop as keyof typeof option])
+            .trim()
+            .toLowerCase()
         : '';
       return optionProp.includes(searchValue);
     }),
@@ -98,7 +99,8 @@ const getElementByClassName = (className: string) =>
 const getElementsByClassName = (className: string) =>
   document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
 
-const getSelect = () => screen.getByRole('combobox', { name: ARIA_LABEL });
+const getSelect = () =>
+  screen.getByRole('combobox', { name: new RegExp(ARIA_LABEL, 'i') });
 
 const getAllSelectOptions = () =>
   getElementsByClassName('.ant-select-item-option-content');

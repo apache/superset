@@ -40,7 +40,7 @@ PATTERNS = {
     ],
     "docker": [
         r"^Dockerfile$",
-        r"^docker/",
+        r"^docker.*",
     ],
     "docs": [
         r"^docs/",
@@ -51,19 +51,22 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 def fetch_files_github_api(url: str):  # type: ignore
     """Fetches data using GitHub API."""
-    req = Request(url)
-    req.add_header("Authorization", f"token {GITHUB_TOKEN}")
+    req = Request(url)  # noqa: S310
+    req.add_header("Authorization", f"Bearer {GITHUB_TOKEN}")
     req.add_header("Accept", "application/vnd.github.v3+json")
 
     print(f"Fetching from {url}")
-    with urlopen(req) as response:
+    with urlopen(req) as response:  # noqa: S310
         body = response.read()
         return json.loads(body)
 
 
 def fetch_changed_files_pr(repo: str, pr_number: str) -> List[str]:
     """Fetches files changed in a PR using the GitHub API."""
-    url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/files"
+
+    # NOTE: limited to 100 files ideally should page-through but instead resorting
+    # to assuming we should trigger when 100 files have been touched
+    url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/files?per_page=100"
     files = fetch_files_github_api(url)
     return [file_info["filename"] for file_info in files]
 
@@ -95,39 +98,55 @@ def print_files(files: List[str]) -> None:
     print("\n".join([f"- {s}" for s in files]))
 
 
+def is_int(s: str) -> bool:
+    return bool(re.match(r"^-?\d+$", s))
+
+
 def main(event_type: str, sha: str, repo: str) -> None:
     """Main function to check for file changes based on event context."""
     print("SHA:", sha)
+    print("EVENT_TYPE", event_type)
+    files = []
     if event_type == "pull_request":
         pr_number = os.getenv("GITHUB_REF", "").split("/")[-2]
-        files = fetch_changed_files_pr(repo, pr_number)
-        print("PR files:")
-        print_files(files)
+        if is_int(pr_number):
+            files = fetch_changed_files_pr(repo, pr_number)
+            print("PR files:")
+            print_files(files)
 
     elif event_type == "push":
         files = fetch_changed_files_push(repo, sha)
         print("Files touched since previous commit:")
         print_files(files)
+
+    elif event_type == "workflow_dispatch":
+        print("Workflow dispatched, assuming all changed")
+
     else:
         raise ValueError("Unsupported event type")
 
     changes_detected = {}
     for group, regex_patterns in PATTERNS.items():
         patterns_compiled = [re.compile(p) for p in regex_patterns]
-        changes_detected[group] = detect_changes(files, patterns_compiled)
+        changes_detected[group] = files is None or detect_changes(
+            files, patterns_compiled
+        )
 
     # Output results
-    output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"
+    output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"  # noqa: S108
     with open(output_path, "a") as f:
         for check, changed in changes_detected.items():
-            if changed:
-                print(f"{check}={str(changed).lower()}", file=f)
+            # NOTE: as noted above, we assume that if 100 files are touched, we should
+            # trigger all checks. This is a workaround for the GitHub API limit of 100
+            # files. Using >= 99 because off-by-one errors are not uncommon
+            if changed or len(files) >= 99:
+                print(f"{check}=true", file=f)
                 print(f"Triggering group: {check}")
 
 
 def get_git_sha() -> str:
-    return os.getenv("GITHUB_SHA") or subprocess.check_output(
-        ["git", "rev-parse", "HEAD"]
+    return os.getenv("GITHUB_SHA") or subprocess.check_output(  # noqa: S603
+        ["git", "rev-parse", "HEAD"]  # noqa: S607
     ).strip().decode("utf-8")
 
 

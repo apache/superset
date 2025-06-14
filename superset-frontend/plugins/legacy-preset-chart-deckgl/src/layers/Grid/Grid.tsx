@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Color, GridLayer } from 'deck.gl/typed';
-import React from 'react';
+import { Color } from '@deck.gl/core';
+import { GridLayer } from '@deck.gl/aggregation-layers';
 import {
   t,
   CategoricalColorNamespace,
@@ -56,7 +56,8 @@ export function getLayer(
   setTooltip: (tooltip: TooltipProps['tooltip']) => void,
 ) {
   const fd = formData;
-  const colorScale = CategoricalColorNamespace.getScale(fd.color_scheme);
+  const appliedScheme = fd.color_scheme;
+  const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
   const colorRange = colorScale
     .range()
     .map(color => hexToRGB(color)) as Color[];
@@ -85,7 +86,7 @@ export function getLayer(
   });
 }
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
 }
 

@@ -16,18 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, FunctionComponent } from 'react';
-import moment, { Moment, MomentInput } from 'moment';
-import { t, styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import {
+  useEffect,
+  useState,
+  FunctionComponent,
+  MouseEventHandler,
+} from 'react';
+
+import { extendedDayjs } from 'src/utils/dates';
+import { t, styled, css } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
+import dayjs from 'dayjs';
 
 const REFRESH_INTERVAL = 60000; // every minute
 
 interface LastUpdatedProps {
-  updatedAt: MomentInput;
-  update?: React.MouseEventHandler<HTMLSpanElement>;
+  updatedAt: string | number | Date | undefined;
+  update?: MouseEventHandler<HTMLSpanElement>;
 }
-moment.updateLocale('en', {
+extendedDayjs.updateLocale('en', {
   calendar: {
     lastDay: '[Yesterday at] LTS',
     sameDay: '[Today at] LTS',
@@ -42,28 +49,31 @@ const TextStyles = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const Refresh = styled(Icons.Refresh)`
-  color: ${({ theme }) => theme.colors.primary.base};
+const RefreshIcon = styled(Icons.SyncOutlined)`
+  ${({ theme }) => `
   width: auto;
-  height: ${({ theme }) => theme.gridUnit * 5}px;
+  height: ${theme.gridUnit * 5}px;
   position: relative;
-  top: ${({ theme }) => theme.gridUnit}px;
-  left: ${({ theme }) => theme.gridUnit}px;
+  top: ${theme.gridUnit}px;
+  left: ${theme.gridUnit}px;
   cursor: pointer;
+`};
 `;
 
 export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
   updatedAt,
   update,
 }) => {
-  const [timeSince, setTimeSince] = useState<Moment>(moment(updatedAt));
+  const [timeSince, setTimeSince] = useState<dayjs.Dayjs>(
+    extendedDayjs(updatedAt),
+  );
 
   useEffect(() => {
-    setTimeSince(() => moment(updatedAt));
+    setTimeSince(() => extendedDayjs(updatedAt));
 
     // update UI every minute in case day changes
     const interval = setInterval(() => {
-      setTimeSince(() => moment(updatedAt));
+      setTimeSince(() => extendedDayjs(updatedAt));
     }, REFRESH_INTERVAL);
 
     return () => clearInterval(interval);
@@ -72,7 +82,15 @@ export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
   return (
     <TextStyles>
       {t('Last Updated %s', timeSince.isValid() ? timeSince.calendar() : '--')}
-      {update && <Refresh onClick={update} />}
+      {update && (
+        <RefreshIcon
+          iconSize="l"
+          css={css`
+            vertical-align: text-bottom;
+          `}
+          onClick={update}
+        />
+      )}
     </TextStyles>
   );
 };

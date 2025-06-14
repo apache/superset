@@ -36,7 +36,7 @@ class FeatureFlagManager:
         if self._get_feature_flags_func:
             return self._get_feature_flags_func(deepcopy(self._feature_flags))
         if callable(self._is_feature_enabled_func):
-            return dict(
+            return dict(  # noqa: C417
                 map(
                     lambda kv: (kv[0], self._is_feature_enabled_func(kv[0], kv[1])),
                     self._feature_flags.items(),

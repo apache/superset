@@ -17,22 +17,23 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Any, TYPE_CHECKING
+from typing import Any, Iterator, TYPE_CHECKING
 
 import backoff
 import jwt
-from flask import current_app
-from marshmallow import EXCLUDE, fields, post_load, Schema
+from flask import current_app, url_for
+from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 
 from superset import db
+from superset.distributed_lock import KeyValueDistributedLock
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
 from superset.superset_typing import OAuth2ClientConfig, OAuth2State
-from superset.utils.lock import KeyValueDistributedLock
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
-    from superset.models.core import DatabaseUserOAuth2Tokens
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
 JWT_EXPIRATION = timedelta(minutes=5)
 
@@ -59,7 +60,7 @@ def get_oauth2_access_token(
     simultaneous requests for refreshing a stale token; in that case only the first
     process to acquire the lock will perform the refresh, and othe process should find a
     a valid token when they retry.
-    """
+    """  # noqa: E501
     # pylint: disable=import-outside-toplevel
     from superset.models.core import DatabaseUserOAuth2Tokens
 
@@ -180,3 +181,33 @@ def decode_oauth2_state(encoded_state: str) -> OAuth2State:
     state = oauth2_state_schema.load(payload)
 
     return state
+
+
+class OAuth2ClientConfigSchema(Schema):
+    id = fields.String(required=True)
+    secret = fields.String(required=True)
+    scope = fields.String(required=True)
+    redirect_uri = fields.String(
+        required=False,
+        load_default=lambda: url_for("DatabaseRestApi.oauth2", _external=True),
+    )
+    authorization_request_uri = fields.String(required=True)
+    token_request_uri = fields.String(required=True)
+    request_content_type = fields.String(
+        required=False,
+        load_default=lambda: "json",
+        validate=validate.OneOf(["json", "data"]),
+    )
+
+
+@contextmanager
+def check_for_oauth2(database: Database) -> Iterator[None]:
+    """
+    Run code and check if OAuth2 is needed.
+    """
+    try:
+        yield
+    except Exception as ex:
+        if database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(ex):
+            database.db_engine_spec.start_oauth2_dance(database)
+        raise

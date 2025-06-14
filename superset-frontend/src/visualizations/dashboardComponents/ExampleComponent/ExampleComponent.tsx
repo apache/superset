@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { DashboardComponentMetadata, t } from '@superset-ui/core';
 
 // TODO: POC only component can be removed after PR approved

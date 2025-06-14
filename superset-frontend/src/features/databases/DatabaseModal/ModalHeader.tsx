@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import React from 'react';
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
-import { UploadFile } from 'antd/lib/upload/interface';
+// eslint-disable-next-line no-restricted-imports
+import { UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import { t } from '@superset-ui/core';
 import {
   EditHeaderTitle,
@@ -49,10 +49,16 @@ const documentationLink = (engine: string | undefined) => {
     return supersetTextDocs[engine] || supersetTextDocs.default;
   }
 
-  if (!irregularDocumentationLinks[engine]) {
+  if (
+    !irregularDocumentationLinks[
+      engine as keyof typeof irregularDocumentationLinks
+    ]
+  ) {
     return `https://superset.apache.org/docs/databases/${engine}`;
   }
-  return irregularDocumentationLinks[engine];
+  return irregularDocumentationLinks[
+    engine as keyof typeof irregularDocumentationLinks
+  ];
 };
 
 const ModalHeader = ({

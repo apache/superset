@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HeatmapLayer, Position, Color } from 'deck.gl/typed';
-import React from 'react';
+import { HeatmapLayer } from '@deck.gl/aggregation-layers';
+import { Position, Color } from '@deck.gl/core';
 import { t, getSequentialSchemeRegistry, JsonObject } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
@@ -66,7 +66,7 @@ export const getLayer: getLayerType<unknown> = (
     ?.reverse() as Color[];
 
   return new HeatmapLayer({
-    id: `heatmp-layer-${fd.slice_id}` as const,
+    id: `heatmap-layer-${fd.slice_id}` as const,
     data,
     intensity,
     radiusPixels,
@@ -79,7 +79,7 @@ export const getLayer: getLayerType<unknown> = (
   });
 };
 
-function getPoints(data: any[]) {
+export function getPoints(data: any[]) {
   return data.map(d => d.position);
 }
 

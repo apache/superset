@@ -16,9 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import '@testing-library/jest-dom/extend-expect';
-import React, { ReactNode, ReactElement } from 'react';
-import { render, RenderOptions } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { ReactNode, ReactElement } from 'react';
+// eslint-disable-next-line no-restricted-imports
+import {
+  render,
+  RenderOptions,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+// eslint-disable-next-line no-restricted-imports
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -28,6 +36,7 @@ import reducerIndex from 'spec/helpers/reducerIndex';
 import { QueryParamProvider } from 'use-query-params';
 import { configureStore, Store } from '@reduxjs/toolkit';
 import { api } from 'src/hooks/apiResources/queryApi';
+import userEvent from '@testing-library/user-event';
 
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
@@ -100,5 +109,22 @@ export function sleep(time: number) {
   });
 }
 
+// eslint-disable-next-line no-restricted-imports
 export * from '@testing-library/react';
 export { customRender as render };
+export { default as userEvent } from '@testing-library/user-event';
+
+export async function selectOption(option: string, selectName?: string) {
+  const select = screen.getByRole(
+    'combobox',
+    selectName ? { name: selectName } : {},
+  );
+  await userEvent.click(select);
+  const item = await waitFor(() =>
+    within(
+      // eslint-disable-next-line testing-library/no-node-access
+      document.querySelector('.rc-virtual-list')!,
+    ).getByText(option),
+  );
+  await userEvent.click(item);
+}

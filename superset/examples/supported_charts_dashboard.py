@@ -14,10 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 # pylint: disable=too-many-lines
-
-import json
+import logging
 import textwrap
 
 from sqlalchemy import inspect
@@ -26,7 +24,8 @@ from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
+from superset.utils import json
 from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
@@ -38,6 +37,7 @@ from .helpers import (
 )
 
 DASH_SLUG = "supported_charts_dash"
+logger = logging.getLogger(__name__)
 
 
 def create_slices(tbl: SqlaTable) -> list[Slice]:
@@ -126,7 +126,7 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
         ),
         Slice(
             **slice_kwargs,
-            slice_name="Bar Chart V2",
+            slice_name="Bar Chart",
             viz_type="echarts_timeseries_bar",
             params=get_slice_json(
                 defaults,
@@ -156,17 +156,6 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
                 metric="sum__num",
                 groupby=["gender"],
                 adhoc_filters=[],
-            ),
-        ),
-        Slice(
-            **slice_kwargs,
-            slice_name="Bar Chart",
-            viz_type="dist_bar",
-            params=get_slice_json(
-                defaults,
-                viz_type="dist_bar",
-                metrics=["sum__num"],
-                groupby=["gender"],
             ),
         ),
         # ---------------------
@@ -306,13 +295,15 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
         Slice(
             **slice_kwargs,
             slice_name="Heatmap Chart",
-            viz_type="heatmap",
+            viz_type="heatmap_v2",
             params=get_slice_json(
                 defaults,
-                viz_type="funnel",
+                viz_type="heatmap_v2",
                 metric="sum__num",
-                all_columns_x="gender",
-                all_columns_y="state",
+                x_axis="gender",
+                groupby="state",
+                sort_x_axis="value_asc",
+                sort_y_axis="value_asc",
             ),
         ),
         Slice(
@@ -387,12 +378,13 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
         Slice(
             **slice_kwargs,
             slice_name="Sankey Chart",
-            viz_type="sankey",
+            viz_type="sankey_v2",
             params=get_slice_json(
                 defaults,
-                viz_type="sankey",
+                viz_type="sankey_v2",
                 metric="sum__num",
-                groupby=["gender", "state"],
+                source="gender",
+                target="state",
             ),
         ),
         Slice(
@@ -455,7 +447,7 @@ def load_supported_charts_dashboard() -> None:
         )
         create_slices(obj)
 
-    print("Creating the dashboard")
+    logger.debug("Creating the dashboard")
 
     db.session.expunge_all()
     dash = db.session.query(Dashboard).filter_by(slug=DASH_SLUG).first()
@@ -563,7 +555,7 @@ def load_supported_charts_dashboard() -> None:
     "meta": {
       "chartId": 6,
       "height": 50,
-      "sliceName": "Bar Chart V2",
+      "sliceName": "Bar Chart",
       "width": 4
     },
     "type": "CHART"
@@ -615,23 +607,6 @@ def load_supported_charts_dashboard() -> None:
       "chartId": 9,
       "height": 50,
       "sliceName": "Pie Chart",
-      "width": 4
-    },
-    "type": "CHART"
-  },
-  "CHART-10": {
-    "children": [],
-    "parents": [
-      "ROOT_ID",
-      "TABS-TOP",
-      "TAB-TOP-1",
-      "ROW-4"
-    ],
-    "id": "CHART-10",
-    "meta": {
-      "chartId": 10,
-      "height": 50,
-      "sliceName": "Bar Chart",
       "width": 4
     },
     "type": "CHART"
@@ -1274,4 +1249,3 @@ def load_supported_charts_dashboard() -> None:
     dash.dashboard_title = "Supported Charts Dashboard"
     dash.position_json = json.dumps(pos, indent=2)
     dash.slug = DASH_SLUG
-    db.session.commit()

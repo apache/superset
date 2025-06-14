@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetTheme } from '@superset-ui/core';
-import { GaugeSeriesOption } from 'echarts';
+import type { GaugeSeriesOption } from 'echarts/charts';
 
 export const defaultGaugeSeriesOption = (
   theme: SupersetTheme,

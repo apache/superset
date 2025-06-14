@@ -17,8 +17,6 @@
 
 from __future__ import annotations
 
-import json
-
 import pytest
 from flask.ctx import AppContext
 
@@ -32,6 +30,7 @@ from superset.commands.database.uploaders.base import UploadCommand
 from superset.commands.database.uploaders.csv_reader import CSVReader
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
+from superset.utils import json
 from superset.utils.core import override_user
 from superset.utils.database import get_or_create_db
 from tests.integration_tests.conftest import only_postgresql
@@ -84,12 +83,12 @@ def get_upload_db():
     return db.session.query(Database).filter_by(database_name=CSV_UPLOAD_DATABASE).one()
 
 
-@pytest.fixture()
+@pytest.fixture
 def setup_csv_upload_with_context(app_context: AppContext):
     yield from _setup_csv_upload()
 
 
-@pytest.fixture()
+@pytest.fixture
 def setup_csv_upload_with_context_schema(app_context: AppContext):
     yield from _setup_csv_upload(["public"])
 
@@ -108,7 +107,7 @@ def test_csv_upload_with_nulls():
             CSVReader({"null_values": ["N/A", "None"]}),
         ).run()
     with upload_database.get_sqla_engine() as engine:
-        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
+        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()  # noqa: S608
         assert data == [
             ("name1", None, "city1", "1-1-1980"),
             ("name2", 29, None, "1-1-1981"),
@@ -152,15 +151,16 @@ def test_csv_upload_with_index():
             CSVReader({"dataframe_index": True, "index_label": "id"}),
         ).run()
     with upload_database.get_sqla_engine() as engine:
-        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
+        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()  # noqa: S608
         assert data == [
             (0, "name1", 30, "city1", "1-1-1980"),
             (1, "name2", 29, "city2", "1-1-1981"),
             (2, "name3", 28, "city3", "1-1-1982"),
         ]
         # assert column names
-        assert [
-            col for col in engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").keys()
+        assert [  # noqa: C416
+            col
+            for col in engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").keys()  # noqa: S608
         ] == [
             "id",
             "Name",

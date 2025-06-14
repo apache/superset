@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactElement } from 'react';
+import { ReactElement } from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
@@ -90,7 +90,7 @@ test('should get column datatype rendered as tooltip when column has a type', ()
     </>,
   );
 
-  expect(screen.getByText('Column datatype')).toBeVisible();
+  expect(screen.getByText('Column type')).toBeVisible();
   expect(screen.getByText('text')).toBeVisible();
 });
 

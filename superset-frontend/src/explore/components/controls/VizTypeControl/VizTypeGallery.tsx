@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   ChangeEventHandler,
+  FC,
   ReactElement,
   useCallback,
   useEffect,
@@ -25,6 +26,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+
 import Fuse from 'fuse.js';
 import cx from 'classnames';
 import {
@@ -42,7 +44,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { Input } from 'src/components/Input';
 import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
-import Icons from 'src/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import scrollIntoView from 'scroll-into-view-if-needed';
 
@@ -66,58 +68,6 @@ enum Sections {
   Tags = 'TAGS',
 }
 
-const DEFAULT_ORDER = [
-  'line',
-  'big_number',
-  'big_number_total',
-  'table',
-  'pivot_table_v2',
-  'echarts_timeseries_line',
-  'echarts_area',
-  'echarts_timeseries_bar',
-  'echarts_timeseries_scatter',
-  'pie',
-  'mixed_timeseries',
-  'dist_bar',
-  'area',
-  'bar',
-  'deck_polygon',
-  'time_table',
-  'histogram',
-  'deck_scatter',
-  'deck_hex',
-  'time_pivot',
-  'deck_arc',
-  'heatmap',
-  'heatmap_v2',
-  'deck_grid',
-  'deck_screengrid',
-  'treemap_v2',
-  'box_plot',
-  'sankey',
-  'word_cloud',
-  'mapbox',
-  'kepler',
-  'cal_heatmap',
-  'rose',
-  'bubble',
-  'bubble_v2',
-  'deck_geojson',
-  'horizon',
-  'deck_multi',
-  'compare',
-  'partition',
-  'event_flow',
-  'deck_path',
-  'graph_chart',
-  'world_map',
-  'paired_ttest',
-  'para',
-  'country_map',
-];
-
-const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
-
 const THUMBNAIL_GRID_UNITS = 24;
 
 export const MAX_ADVISABLE_VIZ_GALLERY_WIDTH = 1090;
@@ -128,7 +78,7 @@ const ALL_CHARTS = t('All charts');
 
 const FEATURED = t('Featured');
 
-const RECOMMENDED_TAGS = [t('Popular'), t('ECharts'), t('Advanced-Analytics')];
+const RECOMMENDED_TAGS = [FEATURED, t('ECharts'), t('Advanced-Analytics')];
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
@@ -193,7 +143,7 @@ const SearchWrapper = styled.div`
     margin-bottom: ${theme.gridUnit}px;
     margin-left: ${theme.gridUnit * 3}px;
     margin-right: ${theme.gridUnit * 3}px;
-    .ant-input-affix-wrapper {
+    .antd5-input-affix-wrapper {
       padding-left: ${theme.gridUnit * 2}px;
     }
   `}
@@ -352,7 +302,6 @@ const HighlightLabel = styled.div`
     font-weight: ${theme.typography.weights.bold};
     text-align: center;
     padding: ${theme.gridUnit * 0.5}px ${theme.gridUnit}px;
-    text-transform: uppercase;
     cursor: pointer;
 
     div {
@@ -372,13 +321,6 @@ const TitleLabelWrapper = styled.div`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-function vizSortFactor(entry: VizEntry) {
-  if (typesWithDefaultOrder.has(entry.key)) {
-    return DEFAULT_ORDER.indexOf(entry.key);
-  }
-  return DEFAULT_ORDER.length;
-}
-
 interface ThumbnailProps {
   entry: VizEntry;
   selectedViz: string | null;
@@ -386,7 +328,7 @@ interface ThumbnailProps {
   onDoubleClick: () => void;
 }
 
-const Thumbnail: React.FC<ThumbnailProps> = ({
+const Thumbnail: FC<ThumbnailProps> = ({
   entry,
   selectedViz,
   setSelectedViz,
@@ -439,7 +381,7 @@ interface ThumbnailGalleryProps {
 }
 
 /** A list of viz thumbnails, used within the viz picker modal */
-const ThumbnailGallery: React.FC<ThumbnailGalleryProps> = ({
+const ThumbnailGallery: FC<ThumbnailGalleryProps> = ({
   vizEntries,
   ...props
 }) => (
@@ -450,7 +392,7 @@ const ThumbnailGallery: React.FC<ThumbnailGalleryProps> = ({
   </IconsPane>
 );
 
-const Selector: React.FC<{
+const Selector: FC<{
   selector: string;
   sectionId: string;
   icon: ReactElement;
@@ -476,11 +418,15 @@ const Selector: React.FC<{
 
   return (
     <SelectorLabel
+      aria-label={selector}
+      aria-selected={isSelected}
       ref={btnRef}
       key={selector}
       name={selector}
       className={cx(className, isSelected && 'selected')}
       onClick={() => onClick(selector, sectionId)}
+      tabIndex={0}
+      role="tab"
     >
       {icon}
       {selector}
@@ -494,7 +440,7 @@ const doesVizMatchSelector = (viz: ChartMetadata, selector: string) =>
   (viz.tags || []).indexOf(selector) > -1;
 
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
-  const { selectedViz, onChange, onDoubleClick, className } = props;
+  const { selectedViz, onChange, onDoubleClick, className, denyList } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const searchInputRef = useRef<HTMLInputElement>();
   const [searchInputValue, setSearchInputValue] = useState('');
@@ -508,14 +454,14 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const chartMetadata: VizEntry[] = useMemo(() => {
     const result = Object.entries(mountedPluginMetadata)
       .map(([key, value]) => ({ key, value }))
-      .filter(({ key }) => !props.denyList.includes(key))
+      .filter(({ key }) => !denyList.includes(key))
       .filter(
         ({ value }) =>
           nativeFilterGate(value.behaviors || []) && !value.deprecated,
-      );
-    result.sort((a, b) => vizSortFactor(a) - vizSortFactor(b));
+      )
+      .sort((a, b) => a.value.name.localeCompare(b.value.name));
     return result;
-  }, [mountedPluginMetadata]);
+  }, [mountedPluginMetadata, denyList]);
 
   const chartsByCategory = useMemo(() => {
     const result: Record<string, VizEntry[]> = {};
@@ -567,7 +513,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   );
 
   const sortedMetadata = useMemo(
-    () => chartMetadata.sort((a, b) => a.key.localeCompare(b.key)),
+    () =>
+      chartMetadata.sort((a, b) => a.value.name.localeCompare(b.value.name)),
     [chartMetadata],
   );
 
@@ -675,7 +622,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       },
       [Sections.Tags]: {
         title: t('Tags'),
-        icon: <Icons.Tags iconSize="m" />,
+        icon: <Icons.NumberOutlined iconSize="m" />,
         selectors: tags,
       },
     }),
@@ -692,9 +639,9 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     if (
       activeSelector === FEATURED &&
       activeSection === Sections.Featured &&
-      chartsByTags[t('Popular')]
+      chartsByTags[FEATURED]
     ) {
-      return chartsByTags[t('Popular')];
+      return chartsByTags[FEATURED];
     }
     if (
       activeSection === Sections.Category &&
@@ -713,7 +660,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       className={className}
       isSelectedVizMetadata={Boolean(selectedVizMetadata)}
     >
-      <LeftPane>
+      <LeftPane aria-label={t('Choose chart type')} role="tablist">
         <Selector
           css={({ gridUnit }) =>
             // adjust style for not being inside a collapse
@@ -756,7 +703,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           defaultActiveKey={Sections.Category}
         >
           {Object.keys(sectionMap).map(sectionId => {
-            const section = sectionMap[sectionId];
+            const section = sectionMap[sectionId as keyof typeof sectionMap];
 
             return (
               <AntdCollapse.Panel
@@ -794,13 +741,13 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
           prefix={
             <InputIconAlignment>
-              <Icons.Search iconSize="m" />
+              <Icons.SearchOutlined iconSize="m" />
             </InputIconAlignment>
           }
           suffix={
             <InputIconAlignment>
               {searchInputValue && (
-                <Icons.XLarge iconSize="m" onClick={stopSearching} />
+                <Icons.CloseOutlined iconSize="m" onClick={stopSearching} />
               )}
             </InputIconAlignment>
           }
@@ -850,7 +797,14 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             </SectionTitle>
             <TagsWrapper>
               {selectedVizMetadata?.tags.map(tag => (
-                <Label key={tag}>{tag}</Label>
+                <Label
+                  key={tag}
+                  css={({ gridUnit }) => css`
+                    margin-bottom: ${gridUnit * 2}px;
+                  `}
+                >
+                  {tag}
+                </Label>
               ))}
             </TagsWrapper>
             <Description>

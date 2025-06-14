@@ -16,12 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook, cleanup } from '@testing-library/react-hooks';
 import { TestDataset } from '@superset-ui/chart-controls';
 import { useDatePickerInAdhocFilter } from './useDatePickerInAdhocFilter';
 
-test('should return undefined if column is not temporal', () => {
-  const { result } = renderHook(() =>
+// Add cleanup after each test
+afterEach(async () => {
+  cleanup();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
+
+test('should return undefined if column is not temporal', async () => {
+  const { result, unmount } = renderHook(() =>
     useDatePickerInAdhocFilter({
       columnName: 'gender',
       datasource: TestDataset,
@@ -29,10 +36,11 @@ test('should return undefined if column is not temporal', () => {
     }),
   );
   expect(result.current).toBeUndefined();
+  unmount();
 });
 
-test('should return JSX', () => {
-  const { result } = renderHook(() =>
+test('should return JSX', async () => {
+  const { result, unmount } = renderHook(() =>
     useDatePickerInAdhocFilter({
       columnName: 'ds',
       datasource: TestDataset,
@@ -40,4 +48,5 @@ test('should return JSX', () => {
     }),
   );
   expect(result.current).not.toBeUndefined();
+  unmount();
 });

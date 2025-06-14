@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
-import { styled, t, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { useCallback } from 'react';
+import { css, styled, t, useTheme } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
 import {
   CaretContainer,
   CloseContainer,
@@ -53,11 +53,20 @@ export default function Option({
     <OptionControlContainer data-test="option-label" withCaret={withCaret}>
       {canDelete && (
         <CloseContainer
+          css={css`
+            text-align: center;
+          `}
           role="button"
           data-test="remove-control-button"
           onClick={onClickClose}
         >
-          <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
+          <Icons.CloseOutlined
+            iconSize="m"
+            iconColor={theme.colors.grayscale.light1}
+            css={css`
+              vertical-align: sub;
+            `}
+          />
         </CloseContainer>
       )}
       <Label data-test="control-label">{children}</Label>
@@ -77,7 +86,13 @@ export default function Option({
       )}
       {withCaret && (
         <CaretContainer>
-          <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
+          <Icons.RightOutlined
+            iconSize="m"
+            css={css`
+              margin-top: ${theme.gridUnit}px;
+            `}
+            iconColor={theme.colors.grayscale.light1}
+          />
         </CaretContainer>
       )}
     </OptionControlContainer>

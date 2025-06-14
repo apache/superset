@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { render } from 'spec/helpers/testing-library';
 import * as ReactCronPicker from 'react-js-cron';
 import { CronPicker } from './CronPicker';
@@ -29,7 +28,7 @@ test('Should send correct props to ReactCronPicker', () => {
     myCustomProp: 'myCustomProp',
   };
   render(<CronPicker {...(props as any)} />);
-  expect(spy).toBeCalledWith(
+  expect(spy).toHaveBeenCalledWith(
     expect.objectContaining({
       className: expect.any(String),
       locale: expect.anything(),

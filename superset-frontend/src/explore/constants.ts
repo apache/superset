@@ -83,8 +83,8 @@ export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
     display: t('use latest_partition template'),
     operation: 'LATEST PARTITION',
   },
-  [Operators.IsTrue]: { display: t('Is true'), operation: '==' },
-  [Operators.IsFalse]: { display: t('Is false'), operation: '==' },
+  [Operators.IsTrue]: { display: t('Is true'), operation: 'IS TRUE' },
+  [Operators.IsFalse]: { display: t('Is false'), operation: 'IS FALSE' },
   [Operators.TemporalRange]: {
     display: t('TEMPORAL_RANGE'),
     operation: 'TEMPORAL_RANGE',
@@ -158,3 +158,11 @@ export const TIME_FILTER_MAP = {
 export const POPOVER_INITIAL_HEIGHT = 240;
 export const POPOVER_INITIAL_WIDTH = 320;
 export const UNSAVED_CHART_ID = 0;
+
+export const QUERY_MODE_REQUISITES = new Set([
+  'all_columns',
+  'groupby',
+  'metrics',
+  'percent_metrics',
+  'order_by_cols',
+]);

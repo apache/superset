@@ -20,45 +20,51 @@
 import { interceptGet as interceptDashboardGet } from '../dashboard/utils';
 
 export function interceptFiltering() {
-  cy.intercept('GET', `/api/v1/chart/?q=*`).as('filtering');
+  cy.intercept('GET', `**/api/v1/chart/?q=*`).as('filtering');
 }
 
 export function interceptBulkDelete() {
-  cy.intercept('DELETE', `/api/v1/chart/?q=*`).as('bulkDelete');
+  cy.intercept('DELETE', `**/api/v1/chart/?q=*`).as('bulkDelete');
 }
 
 export function interceptDelete() {
-  cy.intercept('DELETE', `/api/v1/chart/*`).as('delete');
+  cy.intercept('DELETE', `**/api/v1/chart/*`).as('delete');
+}
+
+export function interceptFavoriteStatus() {
+  cy.intercept('GET', '**/api/v1/chart/favorite_status/*').as('favoriteStatus');
 }
 
 export function interceptUpdate() {
-  cy.intercept('PUT', `/api/v1/chart/*`).as('update');
+  cy.intercept('PUT', `**/api/v1/chart/*`).as('update');
 }
 
 export const interceptV1ChartData = (alias = 'v1Data') => {
-  cy.intercept('/api/v1/chart/data*').as(alias);
+  cy.intercept('**/api/v1/chart/data*').as(alias);
 };
 
 export function interceptExploreJson(alias = 'getJson') {
-  cy.intercept('POST', `/superset/explore_json/**`).as(alias);
+  cy.intercept('POST', `**/superset/explore_json/**`).as(alias);
 }
 
 export const interceptFormDataKey = () => {
-  cy.intercept('POST', '/api/v1/explore/form_data').as('formDataKey');
+  cy.intercept('POST', '**/api/v1/explore/form_data').as('formDataKey');
 };
 
 export function interceptExploreGet() {
   cy.intercept({
     method: 'GET',
-    url: /api\/v1\/explore\/\?(form_data_key|dashboard_page_id|slice_id)=.*/,
+    url: /.*\/api\/v1\/explore\/\?(form_data_key|dashboard_page_id|slice_id)=.*/,
   }).as('getExplore');
 }
 
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
-  cy.get(`[aria-label="${filter}"]`).first().click();
-  cy.get(`[aria-label="${filter}"] [title="${option}"]`).click();
+  cy.get(`[aria-label^="${filter}"]`).first().click();
+  cy.get(`.ant-select-item-option[title="${option}"]`).first().click({
+    force: true,
+  });
 
   cy.wait('@filtering');
 }
@@ -68,18 +74,22 @@ export function saveChartToDashboard(dashboardName: string) {
   interceptUpdate();
   interceptExploreGet();
 
-  cy.getBySel('query-save-button').click();
-  cy.getBySelLike('chart-modal').should('be.visible');
-  cy.get(
-    '[data-test="save-chart-modal-select-dashboard-form"] [aria-label="Select a dashboard"]',
-  )
-    .first()
+  cy.getBySel('query-save-button')
+    .should('be.enabled')
+    .should('not.be.disabled')
     .click();
-  cy.get(
-    '.ant-select-selection-search-input[aria-label="Select a dashboard"]',
-  ).type(dashboardName.slice(0, 3), { force: true });
-  cy.get(`.ant-select-item-option[title="${dashboardName}"]`).click();
-  cy.getBySel('btn-modal-save').click();
+  cy.getBySelLike('chart-modal')
+    .should('be.visible')
+    .within(() => {
+      cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
+        .first()
+        .click();
+      cy.get('.ant-select-selection-search-input').type(dashboardName, {
+        force: true,
+      });
+      cy.get(`.ant-select-item-option[title="${dashboardName}"]`).click();
+      cy.getBySel('btn-modal-save').click();
+    });
 
   cy.wait('@update');
   cy.wait('@get');
@@ -89,5 +99,5 @@ export function saveChartToDashboard(dashboardName: string) {
 
 export function visitSampleChartFromList(chartName: string) {
   cy.getBySel('table-row').contains(chartName).click();
-  cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  cy.intercept('POST', '**/superset/explore_json/**').as('getJson');
 }

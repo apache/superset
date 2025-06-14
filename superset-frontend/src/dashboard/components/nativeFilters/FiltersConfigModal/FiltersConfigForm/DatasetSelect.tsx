@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, ReactNode } from 'react';
+import { useCallback, useMemo, ReactNode } from 'react';
 import rison from 'rison';
 import {
   t,

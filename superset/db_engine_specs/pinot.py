@@ -25,6 +25,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 class PinotEngineSpec(BaseEngineSpec):
     engine = "pinot"
     engine_name = "Apache Pinot"
+
     allows_subqueries = False
     allows_joins = False
     allows_alias_in_select = False
@@ -45,14 +46,14 @@ class PinotEngineSpec(BaseEngineSpec):
         + "CAST({col} AS TIMESTAMP)), 900000) AS TIMESTAMP)",
         TimeGrain.THIRTY_MINUTES: "CAST(ROUND(DATE_TRUNC('minute', "
         + "CAST({col} AS TIMESTAMP)), 1800000) AS TIMESTAMP)",
-        TimeGrain.HOUR: "CAST(DATE_TRUNC('hour', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.HOUR: "CAST(DATE_TRUNC('hour', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",  # noqa: E501
         TimeGrain.DAY: "CAST(DATE_TRUNC('day', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        TimeGrain.WEEK: "CAST(DATE_TRUNC('week', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.WEEK: "CAST(DATE_TRUNC('week', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",  # noqa: E501
         TimeGrain.MONTH: "CAST(DATE_TRUNC('month', "
         + "CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
         TimeGrain.QUARTER: "CAST(DATE_TRUNC('quarter', "
         + "CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        TimeGrain.YEAR: "CAST(DATE_TRUNC('year', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.YEAR: "CAST(DATE_TRUNC('year', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",  # noqa: E501
     }
 
     @classmethod

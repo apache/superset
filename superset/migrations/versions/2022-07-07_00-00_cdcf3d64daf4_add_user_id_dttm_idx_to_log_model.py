@@ -22,19 +22,20 @@ Create Date: 2022-04-05 13:27:06.028908
 
 """
 
+from alembic import op
+
+from superset.migrations.shared.utils import create_index, drop_index
+
 # revision identifiers, used by Alembic.
 revision = "cdcf3d64daf4"
 down_revision = "7fb8bca906d2"
 
 
-from alembic import op  # noqa: E402
-
-
 def upgrade():
-    op.create_index(
-        op.f("ix_logs_user_id_dttm"), "logs", ["user_id", "dttm"], unique=False
+    create_index(
+        "logs", op.f("ix_logs_user_id_dttm"), ["user_id", "dttm"], unique=False
     )
 
 
 def downgrade():
-    op.drop_index(op.f("ix_logs_user_id_dttm"), table_name="logs")
+    drop_index(index_name=op.f("ix_logs_user_id_dttm"), table_name="logs")

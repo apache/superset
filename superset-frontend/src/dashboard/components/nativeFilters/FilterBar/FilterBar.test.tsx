@@ -17,13 +17,10 @@
  * under the License.
  */
 
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
-import * as mockCore from '@superset-ui/core';
 import { testWithId } from 'src/utils/testUtils';
-import { Preset } from '@superset-ui/core';
+import { Preset, makeApi } from '@superset-ui/core';
 import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
 import fetchMock from 'fetch-mock';
 import { FilterBarOrientation } from 'src/dashboard/types';
@@ -32,8 +29,13 @@ import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
 jest.useFakeTimers();
-// @ts-ignore
-mockCore.makeApi = jest.fn();
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  makeApi: jest.fn(),
+}));
+
+const mockedMakeApi = makeApi as jest.Mock;
 
 class MainPreset extends Preset {
   constructor() {
@@ -74,9 +76,10 @@ const getModalTestId = testWithId<string>(FILTERS_CONFIG_MODAL_TEST_ID, true);
 const FILTER_NAME = 'Time filter 1';
 
 const addFilterFlow = async () => {
-  // open filter config modal
+  // open filter config modals
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
-  userEvent.click(screen.getByTestId(getTestId('create-filter')));
+  userEvent.click(screen.getByLabelText('setting'));
+  userEvent.click(screen.getByText('Add or edit filters'));
   // select filter
   userEvent.click(screen.getByText('Value'));
   userEvent.click(screen.getByText('Time range'));
@@ -153,8 +156,7 @@ describe('FilterBar', () => {
       { overwriteRoutes: true },
     );
 
-    // @ts-ignore
-    mockCore.makeApi = jest.fn(() => mockApi);
+    mockedMakeApi.mockReturnValue(mockApi);
   });
 
   const renderWrapper = (props = closedBarProps, state?: object) =>
@@ -198,7 +200,9 @@ describe('FilterBar', () => {
 
   it('should render the collapse icon', () => {
     renderWrapper();
-    expect(screen.getByRole('img', { name: 'collapse' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'vertical-align' }),
+    ).toBeInTheDocument();
   });
 
   it('should render the filter icon', () => {
@@ -208,7 +212,9 @@ describe('FilterBar', () => {
 
   it('should toggle', () => {
     renderWrapper();
-    const collapse = screen.getByRole('img', { name: 'collapse' });
+    const collapse = screen.getByRole('img', {
+      name: 'vertical-align',
+    });
     expect(toggleFiltersBar).not.toHaveBeenCalled();
     userEvent.click(collapse);
     expect(toggleFiltersBar).toHaveBeenCalled();
@@ -274,6 +280,10 @@ describe('FilterBar', () => {
     };
 
     renderWrapper(openedBarProps, stateWithDivider);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000); // 1s
+    });
 
     const title = await screen.findByText('Select time range');
     const description = await screen.findByText('Select year/month etc..');

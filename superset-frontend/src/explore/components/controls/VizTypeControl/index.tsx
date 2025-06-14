@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   css,
   t,
@@ -33,15 +33,7 @@ import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from './VizTypeGallery';
 import { FastVizSwitcher } from './FastVizSwitcher';
-
-interface VizTypeControlProps {
-  description?: string;
-  label?: string;
-  name: string;
-  onChange: (vizType: string | null) => void;
-  value: string | null;
-  isModalOpenInit?: boolean;
-}
+import { VizTypeControlProps } from './types';
 
 const bootstrapData = getBootstrapData();
 const denyList: string[] = (
@@ -63,6 +55,8 @@ function VizSupportValidation({ vizType }: { vizType: string }) {
         margin-top: ${theme.gridUnit}px;
       `}
     >
+      {/* TODO: Remove fa-icon */}
+      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
       <i className="fa fa-exclamation-circle text-danger" />{' '}
       <small>{t('This visualization type is not supported.')}</small>
     </div>
@@ -70,7 +64,7 @@ function VizSupportValidation({ vizType }: { vizType: string }) {
 }
 
 const UnpaddedModal = styled(Modal)`
-  .ant-modal-body {
+  .antd5-modal-body {
     padding: 0;
   }
 `;

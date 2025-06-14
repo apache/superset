@@ -41,7 +41,7 @@ const useGetDatasetRelatedCounts = (id: string) => {
   );
 
   useEffect(() => {
-    // Todo: this useEffect should be used to call all count methods conncurently
+    // Todo: this useEffect should be used to call all count methods concurrently
     // when we populate data for the new tabs. For right separating out this
     // api call for building the usage page.
     if (id) {

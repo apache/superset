@@ -17,7 +17,6 @@
 """Superset wrapper around pyarrow.Table."""
 
 import datetime
-import json
 import logging
 from typing import Any, Optional
 
@@ -28,7 +27,7 @@ from numpy.typing import NDArray
 
 from superset.db_engine_specs import BaseEngineSpec
 from superset.superset_typing import DbapiDescription, DbapiResult, ResultSetColumnType
-from superset.utils import core as utils, json as json_utils
+from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
@@ -61,7 +60,7 @@ def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list
 
 
 def stringify(obj: Any) -> str:
-    return json_utils.dumps(obj, default=json_utils.json_iso_dttm_ser)
+    return json.dumps(obj, default=json.json_iso_dttm_ser)
 
 
 def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
@@ -101,7 +100,7 @@ def convert_to_string(value: Any) -> str:
 
 
 class SupersetResultSet:
-    def __init__(  # pylint: disable=too-many-locals
+    def __init__(  # pylint: disable=too-many-locals  # noqa: C901
         self,
         data: DbapiResult,
         cursor_description: DbapiDescription,
@@ -123,8 +122,10 @@ class SupersetResultSet:
 
             # fix cursor descriptor with the deduped names
             deduped_cursor_desc = [
-                tuple([column_name, *list(description)[1:]])
-                for column_name, description in zip(column_names, cursor_description)
+                tuple([column_name, *list(description)[1:]])  # noqa: C409
+                for column_name, description in zip(
+                    column_names, cursor_description, strict=False
+                )
             ]
 
             # generate numpy structured array dtype

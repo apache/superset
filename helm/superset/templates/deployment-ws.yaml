@@ -28,6 +28,9 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- if .Values.extraLabels }}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
   {{- if .Values.supersetWebsockets.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetWebsockets.deploymentAnnotations | nindent 4 }}
   {{- end }}
@@ -50,6 +53,9 @@ spec:
       labels:
         app: "{{ template "superset.name" . }}-ws"
         release: {{ .Release.Name }}
+        {{- if .Values.extraLabels }}
+          {{- toYaml .Values.extraLabels | nindent 8 }}
+        {{- end }}
         {{- if .Values.supersetWebsockets.podLabels }}
           {{- toYaml .Values.supersetWebsockets.podLabels | nindent 8 }}
         {{- end }}
@@ -127,6 +133,9 @@ spec:
         {{- with .Values.supersetWebsockets.affinity }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- end }}
+      {{- if .Values.supersetWebsockets.priorityClassName }}
+      priorityClassName: {{ .Values.supersetWebsockets.priorityClassName }}
       {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.supersetWebsockets.topologySpreadConstraints }}
       topologySpreadConstraints:

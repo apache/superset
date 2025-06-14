@@ -22,7 +22,7 @@ from typing import Optional
 
 import pytest
 from flask.ctx import AppContext
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy import inspect  # noqa: F401
 
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -90,7 +90,7 @@ SCHEMA_ACCESS_ROLE = "schema_access_role"
 )
 def test_get_user_id(
     app_context: AppContext,
-    mocker: MockFixture,
+    mocker: MockerFixture,
     username: Optional[str],
     user_id: Optional[int],
 ) -> None:
@@ -109,7 +109,7 @@ def test_get_user_id(
 )
 def test_get_username(
     app_context: AppContext,
-    mocker: MockFixture,
+    mocker: MockerFixture,
     username: Optional[str],
 ) -> None:
     mock_g = mocker.patch("superset.utils.core.g", spec={})
@@ -121,7 +121,7 @@ def test_get_username(
 @pytest.mark.parametrize("force", [False, True])
 def test_override_user(
     app_context: AppContext,
-    mocker: MockFixture,
+    mocker: MockerFixture,
     username: str,
     force: bool,
 ) -> None:

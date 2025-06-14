@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, DEFAULT_D3_FORMAT } from '@superset-ui/core';
+import {
+  t,
+  DEFAULT_D3_FORMAT,
+  DEFAULT_D3_TIME_FORMAT,
+} from '@superset-ui/core';
 
 import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
 
@@ -139,12 +143,14 @@ export const SLOW_DEBOUNCE = 500;
 export const NULL_DISPLAY = t('N/A');
 
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
+  application_root: '/',
+  static_assets_prefix: '',
   flash_messages: [],
   conf: {},
   locale: 'en',
   feature_flags: {},
   language_pack: {
-    domain: '',
+    domain: 'superset',
     locale_data: {
       superset: {
         '': {
@@ -184,6 +190,7 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
     },
   },
   d3_format: DEFAULT_D3_FORMAT,
+  d3_time_format: DEFAULT_D3_TIME_FORMAT,
 };
 
 export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {
@@ -196,4 +203,9 @@ export enum FilterPlugins {
   Time = 'filter_time',
   TimeColumn = 'filter_timecolumn',
   TimeGrain = 'filter_timegrain',
+}
+
+export enum Actions {
+  CREATE = 'create',
+  UPDATE = 'update',
 }

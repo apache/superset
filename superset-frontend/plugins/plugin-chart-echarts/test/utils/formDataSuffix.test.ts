@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { VizType } from '@superset-ui/core';
 import {
   retainFormDataSuffix,
   removeFormDataSuffix,
@@ -23,7 +24,7 @@ import {
 
 const formData = {
   datasource: 'dummy',
-  viz_type: 'table',
+  viz_type: VizType.Table,
   metrics: ['a', 'b'],
   columns: ['foo', 'bar'],
   limit: 100,
@@ -35,7 +36,7 @@ const formData = {
 test('should keep controls with suffix', () => {
   expect(retainFormDataSuffix(formData, '_b')).toEqual({
     datasource: 'dummy',
-    viz_type: 'table',
+    viz_type: VizType.Table,
     metrics: ['c', 'd'],
     columns: ['hello', 'world'],
     limit: 200,
@@ -47,7 +48,7 @@ test('should keep controls with suffix', () => {
 test('should remove controls with suffix', () => {
   expect(removeFormDataSuffix(formData, '_b')).toEqual({
     datasource: 'dummy',
-    viz_type: 'table',
+    viz_type: VizType.Table,
     metrics: ['a', 'b'],
     columns: ['foo', 'bar'],
     limit: 100,

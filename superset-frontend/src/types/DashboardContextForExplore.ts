@@ -24,8 +24,9 @@ import {
 import { ChartConfiguration } from 'src/dashboard/types';
 
 export interface DashboardContextForExplore {
-  labelColors: Record<string, string>;
-  sharedLabelColors: Record<string, string>;
+  labelsColor: Record<string, string>;
+  labelsColorMap: Record<string, string>;
+  sharedLabelsColors: string[];
   colorScheme: string;
   chartConfiguration: ChartConfiguration;
   nativeFilters: PartialFilters;
@@ -40,4 +41,5 @@ export interface DashboardContextForExplore {
       }
     | {};
   isRedundant?: boolean;
+  dashboardPageId?: string;
 }

@@ -25,7 +25,7 @@ import {
   formatTimeRangeComparison,
 } from '../../src/time-comparison/fetchTimeRange';
 
-afterEach(fetchMock.restore);
+afterEach(() => fetchMock.restore());
 
 test('generates proper time range string', () => {
   expect(
@@ -52,10 +52,11 @@ test('generates a readable time range', () => {
   expect(formatTimeRange(' : 2020-07-30T00:00:00')).toBe(
     '-∞ ≤ col < 2020-07-30',
   );
+  expect(formatTimeRange('')).toBe('');
 });
 
 test('returns a formatted time range from response', async () => {
-  fetchMock.get("glob:*/api/v1/time_range/?q='Last+day'", {
+  fetchMock.get('glob:*/api/v1/time_range/?q=%27Last+day%27', {
     result: [
       {
         since: '2021-04-13T00:00:00',
@@ -72,7 +73,7 @@ test('returns a formatted time range from response', async () => {
 });
 
 test('returns a formatted time range from empty response', async () => {
-  fetchMock.get("glob:*/api/v1/time_range/?q='Last+day'", {
+  fetchMock.get('glob:*/api/v1/time_range/?q=%27Last+day%27', {
     result: [],
   });
 
@@ -83,7 +84,7 @@ test('returns a formatted time range from empty response', async () => {
 });
 
 test('returns a formatted error message from response', async () => {
-  fetchMock.getOnce("glob:*/api/v1/time_range/?q='Last+day'", {
+  fetchMock.get('glob:*/api/v1/time_range/?q=%27Last+day%27', {
     throws: new Response(JSON.stringify({ message: 'Network error' })),
   });
   let timeRange = await fetchTimeRange('Last day');
@@ -91,8 +92,8 @@ test('returns a formatted error message from response', async () => {
     error: 'Network error',
   });
 
-  fetchMock.getOnce(
-    "glob:*/api/v1/time_range/?q='Last+day'",
+  fetchMock.get(
+    'glob:*/api/v1/time_range/?q=%27Last+day%27',
     {
       throws: new Error('Internal Server Error'),
     },
@@ -103,8 +104,8 @@ test('returns a formatted error message from response', async () => {
     error: 'Internal Server Error',
   });
 
-  fetchMock.getOnce(
-    "glob:*/api/v1/time_range/?q='Last+day'",
+  fetchMock.get(
+    'glob:*/api/v1/time_range/?q=%27Last+day%27',
     {
       throws: new Response(JSON.stringify({ statusText: 'Network error' }), {
         statusText: 'Network error',
@@ -120,7 +121,7 @@ test('returns a formatted error message from response', async () => {
 
 test('fetchTimeRange with shift', async () => {
   fetchMock.getOnce(
-    "glob:*/api/v1/time_range/?q=!((timeRange:'Last+day'),(shift%3A'last%20month'%2CtimeRange%3A'Last%20day'))",
+    'glob:*/api/v1/time_range/?q=!((timeRange:%27Last+day%27),(shift%3A%27last%20month%27%2CtimeRange%3A%27Last%20day%27))',
     {
       result: [
         {

@@ -33,6 +33,12 @@ export interface PopKPIStylesProps {
   comparisonColorEnabled: boolean;
 }
 
+export type TableColumnConfig = {
+  visible?: boolean;
+  customColumnName?: string;
+  displayTypeIcon?: boolean;
+};
+
 interface PopKPICustomizeProps {
   headerText: string;
 }
@@ -55,8 +61,12 @@ export type PopKPIProps = PopKPIStylesProps &
     data: TimeseriesDataRecord[];
     metrics: Metric[];
     metricName: string;
+    metricNameFontSize?: number;
+    showMetricName: boolean;
     bigNumber: string;
     prevNumber: string;
+    subtitle?: string;
+    subtitleFontSize: number;
     valueDifference: string;
     percentDifferenceFormattedString: string;
     compType: string;
@@ -65,6 +75,8 @@ export type PopKPIProps = PopKPIStylesProps &
     currentTimeRangeFilter?: SimpleAdhocFilter;
     startDateOffset?: string;
     shift: string;
+    dashboardTimeRange?: string;
+    columnConfig?: Record<string, TableColumnConfig>;
   };
 
 export enum ColorSchemeEnum {

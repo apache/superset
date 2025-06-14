@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { fireEvent, render } from 'spec/helpers/testing-library';
 import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 
@@ -89,13 +88,11 @@ describe('createNewOnOpen', () => {
 
   test('shows correct alert message for unsaved filters', async () => {
     const onCancel = jest.fn();
-    const { getByRole, getByTestId, findByRole } = setup({
+    const { getByRole, getByTestId } = setup({
       onCancel,
       createNewOnOpen: false,
     });
-    fireEvent.mouseOver(getByTestId('new-dropdown-icon'));
-    const addFilterButton = await findByRole('menuitem', { name: 'Filter' });
-    fireEvent.click(addFilterButton);
+    fireEvent.click(getByTestId('add-new-filter-button'));
     fireEvent.click(getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalledTimes(0);
     expect(getByRole('alert')).toBeInTheDocument();

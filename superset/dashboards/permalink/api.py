@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask import request, Response
+from flask import request, Response, url_for
 from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
@@ -69,6 +69,75 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
               application/json:
                 schema:
                   $ref: '#/components/schemas/DashboardPermalinkStateSchema'
+                examples:
+                  time_grain_filter:
+                    summary: "Time Grain Filter"
+                    value:
+                      dataMask:
+                        id: NATIVE_FILTER_ID
+                        extraFormData:
+                          time_grain_sqla: "P1W/1970-01-03T00:00:00Z"
+                        filterState:
+                          label: "Week ending Saturday"
+                          value:
+                            - "P1W/1970-01-03T00:00:00Z"
+                  timecolumn_filter:
+                    summary: "Time Column Filter"
+                    value:
+                      dataMask:
+                        id: NATIVE_FILTER_ID
+                        extraFormData:
+                          granularity_sqla: "order_date"
+                        filterState:
+                          value:
+                            - "order_date"
+                  time_range_filter:
+                    summary: "Time Range Filter"
+                    value:
+                      dataMask:
+                        id: NATIVE_FILTER_ID
+                        extraFormData:
+                          time_range: >-
+                            DATEADD(DATETIME("2025-01-16T00:00:00"), -7, day)
+                            : 2025-01-16T00:00:00
+                        filterState:
+                          value: >-
+                            DATEADD(DATETIME("2025-01-16T00:00:00"), -7, day)
+                            : 2025-01-16T00:00:00
+                  numerical_range_filter:
+                    summary: "Numerical Range Filter"
+                    value:
+                      dataMask:
+                        id: NATIVE_FILTER_ID
+                        extraFormData:
+                          filters:
+                            - col: "tz_offset"
+                              op: ">="
+                              val:
+                                - 1000
+                            - col: "tz_offset"
+                              op: "<="
+                              val:
+                                - 2000
+                        filterState:
+                          value:
+                            - 1000
+                            - 2000
+                          label: "1000 <= x <= 200"
+                  value_filter:
+                    summary: "Value Filter"
+                    value:
+                      dataMask:
+                        id: NATIVE_FILTER_ID
+                        extraFormData:
+                          filters:
+                            - col: "real_name"
+                              op: "IN"
+                              val:
+                                - "John Doe"
+                        filterState:
+                          value:
+                            - "John Doe"
           responses:
             201:
               description: The permanent link was stored successfully.
@@ -98,8 +167,7 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
                 dashboard_id=pk,
                 state=state,
             ).run()
-            http_origin = request.headers.environ.get("HTTP_ORIGIN")
-            url = f"{http_origin}/superset/dashboard/p/{key}/"
+            url = url_for("Superset.dashboard_permalink", key=key, _external=True)
             return self.response(201, key=key, url=url)
         except (ValidationError, DashboardPermalinkInvalidStateError) as ex:
             return self.response(400, message=str(ex))

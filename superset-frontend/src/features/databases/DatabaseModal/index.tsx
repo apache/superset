@@ -21,8 +21,11 @@ import {
   styled,
   SupersetTheme,
   getExtensionsRegistry,
+  css,
+  useTheme,
 } from '@superset-ui/core';
-import React, {
+
+import {
   FunctionComponent,
   useEffect,
   useRef,
@@ -30,21 +33,25 @@ import React, {
   useReducer,
   Reducer,
   useCallback,
+  ChangeEvent,
 } from 'react';
+
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
+// eslint-disable-next-line no-restricted-imports
+import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import Tabs from 'src/components/Tabs';
 import { AntdSelect, Upload } from 'src/components';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
-import IconButton from 'src/components/IconButton';
+import { IconButton } from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import ErrorAlert from 'src/components/ImportModal/ErrorAlert';
+import { Icons } from 'src/components/Icons';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -57,6 +64,7 @@ import {
 import { useCommonConf } from 'src/features/databases/state';
 import Loading from 'src/components/Loading';
 import { isEmpty, pick } from 'lodash';
+import { OnlyKeyWithType } from 'src/utils/types';
 import {
   DatabaseObject,
   DatabaseForm,
@@ -65,6 +73,7 @@ import {
   Engines,
   ExtraJson,
   CustomTextType,
+  DatabaseParameters,
 } from '../types';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
@@ -134,7 +143,7 @@ const SSHTunnelContainer = styled.div`
   `};
 `;
 
-interface DatabaseModalProps {
+export interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   onDatabaseAdd?: (database?: DatabaseObject) => void;
@@ -151,6 +160,7 @@ export enum ActionType {
   EditorChange,
   ExtraEditorChange,
   ExtraInputChange,
+  EncryptedExtraInputChange,
   Fetched,
   InputChange,
   ParametersChange,
@@ -182,6 +192,7 @@ export type DBReducerActionType =
       type:
         | ActionType.ExtraEditorChange
         | ActionType.ExtraInputChange
+        | ActionType.EncryptedExtraInputChange
         | ActionType.TextChange
         | ActionType.QueryChange
         | ActionType.InputChange
@@ -264,6 +275,14 @@ export function dbReducer(
         extra: JSON.stringify({
           ...extraJson,
           [action.payload.name]: actionPayloadJson,
+        }),
+      };
+    case ActionType.EncryptedExtraInputChange:
+      return {
+        ...trimmedState,
+        masked_encrypted_extra: JSON.stringify({
+          ...JSON.parse(trimmedState.masked_encrypted_extra || '{}'),
+          [action.payload.name]: action.payload.value,
         }),
       };
     case ActionType.ExtraInputChange:
@@ -350,19 +369,26 @@ export function dbReducer(
         // Formatting wrapping google sheets table catalog
         const catalogCopy: CatalogObject[] = [...trimmedState.catalog];
         const idx = action.payload.type?.split('-')[1];
-        const catalogToUpdate: CatalogObject = catalogCopy[idx] || {};
-        catalogToUpdate[action.payload.name] = action.payload.value;
+        const catalogToUpdate: CatalogObject =
+          catalogCopy[parseInt(idx, 10)] || {};
+        if (action.payload.value !== undefined) {
+          catalogToUpdate[action.payload.name as keyof CatalogObject] =
+            action.payload.value;
+        }
 
         // insert updated catalog to existing state
         catalogCopy.splice(parseInt(idx, 10), 1, catalogToUpdate);
 
         // format catalog for state
         // eslint-disable-next-line array-callback-return
-        parametersCatalog = catalogCopy.reduce((obj, item: any) => {
-          const catalog = { ...obj };
-          catalog[item.name] = item.value;
-          return catalog;
-        }, {});
+        parametersCatalog = catalogCopy.reduce<Record<string, string>>(
+          (obj, item: CatalogObject) => {
+            const catalog = { ...obj };
+            catalog[item.name as keyof CatalogObject] = item.value;
+            return catalog;
+          },
+          {},
+        );
 
         return {
           ...trimmedState,
@@ -537,6 +563,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   databaseId,
   dbEngine,
 }) => {
+  const theme = useTheme();
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
@@ -620,7 +647,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const connectionAlert = getConnectionAlert();
   const isEditMode = !!databaseId;
   const hasAlert =
-    connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
+    connectionAlert ||
+    !!(
+      db?.engine &&
+      engineSpecificAlertMapping[
+        db.engine as keyof typeof engineSpecificAlertMapping
+      ]
+    );
   const useSqlAlchemyForm =
     db?.configuration_method === ConfigurationMethod.SqlalchemyUri;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
@@ -824,20 +857,28 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
          */
         if (
           parameters_schema[paramConfig]['x-encrypted-extra'] &&
-          dbToUpdate.parameters?.[paramConfig]
+          dbToUpdate.parameters?.[paramConfig as keyof DatabaseParameters]
         ) {
-          if (typeof dbToUpdate.parameters?.[paramConfig] === 'object') {
+          if (
+            typeof dbToUpdate.parameters?.[
+              paramConfig as keyof DatabaseParameters
+            ] === 'object'
+          ) {
             // add new encrypted extra to masked_encrypted_extra object
             additionalEncryptedExtra[paramConfig] =
-              dbToUpdate.parameters?.[paramConfig];
+              dbToUpdate.parameters?.[paramConfig as keyof DatabaseParameters];
             // The backend expects `masked_encrypted_extra` as a string for historical
             // reasons.
-            dbToUpdate.parameters[paramConfig] = JSON.stringify(
-              dbToUpdate.parameters[paramConfig],
+            dbToUpdate.parameters[
+              paramConfig as OnlyKeyWithType<DatabaseParameters, string>
+            ] = JSON.stringify(
+              dbToUpdate.parameters[paramConfig as keyof DatabaseParameters],
             );
           } else {
             additionalEncryptedExtra[paramConfig] = JSON.parse(
-              dbToUpdate.parameters?.[paramConfig] || '{}',
+              dbToUpdate.parameters?.[
+                paramConfig as OnlyKeyWithType<DatabaseParameters, string>
+              ] || '{}',
             );
           }
         }
@@ -1298,7 +1339,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   useEffect(() => {
     if (importingModal) {
       document
-        .getElementsByClassName('ant-upload-list-item-name')[0]
+        ?.getElementsByClassName('ant-upload-list-item-name')[0]
         .scrollIntoView();
     }
   }, [importingModal]);
@@ -1393,7 +1434,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             name="password_needed"
             required
             value={passwords[database]}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setPasswords({ ...passwords, [database]: event.target.value })
             }
             validationMethods={{ onBlur: () => {} }}
@@ -1408,7 +1449,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             name="ssh_tunnel_password_needed"
             required
             value={sshTunnelPasswords[database]}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setSSHTunnelPasswords({
                 ...sshTunnelPasswords,
                 [database]: event.target.value,
@@ -1426,7 +1467,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             name="ssh_tunnel_private_key_needed"
             required
             value={sshTunnelPrivateKeys[database]}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setSSHTunnelPrivateKeys({
                 ...sshTunnelPrivateKeys,
                 [database]: event.target.value,
@@ -1444,7 +1485,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             name="ssh_tunnel_private_key_password_needed"
             required
             value={sshTunnelPrivateKeyPasswords[database]}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setSSHTunnelPrivateKeyPasswords({
                 ...sshTunnelPrivateKeyPasswords,
                 [database]: event.target.value,
@@ -1475,7 +1516,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
-  const confirmOverwrite = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const confirmOverwrite = (event: ChangeEvent<HTMLInputElement>) => {
     const targetValue = (event.currentTarget?.value as string) ?? '';
     setConfirmedOverwrite(targetValue.toUpperCase() === t('OVERWRITE'));
   };
@@ -1530,12 +1571,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             type="info"
             showIcon
             message={
-              engineSpecificAlertMapping[db.engine]?.message ||
-              connectionAlert?.DEFAULT?.message
+              engineSpecificAlertMapping[
+                db.engine as keyof typeof engineSpecificAlertMapping
+              ]?.message || connectionAlert?.DEFAULT?.message
             }
             description={
-              engineSpecificAlertMapping[db.engine]?.description ||
-              connectionAlert?.DEFAULT?.description + ipAlert
+              engineSpecificAlertMapping[
+                db.engine as keyof typeof engineSpecificAlertMapping
+              ]?.description || connectionAlert?.DEFAULT?.description + ipAlert
             }
           />
         </StyledAlertMargin>
@@ -1569,8 +1612,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             description={t(
               'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
             )}
-            subtitle={alertErrors?.[0] || validationErrors?.description}
-            copyText={validationErrors?.description}
+            descriptionDetails={
+              alertErrors?.[0] || validationErrors?.description
+            }
           />
         </ErrorAlertContainer>
       );
@@ -1652,6 +1696,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             value: target.value,
           })
         }
+        onEncryptedExtraInputChange={({
+          target,
+        }: {
+          target: HTMLInputElement;
+        }) =>
+          onChange(ActionType.EncryptedExtraInputChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
         onRemoveTableCatalog={(idx: number) => {
           setDB({
             type: ActionType.RemoveTableCatalogSheet,
@@ -1726,35 +1780,36 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   ) {
     return (
       <Modal
+        centered
         css={(theme: SupersetTheme) => [
           antDModalNoPaddingStyles,
           antDModalStyles(theme),
           formHelperStyles(theme),
           formStyles(theme),
         ]}
+        footer={renderModalFooter()}
+        maskClosable={false}
         name="database"
-        onHandledPrimaryAction={onSave}
         onHide={onClose}
+        onHandledPrimaryAction={onSave}
         primaryButtonName={t('Connect')}
-        width="500px"
-        centered
         show={show}
         title={<h4>{t('Connect a database')}</h4>}
-        footer={renderModalFooter()}
+        width="500px"
       >
         <ModalHeader
-          isLoading={isLoading}
-          isEditMode={isEditMode}
-          useSqlAlchemyForm={useSqlAlchemyForm}
-          hasConnectedDb={hasConnectedDb}
           db={db}
           dbName={dbName}
           dbModel={dbModel}
           fileList={fileList}
+          hasConnectedDb={hasConnectedDb}
+          isEditMode={isEditMode}
+          isLoading={isLoading}
+          useSqlAlchemyForm={useSqlAlchemyForm}
         />
-        {passwordNeededField()}
         {confirmOverwriteField()}
         {importingErrorAlert()}
+        {passwordNeededField()}
       </Modal>
     );
   }
@@ -1779,9 +1834,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       centered
       show={show}
       title={
-        <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
+        <h4>
+          {isEditMode ? (
+            <Icons.EditOutlined
+              iconSize="l"
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
+            />
+          ) : (
+            <Icons.InsertRowAboveOutlined
+              iconSize="l"
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
+            />
+          )}
+          {isEditMode ? t('Edit database') : t('Connect a database')}
+        </h4>
       }
       footer={modalFooter}
+      maskClosable={false}
     >
       <StyledStickyHeader>
         <TabHeader>
@@ -1939,8 +2012,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       width="500px"
       centered
       show={show}
-      title={<h4>{t('Connect a database')}</h4>}
+      title={
+        <h4>
+          <Icons.InsertRowAboveOutlined
+            iconSize="l"
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+            `}
+          />
+          {t('Connect a database')}
+        </h4>
+      }
       footer={renderModalFooter()}
+      maskClosable={false}
     >
       {!isLoading && hasConnectedDb ? (
         <>

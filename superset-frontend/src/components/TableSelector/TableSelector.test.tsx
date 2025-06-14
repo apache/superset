@@ -17,18 +17,18 @@
  * under the License.
  */
 
-import React from 'react';
-import { act } from 'react-dom/test-utils';
 import {
+  act,
+  cleanup,
   render,
   screen,
+  userEvent,
   waitFor,
   within,
   defaultStore as store,
 } from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
 import TableSelector, { TableSelectorMultiple } from '.';
 
 const createProps = (props = {}) => ({
@@ -63,15 +63,23 @@ const getSelectItemContainer = (select: HTMLElement) =>
     'ant-select-selection-item',
   );
 
+// Add cleanup and increase timeout
+beforeAll(() => {
+  jest.setTimeout(30000);
+});
+
 beforeEach(() => {
   fetchMock.get(databaseApiRoute, { result: [] });
 });
 
-afterEach(() => {
+afterEach(async () => {
+  cleanup();
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
   fetchMock.reset();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
 });
 
 test('renders with default props', async () => {
@@ -85,7 +93,7 @@ test('renders with default props', async () => {
     name: 'Select database or type to search databases',
   });
   const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
+    name: 'Select schema or type to search schemas: test_schema',
   });
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type to search tables',
@@ -114,7 +122,9 @@ test('skips select all options', async () => {
   expect(
     await screen.findByRole('option', { name: 'table_a' }),
   ).toBeInTheDocument();
-  expect(screen.queryByRole('option', { name: /Select All/i })).toBeFalsy();
+  expect(
+    screen.queryByRole('option', { name: /Select All/i }),
+  ).not.toBeInTheDocument();
 });
 
 test('renders table options without Select All option', async () => {
@@ -124,35 +134,27 @@ test('renders table options without Select All option', async () => {
 
   const props = createProps();
   render(<TableSelector {...props} />, { useRedux: true, store });
+
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type to search tables',
   });
-  userEvent.click(tableSelect);
-  expect(
-    await screen.findByRole('option', { name: 'table_a' }),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByRole('option', { name: 'table_b' }),
-  ).toBeInTheDocument();
-});
 
-test('renders disabled without schema', async () => {
-  fetchMock.get(catalogApiRoute, { result: [] });
-  fetchMock.get(schemaApiRoute, { result: [] });
-  fetchMock.get(tablesApiRoute, getTableMockFunction());
+  await act(async () => {
+    userEvent.click(tableSelect);
+  });
 
-  const props = createProps();
-  render(<TableSelector {...props} schema={undefined} />, {
-    useRedux: true,
-    store,
-  });
-  const tableSelect = screen.getByRole('combobox', {
-    name: 'Select table or type to search tables',
-  });
-  await waitFor(() => {
-    expect(tableSelect).toBeDisabled();
-  });
-});
+  await waitFor(
+    () => {
+      expect(
+        screen.getByRole('option', { name: 'table_a' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', { name: 'table_b' }),
+      ).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
+}, 15000);
 
 test('table select retain value if not in SQL Lab mode', async () => {
   fetchMock.get(catalogApiRoute, { result: [] });
@@ -174,26 +176,59 @@ test('table select retain value if not in SQL Lab mode', async () => {
   expect(screen.queryByText('table_a')).not.toBeInTheDocument();
   expect(getSelectItemContainer(tableSelect)).toHaveLength(0);
 
-  userEvent.click(tableSelect);
+  await act(async () => {
+    userEvent.click(tableSelect);
+  });
 
-  expect(
-    await screen.findByRole('option', { name: 'table_a' }),
-  ).toBeInTheDocument();
+  await waitFor(
+    () => {
+      expect(
+        screen.getByRole('option', { name: 'table_a' }),
+      ).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
 
-  await waitFor(() => {
+  await act(async () => {
     userEvent.click(screen.getAllByText('table_a')[1]);
   });
 
-  expect(callback).toHaveBeenCalled();
+  await waitFor(
+    () => {
+      expect(callback).toHaveBeenCalled();
+    },
+    { timeout: 10000 },
+  );
 
   const selectedValueContainer = getSelectItemContainer(tableSelect);
-
   expect(selectedValueContainer).toHaveLength(1);
-  expect(
-    await within(selectedValueContainer?.[0] as HTMLElement).findByText(
-      'table_a',
-    ),
-  ).toBeInTheDocument();
+
+  await waitFor(
+    () => {
+      expect(
+        within(selectedValueContainer?.[0] as HTMLElement).getByText('table_a'),
+      ).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
+}, 15000);
+
+test('renders disabled without schema', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
+  fetchMock.get(schemaApiRoute, { result: [] });
+  fetchMock.get(tablesApiRoute, getTableMockFunction());
+
+  const props = createProps();
+  render(<TableSelector {...props} schema={undefined} />, {
+    useRedux: true,
+    store,
+  });
+  const tableSelect = screen.getByRole('combobox', {
+    name: 'Select table or type to search tables',
+  });
+  await waitFor(() => {
+    expect(tableSelect).toBeDisabled();
+  });
 });
 
 test('table multi select retain all the values selected', async () => {

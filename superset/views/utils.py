@@ -22,7 +22,6 @@ from typing import Any, Callable, DefaultDict, Optional, Union
 
 import msgpack
 import pyarrow as pa
-import simplejson as json
 from flask import flash, g, has_request_context, redirect, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
@@ -47,6 +46,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.superset_typing import FormData
+from superset.utils import json
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
@@ -90,6 +90,7 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, An
             "isAnonymous": user.is_anonymous,
             "createdOn": user.created_on.isoformat(),
             "email": user.email,
+            "loginCount": user.login_count,
         }
 
     if include_perms:
@@ -103,8 +104,8 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, An
 def get_permissions(
     user: User,
 ) -> tuple[dict[str, list[tuple[str]]], DefaultDict[str, list[str]]]:
-    if not user.roles:
-        raise AttributeError("User object does not have roles")
+    if not user.roles and not user.groups:
+        raise AttributeError("User object does not have roles or groups")
 
     data_permissions = defaultdict(set)
     roles_permissions = security_manager.get_user_roles_permissions(user)
@@ -180,7 +181,7 @@ def get_form_data(
 
     # Fallback to using the Flask globals (used for cache warmup and async queries)
     if not form_data and hasattr(g, "form_data"):
-        form_data = getattr(g, "form_data")
+        form_data = g.form_data
         # chart data API requests are JSON
         json_data = form_data["queries"][0] if "queries" in form_data else {}
         form_data.update(json_data)
@@ -329,7 +330,7 @@ def get_dashboard_extra_filters(
     return []
 
 
-def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-blocks
+def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-blocks  # noqa: C901
     layout: dict[str, dict[str, Any]],
     filter_scopes: dict[str, dict[str, Any]],
     default_filters: dict[str, dict[str, list[Any]]],

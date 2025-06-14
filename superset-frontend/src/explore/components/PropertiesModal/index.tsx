@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
+
 import Modal from 'src/components/Modal';
 import { Input, TextArea } from 'src/components/Input';
 import Button from 'src/components/Button';
 import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
-import { SelectValue } from 'antd/lib/select';
+// eslint-disable-next-line no-restricted-imports
+import { SelectValue } from 'antd/lib/select'; // TODO: Remove antd
 import rison from 'rison';
 import {
   t,
@@ -30,16 +32,15 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getClientErrorObject,
+  ensureIsArray,
+  useTheme,
+  css,
 } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/Tags/utils';
-import {
-  addTag,
-  deleteTaggedObjects,
-  fetchTags,
-  OBJECT_TYPES,
-} from 'src/features/tags/tags';
+import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import TagType from 'src/types/TagType';
 
 export type PropertiesModalProps = {
@@ -69,6 +70,7 @@ function PropertiesModal({
   show,
   addSuccessToast,
 }: PropertiesModalProps) {
+  const theme = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [form] = AntdForm.useForm();
   // values of form inputs
@@ -80,10 +82,9 @@ function PropertiesModal({
   const [tags, setTags] = useState<TagType[]>([]);
 
   const tagsAsSelectValues = useMemo(() => {
-    const selectTags = tags.map(tag => ({
-      value: tag.name,
+    const selectTags = tags.map((tag: { id: number; name: string }) => ({
+      value: tag.id,
       label: tag.name,
-      key: tag.name,
     }));
     return selectTags;
   }, [tags.length]);
@@ -144,41 +145,6 @@ function PropertiesModal({
     [],
   );
 
-  const updateTags = (oldTags: TagType[], newTags: TagType[]) => {
-    // update the tags for this object
-    // add tags that are in new tags, but not in old tags
-    // eslint-disable-next-line array-callback-return
-    newTags.map((tag: TagType) => {
-      if (!oldTags.some(t => t.name === tag.name)) {
-        addTag(
-          {
-            objectType: OBJECT_TYPES.CHART,
-            objectId: slice.slice_id,
-            includeTypes: false,
-          },
-          tag.name,
-          () => {},
-          () => {},
-        );
-      }
-    });
-    // delete tags that are in old tags, but not in new tags
-    // eslint-disable-next-line array-callback-return
-    oldTags.map((tag: TagType) => {
-      if (!newTags.some(t => t.name === tag.name)) {
-        deleteTaggedObjects(
-          {
-            objectType: OBJECT_TYPES.CHART,
-            objectId: slice.slice_id,
-          },
-          tag,
-          () => {},
-          () => {},
-        );
-      }
-    });
-  };
-
   const onSubmit = async (values: {
     certified_by?: string;
     certification_details?: string;
@@ -209,22 +175,7 @@ function PropertiesModal({
       ).map(o => o.value);
     }
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
-      // update tags
-      try {
-        fetchTags(
-          {
-            objectType: OBJECT_TYPES.CHART,
-            objectId: slice.slice_id,
-            includeTypes: false,
-          },
-          (currentTags: TagType[]) => updateTags(currentTags, tags),
-          error => {
-            showError(error);
-          },
-        );
-      } catch (error) {
-        showError(error);
-      }
+      payload.tags = tags.map(tag => tag.id);
     }
 
     try {
@@ -282,12 +233,12 @@ function PropertiesModal({
     }
   }, [slice.slice_id]);
 
-  const handleChangeTags = (values: { label: string; value: number }[]) => {
-    // triggered whenever a new tag is selected or a tag was deselected
-    // on new tag selected, add the tag
-
-    const uniqueTags = [...new Set(values.map(v => v.label))];
-    setTags([...uniqueTags.map(t => ({ name: t }))]);
+  const handleChangeTags = (tags: { label: string; value: number }[]) => {
+    const parsedTags: TagType[] = ensureIsArray(tags).map(r => ({
+      id: r.value,
+      name: r.label,
+    }));
+    setTags(parsedTags);
   };
 
   const handleClearTags = () => {
@@ -298,7 +249,17 @@ function PropertiesModal({
     <Modal
       show={show}
       onHide={onHide}
-      title={t('Edit Chart Properties')}
+      title={
+        <span>
+          <Icons.EditOutlined
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+            `}
+            data-test="edit-alt"
+          />
+          {t('Edit Chart Properties')}
+        </span>
+      }
       footer={
         <>
           <Button
@@ -358,7 +319,7 @@ function PropertiesModal({
                 data-test="properties-modal-name-input"
                 type="text"
                 value={name}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
                   setName(event.target.value ?? '')
                 }
               />

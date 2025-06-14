@@ -16,53 +16,75 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useRef, useEffect, useState } from 'react';
+// eslint-disable-next-line no-restricted-syntax -- whole React import is required for `ControlPopover.test.tsx` Jest test passing.
+import React, { FC, useCallback, useRef, useEffect, useState } from 'react';
 
 import Popover, {
   PopoverProps as BasePopoverProps,
-  TooltipPlacement,
 } from 'src/components/Popover';
+
+import { TooltipPlacement } from 'src/components/Tooltip';
 
 const sectionContainerId = 'controlSections';
 export const getSectionContainerElement = () =>
   document.getElementById(sectionContainerId)?.lastElementChild as HTMLElement;
 
-const getElementYVisibilityRatioOnContainer = (node: HTMLElement) => {
+const getElementVisibilityRatio = (node?: HTMLElement) => {
   const containerHeight = window?.innerHeight;
-  const nodePositionInViewport = node?.getBoundingClientRect()?.top;
-  if (!containerHeight || !nodePositionInViewport) {
-    return 0;
+  const containerWidth = window?.innerWidth;
+
+  const rect = node?.getBoundingClientRect();
+  if (!containerHeight || !containerWidth || !rect?.top) {
+    return { yRatio: 0, xRatio: 0 };
   }
 
-  return nodePositionInViewport / containerHeight;
+  const yRatio = rect.top / containerHeight;
+  const xRatio = rect.left / containerWidth;
+  return { yRatio, xRatio };
 };
 
 export type PopoverProps = BasePopoverProps & {
-  getVisibilityRatio?: typeof getElementYVisibilityRatioOnContainer;
+  getVisibilityRatio?: typeof getElementVisibilityRatio;
 };
 
-const ControlPopover: React.FC<PopoverProps> = ({
+const ControlPopover: FC<PopoverProps> = ({
   getPopupContainer,
-  getVisibilityRatio = getElementYVisibilityRatioOnContainer,
-  visible: visibleProp,
+  getVisibilityRatio = getElementVisibilityRatio,
+  open: visibleProp,
   destroyTooltipOnHide = false,
+  placement: initialPlacement = 'right',
   ...props
 }) => {
   const triggerElementRef = useRef<HTMLElement>();
 
   const [visible, setVisible] = useState(
-    visibleProp === undefined ? props.defaultVisible : visibleProp,
+    visibleProp === undefined ? props.defaultOpen : visibleProp,
   );
-  const [placement, setPlacement] = React.useState<TooltipPlacement>('right');
+  const [placement, setPlacement] =
+    React.useState<TooltipPlacement>(initialPlacement);
 
   const calculatePlacement = useCallback(() => {
-    const visibilityRatio = getVisibilityRatio(triggerElementRef.current!);
-    if (visibilityRatio < 0.35 && placement !== 'rightTop') {
-      setPlacement('rightTop');
-    } else if (visibilityRatio > 0.65 && placement !== 'rightBottom') {
-      setPlacement('rightBottom');
-    } else {
-      setPlacement('right');
+    if (!triggerElementRef.current) return;
+
+    const { yRatio, xRatio } = getVisibilityRatio(triggerElementRef.current);
+
+    const horizontalPlacement =
+      xRatio < 0.35 ? 'right' : xRatio > 0.65 ? 'left' : '';
+
+    const verticalPlacement = (() => {
+      if (yRatio < 0.35) return horizontalPlacement ? 'top' : 'bottom';
+      if (yRatio > 0.65) return horizontalPlacement ? 'bottom' : 'top';
+      return '';
+    })();
+
+    const newPlacement =
+      ((horizontalPlacement
+        ? horizontalPlacement +
+          verticalPlacement.charAt(0).toUpperCase() +
+          verticalPlacement.slice(1)
+        : verticalPlacement) as TooltipPlacement) || 'left';
+    if (newPlacement !== placement) {
+      setPlacement(newPlacement);
     }
   }, [getVisibilityRatio]);
 
@@ -96,7 +118,7 @@ const ControlPopover: React.FC<PopoverProps> = ({
       }
 
       setVisible(!!visible);
-      props.onVisibleChange?.(!!visible);
+      props.onOpenChange?.(!!visible);
     },
     [props, changeContainerScrollStatus],
   );
@@ -105,7 +127,7 @@ const ControlPopover: React.FC<PopoverProps> = ({
     (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setVisible(false);
-        props.onVisibleChange?.(false);
+        props.onOpenChange?.(false);
       }
     },
     [props],
@@ -142,10 +164,10 @@ const ControlPopover: React.FC<PopoverProps> = ({
   return (
     <Popover
       {...props}
-      visible={visible}
-      arrowPointAtCenter
+      open={visible}
+      arrow={{ pointAtCenter: true }}
       placement={placement}
-      onVisibleChange={handleOnVisibleChange}
+      onOpenChange={handleOnVisibleChange}
       getPopupContainer={handleGetPopupContainer}
       destroyTooltipOnHide={destroyTooltipOnHide}
     />

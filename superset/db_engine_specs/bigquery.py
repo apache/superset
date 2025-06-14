@@ -17,8 +17,7 @@
 
 from __future__ import annotations
 
-import contextlib
-import json
+import logging
 import re
 import urllib
 from datetime import datetime
@@ -28,30 +27,35 @@ from typing import Any, TYPE_CHECKING, TypedDict
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from deprecation import deprecated
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
-from sqlalchemy import column, types
+from sqlalchemy import column, func, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.sql import sqltypes
+from sqlalchemy.sql import column as sql_column, select, sqltypes
+from sqlalchemy.sql.expression import table as sql_table
 
-from superset import sql_parse
-from superset.constants import PASSWORD_MASK, TimeGrain
+from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
-from superset.sql_parse import Table
+from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import ResultSetColumnType
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.hashing import md5_sha_from_str
 
+if TYPE_CHECKING:
+    from sqlalchemy.sql.expression import Select
+
+logger = logging.getLogger(__name__)
+
 try:
+    import google.auth
     from google.cloud import bigquery
     from google.oauth2 import service_account
 
@@ -68,6 +72,9 @@ except ModuleNotFoundError:
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
+
+
+logger = logging.getLogger()
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     "Access Denied: Project (?P<project_name>.+?): User does not have "
@@ -128,7 +135,11 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     allows_hidden_cc_in_orderby = True
 
-    supports_catalog = supports_dynamic_catalog = True
+    supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+
+    # when editing the database, mask this field in `encrypted_extra`
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields = {"$.credentials_info.private_key"}
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
@@ -282,42 +293,80 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return "_" + md5_sha_from_str(label)
 
     @classmethod
-    @deprecated(deprecated_in="3.0")
-    def normalize_indexes(cls, indexes: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """
-        Normalizes indexes for more consistency across db engines
-
-        :param indexes: Raw indexes as returned by SQLAlchemy
-        :return: cleaner, more aligned index definition
-        """
-        normalized_idxs = []
-        # Fixing a bug/behavior observed in pybigquery==0.4.15 where
-        # the index's `column_names` == [None]
-        # Here we're returning only non-None indexes
-        for ix in indexes:
-            column_names = ix.get("column_names") or []
-            ix["column_names"] = [col for col in column_names if col is not None]
-            if ix["column_names"]:
-                normalized_idxs.append(ix)
-        return normalized_idxs
-
-    @classmethod
-    def get_indexes(
+    def where_latest_partition(
         cls,
         database: Database,
-        inspector: Inspector,
         table: Table,
-    ) -> list[dict[str, Any]]:
-        """
-        Get the indexes associated with the specified schema/table.
+        query: Select,
+        columns: list[ResultSetColumnType] | None = None,
+    ) -> Select | None:
+        if partition_column := cls.get_time_partition_column(database, table):
+            max_partition_id = cls.get_max_partition_id(database, table)
+            query = query.where(
+                column(partition_column) == func.PARSE_DATE("%Y%m%d", max_partition_id)
+            )
 
-        :param database: The database to inspect
-        :param inspector: The SQLAlchemy inspector
-        :param table: The table instance to inspect
-        :returns: The indexes
-        """
+        return query
 
-        return cls.normalize_indexes(inspector.get_indexes(table.table, table.schema))
+    @classmethod
+    def get_max_partition_id(
+        cls,
+        database: Database,
+        table: Table,
+    ) -> Select | None:
+        # Compose schema from catalog and schema
+        schema_parts = []
+        if table.catalog:
+            schema_parts.append(table.catalog)
+        if table.schema:
+            schema_parts.append(table.schema)
+        schema_parts.append("INFORMATION_SCHEMA")
+        schema = ".".join(schema_parts)
+        # Define a virtual table reference to INFORMATION_SCHEMA.PARTITIONS
+        partitions_table = sql_table(
+            "PARTITIONS",
+            sql_column("partition_id"),
+            sql_column("table_name"),
+            schema=schema,
+        )
+
+        # Build the query
+        query = select(
+            func.max(partitions_table.c.partition_id).label("max_partition_id")
+        ).where(partitions_table.c.table_name == table.table)
+
+        # Compile to BigQuery SQL
+        compiled_query = query.compile(
+            dialect=database.get_dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+
+        # Run the query and handle result
+        with database.get_raw_connection(
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as conn:
+            cursor = conn.cursor()
+            cursor.execute(str(compiled_query))
+            if row := cursor.fetchone():
+                return row[0]
+        return None
+
+    @classmethod
+    def get_time_partition_column(
+        cls,
+        database: Database,
+        table: Table,
+    ) -> str | None:
+        with cls.get_engine(
+            database, catalog=table.catalog, schema=table.schema
+        ) as engine:
+            client = cls._get_client(engine, database)
+            bq_table = client.get_table(f"{table.schema}.{table.table}")
+
+            if bq_table.time_partitioning:
+                return bq_table.time_partitioning.field
+        return None
 
     @classmethod
     def get_extra_table_metadata(
@@ -325,23 +374,38 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         database: Database,
         table: Table,
     ) -> dict[str, Any]:
-        indexes = database.get_indexes(table)
-        if not indexes:
-            return {}
-        partitions_columns = [
-            index.get("column_names", [])
-            for index in indexes
-            if index.get("name") == "partition"
-        ]
-        cluster_columns = [
-            index.get("column_names", [])
-            for index in indexes
-            if index.get("name") == "clustering"
-        ]
-        return {
-            "partitions": {"cols": partitions_columns},
-            "clustering": {"cols": cluster_columns},
-        }
+        payload = {}
+        partition_column = cls.get_time_partition_column(database, table)
+        with cls.get_engine(
+            database, catalog=table.catalog, schema=table.schema
+        ) as engine:
+            if partition_column:
+                max_partition_id = cls.get_max_partition_id(database, table)
+                sql = cls.select_star(
+                    database,
+                    table,
+                    engine,
+                    indent=False,
+                    show_cols=False,
+                    latest_partition=True,
+                )
+                payload.update(
+                    {
+                        "partitions": {
+                            "cols": [partition_column],
+                            "latest": {partition_column: max_partition_id},
+                            "partitionQuery": sql,
+                        },
+                        "indexes": [
+                            {
+                                "name": "partitioned",
+                                "cols": [partition_column],
+                                "type": "partitioned",
+                            }
+                        ],
+                    }
+                )
+        return payload
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -407,7 +471,11 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         pandas_gbq.to_gbq(df, **to_gbq_kwargs)
 
     @classmethod
-    def _get_client(cls, engine: Engine) -> bigquery.Client:
+    def _get_client(
+        cls,
+        engine: Engine,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> bigquery.Client:
         """
         Return the BigQuery client associated with an engine.
         """
@@ -416,10 +484,19 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 "Could not import libraries needed to connect to BigQuery."
             )
 
-        credentials = service_account.Credentials.from_service_account_info(
-            engine.dialect.credentials_info
-        )
-        return bigquery.Client(credentials=credentials)
+        if credentials_info := engine.dialect.credentials_info:
+            credentials = service_account.Credentials.from_service_account_info(
+                credentials_info
+            )
+            return bigquery.Client(credentials=credentials)
+
+        try:
+            credentials = google.auth.default()[0]
+            return bigquery.Client(credentials=credentials)
+        except google.auth.exceptions.DefaultCredentialsError as ex:
+            raise SupersetDBAPIConnectionError(
+                "The database credentials could not be found."
+            ) from ex
 
     @classmethod
     def estimate_query_cost(  # pylint: disable=too-many-arguments
@@ -439,29 +516,29 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         :param sql: SQL query with possibly multiple statements
         :param source: Source of the query (eg, "sql_lab")
         """
-        extra = database.get_extra() or {}
+        extra = database.get_extra(source) or {}
         if not cls.get_allow_cost_estimate(extra):
             raise SupersetException("Database does not support cost estimation")
 
-        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
-        statements = parsed_query.get_statements()
+        parsed_script = SQLScript(sql, engine=cls.engine)
 
         with cls.get_engine(
             database,
             catalog=catalog,
             schema=schema,
+            source=source,
         ) as engine:
-            client = cls._get_client(engine)
+            client = cls._get_client(engine, database)
             return [
                 cls.custom_estimate_statement_cost(
                     cls.process_statement(statement, database),
                     client,
                 )
-                for statement in statements
+                for statement in parsed_script.statements
             ]
 
     @classmethod
-    def get_default_catalog(cls, database: Database) -> str | None:
+    def get_default_catalog(cls, database: Database) -> str:
         """
         Get the default catalog.
         """
@@ -475,7 +552,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             return project
 
         with database.get_sqla_engine() as engine:
-            client = cls._get_client(engine)
+            client = cls._get_client(engine, database)
             return client.project
 
     @classmethod
@@ -491,7 +568,17 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         """
         engine: Engine
         with database.get_sqla_engine() as engine:
-            client = cls._get_client(engine)
+            try:
+                client = cls._get_client(engine, database)
+            except SupersetDBAPIConnectionError:
+                logger.warning(
+                    "Could not connect to database to get catalogs due to missing "
+                    "credentials. This is normal in certain circustances, for example, "
+                    "doing an import."
+                )
+                # return {} here, since it will be repopulated when creds are added
+                return set()
+
             projects = client.list_projects()
 
         return {project.project_id for project in projects}
@@ -594,47 +681,6 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             return {**encrypted_extra, "query": dict(value.query)}
 
         raise ValidationError("Invalid service credentials")
-
-    @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
-        if encrypted_extra is None:
-            return encrypted_extra
-
-        try:
-            config = json.loads(encrypted_extra)
-        except (json.JSONDecodeError, TypeError):
-            return encrypted_extra
-
-        with contextlib.suppress(KeyError):
-            config["credentials_info"]["private_key"] = PASSWORD_MASK
-        return json.dumps(config)
-
-    @classmethod
-    def unmask_encrypted_extra(cls, old: str | None, new: str | None) -> str | None:
-        """
-        Reuse ``private_key`` if available and unchanged.
-        """
-        if old is None or new is None:
-            return new
-
-        try:
-            old_config = json.loads(old)
-            new_config = json.loads(new)
-        except (TypeError, json.JSONDecodeError):
-            return new
-
-        if "credentials_info" not in new_config:
-            return new
-
-        if "private_key" not in new_config["credentials_info"]:
-            return new
-
-        if new_config["credentials_info"]["private_key"] == PASSWORD_MASK:
-            new_config["credentials_info"]["private_key"] = old_config[
-                "credentials_info"
-            ]["private_key"]
-
-        return json.dumps(new_config)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
@@ -777,7 +823,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     @classmethod
     def parse_error_exception(cls, exception: Exception) -> Exception:
         try:
-            return Exception(str(exception).splitlines()[0].strip())
+            return type(exception)(str(exception).splitlines()[0].strip())
         except Exception:  # pylint: disable=broad-except
             # If for some reason we get an exception, for example, no new line
             # We will return the original exception

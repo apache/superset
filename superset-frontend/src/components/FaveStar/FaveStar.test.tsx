@@ -17,9 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import FaveStar from '.';
 
 jest.mock('src/components/Tooltip', () => ({
@@ -34,24 +32,20 @@ test('render right content', async () => {
 
   const { rerender, findByRole } = render(<FaveStar {...props} isStarred />);
   expect(screen.getByRole('button')).toBeInTheDocument();
-  expect(
-    screen.getByRole('img', { name: 'favorite-selected' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'starred' })).toBeInTheDocument();
 
-  expect(props.saveFaveStar).toBeCalledTimes(0);
+  expect(props.saveFaveStar).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button'));
-  expect(props.saveFaveStar).toBeCalledTimes(1);
-  expect(props.saveFaveStar).toBeCalledWith(props.itemId, true);
+  expect(props.saveFaveStar).toHaveBeenCalledTimes(1);
+  expect(props.saveFaveStar).toHaveBeenCalledWith(props.itemId, true);
 
   rerender(<FaveStar {...props} />);
-  expect(
-    await findByRole('img', { name: 'favorite-unselected' }),
-  ).toBeInTheDocument();
+  expect(await findByRole('img', { name: 'unstarred' })).toBeInTheDocument();
 
-  expect(props.saveFaveStar).toBeCalledTimes(1);
+  expect(props.saveFaveStar).toHaveBeenCalledTimes(1);
   userEvent.click(screen.getByRole('button'));
-  expect(props.saveFaveStar).toBeCalledTimes(2);
-  expect(props.saveFaveStar).toBeCalledWith(props.itemId, false);
+  expect(props.saveFaveStar).toHaveBeenCalledTimes(2);
+  expect(props.saveFaveStar).toHaveBeenCalledWith(props.itemId, false);
 });
 
 test('render content on tooltip', async () => {
@@ -85,12 +79,10 @@ test('Call fetchFaveStar on first render and on itemId change', async () => {
   };
 
   const { rerender, findByRole } = render(<FaveStar {...props} />);
-  expect(
-    await findByRole('img', { name: 'favorite-unselected' }),
-  ).toBeInTheDocument();
-  expect(props.fetchFaveStar).toBeCalledTimes(1);
-  expect(props.fetchFaveStar).toBeCalledWith(props.itemId);
+  expect(await findByRole('img', { name: 'unstarred' })).toBeInTheDocument();
+  expect(props.fetchFaveStar).toHaveBeenCalledTimes(1);
+  expect(props.fetchFaveStar).toHaveBeenCalledWith(props.itemId);
 
   rerender(<FaveStar {...{ ...props, itemId: 2 }} />);
-  expect(props.fetchFaveStar).toBeCalledTimes(2);
+  expect(props.fetchFaveStar).toHaveBeenCalledTimes(2);
 });

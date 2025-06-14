@@ -16,10 +16,9 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 import uuid
-from collections import defaultdict
+from collections import defaultdict, deque
 from typing import Any, Callable
 
 import sqlalchemy as sqla
@@ -51,7 +50,7 @@ from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
-from superset.utils import core as utils, json as json_utils
+from superset.utils import core as utils, json
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
@@ -84,7 +83,7 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
         user_id=target.id, welcome_dashboard_id=dashboard.id
     )
     session.add(extra_attributes)
-    session.commit()
+    session.commit()  # pylint: disable=consider-using-transaction
 
 
 sqla.event.listen(User, "after_insert", copy_dashboard)
@@ -151,11 +150,12 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     )
     tags = relationship(
         "Tag",
-        overlaps="objects,tag,tags,tags",
+        overlaps="objects,tag,tags",
         secondary="tagged_object",
-        primaryjoin="and_(Dashboard.id == TaggedObject.object_id)",
-        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+        primaryjoin="and_(Dashboard.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'dashboard')",
+        secondaryjoin="TaggedObject.tag_id == Tag.id",
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
     )
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
@@ -225,16 +225,19 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         return Markup(f'<a href="{self.url}">{title}</a>')
 
     @property
-    def digest(self) -> str:
+    def digest(self) -> str | None:
         return get_dashboard_digest(self)
 
     @property
-    def thumbnail_url(self) -> str:
+    def thumbnail_url(self) -> str | None:
         """
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
         """
-        return f"/api/v1/dashboard/{self.id}/thumbnail/{self.digest}/"
+        if digest := self.digest:
+            return f"/api/v1/dashboard/{self.id}/thumbnail/{digest}/"
+
+        return None
 
     @property
     def changed_by_name(self) -> str:
@@ -297,6 +300,54 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         if self.position_json:
             return json.loads(self.position_json)
         return {}
+
+    @property
+    def tabs(self) -> dict[str, Any]:
+        if self.position == {}:
+            return {}
+
+        def get_node(node_id: str) -> dict[str, Any]:
+            """
+            Helper function for getting a node from the position_data
+            """
+            return self.position[node_id]
+
+        def build_tab_tree(
+            node: dict[str, Any], children: list[dict[str, Any]]
+        ) -> None:
+            """
+            Function for building the tab tree structure and list of all tabs
+            """
+
+            new_children: list[dict[str, Any]] = []
+            # new children to overwrite parent's children
+            for child_id in node.get("children", []):
+                child = get_node(child_id)
+                if node["type"] == "TABS":
+                    # if TABS add create a new list and append children to it
+                    # new_children.append(child)
+                    children.append(child)
+                    queue.append((child, new_children))
+                elif node["type"] in ["GRID", "ROOT"]:
+                    queue.append((child, children))
+                elif node["type"] == "TAB":
+                    queue.append((child, new_children))
+            if node["type"] == "TAB":
+                node["children"] = new_children
+                node["title"] = node["meta"]["text"]
+                node["value"] = node["id"]
+                all_tabs[node["id"]] = node["title"]
+
+        root = get_node("ROOT_ID")
+        tab_tree: list[dict[str, Any]] = []
+        all_tabs: dict[str, str] = {}
+        queue: deque[tuple[dict[str, Any], list[dict[str, Any]]]] = deque()
+        queue.append((root, tab_tree))
+        while queue:
+            node, children = queue.popleft()
+            build_tab_tree(node, children)
+
+        return {"all_tabs": all_tabs, "tab_tree": tab_tree}
 
     def update_thumbnail(self) -> None:
         cache_dashboard_thumbnail.delay(
@@ -372,7 +423,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
         return json.dumps(
             {"dashboards": copied_dashboards, "datasources": eager_datasources},
-            cls=json_utils.DashboardEncoder,
+            cls=json.DashboardEncoder,
             indent=4,
         )
 

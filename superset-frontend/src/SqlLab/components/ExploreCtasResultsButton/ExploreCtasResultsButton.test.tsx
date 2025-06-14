@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
@@ -55,7 +54,7 @@ describe('ExploreCtasResultsButton', () => {
   it('renders', async () => {
     const { queryByText } = setup({}, mockStore(initialState));
 
-    expect(queryByText('Explore')).toBeTruthy();
+    expect(queryByText('Explore')).toBeInTheDocument();
   });
 
   it('visualize results', async () => {

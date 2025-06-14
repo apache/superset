@@ -38,7 +38,7 @@ from superset.migrations.shared.security_converge import (  # noqa: E402
     Pvm,
 )
 
-NEW_PVMS = {"Dashboard": ("can_view_chart_as_table",)}
+NEW_PVMS = {"Dashboard": ("can_view_chart_as_table", "can_view_query")}
 
 PVM_MAP = {
     Pvm("Dashboard", "can_view_and_drill"): (
@@ -68,7 +68,7 @@ def upgrade():
         session.commit()
     except SQLAlchemyError as ex:
         session.rollback()
-        raise Exception(f"An error occurred while upgrading permissions: {ex}")
+        raise Exception(f"An error occurred while upgrading permissions: {ex}") from ex
 
 
 def downgrade():

@@ -22,13 +22,12 @@ Create Date: 2017-12-17 11:06:30.180267
 
 """
 
-import json
-
 from alembic import op
 from sqlalchemy import Column, Integer, or_, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "21e88bc06c02"
