@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { tooltipHtml } from '@superset-ui/core';
+import { sanitizeHtml, tooltipHtml } from '@superset-ui/core';
 
 const TITLE_STYLE =
   'style="font-weight: 700;max-width:300px;overflow:hidden;text-overflow:ellipsis;"';
@@ -39,7 +39,8 @@ function removeWhitespaces(text: string) {
 test('should return a table with the given data', () => {
   const title = 'Title';
   const html = removeWhitespaces(tooltipHtml(data, title));
-  const expectedHtml = removeWhitespaces(`
+  const expectedHtml = removeWhitespaces(
+    sanitizeHtml(`
     <div>
         <span ${TITLE_STYLE}>Title</span>
         <table>
@@ -54,7 +55,8 @@ test('should return a table with the given data', () => {
                 <td ${TD_NUMBER_STYLE}>3</td>
             </tr>
         </table>
-    </div>`);
+    </div>`),
+  );
   expect(html).toMatch(expectedHtml);
 });
 
@@ -62,7 +64,8 @@ test('should return a table with the given data and a focused row', () => {
   const title = 'Title';
   const focusedRow = 1;
   const html = removeWhitespaces(tooltipHtml(data, title, focusedRow));
-  const expectedHtml = removeWhitespaces(`
+  const expectedHtml = removeWhitespaces(
+    sanitizeHtml(`
     <div>
         <span ${TITLE_STYLE}>Title</span>
         <table>
@@ -77,26 +80,30 @@ test('should return a table with the given data and a focused row', () => {
                 <td ${TD_NUMBER_STYLE}>3</td>
             </tr>
         </table>
-    </div>`);
+    </div>`),
+  );
   expect(html).toMatch(expectedHtml);
 });
 
 test('should return a table with no data', () => {
   const title = 'Title';
   const html = removeWhitespaces(tooltipHtml([], title));
-  const expectedHtml = removeWhitespaces(`
+  const expectedHtml = removeWhitespaces(
+    sanitizeHtml(`
     <div>
         <span ${TITLE_STYLE}>Title</span>
         <table>
             <tr><td>No data</td></tr>
         </table>
-    </div>`);
+    </div>`),
+  );
   expect(html).toMatch(expectedHtml);
 });
 
 test('should return a table with the given data and no title', () => {
   const html = removeWhitespaces(tooltipHtml(data));
-  const expectedHtml = removeWhitespaces(`
+  const expectedHtml = removeWhitespaces(
+    sanitizeHtml(`
     <div>
         <table>
             <tr ${TR_STYLE}>
@@ -110,6 +117,36 @@ test('should return a table with the given data and no title', () => {
                 <td ${TD_NUMBER_STYLE}>3</td>
             </tr>
         </table>
-    </div>`);
+    </div>`),
+  );
+  expect(html).toMatch(expectedHtml);
+});
+
+test('should sanitize HTML input', () => {
+  const title = 'Title<script>alert("message");</script>';
+  const data = [
+    ['<b onclick="alert(\'message\')">B message</b>', 'message2'],
+    ['<img src="x" onerror="alert(\'message\');" />', '<i>Italic</i>'],
+  ];
+
+  const html = removeWhitespaces(tooltipHtml(data, title));
+
+  const expectedHtml = removeWhitespaces(
+    sanitizeHtml(`
+    <div>
+        <span ${TITLE_STYLE}>Titlealert("message");</span>
+        <table>
+            <tr ${TR_STYLE}>
+                <td ${TD_TEXT_STYLE}><b>B message</b></td>
+                <td ${TD_NUMBER_STYLE}>message2</td>
+            </tr>
+            <tr ${TR_STYLE}>
+                <td ${TD_TEXT_STYLE}><img src="x" /></td>
+                <td ${TD_NUMBER_STYLE}><i>Italic</i></td>
+            </tr>
+        </table>
+    </div>`),
+  );
+
   expect(html).toMatch(expectedHtml);
 });
