@@ -17,12 +17,12 @@
  * under the License.
  */
 import { QueryFormData } from '@superset-ui/core';
-import buildQuery from '../../src/Timeline/buildQuery';
+import buildQuery from '../../src/Gantt/buildQuery';
 
-describe('Timeline buildQuery', () => {
+describe('Gantt buildQuery', () => {
   const formData: QueryFormData = {
     datasource: '1__table',
-    viz_type: 'echarts_timeline',
+    viz_type: 'gantt_chart',
     start_time: 'start_time',
     end_time: 'end_time',
     y_axis: {

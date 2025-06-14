@@ -29,12 +29,12 @@ import {
   LegendFormData,
 } from '../types';
 
-export type EchartsTimelineChartTransformedProps =
-  BaseTransformedProps<EchartsTimelineFormData> & CrossFilterTransformedProps;
+export type EchartsGanttChartTransformedProps =
+  BaseTransformedProps<EchartsGanttFormData> & CrossFilterTransformedProps;
 
-export type EchartsTimelineFormData = QueryFormData &
+export type EchartsGanttFormData = QueryFormData &
   LegendFormData & {
-    viz_type: 'echarts_timeline';
+    viz_type: 'echarts_Gantt';
     startTime: QueryFormColumn;
     endTime: QueryFormColumn;
     yAxis: QueryFormColumn;
@@ -53,9 +53,9 @@ export type EchartsTimelineFormData = QueryFormData &
     showExtraControls?: boolean;
   };
 
-export interface EchartsTimelineChartProps
-  extends ChartProps<EchartsTimelineFormData> {
-  formData: EchartsTimelineFormData;
+export interface EchartsGanttChartProps
+  extends ChartProps<EchartsGanttFormData> {
+  formData: EchartsGanttFormData;
   queriesData: ChartDataResponseResult[];
 }
 

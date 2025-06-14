@@ -20,14 +20,12 @@ import { useEffect, useRef, useState } from 'react';
 import { sharedControlComponents } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import Echart from '../components/Echart';
-import { EchartsTimelineChartTransformedProps } from './types';
+import { EchartsGanttChartTransformedProps } from './types';
 import { EventHandlers } from '../types';
 
 const { RadioButtonControl } = sharedControlComponents;
 
-export default function EchartsTimeline(
-  props: EchartsTimelineChartTransformedProps,
-) {
+export default function EchartsGantt(props: EchartsGanttChartTransformedProps) {
   const {
     height,
     width,

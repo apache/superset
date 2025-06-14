@@ -25,12 +25,12 @@ import thumbnail from './images/thumbnail.png';
 import example1 from './images/example1.png';
 import example2 from './images/example2.png';
 
-export default class EchartsTimelineChartPlugin extends EchartsChartPlugin {
+export default class EchartsGanttChartPlugin extends EchartsChartPlugin {
   constructor() {
     super({
       buildQuery,
       controlPanel,
-      loadChart: () => import('./EchartsTimeline'),
+      loadChart: () => import('./EchartsGantt'),
       metadata: {
         behaviors: [
           Behavior.InteractiveChart,
@@ -38,13 +38,13 @@ export default class EchartsTimelineChartPlugin extends EchartsChartPlugin {
           Behavior.DrillBy,
         ],
         credits: ['https://echarts.apache.org'],
-        name: t('Timeline'),
+        name: t('Gantt'),
         description: t(
-          'Timeline chart visualizes important events over a time span. ' +
+          'Gantt chart visualizes important events over a time span. ' +
             'Every data point displayed as a separate event along a ' +
             'horizontal line.',
         ),
-        tags: [t('ECharts'), t('Time'), t('Featured')],
+        tags: [t('ECharts'), t('Featured'), t('Timeline'), t('Time')],
         thumbnail,
         exampleGallery: [{ url: example1 }, { url: example2 }],
       },

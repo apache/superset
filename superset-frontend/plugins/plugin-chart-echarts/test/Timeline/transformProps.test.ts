@@ -21,15 +21,15 @@ import {
   LegendOrientation,
   LegendType,
 } from '@superset-ui/plugin-chart-echarts';
-import transformProps from '../../src/Timeline/transformProps';
+import transformProps from '../../src/Gantt/transformProps';
 import {
-  EchartsTimelineChartProps,
-  EchartsTimelineFormData,
-} from '../../src/Timeline/types';
+  EchartsGanttChartProps,
+  EchartsGanttFormData,
+} from '../../src/Gantt/types';
 
-describe('Timeline transformProps', () => {
-  const formData: EchartsTimelineFormData = {
-    viz_type: 'echarts_timeline',
+describe('Gantt transformProps', () => {
+  const formData: EchartsGanttFormData = {
+    viz_type: 'echarts_Gantt',
     datasource: '1__table',
 
     startTime: 'startTime',
@@ -87,7 +87,7 @@ describe('Timeline transformProps', () => {
   it('should transform chart props', () => {
     const chartProps = new ChartProps(chartPropsConfig);
     const transformedProps = transformProps(
-      chartProps as EchartsTimelineChartProps,
+      chartProps as EchartsGanttChartProps,
     );
 
     expect(transformedProps.echartOptions.series).toHaveLength(4);

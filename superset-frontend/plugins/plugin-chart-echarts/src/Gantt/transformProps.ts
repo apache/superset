@@ -37,8 +37,8 @@ import { CallbackDataParams } from 'echarts/types/src/util/types';
 import dayjs from 'dayjs';
 import {
   Cartesian2dCoordSys,
-  EchartsTimelineChartProps,
-  EchartsTimelineFormData,
+  EchartsGanttChartProps,
+  EchartsGanttFormData,
 } from './types';
 import { DEFAULT_FORM_DATA, TIMESERIES_CONSTANTS } from '../constants';
 import { Refs } from '../types';
@@ -101,7 +101,7 @@ const renderItem: CustomSeriesRenderItem = (params, api) => {
   };
 };
 
-export default function transformProps(chartProps: EchartsTimelineChartProps) {
+export default function transformProps(chartProps: EchartsGanttChartProps) {
   const {
     formData,
     queriesData,
@@ -136,7 +136,7 @@ export default function transformProps(chartProps: EchartsTimelineChartProps) {
     xAxisTitleMargin,
     xAxisTimeBounds,
     subcategories,
-  }: EchartsTimelineFormData = {
+  }: EchartsGanttFormData = {
     ...DEFAULT_FORM_DATA,
     ...formData,
   };
