@@ -50,7 +50,7 @@ export const getLayer: GetLayerType<GridLayer> = function ({
   setTooltip,
   setDataMask,
   onContextMenu,
-  dataset,
+  datasource,
   filterState,
 }) {
   console.log('filterState', filterState);
@@ -70,10 +70,6 @@ export const getLayer: GetLayerType<GridLayer> = function ({
 
   const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
 
-  const handleContextMenu = (x: number, y: number, data: PickingInfo) => {
-    console.log('filterState dsfsdf', filterState);
-  };
-
   return new GridLayer({
     id: `grid-layer-${fd.slice_id}` as const,
     data,
@@ -90,7 +86,6 @@ export const getLayer: GetLayerType<GridLayer> = function ({
       setDataMask,
       setTooltip,
       setTooltipContent,
-      handleContextMenu,
       filterState,
       onContextMenu,
     }),

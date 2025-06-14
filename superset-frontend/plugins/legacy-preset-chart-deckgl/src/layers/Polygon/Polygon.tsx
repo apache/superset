@@ -158,6 +158,9 @@ export function getLayer(
       setTooltip,
       setTooltipContent: tooltipContentGenerator,
       onSelect,
+      filterState: {},
+      onContextMenu: () => {},
+      setDataMask: () => {},
     }),
   });
 }
