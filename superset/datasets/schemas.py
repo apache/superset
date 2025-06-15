@@ -93,6 +93,15 @@ class DatasetMetricsPutSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
+class DatasetFactDimensionPutSchema(Schema):
+    """Schema for linking fact tables to dimension tables in star schemas."""
+
+    id = fields.Integer(required=False)
+    dimension_table_id = fields.Integer(required=True)
+    fact_fk = fields.String(required=True, validate=Length(1, 256))
+    dimension_pk = fields.String(required=True, validate=Length(1, 256))
+
+
 class FolderSchema(Schema):
     uuid = fields.UUID(required=True)
     type = fields.String(
@@ -128,6 +137,14 @@ class DatasetPostSchema(Schema):
     catalog = fields.String(allow_none=True, validate=Length(0, 250))
     schema = fields.String(allow_none=True, validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
+    table_type = fields.String(
+        validate=OneOf(["physical", "view", "fact", "dimension"]),
+        load_default="physical",
+    )
+    fact_dimensions = fields.List(
+        fields.Nested(DatasetFactDimensionPutSchema),
+        load_default=list,
+    )
     sql = fields.String(allow_none=True)
     owners = fields.List(fields.Integer())
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
@@ -161,6 +178,14 @@ class DatasetPutSchema(Schema):
     extra = fields.String(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    table_type = fields.String(
+        allow_none=True,
+        validate=OneOf(["physical", "view", "fact", "dimension"]),
+    )
+    fact_dimensions = fields.List(
+        fields.Nested(DatasetFactDimensionPutSchema),
+        required=False,
+    )
 
     def handle_error(
         self,
