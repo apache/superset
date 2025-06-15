@@ -24,7 +24,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
-import { createCategoricalDeckGLComponent } from '../../factory';
+import { GetLayerType, createCategoricalDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
@@ -60,12 +60,15 @@ function setTooltipContent(formData: QueryFormData) {
   );
 }
 
-export function getLayer(
-  fd: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: HandlerFunction,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<ArcLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  filterState,
+  setDataMask,
+  onContextMenu,
+}) {
+  const fd = formData;
   const data = payload.data.features;
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
@@ -82,8 +85,11 @@ export function getLayer(
       formData: fd,
       setTooltip,
       setTooltipContent: setTooltipContent(fd),
+      onContextMenu,
+      setDataMask,
+      filterState,
     }),
   });
-}
+};
 
 export default createCategoricalDeckGLComponent(getLayer, getPoints);
