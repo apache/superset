@@ -227,6 +227,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
         appbuilder.add_api(LogRestApi)
+
+        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
+            from superset.extensions.api import ExtensionsRestApi
+
+            appbuilder.add_api(ExtensionsRestApi)
+
         #
         # Setup regular views
         #
@@ -425,6 +431,29 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-lock",
         )
 
+    def init_extensions(self) -> None:
+        from superset.extensions.utils import (
+            eager_import,
+            get_extensions,
+            install_in_memory_importer,
+        )
+
+        try:
+            extensions = get_extensions()
+            for extension in extensions.values():
+                if backend_files := extension.backend:
+                    install_in_memory_importer(backend_files)
+
+                backend = extension.manifest.get("backend")
+                if backend and (entrypoints := backend.get("entryPoints")):
+                    for entrypoint in entrypoints:
+                        eager_import(entrypoint)
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
+            # If the db hasn't been initialized yet, an exception will be raised.
+            # It's fine to ignore this, as in this case there are no extensions
+            # present yet.
+            pass
+
     def init_app_in_ctx(self) -> None:
         """
         Runs init logic in the context of the app
@@ -446,6 +475,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             register_sqla_event_listeners()
 
         self.init_views()
+
+        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
+            self.init_extensions()
 
     def check_secret_key(self) -> None:
         def log_default_secret_key_warning() -> None:
