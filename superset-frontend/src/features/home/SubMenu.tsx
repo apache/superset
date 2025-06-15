@@ -120,6 +120,8 @@ type MenuChild = {
   usesRouter?: boolean;
   onClick?: () => void;
   'data-test'?: string;
+  id?: string;
+  'aria-controls'?: string;
 };
 
 export interface ButtonProps {
@@ -199,20 +201,23 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
         <Menu
           mode={showMenu}
           disabledOverflow
+          role="tablist"
           items={props.tabs?.map(tab => {
             if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
               return {
                 key: tab.label,
                 label: (
-                  <div
+                  <Link
+                    to={tab.url || ''}
                     role="tab"
+                    id={tab.id || tab.name}
                     data-test={tab['data-test']}
+                    aria-selected={tab.name === props.activeChild}
+                    aria-controls={tab['aria-controls'] || ''}
                     className={tab.name === props.activeChild ? 'active' : ''}
                   >
-                    <div>
-                      <Link to={tab.url || ''}>{tab.label}</Link>
-                    </div>
-                  </div>
+                    {tab.label}
+                  </Link>
                 ),
               };
             }
@@ -224,6 +229,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
                     active: tab.name === props.activeChild,
                   })}
                   role="tab"
+                  aria-selected={tab.name === props.activeChild}
                 >
                   <a href={tab.url} onClick={tab.onClick}>
                     {tab.label}

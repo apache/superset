@@ -31,6 +31,7 @@ import {
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
+  xAxisLabelInterval,
 } from '../controls';
 import { defaultYAxis } from '../defaults';
 
@@ -133,6 +134,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [xAxisLabelRotation],
+        [xAxisLabelInterval],
         [
           {
             name: 'x_axis_title_margin',
