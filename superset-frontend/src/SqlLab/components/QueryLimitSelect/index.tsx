@@ -20,6 +20,7 @@ import { useDispatch } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
+import { Input } from 'src/components/Input';
 import { Icons } from 'src/components/Icons';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
@@ -55,6 +56,23 @@ function renderQueryLimit(
           {convertToNumWithSpaces(limit)}{' '}
         </Menu.Item>
       ))}
+      <Menu.Item>
+        <Input
+          type="number"
+          placeholder="custom limit"
+          min="1"
+          onClick={e => e.stopPropagation()}
+          onKeyDown={event => {
+            if (event.key === 'Enter') {
+              const val = (event.target as HTMLInputElement).value;
+              let limit = parseInt(val, 10);
+              if (limit < 1) limit = 1;
+              setQueryLimit(limit);
+              convertToNumWithSpaces(limit);
+            }
+          }}
+        />
+      </Menu.Item>
     </Menu>
   );
 }
