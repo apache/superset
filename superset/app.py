@@ -30,12 +30,15 @@ else:
         from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
 
 
-from flask import Flask
+from flask import Flask, session
+from flask_babel import Babel
 from werkzeug.exceptions import NotFound
 
 from superset.initialization import SupersetAppInitializer
 
 logger = logging.getLogger(__name__)
+
+babel = Babel()
 
 
 def create_app(
@@ -74,6 +77,11 @@ def create_app(
     except Exception:
         logger.exception("Failed to create app")
         raise
+
+
+@babel.localeselector
+def get_locale() -> Optional[str]:
+    return session.get("locale")
 
 
 class SupersetApp(Flask):
