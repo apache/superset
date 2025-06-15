@@ -198,11 +198,15 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
     <StyledHeader>
       <Row className="menu" role="navigation">
         {props.name && <div className="header">{props.name}</div>}
-        <Menu mode={showMenu} disabledOverflow role="tablist">
-          {props.tabs?.map(tab => {
+        <Menu
+          mode={showMenu}
+          disabledOverflow
+          role="tablist"
+          items={props.tabs?.map(tab => {
             if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
-              return (
-                <Menu.Item key={tab.label}>
+              return {
+                key: tab.label,
+                label: (
                   <Link
                     to={tab.url || ''}
                     role="tab"
@@ -214,12 +218,12 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
                   >
                     {tab.label}
                   </Link>
-                </Menu.Item>
-              );
+                ),
+              };
             }
-
-            return (
-              <Menu.Item key={tab.label}>
+            return {
+              key: tab.label,
+              label: (
                 <div
                   className={cx('no-router', {
                     active: tab.name === props.activeChild,
@@ -231,10 +235,10 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
                     {tab.label}
                   </a>
                 </div>
-              </Menu.Item>
-            );
+              ),
+            };
           })}
-        </Menu>
+        />
         <div className={navRightStyle}>
           <Menu mode="horizontal" triggerSubMenuAction="click" disabledOverflow>
             {props.dropDownLinks?.map((link, i) => (
