@@ -58,7 +58,6 @@ import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
 import { Dataset } from '../types';
-import { ItemType } from 'antd-v5/es/menu/interface';
 
 const SUBMENU_HEIGHT = 200;
 const SHOW_COLUMNS_SEARCH_THRESHOLD = 10;
@@ -96,7 +95,7 @@ const queryString = rison.encode({
   ],
 });
 
-export const useDrillByMenuItems = ({
+export const DrillByMenuItems = ({
   drillByConfig,
   formData,
   contextMenuY = 0,
@@ -108,7 +107,7 @@ export const useDrillByMenuItems = ({
   open,
   onDrillBy,
   ...rest
-}: DrillByMenuItemsProps): ItemType => {
+}: DrillByMenuItemsProps) => {
   const theme = useTheme();
   const { addDangerToast } = useToasts();
   const [isLoadingColumns, setIsLoadingColumns] = useState(true);
@@ -245,17 +244,14 @@ export const useDrillByMenuItems = ({
   }
 
   if (!handlesDimensionContextMenu || !hasDrillBy) {
-    return {
-      key: 'drill-by-disabled',
-      disabled: true,
-      ...rest,
-      label: (
+    return (
+      <Menu.Item key="drill-by-disabled" disabled {...rest}>
         <div>
           {t('Drill by')}
           <MenuItemTooltip title={tooltip} />
         </div>
-      ),
-    };
+      </Menu.Item>
+    );
   }
 
   const Row = ({

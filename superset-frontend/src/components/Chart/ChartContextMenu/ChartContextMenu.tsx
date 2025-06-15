@@ -48,12 +48,11 @@ import { updateDataMask } from 'src/dataMask/actions';
 import DrillByModal from 'src/components/Chart/DrillBy/DrillByModal';
 import { useVerboseMap } from 'src/hooks/apiResources/datasets';
 import { Dataset } from 'src/components/Chart/types';
-import { ItemType } from 'antd-v5/es/menu/interface';
+import { DrillDetailMenuItems } from '../DrillDetail';
 import { getMenuAdjustedY } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { DrillByMenuItems } from '../DrillBy/DrillByMenuItems';
 import DrillDetailModal from '../DrillDetail/DrillDetailModal';
-import useDrillDetailMenuItems from '../DrillDetail/DrillDetailMenuItems';
 
 export enum ContextMenuItem {
   CrossFilter,
@@ -135,7 +134,6 @@ const ChartContextMenu = (
   }, []);
 
   const menuItems: React.JSX.Element[] = [];
-  const newMenuItems: ItemType[] = [];
 
   const showDrillToDetail =
     isFeatureEnabled(FeatureFlag.DrillToDetail) &&
@@ -208,45 +206,51 @@ const ChartContextMenu = (
         </>
       );
     }
-    newMenuItems.push({
-      key: 'cross-filtering-menu-item',
-      disabled: isCrossFilterDisabled,
-      onClick: () => {
-        if (filters?.crossFilter) {
-          dispatch(updateDataMask(id, filters.crossFilter.dataMask));
-        }
-      },
-      label: filters?.crossFilter?.isCurrentValueSelected ? (
-        t('Remove cross-filter')
-      ) : (
-        <div>
-          {t('Add cross-filter')}
-          <MenuItemTooltip
-            title={crossFilteringTooltipTitle}
-            color={
-              !isCrossFilterDisabled ? theme.colors.grayscale.base : undefined
+    menuItems.push(
+      <>
+        <Menu.Item
+          key="cross-filtering-menu-item"
+          disabled={isCrossFilterDisabled}
+          onClick={() => {
+            if (filters?.crossFilter) {
+              dispatch(updateDataMask(id, filters.crossFilter.dataMask));
             }
-          />
-        </div>
-      ),
-    });
-    if (itemsCount > 1) {
-      newMenuItems.push({ type: 'divider' });
-    }
+          }}
+        >
+          {filters?.crossFilter?.isCurrentValueSelected ? (
+            t('Remove cross-filter')
+          ) : (
+            <div>
+              {t('Add cross-filter')}
+              <MenuItemTooltip
+                title={crossFilteringTooltipTitle}
+                color={
+                  !isCrossFilterDisabled
+                    ? theme.colors.grayscale.base
+                    : undefined
+                }
+              />
+            </div>
+          )}
+        </Menu.Item>
+        {itemsCount > 1 && <Menu.Divider />}
+      </>,
+    );
   }
-  const drillDetailMenuItems = useDrillDetailMenuItems({
-    formData,
-    filters: filters?.drillToDetail,
-    setFilters,
-    isContextMenu: true,
-    contextMenuY: clientY,
-    onSelection,
-    submenuIndex: showCrossFilters ? 2 : 1,
-    setShowModal: setDrillModalIsOpen,
-    ...(additionalConfig?.drillToDetail || {}),
-  });
   if (showDrillToDetail) {
-    newMenuItems.push(...drillDetailMenuItems);
+    menuItems.push(
+      <DrillDetailMenuItems
+        formData={formData}
+        filters={filters?.drillToDetail}
+        setFilters={setFilters}
+        isContextMenu
+        contextMenuY={clientY}
+        onSelection={onSelection}
+        submenuIndex={showCrossFilters ? 2 : 1}
+        setShowModal={setDrillModalIsOpen}
+        {...(additionalConfig?.drillToDetail || {})}
+      />,
+    );
   }
   if (showDrillBy) {
     let submenuIndex = 0;
