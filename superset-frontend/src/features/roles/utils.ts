@@ -40,6 +40,12 @@ export const updateRoleUsers = async (roleId: number, userIds: number[]) =>
     jsonPayload: { user_ids: userIds },
   });
 
+export const updateRoleGroups = async (roleId: number, groupIds: number[]) =>
+  SupersetClient.put({
+    endpoint: `/api/v1/security/roles/${roleId}/groups`,
+    jsonPayload: { group_ids: groupIds },
+  });
+
 export const updateRoleName = async (roleId: number, name: string) =>
   SupersetClient.put({
     endpoint: `/api/v1/security/roles/${roleId}`,

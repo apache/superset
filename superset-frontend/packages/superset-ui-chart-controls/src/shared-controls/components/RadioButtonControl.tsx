@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { JsonValue, useTheme } from '@superset-ui/core';
+import { JsonValue, t, useTheme } from '@superset-ui/core';
 import { ControlHeader } from '../../components/ControlHeader';
 
 // [value, label]
@@ -69,17 +69,24 @@ export default function RadioButtonControl({
           boxShadow: 'none',
         },
       }}
+      role="tablist"
+      aria-label={typeof props.label === 'string' ? props.label : undefined}
     >
       <ControlHeader {...props} />
       <div className="btn-group btn-group-sm">
         {options.map(([val, label]) => (
           <button
+            aria-label={typeof label === 'string' ? label : undefined}
+            id={`tab-${val}`}
             key={JSON.stringify(val)}
             type="button"
+            aria-selected={val === currentValue}
+            role="tab"
             className={`btn btn-default ${
               val === currentValue ? 'active' : ''
             }`}
-            onClick={() => {
+            onClick={e => {
+              e.currentTarget?.focus();
               onChange(val);
             }}
           >
@@ -87,6 +94,23 @@ export default function RadioButtonControl({
           </button>
         ))}
       </div>
+      {/* accessibility begin */}
+      <div
+        aria-live="polite"
+        style={{
+          position: 'absolute',
+          left: '-9999px',
+          height: '1px',
+          width: '1px',
+          overflow: 'hidden',
+        }}
+      >
+        {t(
+          '%s tab selected',
+          options.find(([val]) => val === currentValue)?.[1],
+        )}
+      </div>
+      {/* accessibility end */}
     </div>
   );
 }

@@ -24,7 +24,6 @@ class TeradataEngineSpec(BaseEngineSpec):
     engine = "teradatasql"
     engine_name = "Teradata"
     max_column_name_length = 30  # since 14.10 this is 128
-    select_keywords = {"SELECT", "SEL"}
 
     _time_grain_expressions = {
         None: "{col}",
