@@ -22,7 +22,7 @@ import type { Column, ColumnPinnedType, GridApi } from 'ag-grid-community';
 
 import { Icons } from 'src/components/Icons';
 import { MenuDotsDropdown, DropdownProps } from 'src/components/Dropdown';
-import { MenuItem } from 'src/components/Menu';
+import { Menu, MenuItem } from 'src/components/Menu';
 import copyTextToClipboard from 'src/utils/copy';
 import { PIVOT_COL_ID } from './constants';
 
@@ -30,7 +30,7 @@ const IconEmpty = styled.span`
   width: 14px;
 `;
 
-type Params = {
+export type HeaderMenuProps = {
   colId: string;
   column?: Column;
   api: GridApi;
@@ -41,7 +41,7 @@ type Params = {
   onVisibleChange: DropdownProps['onOpenChange'];
 };
 
-const HeaderMenu: React.FC<Params> = ({
+const HeaderMenu: React.FC<HeaderMenuProps> = ({
   colId,
   api,
   pinnedLeft,
@@ -49,13 +49,35 @@ const HeaderMenu: React.FC<Params> = ({
   invisibleColumns,
   isMain,
   onVisibleChange,
-}: Params) => {
+}: HeaderMenuProps) => {
   const pinColumn = useCallback(
     (pinLoc: ColumnPinnedType) => {
       api.setColumnsPinned([colId], pinLoc);
     },
     [api, colId],
   );
+
+  const unHideAction: MenuItem = {
+    label: t('Unhide'),
+    key: 'unHideSubMenu',
+    icon: <Icons.EyeInvisibleOutlined iconSize="m" />,
+    children: [
+      invisibleColumns.length > 1 && {
+        key: 'allHidden',
+        label: <b>{t('All %s hidden columns', invisibleColumns.length)}</b>,
+        onClick: () => {
+          api.setColumnsVisible(invisibleColumns, true);
+        },
+      },
+      ...invisibleColumns.map(c => ({
+        key: c.getColId(),
+        label: c.getColDef().headerName,
+        onClick: () => {
+          api.setColumnsVisible([c.getColId()], true);
+        },
+      })),
+    ].filter(Boolean) as MenuItem[],
+  };
 
   const mainMenuItems: MenuItem[] = [
     {
@@ -109,31 +131,7 @@ const HeaderMenu: React.FC<Params> = ({
     },
   ];
 
-  const unHideAction: MenuItem = {
-    title: t('Hide'),
-    key: 'hideColumn',
-    icon: <Icons.EyeInvisibleOutlined iconSize="m" />,
-    children: [
-      invisibleColumns.length > 1 && {
-        key: 'allHidden',
-        label: <b>{t('All %s hidden columns', invisibleColumns.length)}</b>,
-        onClick: () => {
-          api.setColumnsVisible(invisibleColumns, false);
-        },
-      },
-      ...invisibleColumns.map(c => ({
-        key: c.getColId(),
-        label: c.getColDef().headerName,
-        onClick: () => {
-          api.setColumnsVisible([c.getColId()], false);
-        },
-      })),
-    ].filter(Boolean) as MenuItem[],
-  };
-
-  if (invisibleColumns.length > 0) {
-    mainMenuItems.push();
-  }
+  mainMenuItems.push(unHideAction);
 
   mainMenuItems.push(
     {
@@ -160,21 +158,6 @@ const HeaderMenu: React.FC<Params> = ({
       },
     },
   );
-
-  if (isMain) {
-    return (
-      <MenuDotsDropdown
-        placement="bottomLeft"
-        trigger={['click']}
-        onOpenChange={onVisibleChange}
-        menu={{
-          style: { width: 250 },
-          mode: 'vertical',
-          items: mainMenuItems,
-        }}
-      />
-    );
-  }
 
   const menuItems: MenuItem[] = [
     {
@@ -258,11 +241,13 @@ const HeaderMenu: React.FC<Params> = ({
       placement="bottomRight"
       trigger={['click']}
       onOpenChange={onVisibleChange}
-      menu={{
-        style: { width: 180 },
-        mode: 'vertical',
-        items: menuItems,
-      }}
+      overlay={
+        <Menu
+          style={{ width: isMain ? 250 : 180 }}
+          mode="vertical"
+          items={isMain ? mainMenuItems : menuItems}
+        />
+      }
     />
   );
 };
