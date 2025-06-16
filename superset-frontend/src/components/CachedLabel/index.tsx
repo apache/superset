@@ -22,7 +22,7 @@ import { css, t } from '@superset-ui/core';
 import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
 import { TooltipContent } from './TooltipContent';
-import { Icons } from '../Icons';
+import Icons from '../Icons';
 
 export interface CacheLabelProps {
   onClick?: MouseEventHandler<HTMLElement>;
