@@ -26,8 +26,13 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-// eslint-disable-next-line no-restricted-imports
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import {
+  ThemeProvider,
+  // eslint-disable-next-line no-restricted-imports
+  supersetTheme,
+} from '@superset-ui/core';
+import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
+import { ThemeController } from 'src/theme/ThemeController';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { DndProvider } from 'react-dnd';
@@ -43,10 +48,13 @@ type Options = Omit<RenderOptions, 'queries'> & {
   useDnd?: boolean;
   useQueryParams?: boolean;
   useRouter?: boolean;
+  useTheme?: boolean;
   initialState?: {};
   reducers?: {};
   store?: Store;
 };
+
+const themeController = new ThemeController({});
 
 export const createStore = (initialState: object = {}, reducers: object = {}) =>
   configureStore({
@@ -68,6 +76,7 @@ export function createWrapper(options?: Options) {
     useRedux,
     useQueryParams,
     useRouter,
+    useTheme,
     initialState,
     reducers,
     store,
@@ -77,6 +86,14 @@ export function createWrapper(options?: Options) {
     let result = (
       <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
     );
+
+    if (useTheme) {
+      result = (
+        <SupersetThemeProvider themeController={themeController}>
+          {result}
+        </SupersetThemeProvider>
+      );
+    }
 
     if (useDnd) {
       result = <DndProvider backend={HTML5Backend}>{result}</DndProvider>;

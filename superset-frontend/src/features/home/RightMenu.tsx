@@ -53,6 +53,8 @@ import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import TelemetryPixel from '@superset-ui/core/components/TelemetryPixel';
+import { useThemeContext } from 'src/theme/ThemeProvider';
+import ThemeSelect from '@superset-ui/core/components/ThemeSelect';
 import LanguagePicker from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -182,6 +184,12 @@ const RightMenu = ({
     useState<boolean>(false);
   const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
+  const {
+    theme: themeEditorTheme,
+    setTheme,
+    changeThemeMode,
+    themeMode,
+  } = useThemeContext();
   const dropdownItems: MenuObjectProps[] = [
     {
       label: t('Data'),
@@ -486,11 +494,20 @@ const RightMenu = ({
             })}
           </StyledSubMenu>
         )}
-        {(isFeatureEnabled(FeatureFlag.DarkThemeSwitch) || true) && (
+        {isFeatureEnabled(FeatureFlag.ThemeAllowThemeEditorBeta) && (
           <span>
-            <ThemeEditor />
+            <ThemeEditor theme={themeEditorTheme} setTheme={setTheme} />
           </span>
         )}
+        {isFeatureEnabled(FeatureFlag.ThemeEnableDarkThemeSwitch) && (
+          <span>
+            <ThemeSelect
+              changeThemeMode={changeThemeMode}
+              themeMode={themeMode}
+            />
+          </span>
+        )}
+
         <StyledSubMenu
           key="sub3_settings"
           title={t('Settings')}

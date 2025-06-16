@@ -24,6 +24,7 @@ import { theme as antdThemeImport } from 'antd';
  * Get AntdThemeConfig type from the theme object
  */
 import type { ThemeConfig } from 'antd';
+import { Theme } from '.';
 
 /**
  * Grab all antd tokens via getDesignToken(...).
@@ -359,9 +360,39 @@ export type AllowedAntdTokenKeys = Extract<
   keyof AntdTokens
 >;
 
+export enum ThemeMode {
+  LIGHT = 'light',
+  DARK = 'dark',
+  SYSTEM = 'system',
+}
+
 export type SharedAntdTokens = Pick<AntdTokens, AllowedAntdTokenKeys>;
 
 /** The final shape for our custom theme object, combining old theme + shared antd + superset specifics. */
 export type SupersetTheme = LegacySupersetTheme &
   SharedAntdTokens &
   SupersetSpecificTokens;
+
+export interface ThemeStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+export interface ThemeControllerOptions {
+  storage?: ThemeStorage;
+  storageKey?: string;
+  modeStorageKey?: string;
+  defaultTheme?: AnyThemeConfig;
+  onChange?: (theme: Theme) => void;
+  canUpdateTheme?: () => boolean;
+  canUpdateMode?: () => boolean;
+}
+
+export interface ThemeContextType {
+  theme: Theme;
+  themeMode: ThemeMode;
+  setTheme: (config: AnyThemeConfig) => void;
+  changeThemeMode: (newMode: ThemeMode) => void;
+  resetTheme: () => void;
+}
