@@ -36,9 +36,10 @@ const defaultProps: PageHeaderWithActionsProps = {
   titlePanelAdditionalItems: <button type="button">Title panel button</button>,
   rightPanelAdditionalItems: <button type="button">Save</button>,
   additionalActionsMenu: (
-    <Menu>
-      <Menu.Item>Test menu item</Menu.Item>
-    </Menu>
+    <Menu
+      items={[{ label: 'Test menu item', key: '1' }]}
+      data-test="additional-actions-menu"
+    />
   ),
   menuDropdownProps: { onVisibleChange: jest.fn(), visible: true },
 };
