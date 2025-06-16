@@ -17,11 +17,13 @@
  * under the License.
  */
 import * as redux from 'redux';
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import {
   render,
   screen,
   fireEvent,
   userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
@@ -166,6 +168,10 @@ const onRefresh = jest.fn();
 const dashboardInfoChanged = jest.fn();
 const dashboardTitleChanged = jest.fn();
 
+jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
+  useUnsavedChangesPrompt: jest.fn(),
+}));
+
 beforeAll(() => {
   jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     addSuccessToast,
@@ -195,9 +201,14 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-});
 
-beforeEach(() => {
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: false,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
   window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
 });
 
@@ -483,4 +494,100 @@ test('should render MetadataBar when not in edit mode and not embedded', () => {
   expect(
     screen.getByText(state.dashboardInfo.changed_on_delta_humanized),
   ).toBeInTheDocument();
+});
+
+test('should show UnsavedChangesModal when there are unsaved changes and user tries to navigate', async () => {
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  await waitFor(() => {
+    expect(
+      screen.getByText('Save changes to your dashboard?'),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText("If you don't save, changes will be lost."),
+    ).toBeInTheDocument();
+  });
+});
+test('should call handleSaveAndCloseModal when Save is clicked in UnsavedChangesModal', async () => {
+  const handleSaveAndCloseModal = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal,
+  });
+
+  setup({ ...editableState });
+
+  await waitFor(() => {
+    expect(
+      screen.getByText('Save changes to your dashboard?'),
+    ).toBeInTheDocument();
+  });
+
+  const saveButton: HTMLElement = screen.getByTestId(
+    'unsaved-confirm-save-button',
+  );
+  userEvent.click(saveButton);
+
+  expect(handleSaveAndCloseModal).toHaveBeenCalled();
+});
+
+test('should call handleConfirmNavigation when user confirms navigation in UnsavedChangesModal', async () => {
+  const handleConfirmNavigation = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation,
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  await waitFor(() => {
+    expect(
+      screen.getByText('Save changes to your dashboard?'),
+    ).toBeInTheDocument();
+  });
+
+  const discardButton: HTMLElement = screen.getByTestId(
+    'unsaved-modal-discard-button',
+  );
+  userEvent.click(discardButton);
+
+  expect(handleConfirmNavigation).toHaveBeenCalled();
+});
+
+test('should call setShowUnsavedChangesModal(false) on cancel', async () => {
+  const setShowModal = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal,
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  await waitFor(() => {
+    expect(
+      screen.getByText('Save changes to your dashboard?'),
+    ).toBeInTheDocument();
+  });
+
+  const cancelButton: HTMLElement = screen.getByTestId('close-modal-btn');
+  userEvent.click(cancelButton);
+
+  expect(setShowModal).toHaveBeenCalledWith(false);
 });

@@ -34,6 +34,8 @@ import { applyColors, resetColors } from 'src/utils/colorScheme';
 import ReportModal from 'src/features/reports/ReportModal';
 import DeleteModal from 'src/components/DeleteModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
+import UnsavedChangesModal from 'src/components/UnsavedChangesModal';
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
@@ -52,6 +54,7 @@ const propTypes = {
   timeout: PropTypes.number,
   chart: chartPropShape,
   saveDisabled: PropTypes.bool,
+  isSaveModalVisible: PropTypes.bool,
 };
 
 const saveButtonStyles = theme => css`
@@ -85,6 +88,7 @@ export const ExploreChartHeader = ({
   sliceName,
   saveDisabled,
   metadata,
+  isSaveModalVisible,
 }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -92,7 +96,9 @@ export const ExploreChartHeader = ({
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
-  const updateCategoricalNamespace = async () => {
+  const [shouldForceCloseModal, setShouldForceCloseModal] = useState(false);
+
+  const updateCategoricalNamespace = useCallback(async () => {
     const { dashboards } = metadata || {};
     const dashboard =
       dashboardId && dashboards && dashboards.find(d => d.id === dashboardId);
@@ -120,11 +126,11 @@ export const ExploreChartHeader = ({
         logging.info(t('Unable to retrieve dashboard colors'));
       }
     }
-  };
+  }, [dashboardColorScheme, dashboardId, metadata]);
 
   useEffect(() => {
     updateCategoricalNamespace();
-  }, []);
+  }, [updateCategoricalNamespace]);
 
   const openPropertiesModal = () => {
     setIsPropertiesModalOpen(true);
@@ -141,10 +147,6 @@ export const ExploreChartHeader = ({
   const closeReportModal = () => {
     setIsReportModalOpen(false);
   };
-
-  const showModal = useCallback(() => {
-    dispatch(setSaveChartModalVisibility(true));
-  }, [dispatch]);
 
   const updateSlice = useCallback(
     slice => {
@@ -184,6 +186,34 @@ export const ExploreChartHeader = ({
   const metadataBar = useExploreMetadataBar(metadata, slice);
 
   const oldSliceName = slice?.slice_name;
+
+  const {
+    showModal: showUnsavedChangesModal,
+    setShowModal: setShowUnsavedChangesModal,
+    handleConfirmNavigation,
+    handleSaveAndCloseModal,
+    triggerManualSave,
+  } = useUnsavedChangesPrompt({
+    hasUnsavedChanges: !saveDisabled,
+    onSave: () => dispatch(setSaveChartModalVisibility(true)),
+    isSaveModalVisible,
+    manualSaveOnUnsavedChanges: true,
+  });
+
+  const showModal = useCallback(() => {
+    triggerManualSave();
+  }, [triggerManualSave]);
+
+  useEffect(() => {
+    if (!isSaveModalVisible) setShouldForceCloseModal(true);
+  }, [isSaveModalVisible, setShowUnsavedChangesModal]);
+
+  useEffect(() => {
+    if (!showUnsavedChangesModal && shouldForceCloseModal) {
+      setShouldForceCloseModal(false);
+    }
+  }, [showUnsavedChangesModal, shouldForceCloseModal]);
+
   return (
     <>
       <PageHeaderWithActions
@@ -292,6 +322,15 @@ export const ExploreChartHeader = ({
           title={t('Delete Report?')}
         />
       )}
+
+      <UnsavedChangesModal
+        title="Save changes to your chart? "
+        body="If you don’t save, changes will be lost."
+        showModal={showUnsavedChangesModal}
+        onHide={() => setShowUnsavedChangesModal(false)}
+        onConfirmNavigation={handleConfirmNavigation}
+        handleSave={handleSaveAndCloseModal}
+      />
     </>
   );
 };

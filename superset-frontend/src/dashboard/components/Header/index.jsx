@@ -55,8 +55,10 @@ import setPeriodicRunner, {
 } from 'src/dashboard/util/setPeriodicRunner';
 import ReportModal from 'src/features/reports/ReportModal';
 import DeleteModal from 'src/components/DeleteModal';
+import UnsavedChangesModal from 'src/components/UnsavedChangesModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -464,6 +466,16 @@ const Header = () => {
     slug,
   ]);
 
+  const {
+    showModal: showUnsavedChangesModal,
+    setShowModal: setShowUnsavedChangesModal,
+    handleConfirmNavigation,
+    handleSaveAndCloseModal,
+  } = useUnsavedChangesPrompt({
+    hasUnsavedChanges,
+    onSave: overwriteDashboard,
+  });
+
   const showPropertiesModal = useCallback(() => {
     setShowingPropertiesModal(true);
   }, []);
@@ -822,6 +834,15 @@ const Header = () => {
             border-right: none;
           }
         `}
+      />
+
+      <UnsavedChangesModal
+        title="Save changes to your dashboard?"
+        body="If you don't save, changes will be lost."
+        showModal={showUnsavedChangesModal}
+        onHide={() => setShowUnsavedChangesModal(false)}
+        onConfirmNavigation={handleConfirmNavigation}
+        handleSave={handleSaveAndCloseModal}
       />
     </div>
   );
