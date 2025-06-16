@@ -483,3 +483,39 @@ test('Add extension to SliceHeader', () => {
 
   expect(screen.getByText('This is an extension')).toBeInTheDocument();
 });
+
+test('Should render RowCountLabel when row limit is hit, and hide it otherwise', () => {
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      row_limit: 10,
+    },
+  });
+  const initialState = {
+    charts: {
+      [props.slice.slice_id]: {
+        queriesResponse: [
+          {
+            sql_rowcount: 10,
+          },
+        ],
+      },
+    },
+  };
+
+  const { rerender } = render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+
+  expect(screen.getByTestId('warning')).toBeInTheDocument();
+  rerender(
+    <SliceHeader
+      {...props}
+      formData={{ ...props.formData, row_limit: 1000 }}
+    />,
+  );
+
+  expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
+});
