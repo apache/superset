@@ -50,7 +50,9 @@ export const BaseIconComponent: React.FC<
   const ariaLabel = genAriaLabel(rest.fileName || '');
   const style = {
     color: iconColor,
-    fontSize: iconSize ? themeObject.getFontSize(iconSize) : theme.fontSize,
+    fontSize: iconSize
+      ? `${themeObject.getFontSize(iconSize)}px`
+      : `${theme.fontSize}px`,
     cursor: rest?.onClick ? 'pointer' : undefined,
   };
 
